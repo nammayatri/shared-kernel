@@ -1,0 +1,553 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           beckn-core
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://bitbucket.org/juspay/beckn#readme>
+homepage:       https://github.com/juspay/beckn#readme
+bug-reports:    https://github.com/juspay/beckn/issues
+author:         Juspay
+maintainer:     Juspay
+copyright:      2020 Juspay Technologies Private Limited
+license:        AllRightsReserved
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/juspay/beckn
+
+library
+  exposed-modules:
+      Beckn.Exit
+      Beckn.External.Encryption
+      Beckn.External.Exotel.Flow
+      Beckn.External.Exotel.Types
+      Beckn.External.FCM.Flow
+      Beckn.External.FCM.Types
+      Beckn.External.GoogleMaps.API
+      Beckn.External.GoogleMaps.Client
+      Beckn.External.GoogleMaps.Types
+      Beckn.External.Graphhopper.Flow
+      Beckn.External.Graphhopper.Types
+      Beckn.External.MyValueFirst.API
+      Beckn.External.MyValueFirst.Flow
+      Beckn.External.MyValueFirst.Types
+      Beckn.InternalAPI.Auth.API
+      Beckn.InternalAPI.Auth.Client
+      Beckn.Mock.App
+      Beckn.Mock.Exceptions
+      Beckn.Mock.ExternalAPI
+      Beckn.Mock.Utils
+      Beckn.Prelude
+      Beckn.Product.MapSearch
+      Beckn.Product.MapSearch.GoogleMaps
+      Beckn.Product.MapSearch.GraphHopper
+      Beckn.Product.Validation.Context
+      Beckn.Scheduler
+      Beckn.Scheduler.App
+      Beckn.Scheduler.Environment
+      Beckn.Scheduler.Error
+      Beckn.Scheduler.JobHandler
+      Beckn.Scheduler.Metrics
+      Beckn.Scheduler.Storage.Queries
+      Beckn.Scheduler.Storage.Tabular
+      Beckn.Scheduler.Types
+      Beckn.Serviceability
+      Beckn.SesConfig
+      Beckn.Sms.Config
+      Beckn.Storage.DB.Config
+      Beckn.Storage.Esqueleto
+      Beckn.Storage.Esqueleto.Class
+      Beckn.Storage.Esqueleto.Config
+      Beckn.Storage.Esqueleto.Functions
+      Beckn.Storage.Esqueleto.Logger
+      Beckn.Storage.Esqueleto.Migration
+      Beckn.Storage.Esqueleto.Queries
+      Beckn.Storage.Esqueleto.SqlDB
+      Beckn.Storage.Esqueleto.Transactionable
+      Beckn.Storage.Esqueleto.Types
+      Beckn.Storage.Hedis
+      Beckn.Storage.Hedis.AppPrefixes
+      Beckn.Storage.Hedis.Config
+      Beckn.Storage.Hedis.Error
+      Beckn.Storage.Hedis.Queries
+      Beckn.Storage.Redis.Config
+      Beckn.Storage.Redis.Queries
+      Beckn.Streaming.Kafka.Commons
+      Beckn.Streaming.Kafka.Consumer
+      Beckn.Streaming.Kafka.Consumer.Types
+      Beckn.Streaming.Kafka.HasKafkaTopics
+      Beckn.Streaming.Kafka.Producer
+      Beckn.Streaming.Kafka.Producer.Types
+      Beckn.Streaming.Kafka.Topic.BusinessEvent
+      Beckn.Streaming.Kafka.Topic.BusinessEvent.Environment
+      Beckn.Streaming.Kafka.Topic.BusinessEvent.Functions
+      Beckn.Streaming.Kafka.Topic.BusinessEvent.Types
+      Beckn.Streaming.Kafka.Topic.PublicTransportQuoteList
+      Beckn.Streaming.Kafka.Topic.PublicTransportQuoteList.Functions
+      Beckn.Streaming.Kafka.Topic.PublicTransportQuoteList.Types
+      Beckn.Streaming.Kafka.Topic.PublicTransportSearch
+      Beckn.Streaming.Kafka.Topic.PublicTransportSearch.Functions
+      Beckn.Streaming.Kafka.Topic.PublicTransportSearch.Types
+      Beckn.Streaming.MonadConsumer
+      Beckn.Streaming.MonadProducer
+      Beckn.Tools.Metrics.BAPMetrics
+      Beckn.Tools.Metrics.BAPMetrics.Types
+      Beckn.Tools.Metrics.CoreMetrics
+      Beckn.Tools.Metrics.CoreMetrics.Types
+      Beckn.Tools.Metrics.Init
+      Beckn.Types.Amount
+      Beckn.Types.APISuccess
+      Beckn.Types.App
+      Beckn.Types.Base64
+      Beckn.Types.Cache
+      Beckn.Types.Common
+      Beckn.Types.Core.Ack
+      Beckn.Types.Core.Domain
+      Beckn.Types.Core.Error
+      Beckn.Types.Core.Migration.Ack
+      Beckn.Types.Core.Migration.AddOn
+      Beckn.Types.Core.Migration.Address
+      Beckn.Types.Core.Migration.Agent
+      Beckn.Types.Core.Migration.API.Cancel
+      Beckn.Types.Core.Migration.API.Confirm
+      Beckn.Types.Core.Migration.API.Init
+      Beckn.Types.Core.Migration.API.Rating
+      Beckn.Types.Core.Migration.API.Search
+      Beckn.Types.Core.Migration.API.Select
+      Beckn.Types.Core.Migration.API.Status
+      Beckn.Types.Core.Migration.API.Support
+      Beckn.Types.Core.Migration.API.Track
+      Beckn.Types.Core.Migration.API.Update
+      Beckn.Types.Core.Migration.Billing
+      Beckn.Types.Core.Migration.Cancellation
+      Beckn.Types.Core.Migration.Catalog
+      Beckn.Types.Core.Migration.Category
+      Beckn.Types.Core.Migration.Circle
+      Beckn.Types.Core.Migration.City
+      Beckn.Types.Core.Migration.Contact
+      Beckn.Types.Core.Migration.Context
+      Beckn.Types.Core.Migration.Country
+      Beckn.Types.Core.Migration.DecimalValue
+      Beckn.Types.Core.Migration.Descriptor
+      Beckn.Types.Core.Migration.Dimensions
+      Beckn.Types.Core.Migration.Domain
+      Beckn.Types.Core.Migration.Duration
+      Beckn.Types.Core.Migration.Error
+      Beckn.Types.Core.Migration.Feedback
+      Beckn.Types.Core.Migration.Fulfillment
+      Beckn.Types.Core.Migration.Gps
+      Beckn.Types.Core.Migration.Image
+      Beckn.Types.Core.Migration.Intent
+      Beckn.Types.Core.Migration.Item
+      Beckn.Types.Core.Migration.ItemQuantity
+      Beckn.Types.Core.Migration.Language
+      Beckn.Types.Core.Migration.Location
+      Beckn.Types.Core.Migration.Name
+      Beckn.Types.Core.Migration.Offer
+      Beckn.Types.Core.Migration.Operator
+      Beckn.Types.Core.Migration.Option
+      Beckn.Types.Core.Migration.Order
+      Beckn.Types.Core.Migration.Organization
+      Beckn.Types.Core.Migration.Page
+      Beckn.Types.Core.Migration.Payment
+      Beckn.Types.Core.Migration.Person
+      Beckn.Types.Core.Migration.Policy
+      Beckn.Types.Core.Migration.Price
+      Beckn.Types.Core.Migration.Provider
+      Beckn.Types.Core.Migration.Quotation
+      Beckn.Types.Core.Migration.Rating
+      Beckn.Types.Core.Migration.Scalar
+      Beckn.Types.Core.Migration.Schedule
+      Beckn.Types.Core.Migration.State
+      Beckn.Types.Core.Migration.Subscriber
+      Beckn.Types.Core.Migration.Support
+      Beckn.Types.Core.Migration.Tags
+      Beckn.Types.Core.Migration.Time
+      Beckn.Types.Core.Migration.Tracking
+      Beckn.Types.Core.Migration.TrackingData
+      Beckn.Types.Core.Migration.Vehicle
+      Beckn.Types.Core.ReqTypes
+      Beckn.Types.Core.Taxi.API.Cancel
+      Beckn.Types.Core.Taxi.API.Confirm
+      Beckn.Types.Core.Taxi.API.OnConfirm
+      Beckn.Types.Core.Taxi.API.OnSearch
+      Beckn.Types.Core.Taxi.API.OnUpdate
+      Beckn.Types.Core.Taxi.API.Rating
+      Beckn.Types.Core.Taxi.API.Search
+      Beckn.Types.Core.Taxi.Cancel.Req
+      Beckn.Types.Core.Taxi.Common.CancellationSource
+      Beckn.Types.Core.Taxi.Common.Context
+      Beckn.Types.Core.Taxi.Common.DecimalValue
+      Beckn.Types.Core.Taxi.Common.Gps
+      Beckn.Types.Core.Taxi.Common.Price
+      Beckn.Types.Core.Taxi.Confirm
+      Beckn.Types.Core.Taxi.Confirm.Order
+      Beckn.Types.Core.Taxi.OnConfirm
+      Beckn.Types.Core.Taxi.OnConfirm.Order
+      Beckn.Types.Core.Taxi.OnConfirm.Provider
+      Beckn.Types.Core.Taxi.OnSearch
+      Beckn.Types.Core.Taxi.OnSearch.Catalog
+      Beckn.Types.Core.Taxi.OnSearch.Item
+      Beckn.Types.Core.Taxi.OnSearch.Provider
+      Beckn.Types.Core.Taxi.OnUpdate
+      Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent
+      Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent.OnUpdateEventType
+      Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent.RideAssignedEvent
+      Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent.RideBookingCancelledEvent
+      Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent.RideBookingReallocationEvent
+      Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent.RideCompletedEvent
+      Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent.RideStartedEvent
+      Beckn.Types.Core.Taxi.Rating
+      Beckn.Types.Core.Taxi.Search
+      Beckn.Types.Core.Taxi.Search.Address
+      Beckn.Types.Core.Taxi.Search.Intent
+      Beckn.Types.Core.Taxi.Search.Location
+      Beckn.Types.Core.Taxi.Search.StartInfo
+      Beckn.Types.Core.Taxi.Search.StopInfo
+      Beckn.Types.Core.Taxi.Search.Time
+      Beckn.Types.Credentials
+      Beckn.Types.Error
+      Beckn.Types.Error.BaseError
+      Beckn.Types.Error.BaseError.HTTPError
+      Beckn.Types.Error.BaseError.HTTPError.APIError
+      Beckn.Types.Error.BaseError.HTTPError.BecknAPIError
+      Beckn.Types.Error.BaseError.HTTPError.CallAPIError
+      Beckn.Types.Error.BaseError.HTTPError.FromResponse
+      Beckn.Types.Error.BaseError.HTTPError.HttpCode
+      Beckn.Types.Field
+      Beckn.Types.Flow
+      Beckn.Types.Forkable
+      Beckn.Types.Geofencing
+      Beckn.Types.GuidLike
+      Beckn.Types.Id
+      Beckn.Types.Logging
+      Beckn.Types.MapSearch
+      Beckn.Types.MonadGuid
+      Beckn.Types.Predicate
+      Beckn.Types.Registry
+      Beckn.Types.Registry.API
+      Beckn.Types.Registry.City
+      Beckn.Types.Registry.Country
+      Beckn.Types.Registry.Domain
+      Beckn.Types.Registry.Routes
+      Beckn.Types.Registry.Subscriber
+      Beckn.Types.Schema
+      Beckn.Types.Servant
+      Beckn.Types.SlidingWindowLimiter
+      Beckn.Types.Time
+      Beckn.Types.Validation
+      Beckn.Utils.App
+      Beckn.Utils.CacheMVar
+      Beckn.Utils.CacheMVarEx
+      Beckn.Utils.CacheRedis
+      Beckn.Utils.Callback
+      Beckn.Utils.Common
+      Beckn.Utils.Context
+      Beckn.Utils.Dhall
+      Beckn.Utils.Error
+      Beckn.Utils.Error.BaseError.HTTPError.APIError
+      Beckn.Utils.Error.BaseError.HTTPError.BecknAPIError
+      Beckn.Utils.Error.DB
+      Beckn.Utils.Error.FlowHandling
+      Beckn.Utils.Error.Hierarchy
+      Beckn.Utils.Error.Throwing
+      Beckn.Utils.Example
+      Beckn.Utils.FlowLogging
+      Beckn.Utils.GenericPretty
+      Beckn.Utils.IOLogging
+      Beckn.Utils.JSON
+      Beckn.Utils.JWT
+      Beckn.Utils.Logging
+      Beckn.Utils.Migration
+      Beckn.Utils.Mock
+      Beckn.Utils.Monitoring.Prometheus.Servant
+      Beckn.Utils.MVar
+      Beckn.Utils.NonEmpty
+      Beckn.Utils.Predicates
+      Beckn.Utils.Registry
+      Beckn.Utils.Schema
+      Beckn.Utils.Servant.API
+      Beckn.Utils.Servant.BaseUrl
+      Beckn.Utils.Servant.Client
+      Beckn.Utils.Servant.HeaderAuth
+      Beckn.Utils.Servant.JSONBS
+      Beckn.Utils.Servant.Server
+      Beckn.Utils.Servant.SignatureAuth
+      Beckn.Utils.Shutdown
+      Beckn.Utils.SignatureAuth
+      Beckn.Utils.SlidingWindowLimiter
+      Beckn.Utils.Text
+      Beckn.Utils.TH
+      Beckn.Utils.Time
+      Beckn.Utils.Validation
+  other-modules:
+      Paths_beckn_core
+  hs-source-dirs:
+      src
+  default-extensions:
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFunctor
+      DeriveGeneric
+      DuplicateRecordFields
+      ExplicitNamespaces
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GADTs
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      ViewPatterns
+      BlockArguments
+      TypeSynonymInstances
+      UndecidableInstances
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor
+  build-depends:
+      aeson
+    , aeson-casing
+    , base >=4.7 && <5
+    , base64-bytestring
+    , binary
+    , bytestring
+    , case-insensitive
+    , clock
+    , containers
+    , cryptonite
+    , data-default-class
+    , dhall
+    , double-conversion
+    , either
+    , esqueleto
+    , euler-hs
+    , exceptions
+    , extra
+    , fast-logger
+    , fmt
+    , generic-lens
+    , geojson
+    , hedis
+    , hex-text
+    , hspec
+    , http-api-data
+    , http-client
+    , http-client-tls
+    , http-media
+    , http-types
+    , hw-kafka-client
+    , jwt
+    , kleene
+    , lattices
+    , lens
+    , memory
+    , monad-logger
+    , mtl
+    , network
+    , openapi3
+    , parsec
+    , passetto-client
+    , persistent
+    , persistent-postgresql
+    , postgresql-migration
+    , postgresql-simple
+    , prometheus-client
+    , prometheus-metrics-ghc
+    , prometheus-proc
+    , pureMD5
+    , random
+    , random-strings
+    , record-dot-preprocessor
+    , record-hasfield
+    , regex-applicative
+    , relude
+    , resource-pool
+    , resourcet
+    , safe-exceptions
+    , safe-money
+    , scientific
+    , servant
+    , servant-client
+    , servant-client-core
+    , servant-multipart
+    , servant-openapi3
+    , servant-server
+    , stm
+    , string-conversions
+    , tasty
+    , tasty-hunit
+    , template-haskell
+    , text
+    , time
+    , time-units
+    , transformers
+    , universum
+    , unix
+    , unliftio
+    , unliftio-core
+    , unordered-containers
+    , utf8-string
+    , uuid
+    , vector
+    , wai
+    , wai-extra
+    , wai-middleware-prometheus
+    , warp
+  default-language: Haskell2010
+
+test-suite beckn-core-tests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Amount
+      APIExceptions
+      SignatureAuth
+      SlidingWindowLimiter
+      TestSilentIOLogger
+      Paths_beckn_core
+  hs-source-dirs:
+      test/app
+      test/src
+  default-extensions:
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFunctor
+      DeriveGeneric
+      DuplicateRecordFields
+      ExplicitNamespaces
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GADTs
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      ViewPatterns
+      BlockArguments
+      TypeSynonymInstances
+      UndecidableInstances
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor
+  build-depends:
+      aeson
+    , aeson-casing
+    , base >=4.7 && <5
+    , base64-bytestring
+    , beckn-core
+    , binary
+    , bytestring
+    , case-insensitive
+    , clock
+    , containers
+    , cryptonite
+    , data-default-class
+    , dhall
+    , double-conversion
+    , either
+    , esqueleto
+    , euler-hs
+    , exceptions
+    , extra
+    , fast-logger
+    , fmt
+    , generic-lens
+    , geojson
+    , hedis
+    , hex-text
+    , hspec
+    , http-api-data
+    , http-client
+    , http-client-tls
+    , http-media
+    , http-types
+    , hw-kafka-client
+    , jwt
+    , kleene
+    , lattices
+    , lens
+    , memory
+    , monad-logger
+    , mtl
+    , network
+    , openapi3
+    , parsec
+    , passetto-client
+    , persistent
+    , persistent-postgresql
+    , postgresql-migration
+    , postgresql-simple
+    , prometheus-client
+    , prometheus-metrics-ghc
+    , prometheus-proc
+    , pureMD5
+    , random
+    , random-strings
+    , record-dot-preprocessor
+    , record-hasfield
+    , regex-applicative
+    , relude
+    , resource-pool
+    , resourcet
+    , safe-exceptions
+    , safe-money
+    , scientific
+    , servant
+    , servant-client
+    , servant-client-core
+    , servant-multipart
+    , servant-openapi3
+    , servant-server
+    , stm
+    , string-conversions
+    , tasty
+    , tasty-hunit
+    , template-haskell
+    , text
+    , time
+    , time-units
+    , transformers
+    , universum
+    , unix
+    , unliftio
+    , unliftio-core
+    , unordered-containers
+    , utf8-string
+    , uuid
+    , vector
+    , wai
+    , wai-extra
+    , wai-middleware-prometheus
+    , warp
+  default-language: Haskell2010
