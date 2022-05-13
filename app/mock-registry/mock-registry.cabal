@@ -1,0 +1,98 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           mock-registry
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://bitbucket.org/juspay/beckn#readme>
+homepage:       https://github.com/juspay/beckn#readme
+bug-reports:    https://github.com/juspay/beckn/issues
+author:         Juspay
+maintainer:     Juspay
+copyright:      2020 Juspay Technologies Private Limited
+license:        AllRightsReserved
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/juspay/beckn
+
+library
+  exposed-modules:
+      App
+      App.Routes
+      App.Server
+      App.Types
+      Domain.Subscriber
+      Flow.Lookup
+      Storage.Queries.Subscriber
+      Storage.Tabular.Subscriber
+  other-modules:
+      Paths_mock_registry
+  hs-source-dirs:
+      src
+  default-extensions:
+      NoImplicitPrelude
+      DataKinds
+      FlexibleContexts
+      FlexibleInstances
+      MultiParamTypeClasses
+      GADTs
+      UndecidableInstances
+      DeriveAnyClass
+      DeriveGeneric
+      TypeOperators
+      DuplicateRecordFields
+      RecordWildCards
+      OverloadedStrings
+      TypeApplications
+  ghc-options: -fwrite-ide-info -hiedir=.hie -fplugin=RecordDotPreprocessor -Wall -Wcompat -Widentities -fhide-source-paths -Wno-unrecognised-pragmas -Werror
+  build-depends:
+      base >=4.7 && <5
+    , beckn-core
+    , euler-hs
+    , persistent
+    , record-dot-preprocessor
+    , record-hasfield
+    , servant-server
+    , text
+    , time
+    , warp
+  default-language: Haskell2010
+
+executable mock-registry-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_mock_registry
+  hs-source-dirs:
+      server
+  default-extensions:
+      NoImplicitPrelude
+      DataKinds
+      FlexibleContexts
+      FlexibleInstances
+      MultiParamTypeClasses
+      GADTs
+      UndecidableInstances
+      DeriveAnyClass
+      DeriveGeneric
+      TypeOperators
+      DuplicateRecordFields
+      RecordWildCards
+      OverloadedStrings
+      TypeApplications
+  ghc-options: -fwrite-ide-info -hiedir=.hie -fplugin=RecordDotPreprocessor -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , euler-hs
+    , mock-registry
+    , persistent
+    , record-dot-preprocessor
+    , record-hasfield
+    , servant-server
+    , text
+    , time
+    , warp
+  default-language: Haskell2010
