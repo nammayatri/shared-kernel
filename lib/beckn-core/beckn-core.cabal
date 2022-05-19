@@ -30,8 +30,6 @@ library
       Beckn.External.GoogleMaps.API
       Beckn.External.GoogleMaps.Client
       Beckn.External.GoogleMaps.Types
-      Beckn.External.Graphhopper.Flow
-      Beckn.External.Graphhopper.Types
       Beckn.External.MyValueFirst.API
       Beckn.External.MyValueFirst.Flow
       Beckn.External.MyValueFirst.Types
@@ -44,7 +42,6 @@ library
       Beckn.Prelude
       Beckn.Product.MapSearch
       Beckn.Product.MapSearch.GoogleMaps
-      Beckn.Product.MapSearch.GraphHopper
       Beckn.Product.Validation.Context
       Beckn.Scheduler
       Beckn.Scheduler.App

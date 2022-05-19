@@ -9,13 +9,17 @@ import Beckn.Utils.Schema (genericDeclareUnNamedSchema)
 import Data.OpenApi (ToSchema (..), defaultSchemaOptions)
 import EulerHS.Prelude hiding (id)
 
+-- TODO Fix OnSearch Catalog according to spec. We don't have actual Catalog design now
 data Item = Item
   { id :: Text,
     vehicle_variant :: Text,
     estimated_price :: Price,
     discount :: Maybe Price,
     discounted_price :: Price,
-    nearest_driver_distance :: DecimalValue
+    nearest_driver_distance :: Maybe DecimalValue, -- only for ONE_WAY
+    baseDistance :: Maybe Double, -- only for RENTAL
+    baseDurationHr :: Maybe Int, -- only for RENTAL
+    descriptions :: Maybe [Text] -- only for RENTAL
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 

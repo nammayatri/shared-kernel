@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- |
 -- Module      : FCM.Flow
@@ -34,20 +35,55 @@ import Servant
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
 -- recipientId::FCMToken is an app's registration token
-createMessage :: FCMAndroidData -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> FCMMessage
+createMessage :: FCMData -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> FCMMessage
 createMessage msgData recipientId priority =
   def{fcmToken = Just recipientId,
-      fcmAndroid = Just androidCfg
+      fcmAndroid = Just androidCfg,
+      fcmApns = Just apnsCfg
      }
   where
     androidCfg = createAndroidConfig msgData priority
+    apnsCfg = createApnsConfig msgData
 
 -- | Android Notification details
-createAndroidConfig :: FCMAndroidData -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig
+createAndroidConfig :: FCMData -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig
 createAndroidConfig cfgData priority =
   def{fcmdData = Just cfgData,
       fcmdPriority = priority
      }
+
+createApnsConfig :: FCMData -> FCMApnsConfig
+createApnsConfig androidFcmData =
+  def{fcmaPayload = Just apnsPayload,
+      fcmaHeaders =
+        Just
+          ( def{fcmApnsPriority = Just "10"
+               }
+          )
+     }
+  where
+    apnsPayload = createApnsPayload androidFcmData
+
+createApnsPayload :: FCMData -> FCMApnPayload
+createApnsPayload androidData =
+  def {fcmAps = Just fcmAps}
+  where
+    fcmAlert :: FCMAlert
+    fcmAlert =
+      def{fcmBody = (.getFCMNotificationBody) <$> body,
+          fcmTitle = (.getFCMNotificationTitle) <$> title
+         }
+    fcmAps :: FCMaps
+    fcmAps =
+      def{fcmAlert = Just fcmAlert,
+          fcmData = Just androidData,
+          fcmCategory = Just androidData.fcmNotificationType
+         }
+    title :: Maybe FCMNotificationTitle
+    title = androidData.fcmNotificationJSON.fcmdTitle
+
+    body :: Maybe FCMNotificationBody
+    body = androidData.fcmNotificationJSON.fcmdBody
 
 createAndroidNotification :: FCMNotificationTitle -> FCMNotificationBody -> FCMNotificationType -> FCMAndroidNotification
 createAndroidNotification title body notificationType =
@@ -76,7 +112,7 @@ notifyPerson ::
   ( CoreMetrics m,
     FCMFlow m r
   ) =>
-  FCMAndroidData ->
+  FCMData ->
   FCMNotificationRecipient ->
   m ()
 notifyPerson = notifyPersonWithPriority Nothing
@@ -86,7 +122,7 @@ notifyPersonWithPriority ::
     FCMFlow m r
   ) =>
   Maybe FCMAndroidMessagePriority ->
-  FCMAndroidData ->
+  FCMData ->
   FCMNotificationRecipient ->
   m ()
 notifyPersonWithPriority priority msgData recipient = do
