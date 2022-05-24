@@ -14,8 +14,6 @@ import qualified Beckn.Scheduler.Storage.Queries as Q
 import Beckn.Scheduler.Types
 import Beckn.Storage.Esqueleto
 import Beckn.Storage.Esqueleto.Config (prepareEsqDBEnv)
-import qualified Beckn.Storage.Esqueleto.Queries as Esq
-import qualified Beckn.Storage.Esqueleto.Transactionable as Esq
 import Beckn.Storage.Hedis (connectHedis)
 import qualified Beckn.Storage.Hedis.Queries as Hedis
 import qualified Beckn.Tools.Metrics.Init as Metrics
@@ -90,6 +88,7 @@ runnerIteration = do
   readyTasks <- getReadyTasks jobType
   tasksPerIteration <- asks (.tasksPerIteration)
   availableReadyTasksIds <- pickTasks tasksPerIteration $ map (.id) readyTasks
+  logPretty DEBUG "available tasks" availableReadyTasksIds
   takenTasksUpdatedInfo <- getTasksById availableReadyTasksIds
   terminationMVar <- newEmptyMVar
   let inspectTermination = modifyMVarMasked_ terminationMVar pure
@@ -229,22 +228,18 @@ defaultResult = Terminate "uncaught exception"
 
 -- api
 
-type SchedulingConstraints m r t d =
-  ( HasEsqEnv r m,
-    MonadGuid m,
-    MonadCatch m,
-    Log m,
-    JobTypeConstraints t,
+type SchedulingConstraints r t d =
+  ( JobTypeConstraints t,
     JobDataConstraints d,
     Show t,
     Show d
   )
 
 createJobIn ::
-  SchedulingConstraints m r t d =>
+  SchedulingConstraints r t d =>
   NominalDiffTime ->
   JobEntry t d ->
-  m (Id (Job t d))
+  SqlDB (Id (Job t d))
 createJobIn diff jobEntry = do
   now <- getCurrentTime
   when (diff < 0) $ throwError $ InternalError "job can only be scheduled for now or for future"
@@ -252,10 +247,10 @@ createJobIn diff jobEntry = do
   createJob scheduledAt jobEntry
 
 createJobByTime ::
-  SchedulingConstraints m r t d =>
+  SchedulingConstraints r t d =>
   UTCTime ->
   JobEntry t d ->
-  m (Id (Job t d))
+  SqlDB (Id (Job t d))
 createJobByTime scheduledAt jobEntry = do
   now <- getCurrentTime
   when (scheduledAt <= now) $
@@ -267,39 +262,20 @@ createJobByTime scheduledAt jobEntry = do
   createJob scheduledAt jobEntry
 
 createJob ::
-  forall a b r m.
-  ( HasEsqEnv r m,
-    MonadGuid m,
-    MonadCatch m,
-    JobTypeConstraints a,
-    JobDataConstraints b,
-    Show a,
-    Show b,
-    Log m
-  ) =>
+  forall t d r.
+  SchedulingConstraints r t d =>
   UTCTime ->
-  JobEntry a b ->
-  m (Id (Job a b))
+  JobEntry t d ->
+  SqlDB (Id (Job t d))
 createJob scheduledAt jobEntry = do
   when (jobEntry.maxErrors <= 0) $ throwError $ InternalError "maximum errors should be positive"
   now <- getCurrentTime
   id <- Id <$> generateGUIDText
   let job = makeJob id now
       jobText = encodeJob job
-  Esq.runTransaction $ do
-    Q.create jobText
-    mbFetchedJob <- Esq.findById jobText.id
-    fetchedJob <- fromMaybeM (InternalError "Failed to insert job") mbFetchedJob
-    case decodeJob @a @b fetchedJob of
-      Left err -> do
-        logError $ "failed to decode job:" <> show fetchedJob
-        throwError err
-      Right decodedJob ->
-        unless (typeAndDataAreEqual job decodedJob) $
-          logWarning $ "database representations of the inserted and the fetched jobs are not equal: " <> show job <> " : " <> show decodedJob
+  Q.create jobText
   pure job.id
   where
-    typeAndDataAreEqual job1 job2 = job1.jobData == job2.jobData && job1.jobType == job2.jobType
     makeJob id currentTime =
       Job
         { id = id,
@@ -312,14 +288,3 @@ createJob scheduledAt jobEntry = do
           currErrors = 0,
           status = Pending
         }
-
-{-
-  forM_ takenTasksUpdatedInfo $ \job ->
-      forkIO $
-        withLogTag' job $ do
-          measuringDuration registerDuration $ do
-            eithRes <- race inspectTermination (executeTask job)
-            let res = either (const defaultResult) identity eithRes
-            registerExecutionResult job res
-          releaseLock job.id
--}
