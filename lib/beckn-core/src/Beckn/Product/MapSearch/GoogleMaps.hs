@@ -4,6 +4,8 @@ module Beckn.Product.MapSearch.GoogleMaps
     getDistance,
     getDistances,
     getRoutes,
+    HasCoordinates (..),
+    getDistancesGeneral,
   )
 where
 
@@ -36,7 +38,7 @@ data GetDistanceResultInfo = GetDistanceResultInfo
 getDistance ::
   ( MonadFlow m,
     CoreMetrics m,
-    GoogleMaps.HasGoogleMaps m r c
+    GoogleMaps.HasGoogleMaps m r
   ) =>
   Maybe MapSearch.TravelMode ->
   MapSearch.LatLong ->
@@ -52,23 +54,50 @@ getDistance travelMode origin destination utcDepartureTime =
 getDistances ::
   ( MonadFlow m,
     CoreMetrics m,
-    GoogleMaps.HasGoogleMaps m r c
+    GoogleMaps.HasGoogleMaps m r
   ) =>
   Maybe MapSearch.TravelMode ->
   NonEmpty MapSearch.LatLong ->
   NonEmpty MapSearch.LatLong ->
   Maybe UTCTime ->
   m [GetDistanceResult]
-getDistances travelMode origins destinations utcDepartureTime = do
+getDistances travelMode origins destinations =
+  getDistancesGeneral travelMode origins destinations $
+    \o d i -> GetDistanceResult (latLongToPlace o) (latLongToPlace d) i
+
+--
+class HasCoordinates a where
+  getCoordinates :: a -> MapSearch.LatLong
+
+instance HasCoordinates MapSearch.LatLong where
+  getCoordinates = identity
+
+--
+getDistancesGeneral ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    GoogleMaps.HasGoogleMaps m r,
+    HasCoordinates a,
+    HasCoordinates b
+  ) =>
+  Maybe MapSearch.TravelMode ->
+  NonEmpty a ->
+  NonEmpty b ->
+  (a -> b -> GetDistanceResultInfo -> c) ->
+  Maybe UTCTime ->
+  m [c]
+getDistancesGeneral travelMode origins destinations zipFunc utcDepartureTime = do
   googleMapsUrl <- asks (.googleMapsUrl)
   key <- asks (.googleMapsKey)
-  originPlaces <- map latLongToPlace <$> capListAsPerGoogleLimits "origins" origins
-  destinationPlaces <- map latLongToPlace <$> capListAsPerGoogleLimits "destinations" destinations
+  limitedOriginObjects <- capListAsPerGoogleLimits "origins" origins
+  limitedDestinationObjects <- capListAsPerGoogleLimits "destinations" destinations
+  let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
+      limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
   let departureTime = case utcDepartureTime of
         Nothing -> Just GoogleMaps.Now
         Just time -> Just $ GoogleMaps.FutureTime time
-  GoogleMaps.distanceMatrix googleMapsUrl originPlaces destinationPlaces key departureTime mode
-    >>= parseDistanceMatrixResp originPlaces destinationPlaces
+  GoogleMaps.distanceMatrix googleMapsUrl limitedOriginPlaces limitedDestinationPlaces key departureTime mode
+    >>= parseDistanceMatrixRespGeneral zipFunc (toList limitedOriginObjects) (toList limitedDestinationObjects)
   where
     mode = mapToMode <$> travelMode
 
@@ -81,7 +110,7 @@ getDistances travelMode origins destinations utcDepartureTime = do
 getRoutes ::
   ( MonadFlow m,
     CoreMetrics m,
-    GoogleMaps.HasGoogleMaps m r c
+    GoogleMaps.HasGoogleMaps m r
   ) =>
   MapSearch.Request ->
   m GoogleMaps.DirectionsResp
@@ -99,23 +128,14 @@ getRoutes req = do
         [] -> Nothing
         _ -> Just (map latLongToPlace (init $ NE.tail waypoints))
 
-latLongToPlace :: MapSearch.LatLong -> GoogleMaps.Place
-latLongToPlace MapSearch.LatLong {..} =
-  GoogleMaps.Location $ GoogleMaps.LocationS {lat = lat, lng = lon}
-
-mapToMode :: MapSearch.TravelMode -> GoogleMaps.Mode
-mapToMode MapSearch.CAR = GoogleMaps.DRIVING
-mapToMode MapSearch.MOTORCYCLE = GoogleMaps.DRIVING
-mapToMode MapSearch.BICYCLE = GoogleMaps.BICYCLING
-mapToMode MapSearch.FOOT = GoogleMaps.WALKING
-
-parseDistanceMatrixResp ::
+parseDistanceMatrixRespGeneral ::
   (MonadThrow m, MonadIO m, Log m) =>
-  [GoogleMaps.Place] ->
-  [GoogleMaps.Place] ->
+  (a -> b -> GetDistanceResultInfo -> c) ->
+  [a] ->
+  [b] ->
   GoogleMaps.DistanceMatrixResp ->
-  m [GetDistanceResult]
-parseDistanceMatrixResp origins destinations distanceMatrixResp = do
+  m [c]
+parseDistanceMatrixRespGeneral zipFunc origins destinations distanceMatrixResp = do
   mapM buildGetDistanceResult origDestAndElemList
   where
     origDestAndElemList = do
@@ -132,7 +152,17 @@ parseDistanceMatrixResp origins destinations distanceMatrixResp = do
 
     buildGetDistanceResult (orig, dest, element) = do
       info <- buildGetDistanceResultInfo element
-      return $ GetDistanceResult orig dest info
+      pure $ zipFunc orig dest info
+
+latLongToPlace :: MapSearch.LatLong -> GoogleMaps.Place
+latLongToPlace MapSearch.LatLong {..} =
+  GoogleMaps.Location $ GoogleMaps.LocationS {lat = lat, lng = lon}
+
+mapToMode :: MapSearch.TravelMode -> GoogleMaps.Mode
+mapToMode MapSearch.CAR = GoogleMaps.DRIVING
+mapToMode MapSearch.MOTORCYCLE = GoogleMaps.DRIVING
+mapToMode MapSearch.BICYCLE = GoogleMaps.BICYCLING
+mapToMode MapSearch.FOOT = GoogleMaps.WALKING
 
 parseDistances :: (MonadThrow m, Log m) => GoogleMaps.DistanceMatrixElement -> m Meter
 parseDistances distanceMatrixElement = do

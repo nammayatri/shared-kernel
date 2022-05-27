@@ -7,7 +7,7 @@ import Data.Double.Conversion.Text (toFixed)
 import qualified Data.Text as T
 import Servant
 
-type HasGoogleMaps m r c = (MonadReader r m, HasField "googleMapsUrl" r BaseUrl, HasField "googleMapsKey" r Text)
+type HasGoogleMaps m r = (MonadReader r m, HasField "googleMapsUrl" r BaseUrl, HasField "googleMapsKey" r Text)
 
 data SearchLocationResp = SearchLocationResp
   { status :: Text,

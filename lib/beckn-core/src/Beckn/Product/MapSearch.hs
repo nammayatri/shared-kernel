@@ -10,7 +10,7 @@ import Beckn.Utils.Common hiding (id)
 getDistance ::
   ( MonadFlow m,
     CoreMetrics m,
-    HasGoogleMaps m r c
+    HasGoogleMaps m r
   ) =>
   Maybe MapSearch.TravelMode ->
   MapSearch.LatLong ->
@@ -25,7 +25,7 @@ getDistance travelMode origin destination = do
 getDistances ::
   ( MonadFlow m,
     CoreMetrics m,
-    HasGoogleMaps m r c
+    HasGoogleMaps m r
   ) =>
   Maybe MapSearch.TravelMode ->
   NonEmpty MapSearch.LatLong ->
