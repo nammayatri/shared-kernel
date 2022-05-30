@@ -19,7 +19,7 @@ data Gps = Gps
   { lat :: Double,
     lon :: Double
   }
-  deriving (Generic, Show, ToSchema, PrettyShow)
+  deriving (Generic, Show, ToSchema, PrettyShow, Eq)
 
 instance Example Gps where
   example =
