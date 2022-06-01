@@ -10,14 +10,14 @@ buildTaxiContext ::
   (MonadTime m, MonadGuid m) =>
   Cab.Action ->
   Text ->
+  Maybe Text ->
   Text ->
   BaseUrl ->
   Maybe Text ->
   Maybe BaseUrl ->
   m Cab.Context
-buildTaxiContext action txnId bapId bapUri bppId bppUri = do
+buildTaxiContext action msgId txnId bapId bapUri bppId bppUri = do
   currTime <- getCurrentTime
-  msgId <- generateGUIDText
   return $
     Cab.Context
       { domain = Cab.MOBILITY,
@@ -27,7 +27,7 @@ buildTaxiContext action txnId bapId bapUri bppId bppUri = do
         bap_uri = bapUri,
         bpp_id = bppId,
         bpp_uri = bppUri,
-        transaction_id = Just txnId,
+        transaction_id = txnId,
         message_id = msgId,
         timestamp = currTime,
         country = "IND",
