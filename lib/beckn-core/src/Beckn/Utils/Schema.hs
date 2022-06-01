@@ -2,6 +2,7 @@ module Beckn.Utils.Schema
   ( stripPrefixUnderscoreIfAny,
     untaggedValue,
     genericDeclareUnNamedSchema,
+    objectWithSingleFieldParsing,
   )
 where
 
@@ -30,3 +31,10 @@ genericDeclareUnNamedSchema :: forall a. (Generic a, GToSchema (Rep a), Typeable
 genericDeclareUnNamedSchema opt prx = do
   res <- genericDeclareNamedSchema opt prx
   return $ res {_namedSchemaName = Nothing}
+
+objectWithSingleFieldParsing :: (String -> String) -> SchemaOptions
+objectWithSingleFieldParsing constructorMapping =
+  defaultSchemaOptions
+    { sumEncoding = A.ObjectWithSingleField,
+      constructorTagModifier = constructorMapping
+    }
