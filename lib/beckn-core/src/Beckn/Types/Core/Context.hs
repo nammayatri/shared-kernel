@@ -23,7 +23,7 @@ data Context = Context
     bap_uri :: BaseUrl,
     bpp_id :: Maybe Text,
     bpp_uri :: Maybe BaseUrl,
-    transaction_id :: Text,
+    transaction_id :: Maybe Text,
     message_id :: Text,
     timestamp :: UTCTime
   }
@@ -42,7 +42,7 @@ instance Example Context where
         bap_uri = fromJust $ parseBaseUrl "https://api.domain.com/",
         bpp_id = Just "API.DOMAIN",
         bpp_uri = parseBaseUrl "https://api.domain.com/",
-        transaction_id = idExample,
+        transaction_id = Just idExample,
         message_id = idExample,
         timestamp = example,
         country = "IND",
