@@ -25,6 +25,7 @@ import Data.Aeson
 import Data.Generics.Labels ()
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude hiding (id)
+import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
 
 newtype IdObject = IdObject
@@ -33,26 +34,32 @@ newtype IdObject = IdObject
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
-class FromBeckn a b where
-  fromBeckn :: a -> b
-
-class ToBeckn a b where
-  toBeckn :: b -> a
-
--- This type class is not strictly an isomorphism. We use the name 'Iso' to
--- denote that it is always expected that a type from the beckn spec should
--- have a corresponding type defined by us allowing conversion (which may be
--- lossy) between the two, when defined as an instance of this typeclass.
-class (FromBeckn a b, ToBeckn a b) => BecknSpecIso a b
-
 newtype Meters = Meters
   { getMeters :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum)
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving stock (Generic)
+
+newtype HighPrecMeters = HighPrecMeters
+  { getHighPrecMeters :: Double
+  }
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, Ord, Eq, Enum, ToSchema)
   deriving stock (Generic)
 
 newtype Kilometers = Kilometers
-  { getKilometers :: Double
+  { getKilometers :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, Ord, Eq, Enum)
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
   deriving stock (Generic)
+
+kilometersToMeters :: Kilometers -> Meters
+kilometersToMeters (Kilometers n) = Meters $ n * 1000
+
+metersToKilometers :: Meters -> Kilometers
+metersToKilometers (Meters n) = Kilometers $ n `div` 1000
+
+metersToHighPrecMeters :: Meters -> HighPrecMeters
+metersToHighPrecMeters (Meters n) = HighPrecMeters $ int2Double n
+
+highPrecMetersToMeters :: HighPrecMeters -> Meters
+highPrecMetersToMeters (HighPrecMeters n) = Meters $ double2Int n

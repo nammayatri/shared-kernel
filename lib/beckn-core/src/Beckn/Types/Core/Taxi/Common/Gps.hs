@@ -1,7 +1,6 @@
 module Beckn.Types.Core.Taxi.Common.Gps (Gps (..)) where
 
 import Beckn.Utils.Error.Throwing (fromEitherM')
-import Beckn.Utils.Example
 import Control.Arrow ((>>>))
 import Control.Lens
 import Data.Aeson
@@ -20,13 +19,6 @@ data Gps = Gps
     lon :: Double
   }
   deriving (Generic, Show)
-
-instance Example Gps where
-  example =
-    Gps
-      { lat = 20.5937,
-        lon = 78.9629
-      }
 
 instance ToSchema Gps where
   declareNamedSchema _ = do

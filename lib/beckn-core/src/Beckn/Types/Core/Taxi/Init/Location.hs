@@ -1,18 +1,16 @@
-module Beckn.Types.Core.Taxi.Search.Location
-  ( module Beckn.Types.Core.Taxi.Search.Location,
+module Beckn.Types.Core.Taxi.Init.Location
+  ( module Beckn.Types.Core.Taxi.Init.Location,
     module Reexport,
   )
 where
 
 import Beckn.Types.Core.Taxi.Common.Gps as Reexport
-import Beckn.Types.Core.Taxi.Search.Address (Address)
 import Beckn.Utils.Schema (genericDeclareUnNamedSchema)
 import Data.OpenApi (ToSchema (..), defaultSchemaOptions)
 import EulerHS.Prelude
 
-data Location = Location
-  { gps :: Gps,
-    address :: Address
+newtype Location = Location
+  { gps :: Gps
   }
   deriving (Generic, Show, ToJSON, FromJSON)
 

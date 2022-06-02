@@ -17,20 +17,35 @@ import qualified System.Clock as Clock
 newtype Microseconds = Microseconds
   { getMicroseconds :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum)
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
   deriving stock (Generic)
 
 newtype Milliseconds = Milliseconds
   { getMilliseconds :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum)
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
   deriving stock (Generic)
 
 newtype Seconds = Seconds
   { getSeconds :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum)
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
   deriving stock (Generic)
+
+newtype Minutes = Minutes
+  { getMinutes :: Int
+  }
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving stock (Generic)
+
+newtype Hours = Hours
+  { getHours :: Int
+  }
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving stock (Generic)
+
+secondsToMinutes :: Seconds -> Minutes
+secondsToMinutes (Seconds secs) = Minutes $ secs `div` 60
 
 type MeasuringDuration m a = MonadClock m => m a -> m a
 

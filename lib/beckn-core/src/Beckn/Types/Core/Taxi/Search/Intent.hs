@@ -5,41 +5,15 @@ module Beckn.Types.Core.Taxi.Search.Intent
 where
 
 import Beckn.Types.Core.Taxi.Common.DecimalValue as Reexport
-import Beckn.Types.Core.Taxi.Search.StartInfo
-import Beckn.Types.Core.Taxi.Search.StopInfo
-import Beckn.Utils.Example
+import Beckn.Types.Core.Taxi.Search.Fulfillment
 import Beckn.Utils.Schema (genericDeclareUnNamedSchema)
 import Data.OpenApi (ToSchema (..), defaultSchemaOptions)
 import EulerHS.Prelude hiding (id)
 
 newtype Intent = Intent
-  { fulfillment :: FulFillmentInfo
+  { fulfillment :: FulfillmentInfo
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
 instance ToSchema Intent where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
-
-instance Example Intent where
-  example =
-    Intent
-      { fulfillment = example
-      }
-
--- If end = Nothing, then bpp sends quotes only for RENTAL
--- If end is Just, then bpp sends quotes both for RENTAL and ONE_WAY
-data FulFillmentInfo = FulFillmentInfo
-  { start :: StartInfo,
-    end :: Maybe StopInfo
-  }
-  deriving (Generic, FromJSON, ToJSON, Show)
-
-instance ToSchema FulFillmentInfo where
-  declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
-
-instance Example FulFillmentInfo where
-  example =
-    FulFillmentInfo
-      { start = example,
-        end = example
-      }

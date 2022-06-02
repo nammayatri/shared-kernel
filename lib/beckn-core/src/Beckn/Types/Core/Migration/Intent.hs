@@ -15,7 +15,7 @@ import EulerHS.Prelude hiding (id)
 
 data Intent = Intent
   { provider :: Maybe ProviderInfo,
-    fulfillment :: Maybe FulFillmentInfo,
+    fulfillment :: Maybe FulfillmentInfo,
     payment :: Maybe Payment,
     category :: Maybe Category,
     offer :: Maybe Offer,
@@ -59,7 +59,7 @@ data ProviderInfo = ProviderInfo
 newtype DescriptorName = DescriptorName {name :: Text}
   deriving (Generic, FromJSON, ToJSON, Show, ToSchema)
 
-data FulFillmentInfo = FulFillmentInfo
+data FulfillmentInfo = FulfillmentInfo
   { id :: Maybe Text,
     start :: Maybe LocationAndTime,
     end :: Maybe LocationAndTime,
@@ -68,9 +68,9 @@ data FulFillmentInfo = FulFillmentInfo
   }
   deriving (Generic, FromJSON, ToJSON, Show, ToSchema)
 
-emptyFulFillmentInfo :: FulFillmentInfo
-emptyFulFillmentInfo =
-  FulFillmentInfo
+emptyFulfillmentInfo :: FulfillmentInfo
+emptyFulfillmentInfo =
+  FulfillmentInfo
     { id = Nothing,
       start = Nothing,
       end = Nothing,
@@ -78,9 +78,9 @@ emptyFulFillmentInfo =
       vehicle = Nothing
     }
 
-instance Example FulFillmentInfo where
+instance Example FulfillmentInfo where
   example =
-    FulFillmentInfo
+    FulfillmentInfo
       { id = Nothing,
         start = example,
         end = example,

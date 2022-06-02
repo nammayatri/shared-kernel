@@ -17,8 +17,8 @@ data Item = Item
     discount :: Maybe Price,
     discounted_price :: Price,
     nearest_driver_distance :: Maybe DecimalValue, -- only for ONE_WAY
-    baseDistance :: Maybe Double, -- only for RENTAL
-    baseDurationHr :: Maybe Int, -- only for RENTAL
+    baseDistance :: Maybe Int, -- only for RENTAL
+    baseDuration :: Maybe Int, -- only for RENTAL
     descriptions :: Maybe [Text] -- only for RENTAL
   }
   deriving (Generic, FromJSON, ToJSON, Show)

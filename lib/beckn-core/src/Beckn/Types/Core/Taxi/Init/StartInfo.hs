@@ -1,11 +1,11 @@
-module Beckn.Types.Core.Taxi.Search.StartInfo
-  ( module Beckn.Types.Core.Taxi.Search.StartInfo,
+module Beckn.Types.Core.Taxi.Init.StartInfo
+  ( module Beckn.Types.Core.Taxi.Init.StartInfo,
     module Reexport,
   )
 where
 
 import Beckn.Types.Core.Taxi.Common.TimeTimestamp as Reexport
-import Beckn.Types.Core.Taxi.Search.Location (Location)
+import Beckn.Types.Core.Taxi.Init.Location (Location)
 import Beckn.Utils.Schema (genericDeclareUnNamedSchema)
 import Data.OpenApi (ToSchema (..), defaultSchemaOptions)
 import EulerHS.Prelude hiding (id)

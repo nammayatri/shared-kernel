@@ -10,11 +10,13 @@ import Beckn.Utils.Common hiding (id)
 getDistance ::
   ( MonadFlow m,
     CoreMetrics m,
-    HasGoogleMaps m r
+    HasGoogleMaps m r,
+    GoogleMaps.HasCoordinates a,
+    GoogleMaps.HasCoordinates b
   ) =>
   Maybe MapSearch.TravelMode ->
-  MapSearch.LatLong ->
-  MapSearch.LatLong ->
+  a ->
+  b ->
   m GoogleMaps.GetDistanceResult
 getDistance travelMode origin destination = do
   key <- asks (.googleMapsKey)
@@ -25,11 +27,13 @@ getDistance travelMode origin destination = do
 getDistances ::
   ( MonadFlow m,
     CoreMetrics m,
-    HasGoogleMaps m r
+    HasGoogleMaps m r,
+    GoogleMaps.HasCoordinates a,
+    GoogleMaps.HasCoordinates b
   ) =>
   Maybe MapSearch.TravelMode ->
-  NonEmpty MapSearch.LatLong ->
-  NonEmpty MapSearch.LatLong ->
+  NonEmpty a ->
+  NonEmpty b ->
   m [GoogleMaps.GetDistanceResult]
 getDistances travelMode origins destinations = do
   key <- asks (.googleMapsKey)
@@ -40,20 +44,22 @@ getDistances travelMode origins destinations = do
 -- FIXME Should we use some calculation here?
 
 makeMockGetDistanceResult ::
-  MapSearch.LatLong ->
-  MapSearch.LatLong ->
+  ( GoogleMaps.HasCoordinates a,
+    GoogleMaps.HasCoordinates b
+  ) =>
+  a ->
+  b ->
   GoogleMaps.GetDistanceResult
-makeMockGetDistanceResult origin dest =
+makeMockGetDistanceResult origin dest = do
+  let originLatLong = GoogleMaps.getCoordinates origin
+      destLatLong = GoogleMaps.getCoordinates dest
   GoogleMaps.GetDistanceResult
-    { origin = GoogleMaps.Location $ LocationS origin.lat origin.lon,
-      destination = GoogleMaps.Location $ LocationS dest.lat dest.lon,
-      info =
-        GoogleMaps.GetDistanceResultInfo
-          { distance = Meter 9446,
-            duration = mockDuration,
-            duration_in_traffic = mockDuration,
-            status = "OK"
-          }
+    { origin = GoogleMaps.Location $ LocationS originLatLong.lat originLatLong.lon,
+      destination = GoogleMaps.Location $ LocationS destLatLong.lat destLatLong.lon,
+      distance = Meters 9446,
+      duration = mockDuration,
+      duration_in_traffic = mockDuration,
+      status = "OK"
     }
   where
-    mockDuration = intToNominalDiffTime 648
+    mockDuration = 648

@@ -1,11 +1,11 @@
+{-# LANGUAGE DefaultSignatures #-}
+
 module Beckn.Product.MapSearch.GoogleMaps
   ( GetDistanceResult (..),
-    GetDistanceResultInfo (..),
     getDistance,
     getDistances,
     getRoutes,
     HasCoordinates (..),
-    getDistancesGeneral,
   )
 where
 
@@ -18,19 +18,14 @@ import Beckn.Types.Error
 import qualified Beckn.Types.MapSearch as MapSearch
 import Beckn.Utils.Common hiding (id)
 import qualified Data.List.NonEmpty as NE
-import GHC.Float
+import GHC.Float (double2Int)
 
 data GetDistanceResult = GetDistanceResult
   { origin :: GoogleMaps.Place,
     destination :: GoogleMaps.Place,
-    info :: GetDistanceResultInfo
-  }
-  deriving (Generic)
-
-data GetDistanceResultInfo = GetDistanceResultInfo
-  { distance :: Meter,
-    duration :: NominalDiffTime,
-    duration_in_traffic :: NominalDiffTime,
+    distance :: Meters,
+    duration :: Seconds,
+    duration_in_traffic :: Seconds,
     status :: Text
   }
   deriving (Generic)
@@ -38,11 +33,13 @@ data GetDistanceResultInfo = GetDistanceResultInfo
 getDistance ::
   ( MonadFlow m,
     CoreMetrics m,
-    GoogleMaps.HasGoogleMaps m r
+    GoogleMaps.HasGoogleMaps m r,
+    HasCoordinates a,
+    HasCoordinates b
   ) =>
   Maybe MapSearch.TravelMode ->
-  MapSearch.LatLong ->
-  MapSearch.LatLong ->
+  a ->
+  b ->
   Maybe UTCTime ->
   m GetDistanceResult
 getDistance travelMode origin destination utcDepartureTime =
@@ -51,29 +48,20 @@ getDistance travelMode origin destination utcDepartureTime =
     [a] -> return a
     _ -> throwError (InternalError "Exactly one GoogleMaps.getDistance result expected.")
 
-getDistances ::
-  ( MonadFlow m,
-    CoreMetrics m,
-    GoogleMaps.HasGoogleMaps m r
-  ) =>
-  Maybe MapSearch.TravelMode ->
-  NonEmpty MapSearch.LatLong ->
-  NonEmpty MapSearch.LatLong ->
-  Maybe UTCTime ->
-  m [GetDistanceResult]
-getDistances travelMode origins destinations =
-  getDistancesGeneral travelMode origins destinations $
-    \o d i -> GetDistanceResult (latLongToPlace o) (latLongToPlace d) i
-
 --
 class HasCoordinates a where
   getCoordinates :: a -> MapSearch.LatLong
+  default getCoordinates :: (HasField "lat" a Double, HasField "lon" a Double) => a -> MapSearch.LatLong
+  getCoordinates = getCoordinatessDefault
+
+getCoordinatessDefault :: (HasField "lat" a Double, HasField "lon" a Double) => a -> MapSearch.LatLong
+getCoordinatessDefault loc = MapSearch.LatLong loc.lat loc.lon
 
 instance HasCoordinates MapSearch.LatLong where
   getCoordinates = identity
 
 --
-getDistancesGeneral ::
+getDistances ::
   ( MonadFlow m,
     CoreMetrics m,
     GoogleMaps.HasGoogleMaps m r,
@@ -83,10 +71,9 @@ getDistancesGeneral ::
   Maybe MapSearch.TravelMode ->
   NonEmpty a ->
   NonEmpty b ->
-  (a -> b -> GetDistanceResultInfo -> c) ->
   Maybe UTCTime ->
-  m [c]
-getDistancesGeneral travelMode origins destinations zipFunc utcDepartureTime = do
+  m [GetDistanceResult]
+getDistances travelMode origins destinations utcDepartureTime = do
   googleMapsUrl <- asks (.googleMapsUrl)
   key <- asks (.googleMapsKey)
   limitedOriginObjects <- capListAsPerGoogleLimits "origins" origins
@@ -97,7 +84,7 @@ getDistancesGeneral travelMode origins destinations zipFunc utcDepartureTime = d
         Nothing -> Just GoogleMaps.Now
         Just time -> Just $ GoogleMaps.FutureTime time
   GoogleMaps.distanceMatrix googleMapsUrl limitedOriginPlaces limitedDestinationPlaces key departureTime mode
-    >>= parseDistanceMatrixRespGeneral zipFunc (toList limitedOriginObjects) (toList limitedDestinationObjects)
+    >>= parseDistanceMatrixRespGeneral limitedOriginPlaces limitedDestinationPlaces
   where
     mode = mapToMode <$> travelMode
 
@@ -130,12 +117,11 @@ getRoutes req = do
 
 parseDistanceMatrixRespGeneral ::
   (MonadThrow m, MonadIO m, Log m) =>
-  (a -> b -> GetDistanceResultInfo -> c) ->
-  [a] ->
-  [b] ->
+  [GoogleMaps.Place] ->
+  [GoogleMaps.Place] ->
   GoogleMaps.DistanceMatrixResp ->
-  m [c]
-parseDistanceMatrixRespGeneral zipFunc origins destinations distanceMatrixResp = do
+  m [GetDistanceResult]
+parseDistanceMatrixRespGeneral origins destinations distanceMatrixResp = do
   mapM buildGetDistanceResult origDestAndElemList
   where
     origDestAndElemList = do
@@ -143,16 +129,20 @@ parseDistanceMatrixRespGeneral zipFunc origins destinations distanceMatrixResp =
       (dest, element) <- zip destinations row.elements
       return (orig, dest, element)
 
-    buildGetDistanceResultInfo element = do
+    buildGetDistanceResult (orig, dest, element) = do
       void $ GoogleMaps.validateResponseStatus element
       distance <- parseDistances element
       duration <- parseDuration element
       durationInTraffic <- parseDurationInTraffic element
-      return $ GetDistanceResultInfo distance duration durationInTraffic element.status
-
-    buildGetDistanceResult (orig, dest, element) = do
-      info <- buildGetDistanceResultInfo element
-      pure $ zipFunc orig dest info
+      pure $
+        GetDistanceResult
+          { origin = orig,
+            destination = dest,
+            distance = distance,
+            duration = Seconds . double2Int . realToFrac $ duration,
+            duration_in_traffic = Seconds . double2Int . realToFrac $ durationInTraffic,
+            status = element.status
+          }
 
 latLongToPlace :: MapSearch.LatLong -> GoogleMaps.Place
 latLongToPlace MapSearch.LatLong {..} =
@@ -164,12 +154,12 @@ mapToMode MapSearch.MOTORCYCLE = GoogleMaps.DRIVING
 mapToMode MapSearch.BICYCLE = GoogleMaps.BICYCLING
 mapToMode MapSearch.FOOT = GoogleMaps.WALKING
 
-parseDistances :: (MonadThrow m, Log m) => GoogleMaps.DistanceMatrixElement -> m Meter
+parseDistances :: (MonadThrow m, Log m) => GoogleMaps.DistanceMatrixElement -> m Meters
 parseDistances distanceMatrixElement = do
   distance <-
     distanceMatrixElement.distance
       & fromMaybeM (InternalError "No distance value provided in distance matrix API response")
-  pure $ Meter $ int2Double distance.value
+  pure $ Meters $ distance.value
 
 parseDuration :: (MonadThrow m, Log m) => GoogleMaps.DistanceMatrixElement -> m NominalDiffTime
 parseDuration distanceMatrixElement = do

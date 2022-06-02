@@ -83,8 +83,3 @@ newtype RegistrySecrets = RegistrySecrets
   { encryptionPrivKeyB16 :: Text
   }
   deriving (Generic, FromDhall)
-
-newtype Meter = Meter
-  { getDistanceInMeter :: Double
-  }
-  deriving (Generic, Show, Eq, ToJSON, FromJSON)
