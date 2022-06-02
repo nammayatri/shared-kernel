@@ -6,9 +6,8 @@ import Data.OpenApi (ToSchema)
 import EulerHS.Prelude hiding (id)
 
 data Location = Location
-  { id :: Text,
-    descriptor :: Descriptor,
+  { descriptor :: Descriptor,
     gps :: Gps,
-    station_code :: Text
+    code :: Text
   }
   deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
