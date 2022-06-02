@@ -3,7 +3,7 @@ module Beckn.Utils.Callback (withBecknCallbackMig, WithBecknCallbackMig) where
 import Beckn.Tools.Metrics.CoreMetrics
 import Beckn.Types.Common
 import Beckn.Types.Core.Ack
-import qualified Beckn.Types.Core.Migration.Context as M.Context
+import qualified Beckn.Types.Core.Context as M.Context
 import Beckn.Types.Core.ReqTypes
 import Beckn.Types.Error
 import Beckn.Types.Error.BaseError.HTTPError.BecknAPIError

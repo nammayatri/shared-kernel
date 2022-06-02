@@ -1,7 +1,10 @@
+{-# LANGUAGE DerivingVia #-}
+
 module Beckn.Types.Core.Domain (Domain (..)) where
 
 import Beckn.Utils.Dhall (FromDhall)
 import Beckn.Utils.Example
+import Beckn.Utils.GenericPretty
 import Beckn.Utils.JSON (replaceUnderscoresString)
 import Data.Aeson
 import Data.OpenApi hiding (Example)
@@ -17,6 +20,7 @@ data Domain
   | PUBLIC_TRANSPORT
   | LOGISTICS
   deriving (Eq, Generic, Show, Read, FromDhall)
+  deriving (PrettyShow) via Showable Domain
 
 instance Example Domain where
   example = MOBILITY

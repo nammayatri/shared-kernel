@@ -1,6 +1,6 @@
 module Beckn.Types.Core.Migration.Subscriber where
 
-import Beckn.Types.Core.Migration.Domain
+import Beckn.Types.Core.Domain
 import Beckn.Utils.JSON
 import Data.Time
 import EulerHS.Prelude

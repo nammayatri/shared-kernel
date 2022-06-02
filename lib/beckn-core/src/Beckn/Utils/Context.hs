@@ -1,7 +1,7 @@
 module Beckn.Utils.Context where
 
 import Beckn.Types.App
-import qualified Beckn.Types.Core.Taxi.Common.Context as Cab
+import qualified Beckn.Types.Core.Context as Cab
 import Beckn.Types.MonadGuid
 import Beckn.Types.Time
 import EulerHS.Prelude

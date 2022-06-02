@@ -1,9 +1,9 @@
 {-# LANGUAGE DerivingVia #-}
 
-module Beckn.Types.Core.Migration.Context where
+module Beckn.Types.Core.Context (module Beckn.Types.Core.Context, module Reexport) where
 
 import Beckn.Types.App
-import Beckn.Types.Core.Domain (Domain)
+import Beckn.Types.Core.Domain as Reexport
 import Beckn.Utils.Example
 import Beckn.Utils.GenericPretty
 import Beckn.Utils.JSON
