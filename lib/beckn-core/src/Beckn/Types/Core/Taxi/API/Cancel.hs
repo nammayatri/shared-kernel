@@ -6,7 +6,7 @@ import Beckn.Types.Core.Taxi.Cancel.Req
 import EulerHS.Prelude
 import Servant (JSON, Post, ReqBody, (:>))
 
-type CancelReq = BecknReq CancelReqMessage
+type CancelReq = BecknReq CancelMessage
 
 type CancelRes = AckResponse
 

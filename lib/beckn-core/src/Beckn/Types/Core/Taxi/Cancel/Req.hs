@@ -8,7 +8,7 @@ import Beckn.Types.Core.Taxi.Common.CancellationSource as Reexport
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
 
-data CancelReqMessage = CancelReqMessage
+data CancelMessage = CancelMessage
   { order_id :: Text,
     cancellation_reason_id :: CancellationSource
   }
