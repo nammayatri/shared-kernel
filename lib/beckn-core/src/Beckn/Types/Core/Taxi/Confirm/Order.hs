@@ -3,42 +3,29 @@ module Beckn.Types.Core.Taxi.Confirm.Order
   )
 where
 
-import Beckn.Utils.Example
+import Beckn.Types.Core.Taxi.Confirm.Fulfillment
+import Beckn.Types.Core.Taxi.Confirm.Payment
 import Beckn.Utils.Schema (genericDeclareUnNamedSchema)
 import Data.OpenApi (ToSchema (..), defaultSchemaOptions)
 import EulerHS.Prelude hiding (State, id, state)
 
 data Order = Order
-  { items :: [OrderItem],
-    fulfillment :: Fulfillment
+  { id :: Text,
+    fulfillment :: FulfillmentInfo,
+    customer :: OrderCustomer,
+    payment :: Payment
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
 instance ToSchema Order where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
 
-newtype OrderItem = OrderItem
-  { id :: Text
-  }
-  deriving (Generic, FromJSON, ToJSON, Show)
-
-instance ToSchema OrderItem where
-  declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
-
-newtype Fulfillment = Fulfillment
-  { customer :: Customer
-  }
-  deriving (Generic, FromJSON, ToJSON, Show)
-
-instance ToSchema Fulfillment where
-  declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
-
-newtype Customer = Customer
+newtype OrderCustomer = OrderCustomer
   { contact :: Contact
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
-instance ToSchema Customer where
+instance ToSchema OrderCustomer where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
 
 newtype Contact = Contact
@@ -57,25 +44,3 @@ data Phone = Phone
 
 instance ToSchema Phone where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
-
-instance Example Order where
-  example =
-    Order
-      { items =
-          [ OrderItem
-              { id = "quote_id"
-              }
-          ],
-        fulfillment =
-          Fulfillment $
-            Customer
-              { contact =
-                  Contact
-                    { phone =
-                        Phone
-                          { country_code = "+9",
-                            number = "9999999999"
-                          }
-                    }
-              }
-      }
