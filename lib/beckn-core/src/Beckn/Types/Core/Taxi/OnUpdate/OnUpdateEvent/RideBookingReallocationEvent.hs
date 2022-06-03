@@ -4,66 +4,61 @@ module Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent.RideBookingReallocationEvent
   )
 where
 
+import Beckn.Prelude
 import Beckn.Types.Core.Taxi.Common.CancellationSource as Reexport
 import Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent.OnUpdateEventType (OnUpdateEventType (RIDE_BOOKING_REALLOCATION))
-import Beckn.Utils.Example
 import qualified Control.Lens as L
 import Data.Aeson as A
 import Data.OpenApi hiding (Example, example, name)
-import EulerHS.Prelude hiding (id, (.=))
 import GHC.Exts (fromList)
 
 data RideBookingReallocationEvent = RideBookingReallocationEvent
-  { order_id :: Text,
-    ride_id :: Text,
-    cancellation_reason_id :: CancellationSource
+  { id :: Text,
+    update_target :: Text
   }
   deriving (Generic, Show)
 
 instance ToJSON RideBookingReallocationEvent where
   toJSON RideBookingReallocationEvent {..} =
     A.Object $
-      "order_id" .= order_id
-        <> "ride_id" .= ride_id
-        <> "cancellation_reason_id" .= cancellation_reason_id
-        <> "update_type" .= RIDE_BOOKING_REALLOCATION
+      "id" .= id
+        <> "./komn/update_target" .= update_target
+        <> "fulfillment" .= (("state" .= (("code" .= RIDE_BOOKING_REALLOCATION) :: A.Object)) :: A.Object)
 
 instance FromJSON RideBookingReallocationEvent where
   parseJSON = withObject "RideBookingReallocationEvent" $ \obj -> do
-    update_type <- obj .: "update_type"
+    update_type <- (obj .: "fulfillment") >>= (.: "state") >>= (.: "code")
     unless (update_type == RIDE_BOOKING_REALLOCATION) $ fail "Wrong update_type."
     RideBookingReallocationEvent
-      <$> obj .: "order_id"
-      <*> obj .: "ride_id"
-      <*> obj .: "cancellation_reason_id"
+      <$> obj .: "id"
+      <*> obj .: "./komn/update_target"
 
 instance ToSchema RideBookingReallocationEvent where
   declareNamedSchema _ = do
-    id <- declareSchemaRef (Proxy :: Proxy Text)
-    cancellationSource <- declareSchemaRef (Proxy :: Proxy CancellationSource)
+    txt <- declareSchemaRef (Proxy :: Proxy Text)
     update_type <- declareSchemaRef (Proxy :: Proxy OnUpdateEventType)
+    let st =
+          mempty
+            & type_ L.?~ OpenApiObject
+            & properties
+              L..~ fromList
+                [("code", update_type)]
+            & required L..~ ["code"]
+        fulfillment =
+          mempty
+            & type_ L.?~ OpenApiObject
+            & properties
+              L..~ fromList
+                [("state", Inline st)]
+            & required L..~ ["state"]
     return $
       NamedSchema (Just "RideBookingReallocationEvent") $
         mempty
           & type_ L.?~ OpenApiObject
           & properties
             L..~ fromList
-              [ ("order_id", id),
-                ("ride_id", id),
-                ("cancellation_reason_id", cancellationSource),
-                ("update_type", update_type)
+              [ ("id", txt),
+                ("./komn/update_target", txt),
+                ("fulfillment", Inline fulfillment)
               ]
-          & required
-            L..~ [ "order_id",
-                   "ride_id",
-                   "cancellation_reason_id",
-                   "update_type"
-                 ]
-
-instance Example RideBookingReallocationEvent where
-  example =
-    RideBookingReallocationEvent
-      { order_id = "ride_booking_id",
-        ride_id = "ride_id",
-        cancellation_reason_id = ByDriver
-      }
+          & required L..~ ["id", "./komn/update_target", "fulfillment"]

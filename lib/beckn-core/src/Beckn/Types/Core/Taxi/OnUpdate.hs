@@ -9,6 +9,6 @@ import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
 
 newtype OnUpdateMessage = OnUpdateMessage
-  { cabs_update_event :: OnUpdateEvent
+  { order :: OnUpdateEvent
   }
   deriving (Generic, Show, FromJSON, ToJSON, ToSchema)

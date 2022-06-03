@@ -10,7 +10,7 @@ import Beckn.Types.Core.Taxi.Common.PaymentType as Reexport
 import Beckn.Types.Core.Taxi.Common.TimeDuration as Reexport
 import Beckn.Utils.JSON as JSON
 import Beckn.Utils.Schema
-import Data.OpenApi (ToSchema (..), defaultSchemaOptions)
+import Data.OpenApi (ToSchema (..), defaultSchemaOptions, fromAesonOptions)
 
 data Payment = Payment
   { collected_by :: Text,
@@ -27,7 +27,7 @@ instance ToJSON Payment where
   toJSON = genericToJSON JSON.stripPrefixUnderscoreIfAny
 
 instance ToSchema Payment where
-  declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
+  declareNamedSchema = genericDeclareUnNamedSchema $ fromAesonOptions JSON.stripPrefixUnderscoreIfAny
 
 data PaymentParams = PaymentParams
   { currency :: Text,
