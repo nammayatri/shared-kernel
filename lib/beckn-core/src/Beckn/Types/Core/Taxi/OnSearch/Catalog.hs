@@ -1,14 +1,15 @@
-module Beckn.Types.Core.Taxi.OnSearch.Catalog (Catalog (..)) where
+module Beckn.Types.Core.Taxi.OnSearch.Catalog where
 
-import Beckn.Types.Core.Taxi.OnSearch.Provider (Provider)
-import Beckn.Utils.Example
+import Beckn.Types.Core.Taxi.OnSearch.Descriptor
+import Beckn.Types.Core.Taxi.OnSearch.Provider
 import Beckn.Utils.JSON (slashedRecordFields)
 import Beckn.Utils.Schema (genericDeclareUnNamedSchema)
 import Data.OpenApi (ToSchema (..), fromAesonOptions)
 import EulerHS.Prelude hiding (exp, id)
 
-newtype Catalog = Catalog
-  { bpp_providers :: [Provider]
+data Catalog = Catalog
+  { bpp_descriptor :: Descriptor,
+    bpp_providers :: [Provider]
   }
   deriving (Generic, Show)
 
@@ -20,9 +21,3 @@ instance FromJSON Catalog where
 
 instance ToJSON Catalog where
   toJSON = genericToJSON slashedRecordFields
-
-instance Example Catalog where
-  example =
-    Catalog
-      { bpp_providers = example
-      }

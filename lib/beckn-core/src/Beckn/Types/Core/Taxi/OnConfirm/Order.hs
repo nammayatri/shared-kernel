@@ -5,7 +5,6 @@ module Beckn.Types.Core.Taxi.OnConfirm.Order
 where
 
 import Beckn.Types.Core.Taxi.Common.Price as Reexport
-import Beckn.Utils.Example
 import Beckn.Utils.Schema (genericDeclareUnNamedSchema)
 import Data.OpenApi (ToSchema (..), defaultSchemaOptions)
 import EulerHS.Prelude hiding (State, id, state)
@@ -27,11 +26,3 @@ newtype OrderItem = OrderItem
 
 instance ToSchema OrderItem where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
-
-instance Example Order where
-  example =
-    Order
-      { id = "ride_booking_id",
-        items = [OrderItem "quote_id"],
-        estimated_total_fare = example
-      }

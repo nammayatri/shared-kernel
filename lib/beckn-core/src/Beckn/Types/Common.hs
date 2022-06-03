@@ -21,6 +21,7 @@ import Beckn.Types.Logging as Common
 import Beckn.Types.MonadGuid as Common
 import Beckn.Types.Time as Common
 import Beckn.Utils.Dhall (FromDhall)
+import Beckn.Utils.GenericPretty
 import Data.Aeson
 import Data.Generics.Labels ()
 import Data.OpenApi (ToSchema)
@@ -37,19 +38,19 @@ newtype IdObject = IdObject
 newtype Meters = Meters
   { getMeters :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
 newtype HighPrecMeters = HighPrecMeters
   { getHighPrecMeters :: Double
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, Ord, Eq, Enum, ToSchema)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
 newtype Kilometers = Kilometers
   { getKilometers :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
 kilometersToMeters :: Kilometers -> Meters

@@ -1,10 +1,8 @@
 module Beckn.Types.Core.Taxi.Init.Fulfillment
   ( module Beckn.Types.Core.Taxi.Init.Fulfillment,
-    module Reexport,
   )
 where
 
-import Beckn.Types.Core.Taxi.Common.DecimalValue as Reexport
 import Beckn.Types.Core.Taxi.Init.StartInfo
 import Beckn.Types.Core.Taxi.Init.StopInfo
 import Beckn.Utils.Schema (genericDeclareUnNamedSchema)

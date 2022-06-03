@@ -1,4 +1,4 @@
-module Beckn.Types.Core.Taxi.Init.Location
+module Beckn.Types.Core.Taxi.OnSearch.Location
   ( module Reexport,
   )
 where

@@ -1,4 +1,4 @@
-module Beckn.Types.Core.Taxi.Init.StopInfo
+module Beckn.Types.Core.Taxi.OnSearch.StopInfo
   ( module Reexport,
   )
 where

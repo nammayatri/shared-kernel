@@ -18,7 +18,6 @@ module Beckn.Utils.GenericPretty
 where
 
 import Beckn.Prelude
-import Beckn.Types.Time
 import Data.Aeson
 import qualified Data.ByteString as BS (ByteString)
 import qualified Data.ByteString.Lazy as BSL
@@ -183,9 +182,6 @@ instance (PrettyShow a) => PrettyShow (Maybe a) where
   prettyShow Nothing = LEmpty
 
 instance PrettyShow BaseUrl where
-  prettyShow = LStr . show
-
-instance PrettyShow Iso8601Time where
   prettyShow = LStr . show
 
 instance (PrettyShow a, PrettyShow b) => PrettyShow (a, b)

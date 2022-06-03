@@ -1,4 +1,4 @@
-module Beckn.Types.Core.Taxi.Common.Price
+module Beckn.Types.Core.Taxi.OnSearch.Price
   ( Price (..),
     module Reexport,
   )
@@ -7,7 +7,8 @@ where
 import Beckn.Prelude
 import Beckn.Types.Core.Taxi.Common.DecimalValue as Reexport
 
-newtype Price = Price
-  { value :: DecimalValue
+data Price = Price
+  { currency :: Text,
+    value :: DecimalValue
   }
   deriving (Generic, FromJSON, ToJSON, Show, ToSchema)

@@ -6,7 +6,6 @@ where
 
 import Beckn.Types.Core.Taxi.Common.Price as Reexport
 import Beckn.Types.Core.Taxi.OnUpdate.OnUpdateEvent.OnUpdateEventType (OnUpdateEventType (RIDE_COMPLETED))
-import Beckn.Utils.Example
 import qualified Control.Lens as L
 import Data.Aeson as A
 import Data.OpenApi hiding (Example, example)
@@ -70,13 +69,3 @@ instance ToSchema RideCompletedEvent where
                    "fare",
                    "update_type"
                  ]
-
-instance Example RideCompletedEvent where
-  example =
-    RideCompletedEvent
-      { order_id = "ride_booking_id",
-        ride_id = "ride_id",
-        chargeable_distance = 123,
-        total_fare = example,
-        fare = example
-      }

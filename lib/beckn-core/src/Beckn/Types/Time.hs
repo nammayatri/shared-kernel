@@ -4,6 +4,7 @@
 module Beckn.Types.Time where
 
 import Beckn.Utils.Dhall (FromDhall)
+import Beckn.Utils.GenericPretty
 import Data.Aeson (Value (..))
 import Data.Aeson.Types (typeMismatch)
 import Data.OpenApi (ToSchema)
@@ -17,31 +18,31 @@ import qualified System.Clock as Clock
 newtype Microseconds = Microseconds
   { getMicroseconds :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
 newtype Milliseconds = Milliseconds
   { getMilliseconds :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
 newtype Seconds = Seconds
   { getSeconds :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
 newtype Minutes = Minutes
   { getMinutes :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
 newtype Hours = Hours
   { getHours :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
 secondsToMinutes :: Seconds -> Minutes
@@ -63,7 +64,7 @@ instance MonadClock IO where
 
 newtype Iso8601Time = Iso8601Time {getUtcTime :: UTCTime}
   deriving (Show, Eq)
-  deriving newtype (ToSchema)
+  deriving newtype (ToSchema, PrettyShow)
 
 instance FromJSON Iso8601Time where
   parseJSON (String s) = Iso8601Time <$> iso8601ParseM (Text.unpack s)

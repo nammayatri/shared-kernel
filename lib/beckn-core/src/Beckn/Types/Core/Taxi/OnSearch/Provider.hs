@@ -1,38 +1,76 @@
 module Beckn.Types.Core.Taxi.OnSearch.Provider
   ( Provider (..),
+    ProviderTags (..),
   )
 where
 
-import Beckn.Types.Core.Taxi.OnSearch.Item (Item)
-import Beckn.Utils.Example
+import Beckn.Prelude
+import Beckn.Types.Core.Taxi.OnSearch.Addon
+import Beckn.Types.Core.Taxi.OnSearch.Category
+import Beckn.Types.Core.Taxi.OnSearch.Descriptor
+import Beckn.Types.Core.Taxi.OnSearch.Fulfillment
+import Beckn.Types.Core.Taxi.OnSearch.Item
+import Beckn.Types.Core.Taxi.OnSearch.Offer
+import Beckn.Types.Core.Taxi.OnSearch.Payment
+import Beckn.Types.Core.Taxi.OnSearch.ProviderLocation
 import Beckn.Utils.Schema (genericDeclareUnNamedSchema)
-import Data.OpenApi (ToSchema (..), defaultSchemaOptions)
-import EulerHS.Prelude hiding (exp, id)
+import Data.Aeson
+import Data.OpenApi (ToSchema (..), fromAesonOptions)
 
 data Provider = Provider
   { id :: Text,
-    name :: Text,
+    descriptor :: Descriptor,
+    locations :: [ProviderLocation],
+    categories :: [Category],
     items :: [Item], --FIXME this should be list of only RENTAL or only ONE_WAY items
+    offers :: [Offer],
+    add_ons :: [Addon],
+    fulfillments :: [FulfillmentInfo],
     contacts :: Text,
-    category_id :: Text, -- ONE_WAY or RENTAL
-    rides_inprogress :: Int,
+    tags :: ProviderTags,
+    payment :: Payment
+  }
+  deriving (Generic, Show)
+
+instance ToJSON Provider where
+  toJSON = genericToJSON providerJSONOptions
+
+instance FromJSON Provider where
+  parseJSON = genericParseJSON providerJSONOptions
+
+instance ToSchema Provider where
+  declareNamedSchema = genericDeclareUnNamedSchema $ fromAesonOptions providerJSONOptions
+
+providerJSONOptions :: Options
+providerJSONOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "contacts" -> "./komn/contacts"
+        a -> a
+    }
+
+data ProviderTags = ProviderTags
+  { rides_inprogress :: Int,
     rides_completed :: Int,
     rides_confirmed :: Int
   }
-  deriving (Generic, FromJSON, ToJSON, Show)
+  deriving (Generic, Show)
 
-instance ToSchema Provider where
-  declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
+instance ToJSON ProviderTags where
+  toJSON = genericToJSON providerTagsJSONOptions
 
-instance Example Provider where
-  example =
-    Provider
-      { id = "id",
-        name = "name",
-        items = [],
-        contacts = "99999999999",
-        category_id = "ONE_WAY",
-        rides_inprogress = 12,
-        rides_completed = 32,
-        rides_confirmed = 3
-      }
+instance FromJSON ProviderTags where
+  parseJSON = genericParseJSON providerTagsJSONOptions
+
+instance ToSchema ProviderTags where
+  declareNamedSchema = genericDeclareUnNamedSchema $ fromAesonOptions providerTagsJSONOptions
+
+providerTagsJSONOptions :: Options
+providerTagsJSONOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "rides_inprogress" -> "./komn.rides_inprogress"
+        "rides_confirmed" -> "./komn.rides_confirmed"
+        "rides_completed" -> "./komn.rides_completed"
+        a -> a
+    }

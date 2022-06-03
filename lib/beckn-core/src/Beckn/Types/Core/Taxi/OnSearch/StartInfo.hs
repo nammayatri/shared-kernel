@@ -1,4 +1,4 @@
-module Beckn.Types.Core.Taxi.Init.StartInfo
+module Beckn.Types.Core.Taxi.OnSearch.StartInfo
   ( module Reexport,
   )
 where
