@@ -10,7 +10,7 @@ logBecknRequest :: Text -> Text -> SqlDB ()
 logBecknRequest reqJSON sign = do
   uuid <- generateGUID
   now <- getCurrentTime
-  Esq.create' $
+  Esq.create $
     BecknRequest
       { id = uuid,
         timeStamp = now,

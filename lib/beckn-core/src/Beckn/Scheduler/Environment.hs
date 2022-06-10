@@ -49,6 +49,7 @@ data SchedulerEnv t = SchedulerEnv
     port :: Int,
     isShuttingDown :: Shutdown
   }
+  deriving (Generic)
 
 releaseSchedulerEnv :: SchedulerEnv t -> IO ()
 releaseSchedulerEnv SchedulerEnv {..} = do

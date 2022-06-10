@@ -1,8 +1,8 @@
 module Beckn.Storage.Esqueleto.Config where
 
 import Beckn.Storage.Esqueleto.Logger (runLoggerIO)
-import Beckn.Types.App (HasFlowEnv)
-import Beckn.Types.Field ((:::))
+import Beckn.Types.App (MonadFlow)
+import Beckn.Types.Time (MonadTime)
 import Beckn.Utils.Dhall (FromDhall)
 import Beckn.Utils.IOLogging
 import Data.Pool (Pool)
@@ -10,6 +10,7 @@ import Database.Persist.Postgresql
 import Database.PostgreSQL.Simple (execute_)
 import Database.PostgreSQL.Simple.Types (Query (Query))
 import EulerHS.Prelude
+import GHC.Records.Extra
 
 data EsqDBConfig = EsqDBConfig
   { connectHost :: Text,
@@ -51,4 +52,6 @@ prepareEsqDBEnv cfg logEnv = do
     modifyConn schemaName conn =
       void . execute_ conn . Query $ "set search_path to " <> schemaName <> ", public; "
 
-type EsqDBFlow m r = (HasFlowEnv m r '["esqDBEnv" ::: EsqDBEnv], HasLog r)
+type HasEsqEnv m r = (MonadReader r m, HasLog r, HasField "esqDBEnv" r EsqDBEnv, MonadTime m, MonadIO m)
+
+type EsqDBFlow m r = (HasEsqEnv m r, MonadFlow m)

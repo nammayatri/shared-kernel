@@ -10,7 +10,7 @@ import Beckn.Types.Id
 import Beckn.Utils.Common (encodeToText)
 
 create :: JobText -> SqlDB ()
-create = create'
+create = Esq.create
 
 findAll :: SchedulerM t [JobText]
 findAll = Esq.findAll $ from $ table @JobT
@@ -39,7 +39,7 @@ getReadyTasks mbType = do
 updateStatus :: JobStatus -> Id (Job a b) -> SchedulerM t ()
 updateStatus newStatus jobId = do
   now <- getCurrentTime
-  Esq.update $ \job -> do
+  Esq.runTransaction . Esq.update $ \job -> do
     set job [JobStatus =. val newStatus, JobUpdatedAt =. val now]
     where_ $ job ^. JobId ==. val jobId.getId
 
@@ -52,28 +52,28 @@ markAsFailed = updateStatus Failed
 updateErrorCountAndFail :: Id (Job a b) -> Int -> SchedulerM t ()
 updateErrorCountAndFail jobId fCount = do
   now <- getCurrentTime
-  Esq.update $ \job -> do
+  Esq.runTransaction . Esq.update $ \job -> do
     set job [JobStatus =. val Failed, JobCurrErrors =. val fCount, JobUpdatedAt =. val now]
     where_ $ job ^. JobId ==. val jobId.getId
 
 reSchedule :: Id (Job a b) -> UTCTime -> SchedulerM t ()
 reSchedule jobId newScheduleTime = do
   now <- getCurrentTime
-  Esq.update $ \job -> do
+  Esq.runTransaction . Esq.update $ \job -> do
     set job [JobScheduledAt =. val newScheduleTime, JobUpdatedAt =. val now]
     where_ $ job ^. JobId ==. val jobId.getId
 
 updateFailureCount :: Id (Job a b) -> Int -> SchedulerM t ()
 updateFailureCount jobId newCountValue = do
   now <- getCurrentTime
-  Esq.update $ \job -> do
+  Esq.runTransaction . Esq.update $ \job -> do
     set job [JobCurrErrors =. val newCountValue, JobUpdatedAt =. val now]
     where_ $ job ^. JobId ==. val jobId.getId
 
 reScheduleOnError :: Id (Job a b) -> Int -> UTCTime -> SchedulerM t ()
 reScheduleOnError jobId newCountValue newScheduleTime = do
   now <- getCurrentTime
-  Esq.update $ \job -> do
+  Esq.runTransaction . Esq.update $ \job -> do
     set
       job
       [ JobScheduledAt =. val newScheduleTime,

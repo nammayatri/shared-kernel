@@ -29,9 +29,8 @@ instance TEntityKey BecknRequestT where
   fromKey (BecknRequestTKey _id) = Id _id
   toKey (Id id) = BecknRequestTKey id
 
-instance TEntity BecknRequestT Domain.BecknRequest where
-  fromTEntity entity = do
-    let BecknRequestT {..} = entityVal entity
+instance TType BecknRequestT Domain.BecknRequest where
+  fromTType BecknRequestT {..} = do
     return $
       Domain.BecknRequest
         { id = Id id,
@@ -42,5 +41,3 @@ instance TEntity BecknRequestT Domain.BecknRequest where
       { id = getId id,
         ..
       }
-  toTEntity a =
-    Entity (toKey a.id) $ toTType a

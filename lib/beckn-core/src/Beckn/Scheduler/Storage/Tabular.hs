@@ -36,9 +36,8 @@ instance TEntityKey JobT where
   fromKey (JobTKey _id) = Id _id
   toKey (Id id) = JobTKey id
 
-instance TEntity JobT ST.JobText where
-  fromTEntity jobEntity = do
-    let JobT {..} = entityVal jobEntity
+instance TType JobT ST.JobText where
+  fromTType JobT {..} = do
     pure $
       ST.Job
         { id = Id id,
@@ -49,4 +48,3 @@ instance TEntity JobT ST.JobText where
       { id = getId id,
         ..
       }
-  toTEntity job = Entity (toKey job.id) $ toTType job

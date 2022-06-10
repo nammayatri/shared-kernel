@@ -12,6 +12,7 @@ import Control.Monad.Catch as E
     SomeException (..),
   )
 import Control.Monad.Reader as E
+import Control.Monad.Trans.Maybe as E
 import Data.Aeson as E (FromJSON (..), ToJSON (..), genericParseJSON, genericToJSON)
 import Data.Bool as E (bool)
 import Data.Fixed
@@ -21,7 +22,7 @@ import Data.Functor as E
 import Data.Functor.Identity as E
 import Data.Kind as E (Type)
 import Data.List.NonEmpty as E (NonEmpty (..))
-import Data.Maybe as E (fromMaybe, listToMaybe)
+import Data.Maybe as E
 import Data.OpenApi as E (ToParamSchema, ToSchema)
 import Data.Proxy as E (Proxy (..))
 import Data.String as E (IsString (..))
@@ -30,6 +31,7 @@ import qualified Data.Text as T
 import Data.Time as E (TimeOfDay)
 import Data.Time.Clock (secondsToNominalDiffTime)
 import Data.Time.Clock as E (NominalDiffTime, UTCTime)
+import Data.Traversable as E
 import GHC.Generics as E (Generic, Generic1)
 import GHC.Int as E (Int64)
 import GHC.Records.Compat as E

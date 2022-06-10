@@ -4,23 +4,29 @@ import Beckn.Prelude
 import Beckn.Storage.Esqueleto.Config
 import Beckn.Storage.Esqueleto.Logger
 import Beckn.Storage.Esqueleto.SqlDB
-import Beckn.Types.Time (MonadTime, getCurrentTime)
-import Beckn.Utils.IOLogging
+import Beckn.Types.Logging
+import Beckn.Types.Time (getCurrentTime)
 import Database.Esqueleto.Experimental (SqlBackend, runSqlPool)
 
-class Transactionable m where
+class (MonadThrow m, Log m) => Transactionable m where
   runTransaction :: SqlDB a -> m a
 
 instance {-# OVERLAPPING #-} Transactionable (ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
   runTransaction = identity
 
-type HasEsqEnv r m = (MonadReader r m, HasLog r, HasField "esqDBEnv" r EsqDBEnv, MonadTime m, MonadIO m)
-
-instance {-# INCOHERENT #-} (HasEsqEnv r m) => Transactionable m where
+-- We need INCOHERENT here because in next case:
+-- create :: a -> m ()
+-- create = runTransaction  . create'
+-- compiler cannot figure out which instance to use since in some cases it might be SqlDB
+-- and in another it might be not.
+-- But with INCOHERENT it will always use Transactionable m instance.
+-- It's fine since Transactionable SqlDB instance should be used only in find... functions,
+-- which have proper Transactionable instance.
+instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m) => Transactionable m where
   runTransaction = runTransactionImpl
 
 runTransactionImpl ::
-  (HasEsqEnv r m) =>
+  (HasEsqEnv m r) =>
   SqlDB a ->
   m a
 runTransactionImpl run = do
