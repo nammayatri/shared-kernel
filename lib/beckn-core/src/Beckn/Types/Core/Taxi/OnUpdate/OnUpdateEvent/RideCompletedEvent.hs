@@ -84,22 +84,32 @@ data RideCompletedQuote = RideCompletedQuote
 instance ToSchema RideCompletedQuote where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
 
+data QuotePrice = QuotePrice
+  { currency :: Text,
+    value :: DecimalValue,
+    computed_value :: DecimalValue
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
+
+instance ToSchema QuotePrice where
+  declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
+
 data BreakupItem = BreakupItem
   { title :: Text,
-    price :: QuotePrice
+    price :: BreakupPrice
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
 instance ToSchema BreakupItem where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
 
-data QuotePrice = QuotePrice
+data BreakupPrice = BreakupPrice
   { currency :: Text,
     value :: DecimalValue
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
-instance ToSchema QuotePrice where
+instance ToSchema BreakupPrice where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
 
 data FulfillmentInfo = FulfillmentInfo
