@@ -81,9 +81,11 @@ roundToPowerOfTen :: RealFrac a => Int -> a -> a
 roundToPowerOfTen tenExp a = do
   let f = 10 ^^ negate tenExp
       lifted = a * f
-  if abs (lifted - fromIntegral @Int (floor lifted)) == 0.5
-    then (lifted + signum lifted * 0.5) / f
-    else (fromIntegral @Integer . round $ lifted) / f
+      eps = 1e-8
+      roundVia func = fromIntegral @Integer (func lifted) / f
+  if abs (abs (lifted - fromIntegral @Integer (floor lifted)) - 0.5) < eps
+    then if a >= 0 then roundVia ceiling else roundVia floor
+    else roundVia round
 
 roundToUnits :: (RealFrac a) => a -> a
 roundToUnits = roundToPowerOfTen 0

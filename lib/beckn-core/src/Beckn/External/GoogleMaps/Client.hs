@@ -74,8 +74,8 @@ distanceMatrix ::
   Text ->
   Maybe GoogleMaps.Mode ->
   m GoogleMaps.DistanceMatrixResp
-distanceMatrix url origins destinations key  mode = do
-  callAPI url (API.distanceMatrix origins destinations key  mode) "distanceMatrix"
+distanceMatrix url origins destinations key mode = do
+  callAPI url (API.distanceMatrix origins destinations key mode) "distanceMatrix"
     >>= checkGoogleMapsError url
 
 directions ::

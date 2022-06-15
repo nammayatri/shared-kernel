@@ -28,7 +28,7 @@ type GoogleMapsAPI =
     :<|> DistanceMatrixAPI
     :<|> DirectionsAPI
 
-type GetCoordinatesAPI = 
+type GetCoordinatesAPI =
   "geocode" :> "json"
     :> MandatoryQueryParam "place_id" Text
     :> MandatoryQueryParam "key" Text
@@ -76,8 +76,7 @@ directions ::
 autoComplete :<|> placeDetails :<|> getPlaceName :<|> distanceMatrix :<|> directions = client googleMapsAPI
 
 getCoordinatesAPI :: Proxy GetCoordinatesAPI
-getCoordinatesAPI = Proxy 
+getCoordinatesAPI = Proxy
 
 getCoordinates :: Text -> Text -> Maybe GoogleMaps.Language -> EulerClient GoogleMaps.GetPlaceNameResp
-
 getCoordinates = client getCoordinatesAPI

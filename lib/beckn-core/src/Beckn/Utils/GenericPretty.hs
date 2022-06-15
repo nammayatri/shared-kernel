@@ -21,6 +21,7 @@ import Beckn.Prelude
 import Data.Aeson
 import qualified Data.ByteString as BS (ByteString)
 import qualified Data.ByteString.Lazy as BSL
+import Data.Fixed
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.List.NonEmpty as NE
 import Data.Scientific
@@ -158,6 +159,9 @@ instance PrettyShow Double where
 
 instance PrettyShow Rational where
   prettyShow = LStr . show
+
+instance PrettyShow Centi where
+  prettyShow = LStr . showFixed True
 
 instance PrettyShow Text.Text where
   prettyShow = LStr . show

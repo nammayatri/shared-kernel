@@ -15,6 +15,7 @@ import Beckn.External.FCM.Types as Common (FCMFlow)
 import Beckn.Prelude hiding (show)
 import Beckn.Storage.Esqueleto.Config as Common (EsqDBFlow)
 import Beckn.Types.App as Common
+import Beckn.Types.Centesimal as Common
 import Beckn.Types.Forkable as Common
 import Beckn.Types.GuidLike as Common
 import Beckn.Types.Logging as Common
@@ -43,7 +44,7 @@ newtype Meters = Meters
   deriving stock (Generic)
 
 newtype HighPrecMeters = HighPrecMeters
-  { getHighPrecMeters :: Double
+  { getHighPrecMeters :: Centesimal
   }
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, RealFrac, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
@@ -61,10 +62,10 @@ metersToKilometers :: Meters -> Kilometers
 metersToKilometers (Meters n) = Kilometers $ n `div` 1000
 
 metersToHighPrecMeters :: Meters -> HighPrecMeters
-metersToHighPrecMeters (Meters n) = HighPrecMeters $ int2Double n
+metersToHighPrecMeters (Meters n) = HighPrecMeters . realToFrac $ int2Double n
 
 highPrecMetersToMeters :: HighPrecMeters -> Meters
-highPrecMetersToMeters (HighPrecMeters n) = Meters $ double2Int n
+highPrecMetersToMeters (HighPrecMeters n) = Meters . double2Int $ realToFrac n
 
 newtype Money = Money
   { getMoney :: Int

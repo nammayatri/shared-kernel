@@ -44,10 +44,9 @@ getDistance ::
   Maybe MapSearch.TravelMode ->
   a ->
   b ->
-  
   m (GetDistanceResult a b)
-getDistance travelMode origin destination  =
-  getDistances travelMode (origin :| []) (destination :| [])  >>= \case
+getDistance travelMode origin destination =
+  getDistances travelMode (origin :| []) (destination :| []) >>= \case
     (a :| []) -> return a
     _ -> throwError (InternalError "Exactly one GoogleMaps.getDistance result expected.")
 
@@ -75,7 +74,7 @@ getDistances ::
   NonEmpty a ->
   NonEmpty b ->
   m (NonEmpty (GetDistanceResult a b))
-getDistances travelMode origins destinations  = do
+getDistances travelMode origins destinations = do
   googleMapsUrl <- asks (.googleMapsUrl)
   key <- asks (.googleMapsKey)
   let limitedOriginObjectsList = splitListByAPICap origins
@@ -84,7 +83,7 @@ getDistances travelMode origins destinations  = do
     concatForM limitedDestinationObjectsList $ \limitedDestinationObjects -> do
       let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
           limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
-      GoogleMaps.distanceMatrix googleMapsUrl limitedOriginPlaces limitedDestinationPlaces key  mode
+      GoogleMaps.distanceMatrix googleMapsUrl limitedOriginPlaces limitedDestinationPlaces key mode
         >>= parseDistanceMatrixRespGeneral limitedOriginObjects limitedDestinationObjects
   case res of
     [] -> throwError (InternalError "Empty GoogleMaps.getDistances result.")
@@ -199,4 +198,3 @@ parseDuration distanceMatrixElement = do
     distanceMatrixElement.duration
       & fromMaybeM (InternalError "No duration value provided in distance matrix API response")
   pure $ intToNominalDiffTime durationInTraffic.value
-

@@ -22,7 +22,7 @@ getDistance travelMode origin destination = do
   key <- asks (.googleMapsKey)
   case key of
     "mock-key" -> pure $ makeMockGetDistanceResult origin destination
-    _ -> GoogleMaps.getDistance travelMode origin destination 
+    _ -> GoogleMaps.getDistance travelMode origin destination
 
 getDistances ::
   ( MonadFlow m,
@@ -39,7 +39,7 @@ getDistances travelMode origins destinations = do
   key <- asks (.googleMapsKey)
   case key of
     "mock-key" -> pure $ makeMockGetDistanceResult <$> origins <*> destinations
-    _ -> GoogleMaps.getDistances travelMode origins destinations 
+    _ -> GoogleMaps.getDistances travelMode origins destinations
 
 -- FIXME Should we use some calculation here?
 
