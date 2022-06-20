@@ -45,11 +45,18 @@ instance ToSchema RideAssignedEvent where
   declareNamedSchema _ = do
     txt <- declareSchemaRef (Proxy :: Proxy Text)
     update_type <- declareSchemaRef (Proxy :: Proxy OnUpdateEventType)
-    let fulfillment =
+    let st =
+          mempty
+            & type_ L.?~ OpenApiObject
+            & properties
+              L..~ fromList
+                [("code", update_type)]
+            & required L..~ ["code"]
+        fulfillment =
           toInlinedSchema (Proxy :: Proxy FulfillmentInfo)
             & properties
-              L.<>~ fromList [("update_type", update_type)]
-            & required L.<>~ ["update_type"]
+              L.<>~ fromList [("state", Inline st)]
+            & required L.<>~ ["state"]
     return $
       NamedSchema (Just "RideAssignedEvent") $
         mempty
@@ -69,7 +76,8 @@ instance ToSchema RideAssignedEvent where
                  ]
 
 data FulfillmentInfo = FulfillmentInfo
-  { start :: StartInfo,
+  { id :: Text, -- bppRideId
+    start :: StartInfo,
     agent :: Agent,
     vehicle :: Vehicle
   }
@@ -130,7 +138,7 @@ agentTagsJSONOptions :: A.Options
 agentTagsJSONOptions =
   defaultOptions
     { fieldLabelModifier = \case
-        "registered_at" -> "./komn.registered_at"
+        "registered_at" -> "./komn/registered_at"
         a -> a
     }
 

@@ -69,8 +69,8 @@ providerTagsJSONOptions :: Options
 providerTagsJSONOptions =
   defaultOptions
     { fieldLabelModifier = \case
-        "rides_inprogress" -> "./komn.rides_inprogress"
-        "rides_confirmed" -> "./komn.rides_confirmed"
-        "rides_completed" -> "./komn.rides_completed"
+        "rides_inprogress" -> "./komn/rides_inprogress"
+        "rides_confirmed" -> "./komn/rides_confirmed"
+        "rides_completed" -> "./komn/rides_completed"
         a -> a
     }

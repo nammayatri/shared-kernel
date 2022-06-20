@@ -45,9 +45,6 @@ newtype Hours = Hours
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
-secondsToMinutes :: Seconds -> Minutes
-secondsToMinutes (Seconds secs) = Minutes $ secs `div` 60
-
 type MeasuringDuration m a = MonadClock m => m a -> m a
 
 class Monad m => MonadTime m where

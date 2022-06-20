@@ -16,17 +16,19 @@ import GHC.Exts (fromList)
 data RideCompletedEvent = RideCompletedEvent
   { id :: Text,
     update_target :: Text,
-    quote :: RideCompletedQuote
+    quote :: RideCompletedQuote,
+    fulfillment :: FulfillmentInfo
   }
   deriving (Generic, Show)
 
 instance ToJSON RideCompletedEvent where
-  toJSON RideCompletedEvent {..} =
+  toJSON RideCompletedEvent {..} = do
+    let (A.Object fulfJSON) = toJSON fulfillment
     A.Object $
       "id" .= id
         <> "./komn/update_target" .= update_target
         <> "quote" .= quote
-        <> "fulfillment" .= (("state" .= (("code" .= RIDE_COMPLETED) :: A.Object)) :: A.Object)
+        <> "fulfillment" .= (fulfJSON <> ("state" .= (("code" .= RIDE_COMPLETED) :: A.Object)))
 
 instance FromJSON RideCompletedEvent where
   parseJSON = withObject "RideCompletedEvent" $ \obj -> do
@@ -36,11 +38,12 @@ instance FromJSON RideCompletedEvent where
       <$> obj .: "id"
       <*> obj .: "./komn/update_target"
       <*> obj .: "quote"
+      <*> obj .: "fulfillment"
 
 instance ToSchema RideCompletedEvent where
   declareNamedSchema _ = do
     txt <- declareSchemaRef (Proxy :: Proxy Text)
-    quote <- declareSchemaRef (Proxy :: Proxy [RideCompletedQuote])
+    quote <- declareSchemaRef (Proxy :: Proxy RideCompletedQuote)
     update_type <- declareSchemaRef (Proxy :: Proxy OnUpdateEventType)
     let st =
           mempty
@@ -50,12 +53,10 @@ instance ToSchema RideCompletedEvent where
                 [("code", update_type)]
             & required L..~ ["code"]
         fulfillment =
-          mempty
-            & type_ L.?~ OpenApiObject
+          toInlinedSchema (Proxy :: Proxy FulfillmentInfo)
             & properties
-              L..~ fromList
-                [("state", Inline st)]
-            & required L..~ ["state"]
+              L.<>~ fromList [("state", Inline st)]
+            & required L.<>~ ["state"]
     return $
       NamedSchema (Just "RideCompletedEvent") $
         mempty
@@ -100,3 +101,26 @@ data QuotePrice = QuotePrice
 
 instance ToSchema QuotePrice where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
+
+data FulfillmentInfo = FulfillmentInfo
+  { id :: Text, -- bppRideId
+    chargeable_distance :: DecimalValue
+  }
+  deriving (Generic, Show)
+
+instance ToSchema FulfillmentInfo where
+  declareNamedSchema = genericDeclareUnNamedSchema $ fromAesonOptions fulfillmentInfoJSONOptions
+
+instance FromJSON FulfillmentInfo where
+  parseJSON = genericParseJSON fulfillmentInfoJSONOptions
+
+instance ToJSON FulfillmentInfo where
+  toJSON = genericToJSON fulfillmentInfoJSONOptions
+
+fulfillmentInfoJSONOptions :: A.Options
+fulfillmentInfoJSONOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "chargeable_distance" -> "./komn/chargeable_distance"
+        a -> a
+    }

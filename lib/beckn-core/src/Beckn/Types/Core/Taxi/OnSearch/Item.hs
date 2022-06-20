@@ -18,10 +18,12 @@ data Item = Item
     offer_id :: Maybe Text,
     price :: ItemPrice,
     descriptor :: ItemDescriptor,
+    quote_terms :: [Text],
+    -- Only when FareProductType.ONE_WAY_TRIP
+    tags :: Maybe ItemTags,
     -- Only when FareProductType.RENTAL_TRIP
     base_distance :: Maybe Kilometers,
-    base_duration :: Maybe Hours,
-    quote_terms :: Maybe [Text]
+    base_duration :: Maybe Hours
     -- When we add some 3rd FareProductType, consider to make proper Item type without Maybes with custom To/FromJSON
   }
   deriving (Generic, Show)
@@ -63,3 +65,25 @@ data ItemPrice = ItemPrice
 
 instance ToSchema ItemPrice where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
+
+newtype ItemTags = ItemTags
+  { distance_to_nearest_driver :: DecimalValue
+  }
+  deriving (Generic, Show)
+
+instance ToJSON ItemTags where
+  toJSON = genericToJSON itemTagsJSONOptions
+
+instance FromJSON ItemTags where
+  parseJSON = genericParseJSON itemTagsJSONOptions
+
+instance ToSchema ItemTags where
+  declareNamedSchema = genericDeclareUnNamedSchema $ fromAesonOptions itemTagsJSONOptions
+
+itemTagsJSONOptions :: Options
+itemTagsJSONOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "distance_to_nearest_driver" -> "./komn/distance_to_nearest_driver"
+        a -> a
+    }

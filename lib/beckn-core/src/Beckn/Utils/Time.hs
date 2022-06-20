@@ -60,6 +60,9 @@ measuringDurationToLog logLevel fname = tabs . measuringDuration $ \duration _ -
 millisecondsToMicroseconds :: Milliseconds -> Microseconds
 millisecondsToMicroseconds (Milliseconds mill) = Microseconds $ mill * 1000
 
+secondsToMinutes :: Seconds -> Minutes
+secondsToMinutes (Seconds secs) = Minutes $ secs `div` 60
+
 secondsToMcs :: Seconds -> Microseconds
 secondsToMcs (Seconds s) = Microseconds (s * 1000000)
 
