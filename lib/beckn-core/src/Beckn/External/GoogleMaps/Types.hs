@@ -5,7 +5,7 @@ module Beckn.External.GoogleMaps.Types where
 import Beckn.Prelude
 import Data.Double.Conversion.Text (toFixed)
 import qualified Data.Text as T
-import Servant
+import Servant (ToHttpApiData (toUrlPiece))
 
 type HasGoogleMaps m r = (MonadReader r m, HasField "googleMapsUrl" r BaseUrl, HasField "googleMapsKey" r Text)
 
@@ -94,10 +94,15 @@ data Step = Step
   { distance :: TextValue,
     duration :: TextValue,
     end_location :: LocationS,
+    polyline :: EncodedPointObject,
     start_location :: LocationS,
     travel_mode :: Mode
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype EncodedPointObject = EncodedPointObject {points :: Text}
+  deriving stock (Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data DistanceMatrixResp = DistanceMatrixResp
   { destination_addresses :: [Text],
@@ -135,7 +140,7 @@ instance ToHttpApiData [Place] where
   toUrlPiece latLongList = T.intercalate "|" $ toUrlPiece <$> latLongList
 
 data Mode = DRIVING | WALKING | BICYCLING | TRANSIT
-  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 instance ToHttpApiData Mode where
   toUrlPiece = T.toLower . show

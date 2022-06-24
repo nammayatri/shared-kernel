@@ -10,8 +10,10 @@ module Beckn.Product.MapSearch.GoogleMaps
 where
 
 import qualified Beckn.External.GoogleMaps.Client as GoogleMaps
+import Beckn.External.GoogleMaps.Types
 import qualified Beckn.External.GoogleMaps.Types as GoogleMaps
 import Beckn.Prelude
+import Beckn.Product.MapSearch.PolyLinePoints
 import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common hiding (id)
 import Beckn.Types.Error
@@ -105,7 +107,7 @@ getRoutes ::
     GoogleMaps.HasGoogleMaps m r
   ) =>
   MapSearch.Request ->
-  m GoogleMaps.DirectionsResp
+  m [MapSearch.Route]
 getRoutes req = do
   googleMapsUrl <- asks (.googleMapsUrl)
   key <- asks (.googleMapsKey)
@@ -113,12 +115,50 @@ getRoutes req = do
       destination = latLongToPlace (NE.last req.waypoints)
       waypoints = getWayPoints req.waypoints
       mode = mapToMode <$> req.mode
-  GoogleMaps.directions googleMapsUrl origin destination key mode waypoints
+  gRes <- GoogleMaps.directions googleMapsUrl origin destination key mode waypoints
+  return (map (`extractRoute` mode) gRes.routes)
   where
     getWayPoints waypoints =
       case NE.tail waypoints of
         [] -> Nothing
         _ -> Just (map latLongToPlace (init $ NE.tail waypoints))
+    extractRoute route mode = mkRoute route mode
+
+mkRoute :: Route -> Maybe Mode -> MapSearch.Route
+mkRoute route mode = do
+  let bound = route.bounds
+  if null (route.legs)
+    then MapSearch.Route Nothing Nothing bound [] []
+    else
+      if mode == Just GoogleMaps.DRIVING
+        then do
+          let mLeg = case route.legs of
+                [] -> Nothing
+                [l] -> Just l
+                (_l : _) -> Just (head route.legs)
+              mSteps = (.steps) <$> mLeg
+              mbpolylinePoints = map (\x -> decode x.polyline.points) <$> mSteps
+              mbsnappedWayPoints = map (\x -> (x.start_location, x.end_location)) <$> mSteps
+              polylinePoints = [fromMaybe [] mbpolylinePoints]
+              snappedWayPoints = [fromMaybe [] mbsnappedWayPoints]
+              (distanceInM, durationInS) = case mLeg of
+                Nothing -> (Nothing, Nothing)
+                Just x -> (Just (fromIntegral x.distance.value), Just (fromIntegral x.duration.value))
+          MapSearch.Route durationInS distanceInM bound snappedWayPoints polylinePoints
+        else do
+          let mLegs = case route.legs of
+                [] -> Nothing
+                legsArr -> Just legsArr
+          let polyLinepoints = extractLegs <$> mLegs
+          let snappedWayPoints = map (\leg -> map (\step -> (step.start_location, step.end_location)) leg.steps) route.legs
+          let totalDurationInS = sum (map (\x -> x.duration.value) route.legs)
+          let totalDistanceInM = sum (map (\x -> x.distance.value) route.legs)
+          let (distanceInM, durationInS) = (Just (fromIntegral totalDistanceInM), Just (fromIntegral totalDurationInS))
+          MapSearch.Route durationInS distanceInM bound snappedWayPoints (fromMaybe [] polyLinepoints)
+  where
+    extractLegs legs = map extractSteps legs
+    extractSteps leg = map extractPolylinePoints leg.steps
+    extractPolylinePoints step = decode step.polyline.points
 
 parseDistanceMatrixRespGeneral ::
   (MonadThrow m, MonadIO m, Log m) =>
