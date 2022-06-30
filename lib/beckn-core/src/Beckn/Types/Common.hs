@@ -53,6 +53,12 @@ newtype Kilometers = Kilometers
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
   deriving stock (Generic)
 
+newtype Hours = Hours
+  { getHours :: Int
+  }
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
+  deriving stock (Generic)
+
 kilometersToMeters :: Kilometers -> Meters
 kilometersToMeters (Kilometers n) = Meters $ n * 1000
 

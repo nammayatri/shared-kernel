@@ -48,4 +48,4 @@ listenForMessages isRunning handle = whileM isRunning $ do
   etrRes <- try @_ @SomeException MonadCons.receiveMessage
   case etrRes of
     Left err -> logInfo $ "Message was not received: " <> show err
-    Right res -> forM_ res handle
+    Right mbRes -> whenJust mbRes handle

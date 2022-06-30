@@ -84,6 +84,7 @@ data FCMNotificationType
   | TRIGGER_SERVICE
   | FARE_POLICY_CHANGED
   | DISCOUNT_CHANGED
+  | QUOTE_RECEIVED
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
 -- | Entity types types

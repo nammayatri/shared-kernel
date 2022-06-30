@@ -2,7 +2,7 @@ module Beckn.Types.Core.Taxi.Common.VehicleVariant where
 
 import Beckn.Prelude
 
-data VehicleVariant = SEDAN | SUV | HATCHBACK
+data VehicleVariant = SEDAN | SUV | HATCHBACK | AUTO
   deriving
     ( Show,
       Eq,

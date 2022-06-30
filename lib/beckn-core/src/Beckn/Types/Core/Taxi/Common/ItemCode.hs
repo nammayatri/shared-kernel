@@ -13,7 +13,6 @@ import Data.Aeson
 import qualified Data.List as List
 import Data.OpenApi
 import qualified Data.Text as T
-import EulerHS.Prelude (readMaybe)
 import GHC.Show (show)
 
 data ItemCode = ItemCode
