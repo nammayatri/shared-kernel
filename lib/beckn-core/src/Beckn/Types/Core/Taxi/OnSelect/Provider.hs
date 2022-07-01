@@ -5,9 +5,14 @@ module Beckn.Types.Core.Taxi.OnSelect.Provider
 where
 
 import Beckn.Prelude
+import Beckn.Types.Core.Taxi.OnSelect.Addon
 import Beckn.Types.Core.Taxi.OnSelect.Category
 import Beckn.Types.Core.Taxi.OnSelect.Descriptor
+import Beckn.Types.Core.Taxi.OnSelect.Fulfillment
 import Beckn.Types.Core.Taxi.OnSelect.Item
+import Beckn.Types.Core.Taxi.OnSelect.Offer
+import Beckn.Types.Core.Taxi.OnSelect.Payment
+import Beckn.Types.Core.Taxi.OnSelect.ProviderLocation
 import Beckn.Utils.Schema (genericDeclareUnNamedSchema)
 import Data.Aeson
 import Data.OpenApi (ToSchema (..), fromAesonOptions)
@@ -15,10 +20,15 @@ import Data.OpenApi (ToSchema (..), fromAesonOptions)
 data Provider = Provider
   { id :: Text,
     descriptor :: Descriptor,
+    locations :: [ProviderLocation],
     categories :: [Category],
     items :: [Item], --FIXME this should be list of only RENTAL or only ONE_WAY items
+    offers :: [Offer],
+    add_ons :: [Addon],
+    fulfillments :: [FulfillmentInfo],
     contacts :: Text,
-    tags :: ProviderTags
+    tags :: ProviderTags,
+    payment :: Payment
   }
   deriving (Generic, Show)
 
@@ -42,8 +52,7 @@ providerJSONOptions =
 data ProviderTags = ProviderTags
   { rides_inprogress :: Int,
     rides_completed :: Int,
-    rides_confirmed :: Int,
-    distance_to_nearest_driver :: Maybe DecimalValue
+    rides_confirmed :: Int
   }
   deriving (Generic, Show)
 
@@ -63,6 +72,5 @@ providerTagsJSONOptions =
         "rides_inprogress" -> "./komn/rides_inprogress"
         "rides_confirmed" -> "./komn/rides_confirmed"
         "rides_completed" -> "./komn/rides_completed"
-        "distance_to_nearest_driver" -> "./komn/distance_to_nearest_driver"
         a -> a
     }

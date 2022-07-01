@@ -15,5 +15,5 @@ type OnSelectAPI =
     :> ReqBody '[JSON] OnSelectReq
     :> Post '[JSON] OnSelectRes
 
-onConfirmAPI :: Proxy OnSelectAPI
-onConfirmAPI = Proxy
+onSelectAPI :: Proxy OnSelectAPI
+onSelectAPI = Proxy
