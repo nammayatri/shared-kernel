@@ -17,12 +17,14 @@ import Beckn.Types.Common hiding (id)
 import Beckn.Types.Error
 import qualified Beckn.Types.MapSearch as MapSearch
 import Beckn.Utils.Common hiding (id)
+import Control.Monad.Extra (concatForM)
+import qualified Data.List.Extra as List
 import qualified Data.List.NonEmpty as NE
 import GHC.Float (double2Int)
 
-data GetDistanceResult = GetDistanceResult
-  { origin :: GoogleMaps.Place,
-    destination :: GoogleMaps.Place,
+data GetDistanceResult a b = GetDistanceResult
+  { origin :: a,
+    destination :: b,
     distance :: Meters,
     duration :: Seconds,
     duration_in_traffic :: Seconds,
@@ -41,11 +43,10 @@ getDistance ::
   a ->
   b ->
   Maybe UTCTime ->
-  m GetDistanceResult
+  m (GetDistanceResult a b)
 getDistance travelMode origin destination utcDepartureTime =
   getDistances travelMode (origin :| []) (destination :| []) utcDepartureTime >>= \case
-    [] -> throwError (InternalError "Empty GoogleMaps.getDistance result.")
-    [a] -> return a
+    (a :| []) -> return a
     _ -> throwError (InternalError "Exactly one GoogleMaps.getDistance result expected.")
 
 --
@@ -72,27 +73,30 @@ getDistances ::
   NonEmpty a ->
   NonEmpty b ->
   Maybe UTCTime ->
-  m [GetDistanceResult]
+  m (NonEmpty (GetDistanceResult a b))
 getDistances travelMode origins destinations utcDepartureTime = do
   googleMapsUrl <- asks (.googleMapsUrl)
   key <- asks (.googleMapsKey)
-  limitedOriginObjects <- capListAsPerGoogleLimits "origins" origins
-  limitedDestinationObjects <- capListAsPerGoogleLimits "destinations" destinations
-  let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
-      limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
+  let limitedOriginObjectsList = splitListByAPICap origins
+      limitedDestinationObjectsList = splitListByAPICap destinations
   let departureTime = case utcDepartureTime of
         Nothing -> Just GoogleMaps.Now
         Just time -> Just $ GoogleMaps.FutureTime time
-  GoogleMaps.distanceMatrix googleMapsUrl limitedOriginPlaces limitedDestinationPlaces key departureTime mode
-    >>= parseDistanceMatrixRespGeneral limitedOriginPlaces limitedDestinationPlaces
+  res <- concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
+    concatForM limitedDestinationObjectsList $ \limitedDestinationObjects -> do
+      let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
+          limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
+      GoogleMaps.distanceMatrix googleMapsUrl limitedOriginPlaces limitedDestinationPlaces key departureTime mode
+        >>= parseDistanceMatrixRespGeneral limitedOriginObjects limitedDestinationObjects
+  case res of
+    [] -> throwError (InternalError "Empty GoogleMaps.getDistances result.")
+    (a : xs) -> return $ a :| xs
   where
     mode = mapToMode <$> travelMode
 
     -- Constraints on Distance matrix API: https://developers.google.com/maps/documentation/distance-matrix/usage-and-billing#other-usage-limits
-    capListAsPerGoogleLimits listName inputList = do
-      when (length inputList > 25) $
-        logWarning ("Capping " <> listName <> " to maximum 25 elements as per Distance matrix API limits")
-      return $ take 25 $ toList inputList
+    splitListByAPICap inputList = do
+      List.chunksOf 25 $ toList inputList
 
 getRoutes ::
   ( MonadFlow m,
@@ -117,10 +121,10 @@ getRoutes req = do
 
 parseDistanceMatrixRespGeneral ::
   (MonadThrow m, MonadIO m, Log m) =>
-  [GoogleMaps.Place] ->
-  [GoogleMaps.Place] ->
+  [a] ->
+  [b] ->
   GoogleMaps.DistanceMatrixResp ->
-  m [GetDistanceResult]
+  m [GetDistanceResult a b]
 parseDistanceMatrixRespGeneral origins destinations distanceMatrixResp = do
   mapM buildGetDistanceResult origDestAndElemList
   where

@@ -17,7 +17,7 @@ getDistance ::
   Maybe MapSearch.TravelMode ->
   a ->
   b ->
-  m GoogleMaps.GetDistanceResult
+  m (GoogleMaps.GetDistanceResult a b)
 getDistance travelMode origin destination = do
   key <- asks (.googleMapsKey)
   case key of
@@ -34,11 +34,11 @@ getDistances ::
   Maybe MapSearch.TravelMode ->
   NonEmpty a ->
   NonEmpty b ->
-  m [GoogleMaps.GetDistanceResult]
+  m (NonEmpty (GoogleMaps.GetDistanceResult a b))
 getDistances travelMode origins destinations = do
   key <- asks (.googleMapsKey)
   case key of
-    "mock-key" -> pure $ makeMockGetDistanceResult <$> toList origins <*> toList destinations
+    "mock-key" -> pure $ makeMockGetDistanceResult <$> origins <*> destinations
     _ -> GoogleMaps.getDistances travelMode origins destinations Nothing
 
 -- FIXME Should we use some calculation here?
@@ -49,13 +49,11 @@ makeMockGetDistanceResult ::
   ) =>
   a ->
   b ->
+  GoogleMaps.GetDistanceResult a b
+makeMockGetDistanceResult origin dest =
   GoogleMaps.GetDistanceResult
-makeMockGetDistanceResult origin dest = do
-  let originLatLong = GoogleMaps.getCoordinates origin
-      destLatLong = GoogleMaps.getCoordinates dest
-  GoogleMaps.GetDistanceResult
-    { origin = GoogleMaps.Location $ LocationS originLatLong.lat originLatLong.lon,
-      destination = GoogleMaps.Location $ LocationS destLatLong.lat destLatLong.lon,
+    { origin = origin,
+      destination = dest,
       distance = Meters 9446,
       duration = mockDuration,
       duration_in_traffic = mockDuration,
