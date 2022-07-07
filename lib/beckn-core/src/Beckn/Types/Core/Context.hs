@@ -4,12 +4,12 @@ module Beckn.Types.Core.Context (module Beckn.Types.Core.Context, module Reexpor
 
 import Beckn.Types.App
 import Beckn.Types.Core.Domain as Reexport
+import Beckn.Types.TimeRFC339 (UTCTimeRFC3339 (..))
 import Beckn.Utils.Example
 import Beckn.Utils.GenericPretty
 import Beckn.Utils.JSON
 import Data.Aeson
 import Data.OpenApi (ToSchema)
-import Data.Time (UTCTime)
 import EulerHS.Prelude
 import Servant.Client (parseBaseUrl)
 
@@ -25,7 +25,7 @@ data Context = Context
     bpp_uri :: Maybe BaseUrl,
     transaction_id :: Maybe Text,
     message_id :: Text,
-    timestamp :: UTCTime
+    timestamp :: UTCTimeRFC3339
   }
   deriving (Generic, FromJSON, Show, ToSchema, PrettyShow)
 
@@ -44,7 +44,7 @@ instance Example Context where
         bpp_uri = parseBaseUrl "https://api.domain.com/",
         transaction_id = Just idExample,
         message_id = idExample,
-        timestamp = example,
+        timestamp = UTCTimeRFC3339 example,
         country = "IND",
         city = "Kochi"
       }

@@ -4,6 +4,7 @@ import Beckn.Types.App
 import qualified Beckn.Types.Core.Context as Cab
 import Beckn.Types.MonadGuid
 import Beckn.Types.Time
+import Beckn.Types.TimeRFC339 (UTCTimeRFC3339 (..))
 import EulerHS.Prelude
 
 buildTaxiContext ::
@@ -29,7 +30,7 @@ buildTaxiContext action msgId txnId bapId bapUri bppId bppUri = do
         bpp_uri = bppUri,
         transaction_id = txnId,
         message_id = msgId,
-        timestamp = currTime,
+        timestamp = UTCTimeRFC3339 currTime,
         country = "IND",
         city = "Kochi"
       }

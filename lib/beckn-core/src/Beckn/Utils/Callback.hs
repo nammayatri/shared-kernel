@@ -7,6 +7,7 @@ import qualified Beckn.Types.Core.Context as M.Context
 import Beckn.Types.Core.ReqTypes
 import Beckn.Types.Error
 import Beckn.Types.Error.BaseError.HTTPError.BecknAPIError
+import Beckn.Types.TimeRFC339 (UTCTimeRFC3339 (..))
 import Beckn.Utils.Common
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
@@ -46,7 +47,7 @@ withBecknCallbackMig doWithCallback auth actionName api context cbUrl action = d
   let cbContext =
         context
           & #action .~ cbAction
-          & #timestamp .~ now
+          & #timestamp .~ UTCTimeRFC3339 now
   forkBecknCallback
     (someExceptionToCallbackReqMig cbContext)
     (BecknCallbackReq cbContext . Right)
