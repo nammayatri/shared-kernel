@@ -17,8 +17,9 @@ data Order = Order
 instance ToSchema Order where
   declareNamedSchema = genericDeclareUnNamedSchema defaultSchemaOptions
 
-newtype OrderItem = OrderItem
-  { descriptor :: Descriptor
+data OrderItem = OrderItem
+  { id :: Maybe Text, -- for those cases where INIT API can't be stateless
+    descriptor :: Descriptor
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 

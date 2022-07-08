@@ -7,6 +7,7 @@ module Beckn.Storage.Esqueleto.SqlDB
     FullEntitySqlDB,
     liftToFullEntitySqlDB,
     withFullEntity,
+    withFullEntities,
   )
 where
 
@@ -47,7 +48,17 @@ newtype FullEntitySqlDB t = FullEntitySqlDB
 liftToFullEntitySqlDB :: SqlDB t -> FullEntitySqlDB t
 liftToFullEntitySqlDB = FullEntitySqlDB
 
+withFullEntity' :: TType t a => a -> (t -> b) -> b
+withFullEntity' dtype func = func $ toTType dtype
+
 withFullEntity :: TType t a => a -> (t -> FullEntitySqlDB b) -> SqlDB b
-withFullEntity dtype f = do
-  let ttype = toTType dtype
-  getSqlDB $ f ttype
+withFullEntity dtype func = getSqlDB $ withFullEntity' dtype func
+
+withFullEntities' :: TType t a => [a] -> ([t] -> b) -> b
+withFullEntities' [] f = f []
+withFullEntities' (x : xs) f = 
+  withFullEntity' x $ \y -> 
+    withFullEntities' xs \ys -> f (y : ys)
+
+withFullEntities :: TType t a => [a] -> ([t] -> FullEntitySqlDB b) -> SqlDB b
+withFullEntities dtypes func = getSqlDB $ withFullEntities' dtypes func
