@@ -2,16 +2,14 @@
 
 module Beckn.Types.TimeRFC339 (module Beckn.Types.TimeRFC339, module Reexport) where
 
-
 import Beckn.Types.Core.Domain as Reexport
 import Beckn.Utils.GenericPretty
-import Data.Aeson
-import EulerHS.Prelude
-import Data.OpenApi (ToSchema (..), declareSchema, NamedSchema (NamedSchema), description)
 import Control.Lens hiding (Context)
+import Data.Aeson
+import Data.OpenApi (NamedSchema (NamedSchema), ToSchema (..), declareSchema, description)
 import Data.Time (UTCTime)
 import Data.Time.Format
-
+import EulerHS.Prelude
 
 newtype UTCTimeRFC3339 = UTCTimeRFC3339 UTCTime
   deriving (Show, Eq, Ord, Read, Generic, FromJSON)
@@ -35,7 +33,7 @@ instance ToJSON UTCTimeRFC3339 where
 convertTimeToRFC :: UTCTime -> String
 convertTimeToRFC = formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ"
 
-convertRFCStringToUTC :: String -> UTCTime 
+convertRFCStringToUTC :: String -> UTCTime
 convertRFCStringToUTC = parseTimeOrError True defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ"
 
 convertRFC3339ToUTC :: UTCTimeRFC3339 -> UTCTime

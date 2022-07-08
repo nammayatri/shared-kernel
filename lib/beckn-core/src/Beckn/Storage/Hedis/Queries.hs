@@ -72,6 +72,14 @@ set ::
 set key val = runWithPrefix_ key $ \prefKey ->
   Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
 
+setExp ::
+  (ToJSON a, HedisFlow m env) => Text -> a -> ExpirationTime -> m ()
+setExp key val expirationTime = do
+  prefKey <- buildKey key
+  void . runHedisTransaction $ do
+    void . Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
+    Hedis.expire prefKey expirationTime
+
 setNx ::
   (ToJSON a, HedisFlow m env) => Text -> a -> m Bool
 setNx key val = runWithPrefix key $ \prefKey ->

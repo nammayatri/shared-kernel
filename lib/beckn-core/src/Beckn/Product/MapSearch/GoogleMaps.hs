@@ -17,11 +17,11 @@ import Beckn.Types.Common hiding (id)
 import Beckn.Types.Error
 import qualified Beckn.Types.MapSearch as MapSearch
 import Beckn.Utils.Common hiding (id)
+import Beckn.Utils.GenericPretty
 import Control.Monad.Extra (concatForM)
 import qualified Data.List.Extra as List
 import qualified Data.List.NonEmpty as NE
 import GHC.Float (double2Int)
-import Beckn.Utils.GenericPretty
 
 data GetDistanceResult a b = GetDistanceResult
   { origin :: a,

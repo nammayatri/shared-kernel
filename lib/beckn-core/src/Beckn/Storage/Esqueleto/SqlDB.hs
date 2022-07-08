@@ -56,8 +56,8 @@ withFullEntity dtype func = getSqlDB $ withFullEntity' dtype func
 
 withFullEntities' :: TType t a => [a] -> ([t] -> b) -> b
 withFullEntities' [] f = f []
-withFullEntities' (x : xs) f = 
-  withFullEntity' x $ \y -> 
+withFullEntities' (x : xs) f =
+  withFullEntity' x $ \y ->
     withFullEntities' xs \ys -> f (y : ys)
 
 withFullEntities :: TType t a => [a] -> ([t] -> FullEntitySqlDB b) -> SqlDB b

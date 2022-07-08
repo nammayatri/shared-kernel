@@ -50,9 +50,9 @@ instance Read ItemCode where
                    (v3, r6) <- readsPrec (app_prec + 1) r5
                ]
             ++ [ (ItemCode AUTO_TRIP v1 Nothing Nothing, r2)
-                  | r1 <- stripPrefix "AUTO_TRIP_" r,
-                    (v1, r2) <- readsPrec (app_prec + 1) r1
-                ]
+                 | r1 <- stripPrefix "AUTO_TRIP_" r,
+                   (v1, r2) <- readsPrec (app_prec + 1) r1
+               ]
       )
       r'
     where
