@@ -29,7 +29,7 @@ import Data.Functor as E
 import Data.Functor.Identity as E
 import Data.Kind as E (Type)
 import Data.List.NonEmpty as E (NonEmpty (..))
-import Data.Maybe as E
+import Data.Maybe as E hiding (catMaybes)
 import Data.OpenApi as E (ToParamSchema, ToSchema)
 import Data.Proxy as E (Proxy (..))
 import Data.String as E (IsString (..))
