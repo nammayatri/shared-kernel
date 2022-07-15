@@ -109,6 +109,9 @@ lTrim :: (HedisFlow m env) => Text -> Integer -> Integer -> m ()
 lTrim key start stop = runWithPrefix_ key $ \prefKey ->
   Hedis.ltrim prefKey start stop
 
+clearList :: (HedisFlow m env) => Text -> m ()
+clearList key = lTrim key 2 1
+
 lLen :: (HedisFlow m env) => Text -> m Integer
 lLen key = runWithPrefix key Hedis.llen
 
