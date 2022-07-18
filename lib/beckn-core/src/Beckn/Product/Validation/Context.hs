@@ -1,29 +1,29 @@
 module Beckn.Product.Validation.Context where
 
 import Beckn.Types.Common
-import qualified Beckn.Types.Core.Context as Cab
+import qualified Beckn.Types.Core.Context as CoreContext
 import Beckn.Types.Error
 import Beckn.Types.Field
 import Beckn.Utils.Common
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 
-validateContext :: (HasFlowEnv m r ["coreVersion" ::: Text, "domainVersion" ::: Text]) => Cab.Action -> Cab.Context -> m ()
+validateContext :: (HasFlowEnv m r ["coreVersion" ::: Text, "domainVersion" ::: Text]) => CoreContext.Action -> CoreContext.Context -> m ()
 validateContext action context = do
-  validateDomain Cab.MOBILITY context
+  validateDomain CoreContext.MOBILITY context
   validateContextCommons action context
 
-validateDomain :: (L.MonadFlow m, Log m) => Cab.Domain -> Cab.Context -> m ()
+validateDomain :: (L.MonadFlow m, Log m) => CoreContext.Domain -> CoreContext.Context -> m ()
 validateDomain expectedDomain context =
   unless (context.domain == expectedDomain) $
     throwError InvalidDomain
 
-validateCountry :: (L.MonadFlow m, Log m) => Cab.Context -> m ()
+validateCountry :: (L.MonadFlow m, Log m) => CoreContext.Context -> m ()
 validateCountry context =
   unless (context.country == "IND") $
     throwError InvalidCountry
 
-validateAction :: (L.MonadFlow m, Log m) => Cab.Action -> Cab.Context -> m ()
+validateAction :: (L.MonadFlow m, Log m) => CoreContext.Action -> CoreContext.Context -> m ()
 validateAction expectedAction context =
   unless (context.action == expectedAction) $
     throwError InvalidAction
@@ -32,19 +32,19 @@ validateCoreVersion ::
   ( HasFlowEnv m r '["coreVersion" ::: Text],
     Log m
   ) =>
-  Cab.Context ->
+  CoreContext.Context ->
   m ()
 validateCoreVersion context = do
   supportedVersion <- view #coreVersion
-  unless ((context.core_version == supportedVersion) || (context.domain == Cab.LOGISTICS)) $
+  unless ((context.core_version == supportedVersion) || (context.domain == CoreContext.LOGISTICS)) $
     throwError UnsupportedCoreVer
 
 validateContextCommons ::
   ( HasFlowEnv m r '["coreVersion" ::: Text],
     Log m
   ) =>
-  Cab.Action ->
-  Cab.Context ->
+  CoreContext.Action ->
+  CoreContext.Context ->
   m ()
 validateContextCommons expectedAction context = do
   -- TODO: City validation
