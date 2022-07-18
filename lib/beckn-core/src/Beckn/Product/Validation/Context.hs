@@ -36,7 +36,7 @@ validateCoreVersion ::
   m ()
 validateCoreVersion context = do
   supportedVersion <- view #coreVersion
-  unless (context.core_version == supportedVersion) $
+  unless ((context.core_version == supportedVersion) || (context.domain == Cab.LOGISTICS)) $
     throwError UnsupportedCoreVer
 
 validateContextCommons ::
