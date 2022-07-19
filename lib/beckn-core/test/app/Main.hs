@@ -6,6 +6,7 @@ import EulerHS.Prelude
 import SignatureAuth
 import SlidingWindowLimiter
 import Test.Tasty
+import DistanceCalculation
 
 main :: IO ()
 main = defaultMain =<< specs
@@ -19,5 +20,6 @@ specs = return $ testGroup "Tests" [unitTests]
         [ amountTests,
           signatureAuthTests,
           httpExceptionTests,
-          slidingWindowLimiterTests
+          slidingWindowLimiterTests,
+          distanceCalculation
         ]

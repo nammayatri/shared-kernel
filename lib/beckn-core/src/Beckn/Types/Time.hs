@@ -14,6 +14,8 @@ import qualified Data.Time as Time
 import Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
 import EulerHS.Prelude
 import qualified System.Clock as Clock
+import Database.Persist.Class
+import Database.Persist.Sql
 
 newtype Microseconds = Microseconds
   { getMicroseconds :: Int
@@ -30,7 +32,7 @@ newtype Milliseconds = Milliseconds
 newtype Seconds = Seconds
   { getSeconds :: Int
   }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
 newtype Minutes = Minutes

@@ -28,6 +28,8 @@ import Data.OpenApi (ToSchema)
 import EulerHS.Prelude hiding (id)
 import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
+import Database.Persist.Class
+import Database.Persist.Sql
 
 newtype IdObject = IdObject
   { id :: Text
@@ -38,19 +40,19 @@ newtype IdObject = IdObject
 newtype Meters = Meters
   { getMeters :: Int
   }
-  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
+  deriving newtype (Show, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
 newtype HighPrecMeters = HighPrecMeters
   { getHighPrecMeters :: Double
   }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
 newtype Kilometers = Kilometers
   { getKilometers :: Int
   }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
 kilometersToMeters :: Kilometers -> Meters
