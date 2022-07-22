@@ -6,6 +6,7 @@ import Beckn.Storage.Esqueleto.Logger
 import Beckn.Storage.Esqueleto.SqlDB
 import Beckn.Types.Logging
 import Beckn.Types.Time (getCurrentTime)
+import Beckn.Utils.IOLogging (LoggerEnv)
 import Database.Esqueleto.Experimental (SqlBackend, runSqlPool)
 
 class (MonadThrow m, Log m) => Transactionable m where
@@ -32,9 +33,13 @@ runTransactionImpl ::
 runTransactionImpl run = do
   logEnv <- asks (.loggerEnv)
   dbEnv <- asks (.esqDBEnv)
+  liftIO $ runTransactionIO logEnv dbEnv run
+
+runTransactionIO :: LoggerEnv -> EsqDBEnv -> SqlDB a -> IO a
+runTransactionIO logEnv dbEnv run = do
   now <- getCurrentTime
   let sqlDBEnv =
         SqlDBEnv
           { currentTime = now
           }
-  liftIO . runLoggerIO logEnv $ runSqlPool (runReaderT run sqlDBEnv) dbEnv.connPool
+  runLoggerIO logEnv $ runSqlPool (runReaderT run sqlDBEnv) dbEnv.connPool
