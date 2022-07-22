@@ -60,6 +60,7 @@ import Database.Esqueleto.Experimental as EsqExport hiding
     upsert,
     upsertBy,
     (<&>),
+    Table
   )
 import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Esqueleto.Internal.Internal as Esq

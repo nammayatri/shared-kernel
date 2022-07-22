@@ -29,3 +29,7 @@ instance (PersistField a) => PersistField (PostgresList a) where
 
 instance (PersistField a) => PersistFieldSql (PostgresList a) where
   sqlType _ = SqlString
+
+type Table a = SqlExpr (Entity a)
+
+type MbTable a = SqlExpr (Maybe (Entity a))
