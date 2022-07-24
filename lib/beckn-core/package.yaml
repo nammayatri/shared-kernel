@@ -138,6 +138,7 @@ dependencies:
   - random
   - hw-kafka-client
   - fmt
+  - text-conversions
 
 ghc-options:
   - -fwrite-ide-info

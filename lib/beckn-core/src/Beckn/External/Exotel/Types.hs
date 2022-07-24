@@ -22,6 +22,7 @@ import Data.Aeson.TH
 import Data.Aeson.Types
 import Data.OpenApi (ToSchema)
 import qualified Data.Text as T
+import Data.Text.Conversions
 import EulerHS.Prelude
 import Servant.Client
 import Web.FormUrlEncoded (ToForm, toForm)
@@ -120,6 +121,8 @@ instance ToForm ExotelRequest where
 data ExotelCallStatus
   = -- The call is ready and waiting in line before going out
     QUEUED
+  | -- The call is ringing
+    RINGING
   | -- The call was answered and is currently in progress
     IN_PROGRESS
   | -- The call was answered and has ended normally
@@ -131,8 +134,25 @@ data ExotelCallStatus
     BUSY
   | -- The call ended without being answered
     NO_ANSWER
+  | -- The call is canceled
+    CANCELED
+  | -- Invalid call status 
+    INVALID_STATUS
   deriving (Show, Eq, Read, Generic, ToSchema)
 
+instance FromText ExotelCallStatus where
+  fromText a = 
+    case a of 
+      "queued" -> QUEUED
+      "ringing" -> RINGING
+      "in-progress" -> IN_PROGRESS
+      "completed" -> COMPLETED
+      "busy" -> BUSY
+      "no-answer" -> NO_ANSWER
+      "failed" -> FAILED
+      "canceled" -> CANCELED
+      _ -> INVALID_STATUS
+  
 $(deriveJSON constructorsWithHyphensToLowerOptions ''ExotelCallStatus)
 
 derivePersistField "ExotelCallStatus"
