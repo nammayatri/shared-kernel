@@ -336,39 +336,43 @@ instance IsHTTPError QuoteError where
 
 instance IsAPIError QuoteError
 
-data RideBookingError
-  = RideBookingNotFound Text
-  | RideBookingDoesNotExist Text
-  | RideBookingFieldNotPresent Text
-  | RideBookingForRiderNotFound Text
-  | RideBookingInvalidStatus Text
+data BookingError
+  = BookingNotFound Text
+  | BookingDoesNotExist Text
+  | BookingFieldNotPresent Text
+  | BookingForRiderNotFound Text
+  | BookingInvalidStatus Text
+  | BookingBppOrderIdNotFound
   deriving (Eq, Show, IsBecknAPIError)
 
-instanceExceptionWithParent 'HTTPException ''RideBookingError
+instanceExceptionWithParent 'HTTPException ''BookingError
 
-instance IsBaseError RideBookingError where
+instance IsBaseError BookingError where
   toMessage = \case
-    RideBookingNotFound bookingId -> Just $ "RideBooking with bookingId \"" <> show bookingId <> "\" not found. "
-    RideBookingDoesNotExist bookingId -> Just $ "No ride booking matches passed data \"" <> show bookingId <> "\" not exist. "
-    RideBookingFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this ride booking."
-    RideBookingForRiderNotFound riderId -> Just $ "RideBooking with riderId \"" <> show riderId <> "\" not found. "
-    RideBookingInvalidStatus msg -> Just $ "Attempted to do some action in wrong ride booking status. " <> msg
+    BookingNotFound bookingId -> Just $ "Booking with bookingId \"" <> show bookingId <> "\" not found. "
+    BookingDoesNotExist bookingId -> Just $ "No booking matches passed data \"" <> show bookingId <> "\" not exist. "
+    BookingFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this booking."
+    BookingForRiderNotFound riderId -> Just $ "Booking with riderId \"" <> show riderId <> "\" not found. "
+    BookingInvalidStatus msg -> Just $ "Attempted to do some action in wrong booking status. " <> msg
+    _ -> Nothing
 
-instance IsHTTPError RideBookingError where
+instance IsHTTPError BookingError where
   toErrorCode = \case
-    RideBookingNotFound _ -> "RIDE_BOOKING_NOT_FOUND"
-    RideBookingDoesNotExist _ -> "RIDE_BOOKING_DOES_NOT_EXIST"
-    RideBookingFieldNotPresent _ -> "RIDE_BOOKING_FIELD_NOT_PRESENT"
-    RideBookingForRiderNotFound _ -> "RIDE_BOOKING_NOT_FOUND"
-    RideBookingInvalidStatus _ -> "RIDE_BOOKING_INVALID_STATUS"
+    BookingNotFound _ -> "BOOKING_NOT_FOUND"
+    BookingDoesNotExist _ -> "BOOKING_DOES_NOT_EXIST"
+    BookingFieldNotPresent _ -> "BOOKING_FIELD_NOT_PRESENT"
+    BookingForRiderNotFound _ -> "BOOKING_NOT_FOUND"
+    BookingInvalidStatus _ -> "BOOKING_INVALID_STATUS"
+    BookingBppOrderIdNotFound -> "BOOKING_BPP_ORDER_ID_NOT_FOUND"
   toHttpCode = \case
-    RideBookingNotFound _ -> E500
-    RideBookingDoesNotExist _ -> E400
-    RideBookingFieldNotPresent _ -> E500
-    RideBookingForRiderNotFound _ -> E500
-    RideBookingInvalidStatus _ -> E400
+    BookingNotFound _ -> E500
+    BookingDoesNotExist _ -> E400
+    BookingFieldNotPresent _ -> E500
+    BookingForRiderNotFound _ -> E500
+    BookingInvalidStatus _ -> E400
+    BookingBppOrderIdNotFound -> E500
 
-instance IsAPIError RideBookingError
+instance IsAPIError BookingError
 
 data RideError
   = RideNotFound Text
