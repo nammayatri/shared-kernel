@@ -211,26 +211,21 @@ verifySignature headerName signPayload bodyHash = do
             subscriber_id = subscriberId
           }
   registryLookup lookupRequest >>= \case
-  -- these are temporary changes required because of ONDC registry where its returning multiple subscribers. 
-  -- when ONDC registry is fixed we will undo these changes.
-    Just [] -> subscriberNotFoundError hostName
-    Nothing -> subscriberNotFoundError hostName
-    Just subs -> do
-      let subscribers = filter (\subscriber -> subscriber.unique_key_id == uniqueKeyId) subs
-      if length subscribers > 1 then throwError $ InternalError "Multiple subscribers returned for a unique key."
-        else if length subscribers == 1 then do
-          let subscriber = head subscribers
-          disableSignatureAuth <- asks (.disableSignatureAuth)
-          unless
-            disableSignatureAuth do
-              let publicKey = subscriber.signing_public_key
-              isVerified <- performVerification publicKey hostName
-              unless isVerified $ do 
-                logTagError logTag "Signature is not valid."
-                throwError $ getSignatureError hostName
-          pure subscriber
-        else do
-          subscriberNotFoundError hostName
+    Just subscriber -> do
+      disableSignatureAuth <- asks (.disableSignatureAuth)
+      unless disableSignatureAuth do
+        let publicKey = subscriber.signing_public_key
+        isVerified <- performVerification publicKey hostName
+        unless isVerified $ do
+          logTagError logTag "Signature is not valid."
+          throwError $ getSignatureError hostName
+      pure subscriber
+    Nothing -> do
+      logTagError logTag $
+        "Subscriber with unique_key_id "
+          <> signPayload.params.keyId.uniqueKeyId
+          <> " not found."
+      throwError $ getSignatureError hostName
   where
     logTag = "verifySignature-" <> headerName
     performVerification key hostName = do
@@ -265,13 +260,6 @@ verifySignature headerName signPayload bodyHash = do
       "Proxy-Authorization" -> "Proxy-Authenticate"
       "X-Gateway-Authorization" -> "Proxy-Authenticate"
       _ -> ""
-
-    subscriberNotFoundError hostName = do
-      logTagError logTag $
-        "Subscriber with unique_key_id "
-          <> signPayload.params.keyId.uniqueKeyId
-          <> " not found."
-      throwError $ getSignatureError hostName
 
 prepareAuthManagers ::
   (AuthenticatingEntity r, HasLog r) =>
@@ -350,4 +338,3 @@ instance
   SanitizedUrl (SignatureAuth h :> subroute)
   where
   getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
-  

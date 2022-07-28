@@ -23,13 +23,18 @@ registryLookup ::
     HasFlowEnv m r '["registryUrl" ::: BaseUrl]
   ) =>
   SimpleLookupRequest ->
-  m (Maybe [Subscriber])
+  m (Maybe Subscriber)
 registryLookup request =
   registryFetch (toLookupReq request)
     >>= \case
       [] -> pure Nothing
-      subscribers ->
-        pure $ Just subscribers
+      -- These are temporary changes as there is bug in ONDC registry. They are sending multiple entries irrespective of ukId So we added traversal at our end. 
+      -- It should be removed once issues has been fixed at their end.
+      subs -> do
+        let subscribers = filter (\subscriber -> subscriber.unique_key_id == request.unique_key_id) subs
+        if length subscribers > 1 then throwError $ InternalError "Multiple subscribers returned for a unique key."
+          else if length subscribers == 1 then pure $ Just $ head subscribers
+          else pure Nothing
   where
     toLookupReq SimpleLookupRequest {..} =
       API.emptyLookupRequest

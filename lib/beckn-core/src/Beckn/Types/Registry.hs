@@ -8,7 +8,7 @@ import Beckn.Prelude
 import Beckn.Types.Registry.Subscriber as E
 
 class Registry m where
-  registryLookup :: SimpleLookupRequest -> m (Maybe [Subscriber])
+  registryLookup :: SimpleLookupRequest -> m (Maybe Subscriber)
 
 data SimpleLookupRequest = SimpleLookupRequest
   { unique_key_id :: Text,
