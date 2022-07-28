@@ -39,7 +39,7 @@ enchunk :: Int32 -> [Int32]
 enchunk 0 = [0] -- Special case for 0.  Code below would result in an empty.
 enchunk i =
   let shifts = [0, 5 ..]
-      shifted = takeWhile (> 0) $ map (\s -> shift i (- s)) shifts
+      shifted = takeWhile (> 0) $ map (\s -> shift i (-s)) shifts
    in map (.&. 0x1F) shifted
 
 -- Inverse of negEnc

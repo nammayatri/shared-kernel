@@ -131,7 +131,7 @@ mkRoute ::
   m MapSearch.Route
 mkRoute req route = do
   let bound = Just $ mkBounds route.bounds
-  if (null route.legs)
+  if null route.legs
     then do
       logTagWarning "GoogleMapsDirections" ("Empty route.legs, " <> show req)
       return $ MapSearch.Route Nothing Nothing bound [] []

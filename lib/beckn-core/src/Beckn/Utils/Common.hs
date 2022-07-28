@@ -20,9 +20,14 @@ import Beckn.Utils.Servant.Client as Common
 import Beckn.Utils.Shutdown as Common (Shutdown)
 import Beckn.Utils.Text as Common
 import Beckn.Utils.Time as Common
+import qualified Crypto.Number.Generate as Cryptonite
 import qualified Data.Text as T
 import EulerHS.Prelude hiding (id)
 import qualified Test.RandomStrings as RS
 
 generateShortId :: MonadFlow m => m (ShortId a)
 generateShortId = ShortId . T.pack <$> liftIO (RS.randomString (RS.onlyAlphaNum RS.randomASCII) 10)
+
+generateOTPCode :: MonadFlow m => m Text
+generateOTPCode =
+  liftIO $ padNumber 4 <$> Cryptonite.generateBetween 1 9999

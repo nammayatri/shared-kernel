@@ -10,6 +10,7 @@ module Beckn.Utils.Logging
     logInfo,
     logWarning,
     logError,
+    withRandomId,
     withTransactionIdLogTag,
     withTransactionIdLogTag',
     withPersonIdLogTag,
@@ -20,10 +21,12 @@ module Beckn.Utils.Logging
 where
 
 import Beckn.Types.Error.BaseError.HTTPError
+import Beckn.Types.GuidLike (generateGUID)
 import Beckn.Types.Id
 import Beckn.Types.Logging
+import Beckn.Types.MonadGuid
 import Beckn.Utils.GenericPretty (PrettyShow, textPretty)
-import EulerHS.Prelude
+import EulerHS.Prelude hiding (id)
 import GHC.Records.Extra
 
 log :: Log m => LogLevel -> Text -> m ()
@@ -52,6 +55,11 @@ logWarning = logOutput WARNING
 
 logError :: Log m => Text -> m ()
 logError = logOutput ERROR
+
+withRandomId :: (MonadGuid m, Log m) => m b -> m b
+withRandomId f = do
+  id <- generateGUID
+  withLogTag id f
 
 withPersonIdLogTag :: Log m => Id b -> m a -> m a
 withPersonIdLogTag personId = do
