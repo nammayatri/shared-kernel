@@ -136,13 +136,13 @@ data ExotelCallStatus
     NO_ANSWER
   | -- The call is canceled
     CANCELED
-  | -- Invalid call status 
+  | -- Invalid call status
     INVALID_STATUS
   deriving (Show, Eq, Read, Generic, ToSchema)
 
 instance FromText ExotelCallStatus where
-  fromText a = 
-    case a of 
+  fromText a =
+    case a of
       "queued" -> QUEUED
       "ringing" -> RINGING
       "in-progress" -> IN_PROGRESS
@@ -152,7 +152,7 @@ instance FromText ExotelCallStatus where
       "failed" -> FAILED
       "canceled" -> CANCELED
       _ -> INVALID_STATUS
-  
+
 $(deriveJSON constructorsWithHyphensToLowerOptions ''ExotelCallStatus)
 
 derivePersistField "ExotelCallStatus"

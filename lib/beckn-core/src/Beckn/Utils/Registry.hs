@@ -23,15 +23,13 @@ registryLookup ::
     HasFlowEnv m r '["registryUrl" ::: BaseUrl]
   ) =>
   SimpleLookupRequest ->
-  m (Maybe Subscriber)
+  m (Maybe [Subscriber])
 registryLookup request =
   registryFetch (toLookupReq request)
     >>= \case
-      [subscriber] ->
-        pure $ Just subscriber
-      _subscriber : _subscribers ->
-        throwError $ InternalError "Multiple subscribers returned for a unique key."
       [] -> pure Nothing
+      subscribers ->
+        pure $ Just subscribers
   where
     toLookupReq SimpleLookupRequest {..} =
       API.emptyLookupRequest
