@@ -313,6 +313,7 @@ instance IsAPIError SearchRequestError
 data QuoteError
   = QuoteNotFound Text
   | QuoteDoesNotExist Text
+  | QuoteExpired Text
   | QuoteFieldNotPresent Text
   deriving (Eq, Show, IsBecknAPIError)
 
@@ -322,16 +323,19 @@ instance IsBaseError QuoteError where
   toMessage = \case
     QuoteNotFound quoteId -> Just $ "Quote with quoteId \"" <> show quoteId <> "\" not found. "
     QuoteDoesNotExist quoteId -> Just $ "No quote matches passed data \"" <> show quoteId <> "\" not exist. "
+    QuoteExpired quoteId -> Just $ "Quote with quoteId \"" <> show quoteId <> "\" has already expired. "
     QuoteFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this quote."
 
 instance IsHTTPError QuoteError where
   toErrorCode = \case
     QuoteNotFound _ -> "QUOTE_NOT_FOUND"
     QuoteDoesNotExist _ -> "QUOTE_DOES_NOT_EXIST"
+    QuoteExpired _ -> "QUOTE_EXPIRED"
     QuoteFieldNotPresent _ -> "QUOTE_FIELD_NOT_PRESENT"
   toHttpCode = \case
     QuoteNotFound _ -> E500
     QuoteDoesNotExist _ -> E400
+    QuoteExpired _ -> E400
     QuoteFieldNotPresent _ -> E500
 
 instance IsAPIError QuoteError
