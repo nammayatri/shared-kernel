@@ -3,6 +3,7 @@
 
 module Beckn.Utils.Servant.SignatureAuth where
 
+import Beckn.Prelude (lookup)
 import Beckn.Tools.Metrics.CoreMetrics (HasCoreMetrics)
 import qualified Beckn.Tools.Metrics.CoreMetrics as Metrics
 import Beckn.Types.Common
@@ -21,7 +22,6 @@ import Control.Lens ((?=))
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.CaseInsensitive as CI
-import Data.List (lookup)
 import qualified Data.Map.Strict as Map
 import qualified Data.OpenApi as DS
 import qualified Data.Text as T
@@ -39,7 +39,7 @@ import Servant
     HasServer (..),
     type (:>),
   )
-import Servant.Client (HasClient (..))
+import Servant.Client (HasClient (..), parseBaseUrl)
 import qualified Servant.OpenApi as S
 import qualified Servant.OpenApi.Internal as S
 import Servant.Server.Internal.Delayed (addAuthCheck)
@@ -73,6 +73,9 @@ data SignatureAuthResult = SignatureAuthResult
     subscriber :: Subscriber
   }
 
+registryUrlHeader :: CI.CI ByteString
+registryUrlHeader = "registry-url"
+
 -- | This server part implementation accepts a signature in @header@ and
 -- verifies it using registry
 instance
@@ -81,6 +84,7 @@ instance
     KnownSymbol header,
     HasLog r,
     HasField "hostName" r Text,
+    HasField "registryUrl" r BaseUrl,
     HasField "disableSignatureAuth" r Bool,
     Registry (FlowR r),
     HasCoreMetrics r
@@ -98,6 +102,8 @@ instance
       authCheck :: Wai.Request -> DelayedIO SignatureAuthResult
       authCheck req = runFlowRDelayedIO env . becknApiHandler . withLogTag "authCheck" $ do
         let headers = Wai.requestHeaders req
+        -- TODO: This registry header supposed to be temporary solution. Check if we still need it
+        registryUrl <- maybe (asks (.registryUrl)) (parseBaseUrl . T.unpack . decodeUtf8) (lookup registryUrlHeader headers)
         logDebug $ "Incoming headers: " +|| headers ||+ ""
         bodyHash <-
           headers
@@ -108,10 +114,10 @@ instance
             & (lookup headerName >>> fromMaybeM (MissingHeader headerName))
             >>= (parseHeader >>> fromEitherM (InvalidHeader headerName))
             >>= (HttpSig.decode . fromString >>> fromEitherM CannotDecodeSignature)
-        subscriber <- verifySignature headerName signPayload bodyHash
+        subscriber <- verifySignature registryUrl headerName signPayload bodyHash
         return $ SignatureAuthResult signPayload subscriber
-      headerName = fromString $ symbolVal (Proxy @header)
       headerName :: IsString a => a
+      headerName = fromString $ symbolVal (Proxy @header)
       -- These are 500 because we must add that header in wai middleware
       missingHashHeader = InternalError $ "Header " +|| HttpSig.bodyHashHeader ||+ " not found"
       invalidHashHeader = InternalError $ "Header " +|| HttpSig.bodyHashHeader ||+ " does not contain a valid hash"
@@ -146,8 +152,9 @@ getHttpManagerKey :: Text -> String
 getHttpManagerKey keyId = signatureAuthManagerKey <> "-" <> T.unpack keyId
 
 prepareAuthManager ::
-  HasLog r =>
-  AuthenticatingEntity r =>
+  ( HasLog r,
+    AuthenticatingEntity r
+  ) =>
   R.FlowRuntime ->
   r ->
   [Text] ->
@@ -196,11 +203,12 @@ verifySignature ::
     Registry m,
     HasLog r
   ) =>
+  BaseUrl ->
   Text ->
   HttpSig.SignaturePayload ->
   HttpSig.Hash ->
   m Subscriber
-verifySignature headerName signPayload bodyHash = do
+verifySignature registryUrl headerName signPayload bodyHash = do
   hostName <- asks (.hostName)
   logTagDebug "SignatureAuth" $ "Got Signature: " <> show signPayload
   let uniqueKeyId = signPayload.params.keyId.uniqueKeyId
@@ -210,7 +218,7 @@ verifySignature headerName signPayload bodyHash = do
           { unique_key_id = uniqueKeyId,
             subscriber_id = subscriberId
           }
-  registryLookup lookupRequest >>= \case
+  registryLookup registryUrl lookupRequest >>= \case
     Just subscriber -> do
       disableSignatureAuth <- asks (.disableSignatureAuth)
       unless disableSignatureAuth do
