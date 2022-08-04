@@ -171,6 +171,9 @@ instance PrettyShow Time.Day where
 instance PrettyShow Void where
   prettyShow = absurd
 
+instance PrettyShow () where
+  prettyShow _ = LEmpty
+
 instance PrettyShow BS.ByteString where
   prettyShow = LStr . show
 

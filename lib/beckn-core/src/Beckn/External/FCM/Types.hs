@@ -284,46 +284,49 @@ instance Default FCMAndroidNotification where
           }
 
 -- | FCM payload
-data FCMData = FCMData
+data FCMData a = FCMData
   { fcmNotificationType :: FCMNotificationType,
     fcmShowNotification :: FCMShowNotification,
     fcmEntityType :: FCMEntityType,
     fcmEntityIds :: Text,
+    fcmEntityData :: a,
     fcmNotificationJSON :: FCMAndroidNotification
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMData)
 
-instance ToJSON FCMData where
+instance (ToJSON a) => ToJSON (FCMData a) where
   toJSON FCMData {..} =
     object
       [ "notification_type" .= fcmNotificationType,
         "show_notification" .= fcmShowNotification,
         "entity_type" .= fcmEntityType,
         "entity_ids" .= fcmEntityIds,
+        "entity_data" .= fcmEntityData,
         "notification_json" .= encodeToText fcmNotificationJSON
       ]
 
-instance FromJSON FCMData where
+instance (FromJSON a) => FromJSON (FCMData a) where
   parseJSON = withObject "FCMData" \o ->
     FCMData
       <$> o .: "notification_type"
       <*> o .: "show_notification"
       <*> o .: "entity_type"
       <*> o .: "entity_ids"
+      <*> o .: "entity_data"
       <*> (o .: "notification_json" >>= parseNotificationJson)
     where
       parseNotificationJson str =
         maybe (typeMismatch "Json string" (String str)) pure $ decodeFromText str
 
 -- | Android specific options for messages sent through FCM connection server
-data FCMAndroidConfig = FCMAndroidConfig
+data FCMAndroidConfig a = FCMAndroidConfig
   { fcmdCollapseKey :: !(Maybe Text),
     fcmdPriority :: !(Maybe FCMAndroidMessagePriority),
     fcmdTtl :: !(Maybe Text),
     fcmdRestrictedPackageName :: !(Maybe Text),
-    fcmdData :: !(Maybe FCMData),
+    fcmdData :: !(Maybe (FCMData a)),
     fcmdOptions :: !(Maybe FCMAndroidOptions),
     fcmdDirectBootOk :: !(Maybe Bool)
   }
@@ -333,7 +336,7 @@ $(makeLenses ''FCMAndroidConfig)
 
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMAndroidConfig)
 
-instance Default FCMAndroidConfig where
+instance (Default a) => Default (FCMAndroidConfig a) where
   def =
     let z = Nothing
      in FCMAndroidConfig z z z z z z z
@@ -365,16 +368,16 @@ instance Default FCMAlert where
 
 -----------------------------------------
 
-data FCMaps = FCMaps
+data FCMaps a = FCMaps
   { fcmAlert :: !(Maybe FCMAlert),
-    fcmData :: !(Maybe FCMData),
+    fcmData :: !(Maybe (FCMData a)),
     fcmCategory :: !(Maybe FCMNotificationType)
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMaps)
 
-instance ToJSON FCMaps where
+instance (ToJSON a) => ToJSON (FCMaps a) where
   toJSON FCMaps {..} =
     object
       [ "alert" .= fcmAlert,
@@ -382,18 +385,18 @@ instance ToJSON FCMaps where
         "category" .= fcmCategory
       ]
 
-instance FromJSON FCMaps where
+instance (FromJSON a) => FromJSON (FCMaps a) where
   parseJSON = withObject "FCMaps" \o ->
     FCMaps
       <$> o .: "alert"
       <*> o .: "data"
       <*> o .: "category"
 
-instance Default FCMaps where
+instance Default (FCMaps a) where
   def = FCMaps Nothing Nothing Nothing
 
-newtype FCMApnPayload = FCMApnPayload
-  { fcmAps :: Maybe FCMaps
+newtype FCMApnPayload a = FCMApnPayload
+  { fcmAps :: Maybe (FCMaps a)
   }
   deriving (Eq, Show)
   deriving newtype PrettyShow
@@ -402,7 +405,7 @@ $(makeLenses ''FCMApnPayload)
 
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMApnPayload)
 
-instance Default FCMApnPayload where
+instance Default (FCMApnPayload a) where
   def = FCMApnPayload Nothing
 
 newtype FCMApnHeaders = FCMApnHeaders
@@ -427,9 +430,9 @@ instance FromJSON FCMApnHeaders where
 instance Default FCMApnHeaders where
   def = FCMApnHeaders Nothing
 
-data FCMApnsConfig = FCMApnsConfig
+data FCMApnsConfig a = FCMApnsConfig
   { fcmaHeaders :: !(Maybe FCMApnHeaders),
-    fcmaPayload :: !(Maybe FCMApnPayload),
+    fcmaPayload :: !(Maybe (FCMApnPayload a)),
     fcmaOptions :: !(Maybe FCMApnsOptions)
   }
   deriving (Eq, Show, Generic, PrettyShow)
@@ -438,35 +441,35 @@ $(makeLenses ''FCMApnsConfig)
 
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMApnsConfig)
 
-instance Default FCMApnsConfig where
+instance Default (FCMApnsConfig a) where
   def = FCMApnsConfig Nothing Nothing Nothing
 
 -- | Webpush protocol specific options
-data FCMWebpushConfig = FCMWebpushConfig
+data FCMWebpushConfig a = FCMWebpushConfig
   { fcmwHeaders :: !(Maybe FCMHeaders),
-    fcmwData :: !(Maybe FCMData),
+    fcmwData :: !(Maybe (FCMData a)),
     fcmwNotification :: !(Maybe Value),
     fcmwOptions :: !(Maybe FCMWebpushOptions)
   }
   deriving (Eq, Show, Generic)
-  deriving PrettyShow via Showable FCMWebpushConfig
+  deriving PrettyShow via Showable (FCMWebpushConfig a)
 
 $(makeLenses ''FCMWebpushConfig)
 
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMWebpushConfig)
 
-instance Default FCMWebpushConfig where
+instance Default (FCMWebpushConfig a) where
   def = FCMWebpushConfig Nothing Nothing Nothing Nothing
 
 -- | Message to send by Firebase Cloud Messaging Service
-data FCMMessage = FCMMessage
+data FCMMessage a = FCMMessage
   { fcmToken :: !(Maybe FCMRecipientToken),
     fcmTopic :: !(Maybe Text),
     fcmCondition :: !(Maybe Text),
     fcmNotification :: !(Maybe FCMNotification),
-    fcmAndroid :: !(Maybe FCMAndroidConfig),
-    fcmWebpush :: !(Maybe FCMWebpushConfig),
-    fcmApns :: !(Maybe FCMApnsConfig),
+    fcmAndroid :: !(Maybe (FCMAndroidConfig a)),
+    fcmWebpush :: !(Maybe (FCMWebpushConfig a)),
+    fcmApns :: !(Maybe (FCMApnsConfig a)),
     fcmOptions :: !(Maybe FCMAndroidOptions)
   }
   deriving (Eq, Show, Generic, PrettyShow)
@@ -475,13 +478,13 @@ $(makeLenses ''FCMMessage)
 
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMMessage)
 
-instance Default FCMMessage where
+instance Default (FCMMessage a) where
   def =
     let z = Nothing
      in FCMMessage z z z z z z z z
 
-newtype FCMRequest = FCMRequest
-  { fcmeMessage :: FCMMessage
+newtype FCMRequest a = FCMRequest
+  { fcmeMessage :: FCMMessage a
   }
   deriving (Eq, Show, Generic)
   deriving anyclass PrettyShow

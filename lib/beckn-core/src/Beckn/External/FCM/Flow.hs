@@ -35,7 +35,7 @@ import Servant
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
 -- recipientId::FCMToken is an app's registration token
-createMessage :: FCMData -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> FCMMessage
+createMessage :: (Default a) => FCMData a -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> FCMMessage a
 createMessage msgData recipientId priority =
   def{fcmToken = Just recipientId,
       fcmAndroid = Just androidCfg,
@@ -46,13 +46,13 @@ createMessage msgData recipientId priority =
     apnsCfg = createApnsConfig msgData
 
 -- | Android Notification details
-createAndroidConfig :: FCMData -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig
+createAndroidConfig :: (Default a) => FCMData a -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig a
 createAndroidConfig cfgData priority =
   def{fcmdData = Just cfgData,
       fcmdPriority = priority
      }
 
-createApnsConfig :: FCMData -> FCMApnsConfig
+createApnsConfig :: FCMData a -> FCMApnsConfig a
 createApnsConfig androidFcmData =
   def{fcmaPayload = Just apnsPayload,
       fcmaHeaders =
@@ -64,7 +64,7 @@ createApnsConfig androidFcmData =
   where
     apnsPayload = createApnsPayload androidFcmData
 
-createApnsPayload :: FCMData -> FCMApnPayload
+createApnsPayload :: forall a. FCMData a -> FCMApnPayload a
 createApnsPayload androidData =
   def {fcmAps = Just fcmAps}
   where
@@ -73,7 +73,7 @@ createApnsPayload androidData =
       def{fcmBody = (.getFCMNotificationBody) <$> body,
           fcmTitle = (.getFCMNotificationTitle) <$> title
          }
-    fcmAps :: FCMaps
+    fcmAps :: FCMaps a
     fcmAps =
       def{fcmAlert = Just fcmAlert,
           fcmData = Just androidData,
@@ -110,19 +110,23 @@ createAndroidNotification title body notificationType =
 -- | Send FCM message to a person
 notifyPerson ::
   ( CoreMetrics m,
-    FCMFlow m r
+    FCMFlow m r,
+    Default a,
+    ToJSON a
   ) =>
-  FCMData ->
+  FCMData a ->
   FCMNotificationRecipient ->
   m ()
 notifyPerson = notifyPersonWithPriority Nothing
 
 notifyPersonWithPriority ::
   ( CoreMetrics m,
-    FCMFlow m r
+    FCMFlow m r,
+    Default a,
+    ToJSON a
   ) =>
   Maybe FCMAndroidMessagePriority ->
-  FCMData ->
+  FCMData a ->
   FCMNotificationRecipient ->
   m ()
 notifyPersonWithPriority priority msgData recipient = do
@@ -134,20 +138,21 @@ notifyPersonWithPriority priority msgData recipient = do
     Just token -> sendMessage (FCMRequest (createMessage msgData token priority)) recipient.id
 
 -- | Google API interface
-type FCMSendMessageAPI =
+type FCMSendMessageAPI a =
   Header "Authorization" FCMAuthToken
-    :> ReqBody '[JSON] FCMRequest
+    :> ReqBody '[JSON] (FCMRequest a)
     :> Post '[JSON] FCMResponse
 
-fcmSendMessageAPI :: Proxy FCMSendMessageAPI
+fcmSendMessageAPI :: Proxy (FCMSendMessageAPI a)
 fcmSendMessageAPI = Proxy
 
 -- | Send FCM message to a registered device
 sendMessage ::
   ( CoreMetrics m,
-    FCMFlow m r
+    FCMFlow m r,
+    ToJSON a
   ) =>
-  FCMRequest ->
+  FCMRequest a ->
   Text ->
   m ()
 sendMessage fcmMsg toWhom = fork desc $ do
