@@ -1,5 +1,5 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -42,6 +42,7 @@ newtype FCMAuthToken = FCMAuthToken
   { getFCMAuthToken :: Text
   }
   deriving (Show)
+  deriving newtype PrettyShow
 
 deriveIdentifierInstances ''FCMAuthToken
 
@@ -50,6 +51,7 @@ newtype FCMNotificationTitle = FCMNotificationTitle
   { getFCMNotificationTitle :: Text
   }
   deriving (Show)
+  deriving newtype PrettyShow
 
 deriveIdentifierInstances ''FCMNotificationTitle
 
@@ -58,6 +60,7 @@ newtype FCMNotificationBody = FCMNotificationBody
   { getFCMNotificationBody :: Text
   }
   deriving (Show)
+  deriving newtype PrettyShow
 
 deriveIdentifierInstances ''FCMNotificationBody
 
@@ -66,6 +69,7 @@ newtype FCMNotificationIconUrl = FCMNotificationIconUrl
   { getFCMNotificationIconUrl :: Text
   }
   deriving (Show)
+  deriving newtype PrettyShow
 
 deriveIdentifierInstances ''FCMNotificationIconUrl
 
@@ -85,15 +89,20 @@ data FCMNotificationType
   | FARE_POLICY_CHANGED
   | DISCOUNT_CHANGED
   | QUOTE_RECEIVED
+  | NEW_RIDE_AVAILABLE
+  | DRIVER_QUOTE_INCOMING
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving PrettyShow via Showable FCMNotificationType
 
 -- | Entity types types
 data FCMEntityType = SearchRequest | Product | Organization | Person
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving PrettyShow via Showable FCMEntityType
 
 -- | Priority of a message to send to Android devices
 data FCMAndroidMessagePriority = NORMAL | HIGH
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving PrettyShow via Showable FCMAndroidMessagePriority
 
 -- | Priority levels of a notification
 data FCMNotificationPriority
@@ -104,13 +113,16 @@ data FCMNotificationPriority
   | PRIORITY_HIGH
   | PRIORITY_MAX
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving PrettyShow via Showable FCMNotificationPriority
 
 -- | Different visibility levels of a notification
 data FCMNotificationVisibility = VISIBILITY_UNSPECIFIED | PRIVATE | PUBLIC | SECRET
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving PrettyShow via Showable FCMNotificationVisibility
 
 data FCMShowNotification = SHOW | DO_NOT_SHOW
   deriving (Show, Eq, Read, Generic)
+  deriving PrettyShow via Showable FCMShowNotification
 
 instance ToJSON FCMShowNotification where
   toJSON SHOW = "true"
@@ -135,7 +147,7 @@ data FCMColor = FCMColor
     fcmBlue :: Int,
     fcmAlpha :: Int
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMColor)
 
@@ -146,6 +158,7 @@ newtype FCMAndroidOptions = FCMAndroidOptions
   { fcmdAnalyticsLabel :: Maybe Text
   }
   deriving (Eq, Show)
+  deriving newtype PrettyShow
 
 $(makeLenses ''FCMAndroidOptions)
 
@@ -159,7 +172,7 @@ data FCMApnsOptions = FCMApnsOptions
   { fcmaAnalyticsLabel :: !(Maybe Text),
     fcmaImage :: !(Maybe FCMNotificationIconUrl)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMApnsOptions)
 
@@ -173,7 +186,7 @@ data FCMWebpushOptions = FCMWebpushOptions
   { fcmwAnalyticsLabel :: !(Maybe Text),
     fcmwLink :: !(Maybe Text)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMWebpushOptions)
 
@@ -188,7 +201,7 @@ data FCMLightSettings = FCMLightSettings
     fcmLightOffDuration :: !(Maybe Text),
     fcmColor :: !(Maybe FCMColor)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMLightSettings)
 
@@ -203,7 +216,7 @@ data FCMNotification = FCMNotification
     fcmBody :: !(Maybe FCMNotificationBody),
     fcmImage :: !(Maybe FCMNotificationIconUrl)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMNotification)
 
@@ -236,7 +249,7 @@ data FCMAndroidNotification = FCMAndroidNotification
     fcmdDefaultLightSettings :: !(Maybe Bool),
     fcmdVibrateTimings :: !(Maybe [Text])
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMAndroidNotification)
 
@@ -278,7 +291,7 @@ data FCMData = FCMData
     fcmEntityIds :: Text,
     fcmNotificationJSON :: FCMAndroidNotification
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMData)
 
@@ -314,7 +327,7 @@ data FCMAndroidConfig = FCMAndroidConfig
     fcmdOptions :: !(Maybe FCMAndroidOptions),
     fcmdDirectBootOk :: !(Maybe Bool)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMAndroidConfig)
 
@@ -330,7 +343,7 @@ data FCMAlert = FCMAlert
   { fcmTitle :: !(Maybe Text),
     fcmBody :: !(Maybe Text)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMAlert)
 
@@ -357,7 +370,7 @@ data FCMaps = FCMaps
     fcmData :: !(Maybe FCMData),
     fcmCategory :: !(Maybe FCMNotificationType)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMaps)
 
@@ -383,6 +396,7 @@ newtype FCMApnPayload = FCMApnPayload
   { fcmAps :: Maybe FCMaps
   }
   deriving (Eq, Show)
+  deriving newtype PrettyShow
 
 $(makeLenses ''FCMApnPayload)
 
@@ -395,6 +409,7 @@ newtype FCMApnHeaders = FCMApnHeaders
   { fcmApnsPriority :: Maybe Text
   }
   deriving (Eq, Show)
+  deriving newtype PrettyShow
 
 $(makeLenses ''FCMApnHeaders)
 
@@ -417,7 +432,7 @@ data FCMApnsConfig = FCMApnsConfig
     fcmaPayload :: !(Maybe FCMApnPayload),
     fcmaOptions :: !(Maybe FCMApnsOptions)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMApnsConfig)
 
@@ -433,7 +448,8 @@ data FCMWebpushConfig = FCMWebpushConfig
     fcmwNotification :: !(Maybe Value),
     fcmwOptions :: !(Maybe FCMWebpushOptions)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
+  deriving PrettyShow via Showable FCMWebpushConfig
 
 $(makeLenses ''FCMWebpushConfig)
 
@@ -453,7 +469,7 @@ data FCMMessage = FCMMessage
     fcmApns :: !(Maybe FCMApnsConfig),
     fcmOptions :: !(Maybe FCMAndroidOptions)
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic, PrettyShow)
 
 $(makeLenses ''FCMMessage)
 
@@ -467,7 +483,8 @@ instance Default FCMMessage where
 newtype FCMRequest = FCMRequest
   { fcmeMessage :: FCMMessage
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
+  deriving anyclass PrettyShow
 
 $(makeLenses ''FCMRequest)
 
@@ -498,13 +515,14 @@ data FCMErrorCode
   | PERMISSION_DENIED
   | UNAUTHENTICATED
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving PrettyShow via Showable FCMErrorCode
 
 data FCMError = FCMError
   { fcmerrCode :: Int,
     fcmerrStatus :: FCMErrorCode,
     fcmerrMessage :: !Text
   }
-  deriving (Show, Eq, Read, Generic)
+  deriving (Show, Eq, Read, Generic, PrettyShow)
 
 $(makeLenses ''FCMError)
 
@@ -515,6 +533,6 @@ data FCMResponse = FCMResponse
   { fcmName :: Maybe Text,
     fcmerrError :: Maybe FCMError
   }
-  deriving (Show, Eq, Read, Generic)
+  deriving (Show, Eq, Read, Generic, PrettyShow)
 
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMResponse)
