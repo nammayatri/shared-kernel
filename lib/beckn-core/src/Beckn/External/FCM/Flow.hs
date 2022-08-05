@@ -15,7 +15,16 @@
 -- a payload of up to 4KB to a client app.
 --
 -- Protocol description : https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages
-module Beckn.External.FCM.Flow where
+module Beckn.External.FCM.Flow (
+  createMessage,
+  createAndroidNotification,
+  notifyPerson,
+  notifyPersonWithPriority,
+  notifyPersonDefault,
+  notifyPersonWithPriorityDefault,
+  FCMSendMessageAPI,
+  fcmSendMessageAPI,
+) where
 
 import Beckn.External.FCM.Types
 import qualified Beckn.Storage.Redis.Queries as Redis
@@ -108,34 +117,49 @@ createAndroidNotification title body notificationType =
         }
 
 -- | Send FCM message to a person
-notifyPerson ::
-  ( CoreMetrics m,
-    FCMFlow m r,
-    Default a,
-    ToJSON a
-  ) =>
+notifyPersonDefault :: (CoreMetrics m, FCMFlow m r, Default a, ToJSON a) =>
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPerson = notifyPersonWithPriority Nothing
+notifyPersonDefault = notifyPersonWithPriorityDefault Nothing
 
-notifyPersonWithPriority ::
-  ( CoreMetrics m,
-    FCMFlow m r,
-    Default a,
-    ToJSON a
-  ) =>
+notifyPersonWithPriorityDefault :: (CoreMetrics m, FCMFlow m r, Default a, ToJSON a) =>
   Maybe FCMAndroidMessagePriority ->
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPersonWithPriority priority msgData recipient = do
+notifyPersonWithPriorityDefault pri_ data_ recip_ = runWithFCMConfig notifyPersonWithPriority >>= \func -> func pri_ data_ recip_
+
+notifyPerson ::
+  ( CoreMetrics m,
+    Default a,
+    ToJSON a,
+    MonadFlow m
+  ) =>
+  FCMConfig ->
+  FCMData a ->
+  FCMNotificationRecipient ->
+  m ()
+notifyPerson config = notifyPersonWithPriority config Nothing
+
+notifyPersonWithPriority ::
+  ( CoreMetrics m,
+    Default a,
+    ToJSON a,
+    MonadFlow m
+  ) =>
+  FCMConfig ->
+  Maybe FCMAndroidMessagePriority ->
+  FCMData a ->
+  FCMNotificationRecipient ->
+  m ()
+notifyPersonWithPriority config priority msgData recipient = do
   let tokenNotFound = "device token of a person " <> recipient.id <> " not found"
   case recipient.token of
     Nothing -> do
       logTagInfo "FCM" tokenNotFound
       pure ()
-    Just token -> sendMessage (FCMRequest (createMessage msgData token priority)) recipient.id
+    Just token -> sendMessage config (FCMRequest (createMessage msgData token priority)) recipient.id
 
 -- | Google API interface
 type FCMSendMessageAPI a =
@@ -149,17 +173,18 @@ fcmSendMessageAPI = Proxy
 -- | Send FCM message to a registered device
 sendMessage ::
   ( CoreMetrics m,
-    FCMFlow m r,
-    ToJSON a
+    ToJSON a,
+    MonadFlow m
   ) =>
+  FCMConfig ->
   FCMRequest a ->
   Text ->
   m ()
-sendMessage fcmMsg toWhom = fork desc $ do
-  authToken <- getTokenText
+sendMessage config fcmMsg toWhom = fork desc $ do
+  authToken <- getTokenText config
   case authToken of
     Right token -> do
-      fcmUrl <- asks (.fcmUrl)
+      let fcmUrl = config.fcmUrl
       res <- callAPI fcmUrl (callFCM (Just $ FCMAuthToken token) fcmMsg) "sendMessage"
       case res of
         Right _ -> logTagInfo fcm $ "message sent successfully to a person with id " <> toWhom
@@ -173,19 +198,21 @@ sendMessage fcmMsg toWhom = fork desc $ do
 
 -- | try to get FCM text token
 getTokenText ::
-  FCMFlow m r =>
+  MonadFlow m =>
+  FCMConfig ->
   m (Either Text Text)
-getTokenText = do
-  token <- getToken
+getTokenText config = do
+  token <- getToken config
   pure $ case token of
     Left err -> Left $ fromString err
     Right t -> Right $ JWT.jwtTokenType t <> " " <> JWT.jwtAccessToken t
 
 -- | Get token (refresh token if expired / invalid)
 getToken ::
-  FCMFlow m r =>
+  MonadFlow m =>
+  FCMConfig ->
   m (Either String JWT.JWToken)
-getToken = do
+getToken config = do
   tokenStatus <-
     Redis.getKeyRedis "beckn:fcm_token" >>= \case
       Nothing -> pure $ Left "Token not found"
@@ -198,14 +225,15 @@ getToken = do
   case tokenStatus of
     Left err -> do
       logTagWarning "FCM" $ "Refreshing FCM token. Reason: " <> fromString err
-      getNewToken
+      getNewToken config
     jwt -> pure jwt
 
 getAndParseFCMAccount ::
-  FCMFlow m r =>
+  MonadFlow m =>
+  FCMConfig ->
   m (Either String JWT.ServiceAccount)
-getAndParseFCMAccount = do
-  mbFcmFile <- asks (.fcmJsonPath)
+getAndParseFCMAccount config = do
+  let mbFcmFile = config.fcmJsonPath
   case mbFcmFile of
     Nothing -> pure $ Left "FCM JSON file is not set in configs"
     Just fcmFile -> do
@@ -215,8 +243,8 @@ getAndParseFCMAccount = do
     parseContent :: Either String BL.ByteString -> Either String JWT.ServiceAccount
     parseContent rawContent = rawContent >>= Aeson.eitherDecode
 
-getNewToken :: FCMFlow m r => m (Either String JWT.JWToken)
-getNewToken = getAndParseFCMAccount >>= either (pure . Left) refreshToken
+getNewToken :: MonadFlow m => FCMConfig -> m (Either String JWT.JWToken)
+getNewToken config = getAndParseFCMAccount config >>= either (pure . Left) refreshToken
 
 refreshToken :: MonadFlow m => JWT.ServiceAccount -> m (Either String JWT.JWToken)
 refreshToken fcmAcc = do

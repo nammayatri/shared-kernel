@@ -24,6 +24,20 @@ import EulerHS.Prelude hiding (id, (.=))
 
 type FCMFlow m r = (HasFlowEnv m r ["fcmUrl" ::: BaseUrl, "fcmJsonPath" ::: Maybe Text])
 
+askFCMConfig :: FCMFlow m r => m FCMConfig
+askFCMConfig = do
+  fcmUrl <- asks (.fcmUrl)
+  fcmJsonPath <- asks (.fcmJsonPath)
+  pure $ FCMConfig {..}
+
+runWithFCMConfig :: (FCMFlow m r) => (FCMConfig -> a) -> m a
+runWithFCMConfig func = func <$> askFCMConfig
+
+data FCMConfig = FCMConfig
+  { fcmUrl :: BaseUrl,
+    fcmJsonPath :: Maybe Text
+  }
+
 data FCMNotificationRecipient = FCMNotificationRecipient
   { id :: Text,
     token :: Maybe FCMRecipientToken
