@@ -70,7 +70,9 @@ data AuthenticatingEntity' = AuthenticatingEntity'
 
 data SignatureAuthResult = SignatureAuthResult
   { signature :: HttpSig.SignaturePayload,
-    subscriber :: Subscriber
+    subscriber :: Subscriber,
+    -- TODO: This field supposed to be temporary solution. Check if we still need it
+    registryUrl :: BaseUrl
   }
 
 registryUrlHeader :: CI.CI ByteString
@@ -115,7 +117,7 @@ instance
             >>= (parseHeader >>> fromEitherM (InvalidHeader headerName))
             >>= (HttpSig.decode . fromString >>> fromEitherM CannotDecodeSignature)
         subscriber <- verifySignature registryUrl headerName signPayload bodyHash
-        return $ SignatureAuthResult signPayload subscriber
+        return $ SignatureAuthResult signPayload subscriber registryUrl
       headerName :: IsString a => a
       headerName = fromString $ symbolVal (Proxy @header)
       -- These are 500 because we must add that header in wai middleware
