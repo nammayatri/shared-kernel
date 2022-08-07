@@ -2,11 +2,11 @@ module Main where
 
 import APIExceptions
 import Amount
+import DistanceCalculation
 import EulerHS.Prelude
 import SignatureAuth
 import SlidingWindowLimiter
 import Test.Tasty
-import DistanceCalculation
 
 main :: IO ()
 main = defaultMain =<< specs

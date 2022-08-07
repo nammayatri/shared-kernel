@@ -1,7 +1,7 @@
 module Beckn.Storage.Esqueleto.Types where
 
-import Database.Esqueleto.Experimental
 import Beckn.Prelude
+import Database.Esqueleto.Experimental
 
 data Point = Point
   deriving (Generic, Show, Read, Eq, ToSchema)

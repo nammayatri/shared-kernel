@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Beckn.Storage.Esqueleto.Queries
   ( findOne,
@@ -47,7 +48,8 @@ import Beckn.Storage.Esqueleto.SqlDB
 import Beckn.Storage.Esqueleto.Transactionable
 import Beckn.Types.Logging (Log)
 import Database.Esqueleto.Experimental as EsqExport hiding
-  ( delete,
+  ( Table,
+    delete,
     deleteCount,
     deleteKey,
     insert,
@@ -60,7 +62,6 @@ import Database.Esqueleto.Experimental as EsqExport hiding
     upsert,
     upsertBy,
     (<&>),
-    Table
   )
 import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Esqueleto.Internal.Internal as Esq

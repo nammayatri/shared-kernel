@@ -12,10 +12,10 @@ import qualified Data.Text as Text
 import Data.Time (UTCTime)
 import qualified Data.Time as Time
 import Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
-import EulerHS.Prelude
-import qualified System.Clock as Clock
 import Database.Persist.Class
 import Database.Persist.Sql
+import EulerHS.Prelude
+import qualified System.Clock as Clock
 
 newtype Microseconds = Microseconds
   { getMicroseconds :: Int

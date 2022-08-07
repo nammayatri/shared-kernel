@@ -25,11 +25,11 @@ import Beckn.Utils.GenericPretty
 import Data.Aeson
 import Data.Generics.Labels ()
 import Data.OpenApi (ToSchema)
+import Database.Persist.Class
+import Database.Persist.Sql
 import EulerHS.Prelude hiding (id)
 import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
-import Database.Persist.Class
-import Database.Persist.Sql
 
 newtype IdObject = IdObject
   { id :: Text
