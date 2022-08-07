@@ -303,7 +303,7 @@ instance (ToJSON a) => ToJSON (FCMData a) where
         "show_notification" .= fcmShowNotification,
         "entity_type" .= fcmEntityType,
         "entity_ids" .= fcmEntityIds,
-        "entity_data" .= fcmEntityData,
+        "entity_data" .= encodeToText fcmEntityData,
         "notification_json" .= encodeToText fcmNotificationJSON
       ]
 
@@ -314,7 +314,7 @@ instance (FromJSON a) => FromJSON (FCMData a) where
       <*> o .: "show_notification"
       <*> o .: "entity_type"
       <*> o .: "entity_ids"
-      <*> o .: "entity_data"
+      <*> (o .: "entity_data" >>= parseNotificationJson)
       <*> (o .: "notification_json" >>= parseNotificationJson)
     where
       parseNotificationJson str =
