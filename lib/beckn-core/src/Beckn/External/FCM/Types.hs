@@ -22,20 +22,22 @@ import Data.Aeson.Types
 import Data.Default.Class
 import EulerHS.Prelude hiding (id, (.=))
 
-type FCMFlow m r = (HasFlowEnv m r ["fcmUrl" ::: BaseUrl, "fcmJsonPath" ::: Maybe Text])
+type FCMFlow m r = (HasFlowEnv m r ["fcmUrl" ::: BaseUrl, "fcmJsonPath" ::: Maybe Text, "fcmTokenKeyPrefix" ::: Text])
 
-askFCMConfig :: FCMFlow m r => m FCMConfig
-askFCMConfig = do
+askDefaultFCMConfig :: FCMFlow m r => m FCMConfig
+askDefaultFCMConfig = do
   fcmUrl <- asks (.fcmUrl)
   fcmJsonPath <- asks (.fcmJsonPath)
+  fcmTokenKeyPrefix <- asks (.fcmTokenKeyPrefix)
   pure $ FCMConfig {..}
 
-runWithFCMConfig :: (FCMFlow m r) => (FCMConfig -> a) -> m a
-runWithFCMConfig func = func <$> askFCMConfig
+runWithDefaultFCMConfig :: (FCMFlow m r) => (FCMConfig -> a) -> m a
+runWithDefaultFCMConfig func = func <$> askDefaultFCMConfig
 
 data FCMConfig = FCMConfig
   { fcmUrl :: BaseUrl,
-    fcmJsonPath :: Maybe Text
+    fcmJsonPath :: Maybe Text,
+    fcmTokenKeyPrefix :: Text
   }
 
 data FCMNotificationRecipient = FCMNotificationRecipient

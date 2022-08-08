@@ -15,16 +15,17 @@
 -- a payload of up to 4KB to a client app.
 --
 -- Protocol description : https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages
-module Beckn.External.FCM.Flow (
-  createMessage,
-  createAndroidNotification,
-  notifyPerson,
-  notifyPersonWithPriority,
-  notifyPersonDefault,
-  notifyPersonWithPriorityDefault,
-  FCMSendMessageAPI,
-  fcmSendMessageAPI,
-) where
+module Beckn.External.FCM.Flow
+  ( createMessage,
+    createAndroidNotification,
+    notifyPerson,
+    notifyPersonWithPriority,
+    notifyPersonDefault,
+    notifyPersonWithPriorityDefault,
+    FCMSendMessageAPI,
+    fcmSendMessageAPI,
+  )
+where
 
 import Beckn.External.FCM.Types
 import qualified Beckn.Storage.Redis.Queries as Redis
@@ -117,18 +118,20 @@ createAndroidNotification title body notificationType =
         }
 
 -- | Send FCM message to a person
-notifyPersonDefault :: (CoreMetrics m, FCMFlow m r, Default a, ToJSON a) =>
+notifyPersonDefault ::
+  (CoreMetrics m, FCMFlow m r, Default a, ToJSON a) =>
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
 notifyPersonDefault = notifyPersonWithPriorityDefault Nothing
 
-notifyPersonWithPriorityDefault :: (CoreMetrics m, FCMFlow m r, Default a, ToJSON a) =>
+notifyPersonWithPriorityDefault ::
+  (CoreMetrics m, FCMFlow m r, Default a, ToJSON a) =>
   Maybe FCMAndroidMessagePriority ->
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPersonWithPriorityDefault pri_ data_ recip_ = runWithFCMConfig notifyPersonWithPriority >>= \func -> func pri_ data_ recip_
+notifyPersonWithPriorityDefault pri_ data_ recip_ = runWithDefaultFCMConfig notifyPersonWithPriority >>= \func -> func pri_ data_ recip_
 
 notifyPerson ::
   ( CoreMetrics m,
@@ -207,6 +210,9 @@ getTokenText config = do
     Left err -> Left $ fromString err
     Right t -> Right $ JWT.jwtTokenType t <> " " <> JWT.jwtAccessToken t
 
+redisFcmKey :: Text
+redisFcmKey = "beckn:fcm_token"
+
 -- | Get token (refresh token if expired / invalid)
 getToken ::
   MonadFlow m =>
@@ -214,7 +220,7 @@ getToken ::
   m (Either String JWT.JWToken)
 getToken config = do
   tokenStatus <-
-    Redis.getKeyRedis "beckn:fcm_token" >>= \case
+    Redis.getKeyRedis (config.fcmTokenKeyPrefix <> ":" <> redisFcmKey) >>= \case
       Nothing -> pure $ Left "Token not found"
       Just jwt -> do
         validityStatus <- liftIO $ JWT.isValid jwt
@@ -244,10 +250,10 @@ getAndParseFCMAccount config = do
     parseContent rawContent = rawContent >>= Aeson.eitherDecode
 
 getNewToken :: MonadFlow m => FCMConfig -> m (Either String JWT.JWToken)
-getNewToken config = getAndParseFCMAccount config >>= either (pure . Left) refreshToken
+getNewToken config = getAndParseFCMAccount config >>= either (pure . Left) (refreshToken config)
 
-refreshToken :: MonadFlow m => JWT.ServiceAccount -> m (Either String JWT.JWToken)
-refreshToken fcmAcc = do
+refreshToken :: MonadFlow m => FCMConfig -> JWT.ServiceAccount -> m (Either String JWT.JWToken)
+refreshToken config fcmAcc = do
   logTagInfo fcmTag "Refreshing token"
   refreshRes <- liftIO $ JWT.doRefreshToken fcmAcc
   case refreshRes of
@@ -256,7 +262,7 @@ refreshToken fcmAcc = do
       pure $ Left $ fromString err
     Right token -> do
       logTagInfo fcmTag $ fromString "Success"
-      Redis.setKeyRedis "beckn:fcm_token" token
+      Redis.setKeyRedis (config.fcmTokenKeyPrefix <> ":" <> redisFcmKey) token
       pure $ Right token
   where
     fcmTag = "FCM"
