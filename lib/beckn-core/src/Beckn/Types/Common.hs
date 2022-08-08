@@ -12,6 +12,7 @@ where
 
 import Beckn.External.Encryption as Common (EncFlow)
 import Beckn.External.FCM.Types as Common (FCMFlow)
+import Beckn.Prelude
 import Beckn.Storage.DB.Config as Common (DBFlow)
 import Beckn.Storage.Esqueleto.Config as Common (EsqDBFlow)
 import Beckn.Types.App as Common
@@ -22,12 +23,9 @@ import Beckn.Types.MonadGuid as Common
 import Beckn.Types.Time as Common
 import Beckn.Utils.Dhall (FromDhall)
 import Beckn.Utils.GenericPretty
-import Data.Aeson
 import Data.Generics.Labels ()
-import Data.OpenApi (ToSchema)
 import Database.Persist.Class
 import Database.Persist.Sql
-import EulerHS.Prelude hiding (id)
 import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
 
@@ -66,3 +64,7 @@ metersToHighPrecMeters (Meters n) = HighPrecMeters $ int2Double n
 
 highPrecMetersToMeters :: HighPrecMeters -> Meters
 highPrecMetersToMeters (HighPrecMeters n) = Meters $ double2Int n
+
+--
+newtype Money = Money Int
+  deriving newtype (Show, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema)

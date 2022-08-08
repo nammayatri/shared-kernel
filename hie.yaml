@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    stackYaml: "./stack-hie.yaml"
+
+    components:
+    - path: "lib/beckn-core/src"
+      component: "beckn-core:lib"
+
+    - path: "lib/beckn-core/test/app"
+      component: "beckn-core:test:beckn-core-tests"
+
+    - path: "lib/beckn-core/test/src"
+      component: "beckn-core:test:beckn-core-tests"

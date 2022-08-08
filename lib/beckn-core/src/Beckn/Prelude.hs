@@ -74,3 +74,21 @@ rightToMaybe = either (const Nothing) Just
 
 intToNominalDiffTime :: Int -> NominalDiffTime
 intToNominalDiffTime = secondsToNominalDiffTime . MkFixed . (* 1000000000000) . toInteger
+
+-- fixme: test this function
+roundToPowerOfTen :: RealFrac a => Int -> a -> a
+roundToPowerOfTen tenExp a = do
+  let f = 10 ^^ negate tenExp
+      lifted = a * f
+  if abs (lifted - fromIntegral @Int (floor lifted)) == 0.5
+    then (lifted + signum lifted * 0.5) / f
+    else (fromIntegral @Integer . round $ lifted) / f
+
+roundToUnits :: (RealFrac a) => a -> a
+roundToUnits = roundToPowerOfTen 0
+
+roundToIntegral :: (RealFrac a, Integral b) => a -> b
+roundToIntegral = round . roundToUnits
+
+showRounded :: RealFrac a => a -> Text
+showRounded = show @_ @Int . roundToIntegral
