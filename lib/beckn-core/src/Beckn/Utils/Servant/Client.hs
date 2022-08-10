@@ -10,6 +10,7 @@ import Beckn.Utils.Dhall (FromDhall)
 import Beckn.Utils.Error.Throwing
 import Beckn.Utils.Logging
 import Beckn.Utils.Servant.BaseUrl
+import Beckn.Utils.Text
 import Beckn.Utils.Time
 import qualified Data.Aeson as A
 import qualified Data.Map.Strict as Map
@@ -57,7 +58,7 @@ callAPI' mbManagerSelector baseUrl eulerClient desc =
       measuringDuration (Metrics.addRequestLatency (showBaseUrlText baseUrl) desc) $
         L.callAPI' (Just managerSelector) baseUrl eulerClient
     case res of
-      Right r -> logDebug $ "Ok response: " <> decodeUtf8 (A.encode r)
+      Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
       Left err -> logDebug $ "Error occured during client call: " <> show err
     return res
 
