@@ -1,4 +1,4 @@
-module Beckn.Types.Core.Migration.Gps (Gps (..)) where
+module Beckn.Types.Core.Gps (Gps (..)) where
 
 import Beckn.Utils.Error.Throwing (fromEitherM')
 import Beckn.Utils.Example
