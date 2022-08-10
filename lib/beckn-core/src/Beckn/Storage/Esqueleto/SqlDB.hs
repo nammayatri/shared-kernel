@@ -43,7 +43,7 @@ instance Log (ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
 newtype FullEntitySqlDB t = FullEntitySqlDB
   { getSqlDB :: SqlDB t
   }
-  deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid, Log)
+  deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid)
 
 liftToFullEntitySqlDB :: SqlDB t -> FullEntitySqlDB t
 liftToFullEntitySqlDB = FullEntitySqlDB

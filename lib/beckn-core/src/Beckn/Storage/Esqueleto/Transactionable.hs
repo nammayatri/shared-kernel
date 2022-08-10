@@ -2,6 +2,7 @@ module Beckn.Storage.Esqueleto.Transactionable where
 
 import Beckn.Prelude
 import Beckn.Storage.Esqueleto.Config
+import Beckn.Storage.Esqueleto.DTypeBuilder
 import Beckn.Storage.Esqueleto.Logger
 import Beckn.Storage.Esqueleto.SqlDB
 import Beckn.Types.Logging
@@ -14,6 +15,9 @@ class (MonadThrow m, Log m) => Transactionable m where
 
 instance {-# OVERLAPPING #-} Transactionable (ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
   runTransaction = identity
+
+instance {-# OVERLAPPING #-} Transactionable m => Transactionable (DTypeBuilder m) where
+  runTransaction f = liftToBuilder $ runTransaction f
 
 -- We need INCOHERENT here because in next case:
 -- create :: a -> m ()

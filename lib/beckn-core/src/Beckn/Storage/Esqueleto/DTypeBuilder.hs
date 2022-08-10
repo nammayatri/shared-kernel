@@ -15,7 +15,7 @@ import Beckn.Types.Logging
 newtype DTypeBuilder m t = DTypeBuilder
   { getTType :: m t
   }
-  deriving newtype (Functor, Applicative, Monad)
+  deriving newtype (Functor, Applicative, Monad, Log, MonadThrow)
 
 liftToBuilder :: m t -> DTypeBuilder m t
 liftToBuilder = DTypeBuilder
