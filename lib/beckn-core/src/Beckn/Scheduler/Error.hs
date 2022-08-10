@@ -5,7 +5,6 @@ module Beckn.Scheduler.Error where
 import Beckn.Prelude
 import Beckn.Types.Error.BaseError
 import Beckn.Types.Error.BaseError.HTTPError
-import Type.Reflection
 
 data JobDecodeError
   = InvalidJobType Text

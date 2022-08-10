@@ -3,14 +3,7 @@ module Beckn.Prelude (module E, module Beckn.Prelude) where
 import Control.Arrow as E
 import qualified Control.Concurrent as Conc
 import Control.Concurrent.STM.TMVar as E (TMVar)
-import Control.Exception as E (SomeException)
-import Control.Exception.Safe as E (try)
-import Control.Monad.Catch as E
-  ( Exception (..),
-    MonadCatch (..),
-    MonadThrow (..),
-    SomeException (..),
-  )
+import Control.Exception.Safe as E hiding (assert)
 import Control.Monad.Reader as E
 import Control.Monad.Trans.Maybe as E
 import Data.Aeson as E (FromJSON (..), ToJSON (..), genericParseJSON, genericToJSON)

@@ -44,8 +44,8 @@ listenForMessages ::
   m Bool ->
   (a -> m ()) ->
   m ()
-listenForMessages isRunning handle = whileM isRunning $ do
+listenForMessages isRunning handleMessage = whileM isRunning $ do
   etrRes <- try @_ @SomeException MonadCons.receiveMessage
   case etrRes of
     Left err -> logInfo $ "Message was not received: " <> show err
-    Right mbRes -> whenJust mbRes handle
+    Right mbRes -> whenJust mbRes handleMessage

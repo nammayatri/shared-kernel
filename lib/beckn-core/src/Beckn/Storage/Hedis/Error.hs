@@ -6,7 +6,6 @@ module Beckn.Storage.Hedis.Error where
 import Beckn.Prelude
 import Beckn.Types.Error.BaseError
 import Beckn.Types.Error.BaseError.HTTPError
-import Type.Reflection
 
 data HedisError
   = HedisReplyError String

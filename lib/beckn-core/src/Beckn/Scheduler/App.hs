@@ -5,7 +5,7 @@ module Beckn.Scheduler.App
   )
 where
 
-import Beckn.Prelude
+import Beckn.Prelude hiding (mask, throwIO)
 import Beckn.Scheduler.Environment
 import Beckn.Scheduler.JobHandler
 import Beckn.Scheduler.Metrics

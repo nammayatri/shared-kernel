@@ -5,7 +5,6 @@ module Beckn.Mock.Exceptions where
 import Beckn.Prelude
 import Beckn.Types.Error.BaseError
 import Beckn.Types.Error.BaseError.HTTPError
-import Type.Reflection
 
 newtype OrderError = OrderNotFound Text
   deriving (Show, IsBecknAPIError, Typeable)

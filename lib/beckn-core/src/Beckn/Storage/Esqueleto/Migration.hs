@@ -8,7 +8,6 @@ import Beckn.Prelude
 import Beckn.Storage.Esqueleto.Config
 import Beckn.Types.Common
 import Beckn.Utils.Common
-import Control.Exception.Safe
 import Data.ByteString
 import qualified Data.Text as T
 import qualified Database.PostgreSQL.Simple as PS

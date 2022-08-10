@@ -7,7 +7,6 @@ import Beckn.Prelude
 import Beckn.Storage.DB.Config
 import Beckn.Storage.Esqueleto.Migration (migrateIfNeeded')
 import Beckn.Types.Common
-import Control.Exception.Safe
 import qualified Database.PostgreSQL.Simple as PS
 import qualified EulerHS.Types as T
 

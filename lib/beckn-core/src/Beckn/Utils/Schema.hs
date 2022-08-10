@@ -12,7 +12,6 @@ import qualified Data.Aeson as A
 import Data.OpenApi
 import Data.OpenApi.Declare
 import Data.OpenApi.Internal.Schema
-import Data.Typeable
 import GHC.Generics
 
 stripPrefixUnderscoreIfAny :: SchemaOptions
