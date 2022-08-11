@@ -39,6 +39,8 @@ data FCMConfig = FCMConfig
     fcmJsonPath :: Maybe Text,
     fcmTokenKeyPrefix :: Text
   }
+  deriving stock (Show, Generic)
+  deriving anyclass (PrettyShow)
 
 data FCMNotificationRecipient = FCMNotificationRecipient
   { id :: Text,
