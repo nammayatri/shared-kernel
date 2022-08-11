@@ -1,6 +1,7 @@
-module Beckn.Product.MapSearch.PolyLinePoints (LatiLong (..), encode, decode) where
+module Beckn.Product.MapSearch.PolyLinePoints (LatLong (..), encode, decode) where
 
 import Beckn.Prelude
+import Beckn.Types.MapSearch
 import Data.Bits
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
@@ -8,13 +9,6 @@ import Data.Char as C
 import Data.Int (Int32)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-
--- | Type to encapsulate latitude/longitude pairs.
-data LatiLong = LatiLong
-  { lat :: Double,
-    lon :: Double
-  }
-  deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
 
 toInts :: BSC.ByteString -> [Int32]
 toInts = map fromIntegral . BS.unpack
@@ -83,31 +77,31 @@ toChunks xs =
 stringToCoords :: BSC.ByteString -> [Double]
 stringToCoords = map oneCoordOp . toChunks . stringPrep
 
-makePairs :: [Double] -> [LatiLong]
-makePairs (d1 : d2 : ds) = LatiLong d1 d2 : makePairs ds
+makePairs :: [Double] -> [LatLong]
+makePairs (d1 : d2 : ds) = LatLong d1 d2 : makePairs ds
 makePairs [] = []
 makePairs _ = []
 
-catPairs :: [LatiLong] -> [Double]
+catPairs :: [LatLong] -> [Double]
 catPairs [] = []
-catPairs (LatiLong a b : xs) = a : b : catPairs xs
+catPairs (LatLong a b : xs) = a : b : catPairs xs
 
-addPair :: LatiLong -> LatiLong -> LatiLong
-addPair (LatiLong x1 y1) (LatiLong x2 y2) = LatiLong (x1 + x2) (y1 + y2)
+addPair :: LatLong -> LatLong -> LatLong
+addPair (LatLong x1 y1) (LatLong x2 y2) = LatLong (x1 + x2) (y1 + y2)
 
-subPair :: LatiLong -> LatiLong -> LatiLong
-subPair (LatiLong x1 y1) (LatiLong x2 y2) = LatiLong (x1 - x2) (y1 - y2)
+subPair :: LatLong -> LatLong -> LatLong
+subPair (LatLong x1 y1) (LatLong x2 y2) = LatLong (x1 - x2) (y1 - y2)
 
 -- inverse of ( scanl1 addPair )
-adjDiff :: [LatiLong] -> [LatiLong]
-adjDiff p = zipWith subPair p (LatiLong 0 0 : p)
+adjDiff :: [LatLong] -> [LatLong]
+adjDiff p = zipWith subPair p (LatLong 0 0 : p)
 
 -- | Decodes Google Polyline text to a sequence of Latitude/Longitude
 -- points.  Inverse of 'encode'.
-decode :: T.Text -> [LatiLong]
+decode :: T.Text -> [LatLong]
 decode = scanl1 addPair . makePairs . stringToCoords . TE.encodeUtf8
 
 -- | Encodes a sequence of Latitude/Longitude points into Google
 -- Polyline text.  Inverse of 'decode'.
-encode :: [LatiLong] -> T.Text
+encode :: [LatLong] -> T.Text
 encode = T.concat . fmap oneCoordEnc . catPairs . adjDiff

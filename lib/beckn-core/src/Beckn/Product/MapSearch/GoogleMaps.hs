@@ -104,7 +104,8 @@ getDistances travelMode origins destinations utcDepartureTime = do
 getRoutes ::
   ( MonadFlow m,
     CoreMetrics m,
-    GoogleMaps.HasGoogleMaps m r
+    GoogleMaps.HasGoogleMaps m r,
+    Log m
   ) =>
   MapSearch.Request ->
   m [MapSearch.Route]
@@ -116,49 +117,42 @@ getRoutes req = do
       waypoints = getWayPoints req.waypoints
       mode = mapToMode <$> req.mode
   gRes <- GoogleMaps.directions googleMapsUrl origin destination key mode waypoints
-  return (map (`extractRoute` mode) gRes.routes)
+  traverse (mkRoute req) gRes.routes
   where
     getWayPoints waypoints =
       case NE.tail waypoints of
         [] -> Nothing
         _ -> Just (map latLongToPlace (init $ NE.tail waypoints))
-    extractRoute route mode = mkRoute route mode
 
-mkRoute :: Route -> Maybe Mode -> MapSearch.Route
-mkRoute route mode = do
-  let bound = route.bounds
-  if null (route.legs)
-    then MapSearch.Route Nothing Nothing bound [] []
-    else
-      if mode == Just GoogleMaps.DRIVING
-        then do
-          let mLeg = case route.legs of
-                [] -> Nothing
-                [l] -> Just l
-                (_l : _) -> Just (head route.legs)
-              mSteps = (.steps) <$> mLeg
-              mbpolylinePoints = map (\x -> decode x.polyline.points) <$> mSteps
-              mbsnappedWayPoints = map (\x -> (x.start_location, x.end_location)) <$> mSteps
-              polylinePoints = [fromMaybe [] mbpolylinePoints]
-              snappedWayPoints = [fromMaybe [] mbsnappedWayPoints]
-              (distanceInM, durationInS) = case mLeg of
-                Nothing -> (Nothing, Nothing)
-                Just x -> (Just (fromIntegral x.distance.value), Just (fromIntegral x.duration.value))
-          MapSearch.Route durationInS distanceInM bound snappedWayPoints polylinePoints
-        else do
-          let mLegs = case route.legs of
-                [] -> Nothing
-                legsArr -> Just legsArr
-          let polyLinepoints = extractLegs <$> mLegs
-          let snappedWayPoints = map (\leg -> map (\step -> (step.start_location, step.end_location)) leg.steps) route.legs
-          let totalDurationInS = sum (map (\x -> x.duration.value) route.legs)
-          let totalDistanceInM = sum (map (\x -> x.distance.value) route.legs)
-          let (distanceInM, durationInS) = (Just (fromIntegral totalDistanceInM), Just (fromIntegral totalDurationInS))
-          MapSearch.Route durationInS distanceInM bound snappedWayPoints (fromMaybe [] polyLinepoints)
+mkRoute ::
+  (MonadFlow m) =>
+  MapSearch.Request ->
+  Route ->
+  m MapSearch.Route
+mkRoute req route = do
+  let bound = Just $ mkBounds route.bounds
+  if (null route.legs)
+    then do
+      logTagWarning "GoogleMapsDirections" ("Empty route.legs, " <> show req)
+      return $ MapSearch.Route Nothing Nothing bound [] []
+    else do
+      when (length route.legs > 1) $
+        logTagWarning "GoogleMapsDirections" ("More than one element in route.legs, " <> show req)
+
+      let leg = head route.legs
+          steps = leg.steps
+          polylinePoints = concat $ (\step -> decode step.polyline.points) <$> steps
+          snappedWayPoints = (\step -> (MapSearch.LatLong step.start_location.lat step.start_location.lng, MapSearch.LatLong step.end_location.lat step.end_location.lng)) <$> steps
+          distanceInM = Just $ fromIntegral leg.distance.value
+          durationInS = Just $ fromIntegral leg.duration.value
+
+      return $ MapSearch.Route durationInS distanceInM bound snappedWayPoints polylinePoints
   where
-    extractLegs legs = map extractSteps legs
-    extractSteps leg = map extractPolylinePoints leg.steps
-    extractPolylinePoints step = decode step.polyline.points
+    mkBounds :: GoogleMaps.Bounds -> MapSearch.BoundingBoxWithoutCRS
+    mkBounds gBound =
+      let ne = MapSearch.PointXY gBound.northeast.lat gBound.northeast.lng
+          sw = MapSearch.PointXY gBound.southwest.lat gBound.southwest.lng
+       in MapSearch.BoundingBoxWithoutCRSXY ne sw
 
 parseDistanceMatrixRespGeneral ::
   (MonadThrow m, MonadIO m, Log m) =>

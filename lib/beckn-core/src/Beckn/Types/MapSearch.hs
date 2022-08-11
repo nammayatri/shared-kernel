@@ -8,8 +8,6 @@ module Beckn.Types.MapSearch
   )
 where
 
-import Beckn.External.GoogleMaps.Types (Bounds, LocationS)
-import Beckn.Product.MapSearch.PolyLinePoints
 import Beckn.Types.App (Value)
 import Beckn.Utils.GenericPretty (PrettyShow)
 import Control.Lens.Operators
@@ -30,9 +28,9 @@ data TravelMode = CAR | MOTORCYCLE | BICYCLE | FOOT
 data Route = Route
   { durationInS :: Maybe Integer,
     distanceInM :: Maybe Double,
-    boundingBox :: Bounds,
-    snappedWaypoints :: [[(LocationS, LocationS)]],
-    points :: [[[LatiLong]]]
+    boundingBox :: Maybe BoundingBoxWithoutCRS,
+    snappedWaypoints :: [(LatLong, LatLong)],
+    points :: [LatLong]
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
