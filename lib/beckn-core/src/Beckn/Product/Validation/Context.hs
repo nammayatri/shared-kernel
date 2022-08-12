@@ -8,7 +8,7 @@ import Beckn.Utils.Common
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 
-validateContext :: (HasFlowEnv m r ["coreVersion" ::: Text, "domainVersion" ::: Text]) => CoreContext.Action -> CoreContext.Context -> m ()
+validateContext :: (HasFlowEnv m r '["coreVersion" ::: Text]) => CoreContext.Action -> CoreContext.Context -> m ()
 validateContext action context = do
   validateDomain CoreContext.MOBILITY context
   validateContextCommons action context
