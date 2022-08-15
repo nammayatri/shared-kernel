@@ -829,3 +829,53 @@ instance IsHTTPError ServiceabilityError where
   toHttpCode RideNotServiceable = E400
 
 instance IsAPIError ServiceabilityError
+
+data IdfyCallError
+  = IdfyBadRequest
+  | IdfyUnauthorized
+  | IdfyAccessDenied
+  | IdfyNotFound
+  | IdfySizeLimit
+  | IdfyUnprocessableEntity
+  | IdfyTooManyRequests
+  | IdfyServerError
+  | IdfyCallError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''IdfyCallError
+
+instance FromResponse IdfyCallError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just IdfyBadRequest
+    401 -> Just IdfyUnauthorized
+    402 -> Just IdfyAccessDenied
+    404 -> Just IdfyNotFound
+    413 -> Just IdfySizeLimit
+    422 -> Just IdfyUnprocessableEntity
+    429 -> Just IdfyTooManyRequests
+    _ -> Just IdfyServerError
+
+instance IsBaseError IdfyCallError where
+  toMessage = \case
+    IdfyBadRequest -> Just "Something in your header or request body was malformed."
+    IdfyUnauthorized -> Just "Necessary credentials were either missing or invalid."
+    IdfyAccessDenied -> Just "Your credentials are valid, but you don’t have access to the requested resource."
+    IdfyNotFound -> Just "The object you’re requesting doesn’t exist."
+    IdfySizeLimit -> Just "You might be trying to update the same resource concurrently."
+    IdfyUnprocessableEntity -> Just "Unprocessable Entity"
+    IdfyTooManyRequests -> Just "You are calling our APIs more frequently than we allow."
+    IdfyServerError -> Just "Something went wrong on our end. Please try again."
+    IdfyCallError googleErrorCode -> Just googleErrorCode
+
+instance IsHTTPError IdfyCallError where
+  toErrorCode = \case
+    IdfyBadRequest -> "IDFY_BAD_REQUEST"
+    IdfyUnauthorized -> "IDFY_UNAUTHORIZED"
+    IdfyAccessDenied -> "IDFY_ACCESS_DENIED"
+    IdfyNotFound -> "IDFY_NOT_FOUND"
+    IdfySizeLimit -> "IDFY_CONFLICT"
+    IdfyTooManyRequests -> "IDFY_TOO_MANY_REQUESTS"
+    IdfyServerError -> "IDFY_SERVER_ERROR"
+    IdfyCallError _ -> "GOOGLE_MAPS_CALL_ERROR"
+
+instance IsAPIError IdfyCallError

@@ -3,7 +3,7 @@ module Beckn.Utils.JSON where
 import Beckn.Utils.Text (recursiveStrip)
 import Data.Aeson (Options (..), SumEncoding (ObjectWithSingleField, UntaggedValue), Value (..), defaultOptions)
 import Data.HashMap.Strict (size, unions)
-import Data.Text (pack, replace, toLower, unpack)
+import Data.Text (pack, replace, toLower, toUpper, unpack)
 import EulerHS.Prelude hiding (pack, unpack)
 
 replaceUnderscores :: Text -> Text
@@ -29,6 +29,12 @@ constructorsToLowerOptions :: Options
 constructorsToLowerOptions =
   defaultOptions
     { constructorTagModifier = unpack . toLower . pack
+    }
+
+constructorsToUpperOptions :: Options
+constructorsToUpperOptions =
+  defaultOptions
+    { constructorTagModifier = unpack . toUpper . pack
     }
 
 constructorsWithHyphensToLowerOptions :: Options
