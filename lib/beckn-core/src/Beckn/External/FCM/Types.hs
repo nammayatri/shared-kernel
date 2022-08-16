@@ -109,6 +109,8 @@ data FCMNotificationType
   | QUOTE_RECEIVED
   | NEW_RIDE_AVAILABLE
   | DRIVER_QUOTE_INCOMING
+  | DRIVER_ON_THE_WAY
+  | DRIVER_HAS_REACHED
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
