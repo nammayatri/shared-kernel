@@ -13,7 +13,6 @@ where
 import Beckn.External.Encryption as Common (EncFlow)
 import Beckn.External.FCM.Types as Common (FCMFlow)
 import Beckn.Prelude hiding (show)
-import Beckn.Storage.DB.Config as Common (DBFlow)
 import Beckn.Storage.Esqueleto.Config as Common (EsqDBFlow)
 import Beckn.Types.App as Common
 import Beckn.Types.Forkable as Common

@@ -1,5 +1,6 @@
 module DistanceCalculation where
 
+import Beckn.Types.Common
 import Beckn.Types.MapSearch
 import Beckn.Utils.CalculateDistance
 import EulerHS.Prelude
@@ -17,7 +18,7 @@ testLinearLengthCalculationDuringStop =
   testCase "Linear length calculation during a stop" $
     checkTolerance 3.0 lenghtDuringStop realLenghtDuringStop -- 300%
 
-lenghtDuringStop, realLenghtDuringStop :: Double
+lenghtDuringStop, realLenghtDuringStop :: HighPrecMeters
 lenghtDuringStop = getRouteLinearLength pointsDuringStop
 realLenghtDuringStop = distanceBetweenInMeters (head pointsDuringStop) (last pointsDuringStop)
 
@@ -29,7 +30,7 @@ distanceCalculation =
       testLinearLengthCalculationDuringStop
     ]
 
-linearLength, manuallyCalculatedLength :: Double
+linearLength, manuallyCalculatedLength :: HighPrecMeters
 linearLength = getRouteLinearLength realRoute
 manuallyCalculatedLength = 16930 -- may be not very accurate
 
