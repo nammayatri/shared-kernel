@@ -34,6 +34,12 @@ maskText text =
     then T.take 3 text <> "..." <> T.takeEnd 3 text
     else "..."
 
+truncateText :: Text -> Text 
+truncateText text = 
+  if length text > 100000 -- TODO: Change this to mutually decided value
+    then T.take 100 text <> "..."
+    else text
+
 camelCaseToSnakeCase :: Text -> Text
 camelCaseToSnakeCase =
   T.concatMap \c ->
