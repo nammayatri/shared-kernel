@@ -154,6 +154,7 @@ data PersonError
   | PersonFieldNotPresent Text
   | PersonWithPhoneNotFound Text
   | PersonOrgExists
+  | PersonEmailExists
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''PersonError
@@ -165,6 +166,7 @@ instance IsBaseError PersonError where
     PersonFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this person."
     PersonWithPhoneNotFound phone -> Just $ "Person with mobile number \"" <> show phone <> "\" not found."
     PersonOrgExists -> Just "Person is already registered in the organization."
+    PersonEmailExists -> Just "Email is already registered."
 
 instance IsHTTPError PersonError where
   toErrorCode = \case
@@ -173,12 +175,14 @@ instance IsHTTPError PersonError where
     PersonFieldNotPresent _ -> "PERSON_FIELD_NOT_PRESENT"
     PersonWithPhoneNotFound _ -> "PERSON_NOT_FOUND"
     PersonOrgExists -> "PERSON_ORG_ALREADY_EXISTS"
+    PersonEmailExists -> "PERSON_EMAIL_ALREADY_EXISTS"
   toHttpCode = \case
     PersonNotFound _ -> E500
     PersonDoesNotExist _ -> E400
     PersonFieldNotPresent _ -> E500
     PersonWithPhoneNotFound _ -> E500
     PersonOrgExists -> E400
+    PersonEmailExists -> E400
 
 instance IsAPIError PersonError
 
