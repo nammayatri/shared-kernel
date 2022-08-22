@@ -300,14 +300,14 @@ modFlowRtWithAuthManagers flowRt appEnv orgShortIds = do
   logInfo $ "Loaded http managers - " <> show orgShortIds
   pure $ flowRt {R._httpClientManagers = managers}
 
-addAuthManagersToFlowRt :: 
+addAuthManagersToFlowRt ::
   ( HasHttpClientOptions r c,
     MonadReader r m,
     HasLog r,
     MonadFlow m
   ) =>
-  R.FlowRuntime -> 
-  [Map String Http.ManagerSettings] -> 
+  R.FlowRuntime ->
+  [Map String Http.ManagerSettings] ->
   m R.FlowRuntime
 addAuthManagersToFlowRt flowRt managersList = do
   let managersSettings = Map.unions managersList

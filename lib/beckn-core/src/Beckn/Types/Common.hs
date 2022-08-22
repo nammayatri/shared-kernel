@@ -24,6 +24,7 @@ import Beckn.Types.Time as Common
 import Beckn.Utils.Dhall (FromDhall)
 import Beckn.Utils.GenericPretty
 import Data.Generics.Labels ()
+import Data.OpenApi
 import Database.Persist.Class
 import Database.Persist.Sql
 import GHC.Float (double2Int, int2Double)
@@ -44,7 +45,7 @@ newtype Meters = Meters
 newtype HighPrecMeters = HighPrecMeters
   { getHighPrecMeters :: Double
   }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, RealFrac, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
 newtype Kilometers = Kilometers
@@ -65,6 +66,25 @@ metersToHighPrecMeters (Meters n) = HighPrecMeters $ int2Double n
 highPrecMetersToMeters :: HighPrecMeters -> Meters
 highPrecMetersToMeters (HighPrecMeters n) = Meters $ double2Int n
 
---
-newtype Money = Money Int
+newtype Money = Money
+  { getMoney :: Int
+  }
+  deriving stock (Generic)
   deriving newtype (Show, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema)
+
+newtype HighPrecMoney = HighPrecMoney
+  { getHighPrecMoney :: Rational
+  }
+  deriving stock (Generic)
+  deriving newtype (Show, Read, Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
+
+instance ToJSON HighPrecMoney where
+  toJSON = toJSON @Double . realToFrac
+
+instance FromJSON HighPrecMoney where
+  parseJSON = fmap realToFrac . parseJSON @Double
+
+instance ToSchema HighPrecMoney where
+  declareNamedSchema _ = do
+    aSchema <- declareSchema (Proxy :: Proxy Double)
+    return $ NamedSchema (Just "HighPrecMoney") aSchema
