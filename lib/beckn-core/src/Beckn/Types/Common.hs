@@ -12,7 +12,7 @@ where
 
 import Beckn.External.Encryption as Common (EncFlow)
 import Beckn.External.FCM.Types as Common (FCMFlow)
-import Beckn.Prelude
+import Beckn.Prelude hiding (show)
 import Beckn.Storage.DB.Config as Common (DBFlow)
 import Beckn.Storage.Esqueleto.Config as Common (EsqDBFlow)
 import Beckn.Types.App as Common
@@ -29,6 +29,7 @@ import Database.Persist.Class
 import Database.Persist.Sql
 import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
+import Text.Show (Show (..))
 
 newtype IdObject = IdObject
   { id :: Text
@@ -76,7 +77,15 @@ newtype HighPrecMoney = HighPrecMoney
   { getHighPrecMoney :: Rational
   }
   deriving stock (Generic)
-  deriving newtype (Show, Read, Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
+  deriving newtype (Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
+
+instance Show HighPrecMoney where
+  show = show @Double . realToFrac
+
+instance Read HighPrecMoney where
+  readsPrec d s = do
+    (dobuleVal, s1) :: (Double, String) <- readsPrec d s
+    return (realToFrac dobuleVal, s1)
 
 instance ToJSON HighPrecMoney where
   toJSON = toJSON @Double . realToFrac

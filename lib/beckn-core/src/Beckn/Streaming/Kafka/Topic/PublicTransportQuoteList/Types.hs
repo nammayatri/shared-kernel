@@ -8,9 +8,8 @@ import qualified Beckn.Streaming.Kafka.Producer as Prod
 import Beckn.Streaming.Kafka.Producer.Types
 import Beckn.Streaming.MonadConsumer (MonadConsumer (..))
 import Beckn.Streaming.MonadProducer (MonadProducer (..))
-import Beckn.Types.Amount
+import Beckn.Types.Common
 import Beckn.Types.Flow (FlowR)
-import Beckn.Types.Logging
 
 type HasKafkaPublicTransportQuotesConsumer env r =
   ( HasKafkaConsumer env r,
@@ -30,7 +29,7 @@ data PublicTransportStation = PublicTransportStation
 data PublicTransportQuote = PublicTransportQuote
   { id :: Text,
     description :: Text,
-    fare :: Amount,
+    fare :: Money,
     departureTime :: UTCTime,
     arrivalTime :: UTCTime,
     departureStation :: PublicTransportStation,
