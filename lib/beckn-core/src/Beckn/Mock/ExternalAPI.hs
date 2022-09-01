@@ -21,8 +21,8 @@ import GHC.Records.Extra
 import Network.HTTP.Client hiding (Proxy)
 import qualified Network.HTTP.Client as Http
 import qualified Network.HTTP.Client.TLS as Http
-import Relude
 import Servant.Client
+import Universum
 
 callBapAPI ::
   forall api a b e.

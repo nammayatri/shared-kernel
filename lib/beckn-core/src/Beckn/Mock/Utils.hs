@@ -11,8 +11,8 @@ import Data.List
 import Data.String.Conversions
 import qualified Data.Text as T
 import Data.Time
-import Relude
 import System.Random
+import Universum
 
 -- | Read formatted time.
 -- Here %F means the same as %Y-%m-%d, and %R acts like %H:%M.

@@ -8,8 +8,8 @@ import Beckn.Types.Common
 import Beckn.Utils.IOLogging
 import qualified Control.Monad.Catch as C
 import Control.Monad.IO.Unlift
-import Relude
 import Servant
+import Universum
 import UnliftIO.Concurrent
 
 type HealthCheckAPI = Get '[JSON] Text

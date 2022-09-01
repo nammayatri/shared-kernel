@@ -4,7 +4,7 @@ import Beckn.Prelude
 import Beckn.Types.Logging
 import Beckn.Utils.Dhall (FromDhall)
 import qualified Control.Monad.Catch as C
-import Data.Binary (Word16)
+import Data.Word (Word16)
 import Database.Redis
 import GHC.Records.Extra
 import Network.Socket (HostName)
