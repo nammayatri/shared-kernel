@@ -48,6 +48,7 @@ callAPI ::
   CallAPI' m res (Either ClientError res)
 callAPI = callAPI' Nothing
 
+-- Why do we call L.callAPI' (Just "default") instead of L.callAPI' Nothing?
 callAPI' ::
   Maybe ET.ManagerSelector ->
   CallAPI' m res (Either ClientError res)

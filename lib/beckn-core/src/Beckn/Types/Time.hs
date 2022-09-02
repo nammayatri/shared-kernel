@@ -47,6 +47,15 @@ newtype Hours = Hours
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
+newtype Days = Days
+  { getDays :: Int
+  }
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
+  deriving stock (Generic)
+
+daysToSeconds :: Days -> Seconds
+daysToSeconds = Seconds . (* 86400) . getDays
+
 type MeasuringDuration m a = MonadClock m => m a -> m a
 
 class Monad m => MonadTime m where
