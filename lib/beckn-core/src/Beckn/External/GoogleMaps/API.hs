@@ -23,6 +23,7 @@ type GoogleMapsAPI =
     :<|> "geocode" :> "json"
       :> MandatoryQueryParam "latlng" Text -- Parameters order is important.
       :> MandatoryQueryParam "key" Text
+      :> QueryParam "language" GoogleMaps.Language
       :> Get '[JSON] GoogleMaps.GetPlaceNameResp
     :<|> DistanceMatrixAPI
     :<|> DirectionsAPI
@@ -51,7 +52,7 @@ googleMapsAPI = Proxy
 
 autoComplete :: Text -> Text -> Text -> Integer -> Text -> Text -> EulerClient GoogleMaps.SearchLocationResp
 placeDetails :: Text -> Text -> Text -> EulerClient GoogleMaps.PlaceDetailsResp
-getPlaceName :: Text -> Text -> EulerClient GoogleMaps.GetPlaceNameResp
+getPlaceName :: Text -> Text -> Maybe GoogleMaps.Language -> EulerClient GoogleMaps.GetPlaceNameResp
 distanceMatrix ::
   [GoogleMaps.Place] ->
   [GoogleMaps.Place] ->

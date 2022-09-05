@@ -145,6 +145,20 @@ data Mode = DRIVING | WALKING | BICYCLING | TRANSIT
 instance ToHttpApiData Mode where
   toUrlPiece = T.toLower . show
 
+data Language = ENGLISH
+              | HINDI
+              | KANNADA
+              | TAMIL
+              | MALAYALAM
+  deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToSchema)
+
+instance ToHttpApiData Language where
+  toUrlPiece ENGLISH = "en"
+  toUrlPiece HINDI = "hi"
+  toUrlPiece KANNADA = "kn"
+  toUrlPiece MALAYALAM = "ml"
+  toUrlPiece TAMIL = "ta"
+
 data DepartureTime = Now | FutureTime UTCTime
 
 instance ToHttpApiData DepartureTime where
