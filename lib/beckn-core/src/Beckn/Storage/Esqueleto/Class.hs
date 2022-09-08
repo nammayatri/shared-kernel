@@ -16,6 +16,7 @@ import Beckn.Types.Logging (Log)
 import Database.Esqueleto.Experimental
 import qualified Database.Esqueleto.Internal.Internal as EsqInt
 import EulerHS.Prelude hiding (Key)
+import qualified GHC.Generics as Gen
 
 class
   TType t a
@@ -54,226 +55,103 @@ instance (EsqInt.SqlSelect a b) => EsqInt.SqlSelect (SolidType a) (SolidType b) 
 class QEntity t a where
   toResult :: (MonadThrow m, Log m) => t -> m a
 
-instance TType a b => QEntity (Entity a) b where
+instance {-# OVERLAPPABLE #-} (Generic t, Generic a, GQEntity (Gen.Rep t) (Gen.Rep a)) => QEntity t a where
+  toResult t = Gen.to <$> toResultGen (Gen.from t)
+
+instance {-# OVERLAPPING #-} TType a b => QEntity (Entity a) b where
   toResult = fromTType . extractTType
 
-instance QEntity a b => QEntity [a] [b] where
+instance {-# OVERLAPPING #-} QEntity a b => QEntity [a] [b] where
   toResult = traverse toResult
 
-instance QEntity a b => QEntity (Maybe a) (Maybe b) where
+instance {-# OVERLAPPING #-} QEntity a b => QEntity (Maybe a) (Maybe b) where
   toResult = mapM toResult
 
-instance ((b ~ DomainKey a), TEntityKey a) => QEntity (Value (Key a)) b where
+instance {-# OVERLAPPING #-} ((b ~ DomainKey a), TEntityKey a) => QEntity (Value (Key a)) b where
   toResult = return . fromKey . unValue
 
-instance QEntity (Value a) a where
+instance {-# OVERLAPPING #-} QEntity (Value a) a where
   toResult = return . unValue
 
-instance (TType a b) => QEntity (SolidType a) b where
+instance {-# OVERLAPPING #-} (TType a b) => QEntity (SolidType a) b where
   toResult = fromTType . unSolidType
 
-instance
-  ( QEntity a1 b1,
-    QEntity a2 b2
-  ) =>
-  QEntity (a1, a2) (b1, b2)
-  where
-  toResult (a1, a2) =
-    (,) <$> toResult a1
-      <*> toResult a2
+class GQEntity gt ga where
+  toResultGen :: (MonadThrow m, Log m) => gt p -> m (ga p)
 
 instance
-  ( QEntity a1 b1,
-    QEntity a2 b2,
-    QEntity a3 b3
-  ) =>
-  QEntity (a1, a2, a3) (b1, b2, b3)
+  (GQEntity a1 a2, GQEntity b1 b2) =>
+  GQEntity ((Gen.:*:) a1 b1) ((Gen.:*:) a2 b2)
   where
-  toResult (a1, a2, a3) =
-    (,,)
-      <$> toResult a1
-      <*> toResult a2
-      <*> toResult a3
+  toResultGen (a1 Gen.:*: b1) = do
+    a2 <- toResultGen a1
+    b2 <- toResultGen b1
+    return (a2 Gen.:*: b2)
 
 instance
-  ( QEntity a1 b1,
-    QEntity a2 b2,
-    QEntity a3 b3,
-    QEntity a4 b4
-  ) =>
-  QEntity (a1, a2, a3, a4) (b1, b2, b3, b4)
+  (GQEntity a1 a2, GQEntity b1 b2) =>
+  GQEntity ((Gen.:+:) a1 b1) ((Gen.:+:) a2 b2)
   where
-  toResult (a1, a2, a3, a4) =
-    (,,,)
-      <$> toResult a1
-      <*> toResult a2
-      <*> toResult a3
-      <*> toResult a4
+  toResultGen (Gen.L1 a1) = Gen.L1 <$> toResultGen a1
+  toResultGen (Gen.R1 b1) = Gen.R1 <$> toResultGen b1
 
 instance
-  ( QEntity a1 b1,
-    QEntity a2 b2,
-    QEntity a3 b3,
-    QEntity a4 b4,
-    QEntity a5 b5
-  ) =>
-  QEntity (a1, a2, a3, a4, a5) (b1, b2, b3, b4, b5)
+  (GQEntity a1 a2) =>
+  GQEntity (Gen.M1 i t a1) (Gen.M1 i t a2)
   where
-  toResult (a1, a2, a3, a4, a5) =
-    (,,,,)
-      <$> toResult a1
-      <*> toResult a2
-      <*> toResult a3
-      <*> toResult a4
-      <*> toResult a5
+  toResultGen (Gen.M1 a1) = Gen.M1 <$> toResultGen a1
 
 instance
-  ( QEntity a1 b1,
-    QEntity a2 b2,
-    QEntity a3 b3,
-    QEntity a4 b4,
-    QEntity a5 b5,
-    QEntity a6 b6
-  ) =>
-  QEntity (a1, a2, a3, a4, a5, a6) (b1, b2, b3, b4, b5, b6)
+  (QEntity a1 a2) =>
+  GQEntity (Gen.K1 i a1) (Gen.K1 i a2)
   where
-  toResult (a1, a2, a3, a4, a5, a6) =
-    (,,,,,)
-      <$> toResult a1
-      <*> toResult a2
-      <*> toResult a3
-      <*> toResult a4
-      <*> toResult a5
-      <*> toResult a6
-
-instance
-  ( QEntity a1 b1,
-    QEntity a2 b2,
-    QEntity a3 b3,
-    QEntity a4 b4,
-    QEntity a5 b5,
-    QEntity a6 b6,
-    QEntity a7 b7
-  ) =>
-  QEntity (a1, a2, a3, a4, a5, a6, a7) (b1, b2, b3, b4, b5, b6, b7)
-  where
-  toResult (a1, a2, a3, a4, a5, a6, a7) =
-    (,,,,,,)
-      <$> toResult a1
-      <*> toResult a2
-      <*> toResult a3
-      <*> toResult a4
-      <*> toResult a5
-      <*> toResult a6
-      <*> toResult a7
+  toResultGen (Gen.K1 a1) = Gen.K1 <$> toResult a1
 
 class TEntity te a where
   extractTType :: te -> a
 
-instance TEntity (Entity a) a where
+instance {-# OVERLAPPABLE #-} (Generic te, Generic a, GTEntity (Gen.Rep te) (Gen.Rep a)) => TEntity te a where
+  extractTType = Gen.to . extractTTypeGen . Gen.from
+
+instance {-# OVERLAPPING #-} TEntity (Entity a) a where
   extractTType = entityVal
 
-instance TEntity (Value a) a where
+instance {-# OVERLAPPING #-} TEntity (Value a) a where
   extractTType = unValue
 
-instance TEntity a b => TEntity [a] [b] where
+instance {-# OVERLAPPING #-} TEntity a b => TEntity [a] [b] where
   extractTType = fmap extractTType
 
-instance TEntity a b => TEntity (Maybe a) (Maybe b) where
+instance {-# OVERLAPPING #-} TEntity a b => TEntity (Maybe a) (Maybe b) where
   extractTType = fmap extractTType
 
-instance
-  ( TEntity a1 b1,
-    TEntity a2 b2
-  ) =>
-  TEntity (a1, a2) (b1, b2)
-  where
-  extractTType (a1, a2) =
-    (,)
-      (extractTType a1)
-      (extractTType a2)
+class GTEntity gt ga where
+  extractTTypeGen :: gt p -> ga p
 
 instance
-  ( TEntity a1 b1,
-    TEntity a2 b2,
-    TEntity a3 b3
-  ) =>
-  TEntity (a1, a2, a3) (b1, b2, b3)
+  (GTEntity a1 a2, GTEntity b1 b2) =>
+  GTEntity ((Gen.:*:) a1 b1) ((Gen.:*:) a2 b2)
   where
-  extractTType (a1, a2, a3) =
-    (,,)
-      (extractTType a1)
-      (extractTType a2)
-      (extractTType a3)
+  extractTTypeGen (a1 Gen.:*: b1) = do
+    let a2 = extractTTypeGen a1
+        b2 = extractTTypeGen b1
+    a2 Gen.:*: b2
 
 instance
-  ( TEntity a1 b1,
-    TEntity a2 b2,
-    TEntity a3 b3,
-    TEntity a4 b4
-  ) =>
-  TEntity (a1, a2, a3, a4) (b1, b2, b3, b4)
+  (GTEntity a1 a2, GTEntity b1 b2) =>
+  GTEntity ((Gen.:+:) a1 b1) ((Gen.:+:) a2 b2)
   where
-  extractTType (a1, a2, a3, a4) =
-    (,,,)
-      (extractTType a1)
-      (extractTType a2)
-      (extractTType a3)
-      (extractTType a4)
+  extractTTypeGen (Gen.L1 a1) = Gen.L1 $ extractTTypeGen a1
+  extractTTypeGen (Gen.R1 b1) = Gen.R1 $ extractTTypeGen b1
 
 instance
-  ( TEntity a1 b1,
-    TEntity a2 b2,
-    TEntity a3 b3,
-    TEntity a4 b4,
-    TEntity a5 b5
-  ) =>
-  TEntity (a1, a2, a3, a4, a5) (b1, b2, b3, b4, b5)
+  (GTEntity a1 a2) =>
+  GTEntity (Gen.M1 i t a1) (Gen.M1 i t a2)
   where
-  extractTType (a1, a2, a3, a4, a5) =
-    (,,,,)
-      (extractTType a1)
-      (extractTType a2)
-      (extractTType a3)
-      (extractTType a4)
-      (extractTType a5)
+  extractTTypeGen (Gen.M1 a1) = Gen.M1 $ extractTTypeGen a1
 
 instance
-  ( TEntity a1 b1,
-    TEntity a2 b2,
-    TEntity a3 b3,
-    TEntity a4 b4,
-    TEntity a5 b5,
-    TEntity a6 b6
-  ) =>
-  TEntity (a1, a2, a3, a4, a5, a6) (b1, b2, b3, b4, b5, b6)
+  (TEntity a1 a2) =>
+  GTEntity (Gen.K1 i a1) (Gen.K1 i a2)
   where
-  extractTType (a1, a2, a3, a4, a5, a6) =
-    (,,,,,)
-      (extractTType a1)
-      (extractTType a2)
-      (extractTType a3)
-      (extractTType a4)
-      (extractTType a5)
-      (extractTType a6)
-
-instance
-  ( TEntity a1 b1,
-    TEntity a2 b2,
-    TEntity a3 b3,
-    TEntity a4 b4,
-    TEntity a5 b5,
-    TEntity a6 b6,
-    TEntity a7 b7
-  ) =>
-  TEntity (a1, a2, a3, a4, a5, a6, a7) (b1, b2, b3, b4, b5, b6, b7)
-  where
-  extractTType (a1, a2, a3, a4, a5, a6, a7) =
-    (,,,,,,)
-      (extractTType a1)
-      (extractTType a2)
-      (extractTType a3)
-      (extractTType a4)
-      (extractTType a5)
-      (extractTType a6)
-      (extractTType a7)
+  extractTTypeGen (Gen.K1 a1) = Gen.K1 $ extractTType a1

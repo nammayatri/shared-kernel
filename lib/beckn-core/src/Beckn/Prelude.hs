@@ -1,5 +1,6 @@
 module Beckn.Prelude (module E, module Beckn.Prelude) where
 
+import Beckn.Prelude.OrphanInstances ()
 import Control.Arrow as E
 import qualified Control.Concurrent as Conc
 import Control.Concurrent.STM.TMVar as E (TMVar)
