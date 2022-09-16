@@ -1,8 +1,10 @@
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 
 module Beckn.External.GoogleMaps.Types where
 
 import Beckn.Prelude
+import Beckn.Utils.GenericPretty
 import Data.Double.Conversion.Text (toFixed)
 import qualified Data.Text as T
 import Servant (ToHttpApiData (toUrlPiece))
@@ -151,7 +153,8 @@ data Language = ENGLISH
               | TAMIL
               | MALAYALAM
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
-
+  deriving (PrettyShow) via Showable Language
+  
 instance ToHttpApiData Language where
   toUrlPiece ENGLISH = "en"
   toUrlPiece HINDI = "hi"
