@@ -150,7 +150,7 @@ data Language = ENGLISH
               | KANNADA
               | TAMIL
               | MALAYALAM
-  deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
 
 instance ToHttpApiData Language where
   toUrlPiece ENGLISH = "en"
