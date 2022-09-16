@@ -159,6 +159,19 @@ instance ToHttpApiData Language where
   toUrlPiece MALAYALAM = "ml"
   toUrlPiece TAMIL = "ta"
 
+toMbLanguage :: Maybe Text -> Maybe Language
+toMbLanguage txt =
+  case txt of
+    Nothing -> Nothing
+    Just "en" -> Just ENGLISH
+    Just "hi" -> Just HINDI
+    Just "kn" -> Just KANNADA
+    Just "ml" -> Just MALAYALAM
+    Just "ta" -> Just TAMIL
+    Just _ -> Nothing
+
+     
+
 data DepartureTime = Now | FutureTime UTCTime
 
 instance ToHttpApiData DepartureTime where
