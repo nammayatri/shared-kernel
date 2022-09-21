@@ -104,6 +104,17 @@ createManagers managerSettings = do
   timeout <- asks (.httpClientOptions.timeoutMs)
   liftIO $ managersFromManagersSettings timeout managerSettings
 
+createManagersWithTimeout ::
+  ( MonadReader r m,
+    HasHttpClientOptions r c,
+    MonadFlow m
+  ) =>
+  Map String Http.ManagerSettings ->
+  Maybe Int ->
+  m (Map String Http.Manager)
+createManagersWithTimeout managerSettings Nothing = createManagers managerSettings
+createManagersWithTimeout managerSettings (Just timeout) = liftIO $ managersFromManagersSettings timeout managerSettings
+
 managersFromManagersSettings ::
   Int ->
   Map String Http.ManagerSettings ->
