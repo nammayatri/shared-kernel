@@ -1,4 +1,3 @@
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
 
 module Beckn.External.GoogleMaps.Types where
@@ -59,8 +58,24 @@ data GetPlaceNameResp = GetPlaceNameResp
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
-newtype ResultsResp = ResultsResp
-  { formatted_address :: Text
+data ResultsResp = ResultsResp
+  { formatted_address :: Maybe Text,
+    address_components :: [AddressResp],
+    plus_code :: Maybe PlusCodeResp
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data AddressResp = AddressResp
+  { long_name :: Text,
+    short_name :: Text,
+    types :: [Text]
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+newtype PlusCodeResp = PlusCodeResp
+  { compound_code :: Text
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -147,14 +162,15 @@ data Mode = DRIVING | WALKING | BICYCLING | TRANSIT
 instance ToHttpApiData Mode where
   toUrlPiece = T.toLower . show
 
-data Language = ENGLISH
-              | HINDI
-              | KANNADA
-              | TAMIL
-              | MALAYALAM
+data Language
+  = ENGLISH
+  | HINDI
+  | KANNADA
+  | TAMIL
+  | MALAYALAM
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
   deriving (PrettyShow) via Showable Language
-  
+
 instance ToHttpApiData Language where
   toUrlPiece ENGLISH = "en"
   toUrlPiece HINDI = "hi"
@@ -172,8 +188,6 @@ toMbLanguage txt =
     Just "ml" -> Just MALAYALAM
     Just "ta" -> Just TAMIL
     Just _ -> Nothing
-
-     
 
 data DepartureTime = Now | FutureTime UTCTime
 
