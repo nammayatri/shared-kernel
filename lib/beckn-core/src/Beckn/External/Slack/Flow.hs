@@ -41,7 +41,7 @@ postMessage message = do
     let slackRequest = 
           SlackRequest
             { channel = channelName
-            , blocks = Just [Block { _type = "section", _text = Block { _type = "text", _text = message } }]
+            , blocks = Just [Block { _type = "section", _text = Block { _type = "plain_text", _text = message } }]
             }
     callSlackAPI
       defaultBaseUrl
