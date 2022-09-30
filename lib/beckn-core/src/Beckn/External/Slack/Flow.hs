@@ -13,7 +13,7 @@ import Servant.Client
 
 -- | Slack API interface
 type SlackConnectAPI =
-  Header "token" Text
+  Header "Authorization" Text
     :> ReqBody '[JSON] SlackRequest
     :> Post '[JSON] SlackResponse
 
@@ -48,7 +48,7 @@ postMessage message = do
       (callSlack slackToken slackRequest)
       "PostMessage"
   where
-    callSlack token slackRequest = ET.client slackConnectAPI (Just token) slackRequest
+    callSlack token slackRequest = ET.client slackConnectAPI (Just $ "Bearer " <> token) slackRequest
 
 callSlackAPI :: CallAPI env a
 callSlackAPI =
