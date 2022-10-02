@@ -9,11 +9,12 @@ import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.String.Conversions
+import qualified Data.Text as Text
 import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
 import GHC.Records.Extra
 
-type ExpirationTime = Integer
+type ExpirationTime = Int
 
 runHedis ::
   HedisFlow m env => Redis (Either Reply a) -> m a
@@ -78,7 +79,7 @@ setExp key val expirationTime = do
   prefKey <- buildKey key
   void . runHedisTransaction $ do
     void . Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
-    Hedis.expire prefKey expirationTime
+    Hedis.expire prefKey (toInteger expirationTime)
 
 setNx ::
   (ToJSON a, HedisFlow m env) => Text -> a -> m Bool
@@ -95,15 +96,20 @@ rPushExp key list ex = do
   unless (null list) $
     void . runHedisTransaction $ do
       void . Hedis.rpush prefKey $ map (BSL.toStrict . Ae.encode) list
-      Hedis.expire prefKey ex
+      Hedis.expire prefKey (toInteger ex)
 
-lPush :: (HedisFlow m env, ToJSON a) => Text -> [a] -> m ()
+lPush :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
 lPush key list = runWithPrefix_ key $ \prefKey ->
-  Hedis.lpush prefKey $ map (BSL.toStrict . Ae.encode) list
+  Hedis.lpush prefKey $ map (BSL.toStrict . Ae.encode) (toList list)
 
-rPush :: (HedisFlow m env, ToJSON a) => Text -> [a] -> m ()
+rPush :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
 rPush key list = runWithPrefix_ key $ \prefKey ->
-  Hedis.rpush prefKey $ map (BSL.toStrict . Ae.encode) list
+  Hedis.rpush prefKey $ map (BSL.toStrict . Ae.encode) (toList list)
+
+rPop :: (HedisFlow m env, FromJSON a) => Text -> m (Maybe a)
+rPop key = do
+  res <- runWithPrefix key $ \prefKey -> Hedis.rpop prefKey
+  pure $ Ae.decode . BSL.fromStrict =<< res
 
 lTrim :: (HedisFlow m env) => Text -> Integer -> Integer -> m ()
 lTrim key start stop = runWithPrefix_ key $ \prefKey ->
@@ -124,19 +130,22 @@ lRange key start stop = do
 getList :: (HedisFlow m env, FromJSON a) => Text -> m [a]
 getList key = lRange key 0 (-1)
 
+incr :: (HedisFlow m env) => Text -> m Integer
+incr key = runWithPrefix key Hedis.incr
+
 incrByFloat :: (HedisFlow m env) => Text -> Double -> m Double
 incrByFloat key toAdd = runWithPrefix key $ \prefKey ->
   Hedis.incrbyfloat prefKey toAdd
 
 expire :: (HedisFlow m env) => Text -> ExpirationTime -> m ()
 expire key expirationTime = runWithPrefix_ key $ \prefKey ->
-  Hedis.expire prefKey expirationTime
+  Hedis.expire prefKey (toInteger expirationTime)
 
 setNxExpire :: (ToJSON a, HedisFlow m env) => Text -> ExpirationTime -> a -> m Bool
 setNxExpire key expirationTime val = do
   eithRes <- runWithPrefixEither key $ \prefKey ->
     Hedis.setOpts prefKey (cs $ Ae.encode val) $
-      Hedis.SetOpts (Just expirationTime) Nothing (Just Hedis.Nx)
+      Hedis.SetOpts (Just $ toInteger expirationTime) Nothing (Just Hedis.Nx)
   pure $ case eithRes of
     Right Hedis.Ok -> True
     _ -> False
@@ -145,3 +154,12 @@ delByPattern :: HedisFlow m env => Text -> m ()
 delByPattern ptrn = do
   runWithPrefix_ ptrn $ \prefKey ->
     Hedis.eval @_ @_ @Reply "for i, name in ipairs(redis.call('KEYS', ARGV[1])) do redis.call('DEL', name); end" ["0"] [prefKey]
+
+tryLockRedis :: HedisFlow m env => Text -> ExpirationTime -> m Bool
+tryLockRedis key timeout = setNxExpire (buildLockResourceName key) timeout ()
+
+unlockRedis :: HedisFlow m env => Text -> m ()
+unlockRedis key = void . del $ buildLockResourceName key
+
+buildLockResourceName :: (IsString a) => Text -> a
+buildLockResourceName key = fromString $ "beckn:locker:" <> Text.unpack key

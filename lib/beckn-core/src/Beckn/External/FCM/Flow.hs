@@ -28,7 +28,7 @@ module Beckn.External.FCM.Flow
 where
 
 import Beckn.External.FCM.Types
-import qualified Beckn.Storage.Redis.Queries as Redis
+import qualified Beckn.Storage.Hedis as Redis
 import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common
 import Beckn.Utils.Common
@@ -119,14 +119,14 @@ createAndroidNotification title body notificationType =
 
 -- | Send FCM message to a person
 notifyPersonDefault ::
-  (CoreMetrics m, FCMFlow m r, Default a, ToJSON a) =>
+  (CoreMetrics m, FCMFlow m r, Redis.HedisFlow m r, Default a, ToJSON a) =>
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
 notifyPersonDefault = notifyPersonWithPriorityDefault Nothing
 
 notifyPersonWithPriorityDefault ::
-  (CoreMetrics m, FCMFlow m r, Default a, ToJSON a) =>
+  (CoreMetrics m, FCMFlow m r, Redis.HedisFlow m r, Default a, ToJSON a) =>
   Maybe FCMAndroidMessagePriority ->
   FCMData a ->
   FCMNotificationRecipient ->
@@ -137,6 +137,7 @@ notifyPerson ::
   ( CoreMetrics m,
     Default a,
     ToJSON a,
+    Redis.HedisFlow m r,
     MonadFlow m
   ) =>
   FCMConfig ->
@@ -149,6 +150,7 @@ notifyPersonWithPriority ::
   ( CoreMetrics m,
     Default a,
     ToJSON a,
+    Redis.HedisFlow m r,
     MonadFlow m
   ) =>
   FCMConfig ->
@@ -177,6 +179,7 @@ fcmSendMessageAPI = Proxy
 sendMessage ::
   ( CoreMetrics m,
     ToJSON a,
+    Redis.HedisFlow m r,
     MonadFlow m
   ) =>
   FCMConfig ->
@@ -201,7 +204,7 @@ sendMessage config fcmMsg toWhom = fork desc $ do
 
 -- | try to get FCM text token
 getTokenText ::
-  MonadFlow m =>
+  (Redis.HedisFlow m r, MonadFlow m) =>
   FCMConfig ->
   m (Either Text Text)
 getTokenText config = do
@@ -215,12 +218,12 @@ redisFcmKey = "beckn:fcm_token"
 
 -- | Get token (refresh token if expired / invalid)
 getToken ::
-  MonadFlow m =>
+  (Redis.HedisFlow m r, MonadFlow m) =>
   FCMConfig ->
   m (Either String JWT.JWToken)
 getToken config = do
   tokenStatus <-
-    Redis.getKeyRedis (config.fcmTokenKeyPrefix <> ":" <> redisFcmKey) >>= \case
+    Redis.get (config.fcmTokenKeyPrefix <> ":" <> redisFcmKey) >>= \case
       Nothing -> pure $ Left "Token not found"
       Just jwt -> do
         validityStatus <- liftIO $ JWT.isValid jwt
@@ -249,10 +252,10 @@ getAndParseFCMAccount config = do
     parseContent :: Either String BL.ByteString -> Either String JWT.ServiceAccount
     parseContent rawContent = rawContent >>= Aeson.eitherDecode
 
-getNewToken :: MonadFlow m => FCMConfig -> m (Either String JWT.JWToken)
+getNewToken :: (Redis.HedisFlow m r, MonadFlow m) => FCMConfig -> m (Either String JWT.JWToken)
 getNewToken config = getAndParseFCMAccount config >>= either (pure . Left) (refreshToken config)
 
-refreshToken :: MonadFlow m => FCMConfig -> JWT.ServiceAccount -> m (Either String JWT.JWToken)
+refreshToken :: (Redis.HedisFlow m r, MonadFlow m) => FCMConfig -> JWT.ServiceAccount -> m (Either String JWT.JWToken)
 refreshToken config fcmAcc = do
   logTagInfo fcmTag "Refreshing token"
   refreshRes <- liftIO $ JWT.doRefreshToken fcmAcc
@@ -262,7 +265,7 @@ refreshToken config fcmAcc = do
       pure $ Left $ fromString err
     Right token -> do
       logTagInfo fcmTag $ fromString "Success"
-      Redis.setKeyRedis (config.fcmTokenKeyPrefix <> ":" <> redisFcmKey) token
+      Redis.set (config.fcmTokenKeyPrefix <> ":" <> redisFcmKey) token
       pure $ Right token
   where
     fcmTag = "FCM"

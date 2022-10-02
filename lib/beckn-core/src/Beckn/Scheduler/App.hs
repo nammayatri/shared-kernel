@@ -145,7 +145,7 @@ registerDuration millis _ = do
 attemptTaskLockAtomic :: Id (Job a b) -> SchedulerM t Bool
 attemptTaskLockAtomic jobId = do
   expirationTime <- asks (.expirationTime)
-  Hedis.setNxExpire jobId.getId expirationTime ()
+  Hedis.setNxExpire jobId.getId (fromInteger expirationTime) ()
 
 -- TODO: refactor this function so that there was no duplication with the `tryLockRedis` function
 

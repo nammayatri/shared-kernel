@@ -9,5 +9,5 @@ appBackendPrefix = ("app-backend:" <>)
 becknTransportPrefix :: KeyModifierFunc
 becknTransportPrefix = ("beckn-transport:" <>)
 
-publicTransportPrefix :: KeyModifierFunc
-publicTransportPrefix = ("public-transport:" <>)
+publicTransportBapPrefix :: KeyModifierFunc
+publicTransportBapPrefix = ("public-transport-bap:" <>)

@@ -5,19 +5,19 @@ module Beckn.Tools.Metrics.BAPMetrics
 where
 
 import Beckn.Prelude
-import qualified Beckn.Storage.Redis.Queries as Redis
+import qualified Beckn.Storage.Hedis as Redis
 import Beckn.Tools.Metrics.BAPMetrics.Types as Reexport
 import Beckn.Types.Common
 import Data.Time (diffUTCTime)
 import GHC.Records.Extra
 import Prometheus as P
 
-startSearchMetrics :: HasBAPMetrics m r => Text -> m ()
+startSearchMetrics :: (Redis.HedisFlow m r, HasBAPMetrics m r) => Text -> m ()
 startSearchMetrics txnId = do
   bmContainer <- asks (.bapMetrics)
   startSearchMetrics' bmContainer txnId
 
-finishSearchMetrics :: HasBAPMetrics m r => Text -> m ()
+finishSearchMetrics :: (Redis.HedisFlow m r, HasBAPMetrics m r) => Text -> m ()
 finishSearchMetrics txnId = do
   bmContainer <- asks (.bapMetrics)
   finishSearchMetrics' bmContainer txnId
@@ -41,32 +41,32 @@ searchDurationKey txnId = "beckn:" <> txnId <> ":on_search:received"
 searchDurationLockKey :: Text -> Text
 searchDurationLockKey txnId = txnId <> ":on_search"
 
-startSearchMetrics' :: MonadFlow m => BAPMetricsContainer -> Text -> m ()
+startSearchMetrics' :: (Redis.HedisFlow m r, MonadFlow m) => BAPMetricsContainer -> Text -> m ()
 startSearchMetrics' bmContainer txnId = do
   let (_, failureCounter) = bmContainer.searchDuration
       searchRedisExTime = getSeconds bmContainer.searchDurationTimeout
   startTime <- getCurrentTime
-  Redis.setExRedis (searchDurationKey txnId) startTime (searchRedisExTime + 1) -- a bit more time to
+  Redis.setExp (searchDurationKey txnId) startTime (searchRedisExTime + 1) -- a bit more time to
   -- allow forked thread to handle failure
   fork "Gateway Search Metrics" $ do
     liftIO $ threadDelay $ searchRedisExTime * 1000000
     whenM (Redis.tryLockRedis (searchDurationLockKey txnId) searchRedisExTime) $ do
-      Redis.getKeyRedis (searchDurationKey txnId) >>= \case
+      Redis.get (searchDurationKey txnId) >>= \case
         Just (_ :: UTCTime) -> do
-          void $ Redis.deleteKeyRedis (searchDurationKey txnId)
+          void $ Redis.del (searchDurationKey txnId)
           liftIO $ P.incCounter failureCounter
         Nothing -> return ()
       Redis.unlockRedis $ searchDurationLockKey txnId
 
-finishSearchMetrics' :: MonadFlow m => BAPMetricsContainer -> Text -> m ()
+finishSearchMetrics' :: (Redis.HedisFlow m r, MonadTime m) => BAPMetricsContainer -> Text -> m ()
 finishSearchMetrics' bmContainer txnId = do
   let (searchDurationHistogram, _) = bmContainer.searchDuration
       searchRedisExTime = getSeconds bmContainer.searchDurationTimeout
   endTime <- getCurrentTime
   whenM (Redis.tryLockRedis (searchDurationLockKey txnId) searchRedisExTime) $ do
-    Redis.getKeyRedis (searchDurationKey txnId) >>= \case
+    Redis.get (searchDurationKey txnId) >>= \case
       Just startTime -> do
-        void $ Redis.deleteKeyRedis (searchDurationKey txnId)
+        void $ Redis.del (searchDurationKey txnId)
         putSearchDuration searchDurationHistogram . realToFrac . diffUTCTime endTime $ startTime
       Nothing -> return ()
     Redis.unlockRedis $ searchDurationLockKey txnId

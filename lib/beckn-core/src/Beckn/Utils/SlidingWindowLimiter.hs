@@ -1,6 +1,6 @@
 module Beckn.Utils.SlidingWindowLimiter where
 
-import qualified Beckn.Storage.Redis.Queries as Redis
+import qualified Beckn.Storage.Hedis as Redis
 import Beckn.Types.Common as Common
 import Beckn.Types.Error
 import Beckn.Types.SlidingWindowLimiter
@@ -10,7 +10,12 @@ import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import EulerHS.Prelude hiding (id)
 import GHC.Records.Extra
 
-checkSlidingWindowLimit :: HasFlowEnv m r '["apiRateLimitOptions" ::: APIRateLimitOptions] => Text -> m ()
+checkSlidingWindowLimit ::
+  ( Redis.HedisFlow m r,
+    HasFlowEnv m r '["apiRateLimitOptions" ::: APIRateLimitOptions]
+  ) =>
+  Text ->
+  m ()
 checkSlidingWindowLimit key = do
   hitsLimit <- asks (.apiRateLimitOptions.limit)
   hitsLimitResetTime <- asks (.apiRateLimitOptions.limitResetTimeInSec)
@@ -21,12 +26,12 @@ checkSlidingWindowLimit key = do
 -- Returns True if limit is not exceed and further
 -- actions should be allowed. False otherwise.
 
-slidingWindowLimiter :: MonadFlow m => Text -> Int -> Int -> m Bool
+slidingWindowLimiter :: (Redis.HedisFlow m r, MonadTime m) => Text -> Int -> Int -> m Bool
 slidingWindowLimiter key frameHitsLim frameLen = do
   currTime <- getCurrentTime
-  hits <- fromMaybe [] <$> Redis.getKeyRedis key
+  hits <- fromMaybe [] <$> Redis.get key
   let (filtHits, ret) = slidingWindowLimiterPure currTime hits frameHitsLim frameLen
-  when ret $ Redis.setExRedis key filtHits frameLen
+  when ret $ Redis.setExp key filtHits frameLen
   return ret
 
 slidingWindowLimiterPure :: UTCTime -> [Integer] -> Int -> Int -> ([Integer], Bool)
