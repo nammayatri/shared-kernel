@@ -37,6 +37,7 @@ placeDetails ::
 placeDetails url apiKey placeId fields = do
   callAPI url (API.placeDetails apiKey placeId fields) "placeDetails"
     >>= checkGoogleMapsError url
+
 getPlaceName ::
   ( CoreMetrics m,
     MonadFlow m

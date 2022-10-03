@@ -20,7 +20,7 @@ data LatLong = LatLong
   { lat :: Double,
     lon :: Double
   }
-  deriving (Show, Generic, FromJSON, ToJSON, ToSchema, PrettyShow)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema, PrettyShow)
 
 data TravelMode = CAR | MOTORCYCLE | BICYCLE | FOOT
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)

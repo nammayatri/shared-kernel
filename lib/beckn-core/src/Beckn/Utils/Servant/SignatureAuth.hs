@@ -306,13 +306,13 @@ addAuthManagersToFlowRt ::
     HasLog r,
     MonadFlow m
   ) =>
-  R.FlowRuntime -> 
-  [(Maybe Int, Map String Http.ManagerSettings)] -> 
+  R.FlowRuntime ->
+  [(Maybe Int, Map String Http.ManagerSettings)] ->
   m R.FlowRuntime
 addAuthManagersToFlowRt flowRt managersList = do
   managers <- mapM createManager managersList
   pure $ flowRt {R._httpClientManagers = Map.unions managers}
-  where 
+  where
     createManager (timeout, managersSettings) = do
       logInfo $ "Loaded http managers - " <> show (Map.keys managersSettings)
       createManagersWithTimeout managersSettings timeout

@@ -2,11 +2,11 @@
 
 module Beckn.Utils.Predicates where
 
-import Beckn.Types.Predicate
 import Beckn.Prelude
+import Beckn.Types.Predicate
 
 digit, latinUC, latinLC, latin, alphanum, latinOrSpace :: Regex
-digit = charRange '0' '9' 
+digit = charRange '0' '9'
 latinUC = charRange 'A' 'Z'
 latinLC = charRange 'a' 'z'
 latin = latinUC \/ latinLC

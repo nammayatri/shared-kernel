@@ -1,35 +1,38 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Beckn.External.Slack.Types where
 
-import Beckn.Utils.JSON
-import Data.Aeson.Types
 import Beckn.Types.Error.BaseError.HTTPError hiding (Error)
 import Beckn.Types.Error.BaseError.HTTPError.FromResponse
+import Beckn.Utils.Dhall (FromDhall)
+import Beckn.Utils.JSON
+import Data.Aeson.Types
 import Data.OpenApi
 import EulerHS.Prelude hiding (state)
-import Beckn.Utils.Dhall (FromDhall)
 
 data SlackConfig = SlackConfig
-  { slackToken :: Text 
-  , channelName :: Text
-  } deriving (Generic, Eq, Show, FromJSON, ToJSON, FromDhall)
+  { slackToken :: Text,
+    channelName :: Text
+  }
+  deriving (Generic, Eq, Show, FromJSON, ToJSON, FromDhall)
 
 data SlackRequest = SlackRequest
-  { channel :: Text 
-  , blocks :: Maybe [Block (Block Text)]
-  } deriving (Generic, Eq, Show, FromJSON, ToJSON)
+  { channel :: Text,
+    blocks :: Maybe [Block (Block Text)]
+  }
+  deriving (Generic, Eq, Show, FromJSON, ToJSON)
 
 data Block a = Block
-  { _type :: Text 
-  , _text :: a
-  } deriving (Generic, Eq, Show)
+  { _type :: Text,
+    _text :: a
+  }
+  deriving (Generic, Eq, Show)
 
 instance (FromJSON a) => FromJSON (Block a) where
   parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
@@ -38,7 +41,8 @@ instance (ToJSON a) => ToJSON (Block a) where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
 
 data SlackResponse = SlackResponse
-  { ok :: Bool, _error :: Maybe Text } deriving (Generic, Eq, Show, FromJSON, ToJSON)
+  {ok :: Bool, _error :: Maybe Text}
+  deriving (Generic, Eq, Show, FromJSON, ToJSON)
 
 newtype Error = Error {message :: Text}
   deriving (Show, Generic)

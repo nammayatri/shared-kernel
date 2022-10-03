@@ -38,10 +38,10 @@ postMessage ::
 postMessage message = do
   withLogTag "Slack" $ do
     SlackConfig {..} <- asks (.slackCfg)
-    let slackRequest = 
+    let slackRequest =
           SlackRequest
-            { channel = channelName
-            , blocks = Just [Block { _type = "section", _text = Block { _type = "plain_text", _text = message } }]
+            { channel = channelName,
+              blocks = Just [Block {_type = "section", _text = Block {_type = "plain_text", _text = message}}]
             }
     callSlackAPI
       defaultBaseUrl
