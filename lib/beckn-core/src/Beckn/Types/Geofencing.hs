@@ -9,7 +9,7 @@ import EulerHS.Prelude
 data GeoRestriction
   = Unrestricted
   | Regions [Text]
-  deriving (Show, Generic, FromDhall)
+  deriving (Show, Generic, FromDhall, FromJSON, ToJSON)
 
 instance PrettyShow GeoRestriction where
   prettyShow = prettyShow . geoRestrictionToMaybeList
@@ -32,4 +32,4 @@ data GeofencingConfig = GeofencingConfig
   { origin :: GeoRestriction,
     destination :: GeoRestriction
   }
-  deriving (Show, Generic, FromDhall, PrettyShow)
+  deriving (Show, Generic, FromDhall, PrettyShow, FromJSON, ToJSON)
