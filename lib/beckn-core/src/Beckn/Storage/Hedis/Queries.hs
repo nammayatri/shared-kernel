@@ -140,3 +140,8 @@ setNxExpire key expirationTime val = do
   pure $ case eithRes of
     Right Hedis.Ok -> True
     _ -> False
+
+delByPattern :: HedisFlow m env => Text -> m ()
+delByPattern ptrn = do
+  runWithPrefix_ ptrn $ \prefKey ->
+    Hedis.eval @_ @_ @Reply "for i, name in ipairs(redis.call('KEYS', ARGV[1])) do redis.call('DEL', name); end" ["0"] [prefKey]
