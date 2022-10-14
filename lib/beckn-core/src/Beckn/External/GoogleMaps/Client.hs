@@ -51,6 +51,19 @@ getPlaceName url latLng apiKey language = do
   callAPI url (API.getPlaceName latLng apiKey language) "getPlaceName"
     >>= checkGoogleMapsError url
 
+getCoordinates ::
+  ( CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Maybe GoogleMaps.Language ->
+  m GoogleMaps.GetPlaceNameResp
+getCoordinates url placeId apiKey language = do
+  callAPI url (API.getCoordinates placeId apiKey language) "getCoordinates"
+    >>= checkGoogleMapsError url
+
 distanceMatrix ::
   ( CoreMetrics m,
     MonadFlow m

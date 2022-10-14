@@ -28,6 +28,13 @@ type GoogleMapsAPI =
     :<|> DistanceMatrixAPI
     :<|> DirectionsAPI
 
+type GetCoordinatesAPI = 
+  "geocode" :> "json"
+    :> MandatoryQueryParam "place_id" Text
+    :> MandatoryQueryParam "key" Text
+    :> QueryParam "language" GoogleMaps.Language
+    :> Get '[JSON] GoogleMaps.GetPlaceNameResp
+
 type DistanceMatrixAPI =
   "distancematrix" :> "json"
     :> MandatoryQueryParam "origins" [GoogleMaps.Place]
@@ -67,3 +74,10 @@ directions ::
   Maybe [GoogleMaps.Place] ->
   EulerClient GoogleMaps.DirectionsResp
 autoComplete :<|> placeDetails :<|> getPlaceName :<|> distanceMatrix :<|> directions = client googleMapsAPI
+
+getCoordinatesAPI :: Proxy GetCoordinatesAPI
+getCoordinatesAPI = Proxy 
+
+getCoordinates :: Text -> Text -> Maybe GoogleMaps.Language -> EulerClient GoogleMaps.GetPlaceNameResp
+
+getCoordinates = client getCoordinatesAPI

@@ -61,7 +61,8 @@ data GetPlaceNameResp = GetPlaceNameResp
 data ResultsResp = ResultsResp
   { formatted_address :: Maybe Text,
     address_components :: [AddressResp],
-    plus_code :: Maybe PlusCodeResp
+    plus_code :: Maybe PlusCodeResp,
+    geometry :: Geometry
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
