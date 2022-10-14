@@ -136,7 +136,6 @@ newtype DistanceMatrixRow = DistanceMatrixRow {elements :: [DistanceMatrixElemen
 data DistanceMatrixElement = DistanceMatrixElement
   { distance :: Maybe TextValue,
     duration :: Maybe TextValue,
-    duration_in_traffic :: Maybe TextValue,
     status :: Text
   }
   deriving (Generic, ToJSON, FromJSON)

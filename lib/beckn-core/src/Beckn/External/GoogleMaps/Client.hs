@@ -59,11 +59,10 @@ distanceMatrix ::
   [GoogleMaps.Place] ->
   [GoogleMaps.Place] ->
   Text ->
-  Maybe GoogleMaps.DepartureTime ->
   Maybe GoogleMaps.Mode ->
   m GoogleMaps.DistanceMatrixResp
-distanceMatrix url origins destinations key departureTime mode = do
-  callAPI url (API.distanceMatrix origins destinations key departureTime mode) "distanceMatrix"
+distanceMatrix url origins destinations key  mode = do
+  callAPI url (API.distanceMatrix origins destinations key  mode) "distanceMatrix"
     >>= checkGoogleMapsError url
 
 directions ::

@@ -30,7 +30,6 @@ data GetDistanceResult a b = GetDistanceResult
     destination :: b,
     distance :: Meters,
     duration :: Seconds,
-    duration_in_traffic :: Seconds,
     status :: Text
   }
   deriving (Generic, Show, PrettyShow)
@@ -45,10 +44,10 @@ getDistance ::
   Maybe MapSearch.TravelMode ->
   a ->
   b ->
-  Maybe UTCTime ->
+  
   m (GetDistanceResult a b)
-getDistance travelMode origin destination utcDepartureTime =
-  getDistances travelMode (origin :| []) (destination :| []) utcDepartureTime >>= \case
+getDistance travelMode origin destination  =
+  getDistances travelMode (origin :| []) (destination :| [])  >>= \case
     (a :| []) -> return a
     _ -> throwError (InternalError "Exactly one GoogleMaps.getDistance result expected.")
 
@@ -75,21 +74,17 @@ getDistances ::
   Maybe MapSearch.TravelMode ->
   NonEmpty a ->
   NonEmpty b ->
-  Maybe UTCTime ->
   m (NonEmpty (GetDistanceResult a b))
-getDistances travelMode origins destinations utcDepartureTime = do
+getDistances travelMode origins destinations  = do
   googleMapsUrl <- asks (.googleMapsUrl)
   key <- asks (.googleMapsKey)
   let limitedOriginObjectsList = splitListByAPICap origins
       limitedDestinationObjectsList = splitListByAPICap destinations
-  let departureTime = case utcDepartureTime of
-        Nothing -> Just GoogleMaps.Now
-        Just time -> Just $ GoogleMaps.FutureTime time
   res <- concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
     concatForM limitedDestinationObjectsList $ \limitedDestinationObjects -> do
       let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
           limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
-      GoogleMaps.distanceMatrix googleMapsUrl limitedOriginPlaces limitedDestinationPlaces key departureTime mode
+      GoogleMaps.distanceMatrix googleMapsUrl limitedOriginPlaces limitedDestinationPlaces key  mode
         >>= parseDistanceMatrixRespGeneral limitedOriginObjects limitedDestinationObjects
   case res of
     [] -> throwError (InternalError "Empty GoogleMaps.getDistances result.")
@@ -172,14 +167,12 @@ parseDistanceMatrixRespGeneral origins destinations distanceMatrixResp = do
       void $ GoogleMaps.validateResponseStatus element
       distance <- parseDistances element
       duration <- parseDuration element
-      durationInTraffic <- parseDurationInTraffic element
       pure $
         GetDistanceResult
           { origin = orig,
             destination = dest,
             distance = distance,
             duration = Seconds . double2Int . realToFrac $ duration,
-            duration_in_traffic = Seconds . double2Int . realToFrac $ durationInTraffic,
             status = element.status
           }
 
@@ -207,9 +200,3 @@ parseDuration distanceMatrixElement = do
       & fromMaybeM (InternalError "No duration value provided in distance matrix API response")
   pure $ intToNominalDiffTime durationInTraffic.value
 
-parseDurationInTraffic :: (MonadThrow m, Log m) => GoogleMaps.DistanceMatrixElement -> m NominalDiffTime
-parseDurationInTraffic distanceMatrixElement = do
-  durationInTraffic <-
-    distanceMatrixElement.duration_in_traffic
-      & fromMaybeM (InternalError "No duration_in_traffic value provided in distance matrix API response")
-  pure $ intToNominalDiffTime durationInTraffic.value

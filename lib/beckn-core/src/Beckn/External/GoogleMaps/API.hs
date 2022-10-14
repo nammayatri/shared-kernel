@@ -33,7 +33,6 @@ type DistanceMatrixAPI =
     :> MandatoryQueryParam "origins" [GoogleMaps.Place]
     :> MandatoryQueryParam "destinations" [GoogleMaps.Place]
     :> MandatoryQueryParam "key" Text
-    :> QueryParam "departure_time" GoogleMaps.DepartureTime
     :> QueryParam "mode" GoogleMaps.Mode
     :> Post '[JSON] GoogleMaps.DistanceMatrixResp
 
@@ -57,7 +56,6 @@ distanceMatrix ::
   [GoogleMaps.Place] ->
   [GoogleMaps.Place] ->
   Text ->
-  Maybe GoogleMaps.DepartureTime ->
   Maybe GoogleMaps.Mode ->
   EulerClient GoogleMaps.DistanceMatrixResp
 directions ::
