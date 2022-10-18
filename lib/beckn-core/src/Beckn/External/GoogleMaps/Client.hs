@@ -16,13 +16,14 @@ autoComplete ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   Text ->
   Integer ->
   Text ->
   Text ->
   m GoogleMaps.SearchLocationResp
-autoComplete url apiKey input location radius components lang = do
-  callAPI url (API.autoComplete apiKey input location radius components lang) "autoComplete"
+autoComplete url apiKey input sessiontoken location radius components lang = do
+  callAPI url (API.autoComplete sessiontoken apiKey input location radius components lang) "autoComplete"
     >>= checkGoogleMapsError url
 
 placeDetails ::
@@ -30,12 +31,13 @@ placeDetails ::
     MonadFlow m
   ) =>
   BaseUrl ->
+  Maybe Text ->
   Text ->
   Text ->
   Text ->
   m GoogleMaps.PlaceDetailsResp
-placeDetails url apiKey placeId fields = do
-  callAPI url (API.placeDetails apiKey placeId fields) "placeDetails"
+placeDetails url sessiontoken apiKey placeId fields = do
+  callAPI url (API.placeDetails sessiontoken apiKey placeId fields) "placeDetails"
     >>= checkGoogleMapsError url
 
 getPlaceName ::
@@ -43,12 +45,13 @@ getPlaceName ::
     MonadFlow m
   ) =>
   BaseUrl ->
+  Maybe Text ->
   Text ->
   Text ->
   Maybe GoogleMaps.Language ->
   m GoogleMaps.GetPlaceNameResp
-getPlaceName url latLng apiKey language = do
-  callAPI url (API.getPlaceName latLng apiKey language) "getPlaceName"
+getPlaceName url sessiontoken latLng apiKey language = do
+  callAPI url (API.getPlaceName sessiontoken latLng apiKey language) "getPlaceName"
     >>= checkGoogleMapsError url
 
 getCoordinates ::
@@ -56,12 +59,13 @@ getCoordinates ::
     MonadFlow m
   ) =>
   BaseUrl ->
+  Maybe Text ->
   Text ->
   Text ->
   Maybe GoogleMaps.Language ->
   m GoogleMaps.GetPlaceNameResp
-getCoordinates url placeId apiKey language = do
-  callAPI url (API.getCoordinates placeId apiKey language) "getCoordinates"
+getCoordinates url sessiontoken placeId apiKey language = do
+  callAPI url (API.getCoordinates sessiontoken placeId apiKey language) "getCoordinates"
     >>= checkGoogleMapsError url
 
 distanceMatrix ::

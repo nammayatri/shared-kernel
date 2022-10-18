@@ -8,6 +8,7 @@ import Servant
 
 type GoogleMapsAPI =
   "place" :> "autocomplete" :> "json"
+    :> Header "sessiontoken" Text
     :> MandatoryQueryParam "key" Text
     :> MandatoryQueryParam "input" Text
     :> MandatoryQueryParam "location" Text
@@ -16,11 +17,13 @@ type GoogleMapsAPI =
     :> MandatoryQueryParam "language" Text
     :> Get '[JSON] GoogleMaps.SearchLocationResp
     :<|> "place" :> "details" :> "json"
+      :> Header "sessiontoken" Text
       :> MandatoryQueryParam "key" Text
       :> MandatoryQueryParam "place_id" Text
       :> MandatoryQueryParam "fields" Text
       :> Get '[JSON] GoogleMaps.PlaceDetailsResp
     :<|> "geocode" :> "json"
+      :> Header "sessiontoken" Text
       :> MandatoryQueryParam "latlng" Text -- Parameters order is important.
       :> MandatoryQueryParam "key" Text
       :> QueryParam "language" GoogleMaps.Language
@@ -30,6 +33,7 @@ type GoogleMapsAPI =
 
 type GetCoordinatesAPI =
   "geocode" :> "json"
+    :> Header "sessiontoken" Text
     :> MandatoryQueryParam "place_id" Text
     :> MandatoryQueryParam "key" Text
     :> QueryParam "language" GoogleMaps.Language
@@ -56,9 +60,9 @@ type DirectionsAPI =
 googleMapsAPI :: Proxy GoogleMapsAPI
 googleMapsAPI = Proxy
 
-autoComplete :: Text -> Text -> Text -> Integer -> Text -> Text -> EulerClient GoogleMaps.SearchLocationResp
-placeDetails :: Text -> Text -> Text -> EulerClient GoogleMaps.PlaceDetailsResp
-getPlaceName :: Text -> Text -> Maybe GoogleMaps.Language -> EulerClient GoogleMaps.GetPlaceNameResp
+autoComplete :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Text -> EulerClient GoogleMaps.SearchLocationResp
+placeDetails :: Maybe Text -> Text -> Text -> Text -> EulerClient GoogleMaps.PlaceDetailsResp
+getPlaceName :: Maybe Text -> Text -> Text -> Maybe GoogleMaps.Language -> EulerClient GoogleMaps.GetPlaceNameResp
 distanceMatrix ::
   [GoogleMaps.Place] ->
   [GoogleMaps.Place] ->
@@ -78,5 +82,6 @@ autoComplete :<|> placeDetails :<|> getPlaceName :<|> distanceMatrix :<|> direct
 getCoordinatesAPI :: Proxy GetCoordinatesAPI
 getCoordinatesAPI = Proxy
 
-getCoordinates :: Text -> Text -> Maybe GoogleMaps.Language -> EulerClient GoogleMaps.GetPlaceNameResp
+getCoordinates :: Maybe Text -> Text -> Text -> Maybe GoogleMaps.Language -> EulerClient GoogleMaps.GetPlaceNameResp
+
 getCoordinates = client getCoordinatesAPI
