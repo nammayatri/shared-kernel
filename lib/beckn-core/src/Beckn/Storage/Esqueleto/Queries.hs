@@ -74,7 +74,7 @@ findOne' :: (Transactionable m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery 
 findOne' q = extractTType <$> findOneInternal q
 
 findOneInternal :: (Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe t)
-findOneInternal q = liftToBuilder . runTransaction . SqlDB $ lift selectOnlyOne
+findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ lift selectOnlyOne
   where
     selectOnlyOne = do
       list <- Esq.select q
@@ -102,7 +102,7 @@ findAll' :: (Transactionable m, Esq.SqlSelect b t, TEntity [t] [a]) => Esq.SqlQu
 findAll' q = extractTType <$> findAllInternal q
 
 findAllInternal :: (Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m [t]
-findAllInternal q = liftToBuilder . runTransaction . SqlDB $ lift (Esq.select q)
+findAllInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ lift (Esq.select q)
 
 create ::
   ( PersistEntity t,

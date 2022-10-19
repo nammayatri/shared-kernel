@@ -4,6 +4,7 @@
 module Beckn.Storage.Esqueleto.SqlDB
   ( SqlDBEnv (..),
     SqlDB (..),
+    SelectSqlDB (..),
     FullEntitySqlDB,
     liftToFullEntitySqlDB,
     withFullEntity,
@@ -40,6 +41,9 @@ instance Log (ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
     let (ReaderT f2) = f1 env1
     ReaderT $ \env2 ->
       withLogTag a $ f2 env2
+
+newtype SelectSqlDB a = SelectSqlDB {unSelectSqlDB :: SqlDB a}
+  deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid, Log, MonadThrow)
 
 newtype FullEntitySqlDB t = FullEntitySqlDB
   { getSqlDB :: SqlDB t

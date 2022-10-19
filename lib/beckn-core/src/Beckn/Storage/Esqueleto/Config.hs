@@ -52,8 +52,12 @@ prepareEsqDBEnv cfg logEnv = do
     modifyConn schemaName conn =
       void . execute_ conn . Query $ "set search_path to " <> schemaName <> ", public; "
 
-type HasEsqEnv m r = (MonadReader r m, HasLog r, HasField "esqDBEnv" r EsqDBEnv, MonadTime m, MonadIO m)
+type HasEsq m r = (MonadReader r m, HasLog r, MonadTime m, MonadIO m)
 
-type HasEsqReplica m r = (MonadReader r m, HasLog r, HasField "esqDBReplicaEnv" r EsqDBEnv, MonadTime m, MonadIO m)
+type HasEsqEnv m r = (HasEsq m r, HasField "esqDBEnv" r EsqDBEnv)
+
+type HasEsqReplica m r = (HasEsq m r, HasField "esqDBReplicaEnv" r EsqDBEnv)
 
 type EsqDBFlow m r = (HasEsqEnv m r, MonadFlow m)
+
+type EsqDBReplicaFlow m r = (HasEsqReplica m r, MonadFlow m)
