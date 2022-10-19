@@ -8,12 +8,12 @@ import Beckn.Storage.Esqueleto.SqlDB
 import Beckn.Types.Logging
 import Beckn.Types.Time (getCurrentTime)
 import Beckn.Utils.IOLogging (LoggerEnv)
-import Database.Esqueleto.Experimental (SqlBackend, runSqlPool)
+import Database.Esqueleto.Experimental (runSqlPool)
 
 class (MonadThrow m, Log m) => Transactionable m where
   runTransaction :: SqlDB a -> m a
 
-instance {-# OVERLAPPING #-} Transactionable (ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
+instance {-# OVERLAPPING #-} Transactionable SqlDB where
   runTransaction = identity
 
 instance {-# OVERLAPPING #-} Transactionable m => Transactionable (DTypeBuilder m) where
@@ -40,7 +40,7 @@ runTransactionImpl run = do
   liftIO $ runTransactionIO logEnv dbEnv run
 
 runTransactionIO :: LoggerEnv -> EsqDBEnv -> SqlDB a -> IO a
-runTransactionIO logEnv dbEnv run = do
+runTransactionIO logEnv dbEnv (SqlDB run) = do
   now <- getCurrentTime
   let sqlDBEnv =
         SqlDBEnv

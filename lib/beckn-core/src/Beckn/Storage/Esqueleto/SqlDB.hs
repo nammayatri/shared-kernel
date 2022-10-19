@@ -3,7 +3,7 @@
 
 module Beckn.Storage.Esqueleto.SqlDB
   ( SqlDBEnv (..),
-    SqlDB,
+    SqlDB (..),
     FullEntitySqlDB,
     liftToFullEntitySqlDB,
     withFullEntity,
@@ -25,7 +25,8 @@ newtype SqlDBEnv = SqlDBEnv
   { currentTime :: UTCTime
   }
 
-type SqlDB a = ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO) a
+newtype SqlDB a = SqlDB {unSqlDB :: ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO) a}
+  deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid, Log, MonadThrow)
 
 instance Monad m => MonadTime (ReaderT SqlDBEnv m) where
   getCurrentTime = asks (.currentTime)

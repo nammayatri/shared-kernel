@@ -74,7 +74,7 @@ findOne' :: (Transactionable m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery 
 findOne' q = extractTType <$> findOneInternal q
 
 findOneInternal :: (Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe t)
-findOneInternal q = liftToBuilder . runTransaction $ lift selectOnlyOne
+findOneInternal q = liftToBuilder . runTransaction . SqlDB $ lift selectOnlyOne
   where
     selectOnlyOne = do
       list <- Esq.select q
@@ -102,7 +102,7 @@ findAll' :: (Transactionable m, Esq.SqlSelect b t, TEntity [t] [a]) => Esq.SqlQu
 findAll' q = extractTType <$> findAllInternal q
 
 findAllInternal :: (Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m [t]
-findAllInternal q = liftToBuilder . runTransaction $ lift (Esq.select q)
+findAllInternal q = liftToBuilder . runTransaction . SqlDB $ lift (Esq.select q)
 
 create ::
   ( PersistEntity t,
@@ -113,7 +113,7 @@ create ::
   SqlDB ()
 create q = do
   let ttypes = toTType q
-  lift $ Esq.insert_ ttypes
+  SqlDB . lift $ Esq.insert_ ttypes
 
 create' ::
   ( PersistEntity t,
@@ -122,7 +122,7 @@ create' ::
   t ->
   FullEntitySqlDB ()
 create' q = do
-  liftToFullEntitySqlDB . lift $ Esq.insert_ q
+  liftToFullEntitySqlDB . SqlDB . lift $ Esq.insert_ q
 
 createMany ::
   ( PersistEntity t,
@@ -133,7 +133,7 @@ createMany ::
   SqlDB ()
 createMany q = do
   let ttypes = toTType `fmap` q
-  lift $ Esq.insertMany_ ttypes
+  SqlDB . lift $ Esq.insertMany_ ttypes
 
 createMany' ::
   ( PersistEntity t,
@@ -142,7 +142,7 @@ createMany' ::
   [t] ->
   FullEntitySqlDB ()
 createMany' q = do
-  liftToFullEntitySqlDB . lift $ Esq.insertMany_ q
+  liftToFullEntitySqlDB . SqlDB . lift $ Esq.insertMany_ q
 
 update ::
   ( PersistEntity a,
@@ -150,7 +150,7 @@ update ::
   ) =>
   (Esq.SqlExpr (Entity a) -> Esq.SqlQuery ()) ->
   SqlDB ()
-update = lift . Esq.update
+update = SqlDB . lift . Esq.update
 
 update' ::
   ( PersistEntity a,
@@ -158,7 +158,7 @@ update' ::
   ) =>
   (Esq.SqlExpr (Entity a) -> Esq.SqlQuery ()) ->
   FullEntitySqlDB ()
-update' = liftToFullEntitySqlDB . lift . Esq.update
+update' = liftToFullEntitySqlDB . SqlDB . lift . Esq.update
 
 updateReturningCount ::
   ( PersistEntity a,
@@ -166,7 +166,7 @@ updateReturningCount ::
   ) =>
   (Esq.SqlExpr (Entity a) -> Esq.SqlQuery ()) ->
   SqlDB Int64
-updateReturningCount = lift . Esq.updateCount
+updateReturningCount = SqlDB . lift . Esq.updateCount
 
 updateReturningCount' ::
   ( PersistEntity a,
@@ -174,7 +174,7 @@ updateReturningCount' ::
   ) =>
   (Esq.SqlExpr (Entity a) -> Esq.SqlQuery ()) ->
   FullEntitySqlDB Int64
-updateReturningCount' = liftToFullEntitySqlDB . lift . Esq.updateCount
+updateReturningCount' = liftToFullEntitySqlDB . SqlDB . lift . Esq.updateCount
 
 deleteByKey ::
   forall t.
@@ -182,7 +182,7 @@ deleteByKey ::
   ) =>
   DomainKey t ->
   SqlDB ()
-deleteByKey = lift . Esq.deleteKey . toKey @t
+deleteByKey = SqlDB . lift . Esq.deleteKey . toKey @t
 
 deleteByKey' ::
   ( PersistEntity t,
@@ -190,27 +190,27 @@ deleteByKey' ::
   ) =>
   Key t ->
   FullEntitySqlDB ()
-deleteByKey' = liftToFullEntitySqlDB . lift . Esq.deleteKey
+deleteByKey' = liftToFullEntitySqlDB . SqlDB . lift . Esq.deleteKey
 
 delete ::
   Esq.SqlQuery () ->
   SqlDB ()
-delete = lift . Esq.delete
+delete = SqlDB . lift . Esq.delete
 
 delete' ::
   Esq.SqlQuery () ->
   FullEntitySqlDB ()
-delete' = liftToFullEntitySqlDB . lift . Esq.delete
+delete' = liftToFullEntitySqlDB . SqlDB . lift . Esq.delete
 
 deleteReturningCount ::
   Esq.SqlQuery () ->
   SqlDB Int64
-deleteReturningCount = lift . Esq.deleteCount
+deleteReturningCount = SqlDB . lift . Esq.deleteCount
 
 deleteReturningCount' ::
   Esq.SqlQuery () ->
   FullEntitySqlDB Int64
-deleteReturningCount' = liftToFullEntitySqlDB . lift . Esq.deleteCount
+deleteReturningCount' = liftToFullEntitySqlDB . SqlDB . lift . Esq.deleteCount
 
 repsert ::
   ( PersistEntityBackend t ~ SqlBackend,
@@ -222,7 +222,7 @@ repsert ::
   SqlDB ()
 repsert k v = do
   let ttype = toTType v
-  lift $ Esq.repsert (toKey k) ttype
+  SqlDB . lift $ Esq.repsert (toKey k) ttype
 
 repsert' ::
   ( PersistEntity t,
@@ -232,7 +232,7 @@ repsert' ::
   t ->
   FullEntitySqlDB ()
 repsert' k v = do
-  liftToFullEntitySqlDB . lift $ Esq.repsert k v
+  liftToFullEntitySqlDB . SqlDB . lift $ Esq.repsert k v
 
 upsert ::
   ( OnlyOneUniqueKey t,
@@ -267,7 +267,7 @@ upsertBy ::
   [SqlExpr (Entity t) -> SqlExpr Esq.Update] ->
   SqlDB ()
 upsertBy k r u = do
-  mbEntity <- lift $ getBy k
+  mbEntity <- SqlDB . lift $ getBy k
   case mbEntity of
     Nothing -> create r
     Just ent -> update $ \tbl -> do
@@ -285,7 +285,7 @@ upsertBy' ::
   [SqlExpr (Entity t) -> SqlExpr Esq.Update] ->
   FullEntitySqlDB ()
 upsertBy' k r u = do
-  mbEntity <- liftToFullEntitySqlDB . lift $ getBy k
+  mbEntity <- liftToFullEntitySqlDB . SqlDB . lift $ getBy k
   case mbEntity of
     Nothing -> create' r
     Just ent -> update' $ \tbl -> do
@@ -299,28 +299,28 @@ insertSelect ::
   ) =>
   SqlQuery (SqlExpr (Esq.Insertion t)) ->
   SqlDB ()
-insertSelect = lift . Esq.insertSelect
+insertSelect = SqlDB . lift . Esq.insertSelect
 
 insertSelect' ::
   ( PersistEntity t
   ) =>
   SqlQuery (SqlExpr (Esq.Insertion t)) ->
   FullEntitySqlDB ()
-insertSelect' = liftToFullEntitySqlDB . lift . Esq.insertSelect
+insertSelect' = liftToFullEntitySqlDB . SqlDB . lift . Esq.insertSelect
 
 insertSelectCount ::
   ( PersistEntity t
   ) =>
   SqlQuery (SqlExpr (Esq.Insertion t)) ->
   SqlDB Int64
-insertSelectCount = lift . Esq.insertSelectCount
+insertSelectCount = SqlDB . lift . Esq.insertSelectCount
 
 insertSelectCount' ::
   ( PersistEntity t
   ) =>
   SqlQuery (SqlExpr (Esq.Insertion t)) ->
   FullEntitySqlDB Int64
-insertSelectCount' = liftToFullEntitySqlDB . lift . Esq.insertSelectCount
+insertSelectCount' = liftToFullEntitySqlDB . SqlDB . lift . Esq.insertSelectCount
 
 (<#>) :: SqlExpr (Esq.Insertion (a -> b)) -> SqlExpr (Value a) -> SqlExpr (Esq.Insertion b)
 (<#>) = (Esq.<&>)
