@@ -83,5 +83,4 @@ getCoordinatesAPI :: Proxy GetCoordinatesAPI
 getCoordinatesAPI = Proxy
 
 getCoordinates :: Maybe Text -> Text -> Text -> Maybe GoogleMaps.Language -> EulerClient GoogleMaps.GetPlaceNameResp
-
 getCoordinates = client getCoordinatesAPI
