@@ -186,6 +186,25 @@ instance IsHTTPError PersonError where
 
 instance IsAPIError PersonError
 
+data MerchantError
+  = MerchantNotFound Text
+  | MerchantDoesNotExist Text
+  | MerchantWithExoPhoneNotFound Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''MerchantError
+
+instance IsBaseError MerchantError where
+  toMessage (MerchantNotFound merchantId) = Just $ "Merchant with merchantId \"" <> show merchantId <> "\" not found."
+  toMessage (MerchantDoesNotExist merchantId) = Just $ "No merchant matches passed data " <> show merchantId <> "."
+  toMessage (MerchantWithExoPhoneNotFound exoPhone) = Just $ "Merchant with ExoPhone \"" <> show exoPhone <> "\" not found."
+
+instance IsHTTPError MerchantError where
+  toErrorCode _ = "MERCHANT_NOT_FOUND"
+  toHttpCode _ = E400
+
+instance IsAPIError MerchantError
+
 data RegistryError
   = SubscriberNotFound
   deriving (Eq, Show, IsBecknAPIError)
