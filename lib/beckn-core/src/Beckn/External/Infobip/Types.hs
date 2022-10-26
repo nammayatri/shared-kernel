@@ -47,10 +47,11 @@ data SMSStatus = SMSStatus
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
-data InfobipConfig = InfobipConfig 
+data InfoBIPConfig = InfoBIPConfig 
   { username :: Text,
     password :: Text,
     url :: BaseUrl,
-    sender :: Text
+    sender :: Text,
+    token :: Text 
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)

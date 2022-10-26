@@ -15,7 +15,7 @@ sendSms ::
   ( CoreMetrics m,
     MonadFlow m
   ) =>
-  InfobipConfig ->
+  InfoBIPConfig ->
   Text ->
   Text ->
   m SMSRes
