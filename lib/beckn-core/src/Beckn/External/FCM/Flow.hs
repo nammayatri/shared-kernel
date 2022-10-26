@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 
 -- |
 -- Module      : FCM.Flow
@@ -20,8 +19,6 @@ module Beckn.External.FCM.Flow
     createAndroidNotification,
     notifyPerson,
     notifyPersonWithPriority,
-    notifyPersonDefault,
-    notifyPersonWithPriorityDefault,
     FCMSendMessageAPI,
     fcmSendMessageAPI,
   )
@@ -33,10 +30,10 @@ import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common
 import Beckn.Utils.Common
 import qualified Beckn.Utils.JWT as JWT
-import Control.Exception (IOException)
-import qualified Control.Exception as E (try)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text.Encoding.Base64 as B64
+import qualified Data.Text.Encoding as T
 import Data.Default.Class
 import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
@@ -118,21 +115,6 @@ createAndroidNotification title body notificationType =
         }
 
 -- | Send FCM message to a person
-notifyPersonDefault ::
-  (CoreMetrics m, FCMFlow m r, Redis.HedisFlow m r, Default a, ToJSON a) =>
-  FCMData a ->
-  FCMNotificationRecipient ->
-  m ()
-notifyPersonDefault = notifyPersonWithPriorityDefault Nothing
-
-notifyPersonWithPriorityDefault ::
-  (CoreMetrics m, FCMFlow m r, Redis.HedisFlow m r, Default a, ToJSON a) =>
-  Maybe FCMAndroidMessagePriority ->
-  FCMData a ->
-  FCMNotificationRecipient ->
-  m ()
-notifyPersonWithPriorityDefault pri_ data_ recip_ = runWithDefaultFCMConfig notifyPersonWithPriority >>= \func -> func pri_ data_ recip_
-
 notifyPerson ::
   ( CoreMetrics m,
     Default a,
@@ -242,15 +224,9 @@ getAndParseFCMAccount ::
   FCMConfig ->
   m (Either String JWT.ServiceAccount)
 getAndParseFCMAccount config = do
-  let mbFcmFile = config.fcmJsonPath
-  case mbFcmFile of
-    Nothing -> pure $ Left "FCM JSON file is not set in configs"
-    Just fcmFile -> do
-      rawContent <- liftIO . E.try @IOException . BL.readFile $ toString fcmFile
-      pure $ parseContent $ first show rawContent
-  where
-    parseContent :: Either String BL.ByteString -> Either String JWT.ServiceAccount
-    parseContent rawContent = rawContent >>= Aeson.eitherDecode
+      case BL.fromStrict . T.encodeUtf8 <$> B64.decodeBase64 config.fcmServiceAccount of
+                    Right bs -> pure $ Aeson.eitherDecode bs
+                    _ -> pure $ Left "FCM JSON file is not set in configs"
 
 getNewToken :: (Redis.HedisFlow m r, MonadFlow m) => FCMConfig -> m (Either String JWT.JWToken)
 getNewToken config = getAndParseFCMAccount config >>= either (pure . Left) (refreshToken config)

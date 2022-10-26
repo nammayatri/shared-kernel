@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE PackageImports #-}
 
 module Beckn.Types.Base64 where
 
@@ -9,7 +10,7 @@ import Beckn.Utils.Dhall
 import qualified Data.Aeson as A
 import Data.Bifunctor (bimap)
 import Data.ByteString
-import qualified Data.ByteString.Base64 as Base64
+import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.Text as T
 
 newtype Base64 = Base64 ByteString

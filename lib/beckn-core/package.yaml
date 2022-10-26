@@ -131,6 +131,7 @@ dependencies:
   - fmt
   - text-conversions
   - deriving-aeson
+  - base64
 
 ghc-options:
   - -fwrite-ide-info

@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE PackageImports #-}
 
 module Beckn.Utils.Servant.SignatureAuth where
 
@@ -19,7 +20,7 @@ import Beckn.Utils.Servant.Server (HasEnvEntry (..), runFlowRDelayedIO)
 import qualified Beckn.Utils.SignatureAuth as HttpSig
 import Control.Arrow
 import Control.Lens ((?=))
-import qualified Data.ByteString.Base64 as Base64
+import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Map.Strict as Map

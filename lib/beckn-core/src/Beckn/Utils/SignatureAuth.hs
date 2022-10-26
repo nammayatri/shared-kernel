@@ -1,3 +1,5 @@
+{-# LANGUAGE PackageImports #-}
+
 module Beckn.Utils.SignatureAuth
   ( PublicKey,
     PrivateKey,
@@ -31,7 +33,7 @@ import qualified Crypto.Hash as Hash
 import qualified Crypto.PubKey.Ed25519 as Ed25519
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base64 as Base64
+import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.CaseInsensitive as CI
 import Data.List (lookup)
 import qualified Data.Text as T

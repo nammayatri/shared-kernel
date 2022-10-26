@@ -10,7 +10,6 @@ module Beckn.External.FCM.Types where
 
 import Beckn.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Beckn.Types.App
-import Beckn.Types.Field ((:::))
 import Beckn.Utils.GenericPretty
 import Beckn.Utils.TH
 import Beckn.Utils.Text (decodeFromText, encodeToText)
@@ -22,21 +21,9 @@ import Data.Aeson.Types
 import Data.Default.Class
 import EulerHS.Prelude hiding (id, (.=))
 
-type FCMFlow m r = (HasFlowEnv m r ["fcmUrl" ::: BaseUrl, "fcmJsonPath" ::: Maybe Text, "fcmTokenKeyPrefix" ::: Text])
-
-askDefaultFCMConfig :: FCMFlow m r => m FCMConfig
-askDefaultFCMConfig = do
-  fcmUrl <- asks (.fcmUrl)
-  fcmJsonPath <- asks (.fcmJsonPath)
-  fcmTokenKeyPrefix <- asks (.fcmTokenKeyPrefix)
-  pure $ FCMConfig {..}
-
-runWithDefaultFCMConfig :: (FCMFlow m r) => (FCMConfig -> a) -> m a
-runWithDefaultFCMConfig func = func <$> askDefaultFCMConfig
-
 data FCMConfig = FCMConfig
   { fcmUrl :: BaseUrl,
-    fcmJsonPath :: Maybe Text,
+    fcmServiceAccount :: Text,
     fcmTokenKeyPrefix :: Text
   }
   deriving stock (Show, Generic)

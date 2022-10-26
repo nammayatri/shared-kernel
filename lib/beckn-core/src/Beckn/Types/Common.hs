@@ -11,7 +11,6 @@ module Beckn.Types.Common
 where
 
 import Beckn.External.Encryption as Common (EncFlow)
-import Beckn.External.FCM.Types as Common (FCMFlow)
 import Beckn.Prelude hiding (show)
 import Beckn.Storage.Esqueleto.Config as Common (EsqDBFlow)
 import Beckn.Types.App as Common

@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-warnings-deprecations #-}
+{-# LANGUAGE PackageImports #-}
 
 module Beckn.Utils.App
   ( Shutdown,
@@ -24,7 +25,7 @@ import Beckn.Utils.Shutdown
 import qualified Beckn.Utils.SignatureAuth as HttpSig
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Base64 as Base64
+import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.CaseInsensitive as CI
 import Data.List (lookup)
