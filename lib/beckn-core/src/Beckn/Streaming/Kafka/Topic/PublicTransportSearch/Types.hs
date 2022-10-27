@@ -1,5 +1,6 @@
 module Beckn.Streaming.Kafka.Topic.PublicTransportSearch.Types where
 
+import Beckn.External.Maps.Types (LatLong)
 import Beckn.Prelude
 import qualified Beckn.Streaming.Kafka.Consumer as Cons
 import Beckn.Streaming.Kafka.Consumer.Types (HasKafkaConsumer, KafkaConsumerTools)
@@ -10,7 +11,6 @@ import Beckn.Streaming.MonadConsumer (MonadConsumer (..))
 import Beckn.Streaming.MonadProducer (MonadProducer (..))
 import Beckn.Types.Flow (FlowR)
 import Beckn.Types.Logging
-import Beckn.Types.MapSearch (LatLong)
 
 type HasKafkaPublicTransportSearchConsumer env r =
   ( HasKafkaConsumer env r,

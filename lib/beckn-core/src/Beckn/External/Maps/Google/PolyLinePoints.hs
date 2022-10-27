@@ -1,7 +1,13 @@
-module Beckn.Product.MapSearch.PolyLinePoints (LatLong (..), encode, decode) where
+module Beckn.External.Maps.Google.PolyLinePoints
+  ( PolyLinePoints,
+    LatLong (..),
+    encode,
+    decode,
+  )
+where
 
+import Beckn.External.Maps.Types
 import Beckn.Prelude
-import Beckn.Types.MapSearch
 import Data.Bits
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
@@ -9,6 +15,8 @@ import Data.Char as C
 import Data.Int (Int32)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+
+type PolyLinePoints = Text
 
 toInts :: BSC.ByteString -> [Int32]
 toInts = map fromIntegral . BS.unpack
@@ -98,10 +106,10 @@ adjDiff p = zipWith subPair p (LatLong 0 0 : p)
 
 -- | Decodes Google Polyline text to a sequence of Latitude/Longitude
 -- points.  Inverse of 'encode'.
-decode :: T.Text -> [LatLong]
+decode :: PolyLinePoints -> [LatLong]
 decode = scanl1 addPair . makePairs . stringToCoords . TE.encodeUtf8
 
 -- | Encodes a sequence of Latitude/Longitude points into Google
 -- Polyline text.  Inverse of 'decode'.
-encode :: [LatLong] -> T.Text
+encode :: [LatLong] -> PolyLinePoints
 encode = T.concat . fmap oneCoordEnc . catPairs . adjDiff

@@ -1,43 +1,45 @@
-{-# LANGUAGE DefaultSignatures #-}
-
-module Beckn.Product.MapSearch.GoogleMaps
-  ( GetDistanceResult (..),
+module Beckn.External.Maps.Google
+  ( module Reexport,
     getDistance,
     getDistances,
     getRoutes,
-    HasCoordinates (..),
+    snapToRoad,
+    autoComplete,
+    placeDetails,
+    getPlaceName,
+    distanceMatrix,
   )
 where
 
-import qualified Beckn.External.GoogleMaps.Client as GoogleMaps
-import Beckn.External.GoogleMaps.Types
-import qualified Beckn.External.GoogleMaps.Types as GoogleMaps
+import Beckn.External.Maps.Google.Config as Reexport
+import qualified Beckn.External.Maps.Google.MapsClient as GoogleMaps
+import Beckn.External.Maps.Google.MapsClient.Types as Reexport
+import Beckn.External.Maps.Google.PolyLinePoints
+import Beckn.External.Maps.Google.RoadsClient as Reexport
+  ( SnapToRoadResponse,
+    SnapToRoadResponse' (..),
+    SnappedPoint,
+    SnappedPoint' (..),
+  )
+import qualified Beckn.External.Maps.Google.RoadsClient as GoogleRoads
+import Beckn.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
+import Beckn.External.Maps.Types as Reexport
+import qualified Beckn.External.Maps.Types as MapSearch
 import Beckn.Prelude
-import Beckn.Product.MapSearch.PolyLinePoints
 import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common hiding (id)
 import Beckn.Types.Error
-import qualified Beckn.Types.MapSearch as MapSearch
 import Beckn.Utils.Common hiding (id)
-import Beckn.Utils.GenericPretty
 import Control.Monad.Extra (concatForM)
 import qualified Data.List.Extra as List
 import qualified Data.List.NonEmpty as NE
 import GHC.Float (double2Int)
 
-data GetDistanceResult a b = GetDistanceResult
-  { origin :: a,
-    destination :: b,
-    distance :: Meters,
-    duration :: Seconds,
-    status :: Text
-  }
-  deriving (Generic, Show, PrettyShow)
-
 getDistance ::
   ( MonadFlow m,
     CoreMetrics m,
-    GoogleMaps.HasGoogleMaps m r,
+    MonadReader r m,
+    HasGoogleCfg r,
     HasCoordinates a,
     HasCoordinates b
   ) =>
@@ -50,23 +52,11 @@ getDistance travelMode origin destination =
     (a :| []) -> return a
     _ -> throwError (InternalError "Exactly one GoogleMaps.getDistance result expected.")
 
---
-class HasCoordinates a where
-  getCoordinates :: a -> MapSearch.LatLong
-  default getCoordinates :: (HasField "lat" a Double, HasField "lon" a Double) => a -> MapSearch.LatLong
-  getCoordinates = getCoordinatessDefault
-
-getCoordinatessDefault :: (HasField "lat" a Double, HasField "lon" a Double) => a -> MapSearch.LatLong
-getCoordinatessDefault loc = MapSearch.LatLong loc.lat loc.lon
-
-instance HasCoordinates MapSearch.LatLong where
-  getCoordinates = identity
-
---
 getDistances ::
   ( MonadFlow m,
     CoreMetrics m,
-    GoogleMaps.HasGoogleMaps m r,
+    MonadReader r m,
+    HasGoogleCfg r,
     HasCoordinates a,
     HasCoordinates b
   ) =>
@@ -75,16 +65,16 @@ getDistances ::
   NonEmpty b ->
   m (NonEmpty (GetDistanceResult a b))
 getDistances travelMode origins destinations = do
-  googleMapsUrl <- asks (.googleMapsUrl)
-  key <- asks (.googleMapsKey)
+  googleMapsUrl <- asks (.googleCfg.googleMapsUrl)
+  key <- asks (.googleCfg.googleKey)
   let limitedOriginObjectsList = splitListByAPICap origins
       limitedDestinationObjectsList = splitListByAPICap destinations
   res <- concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
     concatForM limitedDestinationObjectsList $ \limitedDestinationObjects -> do
       let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
           limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
-      GoogleMaps.distanceMatrix googleMapsUrl limitedOriginPlaces limitedDestinationPlaces key mode
-        >>= parseDistanceMatrixRespGeneral limitedOriginObjects limitedDestinationObjects
+      GoogleMaps.distanceMatrix googleMapsUrl key limitedOriginPlaces limitedDestinationPlaces mode
+        >>= parseDistanceMatrixResp limitedOriginObjects limitedDestinationObjects
   case res of
     [] -> throwError (InternalError "Empty GoogleMaps.getDistances result.")
     (a : xs) -> return $ a :| xs
@@ -98,19 +88,20 @@ getDistances travelMode origins destinations = do
 getRoutes ::
   ( MonadFlow m,
     CoreMetrics m,
-    GoogleMaps.HasGoogleMaps m r,
+    MonadReader r m,
+    HasGoogleCfg r,
     Log m
   ) =>
-  MapSearch.Request ->
-  m [MapSearch.Route]
+  MapSearch.GetRoutesReq ->
+  m MapSearch.GetRoutesResp
 getRoutes req = do
-  googleMapsUrl <- asks (.googleMapsUrl)
-  key <- asks (.googleMapsKey)
+  googleMapsUrl <- asks (.googleCfg.googleMapsUrl)
+  key <- asks (.googleCfg.googleKey)
   let origin = latLongToPlace (NE.head req.waypoints)
       destination = latLongToPlace (NE.last req.waypoints)
       waypoints = getWayPoints req.waypoints
       mode = mapToMode <$> req.mode
-  gRes <- GoogleMaps.directions googleMapsUrl origin destination key mode waypoints
+  gRes <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints
   traverse (mkRoute req) gRes.routes
   where
     getWayPoints waypoints =
@@ -120,15 +111,15 @@ getRoutes req = do
 
 mkRoute ::
   (MonadFlow m) =>
-  MapSearch.Request ->
-  Route ->
-  m MapSearch.Route
+  MapSearch.GetRoutesReq ->
+  GoogleMaps.Route ->
+  m MapSearch.RouteInfo
 mkRoute req route = do
   let bound = Just $ mkBounds route.bounds
   if null route.legs
     then do
       logTagWarning "GoogleMapsDirections" ("Empty route.legs, " <> show req)
-      return $ MapSearch.Route Nothing Nothing bound [] []
+      return $ MapSearch.RouteInfo Nothing Nothing bound [] []
     else do
       when (length route.legs > 1) $
         logTagWarning "GoogleMapsDirections" ("More than one element in route.legs, " <> show req)
@@ -140,7 +131,7 @@ mkRoute req route = do
           distanceInM = Just $ fromIntegral leg.distance.value
           durationInS = Just $ fromIntegral leg.duration.value
 
-      return $ MapSearch.Route durationInS distanceInM bound snappedWayPoints polylinePoints
+      return $ MapSearch.RouteInfo durationInS distanceInM bound snappedWayPoints polylinePoints
   where
     mkBounds :: GoogleMaps.Bounds -> MapSearch.BoundingBoxWithoutCRS
     mkBounds gBound =
@@ -148,13 +139,13 @@ mkRoute req route = do
           sw = MapSearch.PointXY gBound.southwest.lat gBound.southwest.lng
        in MapSearch.BoundingBoxWithoutCRSXY ne sw
 
-parseDistanceMatrixRespGeneral ::
+parseDistanceMatrixResp ::
   (MonadThrow m, MonadIO m, Log m) =>
   [a] ->
   [b] ->
   GoogleMaps.DistanceMatrixResp ->
   m [GetDistanceResult a b]
-parseDistanceMatrixRespGeneral origins destinations distanceMatrixResp = do
+parseDistanceMatrixResp origins destinations distanceMatrixResp = do
   mapM buildGetDistanceResult origDestAndElemList
   where
     origDestAndElemList = do
@@ -163,7 +154,6 @@ parseDistanceMatrixRespGeneral origins destinations distanceMatrixResp = do
       return (orig, dest, element)
 
     buildGetDistanceResult (orig, dest, element) = do
-      void $ GoogleMaps.validateResponseStatus element
       distance <- parseDistances element
       duration <- parseDuration element
       pure $
@@ -198,3 +188,81 @@ parseDuration distanceMatrixElement = do
     distanceMatrixElement.duration
       & fromMaybeM (InternalError "No duration value provided in distance matrix API response")
   pure $ intToNominalDiffTime durationInTraffic.value
+
+snapToRoad ::
+  ( HasCallStack,
+    CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasGoogleCfg r
+  ) =>
+  Bool ->
+  [MapSearch.LatLong] ->
+  m GoogleRoads.SnapToRoadResponse
+snapToRoad interpolate pointsList = do
+  roadsUrl <- asks (.googleCfg.googleRoadsUrl)
+  apiKey <- asks (.googleCfg.googleKey)
+  GoogleRoads.snapToRoad roadsUrl apiKey interpolate pointsList
+
+autoComplete ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasGoogleCfg r
+  ) =>
+  Text ->
+  Maybe Text ->
+  Text ->
+  Integer ->
+  Text ->
+  GoogleMaps.Language ->
+  m GoogleMaps.SearchLocationResp
+autoComplete input sessiontoken location radius components lang = do
+  mapsUrl <- asks (.googleCfg.googleMapsUrl)
+  apiKey <- asks (.googleCfg.googleKey)
+  GoogleMaps.autoComplete mapsUrl apiKey input sessiontoken location radius components lang
+
+placeDetails ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasGoogleCfg r
+  ) =>
+  Maybe Text ->
+  Text ->
+  Text ->
+  m GoogleMaps.PlaceDetailsResp
+placeDetails sessiontoken placeId fields = do
+  mapsUrl <- asks (.googleCfg.googleMapsUrl)
+  apiKey <- asks (.googleCfg.googleKey)
+  GoogleMaps.placeDetails mapsUrl apiKey sessiontoken placeId fields
+
+getPlaceName ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasGoogleCfg r
+  ) =>
+  Maybe Text ->
+  GoogleMaps.GetPlaceNameBy ->
+  Maybe GoogleMaps.Language ->
+  m GoogleMaps.GetPlaceNameResp
+getPlaceName sessiontoken by language = do
+  mapsUrl <- asks (.googleCfg.googleMapsUrl)
+  apiKey <- asks (.googleCfg.googleKey)
+  GoogleMaps.getPlaceName mapsUrl apiKey sessiontoken by language
+
+distanceMatrix ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasGoogleCfg r
+  ) =>
+  [GoogleMaps.Place] ->
+  [GoogleMaps.Place] ->
+  Maybe GoogleMaps.Mode ->
+  m GoogleMaps.DistanceMatrixResp
+distanceMatrix origins destinations mode = do
+  mapsUrl <- asks (.googleCfg.googleMapsUrl)
+  apiKey <- asks (.googleCfg.googleKey)
+  GoogleMaps.distanceMatrix mapsUrl apiKey origins destinations mode

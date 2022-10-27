@@ -1,9 +1,9 @@
 module Beckn.Serviceability where
 
+import Beckn.External.Maps.Types
 import Beckn.Prelude
 import Beckn.Storage.Esqueleto.Config
 import Beckn.Types.Geofencing
-import Beckn.Types.MapSearch
 
 rideServiceableDefault ::
   (EsqDBFlow m r, HasField "geofencingConfig" r GeofencingConfig) =>
