@@ -111,6 +111,7 @@ data FCMNotificationType
   | DRIVER_QUOTE_INCOMING
   | DRIVER_ON_THE_WAY
   | DRIVER_HAS_REACHED
+  | CLEARED_FARE
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
