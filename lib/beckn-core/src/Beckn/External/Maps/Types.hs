@@ -1,4 +1,4 @@
-{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE DerivingVia #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Beckn.External.Maps.Types
@@ -8,8 +8,7 @@ module Beckn.External.Maps.Types
   )
 where
 
-import Beckn.Types.Common
-import Beckn.Utils.GenericPretty (PrettyShow)
+import Beckn.Utils.GenericPretty (PrettyShow, Showable (Showable))
 import Control.Lens.Operators
 import Data.Geospatial
 import Data.LineString
@@ -39,50 +38,30 @@ instance FromHttpApiData LatLong where
 instance ToHttpApiData LatLong where
   toQueryParam LatLong {..} = show lat <> "," <> show lon
 
-data TravelMode = CAR | MOTORCYCLE | BICYCLE | FOOT
-  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
+data Language
+  = ENGLISH
+  | HINDI
+  | KANNADA
+  | TAMIL
+  | MALAYALAM
+  deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
+  deriving (PrettyShow) via Showable Language
 
-data GetDistanceResult a b = GetDistanceResult
-  { origin :: a,
-    destination :: b,
-    distance :: Meters,
-    duration :: Seconds,
-    status :: Text
-  }
-  deriving (Generic, Show, PrettyShow)
+instance FromHttpApiData Language where
+  parseUrlPiece "en" = pure ENGLISH
+  parseUrlPiece "hi" = pure HINDI
+  parseUrlPiece "kn" = pure KANNADA
+  parseUrlPiece "ml" = pure MALAYALAM
+  parseUrlPiece "ta" = pure TAMIL
+  parseUrlPiece _ = Left "Unable to parse Language"
 
-data GetRoutesReq = GetRoutesReq
-  { waypoints :: NonEmpty LatLong,
-    mode :: Maybe TravelMode, -- Defaults to CAR
-    calcPoints :: Bool -- True (default) if points needs to be calculated
-  }
-  deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
+instance ToHttpApiData Language where
+  toUrlPiece ENGLISH = "en"
+  toUrlPiece HINDI = "hi"
+  toUrlPiece KANNADA = "kn"
+  toUrlPiece MALAYALAM = "ml"
+  toUrlPiece TAMIL = "ta"
 
-type GetRoutesResp = [RouteInfo]
-
-data RouteInfo = RouteInfo
-  { duration :: Maybe Seconds,
-    distance :: Maybe Meters,
-    boundingBox :: Maybe BoundingBoxWithoutCRS,
-    snappedWaypoints :: [(LatLong, LatLong)],
-    points :: [LatLong]
-  }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
-
-instance ToSchema BoundingBoxWithoutCRS where
-  declareNamedSchema _ = do
-    aSchema <- declareSchema (Proxy :: Proxy Value)
-    return $
-      NamedSchema (Just "BoundingBoxWithoutCRS") $
-        aSchema
-          & description
-            ?~ "https://datatracker.ietf.org/doc/html/rfc7946#section-5"
-
-instance ToSchema GeospatialGeometry where
-  declareNamedSchema _ = do
-    aSchema <- declareSchema (Proxy :: Proxy Value)
-    return $
-      NamedSchema (Just "GeospatialGeometry") $
-        aSchema
-          & description
-            ?~ "https://datatracker.ietf.org/doc/html/rfc7946#section-2"
+data GetPlaceNameBy = ByLatLong LatLong | ByPlaceId Text
+  deriving stock (Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)

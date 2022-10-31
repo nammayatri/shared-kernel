@@ -1,7 +1,7 @@
 module Beckn.External.Maps.Google.MapsClient
   ( module GoogleMaps,
     autoComplete,
-    placeDetails,
+    getPlaceDetails,
     getPlaceName,
     distanceMatrix,
     directions,
@@ -9,7 +9,7 @@ module Beckn.External.Maps.Google.MapsClient
 where
 
 import Beckn.External.Maps.Google.MapsClient.Types as GoogleMaps
-import Beckn.External.Maps.Types (LatLong)
+import Beckn.External.Maps.Types
 import Beckn.Prelude
 import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common
@@ -34,8 +34,8 @@ type AutocompleteAPI =
     :> MandatoryQueryParam "location" Text
     :> MandatoryQueryParam "radius" Integer
     :> MandatoryQueryParam "components" Text
-    :> MandatoryQueryParam "language" GoogleMaps.Language
-    :> Get '[JSON] GoogleMaps.SearchLocationResp
+    :> MandatoryQueryParam "language" Language
+    :> Get '[JSON] GoogleMaps.AutoCompleteResp
 
 type PlaceDetailsAPI =
   "place" :> "details" :> "json"
@@ -43,7 +43,7 @@ type PlaceDetailsAPI =
     :> MandatoryQueryParam "key" Text
     :> MandatoryQueryParam "place_id" Text
     :> MandatoryQueryParam "fields" Text
-    :> Get '[JSON] GoogleMaps.PlaceDetailsResp
+    :> Get '[JSON] GoogleMaps.GetPlaceDetailsResp
 
 type PlaceNameAPI =
   "geocode" :> "json"
@@ -51,7 +51,7 @@ type PlaceNameAPI =
     :> MandatoryQueryParam "key" Text
     :> QueryParam "latlng" LatLong -- Parameters order is important.
     :> QueryParam "place_id" Text
-    :> QueryParam "language" GoogleMaps.Language
+    :> QueryParam "language" Language
     :> Get '[JSON] GoogleMaps.GetPlaceNameResp
 
 type DistanceMatrixAPI =
@@ -72,9 +72,9 @@ type DirectionsAPI =
     :> QueryParam "waypoints" [GoogleMaps.Place]
     :> Get '[JSON] GoogleMaps.DirectionsResp
 
-autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> GoogleMaps.Language -> EulerClient GoogleMaps.SearchLocationResp
-placeDetailsClient :: Maybe Text -> Text -> Text -> Text -> EulerClient GoogleMaps.PlaceDetailsResp
-getPlaceNameClient :: Maybe Text -> Text -> Maybe LatLong -> Maybe Text -> Maybe GoogleMaps.Language -> EulerClient GoogleMaps.GetPlaceNameResp
+autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Language -> EulerClient GoogleMaps.AutoCompleteResp
+getPlaceDetailsClient :: Maybe Text -> Text -> Text -> Text -> EulerClient GoogleMaps.GetPlaceDetailsResp
+getPlaceNameClient :: Maybe Text -> Text -> Maybe LatLong -> Maybe Text -> Maybe Language -> EulerClient GoogleMaps.GetPlaceNameResp
 distanceMatrixClient ::
   [GoogleMaps.Place] ->
   [GoogleMaps.Place] ->
@@ -89,7 +89,7 @@ directionsClient ::
   Maybe GoogleMaps.Mode ->
   Maybe [GoogleMaps.Place] ->
   EulerClient GoogleMaps.DirectionsResp
-autoCompleteClient :<|> placeDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient = client (Proxy :: Proxy GoogleMapsAPI)
+autoCompleteClient :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient = client (Proxy :: Proxy GoogleMapsAPI)
 
 autoComplete ::
   ( CoreMetrics m,
@@ -102,13 +102,13 @@ autoComplete ::
   Text ->
   Integer ->
   Text ->
-  GoogleMaps.Language ->
-  m GoogleMaps.SearchLocationResp
+  Language ->
+  m GoogleMaps.AutoCompleteResp
 autoComplete url apiKey input sessiontoken location radius components lang = do
   callAPI url (autoCompleteClient sessiontoken apiKey input location radius components lang) "autoComplete"
     >>= checkGoogleMapsError url
 
-placeDetails ::
+getPlaceDetails ::
   ( CoreMetrics m,
     MonadFlow m
   ) =>
@@ -117,9 +117,9 @@ placeDetails ::
   Maybe Text ->
   Text ->
   Text ->
-  m GoogleMaps.PlaceDetailsResp
-placeDetails url apiKey sessiontoken placeId fields = do
-  callAPI url (placeDetailsClient sessiontoken apiKey placeId fields) "placeDetails"
+  m GoogleMaps.GetPlaceDetailsResp
+getPlaceDetails url apiKey sessiontoken placeId fields = do
+  callAPI url (getPlaceDetailsClient sessiontoken apiKey placeId fields) "getPlaceDetails"
     >>= checkGoogleMapsError url
 
 getPlaceName ::
@@ -130,7 +130,7 @@ getPlaceName ::
   Text ->
   Maybe Text ->
   GetPlaceNameBy ->
-  Maybe GoogleMaps.Language ->
+  Maybe Language ->
   m GoogleMaps.GetPlaceNameResp
 getPlaceName url apiKey sessiontoken by language = do
   callAPI url clientAPI "getPlaceName"

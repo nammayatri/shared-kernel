@@ -2,15 +2,13 @@
 
 module Beckn.External.Maps.Google.MapsClient.Types where
 
-import Beckn.External.Maps.Google.PolyLinePoints (LatLong, PolyLinePoints)
+import Beckn.External.Maps.Google.PolyLinePoints (PolyLinePoints)
 import Beckn.Prelude
-import Beckn.Utils.GenericPretty
 import Data.Double.Conversion.Text (toFixed)
 import qualified Data.Text as T
 import Servant (ToHttpApiData (toUrlPiece))
-import Servant.API (FromHttpApiData (..))
 
-data SearchLocationResp = SearchLocationResp
+data AutoCompleteResp = AutoCompleteResp
   { status :: Text,
     predictions :: [Prediction]
   }
@@ -22,7 +20,7 @@ data Prediction = Prediction
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
-data PlaceDetailsResp = PlaceDetailsResp
+data GetPlaceDetailsResp = GetPlaceDetailsResp
   { status :: Text,
     result :: PlaceDetailsResult
   }
@@ -162,34 +160,8 @@ data Mode = DRIVING | WALKING | BICYCLING | TRANSIT
 instance ToHttpApiData Mode where
   toUrlPiece = T.toLower . show
 
-data Language
-  = ENGLISH
-  | HINDI
-  | KANNADA
-  | TAMIL
-  | MALAYALAM
-  deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
-  deriving (PrettyShow) via Showable Language
-
-instance FromHttpApiData Language where
-  parseUrlPiece "en" = pure ENGLISH
-  parseUrlPiece "hi" = pure HINDI
-  parseUrlPiece "kn" = pure KANNADA
-  parseUrlPiece "ml" = pure MALAYALAM
-  parseUrlPiece "ta" = pure TAMIL
-  parseUrlPiece _ = Left "Unable to parse Language"
-
-instance ToHttpApiData Language where
-  toUrlPiece ENGLISH = "en"
-  toUrlPiece HINDI = "hi"
-  toUrlPiece KANNADA = "kn"
-  toUrlPiece MALAYALAM = "ml"
-  toUrlPiece TAMIL = "ta"
-
 data DepartureTime = Now | FutureTime UTCTime
 
 instance ToHttpApiData DepartureTime where
   toUrlPiece Now = "now"
   toUrlPiece (FutureTime time) = show time
-
-data GetPlaceNameBy = ByLatLong LatLong | ByPlaceId Text
