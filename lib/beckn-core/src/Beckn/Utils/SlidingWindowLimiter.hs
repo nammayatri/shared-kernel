@@ -17,10 +17,19 @@ checkSlidingWindowLimit ::
   Text ->
   m ()
 checkSlidingWindowLimit key = do
-  hitsLimit <- asks (.apiRateLimitOptions.limit)
-  hitsLimitResetTime <- asks (.apiRateLimitOptions.limitResetTimeInSec)
-  unlessM (slidingWindowLimiter key hitsLimit hitsLimitResetTime) $
-    throwError $ HitsLimitError hitsLimitResetTime
+  limitOptions <- asks (.apiRateLimitOptions)
+  checkSlidingWindowLimitWithOptions key limitOptions
+
+checkSlidingWindowLimitWithOptions ::
+  ( Redis.HedisFlow m r,
+    MonadTime m
+  ) =>
+  Text ->
+  APIRateLimitOptions ->
+  m ()
+checkSlidingWindowLimitWithOptions key APIRateLimitOptions{..} = do 
+  unlessM (slidingWindowLimiter key limit limitResetTimeInSec) $
+    throwError $ HitsLimitError limitResetTimeInSec
 
 -- Sliding window rate limiter.
 -- Returns True if limit is not exceed and further
