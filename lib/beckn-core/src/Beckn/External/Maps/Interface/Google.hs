@@ -9,6 +9,7 @@ module Beckn.External.Maps.Interface.Google
   )
 where
 
+import Beckn.External.Encryption
 import Beckn.External.Maps.Google.Config as Reexport
 import qualified Beckn.External.Maps.Google.MapsClient as GoogleMaps
 import Beckn.External.Maps.Google.PolyLinePoints
@@ -27,7 +28,7 @@ import qualified Data.List.NonEmpty as NE
 import GHC.Float (double2Int)
 
 getDistances ::
-  ( MonadFlow m,
+  ( EncFlow m r,
     CoreMetrics m,
     HasCoordinates a,
     HasCoordinates b
@@ -37,7 +38,7 @@ getDistances ::
   m (NonEmpty (GetDistanceResp a b))
 getDistances cfg GetDistancesReq {..} = do
   let googleMapsUrl = cfg.googleMapsUrl
-      key = cfg.googleKey
+  key <- decrypt cfg.googleKey
   let limitedOriginObjectsList = splitListByAPICap origins
       limitedDestinationObjectsList = splitListByAPICap destinations
   res <- concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
@@ -57,7 +58,7 @@ getDistances cfg GetDistancesReq {..} = do
       List.chunksOf 25 $ toList inputList
 
 getRoutes ::
-  ( MonadFlow m,
+  ( EncFlow m r,
     CoreMetrics m,
     Log m
   ) =>
@@ -66,7 +67,7 @@ getRoutes ::
   m GetRoutesResp
 getRoutes cfg req = do
   let googleMapsUrl = cfg.googleMapsUrl
-      key = cfg.googleKey
+  key <- decrypt cfg.googleKey
   let origin = latLongToPlace (NE.head req.waypoints)
       destination = latLongToPlace (NE.last req.waypoints)
       waypoints = getWayPoints req.waypoints
@@ -161,57 +162,57 @@ parseDuration distanceMatrixElement = do
 
 snapToRoad ::
   ( HasCallStack,
-    CoreMetrics m,
-    MonadFlow m
+    EncFlow m r,
+    CoreMetrics m
   ) =>
   GoogleCfg ->
   SnapToRoadReq ->
   m SnapToRoadResp
 snapToRoad cfg SnapToRoadReq {..} = do
   let roadsUrl = cfg.googleRoadsUrl
-      apiKey = cfg.googleKey
-  res <- GoogleRoads.snapToRoad roadsUrl apiKey interpolate points
+  key <- decrypt cfg.googleKey
+  res <- GoogleRoads.snapToRoad roadsUrl key interpolate points
   return . SnapToRoadResp $ map (.location) res.snappedPoints
 
 autoComplete ::
-  ( CoreMetrics m,
-    MonadFlow m
+  ( EncFlow m r,
+    CoreMetrics m
   ) =>
   GoogleCfg ->
   AutoCompleteReq ->
   m AutoCompleteResp
 autoComplete cfg AutoCompleteReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
-      apiKey = cfg.googleKey
-  res <- GoogleMaps.autoComplete mapsUrl apiKey input sessionToken location radius components language
+  key <- decrypt cfg.googleKey
+  res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location radius components language
   let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, ..}) res.predictions
   return $ AutoCompleteResp predictions
 
 getPlaceDetails ::
-  ( CoreMetrics m,
-    MonadFlow m
+  ( EncFlow m r,
+    CoreMetrics m
   ) =>
   GoogleCfg ->
   GetPlaceDetailsReq ->
   m GetPlaceDetailsResp
 getPlaceDetails cfg GetPlaceDetailsReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
-      apiKey = cfg.googleKey
-  res <- GoogleMaps.getPlaceDetails mapsUrl apiKey sessionToken placeId fields
+  key <- decrypt cfg.googleKey
+  res <- GoogleMaps.getPlaceDetails mapsUrl key sessionToken placeId fields
   let location = let loc = res.result.geometry.location in LatLong loc.lat loc.lng
   return $ GetPlaceDetailsResp location
 
 getPlaceName ::
-  ( CoreMetrics m,
-    MonadFlow m
+  ( EncFlow m r,
+    CoreMetrics m
   ) =>
   GoogleCfg ->
   GetPlaceNameReq ->
   m GetPlaceNameResp
 getPlaceName cfg GetPlaceNameReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
-      apiKey = cfg.googleKey
-  res <- GoogleMaps.getPlaceName mapsUrl apiKey sessionToken getBy language
+  key <- decrypt cfg.googleKey
+  res <- GoogleMaps.getPlaceName mapsUrl key sessionToken getBy language
   return $ map reformatePlaceName res.results
   where
     reformatePlaceName (placeName :: GoogleMaps.ResultsResp) =

@@ -22,7 +22,7 @@ import Beckn.Types.Error
 import Beckn.Utils.Common hiding (id)
 
 getDistance ::
-  ( MonadFlow m,
+  ( EncFlow m r,
     CoreMetrics m,
     HasCoordinates a,
     HasCoordinates b
@@ -43,7 +43,7 @@ getDistance serviceConfig GetDistanceReq {..} =
         }
 
 getDistances ::
-  ( MonadFlow m,
+  ( EncFlow m r,
     CoreMetrics m,
     HasCoordinates a,
     HasCoordinates b
@@ -55,7 +55,7 @@ getDistances serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getDistances cfg req
 
 getRoutes ::
-  ( MonadFlow m,
+  ( EncFlow m r,
     CoreMetrics m,
     Log m
   ) =>
@@ -66,9 +66,8 @@ getRoutes serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getRoutes cfg req
 
 snapToRoad ::
-  ( HasCallStack,
-    CoreMetrics m,
-    MonadFlow m
+  ( EncFlow m r,
+    CoreMetrics m
   ) =>
   MapsServiceConfig ->
   SnapToRoadReq ->
@@ -77,8 +76,8 @@ snapToRoad serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.snapToRoad cfg req
 
 autoComplete ::
-  ( CoreMetrics m,
-    MonadFlow m
+  ( EncFlow m r,
+    CoreMetrics m
   ) =>
   MapsServiceConfig ->
   AutoCompleteReq ->
@@ -87,8 +86,8 @@ autoComplete serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.autoComplete cfg req
 
 getPlaceDetails ::
-  ( CoreMetrics m,
-    MonadFlow m
+  ( EncFlow m r,
+    CoreMetrics m
   ) =>
   MapsServiceConfig ->
   GetPlaceDetailsReq ->
@@ -97,8 +96,8 @@ getPlaceDetails serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceDetails cfg req
 
 getPlaceName ::
-  ( CoreMetrics m,
-    MonadFlow m
+  ( EncFlow m r,
+    CoreMetrics m
   ) =>
   MapsServiceConfig ->
   GetPlaceNameReq ->

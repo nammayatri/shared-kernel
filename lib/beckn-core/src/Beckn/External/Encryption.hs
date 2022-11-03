@@ -12,6 +12,7 @@ module Beckn.External.Encryption
     EncKind (..),
     Encrypted (..),
     EncFlow,
+    EncryptedField,
     EncryptedHashed (..),
     EncryptedHashedField,
     EncryptedBase64 (..),
@@ -114,6 +115,10 @@ instance
     return EncryptedHashed {..}
   decryptItem mvalue = (,"") <$> decryptItem mvalue.encrypted
 
+type family EncryptedField (e :: EncKind) (a :: Type) :: Type where
+  EncryptedField 'AsUnencrypted a = a
+  EncryptedField 'AsEncrypted a = Encrypted a
+
 -- | Mark a field as encrypted with hash or not, depending on @e@ argument.
 --
 -- The same considerations as for 'EncryptedField' apply here.
@@ -125,6 +130,11 @@ class (EncryptedItem e) => EncryptedItem' e where
   type UnencryptedItem e :: Type
   toUnencrypted :: UnencryptedItem e -> HashSalt -> Unencrypted e
   fromUnencrypted :: Unencrypted e -> UnencryptedItem e
+
+instance (ToJSON a, FromJSON a, DbHashable a) => EncryptedItem' (Encrypted a) where
+  type UnencryptedItem (Encrypted a) = a
+  toUnencrypted a _ = a
+  fromUnencrypted a = a
 
 instance (ToJSON a, FromJSON a, DbHashable a) => EncryptedItem' (EncryptedHashed a) where
   type UnencryptedItem (EncryptedHashed a) = a
