@@ -723,6 +723,26 @@ instance IsHTTPError GoogleMapsCallError where
 
 instance IsAPIError GoogleMapsCallError
 
+data GoogleTranslateCallError = GoogleTranslateInvalidRequest | GoogleTranslateCallError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''GoogleTranslateCallError
+
+instance IsBaseError GoogleTranslateCallError where
+  toMessage = \case
+    GoogleTranslateInvalidRequest -> Just "Invalid request to Google Translate."
+    GoogleTranslateCallError googleErrorCode -> Just googleErrorCode
+
+instance IsHTTPError GoogleTranslateCallError where
+  toErrorCode = \case
+    GoogleTranslateInvalidRequest -> "GOOGLE_TRANSLATE_INVALID_REQUEST"
+    GoogleTranslateCallError _ -> "GOOGLE_TRANSLATE_CALL_ERROR"
+  toHttpCode = \case
+    GoogleTranslateInvalidRequest -> E400
+    GoogleTranslateCallError _ -> E500
+
+instance IsAPIError GoogleTranslateCallError
+
 data AgencyDisabled
   = AgencyDisabled
   deriving (Eq, Show, IsBecknAPIError)
