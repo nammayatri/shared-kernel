@@ -1,44 +1,44 @@
 module Beckn.External.Infobip.Types where
 
-import EulerHS.Prelude hiding (encodeUtf8, fromStrict, toStrict, id)
-import Servant.Client (BaseUrl)
 import Beckn.Utils.Dhall (FromDhall)
+import EulerHS.Prelude hiding (encodeUtf8, fromStrict, id, toStrict)
+import Servant.Client (BaseUrl)
 
-newtype SMSReq = SMSReq { messages :: [MessageReq] }
+newtype SMSReq = SMSReq {messages :: [MessageReq]}
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
-data SMSRes = SMSRes 
+data SMSRes = SMSRes
   { bulkId :: Maybe Text,
     messages :: Maybe [MessageRes],
     requestError :: Maybe SMSErr
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
-data SMSErr = SMSErr 
+data SMSErr = SMSErr
   { messageId :: Text,
     text :: Text,
     validationErrors :: Text
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
-data MessageReq = MessageReq 
+data MessageReq = MessageReq
   { destinations :: [SMSDestination],
     from :: Text,
-    text :: Text  
+    text :: Text
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
-newtype SMSDestination = SMSDestination { to :: Text}
+newtype SMSDestination = SMSDestination {to :: Text}
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
-data MessageRes = MessageRes 
+data MessageRes = MessageRes
   { messageId :: Text,
     status :: SMSStatus,
     to :: Text
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
-data SMSStatus = SMSStatus 
+data SMSStatus = SMSStatus
   { description :: Text,
     groupId :: Int,
     groupName :: Text,
@@ -47,11 +47,11 @@ data SMSStatus = SMSStatus
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
-data InfoBIPConfig = InfoBIPConfig 
+data InfoBIPConfig = InfoBIPConfig
   { username :: Text,
     password :: Text,
     url :: BaseUrl,
     sender :: Text,
-    token :: Text 
+    token :: Text
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)

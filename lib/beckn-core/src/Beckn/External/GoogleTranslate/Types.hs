@@ -6,6 +6,7 @@ import Beckn.Prelude
 import Beckn.Utils.JSON
 
 type HasGoogleTranslate m r = (MonadReader r m, HasField "googleTranslateUrl" r BaseUrl, HasField "googleTranslateKey" r Text)
+
 data TranslateResp = TranslateResp
   { _data :: Translations,
     _error :: Maybe TranslateError

@@ -15,4 +15,4 @@ serviceAPI :: Proxy ServiceAPI
 serviceAPI = Proxy
 
 sendSms :: Text -> SMSReq -> ET.EulerClient SMSRes
-sendSms auth req = ET.client serviceAPI (Just auth) req
+sendSms auth = ET.client serviceAPI (Just auth)

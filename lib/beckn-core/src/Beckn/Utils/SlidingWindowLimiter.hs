@@ -27,7 +27,7 @@ checkSlidingWindowLimitWithOptions ::
   Text ->
   APIRateLimitOptions ->
   m ()
-checkSlidingWindowLimitWithOptions key APIRateLimitOptions{..} = do 
+checkSlidingWindowLimitWithOptions key APIRateLimitOptions {..} = do
   unlessM (slidingWindowLimiter key limit limitResetTimeInSec) $
     throwError $ HitsLimitError limitResetTimeInSec
 
