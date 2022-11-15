@@ -15,7 +15,7 @@ module Beckn.Storage.Esqueleto
 where
 
 import Beckn.Storage.Esqueleto.Class as Class (SolidType, TEntityKey (..), TType (..), extractSolidType)
-import Beckn.Storage.Esqueleto.Config as Config (EsqDBFlow)
+import Beckn.Storage.Esqueleto.Config as Config (EsqDBFlow, EsqDBReplicaFlow)
 import Beckn.Storage.Esqueleto.DTypeBuilder as DTypeBuilder (DTypeBuilder, buildDType)
 import Beckn.Storage.Esqueleto.Functions as Functions
 import Beckn.Storage.Esqueleto.Logger as Logger (LoggerIO)
