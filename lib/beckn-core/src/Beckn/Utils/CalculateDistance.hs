@@ -1,8 +1,8 @@
 module Beckn.Utils.CalculateDistance where
 
+import Beckn.External.Maps.Types
 import Beckn.Prelude (atan2)
 import Beckn.Types.Common (HighPrecMeters (..))
-import Beckn.Types.MapSearch
 import EulerHS.Prelude hiding (id, state)
 
 distanceBetweenInMeters :: LatLong -> LatLong -> HighPrecMeters

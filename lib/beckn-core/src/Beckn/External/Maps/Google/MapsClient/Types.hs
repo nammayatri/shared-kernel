@@ -1,14 +1,14 @@
 {-# LANGUAGE DerivingVia #-}
 
-module Beckn.External.GoogleMaps.Types where
+module Beckn.External.Maps.Google.MapsClient.Types where
 
+import Beckn.External.Maps.Google.PolyLinePoints (LatLong, PolyLinePoints)
 import Beckn.Prelude
 import Beckn.Utils.GenericPretty
 import Data.Double.Conversion.Text (toFixed)
 import qualified Data.Text as T
 import Servant (ToHttpApiData (toUrlPiece))
-
-type HasGoogleMaps m r = (MonadReader r m, HasField "googleMapsUrl" r BaseUrl, HasField "googleMapsKey" r Text)
+import Servant.API (FromHttpApiData (..))
 
 data SearchLocationResp = SearchLocationResp
   { status :: Text,
@@ -118,7 +118,7 @@ data Step = Step
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
-newtype EncodedPointObject = EncodedPointObject {points :: Text}
+newtype EncodedPointObject = EncodedPointObject {points :: PolyLinePoints}
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
@@ -171,6 +171,14 @@ data Language
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
   deriving (PrettyShow) via Showable Language
 
+instance FromHttpApiData Language where
+  parseUrlPiece "en" = pure ENGLISH
+  parseUrlPiece "hi" = pure HINDI
+  parseUrlPiece "kn" = pure KANNADA
+  parseUrlPiece "ml" = pure MALAYALAM
+  parseUrlPiece "ta" = pure TAMIL
+  parseUrlPiece _ = Left "Unable to parse Language"
+
 instance ToHttpApiData Language where
   toUrlPiece ENGLISH = "en"
   toUrlPiece HINDI = "hi"
@@ -178,19 +186,10 @@ instance ToHttpApiData Language where
   toUrlPiece MALAYALAM = "ml"
   toUrlPiece TAMIL = "ta"
 
-toMbLanguage :: Maybe Text -> Maybe Language
-toMbLanguage txt =
-  case txt of
-    Nothing -> Nothing
-    Just "en" -> Just ENGLISH
-    Just "hi" -> Just HINDI
-    Just "kn" -> Just KANNADA
-    Just "ml" -> Just MALAYALAM
-    Just "ta" -> Just TAMIL
-    Just _ -> Nothing
-
 data DepartureTime = Now | FutureTime UTCTime
 
 instance ToHttpApiData DepartureTime where
   toUrlPiece Now = "now"
   toUrlPiece (FutureTime time) = show time
+
+data GetPlaceNameBy = ByLatLong LatLong | ByPlaceId Text
