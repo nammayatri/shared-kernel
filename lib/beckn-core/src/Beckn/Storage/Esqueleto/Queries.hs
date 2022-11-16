@@ -46,7 +46,11 @@ import Beckn.Storage.Esqueleto.Class
 import Beckn.Storage.Esqueleto.DTypeBuilder
 import Beckn.Storage.Esqueleto.SqlDB
 import Beckn.Storage.Esqueleto.Transactionable
+import Beckn.Types.Error
 import Beckn.Types.Logging (Log)
+import Beckn.Utils.Error.Throwing
+import Data.Text (pack)
+import Data.Typeable
 import Database.Esqueleto.Experimental as EsqExport hiding
   ( Table,
     delete,
@@ -67,28 +71,31 @@ import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Esqueleto.Internal.Internal as Esq
 import Database.Persist.Postgresql hiding (delete, repsert, update, upsert, upsertBy)
 
-findOne :: (Transactionable m, Esq.SqlSelect b t, QEntity t a) => Esq.SqlQuery b -> m (Maybe a)
+findOne :: (Typeable t, Transactionable m, Esq.SqlSelect b t, QEntity t a) => Esq.SqlQuery b -> m (Maybe a)
 findOne = buildDType . findOneInternal
 
-findOne' :: (Transactionable m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe a)
+findOne' :: (Typeable t, Transactionable m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe a)
 findOne' q = extractTType <$> findOneInternal q
 
-findOneInternal :: (Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe t)
-findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ lift selectOnlyOne
+findOneInternal :: forall m t b. (Typeable t, Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe t)
+findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ selectOnlyOne
   where
     selectOnlyOne = do
-      list <- Esq.select q
+      list <- lift $ Esq.select q
       case list of
         [res] -> return $ Just res
-        _ -> return Nothing
+        [] -> return Nothing
+        _ -> do
+          let errType = pack . show . typeRep $ (Proxy @t)
+          throwError $ InternalError $ "Multiple results of " <> errType
 
-findById :: forall a t m. (Transactionable m, QEntity (Entity t) a, TEntityKey t) => DomainKey t -> m (Maybe a)
+findById :: forall a t m. (Typeable t, Transactionable m, QEntity (Entity t) a, TEntityKey t) => DomainKey t -> m (Maybe a)
 findById = buildDType . findByIdInternal @t
 
-findById' :: forall t m. (Transactionable m, TEntityKey t, TEntity (Entity t) t) => DomainKey t -> DTypeBuilder m (Maybe t)
+findById' :: forall t m. (Typeable t, Transactionable m, TEntityKey t, TEntity (Entity t) t) => DomainKey t -> DTypeBuilder m (Maybe t)
 findById' dkey = extractTType <$> findByIdInternal @t dkey
 
-findByIdInternal :: forall t m. (Transactionable m, TEntityKey t, Log m) => DomainKey t -> DTypeBuilder m (Maybe (Entity t))
+findByIdInternal :: forall t m. (Typeable t, Transactionable m, TEntityKey t, Log m) => DomainKey t -> DTypeBuilder m (Maybe (Entity t))
 findByIdInternal dkey = findOneInternal $ do
   let key = toKey @t dkey
   res <- from $ table @t
