@@ -15,6 +15,22 @@ data HttpCode
   | E503
   deriving (Show)
 
+codeToHttpCode :: Int -> Maybe HttpCode
+codeToHttpCode = \case
+  400 -> Just E400
+  401 -> Just E401
+  402 -> Just E402
+  403 -> Just E403
+  404 -> Just E404
+  429 -> Just E429
+  500 -> Just E500
+  501 -> Just E501
+  503 -> Just E503
+  _ -> Nothing
+
+codeToHttpCodeWith500Default :: Int -> HttpCode
+codeToHttpCodeWith500Default = fromMaybe E500 . codeToHttpCode
+
 toServerError :: HttpCode -> ServerError
 toServerError = \case
   E400 -> err400
