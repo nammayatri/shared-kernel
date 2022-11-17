@@ -212,7 +212,7 @@ getPlaceName ::
 getPlaceName cfg GetPlaceNameReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
-  res <- GoogleMaps.getPlaceName mapsUrl key sessionToken getBy language
+  res <- GoogleMaps.getPlaceName mapsUrl key sessionToken mbByPlaceId mbByLatLong language
   return $ map reformatePlaceName res.results
   where
     reformatePlaceName (placeName :: GoogleMaps.ResultsResp) =
@@ -228,3 +228,6 @@ getPlaceName cfg GetPlaceNameReq {..} = do
           shortName = aResp.short_name,
           types = aResp.types
         }
+    (mbByPlaceId, mbByLatLong) = case getBy of
+      ByPlaceId id -> (Just id, Nothing)
+      ByLatLong latLong -> (Nothing, Just latLong)

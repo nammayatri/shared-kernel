@@ -10,6 +10,7 @@ where
 
 import Beckn.External.Maps.Google.MapsClient.Types as GoogleMaps
 import Beckn.External.Maps.Types
+import Beckn.External.Types (Language)
 import Beckn.Prelude
 import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common
@@ -129,17 +130,13 @@ getPlaceName ::
   BaseUrl ->
   Text ->
   Maybe Text ->
-  GetPlaceNameBy ->
+  Maybe Text ->
+  Maybe LatLong ->
   Maybe Language ->
   m GoogleMaps.GetPlaceNameResp
-getPlaceName url apiKey sessiontoken by language = do
-  callAPI url clientAPI "getPlaceName"
+getPlaceName url apiKey sessiontoken mbByPlaceId mbByLatLong language = do
+  callAPI url (getPlaceNameClient sessiontoken apiKey mbByLatLong mbByPlaceId language) "getPlaceName"
     >>= checkGoogleMapsError url
-  where
-    clientAPI = case by of
-      ByPlaceId id -> getPlaceNameClient sessiontoken apiKey Nothing (Just id) language
-      ByLatLong latLong -> do
-        getPlaceNameClient sessiontoken apiKey (Just latLong) Nothing language
 
 distanceMatrix ::
   ( CoreMetrics m,

@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Beckn.External.Maps.Interface.Types
@@ -11,7 +10,7 @@ where
 
 import qualified Beckn.External.Maps.Google.Config as Google
 import Beckn.External.Maps.Types
-import Beckn.Storage.Esqueleto (derivePersistField)
+import Beckn.External.Types (Language)
 import Beckn.Types.Common
 import Beckn.Utils.GenericPretty (PrettyShow)
 import Control.Lens.Operators
@@ -21,11 +20,6 @@ import Data.OpenApi hiding (components, description)
 import qualified Data.OpenApi as OpenApi
 import Data.Text
 import EulerHS.Prelude
-
-data MapsService = Google
-  deriving (Show, Read, Eq, Generic, ToJSON, FromJSON, ToSchema)
-
-derivePersistField "MapsService"
 
 newtype MapsServiceConfig = GoogleConfig Google.GoogleCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -141,6 +135,10 @@ newtype GetPlaceDetailsResp = GetPlaceDetailsResp
   { location :: LatLong
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data GetPlaceNameBy = ByLatLong LatLong | ByPlaceId Text
+  deriving stock (Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data GetPlaceNameReq = GetPlaceNameReq
   { getBy :: GetPlaceNameBy,

@@ -4,7 +4,7 @@
 
 module Beckn.Types.Error where
 
-import Beckn.External.Maps.Interface.Types (MapsService)
+import Beckn.External.Maps.Types (MapsService)
 import Beckn.External.MyValueFirst.Types (SubmitSmsRes, submitSmsResToText)
 import Beckn.Types.Error.BaseError
 import Beckn.Types.Error.BaseError.HTTPError
@@ -191,8 +191,8 @@ data MerchantError
   = MerchantNotFound Text
   | MerchantDoesNotExist Text
   | MerchantWithExoPhoneNotFound Text
-  | MerchantMapsConfigNotFound Text
-  | MerchantMapsServiceConfigNotFound Text MapsService
+  | MerchantServiceUsageConfigNotFound Text
+  | MerchantServiceConfigNotFound Text MapsService
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''MerchantError
@@ -201,22 +201,22 @@ instance IsBaseError MerchantError where
   toMessage (MerchantNotFound merchantId) = Just $ "Merchant with merchantId \"" <> show merchantId <> "\" not found."
   toMessage (MerchantDoesNotExist merchantId) = Just $ "No merchant matches passed data " <> show merchantId <> "."
   toMessage (MerchantWithExoPhoneNotFound exoPhone) = Just $ "Merchant with ExoPhone \"" <> show exoPhone <> "\" not found."
-  toMessage (MerchantMapsConfigNotFound merchantId) = Just $ "MerchantMapsConfig with merchantId \"" <> show merchantId <> "\" not found."
-  toMessage (MerchantMapsServiceConfigNotFound merchantId service) = Just $ "MerchantMapsServiceConfig for service " <> show service <> " with merchantId \"" <> merchantId <> "\" not found."
+  toMessage (MerchantServiceUsageConfigNotFound merchantId) = Just $ "MerchantServiceUsageConfig with merchantId \"" <> show merchantId <> "\" not found."
+  toMessage (MerchantServiceConfigNotFound merchantId service) = Just $ "MerchantServiceConfig for service " <> show service <> " with merchantId \"" <> merchantId <> "\" not found."
 
 instance IsHTTPError MerchantError where
   toErrorCode = \case
     MerchantNotFound _ -> "MERCHANT_NOT_FOUND"
     MerchantDoesNotExist _ -> "MERCHANT_DOES_NOT_EXIST"
     MerchantWithExoPhoneNotFound _ -> "MERCHANT_WITH_EXO_PHONE_NOT_FOUND"
-    MerchantMapsConfigNotFound _ -> "MERCHANT_MAPS_CONFIG_NOT_FOUND"
-    MerchantMapsServiceConfigNotFound _ _ -> "MERCHANT_MAPS_SERVICE_CONFIG_NOT_FOUND"
+    MerchantServiceUsageConfigNotFound _ -> "MERCHANT_SERVICE_USAGE_CONFIG_NOT_FOUND"
+    MerchantServiceConfigNotFound _ _ -> "MERCHANT_SERVICE_CONFIG_NOT_FOUND"
   toHttpCode = \case
     MerchantNotFound _ -> E500
     MerchantDoesNotExist _ -> E400
     MerchantWithExoPhoneNotFound _ -> E500
-    MerchantMapsConfigNotFound _ -> E500
-    MerchantMapsServiceConfigNotFound _ _ -> E500
+    MerchantServiceUsageConfigNotFound _ -> E500
+    MerchantServiceConfigNotFound _ _ -> E500
 
 instance IsAPIError MerchantError
 
@@ -290,8 +290,8 @@ data OrganizationError
   | OrgDoesNotExist Text
   | OrgFieldNotPresent Text
   | OrgMobilePhoneUsed
-  | OrgMapsConfigNotFound Text
-  | OrgMapsServiceConfigNotFound Text MapsService
+  | OrgServiceUsageConfigNotFound Text
+  | OrgServiceConfigNotFound Text MapsService
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''OrganizationError
@@ -302,8 +302,8 @@ instance IsBaseError OrganizationError where
     OrgDoesNotExist orgId -> Just $ "No organization matches passed data \"" <> show orgId <> "\" not exist."
     OrgFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this organization."
     OrgMobilePhoneUsed -> Just "Mobile phone already used by another organization."
-    OrgMapsConfigNotFound orgId -> Just $ "OrgMapsConfig with orgId \"" <> show orgId <> "\" not found."
-    OrgMapsServiceConfigNotFound orgId service -> Just $ "OrgMapsServiceConfig for service " <> show service <> " with orgId \"" <> orgId <> "\" not found."
+    OrgServiceUsageConfigNotFound orgId -> Just $ "OrgServiceUsageConfig with orgId \"" <> show orgId <> "\" not found."
+    OrgServiceConfigNotFound orgId service -> Just $ "OrgServiceConfig for service " <> show service <> " with orgId \"" <> orgId <> "\" not found."
 
 instance IsHTTPError OrganizationError where
   toErrorCode = \case
@@ -311,8 +311,8 @@ instance IsHTTPError OrganizationError where
     OrgDoesNotExist _ -> "ORGANIZATION_DOES_NOT_EXIST"
     OrgFieldNotPresent _ -> "ORGANIZATION_FIELD_NOT_PRESENT"
     OrgMobilePhoneUsed -> "ORGANIZATION_MOBILE_PHONE_USED"
-    OrgMapsConfigNotFound _ -> "ORGANIZATION_MAPS_CONFIG_NOT_FOUND"
-    OrgMapsServiceConfigNotFound _ _ -> "ORGANIZATION_MAPS_SERVICE_CONFIG_NOT_FOUND"
+    OrgServiceUsageConfigNotFound _ -> "ORGANIZATION_SERVICE_USAGE_CONFIG_NOT_FOUND"
+    OrgServiceConfigNotFound _ _ -> "ORGANIZATION_SERVICE_CONFIG_NOT_FOUND"
   toHttpCode = \case
     OrgDoesNotExist _ -> E400
     OrgMobilePhoneUsed -> E400

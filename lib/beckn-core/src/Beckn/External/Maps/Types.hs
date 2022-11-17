@@ -1,5 +1,5 @@
-{-# LANGUAGE DerivingVia #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Beckn.External.Maps.Types
   ( module Beckn.External.Maps.Types,
@@ -8,7 +8,8 @@ module Beckn.External.Maps.Types
   )
 where
 
-import Beckn.Utils.GenericPretty (PrettyShow, Showable (Showable))
+import Beckn.Storage.Esqueleto (derivePersistField)
+import Beckn.Utils.GenericPretty (PrettyShow)
 import Control.Lens.Operators
 import Data.Geospatial
 import Data.LineString
@@ -16,6 +17,11 @@ import Data.OpenApi
 import Data.Text
 import EulerHS.Prelude
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
+
+data MapsService = Google
+  deriving (Show, Read, Eq, Generic, ToJSON, FromJSON, ToSchema)
+
+derivePersistField "MapsService"
 
 data LatLong = LatLong
   { lat :: Double,
@@ -36,32 +42,5 @@ instance FromHttpApiData LatLong where
     LatLong <$> readEither lat <*> readEither long
 
 instance ToHttpApiData LatLong where
+  toQueryParam :: LatLong -> Text
   toQueryParam LatLong {..} = show lat <> "," <> show lon
-
-data Language
-  = ENGLISH
-  | HINDI
-  | KANNADA
-  | TAMIL
-  | MALAYALAM
-  deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
-  deriving (PrettyShow) via Showable Language
-
-instance FromHttpApiData Language where
-  parseUrlPiece "en" = pure ENGLISH
-  parseUrlPiece "hi" = pure HINDI
-  parseUrlPiece "kn" = pure KANNADA
-  parseUrlPiece "ml" = pure MALAYALAM
-  parseUrlPiece "ta" = pure TAMIL
-  parseUrlPiece _ = Left "Unable to parse Language"
-
-instance ToHttpApiData Language where
-  toUrlPiece ENGLISH = "en"
-  toUrlPiece HINDI = "hi"
-  toUrlPiece KANNADA = "kn"
-  toUrlPiece MALAYALAM = "ml"
-  toUrlPiece TAMIL = "ta"
-
-data GetPlaceNameBy = ByLatLong LatLong | ByPlaceId Text
-  deriving stock (Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
