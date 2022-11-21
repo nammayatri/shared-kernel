@@ -42,6 +42,7 @@ runScheduler SchedulerConfig {..} handlersList = do
   hostname <- getPodName
   loggerEnv <- prepareLoggerEnv loggerConfig hostname
   esqDBEnv <- prepareEsqDBEnv esqDBCfg loggerEnv
+  esqDBReplicaEnv <- prepareEsqDBEnv esqDBReplicaCfg loggerEnv
   hedisEnv <- connectHedis hedisCfg (\k -> hedisPrefix <> ":" <> k)
   metrics <- setupSchedulerMetrics
   isShuttingDown <- mkShutdown
