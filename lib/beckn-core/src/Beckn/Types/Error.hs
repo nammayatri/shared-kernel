@@ -285,41 +285,6 @@ instance IsHTTPError GenericError where
 
 instance IsAPIError GenericError
 
-data OrganizationError
-  = OrgNotFound Text
-  | OrgDoesNotExist Text
-  | OrgFieldNotPresent Text
-  | OrgMobilePhoneUsed
-  | OrgServiceUsageConfigNotFound Text
-  | OrgServiceConfigNotFound Text MapsService
-  deriving (Eq, Show, IsBecknAPIError)
-
-instanceExceptionWithParent 'HTTPException ''OrganizationError
-
-instance IsBaseError OrganizationError where
-  toMessage = \case
-    OrgNotFound orgId -> Just $ "Organization with orgId \"" <> show orgId <> "\" not found."
-    OrgDoesNotExist orgId -> Just $ "No organization matches passed data \"" <> show orgId <> "\" not exist."
-    OrgFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this organization."
-    OrgMobilePhoneUsed -> Just "Mobile phone already used by another organization."
-    OrgServiceUsageConfigNotFound orgId -> Just $ "OrgServiceUsageConfig with orgId \"" <> show orgId <> "\" not found."
-    OrgServiceConfigNotFound orgId service -> Just $ "OrgServiceConfig for service " <> show service <> " with orgId \"" <> orgId <> "\" not found."
-
-instance IsHTTPError OrganizationError where
-  toErrorCode = \case
-    OrgNotFound _ -> "ORGANIZATION_NOT_FOUND"
-    OrgDoesNotExist _ -> "ORGANIZATION_DOES_NOT_EXIST"
-    OrgFieldNotPresent _ -> "ORGANIZATION_FIELD_NOT_PRESENT"
-    OrgMobilePhoneUsed -> "ORGANIZATION_MOBILE_PHONE_USED"
-    OrgServiceUsageConfigNotFound _ -> "ORGANIZATION_SERVICE_USAGE_CONFIG_NOT_FOUND"
-    OrgServiceConfigNotFound _ _ -> "ORGANIZATION_SERVICE_CONFIG_NOT_FOUND"
-  toHttpCode = \case
-    OrgDoesNotExist _ -> E400
-    OrgMobilePhoneUsed -> E400
-    _ -> E500
-
-instance IsAPIError OrganizationError
-
 data SearchRequestError
   = SearchRequestNotFound Text
   | SearchRequestDoesNotExist Text

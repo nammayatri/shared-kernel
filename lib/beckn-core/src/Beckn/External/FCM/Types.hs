@@ -116,7 +116,7 @@ data FCMNotificationType
   deriving (PrettyShow) via Showable FCMNotificationType
 
 -- | Entity types types
-data FCMEntityType = SearchRequest | Product | Organization | Merchant | Person
+data FCMEntityType = SearchRequest | Product | Merchant | Person
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMEntityType
 
