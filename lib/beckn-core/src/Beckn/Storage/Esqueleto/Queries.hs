@@ -46,9 +46,7 @@ import Beckn.Storage.Esqueleto.Class
 import Beckn.Storage.Esqueleto.DTypeBuilder
 import Beckn.Storage.Esqueleto.SqlDB
 import Beckn.Storage.Esqueleto.Transactionable
-import Beckn.Types.Error
 import Beckn.Types.Logging (Log)
-import Beckn.Utils.Error.Throwing
 import Data.Text (pack)
 import Data.Typeable
 import Database.Esqueleto.Experimental as EsqExport hiding
@@ -87,7 +85,7 @@ findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ selec
         [] -> return Nothing
         _ -> do
           let errType = pack . show . typeRep $ (Proxy @t)
-          throwError $ InternalError $ "Multiple results of " <> errType
+          throw $ PersistError $ "Multiple results of " <> errType
 
 findById :: forall a t m. (Typeable t, Transactionable m, QEntity (Entity t) a, TEntityKey t) => DomainKey t -> m (Maybe a)
 findById = buildDType . findByIdInternal @t

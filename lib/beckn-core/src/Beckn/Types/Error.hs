@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 module Beckn.Types.Error where
 
@@ -248,6 +247,7 @@ instanceExceptionWithParent 'HTTPException ''LocationError
 
 instance IsBaseError LocationError where
   toMessage = \case
+    LocationNotFound -> Just "Location not found."
     LocationDoesNotExist -> Just "No location matches passed data."
     LocationFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this location."
 
@@ -936,6 +936,7 @@ instance IsHTTPError IdfyCallError where
     IdfySizeLimit -> "IDFY_CONFLICT"
     IdfyTooManyRequests -> "IDFY_TOO_MANY_REQUESTS"
     IdfyServerError -> "IDFY_SERVER_ERROR"
-    IdfyCallError _ -> "GOOGLE_MAPS_CALL_ERROR"
+    IdfyCallError _ -> "IDFY_CALL_ERROR"
+    IdfyUnprocessableEntity -> "IDFY_UNPROCESSABLE_ENTITY"
 
 instance IsAPIError IdfyCallError
