@@ -92,3 +92,6 @@ instance
   SanitizedUrl (Header' '[Required, Strict] h v :> subroute)
   where
   getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
+
+instance SanitizedUrl Raw where
+  getSanitizedUrl _ _ = Nothing
