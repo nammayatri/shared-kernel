@@ -38,7 +38,9 @@ instance ToParamSchema LatLong where
 
 instance FromHttpApiData LatLong where
   parseUrlPiece a = do
-    let (lat, long) = breakOn a ","
+    (lat, long) <- case splitOn "," a of
+      [lat, long] -> Right (lat, long)
+      _ -> Left "Unable to parse LatLong,"
     LatLong <$> readEither lat <*> readEither long
 
 instance ToHttpApiData LatLong where
