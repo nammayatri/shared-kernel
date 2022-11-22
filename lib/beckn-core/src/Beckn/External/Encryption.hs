@@ -19,9 +19,12 @@ module Beckn.External.Encryption
     EncTools (..),
     HashSalt,
     EncryptedItem' (..),
+    ShortHash (..),
+    ShortHashable,
     encrypt,
     decrypt,
     getDbHash,
+    getHash,
 
     -- * Re-exports
     EncryptedItem (..),
@@ -190,3 +193,29 @@ getDbHash ::
 getDbHash a = do
   salt <- asks (.encTools.hashSalt)
   return $ evalDbHash (a, salt)
+
+-----------------------------
+
+newtype ShortHash = ShortHash {unShortHash :: ByteString}
+  deriving stock (Show, Eq)
+  deriving newtype (PersistField, PersistFieldSql)
+
+type ShortAlgo = Hash.MD5
+
+class ShortHashable a where
+  evalShortHash :: (a, HashSalt) -> ShortHash
+
+instance ShortHashable ByteString where
+  evalShortHash = evalShortHash . first LBS.fromStrict
+
+instance ShortHashable LByteString where
+  evalShortHash (a, salt) =
+    ShortHash . BA.convert @(Hash.Digest ShortAlgo) $ Hash.hashlazy (encodeUtf8 salt <> a)
+
+instance ShortHashable Text where
+  evalShortHash = evalShortHash . first (encodeUtf8 @_ @ByteString)
+
+getHash :: (EncFlow m r, ShortHashable a) => a -> m Text
+getHash a = do
+  salt <- asks (.encTools.hashSalt)
+  return $ encodeHex $ unShortHash $ evalShortHash (a, salt)

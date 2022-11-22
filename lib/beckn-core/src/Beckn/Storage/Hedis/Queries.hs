@@ -177,3 +177,17 @@ withLockRedis key timeout func = do
 
 buildLockResourceName :: (IsString a) => Text -> a
 buildLockResourceName key = fromString $ "beckn:locker:" <> Text.unpack key
+
+hSetExp :: (ToJSON a, HedisFlow m env) => Text -> Text -> a -> ExpirationTime -> m ()
+hSetExp key field value expirationTime = do
+  prefKey <- buildKey key
+  void . runHedisTransaction $ do
+    void . Hedis.hset prefKey (cs field) $ BSL.toStrict $ Ae.encode value
+    Hedis.expire prefKey (toInteger expirationTime)
+
+hGet :: (FromJSON a, HedisFlow m env) => Text -> Text -> m (Maybe a)
+hGet key field = do
+  maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
+  case maybeBS of
+    Nothing -> pure Nothing
+    Just bs -> fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
