@@ -1,40 +1,18 @@
 module Beckn.External.Infobip.Types where
 
+import Beckn.Prelude
 import Beckn.Utils.Dhall (FromDhall)
-import EulerHS.Prelude hiding (encodeUtf8, fromStrict, id, toStrict)
-import Servant.Client (BaseUrl)
 
-newtype SMSReq = SMSReq {messages :: [MessageReq]}
-  deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
-
-data SMSRes = SMSRes
-  { bulkId :: Maybe Text,
-    messages :: Maybe [MessageRes],
-    requestError :: Maybe SMSErr
+newtype SMSRes = SMSRes
+  { messages :: [Message]
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
-data SMSErr = SMSErr
-  { messageId :: Text,
-    text :: Text,
-    validationErrors :: Text
-  }
-  deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
-
-data MessageReq = MessageReq
-  { destinations :: [SMSDestination],
-    from :: Text,
-    text :: Text
-  }
-  deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
-
-newtype SMSDestination = SMSDestination {to :: Text}
-  deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
-
-data MessageRes = MessageRes
-  { messageId :: Text,
+data Message = Message
+  { to :: Text,
     status :: SMSStatus,
-    to :: Text
+    messageId :: Text,
+    smsCount :: Integer
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
@@ -47,11 +25,26 @@ data SMSStatus = SMSStatus
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
 
+data WebengageRes = WebengageRes
+  { version :: Text,
+    messageId :: Text,
+    toNumber :: Text,
+    status :: Text,
+    statusCode :: Text
+  }
+  deriving (Generic, FromJSON, ToJSON, ToSchema)
+
 data InfoBIPConfig = InfoBIPConfig
   { username :: Text,
     password :: Text,
     url :: BaseUrl,
     sender :: Text,
-    token :: Text
+    token :: Text,
+    webhookurl :: Text
+  }
+  deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
+
+newtype WebengageConfig = WebengageConfig
+  { url :: BaseUrl
   }
   deriving (Generic, FromJSON, ToJSON, Show, Eq, FromDhall)
