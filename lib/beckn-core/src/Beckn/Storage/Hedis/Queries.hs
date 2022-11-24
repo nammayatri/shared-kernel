@@ -133,6 +133,9 @@ getList key = lRange key 0 (-1)
 incr :: (HedisFlow m env) => Text -> m Integer
 incr key = runWithPrefix key Hedis.incr
 
+incrby :: (HedisFlow m env) => Text -> Integer -> m Integer
+incrby key val = runWithPrefix key $ flip Hedis.incrby val
+
 incrByFloat :: (HedisFlow m env) => Text -> Double -> m Double
 incrByFloat key toAdd = runWithPrefix key $ \prefKey ->
   Hedis.incrbyfloat prefKey toAdd
