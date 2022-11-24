@@ -161,5 +161,19 @@ tryLockRedis key timeout = setNxExpire (buildLockResourceName key) timeout ()
 unlockRedis :: HedisFlow m env => Text -> m ()
 unlockRedis key = void . del $ buildLockResourceName key
 
+whenWithLockRedis :: (HedisFlow m env, MonadMask m) => Text -> ExpirationTime -> m () -> m ()
+whenWithLockRedis key timeout func = do
+  whenM (tryLockRedis key timeout) $ do
+    finally func $ unlockRedis key
+
+withLockRedis :: (HedisFlow m env, MonadMask m) => Text -> ExpirationTime -> m () -> m ()
+withLockRedis key timeout func = do
+  getLock
+  finally func (unlockRedis key)
+  where
+    getLock = do
+      lockAvailable <- tryLockRedis key timeout
+      unless lockAvailable getLock
+
 buildLockResourceName :: (IsString a) => Text -> a
 buildLockResourceName key = fromString $ "beckn:locker:" <> Text.unpack key
