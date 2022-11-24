@@ -27,6 +27,7 @@ instance {-# OVERLAPPING #-} Transactionable' SelectSqlDB SelectSqlDB where
 
 instance {-# INCOHERENT #-} (HasEsqReplica m r, MonadThrow m, Log m) => Transactionable' SelectSqlDB m where
   runTransaction = runInReplica
+
 instance {-# OVERLAPPING #-} Transactionable' SqlDB m => Transactionable' SqlDB (DTypeBuilder m) where
   runTransaction f = liftToBuilder $ runTransaction f
 

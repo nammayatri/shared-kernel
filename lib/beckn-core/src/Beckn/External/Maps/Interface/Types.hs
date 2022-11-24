@@ -106,7 +106,6 @@ data AutoCompleteReq = AutoCompleteReq
     sessionToken :: Maybe Text,
     location :: Text,
     radius :: Integer,
-    components :: Text,
     language :: Language
   }
   deriving stock (Generic)
@@ -125,8 +124,7 @@ data Prediction = Prediction
 
 data GetPlaceDetailsReq = GetPlaceDetailsReq
   { placeId :: Text,
-    sessionToken :: Maybe Text,
-    fields :: Text
+    sessionToken :: Maybe Text
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

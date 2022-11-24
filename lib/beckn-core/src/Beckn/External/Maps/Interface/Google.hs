@@ -184,6 +184,7 @@ autoComplete ::
 autoComplete cfg AutoCompleteReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
+  let components = "country:in"
   res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location radius components language
   let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, ..}) res.predictions
   return $ AutoCompleteResp predictions
@@ -198,6 +199,7 @@ getPlaceDetails ::
 getPlaceDetails cfg GetPlaceDetailsReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
+  let fields = "geometry"
   res <- GoogleMaps.getPlaceDetails mapsUrl key sessionToken placeId fields
   let location = let loc = res.result.geometry.location in LatLong loc.lat loc.lng
   return $ GetPlaceDetailsResp location
