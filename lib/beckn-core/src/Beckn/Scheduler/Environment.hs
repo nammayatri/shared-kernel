@@ -21,7 +21,6 @@ data SchedulerConfig t = SchedulerConfig
   { loggerConfig :: LoggerConfig,
     metricsPort :: Int,
     esqDBCfg :: EsqDBConfig,
-    esqDBReplicaCfg :: EsqDBConfig,
     hedisCfg :: HedisCfg,
     hedisPrefix :: Text,
     port :: Int,
@@ -36,7 +35,6 @@ data SchedulerConfig t = SchedulerConfig
 
 data SchedulerEnv t = SchedulerEnv
   { esqDBEnv :: EsqDBEnv,
-    esqDBReplicaEnv :: EsqDBEnv,
     hedisEnv :: HedisEnv,
     loggerConfig :: LoggerConfig,
     loggerEnv :: LoggerEnv,

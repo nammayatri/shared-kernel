@@ -25,8 +25,10 @@ instance {-# OVERLAPPING #-} Transactionable' SelectSqlDB SqlDB where
 instance {-# OVERLAPPING #-} Transactionable' SelectSqlDB SelectSqlDB where
   runTransaction = identity
 
-instance {-# INCOHERENT #-} (HasEsqReplica m r, MonadThrow m, Log m) => Transactionable' SelectSqlDB m where
-  runTransaction = runInReplica
+instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m) => Transactionable' SelectSqlDB m where
+  runTransaction (SelectSqlDB m) = do
+    dbEnv <- asks (.esqDBEnv)
+    runNoTransactionImpl dbEnv m
 
 instance {-# OVERLAPPING #-} Transactionable' SqlDB m => Transactionable' SqlDB (DTypeBuilder m) where
   runTransaction f = liftToBuilder $ runTransaction f
@@ -62,7 +64,7 @@ runTransactionIO logEnv dbEnv (SqlDB run) = do
           }
   runLoggerIO logEnv $ runSqlPool (runReaderT run sqlDBEnv) dbEnv.connPool
 
-runInReplica :: (HasEsqReplica m r, MonadThrow m, Log m) => SelectSqlDB a -> m a
+runInReplica :: (EsqDBReplicaFlow m r, MonadThrow m, Log m) => SelectSqlDB a -> m a
 runInReplica (SelectSqlDB m) = do
   dbEnv <- asks (.esqDBReplicaEnv)
   runNoTransactionImpl dbEnv m
