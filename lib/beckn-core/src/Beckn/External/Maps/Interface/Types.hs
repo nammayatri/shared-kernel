@@ -1,4 +1,4 @@
-{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Beckn.External.Maps.Interface.Types
@@ -9,6 +9,7 @@ module Beckn.External.Maps.Interface.Types
 where
 
 import qualified Beckn.External.Maps.Google.Config as Google
+import qualified Beckn.External.Maps.OSRM.Config as OSRM
 import Beckn.External.Maps.Types
 import Beckn.External.Types (Language)
 import Beckn.Types.Common
@@ -19,10 +20,12 @@ import Data.LineString
 import Data.OpenApi hiding (components, description)
 import qualified Data.OpenApi as OpenApi
 import Data.Text
+import Deriving.Aeson
 import EulerHS.Prelude
 
-newtype MapsServiceConfig = GoogleConfig Google.GoogleCfg
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg
+  deriving stock (Show, Eq, Generic)
+  deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MapsServiceConfig
 
 data TravelMode = CAR | MOTORCYCLE | BICYCLE | FOOT
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
@@ -88,15 +91,15 @@ instance ToSchema GeospatialGeometry where
           & OpenApi.description
             ?~ "https://datatracker.ietf.org/doc/html/rfc7946#section-2"
 
-data SnapToRoadReq = SnapToRoadReq
-  { points :: [LatLong],
-    interpolate :: Bool
+newtype SnapToRoadReq = SnapToRoadReq
+  { points :: [LatLong]
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-newtype SnapToRoadResp = SnapToRoadResp
-  { snappedPoints :: [LatLong]
+data SnapToRoadResp = SnapToRoadResp
+  { distance :: HighPrecMeters,
+    snappedPoints :: [LatLong]
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

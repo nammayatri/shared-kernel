@@ -13,6 +13,7 @@ where
 import Beckn.External.Maps.Google.Config as Reexport
 import Beckn.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
 import qualified Beckn.External.Maps.Interface.Google as Google
+import qualified Beckn.External.Maps.Interface.OSRM as OSRM
 import Beckn.External.Maps.Interface.Types as Reexport
 import Beckn.External.Maps.Types as Reexport
 import Beckn.Prelude
@@ -20,6 +21,7 @@ import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common hiding (id)
 import Beckn.Types.Error
 import Beckn.Utils.Common hiding (id)
+import EulerHS.Prelude ((...))
 
 getDistance ::
   ( EncFlow m r,
@@ -42,6 +44,13 @@ getDistance serviceConfig GetDistanceReq {..} =
           ..
         }
 
+mkNotProvidedError :: Text -> MapsService -> Text
+mkNotProvidedError functionName serviceName = "Function " <> functionName <> " is not provided by service " <> show serviceName
+
+throwNotProvidedError :: (MonadFlow m) => Text -> MapsService -> m a
+throwNotProvidedError =
+  (throwError . InternalError) ... mkNotProvidedError
+
 getDistances ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -53,6 +62,7 @@ getDistances ::
   m (GetDistancesResp a b)
 getDistances serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getDistances cfg req
+  OSRMConfig _ -> throwNotProvidedError "getDistances" OSRM
 
 getRoutes ::
   ( EncFlow m r,
@@ -64,6 +74,7 @@ getRoutes ::
   m GetRoutesResp
 getRoutes serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getRoutes cfg req
+  OSRMConfig _ -> throwNotProvidedError "getRoutes" OSRM
 
 snapToRoad ::
   ( EncFlow m r,
@@ -74,6 +85,7 @@ snapToRoad ::
   m SnapToRoadResp
 snapToRoad serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.snapToRoad cfg req
+  OSRMConfig osrmCfg -> OSRM.callOsrmMatch osrmCfg req
 
 autoComplete ::
   ( EncFlow m r,
@@ -84,6 +96,7 @@ autoComplete ::
   m AutoCompleteResp
 autoComplete serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.autoComplete cfg req
+  OSRMConfig _ -> throwNotProvidedError "autoComplete" OSRM
 
 getPlaceDetails ::
   ( EncFlow m r,
@@ -94,6 +107,7 @@ getPlaceDetails ::
   m GetPlaceDetailsResp
 getPlaceDetails serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceDetails cfg req
+  OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
 
 getPlaceName ::
   ( EncFlow m r,
@@ -104,3 +118,4 @@ getPlaceName ::
   m GetPlaceNameResp
 getPlaceName serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceName cfg req
+  OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM

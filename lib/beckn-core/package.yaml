@@ -130,6 +130,7 @@ dependencies:
   - hw-kafka-client
   - fmt
   - text-conversions
+  - deriving-aeson
 
 ghc-options:
   - -fwrite-ide-info

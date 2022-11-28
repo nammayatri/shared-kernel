@@ -21,6 +21,7 @@ import Beckn.Prelude
 import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common hiding (id)
 import Beckn.Types.Error
+import Beckn.Utils.CalculateDistance (getRouteLinearLength)
 import Beckn.Utils.Common hiding (id)
 import Control.Monad.Extra (concatForM)
 import qualified Data.List.Extra as List
@@ -171,8 +172,14 @@ snapToRoad ::
 snapToRoad cfg SnapToRoadReq {..} = do
   let roadsUrl = cfg.googleRoadsUrl
   key <- decrypt cfg.googleKey
-  res <- GoogleRoads.snapToRoad roadsUrl key interpolate points
-  return . SnapToRoadResp $ map (.location) res.snappedPoints
+  res <- GoogleRoads.snapToRoad roadsUrl key points
+  let pts = map (.location) res.snappedPoints
+      dist = getRouteLinearLength pts
+  pure
+    SnapToRoadResp
+      { distance = dist,
+        snappedPoints = pts
+      }
 
 autoComplete ::
   ( EncFlow m r,
