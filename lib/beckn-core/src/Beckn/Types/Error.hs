@@ -905,3 +905,17 @@ instance IsHTTPError IdfyCallError where
     IdfyUnprocessableEntity -> "IDFY_UNPROCESSABLE_ENTITY"
 
 instance IsAPIError IdfyCallError
+
+data VersionError = VersionUnexpectedVersion
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''VersionError
+
+instance IsBaseError VersionError where
+  toMessage VersionUnexpectedVersion = Just "Version can't be read."
+
+instance IsHTTPError VersionError where
+  toErrorCode VersionUnexpectedVersion = "UNEXPECTED_VERSION"
+  toHttpCode VersionUnexpectedVersion = E400
+
+instance IsAPIError VersionError
