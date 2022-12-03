@@ -381,7 +381,7 @@ instance IsHTTPError BookingError where
     BookingNotFound _ -> E500
     BookingDoesNotExist _ -> E400
     BookingFieldNotPresent _ -> E500
-    BookingForRiderNotFound _ -> E500
+    BookingForRiderNotFound _ -> E400
     BookingInvalidStatus _ -> E400
     BookingBppOrderIdNotFound -> E500
 
