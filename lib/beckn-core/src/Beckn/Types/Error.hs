@@ -121,6 +121,8 @@ instance IsAPIError AuthPIError
 data VehicleError
   = VehicleNotFound Text
   | VehicleDoesNotExist Text
+  | VehicleFieldNotPresent Text
+  | VehicleAlreadyLinked
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''VehicleError
@@ -129,14 +131,20 @@ instance IsBaseError VehicleError where
   toMessage = \case
     VehicleNotFound vehicleId -> Just $ "Vehicle with vehicleId \"" <> show vehicleId <> "\" not found."
     VehicleDoesNotExist vehicleId -> Just $ "Vehicle with vehicleId \"" <> show vehicleId <> "\" not exist."
+    VehicleFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this vehicle."
+    _ -> Nothing
 
 instance IsHTTPError VehicleError where
   toErrorCode = \case
     VehicleNotFound _ -> "VEHICLE_NOT_FOUND"
     VehicleDoesNotExist _ -> "VEHICLE_DOES_NOT_EXIST"
+    VehicleFieldNotPresent _ -> "VEHICLE_FIELD_NOT_PRESENT"
+    VehicleAlreadyLinked -> "VEHICLE_ALREADY_LINKED"
   toHttpCode = \case
     VehicleNotFound _ -> E500
     VehicleDoesNotExist _ -> E400
+    VehicleFieldNotPresent _ -> E500
+    VehicleAlreadyLinked -> E400
 
 instance IsAPIError VehicleError
 
@@ -145,6 +153,7 @@ data PersonError
   | PersonDoesNotExist Text
   | PersonFieldNotPresent Text
   | PersonWithPhoneNotFound Text
+  | PersonOrgExists
   | PersonEmailExists
   deriving (Eq, Show, IsBecknAPIError)
 
@@ -156,6 +165,7 @@ instance IsBaseError PersonError where
     PersonDoesNotExist personId -> Just $ "No person matches passed data \"" <> show personId <> "\" not exist."
     PersonFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this person."
     PersonWithPhoneNotFound phone -> Just $ "Person with mobile number \"" <> show phone <> "\" not found."
+    PersonOrgExists -> Just "Person is already registered in the organization."
     PersonEmailExists -> Just "Email is already registered."
 
 instance IsHTTPError PersonError where
@@ -164,12 +174,14 @@ instance IsHTTPError PersonError where
     PersonDoesNotExist _ -> "PERSON_DOES_NOT_EXIST"
     PersonFieldNotPresent _ -> "PERSON_FIELD_NOT_PRESENT"
     PersonWithPhoneNotFound _ -> "PERSON_NOT_FOUND"
+    PersonOrgExists -> "PERSON_ORG_ALREADY_EXISTS"
     PersonEmailExists -> "PERSON_EMAIL_ALREADY_EXISTS"
   toHttpCode = \case
     PersonNotFound _ -> E500
     PersonDoesNotExist _ -> E400
     PersonFieldNotPresent _ -> E500
     PersonWithPhoneNotFound _ -> E500
+    PersonOrgExists -> E400
     PersonEmailExists -> E400
 
 instance IsAPIError PersonError
@@ -207,17 +219,47 @@ instance IsHTTPError MerchantError where
 
 instance IsAPIError MerchantError
 
-data LocationError = LocationNotFound
+data RegistryError
+  = SubscriberNotFound
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''RegistryError
+
+instance IsBaseError RegistryError where
+  toMessage = \case
+    SubscriberNotFound -> Just "Couldn't find subscriber in registry."
+
+instance IsHTTPError RegistryError where
+  toErrorCode = \case
+    SubscriberNotFound -> "SUBSCRIBER_NOT_FOUND"
+  toHttpCode = \case
+    SubscriberNotFound -> E500
+
+instance IsAPIError RegistryError
+
+data LocationError
+  = LocationNotFound
+  | LocationDoesNotExist
+  | LocationFieldNotPresent Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''LocationError
 
 instance IsBaseError LocationError where
-  toMessage LocationNotFound = Just "Location not found."
+  toMessage = \case
+    LocationNotFound -> Just "Location not found."
+    LocationDoesNotExist -> Just "No location matches passed data."
+    LocationFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this location."
 
 instance IsHTTPError LocationError where
-  toErrorCode LocationNotFound = "LOCATION_NOT_FOUND"
-  toHttpCode LocationNotFound = E500
+  toErrorCode = \case
+    LocationNotFound -> "LOCATION_NOT_FOUND"
+    LocationDoesNotExist -> "LOCATION_DOES_NOT_EXIST"
+    LocationFieldNotPresent _ -> "LOCATION_FIELD_NOT_PRESENT"
+  toHttpCode = \case
+    LocationNotFound -> E500
+    LocationDoesNotExist -> E400
+    LocationFieldNotPresent _ -> E500
 
 instance IsAPIError LocationError
 
@@ -247,6 +289,8 @@ data SearchRequestError
   = SearchRequestNotFound Text
   | SearchRequestDoesNotExist Text
   | SearchRequestExpired
+  | SearchRequestInvalidStatus Text
+  | SearchRequestFieldNotPresent Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''SearchRequestError
@@ -255,6 +299,8 @@ instance IsBaseError SearchRequestError where
   toMessage = \case
     SearchRequestNotFound searchId -> Just $ "Search with searchId \"" <> show searchId <> "\"not found. "
     SearchRequestDoesNotExist searchId -> Just $ "No case matches passed data \"<>" <> show searchId <> "\" not exist"
+    SearchRequestFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this case."
+    SearchRequestInvalidStatus msg -> Just $ "Attempted to do some action in wrong case status. " <> msg
     _ -> Nothing
 
 instance IsHTTPError SearchRequestError where
@@ -262,10 +308,14 @@ instance IsHTTPError SearchRequestError where
     SearchRequestNotFound _ -> "SEARCH_REQUEST_NOT_FOUND"
     SearchRequestDoesNotExist _ -> "SEARCH_REQUEST_DOES_NOT_EXIST"
     SearchRequestExpired -> "SEARCH_REQUEST_EXPIRED"
+    SearchRequestFieldNotPresent _ -> "SEARCH_REQUEST_FIELD_NOT_PRESENT"
+    SearchRequestInvalidStatus _ -> "SEARCH_REQUEST_INVALID_STATUS"
   toHttpCode = \case
     SearchRequestNotFound _ -> E500
     SearchRequestDoesNotExist _ -> E400
     SearchRequestExpired -> E400
+    SearchRequestFieldNotPresent _ -> E500
+    SearchRequestInvalidStatus _ -> E400
 
 instance IsAPIError SearchRequestError
 
@@ -376,22 +426,44 @@ instance IsHTTPError RideError where
 
 instance IsAPIError RideError
 
-newtype RiderDetailsError = RiderDetailsNotFound Text
+data RiderDetailsError
+  = RiderDetailsNotFound Text
+  | RiderDetailsDoesNotExist Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''RiderDetailsError
 
 instance IsBaseError RiderDetailsError where
-  toMessage (RiderDetailsNotFound rideDetailId) = Just $ "RideDetails with rideDetailsId \"" <> show rideDetailId <> "\" not found. "
+  toMessage = \case
+    RiderDetailsNotFound rideDetailId -> Just $ "RideDetails with rideDetailsId \"" <> show rideDetailId <> "\" not found. "
+    RiderDetailsDoesNotExist rideDetailId -> Just $ "No rider details matches passed data \"" <> show rideDetailId <> "\" not exist. "
 
 instance IsHTTPError RiderDetailsError where
-  toErrorCode _ = "RIDER_DETAILS_NOT_FOUND"
-  toHttpCode _ = E500
+  toErrorCode = \case
+    RiderDetailsNotFound _ -> "RIDER_DETAILS_NOT_FOUND"
+    RiderDetailsDoesNotExist _ -> "RIDER_DETAILS_DOES_NOT_EXIST"
+  toHttpCode = \case
+    RiderDetailsNotFound _ -> E500
+    RiderDetailsDoesNotExist _ -> E400
 
 instance IsAPIError RiderDetailsError
 
+data GatewayError
+  = UnsupportedGatewaySelector
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''GatewayError
+
+instance IsBaseError GatewayError
+
+instance IsHTTPError GatewayError where
+  toErrorCode UnsupportedGatewaySelector = "UNSUPPORTED_GATEWAY_SELECTOR"
+
+instance IsAPIError GatewayError
+
 data DatabaseError
-  = SQLRequestError Text Text
+  = NotPostgresBackend
+  | SQLRequestError Text Text
   | SQLResultError Text
   | DBUnknownError Text
   deriving (Eq, Show, IsBecknAPIError)
@@ -403,9 +475,11 @@ instance IsBaseError DatabaseError where
     SQLRequestError sqlErr desc -> Just $ "SQL request error: " <> sqlErr <> ". Description: " <> desc
     SQLResultError msg -> Just msg
     DBUnknownError msg -> Just msg
+    _ -> Nothing
 
 instance IsHTTPError DatabaseError where
   toErrorCode = \case
+    NotPostgresBackend -> "DB_NOT_POSTGRES_BACKEND"
     SQLRequestError _ _ -> "DB_SQL_REQUEST_ERROR"
     SQLResultError _ -> "DB_SQL_RESULT_ERROR"
     DBUnknownError _ -> "DB_UNKNOWN_ERROR"
@@ -413,10 +487,28 @@ instance IsHTTPError DatabaseError where
 
 instance IsAPIError DatabaseError
 
+data FCMTokenError
+  = FCMJSONPathNotConfigured
+  | UnableToReadFCMJSONFile
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''FCMTokenError
+
+instance IsBaseError FCMTokenError
+
+instance IsHTTPError FCMTokenError where
+  toErrorCode FCMJSONPathNotConfigured = "FCM_JSON_PATH_NOT_CONFIGURED"
+  toErrorCode UnableToReadFCMJSONFile = "UNABLE_TO_READ_FCM_JSON_FILE"
+  toHttpCode _ = E500
+
+instance IsAPIError FCMTokenError
+
 data ContextError
   = UnsupportedCoreVer
+  | UnsupportedDomainVer
   | InvalidDomain
   | InvalidCountry
+  | InvalidCity
   | InvalidAction
   deriving (Eq, Show)
 
@@ -426,8 +518,10 @@ instance IsBaseError ContextError
 
 instance IsHTTPError ContextError where
   toErrorCode UnsupportedCoreVer = "UNSUPPORTED_CORE_VERSION"
+  toErrorCode UnsupportedDomainVer = "UNSUPPORTED_DOMAIN_VERSION"
   toErrorCode InvalidDomain = "INVALID_DOMAIN"
   toErrorCode InvalidCountry = "INVALID_COUNTRY"
+  toErrorCode InvalidCity = "INVALID_CITY"
   toErrorCode InvalidAction = "INVALID_ACTION"
   toHttpCode _ = E400
 
@@ -461,6 +555,38 @@ instance IsHTTPError ExternalAPICallError where
 
 instance IsAPIError ExternalAPICallError
 
+data GraphHopperError = GraphHopperError
+  { errCode :: Maybe Text,
+    baseUrl :: BaseUrl,
+    clientError :: ClientError
+  }
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''GraphHopperError
+
+instance IsBaseError GraphHopperError where
+  toMessage (GraphHopperError _ url err) = externalAPICallErrorMessage url err
+
+instance IsHTTPError GraphHopperError where
+  toErrorCode (GraphHopperError codeMb _ _) = fromMaybe "EXTERNAL_API_CALL_ERROR" codeMb
+  toHttpCode _ = E400
+
+instance IsAPIError GraphHopperError
+
+newtype EmailSendingError
+  = EmailSendingError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''EmailSendingError
+
+instance IsBaseError EmailSendingError where
+  toMessage (EmailSendingError msg) = Just msg
+
+instance IsHTTPError EmailSendingError where
+  toErrorCode (EmailSendingError _) = "EMAIL_SENDING_ERROR"
+
+instance IsAPIError EmailSendingError
+
 data HealthCheckError
   = ServiceUnavailable
   deriving (Eq, Show, IsBecknAPIError)
@@ -474,6 +600,25 @@ instance IsHTTPError HealthCheckError where
   toHttpCode ServiceUnavailable = E503
 
 instance IsAPIError HealthCheckError
+
+data RouteError
+  = RouteRequestError BaseUrl ClientError
+  | RouteNotLatLong
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''RouteError
+
+instance IsBaseError RouteError where
+  toMessage = \case
+    RouteRequestError url err -> externalAPICallErrorMessage url err
+    RouteNotLatLong -> Just "Not supporting waypoints other than LatLong."
+
+instance IsHTTPError RouteError where
+  toErrorCode = \case
+    RouteRequestError _ _ -> "UNABLE_TO_GET_ROUTE"
+    RouteNotLatLong -> "GET_ROUTE_UNSUPPORTED_FORMAT"
+
+instance IsAPIError RouteError
 
 data ServerError
   = ServerUnavailable
@@ -506,6 +651,20 @@ instance IsHTTPError RedisError where
   toHttpCode _ = E500
 
 instance IsAPIError RedisError
+
+newtype ActionNotSupported = ActionNotSupported Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''ActionNotSupported
+
+instance IsBaseError ActionNotSupported where
+  toMessage (ActionNotSupported action) = Just $ "Action " <> action <> " is not supported"
+
+instance IsHTTPError ActionNotSupported where
+  toErrorCode _ = "ACTION_NOT_SUPPORTED"
+  toHttpCode _ = E400
+
+instance IsAPIError ActionNotSupported
 
 data SMSError
   = SMSError SubmitSmsRes
@@ -550,17 +709,23 @@ instance IsHTTPError GoogleMapsCallError where
 
 instance IsAPIError GoogleMapsCallError
 
-data GoogleTranslateCallError = GoogleTranslateInvalidRequest
+data GoogleTranslateCallError = GoogleTranslateInvalidRequest | GoogleTranslateCallError Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''GoogleTranslateCallError
 
 instance IsBaseError GoogleTranslateCallError where
-  toMessage GoogleTranslateInvalidRequest = Just "Invalid request to Google Translate."
+  toMessage = \case
+    GoogleTranslateInvalidRequest -> Just "Invalid request to Google Translate."
+    GoogleTranslateCallError googleErrorCode -> Just googleErrorCode
 
 instance IsHTTPError GoogleTranslateCallError where
-  toErrorCode GoogleTranslateInvalidRequest = "GOOGLE_TRANSLATE_INVALID_REQUEST"
-  toHttpCode GoogleTranslateInvalidRequest = E400
+  toErrorCode = \case
+    GoogleTranslateInvalidRequest -> "GOOGLE_TRANSLATE_INVALID_REQUEST"
+    GoogleTranslateCallError _ -> "GOOGLE_TRANSLATE_CALL_ERROR"
+  toHttpCode = \case
+    GoogleTranslateInvalidRequest -> E400
+    GoogleTranslateCallError _ -> E500
 
 instance IsAPIError GoogleTranslateCallError
 
