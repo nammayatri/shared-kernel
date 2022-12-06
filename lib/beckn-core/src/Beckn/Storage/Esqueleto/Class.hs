@@ -20,8 +20,7 @@ import qualified GHC.Generics as Gen
 
 class
   TType t a
-    | t -> a,
-      a -> t
+    | a -> t
   where
   toTType :: a -> t
   fromTType :: (MonadThrow m, Log m) => t -> m a
