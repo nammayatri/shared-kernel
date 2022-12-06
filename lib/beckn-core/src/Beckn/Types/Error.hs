@@ -758,3 +758,46 @@ instance IsHTTPError VersionError where
   toHttpCode VersionUnexpectedVersion = E400
 
 instance IsAPIError VersionError
+
+data MMIError
+  = MMINotConfigured
+  | MMIBadRequest
+  | MMIUnauthorized
+  | MMIForbidden
+  | MMIServerError
+  | MMIUnderMaintenance
+  | MMIDBConnectionError
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''MMIError
+
+instance FromResponse MMIError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just MMIBadRequest
+    401 -> Just MMIUnauthorized
+    403 -> Just MMIForbidden
+    503 -> Just MMIUnderMaintenance
+    204 -> Just MMIDBConnectionError
+    _ -> Just MMIServerError
+
+instance IsBaseError MMIError where
+  toMessage = \case
+    MMINotConfigured -> Just "MMI env variables aren't properly set."
+    MMIBadRequest -> Just "Bad request; User made an error while creating a valid request."
+    MMIUnauthorized -> Just "Unauthorized, either clientID doesn’t exist or an invalid clientSecret is provided."
+    MMIForbidden -> Just "Forbidden."
+    MMIUnderMaintenance -> Just "Maintenance break."
+    MMIDBConnectionError -> Just "DB Connection error"
+    MMIServerError -> Just "Something went wrong."
+
+instance IsHTTPError MMIError where
+  toErrorCode = \case
+    MMINotConfigured -> "MMI_NOT_CONFIGURED"
+    MMIBadRequest -> "MMI_BAD_REQUEST"
+    MMIUnauthorized -> "MMI_UNAUTHORIZED"
+    MMIForbidden -> "MMI_FORBIDDEN"
+    MMIUnderMaintenance -> "MMI_UNDER_MAINTENANCE"
+    MMIDBConnectionError -> "MMIDBConnectionError"
+    MMIServerError -> "MMI_SERVER_ERROR"
+
+instance IsAPIError MMIError

@@ -9,6 +9,7 @@ module Beckn.External.Maps.Interface.Types
 where
 
 import qualified Beckn.External.Maps.Google.Config as Google
+import qualified Beckn.External.Maps.MMI.Config as MMI
 import qualified Beckn.External.Maps.OSRM.Config as OSRM
 import Beckn.External.Maps.Types
 import Beckn.External.Types (Language)
@@ -23,7 +24,7 @@ import Data.Text
 import Deriving.Aeson
 import EulerHS.Prelude
 
-data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg
+data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MapsServiceConfig
 

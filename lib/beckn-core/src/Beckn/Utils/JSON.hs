@@ -1,7 +1,7 @@
 module Beckn.Utils.JSON where
 
 import Beckn.Utils.Text (recursiveStrip)
-import Data.Aeson (Options (..), SumEncoding (ObjectWithSingleField, UntaggedValue), Value (..), defaultOptions)
+import Data.Aeson (Options (..), SumEncoding (ObjectWithSingleField, UntaggedValue), Value (..), camelTo2, defaultOptions)
 import Data.HashMap.Strict (size, unions)
 import Data.Text (pack, replace, toLower, toUpper, unpack)
 import EulerHS.Prelude hiding (pack, unpack)
@@ -78,4 +78,13 @@ untaggedValue :: Options
 untaggedValue =
   defaultOptions
     { sumEncoding = UntaggedValue
+    }
+
+camelToSnakeCase :: String -> String
+camelToSnakeCase = camelTo2 '_'
+
+constructorsWithSnakeCase :: Options
+constructorsWithSnakeCase =
+  defaultOptions
+    { fieldLabelModifier = camelToSnakeCase
     }

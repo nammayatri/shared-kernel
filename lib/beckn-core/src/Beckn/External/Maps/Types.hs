@@ -18,7 +18,7 @@ import Data.Text
 import EulerHS.Prelude
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
-data MapsService = Google | OSRM
+data MapsService = Google | OSRM | MMI
   deriving (Show, Read, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 derivePersistField "MapsService"
