@@ -348,6 +348,7 @@ data RideError
   | RideWithBookingIdNotFound Text
   | RideForDriverNotFound Text
   | RideInvalidStatus Text
+  | DriverNotAtPickupLocation Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''RideError
@@ -360,6 +361,7 @@ instance IsBaseError RideError where
     RideWithBookingIdNotFound bookingId -> Just $ "Ride with booking id \"" <> show bookingId <> "\"not found. "
     RideForDriverNotFound driverId -> Just $ "Ride for driver id \"" <> show driverId <> "\"not found. "
     RideInvalidStatus msg -> Just $ "Attempted to do some action in wrong ride status. " <> msg
+    DriverNotAtPickupLocation driverId -> Just $ "Driver id \"" <> show driverId <> "\" has not reached the pickup location."
 
 instance IsHTTPError RideError where
   toErrorCode = \case
@@ -369,6 +371,7 @@ instance IsHTTPError RideError where
     RideWithBookingIdNotFound _ -> "RIDE_NOT_FOUND"
     RideForDriverNotFound _ -> "RIDE_NOT_FOUND"
     RideInvalidStatus _ -> "RIDE_INVALID_STATUS"
+    DriverNotAtPickupLocation _ -> "DRIVER_NOT_AT_PICKUP_LOCATION"
 
   toHttpCode = \case
     RideNotFound _ -> E500
@@ -377,6 +380,7 @@ instance IsHTTPError RideError where
     RideWithBookingIdNotFound _ -> E500
     RideForDriverNotFound _ -> E500
     RideInvalidStatus _ -> E400
+    DriverNotAtPickupLocation _ -> E400
 
 instance IsAPIError RideError
 
