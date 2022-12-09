@@ -60,7 +60,7 @@ getkeysForLastPeriods SlidingWindowOptions {..} localTime keyModifier =
         . fromInteger
         . getTimeUnit
     )
-    [0 .. period -1]
+    [0 .. period - 1]
   where
     getTimeUnit :: Integer -> Integer
     getTimeUnit magnitude = -1 * magnitude * convertPeriodTypeToSeconds periodType

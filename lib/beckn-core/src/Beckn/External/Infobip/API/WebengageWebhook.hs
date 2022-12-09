@@ -7,10 +7,10 @@ import qualified EulerHS.Types as ET
 import Servant
 
 type ServiceAPI =
-    "tracking"
-     :> "privatessp-events"
-     :> ReqBody '[JSON] WebengageRes
-     :> Post '[JSON] APISuccess
+  "tracking"
+    :> "privatessp-events"
+    :> ReqBody '[JSON] WebengageRes
+    :> Post '[JSON] APISuccess
 
 serviceAPI :: Proxy ServiceAPI
 serviceAPI = Proxy
