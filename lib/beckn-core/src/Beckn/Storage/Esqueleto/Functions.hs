@@ -1,9 +1,12 @@
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Beckn.Storage.Esqueleto.Functions
   ( (<->.),
     getPoint,
     containsPoint,
     IntervalVal (..),
     interval,
+    rand,
   )
 where
 
@@ -11,7 +14,8 @@ import Beckn.Prelude
 import Beckn.Storage.Esqueleto.Types
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TL
-import Database.Esqueleto.Internal.Internal
+import qualified Database.Esqueleto.Experimental as Esq
+import Database.Esqueleto.Internal.Internal hiding (rand)
 
 (<->.) :: SqlExpr (Value Point) -> SqlExpr (Value Point) -> SqlExpr (Value Double)
 (<->.) = unsafeSqlBinOp " <-> "
@@ -43,3 +47,6 @@ interval intervalVals = unsafeSqlValue valueString
       HOUR i -> show i <> " HOUR"
       MINUTE i -> show i <> " MINUTE"
       SECOND i -> show i <> " SECOND"
+
+rand :: SqlExpr OrderBy
+rand = Esq.rand

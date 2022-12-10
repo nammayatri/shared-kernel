@@ -98,8 +98,9 @@ showRounded = show @_ @Int . roundToIntegral
 
 (>>=/) :: Monad m => m a -> (a -> m b) -> m a
 (>>=/) a b = do
-  _ <- a >>= b
-  a
+  a' <- a
+  _ <- b a'
+  return a'
 
 (/=<<) :: Monad m => (a -> m b) -> m a -> m a
 (/=<<) a b = b >>=/ a
