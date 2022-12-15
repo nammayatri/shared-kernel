@@ -12,9 +12,12 @@
 module Kernel.External.Maps.MMI.MapsClient.Types where
 
 import Kernel.Prelude
+import Kernel.Types.Common
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON (constructorsWithSnakeCase)
 import Kernel.Utils.TH
+import qualified Kernel.External.Maps.Types as Maps
+import qualified Data.Text as T
 import Web.FormUrlEncoded (ToForm, toForm)
 import Web.Internal.HttpApiData
 
@@ -87,3 +90,38 @@ data SuggestedSearches = SuggestedSearches
     eLoc :: Text
   }
   deriving (Generic, FromJSON, ToJSON)
+
+newtype LatLongList = LatLongList {getLatLongList :: [Maps.LatLong]}
+
+instance ToHttpApiData LatLongList where
+  toUrlPiece (LatLongList lst) = T.intercalate ";" $ map convertPoint lst
+
+convertPoint :: Maps.LatLong -> Text
+convertPoint (Maps.LatLong lat lon) = show lon <> "," <> show lat
+
+data DistanceMatrixResp = DistanceMatrixResp
+  { version :: Text,
+    results :: DistanceMatrixResult,
+    responseCode :: Int
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data DistanceMatrixResult = DistanceMatrixResult
+  { code :: Text,
+    distances :: [[Meters]],
+    durations :: [[Seconds]]
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data DistanceMatrixElement = DistanceMatrixElement
+  { distance :: Maybe TextValue,
+    duration :: Maybe TextValue,
+    status :: Text
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+data TextValue = TextValue
+  { text :: Text,
+    value :: Int
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
