@@ -65,7 +65,7 @@ getDistancesProvided :: MapsService -> Bool
 getDistancesProvided = \case
   Google -> True
   OSRM -> False
-  MMI -> False
+  MMI -> True
 
 -- FIXME this logic is redundant, because we throw error always when getDistancesProvided service = False
 getDistances ::
@@ -80,7 +80,7 @@ getDistances ::
 getDistances serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getDistances cfg req
   OSRMConfig cfg -> OSRM.getDistances cfg req
-  MMIConfig _ -> throwNotProvidedError "getDistances" MMI
+  MMIConfig cfg -> MMI.getDistanceMatrix cfg req
 
 getRoutesProvided :: MapsService -> Bool
 getRoutesProvided = \case
