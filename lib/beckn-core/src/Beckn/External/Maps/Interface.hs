@@ -16,6 +16,8 @@ import qualified Beckn.External.Maps.Interface.Google as Google
 import qualified Beckn.External.Maps.Interface.MMI as MMI
 import qualified Beckn.External.Maps.Interface.OSRM as OSRM
 import Beckn.External.Maps.Interface.Types as Reexport
+import Beckn.External.Maps.MMI.Config as Reexport
+import Beckn.External.Maps.OSRM.Config as Reexport
 import Beckn.External.Maps.Types as Reexport
 import Beckn.Prelude
 import Beckn.Storage.Hedis as Redis
