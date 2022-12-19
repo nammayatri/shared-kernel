@@ -32,9 +32,9 @@ import Beckn.Utils.Common
 import qualified Beckn.Utils.JWT as JWT
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.Text.Encoding.Base64 as B64
-import qualified Data.Text.Encoding as T
 import Data.Default.Class
+import qualified Data.Text.Encoding as T
+import qualified Data.Text.Encoding.Base64 as B64
 import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
 import Servant
@@ -224,9 +224,9 @@ getAndParseFCMAccount ::
   FCMConfig ->
   m (Either String JWT.ServiceAccount)
 getAndParseFCMAccount config = do
-      case BL.fromStrict . T.encodeUtf8 <$> B64.decodeBase64 config.fcmServiceAccount of
-                    Right bs -> pure $ Aeson.eitherDecode bs
-                    _ -> pure $ Left "FCM JSON file is not set in configs"
+  case BL.fromStrict . T.encodeUtf8 <$> B64.decodeBase64 config.fcmServiceAccount of
+    Right bs -> pure $ Aeson.eitherDecode bs
+    _ -> pure $ Left "FCM JSON file is not set in configs"
 
 getNewToken :: (Redis.HedisFlow m r, MonadFlow m) => FCMConfig -> m (Either String JWT.JWToken)
 getNewToken config = getAndParseFCMAccount config >>= either (pure . Left) (refreshToken config)

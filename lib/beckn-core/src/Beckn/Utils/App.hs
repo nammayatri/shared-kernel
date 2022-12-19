@@ -1,5 +1,5 @@
-{-# OPTIONS_GHC -Wno-warnings-deprecations #-}
 {-# LANGUAGE PackageImports #-}
+{-# OPTIONS_GHC -Wno-warnings-deprecations #-}
 
 module Beckn.Utils.App
   ( Shutdown,

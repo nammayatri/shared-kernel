@@ -1,6 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Beckn.Utils.Servant.SignatureAuth where
 

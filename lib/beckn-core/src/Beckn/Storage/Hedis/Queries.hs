@@ -40,6 +40,12 @@ runHedisTransaction action = do
 
 ----------------------------------------------------
 
+-- Just remove key modifier, so it won't modify the key with app prefixes
+withCrossAppRedis ::
+  (HedisFlow m env) => m f -> m f
+withCrossAppRedis f = do
+  local (\env -> env{hedisEnv = env.hedisEnv{keyModifier = identity}}) f
+
 buildKey :: HedisFlow m env => Text -> m BS.ByteString
 buildKey key = do
   keyModifier <- asks (.hedisEnv.keyModifier)
