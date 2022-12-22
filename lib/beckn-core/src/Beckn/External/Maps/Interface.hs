@@ -1,11 +1,17 @@
 module Beckn.External.Maps.Interface
   ( module Reexport,
     getDistance,
+    getDistancesProvided,
     getDistances,
+    getRoutesProvided,
     getRoutes,
+    snapToRoadProvided,
     snapToRoad,
+    autoCompleteProvided,
     autoComplete,
+    getPlaceDetailsProvided,
     getPlaceDetails,
+    getPlaceNameProvided,
     getPlaceName,
   )
 where
@@ -55,6 +61,13 @@ throwNotProvidedError :: (MonadFlow m) => Text -> MapsService -> m a
 throwNotProvidedError =
   (throwError . InternalError) ... mkNotProvidedError
 
+getDistancesProvided :: MapsService -> Bool
+getDistancesProvided = \case
+  Google -> True
+  OSRM -> False
+  MMI -> False
+
+-- FIXME this logic is redundant, because we throw error always when getDistancesProvided service = False
 getDistances ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -69,6 +82,12 @@ getDistances serviceConfig req = case serviceConfig of
   OSRMConfig _ -> throwNotProvidedError "getDistances" OSRM
   MMIConfig _ -> throwNotProvidedError "getDistances" MMI
 
+getRoutesProvided :: MapsService -> Bool
+getRoutesProvided = \case
+  Google -> True
+  OSRM -> False
+  MMI -> False
+
 getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -82,6 +101,12 @@ getRoutes serviceConfig req = case serviceConfig of
   OSRMConfig _ -> throwNotProvidedError "getRoutes" OSRM
   MMIConfig _ -> throwNotProvidedError "getRoutes" MMI
 
+snapToRoadProvided :: MapsService -> Bool
+snapToRoadProvided = \case
+  Google -> True
+  OSRM -> True
+  MMI -> False
+
 snapToRoad ::
   ( EncFlow m r,
     CoreMetrics m
@@ -93,6 +118,12 @@ snapToRoad serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.snapToRoad cfg req
   OSRMConfig osrmCfg -> OSRM.callOsrmMatch osrmCfg req
   MMIConfig _ -> throwNotProvidedError "snapToRoad" MMI
+
+autoCompleteProvided :: MapsService -> Bool
+autoCompleteProvided = \case
+  Google -> True
+  OSRM -> False
+  MMI -> True
 
 autoComplete ::
   ( EncFlow m r,
@@ -107,6 +138,12 @@ autoComplete serviceConfig req = case serviceConfig of
   OSRMConfig _ -> throwNotProvidedError "autoComplete" OSRM
   MMIConfig cfg -> MMI.autoSuggest cfg req
 
+getPlaceDetailsProvided :: MapsService -> Bool
+getPlaceDetailsProvided = \case
+  Google -> True
+  OSRM -> False
+  MMI -> False
+
 getPlaceDetails ::
   ( EncFlow m r,
     CoreMetrics m
@@ -118,6 +155,12 @@ getPlaceDetails serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceDetails cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
   MMIConfig _ -> throwNotProvidedError "getPlaceDetails" MMI
+
+getPlaceNameProvided :: MapsService -> Bool
+getPlaceNameProvided = \case
+  Google -> True
+  OSRM -> False
+  MMI -> False
 
 getPlaceName ::
   ( EncFlow m r,
