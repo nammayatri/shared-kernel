@@ -43,7 +43,7 @@ data GetDistancesReq a b = GetDistancesReq
     destinations :: NonEmpty b,
     travelMode :: Maybe TravelMode
   }
-  deriving (Generic, Show)
+  deriving (Generic, Show, ToSchema)
 
 data GetDistanceResp a b = GetDistanceResp
   { origin :: a,
@@ -52,7 +52,7 @@ data GetDistanceResp a b = GetDistanceResp
     duration :: Seconds,
     status :: Text
   }
-  deriving (Generic, Show, PrettyShow)
+  deriving (Generic, Show, PrettyShow,FromJSON)
 
 type GetDistancesResp a b = NonEmpty (GetDistanceResp a b)
 

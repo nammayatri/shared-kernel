@@ -79,7 +79,7 @@ getDistances ::
   m (GetDistancesResp a b)
 getDistances serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getDistances cfg req
-  OSRMConfig _ -> throwNotProvidedError "getDistances" OSRM
+  OSRMConfig cfg -> OSRM.getDistances cfg req
   MMIConfig _ -> throwNotProvidedError "getDistances" MMI
 
 getRoutesProvided :: MapsService -> Bool
