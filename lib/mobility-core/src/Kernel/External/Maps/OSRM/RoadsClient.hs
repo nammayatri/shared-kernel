@@ -29,7 +29,19 @@ type MatchAPI =
     :> MandatoryQueryParam "geometries" GeometryRespType
     :> Get '[JSON] MatchResp
 
+type TableAPI = 
+  "table"
+    :> "v1"
+    :> "driving"
+    :> Capture "coordinates" PointsList
+    :> MandatoryQueryParam "annotations" String
+    :> MandatoryQueryParam "sources" SourcesList
+    :> MandatoryQueryParam "destinations" DestinationsList
+    :> Get '[JSON] OSRMTableResponse
+  
 newtype PointsList = PointsList {getPointsList :: [Maps.LatLong]}
+newtype SourcesList = SourcesList {getSourcesList :: [Int]}
+newtype DestinationsList = DestinationsList {getDestinationsList :: [Int]}
 
 instance ToHttpApiData PointsList where
   toUrlPiece (PointsList lst) = T.intercalate ";" $ map convertPoint lst
@@ -47,10 +59,24 @@ newtype RadiusesList = RadiusesList {getRadiusesList :: [Int]}
 instance ToHttpApiData RadiusesList where
   toUrlPiece (RadiusesList lst) = T.intercalate ";" $ map show lst
 
+instance ToHttpApiData DestinationsList where
+  toUrlPiece (DestinationsList lst) = T.intercalate ";" $ map show lst
+
+instance ToHttpApiData SourcesList where
+  toUrlPiece (SourcesList lst) = T.intercalate ";" $ map show lst
+
 data GeometryRespType = GeoJson
 
 instance ToHttpApiData GeometryRespType where
   toUrlPiece GeoJson = "geojson"
+
+data OSRMTableResponse = OSRMTableResponse {
+  distances :: [[Double]],
+  code :: String,
+  durations :: [[Double]]
+}
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
 
 data MatchResp = MatchResp
   { matchings :: NonEmpty Route,
@@ -125,3 +151,18 @@ getResultOneRouteExpected resp = do
     (_ : _) -> throwError $ InternalError "OSRM failed to consider waypoints as part of one route, th result contains splitted routes"
   let points = map (.getLatLong) $ route_.geometry.coordinates
   pure (realToFrac route_.distance, points)
+
+callOsrmGetDistancesAPI ::
+  ( HasCallStack,
+      Metrics.CoreMetrics m,
+      MonadFlow m
+    ) =>
+    BaseUrl ->
+    PointsList ->
+    SourcesList ->
+    DestinationsList -> 
+    m OSRMTableResponse
+callOsrmGetDistancesAPI osrmUrl pointsList sourcesList destinationsList = do
+  let eulerClient = Euler.client (Proxy @TableAPI)
+  callAPI osrmUrl (eulerClient pointsList "distance,duration" sourcesList destinationsList) "osrm-table"
+  >>= fromEitherM (\err -> InternalError $ "Failed to call osrm table API: " <> show err)
