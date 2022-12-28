@@ -1,6 +1,5 @@
 module Beckn.Utils.SlidingWindowCounters
   ( incrementWindowCount,
-    incrementTotalCount,
     incrementByValue,
     incrementByValueInTimeBucket,
     getLatestRatio,
@@ -9,6 +8,7 @@ module Beckn.Utils.SlidingWindowCounters
     splitOnPeriodGranuality,
     incrementPeriod,
     convertPeriodTypeToSeconds,
+    HasWindowOptions,
   )
 where
 
@@ -77,9 +77,6 @@ incrementPeriod periodType (UTCTime date time) = do
 makeSlidingWindowKey :: PeriodType -> Text -> UTCTime -> Text
 makeSlidingWindowKey pt k = (<> "-sliding-window") . makeTimeBasedKey pt k
 
-makeTotalCountKey :: PeriodType -> Text -> UTCTime -> Text
-makeTotalCountKey pt k = (<> "-total-count") . makeSlidingWindowKey pt k
-
 makeTimeBasedKey :: PeriodType -> Text -> UTCTime -> Text
 makeTimeBasedKey periodType oldKey = do
   (\periodString -> oldKey <> "-" <> periodString)
@@ -127,15 +124,6 @@ incrementWindowCount ::
   SlidingWindowOptions ->
   m ()
 incrementWindowCount = incrementCounter makeSlidingWindowKey
-
-incrementTotalCount ::
-  ( L.MonadFlow m,
-    Redis.HedisFlow m r
-  ) =>
-  Text ->
-  SlidingWindowOptions ->
-  m ()
-incrementTotalCount = incrementCounter makeTotalCountKey
 
 incrementByValue ::
   ( L.MonadFlow m,
@@ -213,12 +201,13 @@ getLatestRatio ::
   ) =>
   Text ->
   (Text -> Text) ->
+  (Text -> Text) ->
   SlidingWindowOptions ->
   m Double
-getLatestRatio driverId mkPostiveCaseKeyfn s@SlidingWindowOptions {..} = do
+getLatestRatio driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn s@SlidingWindowOptions {..} = do
   utcTime <- L.runIO getCurrentTime
   let positiveCaseKeysList = getkeysForLastPeriods s utcTime $ makeSlidingWindowKey periodType (mkPostiveCaseKeyfn driverId)
-  let totalCountKeysList = getkeysForLastPeriods s utcTime $ makeTotalCountKey periodType driverId
+  let totalCountKeysList = getkeysForLastPeriods s utcTime $ makeSlidingWindowKey periodType (mkTotalCaseKeyfn driverId)
   positiveCases <- nonZero . sum <$> mapMaybeM Redis.get positiveCaseKeysList
   totalCases <- nonZero . sum <$> mapMaybeM Redis.get totalCountKeysList
   pure $ positiveCases / totalCases
