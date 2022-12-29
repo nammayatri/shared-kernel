@@ -7,15 +7,16 @@ import Beckn.Prelude
 import Beckn.Tools.Metrics.CoreMetrics as Metrics
 import Beckn.Types.App (MandatoryQueryParam, MonadFlow)
 import Beckn.Types.Error (GenericError (InternalError))
-import Beckn.Utils.Common (callAPI, fromEitherM)
+import Beckn.Utils.Common (callAPI, fromEitherM, throwError)
 import qualified Data.Text as T
 import EulerHS.Types as Euler
-import Servant
+import Servant hiding (throwError)
 
 type SnapToRoadResponse = SnapToRoadResponse' LatLong
 
-newtype SnapToRoadResponse' a = SnapToRoadResponse
-  { snappedPoints :: [SnappedPoint' a]
+data SnapToRoadResponse' a = SnapToRoadResponse
+  { snappedPoints :: [SnappedPoint' a],
+    warningMessage :: Maybe Text
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -57,7 +58,11 @@ snapToRoad roadsUrl apiKey pointsList = do
   res <-
     callAPI roadsUrl (eulerClient apiKey interpolate $ convertPointsList pointsList) "snap-to-road"
       >>= fromEitherM (\err -> InternalError $ "Failed to call snap-to-road API: " <> show err)
-  return . SnapToRoadResponse $ map (\sp -> sp {location = spLocToLatLong sp.location}) res.snappedPoints
+  maybe
+    (pure ())
+    (\warning -> throwError $ InternalError ("Snap-to-road API throwing warning" <> warning))
+    res.warningMessage
+  return $ SnapToRoadResponse (map (\sp -> sp {location = spLocToLatLong sp.location}) res.snappedPoints) res.warningMessage
   where
     convertPoint :: LatLong -> Text
     convertPoint pt = mconcat [show pt.lat, ",", show pt.lon]
