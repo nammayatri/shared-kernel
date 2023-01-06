@@ -8,7 +8,6 @@ module Beckn.Utils.SlidingWindowCounters
     splitOnPeriodGranuality,
     incrementPeriod,
     convertPeriodTypeToSeconds,
-    HasWindowOptions,
   )
 where
 
