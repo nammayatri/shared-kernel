@@ -20,7 +20,6 @@ import EulerHS.Types (LogContext)
 import qualified EulerHS.Types as T
 import qualified Prelude as P
 import Data.Aeson as A
-import Debug.Trace
 
 logOutputImplementation :: L.MonadFlow m => LogLevel -> T.Message -> m ()
 logOutputImplementation logLevel message =
@@ -92,7 +91,7 @@ logFormatterText :: Time.UTCTime -> Maybe Text -> T.MessageFormatter
 logFormatterText
   timestamp
   hostname
-  (T.PendingMsg _mbFlowGuid elvl eTag msg msgNum logContHM) = trace "Rahull" res
+  (T.PendingMsg _mbFlowGuid elvl eTag msg msgNum logContHM) = res
     where
       logCont = HM.lookupDefault "" logContextKey logContHM
       tag = if null eTag || eTag == "\"\"" then "" else formatTag eTag
