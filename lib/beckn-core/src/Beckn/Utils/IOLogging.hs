@@ -20,6 +20,8 @@ import qualified Control.Monad.Catch as C
 import qualified Data.Text as T
 import qualified Data.Time as Time
 import System.Log.FastLogger
+import qualified Data.HashMap.Strict as HM
+import Data.Aeson as A
 
 type HasLog r = HasField "loggerEnv" r LoggerEnv
 
@@ -80,9 +82,9 @@ logOutputIO logEnv logLevel message = do
     now <- getCurrentTime
     let formattedMessage = logFormatterText now logEnv.hostName logLevel logEnv.tags message
     whenJust logEnv.fileLogger $ \logger ->
-      liftIO . logger.printLogFunc $ toLogStr formattedMessage
+      liftIO . logger.printLogFunc $ toLogStr (A.encode formattedMessage <> "\n")
     whenJust logEnv.consoleLogger $ \logger ->
-      liftIO . logger.printLogFunc $ toLogStr formattedMessage
+      liftIO . logger.printLogFunc $ toLogStr (A.encode formattedMessage <> "\n")
 
 withLogTagImplementation ::
   (HasLog r, MonadReader r m) =>
@@ -103,11 +105,11 @@ appendLogTag tag logEnv = do
 formatTags :: [Text] -> Text
 formatTags tag = "[" <> T.intercalate ", " (reverse tag) <> "]"
 
-logFormatterText :: Time.UTCTime -> Maybe Text -> LogLevel -> [Text] -> Text -> Text
+logFormatterText :: Time.UTCTime -> Maybe Text -> LogLevel -> [Text] -> Text -> A.Value
 logFormatterText timestamp hostname lvl tags msg = res
   where
     tag = if null tags then "" else formatTags tags
-    res =
+    log =
       show timestamp
         <> " "
         <> show lvl
@@ -117,4 +119,4 @@ logFormatterText timestamp hostname lvl tags msg = res
         <> tag
         <> " |> "
         <> msg
-        <> "\n"
+    res = A.Object $ HM.insert "log" (A.String log) HM.empty

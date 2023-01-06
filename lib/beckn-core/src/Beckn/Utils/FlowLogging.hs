@@ -8,10 +8,10 @@ module Beckn.Utils.FlowLogging
 where
 
 import Beckn.Types.Logging
-import qualified Data.ByteString.Lazy as LBS
+-- import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Txt
+-- import qualified Data.Text.Encoding as Txt
 import qualified Data.Time as Time
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
@@ -19,6 +19,8 @@ import EulerHS.Runtime
 import EulerHS.Types (LogContext)
 import qualified EulerHS.Types as T
 import qualified Prelude as P
+import Data.Aeson as A
+import Debug.Trace
 
 logOutputImplementation :: L.MonadFlow m => LogLevel -> T.Message -> m ()
 logOutputImplementation logLevel message =
@@ -90,7 +92,7 @@ logFormatterText :: Time.UTCTime -> Maybe Text -> T.MessageFormatter
 logFormatterText
   timestamp
   hostname
-  (T.PendingMsg _mbFlowGuid elvl eTag msg msgNum logContHM) = res
+  (T.PendingMsg _mbFlowGuid elvl eTag msg msgNum logContHM) = trace "Rahull" res
     where
       logCont = HM.lookupDefault "" logContextKey logContHM
       tag = if null eTag || eTag == "\"\"" then "" else formatTag eTag
@@ -99,21 +101,22 @@ logFormatterText
         T.Warning -> WARNING
         T.Info -> INFO
         T.Error -> ERROR
-      textToLBS = LBS.fromStrict . Txt.encodeUtf8
-      res =
-        T.SimpleLBS $
-          show timestamp
+      -- textToLBS = LBS.fromStrict . Txt.encodeUtf8
+      log = show timestamp
             <> " "
             <> show lvl
             <> " "
             <> show msgNum
             <> "> @"
-            <> textToLBS (fromMaybe "null" hostname)
+            <> fromMaybe "null" hostname
             <> " "
-            <> textToLBS logCont
-            <> textToLBS tag
+            <> logCont
+            <>  tag
             <> " |> "
-            <> textToLBS msg
+            <> msg 
+      res =
+        T.SimpleLBS (A.encode (A.Object $ HM.insert "log" (A.String log) HM.empty))
+          
 
 logContextKey :: Text
 logContextKey = "log_context"
