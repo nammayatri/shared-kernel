@@ -1,7 +1,15 @@
-module Beckn.Storage.Esqueleto.Types where
+module Beckn.Storage.Esqueleto.Types
+  ( Point (..),
+    PostgresList (..),
+    PostgresNonEmptyList (..),
+    Table,
+    MbTable,
+    PostgresListField,
+  )
+where
 
 import Beckn.Prelude
-import Database.Esqueleto.Experimental
+import Database.Esqueleto.Experimental hiding (Table)
 
 data Point = Point
   deriving (Generic, Show, Read, Eq, ToSchema)
@@ -12,6 +20,12 @@ instance PersistField Point where
 
 instance PersistFieldSql Point where
   sqlType _ = SqlOther "geography"
+
+class PostgresListField a
+
+instance PostgresListField (PostgresList a)
+
+instance PostgresListField (PostgresNonEmptyList a)
 
 --
 newtype PostgresList a = PostgresList {unPostgresList :: [a]}
@@ -28,6 +42,17 @@ instance (PersistField a) => PersistField (PostgresList a) where
   fromPersistValue x = Left $ "Cannot convert " <> show x <> " to PostgresList"
 
 instance (PersistField a) => PersistFieldSql (PostgresList a) where
+  sqlType _ = SqlString
+
+--
+newtype PostgresNonEmptyList a = PostgresNonEmptyList {unPostgresNonEmptyList :: NonEmpty a}
+
+instance (PersistField a) => PersistField (PostgresNonEmptyList a) where
+  toPersistValue (PostgresNonEmptyList xs) = PersistArray $ map toPersistValue $ toList xs
+  fromPersistValue (PersistList (s : xs)) = PostgresNonEmptyList <$> mapM fromPersistValue (s :| xs)
+  fromPersistValue x = Left $ "Cannot convert " <> show x <> " to PostgresNonEmptyList"
+
+instance (PersistField a) => PersistFieldSql (PostgresNonEmptyList a) where
   sqlType _ = SqlString
 
 type Table a = SqlExpr (Entity a)

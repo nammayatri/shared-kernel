@@ -30,6 +30,7 @@ import GHC.Generics as E (Generic, Generic1)
 import GHC.Int as E (Int64)
 import GHC.Records.Compat as E
 import GHC.Stack as E (HasCallStack)
+import Safe as E
 import Servant.Client as E (BaseUrl)
 import qualified Servant.Client as Servant
 import Text.Read as E (readMaybe)

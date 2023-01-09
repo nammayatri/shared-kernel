@@ -7,6 +7,7 @@ module Beckn.Storage.Esqueleto.Functions
     IntervalVal (..),
     interval,
     rand,
+    unnest,
   )
 where
 
@@ -50,3 +51,6 @@ interval intervalVals = unsafeSqlValue valueString
 
 rand :: SqlExpr OrderBy
 rand = Esq.rand
+
+unnest :: PostgresListField a => SqlExpr (Value a) -> SqlExpr (Value b)
+unnest = unsafeSqlFunction "unnest"

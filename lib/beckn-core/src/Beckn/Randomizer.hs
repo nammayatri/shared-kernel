@@ -1,5 +1,6 @@
 module Beckn.Randomizer where
 
+import Safe (at)
 import System.Random
 import Universum
 
@@ -27,3 +28,9 @@ randomizeList = randomizeList' . toList
       randNum <- getRandomInRange (0, len - 1)
       let (leftPart, el : rightPart) = splitAt randNum l
       (pure el <>) <$> randomizeList' (leftPart <> rightPart)
+
+getRandomElement :: (Element (arr a) ~ a, MonadIO m, Container (arr a)) => arr a -> m a
+getRandomElement arr = do
+  let len = length arr
+  randNum <- getRandomInRange (0, len - 1)
+  return $ toList arr `at` randNum

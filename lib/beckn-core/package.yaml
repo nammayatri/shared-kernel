@@ -132,6 +132,7 @@ dependencies:
   - text-conversions
   - deriving-aeson
   - base64
+  - safe
 
 ghc-options:
   - -fwrite-ide-info

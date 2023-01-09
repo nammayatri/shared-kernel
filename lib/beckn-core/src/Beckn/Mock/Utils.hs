@@ -1,5 +1,6 @@
 module Beckn.Mock.Utils (module Beckn.Mock.Utils, maybeToEither) where
 
+import Beckn.Randomizer (getRandomInRange)
 import Beckn.Types.Core.Error
 import Data.Aeson hiding (Error)
 import qualified Data.Aeson as Ae
@@ -11,7 +12,6 @@ import Data.List
 import Data.String.Conversions
 import qualified Data.Text as T
 import Data.Time
-import System.Random
 import Universum
 
 -- | Read formatted time.
@@ -30,7 +30,7 @@ textToError desc =
     }
 
 generateOrderId :: (MonadIO m) => m Text
-generateOrderId = fmap show $ liftIO $ randomRIO (1000000, 9999999 :: Int)
+generateOrderId = show <$> getRandomInRange (1000000, 9999999 :: Int)
 
 whenRight :: Applicative m => Either e a -> (a -> m ()) -> m ()
 whenRight eith f = either (\_ -> pure ()) f eith
