@@ -25,6 +25,7 @@ import Kernel.Utils.Example
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON
 import Servant.Client (parseBaseUrl)
+import Data.Maybe (fromJust)
 
 data Context = Context
   { domain :: Domain,
