@@ -18,7 +18,7 @@
 module Kernel.Utils.Servant.SignatureAuth where
 
 import Control.Arrow
-import Control.Lens (at, (.=), (?=))
+import Control.Lens ((?=), at, (.=), (.~))
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.CaseInsensitive as CI
@@ -31,7 +31,7 @@ import qualified Data.OpenApi as DS
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Typeable (typeRep)
-import EulerHS.Prelude
+import EulerHS.Prelude hiding (fromList, (.~))
 import qualified EulerHS.Runtime as R
 import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
