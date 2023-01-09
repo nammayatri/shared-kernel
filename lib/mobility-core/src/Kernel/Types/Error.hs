@@ -576,6 +576,53 @@ instance IsHTTPError GoogleTranslateCallError where
 
 instance IsAPIError GoogleTranslateCallError
 
+
+data GupShupError 
+  = GupShupInvalidRequest
+  | GupShupNotConfigured
+  | GupShupUserIdNotFound
+  | GupShupInvalidPhoneNumber
+  | GupShupUnauthorized
+  | GupShupWrongMethodService
+  | GupShupInterNationalPhoneNumber
+  | GupShupTooManyRequests
+  | GupShupUnknownServerError
+
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''GupShupError
+
+instance IsBaseError GupShupError where
+  toMessage = \case
+    GupShupInvalidRequest -> Just "Invalid request to GupShup."
+    GupShupNotConfigured -> Just "GupShup env variables aren't properly set."
+    GupShupUserIdNotFound -> Just "GupShup Authentication Failed as userid X does not exist."
+    GupShupInvalidPhoneNumber -> Just "The phone number XXXXX is not a valid phone number."
+    GupShupUnauthorized -> Just "Authentication failed due to invalid userId or password."
+    GupShupWrongMethodService -> Just "The method is not supported."
+    GupShupInterNationalPhoneNumber -> Just "The INTERNATIONAL_PHONE service is disabled for you. Kindly get the service enabled before using this action"
+    GupShupTooManyRequests -> Just "The phone number has already been marked as requested"
+    GupShupUnknownServerError -> Just "An unknown exception has occurred. Please retry the request after some time."
+
+instance IsHTTPError GupShupError where
+  toErrorCode = \case
+    GupShupNotConfigured -> "GUPSHUP_NOT_CONFIGURED"
+    GupShupInvalidRequest -> "GUPSHUP_INVALID_REQUEST"
+    GupShupUserIdNotFound -> "GUPSHUP_USER_NOT_FOUND"
+    GupShupInvalidPhoneNumber -> "GUPSHUP_INVALID_PHONE_NUMBER"
+    GupShupUnauthorized -> "GUPSHUP_AUTHENTICATION_FAILED"
+    GupShupWrongMethodService -> "GUPSHUP_WRONG_METHOD_SERVICE"
+    GupShupInterNationalPhoneNumber -> "GUPSHUP_INTERNATIONAL_PHONE_DISABLED"
+    GupShupTooManyRequests -> "GUPSHUP_TOO_MANY_REQUEST_FOR_SAME"
+    GupShupUnknownServerError -> "GUPSHUP_UNKNOWN_ERROR"
+
+instance FromResponse GupShupError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just GupShupInvalidRequest
+    _ -> Just GupShupNotConfigured
+
+instance IsAPIError GupShupError
+
 data AgencyDisabled
   = AgencyDisabled
   deriving (Eq, Show, IsBecknAPIError)
