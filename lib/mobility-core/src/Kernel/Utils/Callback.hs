@@ -14,7 +14,8 @@
 
 module Kernel.Utils.Callback (withBecknCallbackMig, WithBecknCallbackMig) where
 
-import EulerHS.Prelude
+import Control.Lens ((.~))
+import EulerHS.Prelude hiding ((.~))
 import qualified EulerHS.Types as ET
 import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Beckn.Ack

@@ -17,11 +17,11 @@
 module Kernel.Utils.Servant.HeaderAuth where
 
 import Control.Arrow
-import Control.Lens ((?=))
+import Control.Lens ((?=), at, (.=), (.~))
 import Data.List (lookup)
 import qualified Data.OpenApi as DS
 import Data.Typeable (typeRep)
-import EulerHS.Prelude
+import EulerHS.Prelude hiding (fromList, (.~))
 import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)

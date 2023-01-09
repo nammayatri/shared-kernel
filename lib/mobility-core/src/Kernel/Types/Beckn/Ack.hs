@@ -17,7 +17,7 @@ module Kernel.Types.Beckn.Ack where
 import Data.Aeson
 import Data.Aeson.Types (unexpected)
 import Data.OpenApi (ToSchema)
-import EulerHS.Prelude hiding ((.=))
+import EulerHS.Prelude
 
 data AckResponse = Ack
   deriving (Generic, Show, ToSchema)
