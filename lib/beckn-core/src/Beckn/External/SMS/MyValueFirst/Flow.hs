@@ -1,8 +1,8 @@
-module Beckn.External.MyValueFirst.Flow where
+module Beckn.External.SMS.MyValueFirst.Flow where
 
-import qualified Beckn.External.MyValueFirst.API as API
-import Beckn.External.MyValueFirst.Types (SubmitSms (..), SubmitSmsRes (..))
-import Beckn.Sms.Config (SmsConfig (..))
+import qualified Beckn.External.SMS.MyValueFirst.API as API
+import Beckn.External.SMS.MyValueFirst.Types (SubmitSms (..), SubmitSmsRes (..))
+import Beckn.Sms.Config (SmsConfig)
 import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common
 import Beckn.Types.Error
@@ -23,12 +23,6 @@ submitSms url params = do
 
 type OtpTemplate = Text
 
-constructOtpSms :: Text -> Text -> OtpTemplate -> Text
-constructOtpSms otp hash =
-  let otpTemp = "{#otp#}"
-      hashTemp = "{#hash#}"
-   in T.replace otpTemp otp . T.replace hashTemp hash
-
 type OrgName = Text
 
 type InviteTemplate = Text
@@ -36,27 +30,26 @@ type InviteTemplate = Text
 constructInviteSms :: OrgName -> InviteTemplate -> Text
 constructInviteSms = T.replace "{#org#}"
 
-sendOTP ::
+sendOTPApi ::
   ( CoreMetrics m,
     MonadFlow m
   ) =>
-  SmsConfig ->
+  BaseUrl ->
+  Text ->
+  Text ->
   Text ->
   Text ->
   Text ->
   m SubmitSmsRes
-sendOTP smsCfg otpSmsTemplate phoneNumber otpCode = do
-  let smsCred = smsCfg.credConfig
-  let url = smsCfg.url
-  let otpHash = smsCred.otpHash
+sendOTPApi url username password otpSmsTemplate phoneNumber sender = do
   submitSms
     url
     SubmitSms
-      { username = smsCred.username,
-        password = smsCred.password,
-        from = smsCfg.sender,
+      { username = username,
+        password = password,
+        from = sender,
         to = phoneNumber,
-        text = constructOtpSms otpCode otpHash otpSmsTemplate
+        text = otpSmsTemplate
       }
 
 sendSms ::

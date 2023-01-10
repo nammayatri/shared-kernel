@@ -1,4 +1,4 @@
-module Beckn.External.MyValueFirst.Types where
+module Beckn.External.SMS.MyValueFirst.Types where
 
 import Beckn.Types.Servant
 import Data.ByteString.Lazy (fromStrict, toStrict)

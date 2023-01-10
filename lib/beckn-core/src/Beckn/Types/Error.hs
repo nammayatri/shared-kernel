@@ -4,7 +4,7 @@
 module Beckn.Types.Error where
 
 import Beckn.External.Maps.Types (MapsService)
-import Beckn.External.MyValueFirst.Types (SubmitSmsRes, submitSmsResToText)
+import Beckn.External.SMS.MyValueFirst.Types (SubmitSmsRes, submitSmsResToText)
 import Beckn.Types.Error.BaseError
 import Beckn.Types.Error.BaseError.HTTPError
 import Beckn.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromResponse))

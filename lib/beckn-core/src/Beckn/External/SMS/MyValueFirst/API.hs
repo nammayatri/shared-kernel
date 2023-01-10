@@ -1,6 +1,6 @@
-module Beckn.External.MyValueFirst.API where
+module Beckn.External.SMS.MyValueFirst.API where
 
-import Beckn.External.MyValueFirst.Types
+import Beckn.External.SMS.MyValueFirst.Types
 import Beckn.Types.App
   ( MandatoryQueryParam,
   )
