@@ -20,19 +20,19 @@ import EulerHS.Language ()
 import GHC.Generics
 
 -- deriving instance Generic (a,b,c,d,e,f,g,h) -- uncomment this when remove EulerHS
-deriving instance Generic (a, b, c, d, e, f, g, h, i)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
 
 deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)
 
