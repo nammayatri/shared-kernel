@@ -15,6 +15,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wwarn=identities #-}
 
 module Kernel.Types.Common
   ( module Kernel.Types.Common,
