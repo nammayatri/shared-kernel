@@ -54,11 +54,9 @@ readDhallConfigDefault appname = do
 instance {-# OVERLAPS #-} Num a => FromDhall a where
   autoWith inn = fmap fromInteger (autoWith inn :: Decoder Integer)
 
-#if MIN_VERSION_dhall(1, 35, 0)
-#else
-instance FromDhall Word16 where
-  autoWith inn = fmap fromIntegral (autoWith inn :: Decoder Natural)
-#endif
+-- Use the instance from Dhall itself
+-- instance FromDhall Word16 where
+--   autoWith inn = fmap fromIntegral (autoWith inn :: Decoder Natural)
 
 deriving instance FromDhall Scheme
 

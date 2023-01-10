@@ -23,17 +23,17 @@ import EulerHS.Language ()
 
 {-
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l)
 
 -- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
 
-deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
+-- deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
 
 deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)
 
