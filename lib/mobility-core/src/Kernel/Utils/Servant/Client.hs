@@ -75,7 +75,6 @@ type CallAPI' m api res res' =
     Metrics.CoreMetrics m,
     SanitizedUrl api,
     MonadFlow m,
-    ET.JSONEx res,
     ToJSON res
   ) =>
   BaseUrl ->

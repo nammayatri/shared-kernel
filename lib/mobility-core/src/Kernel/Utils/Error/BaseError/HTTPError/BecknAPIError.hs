@@ -42,7 +42,6 @@ instance IsHTTPError BecknAPICallError where
 type IsBecknAPI api req res =
   ( HasClient ET.EulerClient api,
     Client ET.EulerClient api ~ (req -> ET.EulerClient res),
-    ET.JSONEx res,
     ToJSON res
   )
 
