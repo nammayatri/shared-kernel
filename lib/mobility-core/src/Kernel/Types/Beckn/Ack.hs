@@ -16,6 +16,7 @@ module Kernel.Types.Beckn.Ack where
 
 import Data.Aeson
 import Data.Aeson.Types (unexpected)
+import qualified Data.Aeson.Key as AesonKey (Key)
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
 
@@ -34,6 +35,6 @@ instance FromJSON AckResponse where
 instance ToJSON AckResponse where
   toJSON Ack = "message" .== "ack" .== "status" .== String "ACK"
     where
-      (.==) :: Text -> Value -> Value
+      (.==) :: AesonKey.Key -> Value -> Value
       k .== v = Object (k .= v)
       infixr 9 .==

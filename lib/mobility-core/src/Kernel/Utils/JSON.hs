@@ -15,7 +15,7 @@
 module Kernel.Utils.JSON where
 
 import Data.Aeson (Options (..), SumEncoding (ObjectWithSingleField, UntaggedValue), Value (..), camelTo2, defaultOptions)
-import Data.HashMap.Strict (size, unions)
+import qualified Data.Aeson.KeyMap as AKM
 import Data.Text (pack, replace, toLower, toUpper, unpack)
 import EulerHS.Prelude hiding (pack, unpack)
 import Kernel.Utils.Text (recursiveStrip)
@@ -71,15 +71,15 @@ doubleQuotesRecordFields =
 
 uniteObjects :: [Value] -> Value
 uniteObjects values =
-  let result = unions objects
-   in if size result == sumOfSizes
+  let result = foldl' AKM.union mempty objects
+   in if AKM.size result == sumOfSizes
         then Object result
         else error ("duplication fields in " <> show values)
   where
     objects = map unwrapObject values
     unwrapObject (Object o) = o
     unwrapObject e = error ("expected Object, got " <> show e)
-    sumOfSizes = sum $ map size objects
+    sumOfSizes = sum $ map AKM.size objects
 
 objectWithSingleFieldParsing :: (String -> String) -> Options
 objectWithSingleFieldParsing constructorMapping =
