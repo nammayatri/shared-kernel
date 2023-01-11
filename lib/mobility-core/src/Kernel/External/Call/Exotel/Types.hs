@@ -36,6 +36,7 @@ import Kernel.Prelude hiding (showBaseUrl)
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Beckn.Ack (AckResponse)
 import Kernel.Utils.JSON
+import Kernel.Utils.Text (decodeFromText)
 import Kernel.Utils.TH
 import Servant.Client
 import Web.FormUrlEncoded (ToForm, toForm)
@@ -276,7 +277,7 @@ instance FromJSON a => FromJSON (ExotelCallCallbackReq a) where
 
 parseCustomField :: FromJSON a => Value -> Text -> Parser a
 parseCustomField v txt = do
-  case decodeJSON txt of
+  case decodeFromText txt of
     Just exoAttch -> return exoAttch
     Nothing -> typeMismatch "CustomField" v
 
