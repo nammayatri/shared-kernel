@@ -331,6 +331,20 @@ addAuthManagersToFlowRt flowRt managersList = do
       logInfo $ "Loaded http managers - " <> show (HMS.keys managersSettings)
       createManagersWithTimeout managersSettings timeout
 
+-- Notes on changes:-
+{-
+the type of "_componentsSecuritySchemes" field from Data.OpenApi module
+changed it's representation in openapi3 package version 3.2.0.
+
+it went from being a "Definitions SecurityScheme" to "SecurityDefinitions".
+
+while "Definitions" was just a type-synonym for an "InsOrdHashMap Text".
+The new "SecurityDefinitions" type is newtype wrapper over "Definitions" type
+, Thus it would need it's own instances to be indexable via lens.
+
+These type-class and type-family instances were absent and were added in a previous commit.
+A PR was also opened on the main package repository of the package for this.
+-}
 instance
   ( S.HasOpenApi api,
     KnownSymbol header
@@ -344,7 +358,7 @@ instance
       & addResponse401
     where
       headerName = toText $ symbolVal (Proxy @header)
-      methodName = show $ typeRep (Proxy @Subscriber)
+      methodName = T.pack $ show $ typeRep (Proxy @Subscriber) -- since the "Index SecurityDefinitions" is a "Text"
 
       addSecurityRequirement :: Text -> DS.OpenApi -> DS.OpenApi
       addSecurityRequirement description = execState $ do
