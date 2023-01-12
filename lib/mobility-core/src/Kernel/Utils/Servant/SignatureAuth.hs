@@ -22,8 +22,8 @@ import Control.Lens ((?=), at, (.=), (.~))
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.CaseInsensitive as CI
+import qualified Data.HashMap.Strict as HMS
 import Data.List (lookup)
-import qualified Data.Map.Strict as Map
 import qualified Data.OpenApi as DS
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX (getPOSIXTime)
@@ -153,11 +153,11 @@ instance
 
   hoistClientMonad mp _ hst cli = hoistClientMonad mp (Proxy @api) hst cli
 
-signatureAuthManagerKey :: String
+signatureAuthManagerKey :: Text
 signatureAuthManagerKey = "http-signature"
 
-getHttpManagerKey :: Text -> String
-getHttpManagerKey keyId = signatureAuthManagerKey <> "-" <> T.unpack keyId
+getHttpManagerKey :: Text -> Text
+getHttpManagerKey keyId = signatureAuthManagerKey <> T.pack "-" <> keyId
 
 prepareAuthManager ::
   HasLog r =>
@@ -280,11 +280,11 @@ prepareAuthManagers ::
   R.FlowRuntime ->
   r ->
   [(Text, Text)] ->
-  Map String Http.ManagerSettings
+  HashMap Text Http.ManagerSettings
 prepareAuthManagers flowRt appEnv allShortIds = do
   flip foldMap allShortIds \(shortId, uniqueKeyId) ->
-    Map.singleton
-      (signatureAuthManagerKey <> "-" <> T.unpack shortId)
+    HMS.singleton
+      (signatureAuthManagerKey <> (T.pack "-") <> shortId)
       (prepareAuthManager flowRt appEnv ["Authorization"] shortId uniqueKeyId)
 
 modFlowRtWithAuthManagers ::
@@ -304,6 +304,16 @@ modFlowRtWithAuthManagers flowRt appEnv orgShortIds = do
   logInfo $ "Loaded http managers - " <> show orgShortIds
   pure $ flowRt {R._httpClientManagers = managers}
 
+-- Note on Changes:
+{-
+ in now-old version of Euler-hs the type of
+   _httpClientManagers       :: Map String Manager
+
+ but, now in the Newer version of Euler, it is
+   _httpClientManagers       :: HashMap Text Manager
+
+ The changes made here and in Client.hs file accommodate for this same fact
+-}
 addAuthManagersToFlowRt ::
   ( HasHttpClientOptions r c,
     MonadReader r m,
@@ -311,14 +321,14 @@ addAuthManagersToFlowRt ::
     MonadFlow m
   ) =>
   R.FlowRuntime ->
-  [(Maybe Int, Map String Http.ManagerSettings)] ->
+  [(Maybe Int, HashMap Text Http.ManagerSettings)] ->
   m R.FlowRuntime
 addAuthManagersToFlowRt flowRt managersList = do
   managers <- mapM createManager managersList
-  pure $ flowRt {R._httpClientManagers = Map.unions managers}
+  pure $ flowRt {R._httpClientManagers = HMS.unions managers}
   where
     createManager (timeout, managersSettings) = do
-      logInfo $ "Loaded http managers - " <> show (Map.keys managersSettings)
+      logInfo $ "Loaded http managers - " <> show (HMS.keys managersSettings)
       createManagersWithTimeout managersSettings timeout
 
 instance
