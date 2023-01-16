@@ -207,7 +207,7 @@ getLatestRatio driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn s@SlidingWindowOptio
   utcTime <- L.runIO getCurrentTime
   let positiveCaseKeysList = getkeysForLastPeriods s utcTime $ makeSlidingWindowKey periodType (mkPostiveCaseKeyfn driverId)
   let totalCountKeysList = getkeysForLastPeriods s utcTime $ makeSlidingWindowKey periodType (mkTotalCaseKeyfn driverId)
-  positiveCases <- nonZero . sum <$> mapMaybeM Redis.get positiveCaseKeysList
+  positiveCases <- sum <$> mapMaybeM Redis.get positiveCaseKeysList
   totalCases <- nonZero . sum <$> mapMaybeM Redis.get totalCountKeysList
   pure $ positiveCases / totalCases
   where
