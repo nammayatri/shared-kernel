@@ -62,6 +62,7 @@ dependencies:
   - double-conversion
   - exceptions
   - euler-hs
+  - formatting
   - hex-text
   - hspec
   - http-api-data
