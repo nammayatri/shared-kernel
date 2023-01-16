@@ -93,7 +93,7 @@ createJWT sa additionalClaims = do
   case mkey of
     Nothing -> pure $ Left "Bad RSA key!"
     Just pkey -> do
-      let key = RSAPrivateKey pkey
+      let key = EncodeRSAPrivateKey pkey
       iat <- numericDate <$> getPOSIXTime
       exp <- numericDate . (+ 3600) <$> getPOSIXTime
       let searchRequest =
