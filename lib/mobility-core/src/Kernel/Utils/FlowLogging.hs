@@ -26,6 +26,8 @@ import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as Text
+import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.Builder as LTB
 import qualified Data.Time as Time
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
@@ -36,13 +38,21 @@ import Kernel.Types.Logging
 import System.Logger (DateFormat, Renderer, renderDefault)
 import qualified Prelude as P
 
+import qualified Formatting.Buildable as FB (build)
+
 logOutputImplementation :: L.MonadFlow m => LogLevel -> T.Message -> m ()
 logOutputImplementation logLevel message =
   case logLevel of
-    DEBUG -> L.logDebug EmtpyTag message
-    INFO -> L.logInfo EmtpyTag message
-    WARNING -> L.logWarning EmtpyTag message
-    ERROR -> L.logError EmtpyTag message
+    DEBUG -> L.logDebug EmtpyTag msg
+    INFO -> L.logInfo EmtpyTag msg
+    WARNING -> L.logWarning EmtpyTag msg
+    ERROR -> L.logError EmtpyTag msg
+    where
+      -- the T.Message type from an older version of Euler-hs
+      -- previously used to be a type-synonym to "Text"
+      -- It is now a record, with a "Buildable" instance
+      -- While the logging functions still expect a Text
+      msg = LT.toStrict . LTB.toLazyText $ FB.build message
 
 withLogTagImplementation ::
   L.MonadFlow m =>
