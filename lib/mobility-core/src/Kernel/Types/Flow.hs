@@ -73,6 +73,13 @@ instance L.MonadFlow (FlowR r) where
   modifyOption k f = FlowR $ L.modifyOption k f
   {-# INLINEABLE delOptionLocal #-}
   delOptionLocal k = FlowR $ L.delOptionLocal k
+
+  -- "callHTTPWithCert" seems DEPRECATED, it advises the following in Euler-hs comments:-
+  -- Use "getHTTPManager"/"callHTTPUsingManager" instead. This method does not allow custom CA store
+  -- Commenting it out, to be deleted in a later iteration.
+  -- {-# INLINEABLE callHTTPWithCert #-}
+  -- callHTTPWithCert url cert = FlowR $ L.callHTTPWithCert url cert
+
   {-# INLINEABLE evalLogger' #-}
   evalLogger' logAct = FlowR $ L.evalLogger' logAct
   {-# INLINEABLE runIO' #-}
