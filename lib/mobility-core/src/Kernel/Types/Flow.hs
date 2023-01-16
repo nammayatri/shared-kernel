@@ -47,8 +47,13 @@ newtype FlowR r a = FlowR {unFlowR :: ReaderT r L.Flow a}
 instance L.MonadFlow (FlowR r) where
   {-# INLINEABLE callServantAPI #-}
   callServantAPI mbMgrSel url cl = FlowR $ L.callServantAPI mbMgrSel url cl
-  {-# INLINEABLE callHTTPWithCert #-}
-  callHTTPWithCert url cert = FlowR $ L.callHTTPWithCert url cert
+
+  -- "callHTTPWithCert" seems DEPRECATED, it advises the following in Euler-hs comments:-
+  -- Use "getHTTPManager"/"callHTTPUsingManager" instead. This method does not allow custom CA store
+  -- Commenting it out, to be deleted in a later iteration.
+  -- {-# INLINEABLE callHTTPWithCert #-}
+  -- callHTTPWithCert url cert = FlowR $ L.callHTTPWithCert url cert
+
   {-# INLINEABLE evalLogger' #-}
   evalLogger' logAct = FlowR $ L.evalLogger' logAct
   {-# INLINEABLE runIO' #-}
