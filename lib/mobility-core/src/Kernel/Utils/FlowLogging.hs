@@ -37,7 +37,8 @@ import qualified EulerHS.Types as T
 import Kernel.Types.Logging
 import System.Logger (DateFormat, Renderer, renderDefault)
 import qualified Prelude as P
-
+import Data.Aeson as A
+import qualified Data.Aeson.KeyMap as AKM
 import qualified Formatting.Buildable as FB (build)
 
 logOutputImplementation :: L.MonadFlow m => LogLevel -> T.Message -> m ()
@@ -141,21 +142,20 @@ logFormatterText
         T.Info -> INFO
         T.Error -> ERROR
       -- textToLBS = LBS.fromStrict . Txt.encodeUtf8
-      log =
-        show timestamp
-          <> " "
-          <> show lvl
-          <> " "
-          <> show msgNum
-          <> "> @"
-          <> fromMaybe "null" hostname
-          <> " "
-          <> logCont
-          <> tag
-          <> " |> "
-          <> msg
+      log = show timestamp
+            <> " "
+            <> show lvl
+            <> " "
+            <> show msgNum
+            <> "> @"
+            <> fromMaybe "null" hostname
+            <> " "
+            <> logCont
+            <>  tag
+            <> " |> "
+            <> (LT.toStrict . LTB.toLazyText $ FB.build msg)
       res =
-        T.SimpleLBS (A.encode (A.Object $ HM.insert "log" (A.String log) HM.empty))
+        T.SimpleLBS (A.encode (A.Object $ AKM.insert "log" (A.String log) AKM.empty))
 
 logContextKey :: Text
 logContextKey = "log_context"
