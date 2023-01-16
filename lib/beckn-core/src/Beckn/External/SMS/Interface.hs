@@ -14,25 +14,42 @@ import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common
 import Beckn.Types.Error
 import Beckn.Utils.Common
-import EulerHS.Prelude
 import qualified Data.Text as T
+import EulerHS.Prelude
 
 constructSendSMSReq :: Text -> Text -> Text -> Text -> Text -> SendSMSReq
-constructSendSMSReq otpCode otpHash otpSmsTemplate phone sender = SendSMSReq
-  { 
-    smsBody = constructOtpSms otpCode otpHash otpSmsTemplate,
-    phoneNumber = phone,
-    sender = sender
-  }
+constructSendSMSReq otpCode otpHash otpSmsTemplate phone sender =
+  SendSMSReq
+    { smsBody = constructOtpSms otpCode otpHash otpSmsTemplate,
+      phoneNumber = phone,
+      sender = sender
+    }
 
-sendSMS ::
+sendSMS :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => SmsHandler m -> SendSMSReq -> m SendSMSRes
+sendSMS SmsHandler {..} req = do
+  prividersPriorityList <- getProvidersPriorityList
+  when (null prividersPriorityList) $ throwError $ InternalError "No sms serive provider configured"
+  sendSmsWithFallback prividersPriorityList
+  where
+    sendSmsWithFallback [] = throwError $ InternalError "Not able to send sms with all the configured providers"
+    sendSmsWithFallback (preferredProvider : restProviders) = do
+      smsConfig <- getProviderConfig preferredProvider
+      result <- try @_ @SomeException $ sendSMS' smsConfig req
+      case result of
+        Left _ -> sendSmsWithFallback restProviders
+        Right res -> case res of
+          UnknownError -> sendSmsWithFallback restProviders
+          Fail -> sendSmsWithFallback restProviders
+          _ -> pure res
+
+sendSMS' ::
   ( EncFlow m r,
     CoreMetrics m
   ) =>
   SmsServiceConfig ->
   SendSMSReq ->
   m SendSMSRes
-sendSMS serviceConfig req = case serviceConfig of
+sendSMS' serviceConfig req = case serviceConfig of
   ExotelSmsConfig cfg -> ExotelSms.sendOTP cfg req
   MyValueFirstConfig cfg -> MyValueFirst.sendOTP cfg req
 

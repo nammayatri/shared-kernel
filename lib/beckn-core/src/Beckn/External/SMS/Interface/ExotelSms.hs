@@ -4,6 +4,7 @@ module Beckn.External.SMS.Interface.ExotelSms
   )
 where
 
+import Beckn.External.Encryption
 import Beckn.External.SMS.ExotelSms.Config
 import qualified Beckn.External.SMS.ExotelSms.Flow as Ex
 import Beckn.External.SMS.ExotelSms.Types
@@ -14,7 +15,6 @@ import Beckn.Types.Common
 import qualified Data.Text.Encoding as DT
 import EulerHS.Prelude
 import Servant
-import Beckn.External.Encryption
 
 sendOTP ::
   ( CoreMetrics m,
@@ -25,7 +25,7 @@ sendOTP ::
   ExotelSmsConfig ->
   IT.SendSMSReq ->
   m IT.SendSMSRes
-sendOTP exoCfg SendSMSReq {..} = do  
+sendOTP exoCfg SendSMSReq {..} = do
   let sid = exoCfg.sid
   apiKey <- decrypt exoCfg.apiKey
   apiToken <- decrypt exoCfg.apiToken

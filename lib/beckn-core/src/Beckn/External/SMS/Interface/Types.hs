@@ -9,6 +9,7 @@ where
 
 import qualified Beckn.External.SMS.ExotelSms.Config as ExotelSms
 import qualified Beckn.External.SMS.MyValueFirst.Config as MyValueFirst
+import qualified Beckn.External.SMS.Types as T
 import Beckn.Prelude
 import Beckn.Types.Servant
 import Data.ByteString.Lazy (fromStrict, toStrict)
@@ -17,13 +18,17 @@ import qualified Data.Text.Encoding as T
 import Deriving.Aeson
 import Servant
 
+data SmsHandler m = SmsHandler
+  { getProvidersPriorityList :: m [T.SmsService],
+    getProviderConfig :: T.SmsService -> m SmsServiceConfig
+  }
+
 data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstConfig | ExotelSmsConfig ExotelSms.ExotelSmsConfig
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SmsServiceConfig
 
 data SendSMSReq = SendSMSReq
-  { 
-    smsBody :: Text,
+  { smsBody :: Text,
     phoneNumber :: Text,
     sender :: Text
   }
