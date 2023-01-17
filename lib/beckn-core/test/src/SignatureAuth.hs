@@ -1,3 +1,5 @@
+{-# LANGUAGE PackageImports #-}
+
 module SignatureAuth
   ( signatureAuthTests,
   )
@@ -6,7 +8,7 @@ where
 import Beckn.Types.Base64
 import qualified Beckn.Utils.SignatureAuth as HttpSig
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base64 as Base64
+import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text as T
 import Data.Time.Clock (NominalDiffTime)
