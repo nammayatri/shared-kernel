@@ -1,5 +1,11 @@
 module Beckn.External.Maps.Google.MapsClient
   ( module GoogleMaps,
+    GoogleMapsAPI,
+    AutocompleteAPI,
+    PlaceDetailsAPI,
+    PlaceNameAPI,
+    DistanceMatrixAPI,
+    DirectionsAPI,
     autoComplete,
     getPlaceDetails,
     getPlaceName,

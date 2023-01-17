@@ -4,9 +4,12 @@ module Beckn.External.Maps.Google.MapsClient.Types where
 
 import Beckn.External.Maps.Google.PolyLinePoints (PolyLinePoints)
 import Beckn.Prelude
+import Data.Aeson
+import qualified Data.ByteString.Lazy as BSL
 import Data.Double.Conversion.Text (toFixed)
 import qualified Data.Text as T
-import Servant (ToHttpApiData (toUrlPiece))
+import qualified Data.Text.Encoding as DT
+import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData (toUrlPiece))
 
 data AutoCompleteResp = AutoCompleteResp
   { status :: Text,
@@ -42,13 +45,23 @@ data LocationS = LocationS
   { lat :: Double,
     lng :: Double
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
 
 instance ToHttpApiData LocationS where
   toUrlPiece (LocationS lat' lng') =
     T.concat [toFixed precision lat', ",", toFixed precision lng']
     where
       precision = 6 -- Precision beyond 6 decimal places is ignored.
+
+instance FromHttpApiData LocationS where
+  parseUrlPiece param = do
+    let latLon = T.splitOn "," param
+    case latLon of
+      [latText, lonText] -> do
+        lat <- left T.pack . eitherDecode . BSL.fromStrict . DT.encodeUtf8 $ latText
+        lng <- left T.pack . eitherDecode . BSL.fromStrict . DT.encodeUtf8 $ lonText
+        Right LocationS {..}
+      _ -> Left "location should contain lat and lon separated by a comma"
 
 data GetPlaceNameResp = GetPlaceNameResp
   { status :: Text,
@@ -145,20 +158,33 @@ data TextValue = TextValue
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
-data Place = Location LocationS | Address Text
+data Place = Location LocationS | Address Text deriving (Show)
 
 instance ToHttpApiData Place where
   toUrlPiece (Location location) = toUrlPiece location
   toUrlPiece (Address address) = address
 
+instance FromHttpApiData Place where
+  parseUrlPiece piece = case parseUrlPiece piece of
+    Right location -> Right $ Location location
+    _ -> Right $ Address piece
+
 instance ToHttpApiData [Place] where
   toUrlPiece latLongList = T.intercalate "|" $ toUrlPiece <$> latLongList
+
+instance FromHttpApiData [Place] where
+  parseUrlPiece piece = do
+    let places = T.splitOn "|" piece
+    forM places parseUrlPiece
 
 data Mode = DRIVING | WALKING | BICYCLING | TRANSIT
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 instance ToHttpApiData Mode where
   toUrlPiece = T.toLower . show
+
+instance FromHttpApiData Mode where
+  parseUrlPiece = left T.pack . eitherDecode .(\str -> "\"" <> str <> "\"") . BSL.fromStrict . DT.encodeUtf8 . T.toUpper
 
 data DepartureTime = Now | FutureTime UTCTime
 

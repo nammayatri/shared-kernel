@@ -49,6 +49,12 @@ slashedRecordFields =
     { fieldLabelModifier = unpack . replace "_" "/" . pack
     }
 
+doubleQuotesRecordFields :: Options
+doubleQuotesRecordFields =
+  defaultOptions
+    { fieldLabelModifier = unpack . replace "_" "\"" . pack
+    }
+
 uniteObjects :: [Value] -> Value
 uniteObjects values =
   let result = unions objects

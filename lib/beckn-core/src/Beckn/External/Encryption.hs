@@ -22,6 +22,7 @@ module Beckn.External.Encryption
     ShortHash (..),
     ShortHashable,
     encrypt,
+    encrypt',
     decrypt,
     getDbHash,
     getHash,
@@ -172,6 +173,20 @@ encrypt ::
   m e
 encrypt payload = do
   encTools <- asks (.encTools)
+  encrypt' encTools payload
+
+-- | Encrypt given value using provided tools.
+--
+-- Note: this performs not more than one call to server, so try to avoid using
+-- multiple subsequent invocations of this method in favor of passing complex
+-- structures (e.g. tuples) through it.
+encrypt' ::
+  forall (m :: Type -> Type) e.
+  (MonadIO m, EncryptedItem' e) =>
+  EncTools ->
+  UnencryptedItem e ->
+  m e
+encrypt' encTools payload = do
   let unencrypted = toUnencrypted @e payload encTools.hashSalt
   withPassettoCtx encTools.service $ throwLeft =<< cliEncrypt unencrypted
 
