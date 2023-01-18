@@ -1,5 +1,9 @@
+-- {-# LANGUAGE DerivingVia #-}
+-- {-# OPTIONS_GHC -Wno-type-defaults #-}
+
 module Beckn.Utils.Servant.Client where
 
+import Beckn.Prelude
 import qualified Beckn.Tools.Metrics.CoreMetrics as Metrics
 import Beckn.Types.Common
 import Beckn.Types.Error (ExternalAPICallError (..))
@@ -22,13 +26,26 @@ import qualified Network.HTTP.Client as Http
 import qualified Network.HTTP.Client.TLS as Http
 import Servant.Client.Core
 
-data HttpClientOptions = HttpClientOptions
-  { timeoutMs :: Int,
-    maxRetries :: Int
+newtype HttpClientOptions = HttpClientOptions
+  { timeoutMs :: Int
+  }
+  deriving (Generic, FromDhall)
+
+data RetryCfg = RetryCfg
+  { maxRetries :: Int,
+    baseCoefficient :: Int
   }
   deriving (Generic, FromDhall)
 
 type HasHttpClientOptions r c = HasField "httpClientOptions" r HttpClientOptions
+
+type HasRetryCfg r c = HasField "retryCfg" r RetryCfg
+
+type HasShortDurationRetryCfg r c = HasField "shortDurationRetryCfg" r RetryCfg
+
+type HasLongDurationRetryCfg r c = HasField "longDurationRetryCfg" r RetryCfg
+
+data RetryType = ShortDurationRetry | LongDurationRetry
 
 type CallAPI' m res res' =
   ( HasCallStack,
@@ -134,39 +151,74 @@ catchConnectionErrors action errorHandler =
 retryAction ::
   ( MonadCatch m,
     Metrics.CoreMetrics m,
+    MonadIO m,
     Log m
   ) =>
   ExternalAPICallError ->
   Int ->
   Int ->
+  Int ->
   m a ->
   m a
-retryAction currentErr currentRetryCount maxRetries action = do
+retryAction currentErr currentRetryCount maxRetries baseCoefficient action = do
   logWarning $ "Error calling " <> showBaseUrlText currentErr.baseUrl <> ": " <> show currentErr.clientError
   logWarning $ "Retrying attempt " <> show currentRetryCount <> " calling " <> showBaseUrlText currentErr.baseUrl
   Metrics.addUrlCallRetries currentErr.baseUrl currentRetryCount
   catchConnectionErrors action $ \err -> do
     if currentRetryCount < maxRetries
-      then retryAction err (currentRetryCount + 1) maxRetries action
+      then do
+        liftIO $ threadDelaySec $ Seconds $ baseCoefficient * (2 ^ currentRetryCount)
+        retryAction err (currentRetryCount + 1) maxRetries baseCoefficient action
       else do
         logError $ "Maximum of retrying attempts is reached calling " <> showBaseUrlText err.baseUrl
         Metrics.addUrlCallRetryFailures currentErr.baseUrl
         throwError err
 
-withRetry ::
+withRetryConfig ::
   ( MonadCatch m,
     MonadReader r m,
-    HasHttpClientOptions r c,
+    MonadIO m,
+    Metrics.CoreMetrics m,
+    Log m
+  ) =>
+  RetryCfg ->
+  m a ->
+  m a
+withRetryConfig retryConfig action = do
+  let maxRetries = retryConfig.maxRetries
+      baseCoefficient = retryConfig.baseCoefficient
+
+  catchConnectionErrors action $ \err -> do
+    if maxRetries > 0
+      then retryAction err 1 maxRetries baseCoefficient action
+      else do
+        Metrics.addUrlCallRetryFailures err.baseUrl
+        throwError err
+
+withShortRetry ::
+  ( MonadCatch m,
+    MonadReader r m,
+    MonadIO m,
+    HasShortDurationRetryCfg r c,
     Metrics.CoreMetrics m,
     Log m
   ) =>
   m a ->
   m a
-withRetry action = do
-  maxRetries <- asks (.httpClientOptions.maxRetries)
-  catchConnectionErrors action $ \err -> do
-    if maxRetries > 0
-      then retryAction err 1 maxRetries action
-      else do
-        Metrics.addUrlCallRetryFailures err.baseUrl
-        throwError err
+withShortRetry action = do
+  retryConfig <- asks (.shortDurationRetryCfg)
+  withRetryConfig retryConfig action
+
+withLongRetry ::
+  ( MonadCatch m,
+    MonadReader r m,
+    MonadIO m,
+    HasLongDurationRetryCfg r c,
+    Metrics.CoreMetrics m,
+    Log m
+  ) =>
+  m a ->
+  m a
+withLongRetry action = do
+  retryConfig <- asks (.longDurationRetryCfg)
+  withRetryConfig retryConfig action
