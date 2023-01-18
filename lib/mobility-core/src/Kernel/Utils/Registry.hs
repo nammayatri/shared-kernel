@@ -33,14 +33,13 @@ import qualified Kernel.Types.Registry.Routes as Registry
 import Kernel.Utils.Common
 
 registryLookup ::
-  ( MonadFlow m,
-    CoreMetrics m
+  ( CoreMetrics m,
+    HasFlowEnv m r '["registryUrl" ::: BaseUrl]
   ) =>
-  BaseUrl ->
   SimpleLookupRequest ->
   m (Maybe Subscriber)
-registryLookup registryUrl request =
-  registryFetch registryUrl (toLookupReq request)
+registryLookup request =
+  registryFetch (toLookupReq request)
     >>= \case
       [] -> pure Nothing
       -- These are temporary changes as there is bug in ONDC registry. They are sending multiple entries irrespective of ukId So we added traversal at our end.
@@ -61,13 +60,15 @@ registryLookup registryUrl request =
         }
 
 registryFetch ::
-  ( MonadFlow m,
-    CoreMetrics m
+  ( MonadReader r m,
+    MonadFlow m,
+    CoreMetrics m,
+    HasField "registryUrl" r BaseUrl
   ) =>
-  BaseUrl ->
   API.LookupRequest ->
   m [Subscriber]
-registryFetch registryUrl request = do
+registryFetch request = do
+  registryUrl <- asks (.registryUrl)
   callAPI registryUrl (T.client Registry.lookupAPI request) "lookup"
     >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
 
