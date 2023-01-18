@@ -22,7 +22,7 @@ import Kernel.Prelude
 import Kernel.Types.Registry.Subscriber as E
 
 class Registry m where
-  registryLookup :: BaseUrl -> SimpleLookupRequest -> m (Maybe Subscriber)
+  registryLookup :: SimpleLookupRequest -> m (Maybe Subscriber)
 
 data SimpleLookupRequest = SimpleLookupRequest
   { unique_key_id :: Text,
