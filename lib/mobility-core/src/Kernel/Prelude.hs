@@ -111,11 +111,26 @@ roundToIntegral = round . roundToUnits
 showRounded :: RealFrac a => a -> Text
 showRounded = show @_ @Int . roundToIntegral
 
+infixl 1 >>=/
+
 (>>=/) :: Monad m => m a -> (a -> m b) -> m a
 (>>=/) a b = do
   a' <- a
   _ <- b a'
   return a'
 
+infixl 1 /=<<
+
 (/=<<) :: Monad m => (a -> m b) -> m a -> m a
 (/=<<) a b = b >>=/ a
+
+infixl 1 >>>=
+
+(>>>=) :: (Traversable n, Monad m, Monad n) => m (n a) -> (a -> m (n b)) -> m (n b)
+(>>>=) a b = do
+  a >>= \a1 -> sequenceA (a1 <&> b) <&> join
+
+infixl 1 =<<<
+
+(=<<<) :: (Traversable n, Monad m, Monad n) => (a -> m (n b)) -> m (n a) -> m (n b)
+(=<<<) a b = b >>>= a
