@@ -21,6 +21,7 @@ module Beckn.External.FCM.Flow
     notifyPersonWithPriority,
     FCMSendMessageAPI,
     fcmSendMessageAPI,
+    parseFCMAccount,
   )
 where
 
@@ -219,17 +220,16 @@ getToken config = do
       getNewToken config
     jwt -> pure jwt
 
-getAndParseFCMAccount ::
-  MonadFlow m =>
-  FCMConfig ->
-  m (Either String JWT.ServiceAccount)
-getAndParseFCMAccount config = do
-  case BL.fromStrict . T.encodeUtf8 <$> B64.decodeBase64 config.fcmServiceAccount of
-    Right bs -> pure $ Aeson.eitherDecode bs
-    _ -> pure $ Left "FCM JSON file is not set in configs"
+parseFCMAccount ::
+  Text ->
+  Either String JWT.ServiceAccount
+parseFCMAccount fcmServiceAccount = do
+  case BL.fromStrict . T.encodeUtf8 <$> B64.decodeBase64 fcmServiceAccount of
+    Right bs -> Aeson.eitherDecode bs
+    _ -> Left "FCM JSON file is not set in configs"
 
 getNewToken :: (Redis.HedisFlow m r, MonadFlow m) => FCMConfig -> m (Either String JWT.JWToken)
-getNewToken config = getAndParseFCMAccount config >>= either (pure . Left) (refreshToken config)
+getNewToken config = either (pure . Left) (refreshToken config) $ parseFCMAccount config.fcmServiceAccount
 
 refreshToken :: (Redis.HedisFlow m r, MonadFlow m) => FCMConfig -> JWT.ServiceAccount -> m (Either String JWT.JWToken)
 refreshToken config fcmAcc = do
