@@ -69,7 +69,7 @@ data RouteInfo = RouteInfo
   { duration :: Maybe Seconds,
     distance :: Maybe Meters,
     boundingBox :: Maybe BoundingBoxWithoutCRS,
-    snappedWaypoints :: [(LatLong, LatLong)],
+    snappedWaypoints :: [LatLong],
     points :: [LatLong]
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)

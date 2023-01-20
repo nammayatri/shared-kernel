@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -15,8 +16,12 @@ import qualified Data.Text as T
 import qualified Kernel.External.Maps.Types as Maps
 import Kernel.Prelude
 import Kernel.Utils.GenericPretty
-import Kernel.Utils.JSON (constructorsWithSnakeCase)
+import Kernel.Utils.JSON (constructorsWithSnakeCase, stripPrefixUnderscoreIfAny)
 import Kernel.Utils.TH
+import qualified Kernel.External.Maps.Google.PolyLinePoints as PP
+import Data.Aeson
+import qualified Data.Vector as V
+import EulerHS.Prelude ((...))
 import Web.FormUrlEncoded (ToForm, toForm)
 import Web.Internal.HttpApiData
 
@@ -124,3 +129,94 @@ data TextValue = TextValue
     value :: Int
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data RouteResponse = RouteResponse
+  { code :: Text,
+    routes :: [Routes],
+    waypoints :: [WayPoints]
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data Routes = Routes
+  { legs :: [Legs],
+    weight_name :: Text,
+    geometry :: PP.PolyLinePoints,
+    weight :: Double,
+    distance :: Double,
+    duration :: Double
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data Legs = Legs
+  { steps :: [Steps],
+    weight :: Double,
+    distance :: Double,
+    summary :: Text,
+    duration :: Double
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data Steps = Steps
+  { intersections :: [Intersections],
+    driving_side :: Text,
+    mode :: Text,
+    maneuver :: Maneuver,
+    distance :: Double,
+    duration :: Double,
+    geometry :: PP.PolyLinePoints,
+    name :: Text
+  }
+  deriving (Generic)
+
+instance FromJSON Steps where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON Steps where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data Maneuver = Maneuver
+  { location :: LngLat,
+    bearing_before :: Int,
+    bearing_after :: Int,
+    modifier :: Text,
+    _type :: Text
+  }
+  deriving (Generic)
+
+instance FromJSON Maneuver where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON Maneuver where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data WayPoints = WayPoints
+  { hint :: Text,
+    location :: LngLat,
+    name :: Text
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data Intersections = Intersections
+  { location :: LngLat,
+    bearings :: [Int],
+    entry :: [Bool]
+  }
+  deriving (Generic)
+
+instance FromJSON Intersections where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON Intersections where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+newtype LngLat = LngLat {getLatLong :: Maps.LatLong}
+  deriving stock (Generic, Show, Eq)
+  deriving (PrettyShow) via (Showable LngLat)
+
+instance FromJSON LngLat where
+  parseJSON = withArray "array [lon, lat]" $ \arr_ -> case toList arr_ of
+    [lon, lat] -> LngLat ... Maps.LatLong <$> parseJSON lat <*> parseJSON lon
+    _ -> fail "expected array [lon, lat]"
+
+instance ToJSON LngLat where
+  toJSON (LngLat Maps.LatLong {..}) = Array $ V.fromList $ map toJSON [lon, lat]

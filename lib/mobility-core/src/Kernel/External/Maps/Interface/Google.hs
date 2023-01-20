@@ -99,11 +99,12 @@ mkRoute req route = do
       let leg = head route.legs
           steps = leg.steps
           polylinePoints = concat $ (\step -> decode step.polyline.points) <$> steps
-          snappedWayPoints = (\step -> (LatLong step.start_location.lat step.start_location.lng, LatLong step.end_location.lat step.end_location.lng)) <$> steps
+          -- TODO: Fix snappedWayPoints: the waypoint passed in request which are snapped to road
+          -- snappedWayPoints = (\step -> (LatLong step.start_location.lat step.start_location.lng, LatLong step.end_location.lat step.end_location.lng)) <$> steps
           distanceInM = Just $ fromIntegral leg.distance.value
           durationInS = Just $ fromIntegral leg.duration.value
 
-      return $ RouteInfo durationInS distanceInM bound snappedWayPoints polylinePoints
+      return $ RouteInfo durationInS distanceInM bound [] polylinePoints
   where
     mkBounds :: GoogleMaps.Bounds -> BoundingBoxWithoutCRS
     mkBounds gBound =
