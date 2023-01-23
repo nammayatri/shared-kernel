@@ -4,6 +4,7 @@ module Beckn.External.SMS.Interface.MyValueFirst
   )
 where
 
+import Beckn.External.Encryption
 import Beckn.External.SMS.Interface.Types as IT
 import Beckn.External.SMS.MyValueFirst.Config
 import qualified Beckn.External.SMS.MyValueFirst.Flow as MVF
@@ -12,7 +13,6 @@ import Beckn.External.SMS.Types as Reexport
 import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Beckn.Types.Common
 import EulerHS.Prelude
-import Beckn.External.Encryption
 
 sendOTP ::
   ( CoreMetrics m,
@@ -20,7 +20,7 @@ sendOTP ::
     EncFlow m r,
     Log m
   ) =>
-  MyValueFirstConfig ->
+  MyValueFirstCfg ->
   IT.SendSMSReq ->
   m IT.SendSMSRes
 sendOTP smsCfg SendSMSReq {..} = do

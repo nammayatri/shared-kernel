@@ -58,6 +58,14 @@ validateObject ::
   Validation
 validateObject fieldName object validator = addPrefixes fieldName $ validator object
 
+validateMbObject ::
+  Text ->
+  Maybe a ->
+  Validate a ->
+  Validation
+validateMbObject _ Nothing _ = pure ()
+validateMbObject fieldName (Just object) validator = validateObject fieldName object validator
+
 validateList ::
   Container a =>
   Text ->

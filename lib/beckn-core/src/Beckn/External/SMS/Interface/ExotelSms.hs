@@ -22,7 +22,7 @@ sendOTP ::
     EncFlow m r,
     Log m
   ) =>
-  ExotelSmsConfig ->
+  ExotelSmsCfg ->
   IT.SendSMSReq ->
   m IT.SendSMSRes
 sendOTP exoCfg SendSMSReq {..} = do

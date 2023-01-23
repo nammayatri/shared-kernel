@@ -21,6 +21,9 @@ import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 data MapsService = Google | OSRM | MMI
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
+availableMapsServices :: [MapsService]
+availableMapsServices = [Google, OSRM, MMI]
+
 derivePersistField "MapsService"
 
 data LatLong = LatLong

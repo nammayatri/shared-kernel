@@ -23,7 +23,7 @@ data SmsHandler m = SmsHandler
     getProviderConfig :: T.SmsService -> m SmsServiceConfig
   }
 
-data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstConfig | ExotelSmsConfig ExotelSms.ExotelSmsConfig
+data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SmsServiceConfig
 

@@ -194,3 +194,11 @@ instance Show n => ShowablePredicate (Exact n) where
 
 instance Eq n => Predicate n (Exact n) where
   pFun (Exact m) = (== m)
+
+data PredicateFunc a = PredicateFunc (Text -> Text) (a -> Bool)
+
+instance Predicate a (PredicateFunc a) where
+  pFun (PredicateFunc _ func) a = func a
+
+instance ShowablePredicate (PredicateFunc a) where
+  pShow (PredicateFunc mkMessage _) field = mkMessage field
