@@ -128,7 +128,7 @@ findAllInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ lift 
 create ::
   ( PersistEntity t,
     PersistEntityBackend t ~ SqlBackend,
-    TType t a
+    ToTType t a
   ) =>
   a ->
   SqlDB ()
@@ -148,7 +148,7 @@ create' q = do
 createMany ::
   ( PersistEntity t,
     PersistEntityBackend t ~ SqlBackend,
-    TType t a
+    ToTType t a
   ) =>
   [a] ->
   SqlDB ()
@@ -168,7 +168,7 @@ createMany' q = do
 createUnique ::
   ( PersistEntity t,
     PersistEntityBackend t ~ SqlBackend,
-    TType t a
+    ToTType t a
   ) =>
   a ->
   SqlDB (Maybe (Key t))
@@ -255,7 +255,7 @@ deleteReturningCount' = liftToFullEntitySqlDB . SqlDB . lift . Esq.deleteCount
 
 repsert ::
   ( PersistEntityBackend t ~ SqlBackend,
-    TType t a,
+    ToTType t a,
     TEntityKey t
   ) =>
   DomainKey t ->
@@ -278,7 +278,7 @@ repsert' k v = do
 upsert ::
   ( OnlyOneUniqueKey t,
     PersistEntityBackend t ~ SqlBackend,
-    TType t a
+    ToTType t a
   ) =>
   a ->
   [SqlExpr (Entity t) -> SqlExpr Esq.Update] ->
@@ -301,7 +301,7 @@ upsert' r u = do
 upsertBy ::
   ( PersistEntity t,
     PersistEntityBackend t ~ SqlBackend,
-    TType t a
+    ToTType t a
   ) =>
   Unique t ->
   a ->
