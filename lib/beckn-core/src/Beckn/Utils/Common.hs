@@ -31,10 +31,3 @@ generateShortId = ShortId . T.pack <$> liftIO (RS.randomString (RS.onlyAlphaNum 
 generateOTPCode :: MonadFlow m => m Text
 generateOTPCode =
   liftIO $ padNumber 4 <$> Cryptonite.generateBetween 1 9999
-
-headMaybe :: [a] -> Maybe a
-headMaybe [] = Nothing
-headMaybe (x : _) = Just x
-
-tailMaybe :: [a] -> Maybe a
-tailMaybe arr = headMaybe (reverse arr)

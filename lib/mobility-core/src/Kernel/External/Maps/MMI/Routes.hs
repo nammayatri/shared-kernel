@@ -19,12 +19,13 @@ type MMIRouteAPI =
     :> Capture "cordinates" Text
     :> QueryParam "steps" Bool
     :> QueryParam "region" Text
+    :> QueryParam "overview" Text
     :> Get '[JSON] MMI.RouteResponse
 
 mmiRouteAPI :: Proxy MMIRouteAPI
 mmiRouteAPI = Proxy
 
-getRouteClient :: Text -> Text -> Maybe Bool -> Maybe Text -> ET.EulerClient MMI.RouteResponse
+getRouteClient :: Text -> Text -> Maybe Bool -> Maybe Text -> Maybe Text -> ET.EulerClient MMI.RouteResponse
 getRouteClient = ET.client mmiRouteAPI
 
 mmiRoute ::
@@ -39,7 +40,7 @@ mmiRoute ::
 mmiRoute url apiKey points = do
   callMMIAPI
     url
-    (getRouteClient apiKey points (Just True) (Just "ind"))
+    (getRouteClient apiKey points (Just True) (Just "ind") (Just "full"))
     "mmi-route"
 
 callMMIAPI :: CallAPI env a
