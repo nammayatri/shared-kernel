@@ -11,6 +11,6 @@ import Data.OpenApi
 import EulerHS.Prelude
 
 data SmsService = MyValueFirst | ExotelSms
-  deriving (Show, Read, Eq, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 derivePersistField "SmsService"
