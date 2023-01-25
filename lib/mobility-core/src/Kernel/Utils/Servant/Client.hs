@@ -6,7 +6,7 @@ module Kernel.Utils.Servant.Client where
 import qualified Data.Aeson as A
 import qualified Data.Map.Strict as Map
 import qualified EulerHS.Language as L
-import EulerHS.Prelude hiding (id)
+import EulerHS.Prelude hiding (id, notElem)
 import qualified EulerHS.Types as ET
 import GHC.Records.Extra (HasField)
 import Kernel.Prelude
@@ -24,7 +24,13 @@ import Kernel.Utils.Text
 import Kernel.Utils.Time
 import qualified Network.HTTP.Client as Http
 import qualified Network.HTTP.Client.TLS as Http
+import Network.HTTP.Types (status404)
+import qualified Network.Wai as Wai
+import Network.Wai.Application.Static (staticApp)
+import qualified Servant
 import Servant.Client.Core
+import WaiAppStatic.Storage.Filesystem
+import WaiAppStatic.Types (StaticSettings (..))
 
 newtype HttpClientOptions = HttpClientOptions
   { timeoutMs :: Int
@@ -222,3 +228,17 @@ withLongRetry ::
 withLongRetry action = do
   retryConfig <- asks (.longDurationRetryCfg)
   withRetryConfig retryConfig action
+
+serveDirectoryWebApp :: FilePath -> Servant.ServerT Servant.Raw m
+serveDirectoryWebApp = serveDirectoryWith' . defaultWebAppSettings
+  where
+    staticApp' :: StaticSettings -> Wai.Application
+    staticApp' _ req sendResponse
+      | Wai.requestMethod req `notElem` ["GET", "HEAD"] =
+        sendResponse $
+          Wai.responseLBS
+            status404
+            [("Content-Type", "text/plain")]
+            "Not found"
+    staticApp' set req sendResponse = staticApp set req sendResponse
+    serveDirectoryWith' = Servant.Tagged . staticApp'

@@ -134,6 +134,7 @@ dependencies:
   - base64
   - safe
   - tinylog
+  - wai-app-static
 
 ghc-options:
   - -fwrite-ide-info
