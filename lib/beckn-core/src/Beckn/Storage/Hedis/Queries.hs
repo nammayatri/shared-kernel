@@ -3,7 +3,7 @@ module Beckn.Storage.Hedis.Queries where
 import Beckn.Prelude
 import Beckn.Storage.Hedis.Config
 import Beckn.Storage.Hedis.Error
-import Beckn.Utils.Error.Throwing
+import qualified Beckn.Utils.Error.Throwing as Error
 import Beckn.Utils.Logging
 import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
@@ -20,7 +20,7 @@ runHedis ::
   HedisFlow m env => Redis (Either Reply a) -> m a
 runHedis action = do
   eithRes <- runHedisEither action
-  fromEitherM (HedisReplyError . show) eithRes
+  Error.fromEitherM (HedisReplyError . show) eithRes
 
 runHedisEither ::
   HedisFlow m env => Redis (Either Reply a) -> m (Either Reply a)
@@ -34,8 +34,8 @@ runHedisTransaction action = do
   con <- asks (.hedisEnv.hedisConnection)
   res <- liftIO . Hedis.runRedis con $ Hedis.multiExec action
   case res of
-    TxError err -> throwError $ HedisReplyError err
-    TxAborted -> throwError HedisTransactionAborted
+    TxError err -> Error.throwError $ HedisReplyError err
+    TxAborted -> Error.throwError HedisTransactionAborted
     TxSuccess a -> return a
 
 ----------------------------------------------------
@@ -72,7 +72,25 @@ get key = do
   maybeBS <- runWithPrefix key Hedis.get
   case maybeBS of
     Nothing -> pure Nothing
-    Just bs -> fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+    Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+
+get' ::
+  (FromJSON a, HedisFlow m env) => Text -> m () -> m (Maybe a)
+get' key decodeErrHandler = do
+  maybeBS <- runWithPrefix key Hedis.get
+  case maybeBS of
+    Nothing -> pure Nothing
+    Just bs -> do 
+      case Ae.decode $ BSL.fromStrict bs of
+        Just a -> return $ Just a
+        Nothing -> do
+          withLogTag "Redis" $ logDebug $ "Decode Failure for the key " <> key
+          decodeErrHandler
+          return Nothing
+
+safeGet ::
+  (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
+safeGet key = get' key (del key)
 
 set ::
   (ToJSON a, HedisFlow m env) => Text -> a -> m ()
@@ -131,7 +149,7 @@ lRange :: (HedisFlow m env, FromJSON a) => Text -> Integer -> Integer -> m [a]
 lRange key start stop = do
   res <- runWithPrefix key $ \prefKey ->
     Hedis.lrange prefKey start stop
-  mapM (\a -> fromMaybeM (HedisDecodeError $ cs a) . Ae.decode $ cs a) res
+  mapM (\a -> Error.fromMaybeM (HedisDecodeError $ cs a) . Ae.decode $ cs a) res
 
 getList :: (HedisFlow m env, FromJSON a) => Text -> m [a]
 getList key = lRange key 0 (-1)
@@ -199,7 +217,7 @@ hGet key field = do
   maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
   case maybeBS of
     Nothing -> pure Nothing
-    Just bs -> fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+    Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
 hDel :: HedisFlow m env => Text -> Text -> m ()
 hDel key field = runWithPrefix_ key (`Hedis.hdel` [cs field])
