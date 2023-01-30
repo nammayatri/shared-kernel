@@ -230,15 +230,18 @@ withLongRetry action = do
   withRetryConfig retryConfig action
 
 serveDirectoryWebApp :: FilePath -> Servant.ServerT Servant.Raw m
-serveDirectoryWebApp = serveDirectoryWith' . defaultWebAppSettings
+serveDirectoryWebApp = serveDirectoryWith' . settings . defaultWebAppSettings
   where
     staticApp' :: StaticSettings -> Wai.Application
     staticApp' _ req sendResponse
       | Wai.requestMethod req `notElem` ["GET", "HEAD"] =
-        sendResponse $
-          Wai.responseLBS
-            status404
-            [("Content-Type", "text/plain")]
-            "Not found"
+        sendError404 sendResponse
     staticApp' set req sendResponse = staticApp set req sendResponse
     serveDirectoryWith' = Servant.Tagged . staticApp'
+    settings StaticSettings {..} = StaticSettings {ss404Handler = Just $ \_ sendResponse -> sendError404 sendResponse, ..}
+    sendError404 sendResponse =
+      sendResponse $
+        Wai.responseLBS
+          status404
+          [("Content-Type", "text/plain")]
+          "Not found"
