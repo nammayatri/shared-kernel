@@ -251,6 +251,7 @@ data SearchRequestError
   = SearchRequestNotFound Text
   | SearchRequestDoesNotExist Text
   | SearchRequestExpired
+  | SearchRequestCancelled Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''SearchRequestError
@@ -259,6 +260,7 @@ instance IsBaseError SearchRequestError where
   toMessage = \case
     SearchRequestNotFound searchId -> Just $ "Search with searchId \"" <> show searchId <> "\"not found. "
     SearchRequestDoesNotExist searchId -> Just $ "No case matches passed data \"<>" <> show searchId <> "\" not exist"
+    SearchRequestCancelled searchId -> Just $ "Search with searchId \"<>" <> show searchId <> "\" was cancelled. "
     _ -> Nothing
 
 instance IsHTTPError SearchRequestError where
@@ -266,10 +268,12 @@ instance IsHTTPError SearchRequestError where
     SearchRequestNotFound _ -> "SEARCH_REQUEST_NOT_FOUND"
     SearchRequestDoesNotExist _ -> "SEARCH_REQUEST_DOES_NOT_EXIST"
     SearchRequestExpired -> "SEARCH_REQUEST_EXPIRED"
+    SearchRequestCancelled _ -> "SEARCH_REQUEST_CANCELLED"
   toHttpCode = \case
     SearchRequestNotFound _ -> E500
     SearchRequestDoesNotExist _ -> E400
     SearchRequestExpired -> E400
+    SearchRequestCancelled _ -> E403
 
 instance IsAPIError SearchRequestError
 
