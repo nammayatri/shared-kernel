@@ -219,10 +219,10 @@ hGet key field = do
     Nothing -> pure Nothing
     Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
-hDel :: HedisFlow m env => Text -> Text -> m ()
-hDel key field = runWithPrefix_ key (`Hedis.hdel` [cs field])
+hDel :: HedisFlow m env => Text -> [Text] -> m ()
+hDel key fields = runWithPrefix_ key (`Hedis.hdel` map cs fields)
 
-hGetAll :: (FromJSON a, FromJSON b, HedisFlow m env) => Text -> m [(a, b)]
+hGetAll :: (FromJSON a, HedisFlow m env) => Text -> m [(Text, a)]
 hGetAll key = do
   hMap <- runWithPrefix key Hedis.hgetall
-  pure $ mapMaybe (\(k, val) -> (,) <$> Ae.decode (BSL.fromStrict k) <*> Ae.decode (BSL.fromStrict val)) hMap
+  pure $ mapMaybe (\(k, val) -> (cs k,) <$> Ae.decode (BSL.fromStrict val)) hMap
