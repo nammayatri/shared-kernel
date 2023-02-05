@@ -2,6 +2,7 @@ module Beckn.Utils.SlidingWindowCounters
   ( incrementWindowCount,
     incrementByValue,
     incrementByValueInTimeBucket,
+    decrementWindowCount,
     getLatestRatio,
     getCurrentWindowValues,
     makeSlidingWindowKey,
@@ -170,6 +171,42 @@ incrementByValueImpl mbTimeStamp val keyModifier key SlidingWindowOptions {..} =
   let finalKey = keyModifier periodType key utcTime
   let expirationTime = period * convertPeriodTypeToSeconds periodType
   void $ Redis.incrby finalKey val
+  Redis.expire finalKey $ fromIntegral expirationTime
+
+decrementWindowCount ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r
+  ) =>
+  Text ->
+  SlidingWindowOptions ->
+  m ()
+decrementWindowCount = decrementCounter makeSlidingWindowKey
+
+decrementCounter ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r
+  ) =>
+  (PeriodType -> Text -> UTCTime -> Text) ->
+  Text ->
+  SlidingWindowOptions ->
+  m ()
+decrementCounter = decrementByValueImpl Nothing 1
+
+decrementByValueImpl ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r
+  ) =>
+  Maybe UTCTime ->
+  Integer ->
+  (PeriodType -> Text -> UTCTime -> Text) ->
+  Text ->
+  SlidingWindowOptions ->
+  m ()
+decrementByValueImpl mbTimeStamp val keyModifier key SlidingWindowOptions {..} = do
+  utcTime <- fromMaybeM (L.runIO getCurrentTime) (pure mbTimeStamp)
+  let finalKey = keyModifier periodType key utcTime
+  let expirationTime = period * convertPeriodTypeToSeconds periodType
+  void $ Redis.decrby finalKey val
   Redis.expire finalKey $ fromIntegral expirationTime
 
 -- ================= Getter functions for fetching window results ======================

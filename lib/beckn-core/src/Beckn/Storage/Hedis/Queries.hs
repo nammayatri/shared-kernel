@@ -80,7 +80,7 @@ get' key decodeErrHandler = do
   maybeBS <- runWithPrefix key Hedis.get
   case maybeBS of
     Nothing -> pure Nothing
-    Just bs -> do 
+    Just bs -> do
       case Ae.decode $ BSL.fromStrict bs of
         Just a -> return $ Just a
         Nothing -> do
@@ -159,6 +159,12 @@ incr key = runWithPrefix key Hedis.incr
 
 incrby :: (HedisFlow m env) => Text -> Integer -> m Integer
 incrby key val = runWithPrefix key $ flip Hedis.incrby val
+
+decr :: (HedisFlow m env) => Text -> m Integer
+decr key = runWithPrefix key Hedis.decr
+
+decrby :: (HedisFlow m env) => Text -> Integer -> m Integer
+decrby key val = runWithPrefix key $ flip Hedis.decrby val
 
 incrByFloat :: (HedisFlow m env) => Text -> Double -> m Double
 incrByFloat key toAdd = runWithPrefix key $ \prefKey ->
