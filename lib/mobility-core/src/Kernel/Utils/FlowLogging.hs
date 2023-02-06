@@ -8,6 +8,8 @@ module Kernel.Utils.FlowLogging
 where
 
 import Data.Aeson as A
+import qualified Data.ByteString.Builder as Builder
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as Text
 import qualified Data.Time as Time
@@ -17,6 +19,7 @@ import EulerHS.Runtime
 import EulerHS.Types (LogContext)
 import qualified EulerHS.Types as T
 import Kernel.Types.Logging
+import System.Logger (DateFormat, Renderer, renderDefault)
 import qualified Prelude as P
 
 logOutputImplementation :: L.MonadFlow m => LogLevel -> T.Message -> m ()
@@ -78,7 +81,22 @@ getEulerLoggerConfig LoggerConfig {..} =
           else Text.init l <> "-eul." <> r
 
 getEulerLoggerRuntime :: Maybe Text -> LoggerConfig -> IO LoggerRuntime
-getEulerLoggerRuntime hostname = createLoggerRuntime (logFlowFormatter hostname) . getEulerLoggerConfig
+getEulerLoggerRuntime hostname = createOwnLoggerRuntime (logFlowFormatter hostname) . getEulerLoggerConfig
+
+createOwnLoggerRuntime :: T.FlowFormatter -> T.LoggerConfig -> IO LoggerRuntime
+createOwnLoggerRuntime = createLoggerRuntime' defaultDateFormat (Just ownRender) defaultBufferSize
+  where
+    ownRender :: Renderer
+    ownRender s _ _ xs =
+      let lbsFromBuilder = Builder.toLazyByteString $ renderDefault s xs
+       in if LBS.length lbsFromBuilder > 3 -- 3 character, for deleting prefix
+            then Builder.lazyByteString $ LBS.drop 3 lbsFromBuilder
+            else Builder.lazyByteString lbsFromBuilder
+
+    defaultBufferSize :: T.BufferSize
+    defaultBufferSize = 4096 -- value from euler-hs
+    defaultDateFormat :: Maybe DateFormat
+    defaultDateFormat = Nothing -- value from euler-hs
 
 logFlowFormatter :: Maybe Text -> T.FlowFormatter
 logFlowFormatter hostname _ = do

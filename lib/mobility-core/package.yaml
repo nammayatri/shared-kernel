@@ -133,6 +133,7 @@ dependencies:
   - deriving-aeson
   - base64
   - safe
+  - tinylog
 
 ghc-options:
   - -fwrite-ide-info
