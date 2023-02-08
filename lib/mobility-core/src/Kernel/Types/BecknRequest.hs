@@ -2,9 +2,9 @@
 
 module Kernel.Types.BecknRequest where
 
-import Kernel.Types.Id (Id)
 import Data.Time (UTCTime)
 import EulerHS.Prelude hiding (id)
+import Kernel.Types.Id (Id)
 
 data BecknRequest = BecknRequest
   { id :: Id BecknRequest,

@@ -1,11 +1,11 @@
 module Kernel.Utils.Error.DB where
 
+import EulerHS.Prelude
+import qualified EulerHS.Types as ET
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Utils.Error.Throwing
-import EulerHS.Prelude
-import qualified EulerHS.Types as ET
 
 throwDBError :: (MonadThrow m, Log m) => ET.DBError -> m a
 throwDBError (ET.DBError dbErrType msg) = throwError $

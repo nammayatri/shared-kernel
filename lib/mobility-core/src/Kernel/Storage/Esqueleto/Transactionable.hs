@@ -1,5 +1,7 @@
 module Kernel.Storage.Esqueleto.Transactionable where
 
+import Database.Esqueleto.Experimental (runSqlPool)
+import Database.Persist.Postgresql (runSqlPoolNoTransaction)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Esqueleto.DTypeBuilder
@@ -8,8 +10,6 @@ import Kernel.Storage.Esqueleto.SqlDB
 import Kernel.Types.Logging
 import Kernel.Types.Time (getCurrentTime)
 import Kernel.Utils.IOLogging (LoggerEnv)
-import Database.Esqueleto.Experimental (runSqlPool)
-import Database.Persist.Postgresql (runSqlPoolNoTransaction)
 
 type Transactionable m = Transactionable' SelectSqlDB m
 

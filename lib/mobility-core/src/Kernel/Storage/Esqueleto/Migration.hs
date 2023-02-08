@@ -4,14 +4,14 @@ module Kernel.Storage.Esqueleto.Migration
   )
 where
 
-import Kernel.Prelude
-import Kernel.Storage.Esqueleto.Config
-import Kernel.Types.Common
-import Kernel.Utils.Common
 import Data.ByteString
 import qualified Data.Text as T
 import qualified Database.PostgreSQL.Simple as PS
 import Database.PostgreSQL.Simple.Migration
+import Kernel.Prelude
+import Kernel.Storage.Esqueleto.Config
+import Kernel.Types.Common
+import Kernel.Utils.Common
 
 fromEsqDBConfig :: EsqDBConfig -> PS.ConnectInfo
 fromEsqDBConfig EsqDBConfig {..} =

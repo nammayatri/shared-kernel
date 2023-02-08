@@ -25,12 +25,6 @@ module Kernel.External.FCM.Flow
   )
 where
 
-import Kernel.External.FCM.Types
-import qualified Kernel.Storage.Hedis as Redis
-import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Types.Common
-import Kernel.Utils.Common
-import qualified Kernel.Utils.JWT as JWT
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
@@ -38,6 +32,12 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Base64 as B64
 import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
+import Kernel.External.FCM.Types
+import qualified Kernel.Storage.Hedis as Redis
+import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Common
+import Kernel.Utils.Common
+import qualified Kernel.Utils.JWT as JWT
 import Servant
 
 -- | Create FCM message

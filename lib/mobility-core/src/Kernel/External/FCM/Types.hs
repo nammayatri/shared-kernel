@@ -8,11 +8,6 @@
 
 module Kernel.External.FCM.Types where
 
-import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
-import Kernel.Types.App
-import Kernel.Utils.GenericPretty
-import Kernel.Utils.TH
-import Kernel.Utils.Text (decodeFromText, encodeToText)
 import Control.Lens.TH
 import Data.Aeson
 import Data.Aeson.Casing
@@ -20,6 +15,11 @@ import Data.Aeson.TH
 import Data.Aeson.Types
 import Data.Default.Class
 import EulerHS.Prelude hiding (id, (.=))
+import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
+import Kernel.Types.App
+import Kernel.Utils.GenericPretty
+import Kernel.Utils.TH
+import Kernel.Utils.Text (decodeFromText, encodeToText)
 
 data FCMConfig = FCMConfig
   { fcmUrl :: BaseUrl,

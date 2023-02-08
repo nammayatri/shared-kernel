@@ -1,14 +1,14 @@
 module Kernel.Types.Beckn.ReqTypes where
 
-import Kernel.Types.Beckn.Context (Context)
-import Kernel.Types.Beckn.Error (Error)
-import Kernel.Utils.GenericPretty
 import qualified Control.Lens as L
 import Data.Aeson
 import Data.OpenApi
 import Data.Typeable
 import EulerHS.Prelude hiding ((.=), (.~))
 import GHC.Exts (IsList (fromList))
+import Kernel.Types.Beckn.Context (Context)
+import Kernel.Types.Beckn.Error (Error)
+import Kernel.Utils.GenericPretty
 
 data BecknReq a = BecknReq
   { context :: Context,

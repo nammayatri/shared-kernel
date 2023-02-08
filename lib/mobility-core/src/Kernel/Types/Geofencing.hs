@@ -1,10 +1,10 @@
 module Kernel.Types.Geofencing where
 
+import Database.Esqueleto.Experimental
+import EulerHS.Prelude
 import Kernel.Storage.Esqueleto.Types
 import Kernel.Utils.Dhall hiding (maybe)
 import Kernel.Utils.GenericPretty
-import Database.Esqueleto.Experimental
-import EulerHS.Prelude
 
 data GeoRestriction
   = Unrestricted

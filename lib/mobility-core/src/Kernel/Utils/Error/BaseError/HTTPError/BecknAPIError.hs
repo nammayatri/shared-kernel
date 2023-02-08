@@ -3,12 +3,12 @@
 
 module Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError where
 
+import EulerHS.Prelude
+import qualified EulerHS.Types as ET
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Utils.Servant.Client
-import EulerHS.Prelude
-import qualified EulerHS.Types as ET
 import Servant.Client (Client, HasClient)
 
 data BecknAPICallError = BecknAPICallError Text Error

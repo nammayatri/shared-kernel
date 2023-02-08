@@ -2,9 +2,9 @@
 
 module Kernel.External.Types where
 
-import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
 import Data.OpenApi
 import EulerHS.Prelude
+import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 data Language

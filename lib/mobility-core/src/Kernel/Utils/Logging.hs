@@ -20,14 +20,14 @@ module Kernel.Utils.Logging
   )
 where
 
+import EulerHS.Prelude hiding (id)
+import GHC.Records.Extra
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.GuidLike (generateGUID)
 import Kernel.Types.Id
 import Kernel.Types.Logging
 import Kernel.Types.MonadGuid
 import Kernel.Utils.GenericPretty (PrettyShow, textPretty)
-import EulerHS.Prelude hiding (id)
-import GHC.Records.Extra
 
 log :: Log m => LogLevel -> Text -> m ()
 log = logOutput

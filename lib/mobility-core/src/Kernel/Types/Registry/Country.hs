@@ -1,8 +1,8 @@
 module Kernel.Types.Registry.Country (Country (..)) where
 
-import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
+import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
 
 data Country = Country
   { name :: Maybe Text,

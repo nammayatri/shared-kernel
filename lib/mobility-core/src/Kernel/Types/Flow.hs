@@ -4,6 +4,10 @@
 
 module Kernel.Types.Flow (FlowR, runFlowR) where
 
+import qualified EulerHS.Interpreters as I
+import qualified EulerHS.Language as L
+import EulerHS.Prelude
+import qualified EulerHS.Runtime as R
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Forkable
 import Kernel.Types.Logging
@@ -11,10 +15,6 @@ import Kernel.Types.MonadGuid
 import Kernel.Types.Time
 import qualified Kernel.Utils.IOLogging as IOLogging
 import Kernel.Utils.Logging
-import qualified EulerHS.Interpreters as I
-import qualified EulerHS.Language as L
-import EulerHS.Prelude
-import qualified EulerHS.Runtime as R
 import Prometheus (MonadMonitor (..))
 
 runFlowR :: R.FlowRuntime -> r -> FlowR r a -> IO a

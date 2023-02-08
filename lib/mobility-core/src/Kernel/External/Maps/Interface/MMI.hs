@@ -3,6 +3,8 @@ module Kernel.External.Maps.Interface.MMI
   )
 where
 
+import Data.Maybe
+import EulerHS.Prelude
 import Kernel.External.Maps.Interface.Types as IT
 import Kernel.External.Maps.MMI.AutoSuggest as MMI
 import Kernel.External.Maps.MMI.Config
@@ -11,8 +13,6 @@ import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
 import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
-import Data.Maybe
-import EulerHS.Prelude
 
 autoSuggest ::
   ( EncFlow m r,

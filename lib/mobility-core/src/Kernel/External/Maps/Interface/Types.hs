@@ -8,13 +8,6 @@ module Kernel.External.Maps.Interface.Types
   )
 where
 
-import qualified Kernel.External.Maps.Google.Config as Google
-import qualified Kernel.External.Maps.MMI.Config as MMI
-import qualified Kernel.External.Maps.OSRM.Config as OSRM
-import Kernel.External.Maps.Types
-import Kernel.External.Types (Language)
-import Kernel.Types.Common
-import Kernel.Utils.GenericPretty (PrettyShow)
 import Control.Lens.Operators
 import Data.Geospatial
 import Data.LineString
@@ -23,6 +16,13 @@ import qualified Data.OpenApi as OpenApi
 import Data.Text
 import Deriving.Aeson
 import EulerHS.Prelude
+import qualified Kernel.External.Maps.Google.Config as Google
+import qualified Kernel.External.Maps.MMI.Config as MMI
+import qualified Kernel.External.Maps.OSRM.Config as OSRM
+import Kernel.External.Maps.Types
+import Kernel.External.Types (Language)
+import Kernel.Types.Common
+import Kernel.Utils.GenericPretty (PrettyShow)
 
 data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg
   deriving stock (Show, Eq, Generic)

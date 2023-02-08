@@ -2,10 +2,10 @@
 
 module Kernel.Types.Beckn.Error where
 
-import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
-import Kernel.Utils.JSON
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
+import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
+import Kernel.Utils.JSON
 
 data Error = Error
   { _type :: ErrorType,

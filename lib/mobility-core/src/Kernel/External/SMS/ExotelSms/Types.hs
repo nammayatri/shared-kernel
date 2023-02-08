@@ -11,10 +11,6 @@
 
 module Kernel.External.SMS.ExotelSms.Types where
 
-import Kernel.External.Exotel.Types (ExotelAccountSID)
-import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Utils.JSON
-import Kernel.Utils.TH
 import Control.Lens.TH
 import Data.Aeson.Casing
 import Data.Aeson.TH
@@ -22,6 +18,10 @@ import Data.OpenApi (ToSchema)
 import Data.Text as T
 import Data.Text.Conversions
 import EulerHS.Prelude
+import Kernel.External.Exotel.Types (ExotelAccountSID)
+import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Utils.JSON
+import Kernel.Utils.TH
 import Web.FormUrlEncoded (ToForm, toForm)
 import Web.Internal.HttpApiData
 

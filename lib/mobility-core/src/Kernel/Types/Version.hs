@@ -1,10 +1,10 @@
 module Kernel.Types.Version where
 
-import Kernel.Prelude as Prelude
 import Control.Lens
 import Data.OpenApi (OpenApiType (OpenApiString), ToParamSchema (..))
 import Data.OpenApi.Lens as L
 import Data.Text as T
+import Kernel.Prelude as Prelude
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
 
 data Version = Version

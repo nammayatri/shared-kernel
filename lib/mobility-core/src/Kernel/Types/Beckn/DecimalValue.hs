@@ -9,8 +9,6 @@ module Kernel.Types.Beckn.DecimalValue
   )
 where
 
-import Kernel.Utils.Example
-import Kernel.Utils.GenericPretty (PrettyShow)
 import Control.Lens.Operators
 import Data.Char
 import Data.OpenApi hiding (Example, value)
@@ -18,6 +16,8 @@ import Data.Proxy
 import qualified Data.Ratio as R
 import qualified Data.Text as T
 import EulerHS.Prelude
+import Kernel.Utils.Example
+import Kernel.Utils.GenericPretty (PrettyShow)
 import qualified Money as M
 
 -- | A type for decimal values based on Rational.

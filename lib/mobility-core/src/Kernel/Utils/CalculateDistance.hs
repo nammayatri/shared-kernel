@@ -1,9 +1,9 @@
 module Kernel.Utils.CalculateDistance where
 
+import EulerHS.Prelude hiding (id, state)
 import Kernel.External.Maps.Types
 import Kernel.Prelude (atan2)
 import Kernel.Types.Common (HighPrecMeters (..))
-import EulerHS.Prelude hiding (id, state)
 
 distanceBetweenInMeters :: LatLong -> LatLong -> HighPrecMeters
 distanceBetweenInMeters (LatLong lat1 lon1) (LatLong lat2 lon2) =

@@ -12,13 +12,13 @@ module Kernel.Utils.SlidingWindowCounters
   )
 where
 
-import qualified Kernel.Storage.Hedis as Redis
-import Kernel.Types.SlidingWindowCounters
 import Control.Monad.Extra (fromMaybeM, mapMaybeM)
 import qualified Data.Text as T
 import Data.Time
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id)
+import qualified Kernel.Storage.Hedis as Redis
+import Kernel.Types.SlidingWindowCounters
 
 -- ========================== Helper functions ==========================
 

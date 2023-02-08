@@ -1,6 +1,5 @@
 module Kernel.Prelude (module E, module Kernel.Prelude) where
 
-import Kernel.Prelude.OrphanInstances ()
 import Control.Arrow as E
 import qualified Control.Concurrent as Conc
 import Control.Concurrent.STM.TMVar as E (TMVar)
@@ -30,6 +29,7 @@ import GHC.Generics as E (Generic, Generic1)
 import GHC.Int as E (Int64)
 import GHC.Records.Compat as E
 import GHC.Stack as E (HasCallStack)
+import Kernel.Prelude.OrphanInstances ()
 import Safe as E
 import Servant.Client as E (BaseUrl)
 import qualified Servant.Client as Servant

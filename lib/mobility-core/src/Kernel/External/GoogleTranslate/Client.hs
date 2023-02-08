@@ -1,12 +1,12 @@
 module Kernel.External.GoogleTranslate.Client where
 
+import EulerHS.Prelude
 import qualified Kernel.External.GoogleTranslate.API as API
 import qualified Kernel.External.GoogleTranslate.Types as GoogleTranslate
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
-import EulerHS.Prelude
 import Servant.Client.Core (ClientError)
 
 translate ::

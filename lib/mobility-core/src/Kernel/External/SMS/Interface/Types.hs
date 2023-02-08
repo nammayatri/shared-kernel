@@ -7,15 +7,15 @@ module Kernel.External.SMS.Interface.Types
   )
 where
 
+import Data.ByteString.Lazy (fromStrict, toStrict)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import Deriving.Aeson
 import qualified Kernel.External.SMS.ExotelSms.Config as ExotelSms
 import qualified Kernel.External.SMS.MyValueFirst.Config as MyValueFirst
 import qualified Kernel.External.SMS.Types as T
 import Kernel.Prelude
 import Kernel.Types.Servant
-import Data.ByteString.Lazy (fromStrict, toStrict)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import Deriving.Aeson
 import Servant
 
 data SmsHandler m = SmsHandler

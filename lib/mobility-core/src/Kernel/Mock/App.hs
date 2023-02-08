@@ -4,10 +4,10 @@
 
 module Kernel.Mock.App where
 
-import Kernel.Types.Common
-import Kernel.Utils.IOLogging
 import qualified Control.Monad.Catch as C
 import Control.Monad.IO.Unlift
+import Kernel.Types.Common
+import Kernel.Utils.IOLogging
 import Servant
 import Universum
 import UnliftIO.Concurrent

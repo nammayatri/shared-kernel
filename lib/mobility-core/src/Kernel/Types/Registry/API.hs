@@ -1,12 +1,12 @@
 module Kernel.Types.Registry.API where
 
+import Data.OpenApi (ToSchema)
+import EulerHS.Prelude
 import Kernel.Types.Registry.City (City)
 import Kernel.Types.Registry.Country (Country)
 import Kernel.Types.Registry.Domain (Domain)
 import Kernel.Types.Registry.Subscriber (Subscriber, SubscriberType)
 import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
-import Data.OpenApi (ToSchema)
-import EulerHS.Prelude
 
 data LookupRequest = LookupRequest
   { unique_key_id :: Maybe Text,

@@ -12,11 +12,11 @@ module Kernel.Storage.Esqueleto.Class
   )
 where
 
-import Kernel.Types.Logging (Log)
 import Database.Esqueleto.Experimental
 import qualified Database.Esqueleto.Internal.Internal as EsqInt
 import EulerHS.Prelude hiding (Key)
 import qualified GHC.Generics as Gen
+import Kernel.Types.Logging (Log)
 
 class
   TType t a

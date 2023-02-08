@@ -3,12 +3,12 @@
 
 module Kernel.Utils.Error.BaseError.HTTPError.APIError where
 
+import EulerHS.Prelude
+import qualified EulerHS.Types as ET
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Utils.Error.Throwing
 import Kernel.Utils.Logging
 import Kernel.Utils.Servant.Client
-import EulerHS.Prelude
-import qualified EulerHS.Types as ET
 
 newtype APICallError = APICallError APIError
   deriving (Show, IsBecknAPIError)

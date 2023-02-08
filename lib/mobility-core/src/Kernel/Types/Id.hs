@@ -3,15 +3,15 @@
 
 module Kernel.Types.Id where
 
-import Kernel.Types.GuidLike
-import Kernel.Types.MonadGuid
-import Kernel.Utils.Example (Example (..), idExample)
-import Kernel.Utils.GenericPretty
 import Data.OpenApi (ToParamSchema, ToSchema)
 import qualified Data.Text as Text
 import Database.PostgreSQL.Simple.FromField (FromField)
 import Dhall
 import EulerHS.Prelude
+import Kernel.Types.GuidLike
+import Kernel.Types.MonadGuid
+import Kernel.Utils.Example (Example (..), idExample)
+import Kernel.Utils.GenericPretty
 import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData)
 
 newtype Id domain = Id

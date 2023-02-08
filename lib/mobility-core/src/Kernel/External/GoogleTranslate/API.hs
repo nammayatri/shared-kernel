@@ -1,9 +1,9 @@
 module Kernel.External.GoogleTranslate.API where
 
-import qualified Kernel.External.GoogleTranslate.Types as GoogleTranslate
-import Kernel.Utils.Common
 import EulerHS.Prelude
 import EulerHS.Types (EulerClient, client)
+import qualified Kernel.External.GoogleTranslate.Types as GoogleTranslate
+import Kernel.Utils.Common
 import Servant
 
 type GoogleTranslateAPI =

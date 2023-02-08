@@ -1,8 +1,8 @@
 module Kernel.Types.Registry.City (City (..)) where
 
-import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
+import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
 
 data City = City
   { name :: Maybe Text,

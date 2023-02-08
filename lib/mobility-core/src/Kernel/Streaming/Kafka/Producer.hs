@@ -9,10 +9,6 @@ module Kernel.Streaming.Kafka.Producer
   )
 where
 
-import Kernel.Streaming.Kafka.Producer.Types
-import Kernel.Types.Error
-import Kernel.Types.Logging
-import Kernel.Utils.Error.Throwing (throwError)
 import Data.Aeson (encode)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
@@ -20,6 +16,10 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Lazy as HM
 import EulerHS.Prelude
 import Kafka.Producer as KafkaProd
+import Kernel.Streaming.Kafka.Producer.Types
+import Kernel.Types.Error
+import Kernel.Types.Logging
+import Kernel.Utils.Error.Throwing (throwError)
 
 type KPartitionId = Int
 

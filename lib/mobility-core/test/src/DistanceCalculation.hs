@@ -1,9 +1,9 @@
 module DistanceCalculation where
 
+import EulerHS.Prelude
 import Kernel.External.Maps.Types
 import Kernel.Types.Common
 import Kernel.Utils.CalculateDistance
-import EulerHS.Prelude
 import Test.Tasty
 import Test.Tasty.HUnit
 import Utils.Numeric

@@ -6,6 +6,8 @@ module Kernel.External.SMS.Interface
   )
 where
 
+import qualified Data.Text as T
+import EulerHS.Prelude
 import Kernel.External.SMS.ExotelSms.Config as Reexport
 import qualified Kernel.External.SMS.Interface.ExotelSms as ExotelSms
 import qualified Kernel.External.SMS.Interface.MyValueFirst as MyValueFirst
@@ -16,8 +18,6 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
-import qualified Data.Text as T
-import EulerHS.Prelude
 
 constructSendSMSReq :: Text -> Text -> Text -> Text -> Text -> SendSMSReq
 constructSendSMSReq otpCode otpHash otpSmsTemplate phone sender =

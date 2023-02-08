@@ -1,12 +1,12 @@
 module Kernel.Storage.Hedis.Config where
 
-import Kernel.Prelude
-import Kernel.Types.Logging
-import Kernel.Utils.Dhall (FromDhall)
 import qualified Control.Monad.Catch as C
 import Data.Word (Word16)
 import Database.Redis
 import GHC.Records.Extra
+import Kernel.Prelude
+import Kernel.Types.Logging
+import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
 type HedisFlow m env =

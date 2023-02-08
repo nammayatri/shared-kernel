@@ -2,13 +2,13 @@
 
 module Kernel.Types.Beckn.Domain (Domain (..)) where
 
+import Data.Aeson
+import Data.OpenApi hiding (Example)
+import EulerHS.Prelude
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.Example
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON (replaceUnderscoresString)
-import Data.Aeson
-import Data.OpenApi hiding (Example)
-import EulerHS.Prelude
 
 data Domain
   = MOBILITY

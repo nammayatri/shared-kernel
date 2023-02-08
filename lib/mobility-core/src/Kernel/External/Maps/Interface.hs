@@ -16,6 +16,7 @@ module Kernel.External.Maps.Interface
   )
 where
 
+import EulerHS.Prelude ((...))
 import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
 import qualified Kernel.External.Maps.Interface.Google as Google
@@ -31,7 +32,6 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
 import Kernel.Utils.Common hiding (id)
-import EulerHS.Prelude ((...))
 
 getDistance ::
   ( EncFlow m r,

@@ -2,14 +2,14 @@
 
 module Kernel.Types.TimeRFC339 (module Kernel.Types.TimeRFC339, module Reexport) where
 
-import Kernel.Types.Beckn.Domain as Reexport
-import Kernel.Utils.GenericPretty
 import Control.Lens hiding (Context)
 import Data.Aeson
 import Data.OpenApi (NamedSchema (NamedSchema), ToSchema (..), declareSchema, description)
 import Data.Time (UTCTime)
 import Data.Time.Format
 import EulerHS.Prelude
+import Kernel.Types.Beckn.Domain as Reexport
+import Kernel.Utils.GenericPretty
 
 newtype UTCTimeRFC3339 = UTCTimeRFC3339 UTCTime
   deriving (Show, Eq, Ord, Read, Generic, FromJSON)

@@ -1,5 +1,7 @@
 module Kernel.External.SMS.MyValueFirst.Flow where
 
+import qualified Data.Text as T
+import EulerHS.Prelude
 import qualified Kernel.External.SMS.MyValueFirst.API as API
 import Kernel.External.SMS.MyValueFirst.Types (SubmitSms (..), SubmitSmsRes (..))
 import Kernel.Sms.Config (SmsConfig)
@@ -7,8 +9,6 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
-import qualified Data.Text as T
-import EulerHS.Prelude
 
 submitSms ::
   ( CoreMetrics m,

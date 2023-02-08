@@ -2,6 +2,9 @@
 
 module Kernel.External.Maps.MMI.AutoSuggest where
 
+import Data.Maybe
+import EulerHS.Prelude
+import EulerHS.Types as ET
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
 import Kernel.External.Types (Language)
 import Kernel.Storage.Hedis as Redis
@@ -9,9 +12,6 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
-import Data.Maybe
-import EulerHS.Prelude
-import EulerHS.Types as ET
 import Servant
 
 type MMIAutoSuggestAPI =

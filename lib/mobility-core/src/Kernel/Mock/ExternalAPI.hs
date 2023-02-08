@@ -3,14 +3,6 @@
 
 module Kernel.Mock.ExternalAPI where
 
-import Kernel.Mock.App
-import Kernel.Prelude (lookup)
-import Kernel.Types.Common
-import Kernel.Types.Beckn.ReqTypes
-import Kernel.Types.Error (GenericError (InternalError))
-import Kernel.Utils.IOLogging
-import Kernel.Utils.Servant.SignatureAuth (AuthenticatingEntity (getSignatureExpiry, getSigningKey))
-import qualified Kernel.Utils.SignatureAuth as HttpSig
 import Control.Monad
 import qualified Control.Monad.Catch as C
 import qualified Data.CaseInsensitive as CI
@@ -18,6 +10,14 @@ import Data.String.Conversions
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Fmt
 import GHC.Records.Extra
+import Kernel.Mock.App
+import Kernel.Prelude (lookup)
+import Kernel.Types.Beckn.ReqTypes
+import Kernel.Types.Common
+import Kernel.Types.Error (GenericError (InternalError))
+import Kernel.Utils.IOLogging
+import Kernel.Utils.Servant.SignatureAuth (AuthenticatingEntity (getSignatureExpiry, getSigningKey))
+import qualified Kernel.Utils.SignatureAuth as HttpSig
 import Network.HTTP.Client hiding (Proxy)
 import qualified Network.HTTP.Client as Http
 import qualified Network.HTTP.Client.TLS as Http

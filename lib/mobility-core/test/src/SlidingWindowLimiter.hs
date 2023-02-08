@@ -1,9 +1,9 @@
 module SlidingWindowLimiter where
 
-import Kernel.Utils.SlidingWindowLimiter (slidingWindowLimiterPure)
 import Data.Time
 import Data.Time.Clock.POSIX
 import EulerHS.Prelude
+import Kernel.Utils.SlidingWindowLimiter (slidingWindowLimiterPure)
 import Test.Tasty
 import Test.Tasty.HUnit
 

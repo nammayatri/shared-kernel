@@ -1,7 +1,7 @@
 module Kernel.Types.SlidingWindowLimiter where
 
-import Kernel.Utils.Dhall (FromDhall)
 import EulerHS.Prelude
+import Kernel.Utils.Dhall (FromDhall)
 
 data APIRateLimitOptions = APIRateLimitOptions
   { limit :: Int,

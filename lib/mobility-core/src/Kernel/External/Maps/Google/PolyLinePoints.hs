@@ -6,8 +6,6 @@ module Kernel.External.Maps.Google.PolyLinePoints
   )
 where
 
-import Kernel.External.Maps.Types
-import Kernel.Prelude
 import Data.Bits
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
@@ -15,6 +13,8 @@ import Data.Char as C
 import Data.Int (Int32)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import Kernel.External.Maps.Types
+import Kernel.Prelude
 
 type PolyLinePoints = Text
 

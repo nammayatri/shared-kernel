@@ -1,7 +1,7 @@
 module Kernel.Types.Logging where
 
-import Kernel.Utils.Dhall (FromDhall)
 import EulerHS.Prelude
+import Kernel.Utils.Dhall (FromDhall)
 
 data LogLevel = DEBUG | INFO | WARNING | ERROR
   deriving (Generic, Show, Eq, Ord, FromDhall, ToJSON)

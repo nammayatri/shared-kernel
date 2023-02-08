@@ -4,11 +4,11 @@ module Kernel.Utils.Error.Throwing
   )
 where
 
-import Kernel.Types.Error.BaseError.HTTPError
-import Kernel.Utils.Logging
 import Control.Exception (PatternMatchFail)
 import qualified Data.Text as T
 import EulerHS.Prelude
+import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Utils.Logging
 
 throwError :: (HasCallStack, MonadThrow m, Log m, IsBaseException e) => e -> m b
 throwError exc = do

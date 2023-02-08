@@ -3,6 +3,12 @@
 
 module Kernel.Utils.Servant.Client where
 
+import qualified Data.Aeson as A
+import qualified Data.Map.Strict as Map
+import qualified EulerHS.Language as L
+import EulerHS.Prelude hiding (id)
+import qualified EulerHS.Types as ET
+import GHC.Records.Extra (HasField)
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
@@ -16,12 +22,6 @@ import Kernel.Utils.Logging
 import Kernel.Utils.Servant.BaseUrl
 import Kernel.Utils.Text
 import Kernel.Utils.Time
-import qualified Data.Aeson as A
-import qualified Data.Map.Strict as Map
-import qualified EulerHS.Language as L
-import EulerHS.Prelude hiding (id)
-import qualified EulerHS.Types as ET
-import GHC.Records.Extra (HasField)
 import qualified Network.HTTP.Client as Http
 import qualified Network.HTTP.Client.TLS as Http
 import Servant.Client.Core

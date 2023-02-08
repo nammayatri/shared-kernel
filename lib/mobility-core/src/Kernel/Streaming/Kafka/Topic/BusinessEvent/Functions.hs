@@ -1,11 +1,11 @@
 module Kernel.Streaming.Kafka.Topic.BusinessEvent.Functions where
 
+import EulerHS.Prelude
 import Kernel.Streaming.Kafka.Topic.BusinessEvent.Environment
 import Kernel.Streaming.Kafka.Topic.BusinessEvent.Types
 import Kernel.Streaming.MonadProducer (MonadProducer (..))
 import Kernel.Types.Logging
 import Kernel.Types.Time
-import EulerHS.Prelude
 
 produceBusinessEventMessage ::
   ( MonadProducer BusinessEvent m,

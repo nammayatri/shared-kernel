@@ -1,7 +1,7 @@
 module Kernel.Types.Registry.Routes where
 
-import qualified Kernel.Types.Registry.API as API
 import EulerHS.Prelude
+import qualified Kernel.Types.Registry.API as API
 import Servant
 
 type LookupAPI =

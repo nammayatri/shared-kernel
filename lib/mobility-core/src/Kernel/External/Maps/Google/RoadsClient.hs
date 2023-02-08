@@ -2,14 +2,14 @@
 
 module Kernel.External.Maps.Google.RoadsClient where
 
+import qualified Data.Text as T
+import EulerHS.Types as Euler
 import Kernel.External.Maps.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.App (MandatoryQueryParam, MonadFlow)
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Utils.Common (callAPI, fromEitherM, throwError)
-import qualified Data.Text as T
-import EulerHS.Types as Euler
 import Servant hiding (throwError)
 
 type SnapToRoadResponse = SnapToRoadResponse' LatLong

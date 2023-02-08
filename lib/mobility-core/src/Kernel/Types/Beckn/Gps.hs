@@ -1,14 +1,14 @@
 module Kernel.Types.Beckn.Gps (Gps (..)) where
 
-import Kernel.Utils.Error.Throwing (fromEitherM')
-import Kernel.Utils.Example
-import Kernel.Utils.GenericPretty (PrettyShow)
 import Control.Arrow ((>>>))
 import Data.Aeson
 import Data.Aeson.Types (parseFail)
 import Data.OpenApi (ToSchema)
 import qualified Data.Text as T
 import EulerHS.Prelude hiding (many, try, (<|>))
+import Kernel.Utils.Error.Throwing (fromEitherM')
+import Kernel.Utils.Example
+import Kernel.Utils.GenericPretty (PrettyShow)
 import Text.Parsec
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as P

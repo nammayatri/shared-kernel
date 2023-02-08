@@ -25,9 +25,6 @@ module Kernel.Utils.SignatureAuth
   )
 where
 
-import Kernel.Types.Base64
-import Kernel.Types.Credentials
-import Kernel.Types.Time (Seconds, getSeconds)
 import qualified Crypto.Error as Crypto
 import qualified Crypto.Hash as Hash
 import qualified Crypto.PubKey.Ed25519 as Ed25519
@@ -41,6 +38,9 @@ import qualified Data.Text as Text
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Time.Format
 import EulerHS.Prelude
+import Kernel.Types.Base64
+import Kernel.Types.Credentials
+import Kernel.Types.Time (Seconds, getSeconds)
 import Network.HTTP.Types (Header, HeaderName)
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
 import Text.ParserCombinators.Parsec

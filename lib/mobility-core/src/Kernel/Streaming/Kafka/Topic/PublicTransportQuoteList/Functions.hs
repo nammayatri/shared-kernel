@@ -1,8 +1,8 @@
 module Kernel.Streaming.Kafka.Topic.PublicTransportQuoteList.Functions where
 
+import EulerHS.Prelude
 import Kernel.Streaming.Kafka.Topic.PublicTransportQuoteList.Types
 import Kernel.Streaming.MonadProducer (MonadProducer (..))
-import EulerHS.Prelude
 
 producePublicTransportQuoteListMessage ::
   ( MonadProducer PublicTransportQuoteList m

@@ -6,9 +6,9 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
   )
 where
 
-import Kernel.Types.Time (Milliseconds)
 import EulerHS.Prelude as E
 import GHC.Records.Extra
+import Kernel.Types.Time (Milliseconds)
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError)
 

@@ -11,12 +11,12 @@ module Kernel.Storage.Esqueleto.Functions
   )
 where
 
-import Kernel.Prelude
-import Kernel.Storage.Esqueleto.Types
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TL
 import qualified Database.Esqueleto.Experimental as Esq
 import Database.Esqueleto.Internal.Internal hiding (rand)
+import Kernel.Prelude
+import Kernel.Storage.Esqueleto.Types
 
 (<->.) :: SqlExpr (Value Point) -> SqlExpr (Value Point) -> SqlExpr (Value Double)
 (<->.) = unsafeSqlBinOp " <-> "

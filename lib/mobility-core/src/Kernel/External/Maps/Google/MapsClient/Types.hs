@@ -2,13 +2,13 @@
 
 module Kernel.External.Maps.Google.MapsClient.Types where
 
-import Kernel.External.Maps.Google.PolyLinePoints (PolyLinePoints)
-import Kernel.Prelude
 import Data.Aeson
 import qualified Data.ByteString.Lazy as BSL
 import Data.Double.Conversion.Text (toFixed)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as DT
+import Kernel.External.Maps.Google.PolyLinePoints (PolyLinePoints)
+import Kernel.Prelude
 import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData (toUrlPiece))
 
 data AutoCompleteResp = AutoCompleteResp

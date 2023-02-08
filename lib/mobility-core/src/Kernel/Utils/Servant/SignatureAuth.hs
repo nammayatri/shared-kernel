@@ -4,20 +4,6 @@
 
 module Kernel.Utils.Servant.SignatureAuth where
 
-import Kernel.Prelude (lookup)
-import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
-import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
-import Kernel.Types.Common
-import Kernel.Types.Credentials
-import Kernel.Types.Error
-import Kernel.Types.Flow
-import Kernel.Types.Registry
-import Kernel.Utils.Common
-import Kernel.Utils.Dhall (FromDhall)
-import Kernel.Utils.IOLogging (HasLog)
-import Kernel.Utils.Monitoring.Prometheus.Servant (SanitizedUrl (..))
-import Kernel.Utils.Servant.Server (HasEnvEntry (..), runFlowRDelayedIO)
-import qualified Kernel.Utils.SignatureAuth as HttpSig
 import Control.Arrow
 import Control.Lens ((?=))
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
@@ -32,6 +18,20 @@ import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
 import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
+import Kernel.Prelude (lookup)
+import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
+import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.Common
+import Kernel.Types.Credentials
+import Kernel.Types.Error
+import Kernel.Types.Flow
+import Kernel.Types.Registry
+import Kernel.Utils.Common
+import Kernel.Utils.Dhall (FromDhall)
+import Kernel.Utils.IOLogging (HasLog)
+import Kernel.Utils.Monitoring.Prometheus.Servant (SanitizedUrl (..))
+import Kernel.Utils.Servant.Server (HasEnvEntry (..), runFlowRDelayedIO)
+import qualified Kernel.Utils.SignatureAuth as HttpSig
 import qualified Network.HTTP.Client as Http
 import qualified Network.HTTP.Client.TLS as Http
 import qualified Network.Wai as Wai

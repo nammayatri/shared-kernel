@@ -34,16 +34,16 @@ module Kernel.External.Encryption
   )
 where
 
-import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
-import Kernel.Types.App
-import Kernel.Types.Field
-import Kernel.Utils.Dhall (FromDhall)
 import qualified Crypto.Hash as Hash
 import Crypto.Hash.Algorithms (SHA256)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString.Lazy as LBS
 import EulerHS.Prelude
+import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
+import Kernel.Types.App
+import Kernel.Types.Field
+import Kernel.Utils.Dhall (FromDhall)
 import Passetto.Client (EncryptedBase64 (..), EncryptedItem (..), PassettoContext, cliDecrypt, cliEncrypt, genericDecryptItem, genericEncryptItem, mkDefPassettoContext, throwLeft)
 import Passetto.Client.EncryptedItem (Encrypted (..))
 import Text.Hex (decodeHex, encodeHex)

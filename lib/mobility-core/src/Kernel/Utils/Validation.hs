@@ -6,14 +6,14 @@ module Kernel.Utils.Validation
   )
 where
 
+import qualified Data.Either.Validation as V
+import Data.Generics.Labels ()
+import EulerHS.Prelude hiding (pred)
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Logging
 import Kernel.Types.Predicate
 import Kernel.Types.Validation
 import Kernel.Utils.Error.Throwing
-import qualified Data.Either.Validation as V
-import Data.Generics.Labels ()
-import EulerHS.Prelude hiding (pred)
 
 runRequestValidation ::
   (MonadThrow m, Log m) =>

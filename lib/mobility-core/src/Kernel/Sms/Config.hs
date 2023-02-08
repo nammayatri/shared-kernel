@@ -1,7 +1,7 @@
 module Kernel.Sms.Config where
 
-import Kernel.Utils.Dhall (FromDhall)
 import EulerHS.Prelude
+import Kernel.Utils.Dhall (FromDhall)
 import Servant.Client (BaseUrl)
 
 data SmsSessionConfig = SmsSessionConfig

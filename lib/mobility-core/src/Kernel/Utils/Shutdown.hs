@@ -1,8 +1,8 @@
 module Kernel.Utils.Shutdown where
 
-import Kernel.Prelude
 import Control.Concurrent.STM.TMVar
 import GHC.Conc
+import Kernel.Prelude
 import System.Posix.Signals (Handler (Catch), installHandler, sigINT, sigTERM)
 
 type Shutdown = TMVar ()

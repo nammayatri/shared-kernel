@@ -1,10 +1,10 @@
 module Kernel.Utils.JSON where
 
-import Kernel.Utils.Text (recursiveStrip)
 import Data.Aeson (Options (..), SumEncoding (ObjectWithSingleField, UntaggedValue), Value (..), camelTo2, defaultOptions)
 import Data.HashMap.Strict (size, unions)
 import Data.Text (pack, replace, toLower, toUpper, unpack)
 import EulerHS.Prelude hiding (pack, unpack)
+import Kernel.Utils.Text (recursiveStrip)
 
 replaceUnderscores :: Text -> Text
 replaceUnderscores = replace "_" "-"

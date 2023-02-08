@@ -1,8 +1,8 @@
 module Centesimal where
 
-import Kernel.Types.Centesimal (Centesimal (..))
 import Data.Aeson
 import EulerHS.Prelude
+import Kernel.Types.Centesimal (Centesimal (..))
 import Test.Tasty
 import Test.Tasty.HUnit
 

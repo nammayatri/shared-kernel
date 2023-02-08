@@ -4,14 +4,14 @@
 
 module Kernel.Types.Base64 where
 
-import Kernel.Prelude
-import Kernel.Storage.Esqueleto
-import Kernel.Utils.Dhall
 import qualified Data.Aeson as A
 import Data.Bifunctor (bimap)
 import Data.ByteString
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.Text as T
+import Kernel.Prelude
+import Kernel.Storage.Esqueleto
+import Kernel.Utils.Dhall
 
 newtype Base64 = Base64 ByteString
   deriving (Show, Eq)

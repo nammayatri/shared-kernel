@@ -16,13 +16,6 @@ module Kernel.Utils.App
   )
 where
 
-import Kernel.Types.App
-import Kernel.Types.Flow
-import Kernel.Utils.Common
-import qualified Kernel.Utils.FlowLogging as L
-import Kernel.Utils.IOLogging (HasLog, appendLogTag)
-import Kernel.Utils.Shutdown
-import qualified Kernel.Utils.SignatureAuth as HttpSig
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString as B
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
@@ -33,6 +26,13 @@ import qualified Data.Text as T (pack)
 import Data.UUID.V4 (nextRandom)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
+import Kernel.Types.App
+import Kernel.Types.Flow
+import Kernel.Utils.Common
+import qualified Kernel.Utils.FlowLogging as L
+import Kernel.Utils.IOLogging (HasLog, appendLogTag)
+import Kernel.Utils.Shutdown
+import qualified Kernel.Utils.SignatureAuth as HttpSig
 import Network.HTTP.Types (Method, RequestHeaders)
 import qualified Network.HTTP.Types as HTTP
 import Network.Wai

@@ -4,15 +4,15 @@ module Kernel.Streaming.Kafka.Consumer
   )
 where
 
+import qualified Data.Aeson as A
+import qualified Data.ByteString.Lazy as LBS
+import Kafka.Consumer as KafkaCons
 import Kernel.Prelude
 import Kernel.Streaming.Kafka.Consumer.Types as ConsTypes
 import qualified Kernel.Streaming.MonadConsumer as MonadCons
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (fromMaybeM, throwError)
 import Kernel.Utils.Logging
-import qualified Data.Aeson as A
-import qualified Data.ByteString.Lazy as LBS
-import Kafka.Consumer as KafkaCons
 
 receiveMessage :: (MonadIO m, Log m, MonadThrow m, FromJSON a) => KafkaConsumerTools a -> m (Maybe a)
 receiveMessage kafkaConsumerTools = withLogTag "KafkaConsumer" $ do

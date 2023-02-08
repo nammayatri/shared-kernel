@@ -4,6 +4,9 @@
 
 module Kernel.External.Maps.MMI.MMIAuthToken where
 
+import Data.Maybe
+import EulerHS.Prelude
+import qualified EulerHS.Types as ET
 import Kernel.External.Encryption
 import Kernel.External.Maps.MMI.Config
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
@@ -12,9 +15,6 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error as ER
 import Kernel.Utils.Common
-import Data.Maybe
-import EulerHS.Prelude
-import qualified EulerHS.Types as ET
 import Servant hiding (throwError)
 
 type MMIAuthAPI =

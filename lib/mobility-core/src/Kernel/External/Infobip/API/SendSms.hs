@@ -1,8 +1,8 @@
 module Kernel.External.Infobip.API.SendSms where
 
-import Kernel.External.Infobip.Types
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
+import Kernel.External.Infobip.Types
 import Servant
 
 type ServiceAPI =

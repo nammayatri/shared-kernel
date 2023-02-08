@@ -14,6 +14,7 @@ module Kernel.External.Maps.Google.MapsClient
   )
 where
 
+import EulerHS.Types (EulerClient, client)
 import Kernel.External.Maps.Google.MapsClient.Types as GoogleMaps
 import Kernel.External.Maps.Types
 import Kernel.External.Types (Language)
@@ -22,7 +23,6 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
-import EulerHS.Types (EulerClient, client)
 import Servant hiding (throwError)
 import Servant.Client.Core (ClientError)
 

@@ -7,15 +7,15 @@ module Kernel.Tools.Metrics.CoreMetrics
   )
 where
 
+import Data.Text as DT
+import qualified EulerHS.Language as L
+import EulerHS.Prelude as E
+import GHC.Records.Extra
 import Kernel.Tools.Metrics.CoreMetrics.Types as Reexport
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Types.Error.BaseError.HTTPError (BaseException (..), HTTPException (..), IsBaseError (toMessage), IsHTTPError (toErrorCode, toHttpCode), IsHTTPException)
 import Kernel.Types.Time (Milliseconds, getMilliseconds)
 import Kernel.Utils.Servant.BaseUrl
-import Data.Text as DT
-import qualified EulerHS.Language as L
-import EulerHS.Prelude as E
-import GHC.Records.Extra
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError (..), ResponseF (..))
 

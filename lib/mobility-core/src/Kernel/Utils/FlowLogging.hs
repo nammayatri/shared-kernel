@@ -7,7 +7,7 @@ module Kernel.Utils.FlowLogging
   )
 where
 
-import Kernel.Types.Logging
+import Data.Aeson as A
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as Text
 import qualified Data.Time as Time
@@ -16,8 +16,8 @@ import EulerHS.Prelude
 import EulerHS.Runtime
 import EulerHS.Types (LogContext)
 import qualified EulerHS.Types as T
+import Kernel.Types.Logging
 import qualified Prelude as P
-import Data.Aeson as A
 
 logOutputImplementation :: L.MonadFlow m => LogLevel -> T.Message -> m ()
 logOutputImplementation logLevel message =
@@ -99,21 +99,21 @@ logFormatterText
         T.Info -> INFO
         T.Error -> ERROR
       -- textToLBS = LBS.fromStrict . Txt.encodeUtf8
-      log = show timestamp
-            <> " "
-            <> show lvl
-            <> " "
-            <> show msgNum
-            <> "> @"
-            <> fromMaybe "null" hostname
-            <> " "
-            <> logCont
-            <>  tag
-            <> " |> "
-            <> msg 
+      log =
+        show timestamp
+          <> " "
+          <> show lvl
+          <> " "
+          <> show msgNum
+          <> "> @"
+          <> fromMaybe "null" hostname
+          <> " "
+          <> logCont
+          <> tag
+          <> " |> "
+          <> msg
       res =
         T.SimpleLBS (A.encode (A.Object $ HM.insert "log" (A.String log) HM.empty))
-          
 
 logContextKey :: Text
 logContextKey = "log_context"

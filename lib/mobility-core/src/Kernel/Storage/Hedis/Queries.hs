@@ -1,10 +1,5 @@
 module Kernel.Storage.Hedis.Queries where
 
-import Kernel.Prelude
-import Kernel.Storage.Hedis.Config
-import Kernel.Storage.Hedis.Error
-import qualified Kernel.Utils.Error.Throwing as Error
-import Kernel.Utils.Logging
 import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
@@ -13,6 +8,11 @@ import qualified Data.Text as Text
 import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
 import GHC.Records.Extra
+import Kernel.Prelude
+import Kernel.Storage.Hedis.Config
+import Kernel.Storage.Hedis.Error
+import qualified Kernel.Utils.Error.Throwing as Error
+import Kernel.Utils.Logging
 
 type ExpirationTime = Int
 

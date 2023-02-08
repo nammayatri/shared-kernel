@@ -1,5 +1,6 @@
 module Kernel.External.Infobip.Flow where
 
+import EulerHS.Prelude
 import qualified Kernel.External.Infobip.API.SendSms as APISend
 import qualified Kernel.External.Infobip.API.WebengageWebhook as APIStatus
 import Kernel.External.Infobip.Types
@@ -8,7 +9,6 @@ import Kernel.Types.APISuccess (APISuccess)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
-import EulerHS.Prelude
 
 sendSms ::
   ( CoreMetrics m,

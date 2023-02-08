@@ -2,6 +2,7 @@
 
 module Kernel.InternalAPI.Auth.Client where
 
+import qualified EulerHS.Types as E
 import Kernel.InternalAPI.Auth.API
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -9,7 +10,6 @@ import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.BaseError.HTTPError.APIError
 import Kernel.Utils.Error.Throwing
-import qualified EulerHS.Types as E
 
 authAPI :: Text -> E.EulerClient PersonId
 authAPI = E.client (Proxy @API)

@@ -12,15 +12,15 @@ module Kernel.Storage.Esqueleto.SqlDB
   )
 where
 
+import Data.Time (UTCTime)
+import Database.Esqueleto.Experimental (SqlBackend)
+import EulerHS.Prelude
 import Kernel.Storage.Esqueleto.Class
 import Kernel.Storage.Esqueleto.Logger (LoggerIO)
 import Kernel.Types.GuidLike
 import Kernel.Types.MonadGuid
 import Kernel.Types.Time (MonadTime (..))
 import Kernel.Utils.Logging
-import Data.Time (UTCTime)
-import Database.Esqueleto.Experimental (SqlBackend)
-import EulerHS.Prelude
 
 newtype SqlDBEnv = SqlDBEnv
   { currentTime :: UTCTime

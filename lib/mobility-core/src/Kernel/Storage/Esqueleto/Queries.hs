@@ -41,12 +41,6 @@ module Kernel.Storage.Esqueleto.Queries
   )
 where
 
-import Kernel.Prelude
-import Kernel.Storage.Esqueleto.Class
-import Kernel.Storage.Esqueleto.DTypeBuilder
-import Kernel.Storage.Esqueleto.SqlDB
-import Kernel.Storage.Esqueleto.Transactionable
-import Kernel.Types.Logging (Log)
 import Data.Text (pack)
 import Data.Typeable
 import Database.Esqueleto.Experimental as EsqExport hiding
@@ -69,6 +63,12 @@ import Database.Esqueleto.Experimental as EsqExport hiding
 import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Esqueleto.Internal.Internal as Esq
 import Database.Persist.Postgresql hiding (delete, repsert, update, upsert, upsertBy)
+import Kernel.Prelude
+import Kernel.Storage.Esqueleto.Class
+import Kernel.Storage.Esqueleto.DTypeBuilder
+import Kernel.Storage.Esqueleto.SqlDB
+import Kernel.Storage.Esqueleto.Transactionable
+import Kernel.Types.Logging (Log)
 
 findOne :: (Typeable t, Transactionable m, Esq.SqlSelect b t, QEntity t a) => Esq.SqlQuery b -> m (Maybe a)
 findOne = buildDType . findOneInternal

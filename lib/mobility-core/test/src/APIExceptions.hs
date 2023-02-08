@@ -5,13 +5,13 @@
 
 module APIExceptions (httpExceptionTests) where
 
+import Control.Arrow (left)
+import qualified Data.Aeson as A
+import EulerHS.Prelude
 import Kernel.Tools.Metrics.CoreMetrics
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Utils.Error.FlowHandling
-import Control.Arrow (left)
-import qualified Data.Aeson as A
-import EulerHS.Prelude
 import qualified Servant as S
 import Test.Hspec
 import Test.Tasty

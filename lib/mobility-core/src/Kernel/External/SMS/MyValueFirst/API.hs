@@ -1,12 +1,12 @@
 module Kernel.External.SMS.MyValueFirst.API where
 
+import EulerHS.Prelude
+import qualified EulerHS.Types as ET
 import Kernel.External.SMS.MyValueFirst.Types
 import Kernel.Types.App
   ( MandatoryQueryParam,
   )
 import Kernel.Types.Servant
-import EulerHS.Prelude
-import qualified EulerHS.Types as ET
 import Servant
 
 type ServiceAPI =

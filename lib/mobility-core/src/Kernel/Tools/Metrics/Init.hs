@@ -3,9 +3,9 @@
 
 module Kernel.Tools.Metrics.Init where
 
-import Kernel.Utils.Monitoring.Prometheus.Servant
 import Data.Text as DT
 import EulerHS.Prelude as E
+import Kernel.Utils.Monitoring.Prometheus.Servant
 import Network.Wai (Application, Request (..))
 import Network.Wai.Handler.Warp as W
 import Network.Wai.Middleware.Prometheus

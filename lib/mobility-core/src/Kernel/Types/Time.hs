@@ -3,8 +3,6 @@
 
 module Kernel.Types.Time where
 
-import Kernel.Utils.Dhall (FromDhall)
-import Kernel.Utils.GenericPretty
 import Data.Aeson (Value (..))
 import Data.Aeson.Types (typeMismatch)
 import Data.OpenApi (ToSchema)
@@ -15,6 +13,8 @@ import Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
 import Database.Persist.Class
 import Database.Persist.Sql
 import EulerHS.Prelude
+import Kernel.Utils.Dhall (FromDhall)
+import Kernel.Utils.GenericPretty
 import qualified System.Clock as Clock
 
 newtype Microseconds = Microseconds

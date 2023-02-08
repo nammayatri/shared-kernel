@@ -2,12 +2,12 @@
 
 module Kernel.Utils.Version (Reexport.versionToText, readVersion) where
 
+import Data.Text
 import Kernel.Prelude as Prelude
 import Kernel.Types.Error
 import Kernel.Types.Logging
 import Kernel.Types.Version as Reexport
 import Kernel.Utils.Common
-import Data.Text
 
 readVersion :: (MonadThrow m, Log m) => Text -> m Version
 readVersion versionText = do

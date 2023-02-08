@@ -3,10 +3,6 @@
 
 module Kernel.Storage.Esqueleto.Logger (LoggerIO (..), runLoggerIO) where
 
-import Kernel.Types.Logging as BLogging (Log (..), LogLevel (..))
-import Kernel.Types.MonadGuid
-import Kernel.Types.Time (MonadTime (..))
-import Kernel.Utils.IOLogging (LoggerEnv, appendLogTag, logOutputIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
 import Control.Monad.Logger as CMLogger
   ( LogLevel (..),
@@ -18,6 +14,10 @@ import Control.Monad.Logger as CMLogger
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
 import EulerHS.Prelude hiding (Key)
+import Kernel.Types.Logging as BLogging (Log (..), LogLevel (..))
+import Kernel.Types.MonadGuid
+import Kernel.Types.Time (MonadTime (..))
+import Kernel.Utils.IOLogging (LoggerEnv, appendLogTag, logOutputIO)
 
 --TODO: Remove this when we remove EulerHS
 newtype LoggerIO a = LoggerIO (ReaderT LoggerEnv IO a)

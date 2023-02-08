@@ -8,14 +8,14 @@ module Kernel.External.Maps.Types
   )
 where
 
-import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Utils.GenericPretty (PrettyShow)
 import Control.Lens.Operators
 import Data.Geospatial
 import Data.LineString
 import Data.OpenApi
 import Data.Text
 import EulerHS.Prelude
+import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Utils.GenericPretty (PrettyShow)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 data MapsService = Google | OSRM | MMI

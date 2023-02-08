@@ -4,6 +4,7 @@ module Kernel.External.SMS.Interface.MyValueFirst
   )
 where
 
+import EulerHS.Prelude
 import Kernel.External.Encryption
 import Kernel.External.SMS.Interface.Types as IT
 import Kernel.External.SMS.MyValueFirst.Config
@@ -12,7 +13,6 @@ import Kernel.External.SMS.MyValueFirst.Types as MT
 import Kernel.External.SMS.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
-import EulerHS.Prelude
 
 sendOTP ::
   ( CoreMetrics m,

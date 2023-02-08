@@ -1,13 +1,13 @@
 module Kernel.External.Slack.Flow where
 
-import Kernel.External.Slack.Types
-import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Types.Common
-import Kernel.Utils.Common hiding (Error)
 import Data.Maybe
 import qualified Data.Text as T
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
+import Kernel.External.Slack.Types
+import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Common
+import Kernel.Utils.Common hiding (Error)
 import Servant hiding (throwError)
 import Servant.Client
 

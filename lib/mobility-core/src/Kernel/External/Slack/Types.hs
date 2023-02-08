@@ -8,13 +8,13 @@
 
 module Kernel.External.Slack.Types where
 
+import Data.Aeson.Types
+import Data.OpenApi
+import EulerHS.Prelude hiding (state)
 import Kernel.Types.Error.BaseError.HTTPError hiding (Error)
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.JSON
-import Data.Aeson.Types
-import Data.OpenApi
-import EulerHS.Prelude hiding (state)
 
 data SlackConfig = SlackConfig
   { slackToken :: Text,

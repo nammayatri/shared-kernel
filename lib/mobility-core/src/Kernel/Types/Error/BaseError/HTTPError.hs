@@ -10,13 +10,13 @@ module Kernel.Types.Error.BaseError.HTTPError
   )
 where
 
+import Control.Exception
+import EulerHS.Prelude hiding (Show, pack, show)
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError.APIError
 import Kernel.Types.Error.BaseError.HTTPError.BecknAPIError
 import Kernel.Types.Error.BaseError.HTTPError.HttpCode
 import Kernel.Utils.Error.Hierarchy (instanceExceptionWithParent)
-import Control.Exception
-import EulerHS.Prelude hiding (Show, pack, show)
 import Network.HTTP.Types (Header)
 import Prelude (Show (..))
 

@@ -3,15 +3,15 @@
 
 module Kernel.Types.Error where
 
+import EulerHS.Prelude
+import EulerHS.Types (KVDBReply)
+import qualified Kafka.Types as Kafka
 import Kernel.External.Maps.Types (MapsService)
 import Kernel.External.SMS.MyValueFirst.Types (SubmitSmsRes, submitSmsResToText)
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromResponse))
 import Kernel.Utils.Servant.BaseUrl
-import EulerHS.Prelude
-import EulerHS.Types (KVDBReply)
-import qualified Kafka.Types as Kafka
 import Network.HTTP.Types (Header, Status (statusCode))
 import Network.HTTP.Types.Header (HeaderName)
 import Servant.Client (BaseUrl, ClientError, ResponseF (responseStatusCode))

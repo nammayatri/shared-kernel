@@ -1,7 +1,7 @@
 module Kernel.Types.GuidLike where
 
-import Kernel.Types.MonadGuid
 import EulerHS.Prelude
+import Kernel.Types.MonadGuid
 
 class GuidLike m a where
   generateGUID :: m a

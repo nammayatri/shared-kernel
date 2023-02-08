@@ -1,11 +1,11 @@
 module Kernel.Utils.Context where
 
+import EulerHS.Prelude
 import Kernel.Types.App
 import qualified Kernel.Types.Beckn.Context as Cab
 import Kernel.Types.MonadGuid
 import Kernel.Types.Time
 import Kernel.Types.TimeRFC339 (UTCTimeRFC3339 (..))
-import EulerHS.Prelude
 
 buildTaxiContext ::
   (MonadTime m, MonadGuid m) =>

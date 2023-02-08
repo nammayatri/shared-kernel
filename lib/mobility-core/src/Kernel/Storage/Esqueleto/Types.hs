@@ -8,8 +8,8 @@ module Kernel.Storage.Esqueleto.Types
   )
 where
 
-import Kernel.Prelude
 import Database.Esqueleto.Experimental hiding (Table)
+import Kernel.Prelude
 
 data Point = Point
   deriving (Generic, Show, Read, Eq, ToSchema)

@@ -7,12 +7,12 @@ module Kernel.Utils.Time
   )
 where
 
-import Kernel.Types.Time
-import Kernel.Utils.Logging
 import qualified Data.Text as T
 import Data.Time hiding (getCurrentTime, nominalDiffTimeToSeconds)
 import qualified Data.Time as Time
 import EulerHS.Prelude
+import Kernel.Types.Time
+import Kernel.Utils.Logging
 import System.Clock (toNanoSecs)
 
 isExpired :: MonadTime m => NominalDiffTime -> UTCTime -> m Bool

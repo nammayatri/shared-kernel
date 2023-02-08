@@ -1,16 +1,16 @@
 module Kernel.Storage.Esqueleto.Config where
 
-import Kernel.Storage.Esqueleto.Logger (runLoggerIO)
-import Kernel.Types.App (MonadFlow)
-import Kernel.Types.Time (MonadTime)
-import Kernel.Utils.Dhall (FromDhall)
-import Kernel.Utils.IOLogging
 import Data.Pool (Pool)
 import Database.Persist.Postgresql
 import Database.PostgreSQL.Simple (execute_)
 import Database.PostgreSQL.Simple.Types (Query (Query))
 import EulerHS.Prelude
 import GHC.Records.Extra
+import Kernel.Storage.Esqueleto.Logger (runLoggerIO)
+import Kernel.Types.App (MonadFlow)
+import Kernel.Types.Time (MonadTime)
+import Kernel.Utils.Dhall (FromDhall)
+import Kernel.Utils.IOLogging
 
 data EsqDBConfig = EsqDBConfig
   { connectHost :: Text,

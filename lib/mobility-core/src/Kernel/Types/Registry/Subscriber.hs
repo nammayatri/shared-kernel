@@ -1,12 +1,12 @@
 module Kernel.Types.Registry.Subscriber where
 
-import Kernel.Types.Base64
-import Kernel.Types.Registry.Domain (Domain)
-import Kernel.Utils.Dhall (FromDhall)
 import Data.Aeson
 import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
 import EulerHS.Prelude hiding ((.=))
+import Kernel.Types.Base64
+import Kernel.Types.Registry.Domain (Domain)
+import Kernel.Utils.Dhall (FromDhall)
 import Servant.Client (BaseUrl)
 
 data Subscriber = Subscriber

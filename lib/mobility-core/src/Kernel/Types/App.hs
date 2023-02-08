@@ -9,17 +9,17 @@ module Kernel.Types.App
   )
 where
 
-import Kernel.Types.Field (HasFields)
-import Kernel.Types.Forkable
-import Kernel.Types.Logging
-import Kernel.Types.MonadGuid
-import Kernel.Types.Time
 import Control.Lens.Operators
 import Data.Aeson as Aeson (Value)
 import Data.OpenApi
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
+import Kernel.Types.Field (HasFields)
+import Kernel.Types.Forkable
+import Kernel.Types.Logging
+import Kernel.Types.MonadGuid
+import Kernel.Types.Time
 import Servant
 import qualified Servant.Client.Core as Servant
 

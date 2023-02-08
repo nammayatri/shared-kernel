@@ -2,10 +2,10 @@
 
 module Kernel.Types.SlidingWindowCounters where
 
-import Kernel.Storage.Esqueleto (derivePersistFieldJSON)
-import Kernel.Utils.Dhall (FromDhall)
 import Data.Time (UTCTime)
 import EulerHS.Prelude
+import Kernel.Storage.Esqueleto (derivePersistFieldJSON)
+import Kernel.Utils.Dhall (FromDhall)
 
 data SlidingWindowOptions = SlidingWindowOptions
   { period :: Integer,

@@ -13,15 +13,15 @@ module Kernel.Utils.IOLogging
   )
 where
 
+import qualified Control.Monad.Catch as C
+import Data.Aeson as A
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Text as T
+import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Types.Logging
 import Kernel.Types.Time
-import qualified Control.Monad.Catch as C
-import qualified Data.Text as T
-import qualified Data.Time as Time
 import System.Log.FastLogger
-import qualified Data.HashMap.Strict as HM
-import Data.Aeson as A
 
 type HasLog r = HasField "loggerEnv" r LoggerEnv
 

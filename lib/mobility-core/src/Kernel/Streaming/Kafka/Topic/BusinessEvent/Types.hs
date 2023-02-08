@@ -1,5 +1,9 @@
 module Kernel.Streaming.Kafka.Topic.BusinessEvent.Types where
 
+import Data.Aeson (Value)
+import Data.Time (UTCTime)
+import EulerHS.Prelude
+import GHC.Records.Extra (HasField)
 import Kernel.Streaming.Kafka.HasKafkaTopics (HasKafkaTopics (..))
 import qualified Kernel.Streaming.Kafka.Producer as Prod
 import Kernel.Streaming.Kafka.Producer.Types
@@ -8,10 +12,6 @@ import Kernel.Streaming.MonadProducer (MonadProducer (..))
 import Kernel.Types.Flow (FlowR)
 import Kernel.Types.Logging
 import Kernel.Types.Time
-import Data.Aeson (Value)
-import Data.Time (UTCTime)
-import EulerHS.Prelude
-import GHC.Records.Extra (HasField)
 
 type KafkaBEName = Text
 

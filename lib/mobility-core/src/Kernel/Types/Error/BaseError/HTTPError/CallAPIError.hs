@@ -1,11 +1,11 @@
 module Kernel.Types.Error.BaseError.HTTPError.CallAPIError where
 
+import EulerHS.Prelude
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Types.Error.BaseError.HTTPError (IsBaseException)
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse
 import Kernel.Utils.Error.Throwing
-import EulerHS.Prelude
 import Servant.Client (ClientError (..))
 
 data CallAPIError err = RawError ClientError | APIError err

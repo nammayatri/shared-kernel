@@ -6,6 +6,8 @@ module Kernel.Utils.Registry
   )
 where
 
+import Data.Generics.Labels ()
+import qualified EulerHS.Types as T
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Cache
@@ -15,8 +17,6 @@ import Kernel.Types.Registry
 import qualified Kernel.Types.Registry.API as API
 import qualified Kernel.Types.Registry.Routes as Registry
 import Kernel.Utils.Common
-import Data.Generics.Labels ()
-import qualified EulerHS.Types as T
 
 registryLookup ::
   ( MonadFlow m,

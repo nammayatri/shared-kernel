@@ -1,15 +1,15 @@
 module Kernel.External.Exotel.Flow where
 
-import Kernel.External.Exotel.Types
-import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Types.Common
-import Kernel.Types.Error
-import Kernel.Utils.Common
 import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as DT
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
+import Kernel.External.Exotel.Types
+import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Common
+import Kernel.Types.Error
+import Kernel.Utils.Common
 import Servant hiding (throwError)
 import Servant.Client
 

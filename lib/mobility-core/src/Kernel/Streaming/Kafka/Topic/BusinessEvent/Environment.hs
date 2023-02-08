@@ -1,9 +1,9 @@
 module Kernel.Streaming.Kafka.Topic.BusinessEvent.Environment where
 
-import Kernel.Streaming.Kafka.Producer.Types
-import Kernel.Utils.App (getPodName)
 import EulerHS.Prelude
 import GHC.Records.Extra (HasField)
+import Kernel.Streaming.Kafka.Producer.Types
+import Kernel.Utils.App (getPodName)
 
 type HasKafkaBE r kafkaEnvs = (HasField "kafkaEnvs" r kafkaEnvs, HasField "businessEventEnv" kafkaEnvs KafkaBEEnv)
 

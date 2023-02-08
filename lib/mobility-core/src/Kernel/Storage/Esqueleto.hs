@@ -14,6 +14,10 @@ module Kernel.Storage.Esqueleto
   )
 where
 
+import qualified Data.Text as T
+import Database.Persist.Quasi.Internal
+import Database.Persist.TH as Reexport
+import EulerHS.Prelude hiding (Key)
 import Kernel.Storage.Esqueleto.Class as Class (SolidType, TEntityKey (..), TType (..), extractSolidType)
 import Kernel.Storage.Esqueleto.Config as Config (EsqDBFlow, EsqDBReplicaFlow)
 import Kernel.Storage.Esqueleto.DTypeBuilder as DTypeBuilder (DTypeBuilder, buildDType)
@@ -24,10 +28,6 @@ import Kernel.Storage.Esqueleto.SqlDB as SqlDB
 import Kernel.Storage.Esqueleto.Transactionable as Transactionable
 import Kernel.Storage.Esqueleto.Types as Types
 import Kernel.Utils.Text
-import qualified Data.Text as T
-import Database.Persist.Quasi.Internal
-import Database.Persist.TH as Reexport
-import EulerHS.Prelude hiding (Key)
 import Language.Haskell.TH.Quote
 
 defaultQQ :: QuasiQuoter

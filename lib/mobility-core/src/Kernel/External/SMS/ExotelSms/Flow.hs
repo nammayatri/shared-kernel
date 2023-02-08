@@ -1,14 +1,14 @@
 module Kernel.External.SMS.ExotelSms.Flow where
 
+import Data.Text as T
+import EulerHS.Prelude
+import EulerHS.Types as ET
 import qualified Kernel.External.SMS.ExotelSms.API as API
 import Kernel.External.SMS.ExotelSms.Types
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common as B
-import Data.Text as T
-import EulerHS.Prelude
-import EulerHS.Types as ET
 import Servant hiding (throwError)
 import Servant.Client
 

@@ -6,13 +6,13 @@ module Kernel.Utils.Schema
   )
 where
 
-import Kernel.Prelude
-import Kernel.Utils.Common (recursiveStrip)
 import qualified Data.Aeson as A
 import Data.OpenApi
 import Data.OpenApi.Declare
 import Data.OpenApi.Internal.Schema
 import GHC.Generics
+import Kernel.Prelude
+import Kernel.Utils.Common (recursiveStrip)
 
 stripPrefixUnderscoreIfAny :: SchemaOptions
 stripPrefixUnderscoreIfAny =

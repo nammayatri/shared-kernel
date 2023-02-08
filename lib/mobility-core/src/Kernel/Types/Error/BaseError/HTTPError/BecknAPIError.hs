@@ -5,10 +5,10 @@ module Kernel.Types.Error.BaseError.HTTPError.BecknAPIError
   )
 where
 
-import qualified Kernel.Types.Beckn.Error as Error
-import Kernel.Types.Error.BaseError.HTTPError.FromResponse
 import Data.Aeson.Types
 import EulerHS.Prelude hiding (Show, show, (.=))
+import qualified Kernel.Types.Beckn.Error as Error
+import Kernel.Types.Error.BaseError.HTTPError.FromResponse
 import Prelude (Show (..))
 
 class IsBecknAPIError e where

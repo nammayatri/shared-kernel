@@ -1,7 +1,5 @@
 module Kernel.Mock.Utils (module Kernel.Mock.Utils, maybeToEither) where
 
-import Kernel.Randomizer (getRandomInRange)
-import Kernel.Types.Beckn.Error
 import Data.Aeson hiding (Error)
 import qualified Data.Aeson as Ae
 import qualified Data.Aeson.Types as Ae
@@ -12,6 +10,8 @@ import Data.List
 import Data.String.Conversions
 import qualified Data.Text as T
 import Data.Time
+import Kernel.Randomizer (getRandomInRange)
+import Kernel.Types.Beckn.Error
 import Universum
 
 -- | Read formatted time.

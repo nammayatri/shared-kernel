@@ -11,10 +11,6 @@
 
 module Kernel.External.Exotel.Types where
 
-import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Utils.Dhall (FromDhall)
-import Kernel.Utils.JSON
-import Kernel.Utils.TH
 import Control.Lens.TH
 import Data.Aeson (encode)
 import Data.Aeson.Casing
@@ -24,6 +20,10 @@ import Data.OpenApi (ToSchema)
 import qualified Data.Text as T
 import Data.Text.Conversions
 import EulerHS.Prelude
+import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Utils.Dhall (FromDhall)
+import Kernel.Utils.JSON
+import Kernel.Utils.TH
 import Servant.Client
 import Web.FormUrlEncoded (ToForm, toForm)
 import Web.Internal.HttpApiData

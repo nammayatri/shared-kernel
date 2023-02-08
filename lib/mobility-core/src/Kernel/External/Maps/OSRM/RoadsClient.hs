@@ -2,6 +2,12 @@
 
 module Kernel.External.Maps.OSRM.RoadsClient where
 
+import Data.Aeson
+import qualified Data.List.NonEmpty as NE
+import qualified Data.Text as T
+import qualified Data.Vector as V
+import EulerHS.Prelude ((...))
+import qualified EulerHS.Types as Euler
 import qualified Kernel.External.Maps.Types as Maps
 import Kernel.Prelude hiding (unlines)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -9,12 +15,6 @@ import Kernel.Types.App
 import Kernel.Types.Error
 import Kernel.Utils.Common
 import Kernel.Utils.GenericPretty
-import Data.Aeson
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import EulerHS.Prelude ((...))
-import qualified EulerHS.Types as Euler
 import Servant hiding (throwError)
 
 -- types

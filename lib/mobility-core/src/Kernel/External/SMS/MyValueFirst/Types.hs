@@ -1,10 +1,10 @@
 module Kernel.External.SMS.MyValueFirst.Types where
 
-import Kernel.Types.Servant
 import Data.ByteString.Lazy (fromStrict, toStrict)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import EulerHS.Prelude hiding (encodeUtf8, fromStrict, toStrict)
+import Kernel.Types.Servant
 import Servant
 
 data SubmitSms = SubmitSms

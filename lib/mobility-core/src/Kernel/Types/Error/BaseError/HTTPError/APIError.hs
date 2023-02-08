@@ -5,12 +5,12 @@ module Kernel.Types.Error.BaseError.HTTPError.APIError
   )
 where
 
-import Kernel.Types.Error.BaseError
-import Kernel.Types.Error.BaseError.HTTPError.FromResponse
-import Kernel.Types.Error.BaseError.HTTPError.HttpCode
 import Control.Exception
 import Data.Aeson (Value (Null))
 import EulerHS.Prelude hiding (Show, pack, show)
+import Kernel.Types.Error.BaseError
+import Kernel.Types.Error.BaseError.HTTPError.FromResponse
+import Kernel.Types.Error.BaseError.HTTPError.HttpCode
 import Prelude (Show (..))
 
 type IsAPIException e = (IsAPIError e, Exception e)

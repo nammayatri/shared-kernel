@@ -9,6 +9,10 @@ module Kernel.External.Maps.Interface.Google
   )
 where
 
+import Control.Monad.Extra (concatForM)
+import qualified Data.List.Extra as List
+import qualified Data.List.NonEmpty as NE
+import GHC.Float (double2Int)
 import Kernel.External.Encryption
 import Kernel.External.Maps.Google.Config as Reexport
 import qualified Kernel.External.Maps.Google.MapsClient as GoogleMaps
@@ -23,10 +27,6 @@ import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
 import Kernel.Utils.CalculateDistance (getRouteLinearLength)
 import Kernel.Utils.Common hiding (id)
-import Control.Monad.Extra (concatForM)
-import qualified Data.List.Extra as List
-import qualified Data.List.NonEmpty as NE
-import GHC.Float (double2Int)
 
 getDistances ::
   ( EncFlow m r,

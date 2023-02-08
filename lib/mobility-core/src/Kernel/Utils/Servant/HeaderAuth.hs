@@ -3,13 +3,6 @@
 
 module Kernel.Utils.Servant.HeaderAuth where
 
-import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
-import Kernel.Types.App
-import Kernel.Types.Error
-import Kernel.Types.Flow
-import Kernel.Utils.Common
-import Kernel.Utils.IOLogging (HasLog)
-import Kernel.Utils.Servant.Server
 import Control.Arrow
 import Control.Lens ((?=))
 import Data.List (lookup)
@@ -18,6 +11,13 @@ import Data.Typeable (typeRep)
 import EulerHS.Prelude
 import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
+import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
+import Kernel.Types.App
+import Kernel.Types.Error
+import Kernel.Types.Flow
+import Kernel.Utils.Common
+import Kernel.Utils.IOLogging (HasLog)
+import Kernel.Utils.Servant.Server
 import Network.Wai (Request (..))
 import Servant hiding (ResponseHeader (..))
 import Servant.Client

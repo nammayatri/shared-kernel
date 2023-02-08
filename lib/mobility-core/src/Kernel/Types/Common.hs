@@ -10,6 +10,12 @@ module Kernel.Types.Common
   )
 where
 
+import Data.Generics.Labels ()
+import Data.OpenApi
+import Database.Persist.Class
+import Database.Persist.Sql
+import GHC.Float (double2Int, int2Double)
+import GHC.Records.Extra (HasField)
 import Kernel.External.Encryption as Common (EncFlow)
 import Kernel.Prelude hiding (show)
 import Kernel.Storage.Esqueleto.Config as Common (EsqDBFlow)
@@ -22,12 +28,6 @@ import Kernel.Types.MonadGuid as Common
 import Kernel.Types.Time as Common
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.GenericPretty
-import Data.Generics.Labels ()
-import Data.OpenApi
-import Database.Persist.Class
-import Database.Persist.Sql
-import GHC.Float (double2Int, int2Double)
-import GHC.Records.Extra (HasField)
 import Text.Show (Show (..))
 
 newtype IdObject = IdObject

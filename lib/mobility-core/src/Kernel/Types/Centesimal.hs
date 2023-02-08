@@ -3,13 +3,13 @@
 
 module Kernel.Types.Centesimal (Centesimal (..)) where
 
-import Kernel.Prelude
-import Kernel.Storage.Esqueleto
-import Kernel.Utils.GenericPretty
 import Control.Lens.Operators
 import Data.Aeson
 import Data.Fixed (Centi)
 import Data.OpenApi
+import Kernel.Prelude
+import Kernel.Storage.Esqueleto
+import Kernel.Utils.GenericPretty
 
 newtype Centesimal = Centesimal {getCenti :: Centi}
   deriving (Eq, Ord, Generic, Enum)

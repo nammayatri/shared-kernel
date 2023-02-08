@@ -1,7 +1,7 @@
 module Kernel.External.SMS.ExotelSms.API where
 
-import Kernel.External.SMS.ExotelSms.Types
 import EulerHS.Prelude
+import Kernel.External.SMS.ExotelSms.Types
 import Servant hiding (throwError)
 
 type ExotelConnectAPI =

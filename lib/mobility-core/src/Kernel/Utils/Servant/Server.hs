@@ -2,6 +2,9 @@
 
 module Kernel.Utils.Servant.Server where
 
+import EulerHS.Prelude
+import qualified EulerHS.Runtime as E
+import GHC.Records.Extra (HasField)
 import Kernel.Prelude (identity)
 import qualified Kernel.Tools.Metrics.Init as Metrics
 import Kernel.Types.App (EnvR (..), FlowHandlerR, FlowServerR)
@@ -12,9 +15,6 @@ import qualified Kernel.Utils.FlowLogging as L
 import Kernel.Utils.IOLogging
 import Kernel.Utils.Logging
 import qualified Kernel.Utils.Monitoring.Prometheus.Servant as Metrics
-import EulerHS.Prelude
-import qualified EulerHS.Runtime as E
-import GHC.Records.Extra (HasField)
 import Network.Wai.Handler.Warp
   ( Port,
     Settings,
