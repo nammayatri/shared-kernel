@@ -65,6 +65,18 @@ instance
 
 instance
   SanitizedUrl (subroute :: Type) =>
+  SanitizedUrl (Description (h :: Symbol) :> subroute)
+  where
+  getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
+
+instance
+  SanitizedUrl (subroute :: Type) =>
+  SanitizedUrl (Summary (h :: Symbol) :> subroute)
+  where
+  getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
+
+instance
+  SanitizedUrl (subroute :: Type) =>
   SanitizedUrl (QueryParams (h :: Symbol) a :> subroute)
   where
   getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
