@@ -22,7 +22,7 @@ if [ -n "$FAIL" ]; then
   echo "Code style issues found in:"
   echo "${BAD_HS_FILES}"
 
-  if [ -n "$BECKN_DISABLE_AUTOFORMAT" ]; then
+  if [ -n "$DISABLE_AUTOFORMAT" ]; then
     echo "Fix them with:"
     echo " ${ORMOLU_CMD}"
   else
@@ -44,7 +44,7 @@ if [ -n "$FILES_WITH_TRAILING_WS" ]; then
   echo "Trailing spaces found in:"
   echo "$FILES_WITH_TRAILING_WS"
 
-  if [ -n "$BECKN_DISABLE_AUTOFORMAT" ]; then
+  if [ -n "$DISABLE_AUTOFORMAT" ]; then
     echo "Fix them with:"
     echo "sed -e 's/  *$//' ${FILES_WITH_TRAILING_WS}"
   else

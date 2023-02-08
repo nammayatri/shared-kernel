@@ -3,11 +3,11 @@ cradle:
     stackYaml: "./stack-hie.yaml"
 
     components:
-    - path: "lib/beckn-core/src"
-      component: "beckn-core:lib"
+    - path: "lib/mobility-core/src"
+      component: "mobility-core:lib"
 
-    - path: "lib/beckn-core/test/app"
-      component: "beckn-core:test:beckn-core-tests"
+    - path: "lib/mobility-core/test/app"
+      component: "mobility-core:test:mobility-core-tests"
 
-    - path: "lib/beckn-core/test/src"
-      component: "beckn-core:test:beckn-core-tests"
+    - path: "lib/mobility-core/test/src"
+      component: "mobility-core:test:mobility-core-tests"
