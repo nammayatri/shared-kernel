@@ -7,17 +7,17 @@ where
 import qualified Data.List.Extra as List
 import Data.Maybe
 import qualified Data.Text as T
-import Kernel.External.Encryption
 import EulerHS.Prelude
-import Kernel.External.Maps.Types
+import Kernel.External.Encryption
+import Kernel.External.Maps.HasCoordinates (HasCoordinates (..))
 import Kernel.External.Maps.Interface.Types as IT
 import Kernel.External.Maps.MMI.AutoSuggest as MMI
-import Kernel.External.Maps.MMI.DistanceMatrix as MMI
 import Kernel.External.Maps.MMI.Config
-import Kernel.External.Maps.HasCoordinates (HasCoordinates (..))
+import Kernel.External.Maps.MMI.DistanceMatrix as MMI
 import Kernel.External.Maps.MMI.MMIAuthToken as MMIAuthToken
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMITypes
+import Kernel.External.Maps.Types
 import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
@@ -58,15 +58,15 @@ getDistanceMatrix mmiCfg GetDistancesReq {..} = do
   key <- decrypt mmiCfg.mmiApiKey
   let limitedOriginObjectsList = splitListByAPICap origins
       limitedDestinationObjectsList = splitListByAPICap destinations
-      lOrigin = length limitedOriginObjectsList
-      lDest = length limitedDestinationObjectsList
       mapsUrl = mmiCfg.mmiKeyUrl
   res <- concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
     concatForM limitedDestinationObjectsList $ \limitedDestinationObjects -> do
       let limitedOriginPlaces = map getCoordinates limitedOriginObjects
           limitedDestinationPlaces = map getCoordinates limitedDestinationObjects
-          strOrig = map show [0 .. (lOrigin - 1)]
-          strDest = map show [0 .. (lDest - 1)]
+          lOrigin = length limitedOriginObjects
+          lDest = length limitedDestinationObjects
+          strOrig = map show [0 .. lOrigin - 1]
+          strDest = map show [lOrigin .. (lOrigin + lDest - 1)]
           origParam = T.intercalate ";" strOrig
           origDest = T.intercalate ";" strDest
           placesList = (++) limitedOriginPlaces limitedDestinationPlaces
@@ -110,7 +110,7 @@ buildResp listSrc listDest distanceMatrixResp pair =
   GetDistanceResp
     { origin = listSrc !! fst pair,
       destination = listDest !! snd pair,
-      distance = (distanceMatrixResp.results.distances !! fst pair) !! snd pair,
-      duration = (distanceMatrixResp.results.durations !! fst pair) !! snd pair,
+      distance = floor $ (distanceMatrixResp.results.distances !! fst pair) !! snd pair,
+      duration = floor $ (distanceMatrixResp.results.durations !! fst pair) !! snd pair,
       status = distanceMatrixResp.results.code
     }

@@ -1,15 +1,14 @@
-module Beckn.External.Maps.MMI.DistanceMatrix where
+module Kernel.External.Maps.MMI.DistanceMatrix where
 
-import Beckn.External.Encryption
-import qualified Beckn.External.Maps.MMI.MapsClient.Types as MMI
-import Beckn.Tools.Metrics.CoreMetrics (CoreMetrics)
--- import Beckn.External.Maps.MMI.Config
-import Beckn.Types.Common
-import Beckn.Types.Error
-import Beckn.Utils.Common
 import Data.Maybe
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
+import Kernel.External.Encryption
+import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
+import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Common
+import Kernel.Types.Error
+import Kernel.Utils.Common
 import Servant hiding (throwError)
 
 type MMIDistanceMatrixAPI =

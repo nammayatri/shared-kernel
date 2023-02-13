@@ -11,13 +11,12 @@
 
 module Kernel.External.Maps.MMI.MapsClient.Types where
 
+import qualified Data.Text as T
+import qualified Kernel.External.Maps.Types as Maps
 import Kernel.Prelude
-import Kernel.Types.Common
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON (constructorsWithSnakeCase)
 import Kernel.Utils.TH
-import qualified Kernel.External.Maps.Types as Maps
-import qualified Data.Text as T
 import Web.FormUrlEncoded (ToForm, toForm)
 import Web.Internal.HttpApiData
 
@@ -108,8 +107,8 @@ data DistanceMatrixResp = DistanceMatrixResp
 
 data DistanceMatrixResult = DistanceMatrixResult
   { code :: Text,
-    distances :: [[Meters]],
-    durations :: [[Seconds]]
+    distances :: [[Double]],
+    durations :: [[Double]]
   }
   deriving (Generic, FromJSON, ToJSON)
 
