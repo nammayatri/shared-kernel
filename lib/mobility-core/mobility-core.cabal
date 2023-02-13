@@ -1,0 +1,483 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           mobility-core
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://bitbucket.org/juspay/beckn#readme>
+homepage:       https://github.com/juspay/atlas-shared-kernel#readme
+bug-reports:    https://github.com/juspay/atlas-shared-kernel/issues
+author:         Juspay
+maintainer:     Juspay
+copyright:      2023 Juspay Technologies Private Limited
+license:        AllRightsReserved
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/juspay/atlas-shared-kernel
+
+library
+  exposed-modules:
+      Kernel.Exit
+      Kernel.External.Encryption
+      Kernel.External.Exotel.Flow
+      Kernel.External.Exotel.Types
+      Kernel.External.FCM.Flow
+      Kernel.External.FCM.Types
+      Kernel.External.GoogleTranslate.API
+      Kernel.External.GoogleTranslate.Client
+      Kernel.External.GoogleTranslate.Types
+      Kernel.External.Infobip.API.SendSms
+      Kernel.External.Infobip.API.WebengageWebhook
+      Kernel.External.Infobip.Flow
+      Kernel.External.Infobip.Types
+      Kernel.External.Maps
+      Kernel.External.Maps.Google.Config
+      Kernel.External.Maps.Google.MapsClient
+      Kernel.External.Maps.Google.MapsClient.Types
+      Kernel.External.Maps.Google.PolyLinePoints
+      Kernel.External.Maps.Google.RoadsClient
+      Kernel.External.Maps.HasCoordinates
+      Kernel.External.Maps.Interface
+      Kernel.External.Maps.Interface.Google
+      Kernel.External.Maps.Interface.MMI
+      Kernel.External.Maps.Interface.OSRM
+      Kernel.External.Maps.Interface.Types
+      Kernel.External.Maps.MMI.AutoSuggest
+      Kernel.External.Maps.MMI.Config
+      Kernel.External.Maps.MMI.MapsClient.Types
+      Kernel.External.Maps.MMI.MMIAuthToken
+      Kernel.External.Maps.OSRM.Config
+      Kernel.External.Maps.OSRM.RoadsClient
+      Kernel.External.Maps.Types
+      Kernel.External.Slack.Flow
+      Kernel.External.Slack.Types
+      Kernel.External.SMS
+      Kernel.External.SMS.ExotelSms.API
+      Kernel.External.SMS.ExotelSms.Config
+      Kernel.External.SMS.ExotelSms.Flow
+      Kernel.External.SMS.ExotelSms.Types
+      Kernel.External.SMS.Interface
+      Kernel.External.SMS.Interface.ExotelSms
+      Kernel.External.SMS.Interface.MyValueFirst
+      Kernel.External.SMS.Interface.Types
+      Kernel.External.SMS.MyValueFirst.API
+      Kernel.External.SMS.MyValueFirst.Config
+      Kernel.External.SMS.MyValueFirst.Flow
+      Kernel.External.SMS.MyValueFirst.Types
+      Kernel.External.SMS.Types
+      Kernel.External.Types
+      Kernel.External.Whatsapp.GupShup.Config
+      Kernel.External.Whatsapp.GupShup.Flow
+      Kernel.External.Whatsapp.Interface
+      Kernel.External.Whatsapp.Interface.GupShup
+      Kernel.External.Whatsapp.Interface.Types
+      Kernel.External.Whatsapp.Types
+      Kernel.InternalAPI.Auth.API
+      Kernel.InternalAPI.Auth.Client
+      Kernel.Mock.App
+      Kernel.Mock.Exceptions
+      Kernel.Mock.ExternalAPI
+      Kernel.Mock.Utils
+      Kernel.Prelude
+      Kernel.Prelude.OrphanInstances
+      Kernel.Product.Validation.Context
+      Kernel.Randomizer
+      Kernel.Serviceability
+      Kernel.Sms.Config
+      Kernel.Storage.Esqueleto
+      Kernel.Storage.Esqueleto.Class
+      Kernel.Storage.Esqueleto.Config
+      Kernel.Storage.Esqueleto.DTypeBuilder
+      Kernel.Storage.Esqueleto.Functions
+      Kernel.Storage.Esqueleto.Logger
+      Kernel.Storage.Esqueleto.Migration
+      Kernel.Storage.Esqueleto.Queries
+      Kernel.Storage.Esqueleto.SqlDB
+      Kernel.Storage.Esqueleto.Transactionable
+      Kernel.Storage.Esqueleto.Types
+      Kernel.Storage.Hedis
+      Kernel.Storage.Hedis.AppPrefixes
+      Kernel.Storage.Hedis.Config
+      Kernel.Storage.Hedis.Error
+      Kernel.Storage.Hedis.Queries
+      Kernel.Storage.Queries.BecknRequest
+      Kernel.Storage.Tabular.BecknRequest
+      Kernel.Streaming.Kafka.Commons
+      Kernel.Streaming.Kafka.Consumer
+      Kernel.Streaming.Kafka.Consumer.Types
+      Kernel.Streaming.Kafka.HasKafkaTopics
+      Kernel.Streaming.Kafka.Producer
+      Kernel.Streaming.Kafka.Producer.Types
+      Kernel.Streaming.Kafka.Topic.BusinessEvent
+      Kernel.Streaming.Kafka.Topic.BusinessEvent.Environment
+      Kernel.Streaming.Kafka.Topic.BusinessEvent.Functions
+      Kernel.Streaming.Kafka.Topic.BusinessEvent.Types
+      Kernel.Streaming.Kafka.Topic.PublicTransportQuoteList
+      Kernel.Streaming.Kafka.Topic.PublicTransportQuoteList.Functions
+      Kernel.Streaming.Kafka.Topic.PublicTransportQuoteList.Types
+      Kernel.Streaming.Kafka.Topic.PublicTransportSearch
+      Kernel.Streaming.Kafka.Topic.PublicTransportSearch.Functions
+      Kernel.Streaming.Kafka.Topic.PublicTransportSearch.Types
+      Kernel.Streaming.MonadConsumer
+      Kernel.Streaming.MonadProducer
+      Kernel.Tools.Metrics.CoreMetrics
+      Kernel.Tools.Metrics.CoreMetrics.Types
+      Kernel.Tools.Metrics.Init
+      Kernel.Types.APISuccess
+      Kernel.Types.App
+      Kernel.Types.Base64
+      Kernel.Types.Beckn.Ack
+      Kernel.Types.Beckn.Context
+      Kernel.Types.Beckn.DecimalValue
+      Kernel.Types.Beckn.Domain
+      Kernel.Types.Beckn.Error
+      Kernel.Types.Beckn.Gps
+      Kernel.Types.Beckn.ReqTypes
+      Kernel.Types.BecknRequest
+      Kernel.Types.Cache
+      Kernel.Types.Centesimal
+      Kernel.Types.Common
+      Kernel.Types.Credentials
+      Kernel.Types.Error
+      Kernel.Types.Error.BaseError
+      Kernel.Types.Error.BaseError.HTTPError
+      Kernel.Types.Error.BaseError.HTTPError.APIError
+      Kernel.Types.Error.BaseError.HTTPError.BecknAPIError
+      Kernel.Types.Error.BaseError.HTTPError.CallAPIError
+      Kernel.Types.Error.BaseError.HTTPError.FromResponse
+      Kernel.Types.Error.BaseError.HTTPError.HttpCode
+      Kernel.Types.Field
+      Kernel.Types.Flow
+      Kernel.Types.Forkable
+      Kernel.Types.Geofencing
+      Kernel.Types.GuidLike
+      Kernel.Types.Id
+      Kernel.Types.Logging
+      Kernel.Types.MonadGuid
+      Kernel.Types.Predicate
+      Kernel.Types.Registry
+      Kernel.Types.Registry.API
+      Kernel.Types.Registry.City
+      Kernel.Types.Registry.Country
+      Kernel.Types.Registry.Domain
+      Kernel.Types.Registry.Routes
+      Kernel.Types.Registry.Subscriber
+      Kernel.Types.Schema
+      Kernel.Types.Servant
+      Kernel.Types.SlidingWindowCounters
+      Kernel.Types.SlidingWindowLimiter
+      Kernel.Types.Time
+      Kernel.Types.TimeRFC339
+      Kernel.Types.Validation
+      Kernel.Types.Version
+      Kernel.Utils.App
+      Kernel.Utils.CalculateDistance
+      Kernel.Utils.Callback
+      Kernel.Utils.Common
+      Kernel.Utils.Context
+      Kernel.Utils.Dhall
+      Kernel.Utils.Error
+      Kernel.Utils.Error.BaseError.HTTPError.APIError
+      Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError
+      Kernel.Utils.Error.DB
+      Kernel.Utils.Error.FlowHandling
+      Kernel.Utils.Error.Hierarchy
+      Kernel.Utils.Error.Throwing
+      Kernel.Utils.Example
+      Kernel.Utils.FlowLogging
+      Kernel.Utils.GenericPretty
+      Kernel.Utils.IOLogging
+      Kernel.Utils.JSON
+      Kernel.Utils.JWT
+      Kernel.Utils.Logging
+      Kernel.Utils.Monitoring.Prometheus.Servant
+      Kernel.Utils.NonEmpty
+      Kernel.Utils.Predicates
+      Kernel.Utils.Registry
+      Kernel.Utils.Schema
+      Kernel.Utils.Servant.API
+      Kernel.Utils.Servant.BaseUrl
+      Kernel.Utils.Servant.Client
+      Kernel.Utils.Servant.HeaderAuth
+      Kernel.Utils.Servant.HTML
+      Kernel.Utils.Servant.JSONBS
+      Kernel.Utils.Servant.Server
+      Kernel.Utils.Servant.SignatureAuth
+      Kernel.Utils.Service
+      Kernel.Utils.Shutdown
+      Kernel.Utils.SignatureAuth
+      Kernel.Utils.SlidingWindowCounters
+      Kernel.Utils.SlidingWindowLimiter
+      Kernel.Utils.Text
+      Kernel.Utils.TH
+      Kernel.Utils.Time
+      Kernel.Utils.Validation
+      Kernel.Utils.Version
+  other-modules:
+      Paths_mobility_core
+  hs-source-dirs:
+      src
+  default-extensions:
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFunctor
+      DeriveGeneric
+      DuplicateRecordFields
+      ExplicitNamespaces
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GADTs
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      ViewPatterns
+      BlockArguments
+      TypeSynonymInstances
+      UndecidableInstances
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor
+  build-depends:
+      aeson
+    , aeson-casing
+    , base >=4.7 && <5
+    , base64
+    , base64-bytestring
+    , bytestring
+    , case-insensitive
+    , clock
+    , containers
+    , cryptonite
+    , data-default-class
+    , deriving-aeson
+    , dhall
+    , double-conversion
+    , either
+    , esqueleto
+    , euler-hs
+    , exceptions
+    , extra
+    , fast-logger
+    , fmt
+    , generic-lens
+    , geojson
+    , hedis
+    , hex-text
+    , hspec
+    , http-api-data
+    , http-client
+    , http-client-tls
+    , http-media
+    , http-types
+    , hw-kafka-client
+    , jwt
+    , kleene
+    , lattices
+    , lens
+    , memory
+    , monad-logger
+    , mtl
+    , network
+    , openapi3
+    , parsec
+    , passetto-client
+    , persistent
+    , persistent-postgresql
+    , postgresql-migration
+    , postgresql-simple
+    , prometheus-client
+    , prometheus-metrics-ghc
+    , prometheus-proc
+    , random
+    , random-strings
+    , record-dot-preprocessor
+    , record-hasfield
+    , resource-pool
+    , safe
+    , safe-exceptions
+    , safe-money
+    , scientific
+    , servant
+    , servant-client
+    , servant-client-core
+    , servant-openapi3
+    , servant-server
+    , stm
+    , string-conversions
+    , tasty
+    , tasty-hunit
+    , template-haskell
+    , text
+    , text-conversions
+    , time
+    , tinylog
+    , transformers
+    , universum
+    , unix
+    , unliftio
+    , unliftio-core
+    , unordered-containers
+    , uuid
+    , vector
+    , wai
+    , wai-app-static
+    , wai-middleware-prometheus
+    , warp
+  default-language: Haskell2010
+
+test-suite mobility-core-tests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      APIExceptions
+      Centesimal
+      DistanceCalculation
+      SignatureAuth
+      SlidingWindowLimiter
+      TestSilentIOLogger
+      Utils.Numeric
+      Version
+      Paths_mobility_core
+  hs-source-dirs:
+      test/app
+      test/src
+  default-extensions:
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFunctor
+      DeriveGeneric
+      DuplicateRecordFields
+      ExplicitNamespaces
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GADTs
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      ViewPatterns
+      BlockArguments
+      TypeSynonymInstances
+      UndecidableInstances
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor
+  build-depends:
+      aeson
+    , aeson-casing
+    , base >=4.7 && <5
+    , base64
+    , base64-bytestring
+    , bytestring
+    , case-insensitive
+    , clock
+    , containers
+    , cryptonite
+    , data-default-class
+    , deriving-aeson
+    , dhall
+    , double-conversion
+    , either
+    , esqueleto
+    , euler-hs
+    , exceptions
+    , extra
+    , fast-logger
+    , fmt
+    , generic-lens
+    , geojson
+    , hedis
+    , hex-text
+    , hspec
+    , http-api-data
+    , http-client
+    , http-client-tls
+    , http-media
+    , http-types
+    , hw-kafka-client
+    , jwt
+    , kleene
+    , lattices
+    , lens
+    , memory
+    , mobility-core
+    , monad-logger
+    , mtl
+    , network
+    , openapi3
+    , parsec
+    , passetto-client
+    , persistent
+    , persistent-postgresql
+    , postgresql-migration
+    , postgresql-simple
+    , prometheus-client
+    , prometheus-metrics-ghc
+    , prometheus-proc
+    , random
+    , random-strings
+    , record-dot-preprocessor
+    , record-hasfield
+    , resource-pool
+    , safe
+    , safe-exceptions
+    , safe-money
+    , scientific
+    , servant
+    , servant-client
+    , servant-client-core
+    , servant-openapi3
+    , servant-server
+    , stm
+    , string-conversions
+    , tasty
+    , tasty-hunit
+    , template-haskell
+    , text
+    , text-conversions
+    , time
+    , tinylog
+    , transformers
+    , universum
+    , unix
+    , unliftio
+    , unliftio-core
+    , unordered-containers
+    , uuid
+    , vector
+    , wai
+    , wai-app-static
+    , wai-middleware-prometheus
+    , warp
+  default-language: Haskell2010

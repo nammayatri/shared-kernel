@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    stackYaml: "./stack-hie.yaml"
+
+    components:
+    - path: "lib/mobility-core/src"
+      component: "mobility-core:lib"
+
+    - path: "lib/mobility-core/test/app"
+      component: "mobility-core:test:mobility-core-tests"
+
+    - path: "lib/mobility-core/test/src"
+      component: "mobility-core:test:mobility-core-tests"
