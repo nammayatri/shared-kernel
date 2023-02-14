@@ -82,7 +82,7 @@ data RouteInfo = RouteInfo
     snappedWaypoints :: [LatLong],
     points :: [LatLong]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 instance ToSchema BoundingBoxWithoutCRS where
   declareNamedSchema _ = do
