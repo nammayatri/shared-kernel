@@ -135,6 +135,7 @@ dependencies:
   - safe
   - tinylog
   - wai-app-static
+  - servant-multipart
 
 ghc-options:
   - -fwrite-ide-info
