@@ -19,6 +19,15 @@ distanceBetweenInMeters (LatLong lat1 lon1) (LatLong lat2 lon2) =
       h = sq (sin (dlat / 2)) + cos rlat1 * cos rlat2 * sq (sin (dlon / 2))
    in realToFrac $ 2 * r * atan2 (sqrt h) (sqrt (1 - h))
 
+everySnippetIs :: (HighPrecMeters -> Bool) -> [LatLong] -> Bool
+everySnippetIs p (x1 : x2 : xs) = go (x1 : x2 : xs)
+  where
+    go (y1 : y2 : ys) =
+      let distance = distanceBetweenInMeters y1 y2
+       in p distance && go (y2 : ys)
+    go _ = True
+everySnippetIs _ _ = True
+
 deg2Rad :: Double -> Double
 deg2Rad degree = degree * pi / 180
 
