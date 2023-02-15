@@ -109,7 +109,8 @@ snapToRoadProvided = \case
 
 snapToRoad ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasField "snapToRoadSnippetThreshold" r HighPrecMeters
   ) =>
   MapsServiceConfig ->
   SnapToRoadReq ->

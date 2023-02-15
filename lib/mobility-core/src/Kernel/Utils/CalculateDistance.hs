@@ -20,12 +20,9 @@ distanceBetweenInMeters (LatLong lat1 lon1) (LatLong lat2 lon2) =
    in realToFrac $ 2 * r * atan2 (sqrt h) (sqrt (1 - h))
 
 everySnippetIs :: (HighPrecMeters -> Bool) -> [LatLong] -> Bool
-everySnippetIs p (x1 : x2 : xs) = go (x1 : x2 : xs)
-  where
-    go (y1 : y2 : ys) =
-      let distance = distanceBetweenInMeters y1 y2
-       in p distance && go (y2 : ys)
-    go _ = True
+everySnippetIs p (x1 : x2 : xs) =
+  let distance = distanceBetweenInMeters x1 x2
+   in p distance && everySnippetIs p (x2 : xs)
 everySnippetIs _ _ = True
 
 deg2Rad :: Double -> Double
