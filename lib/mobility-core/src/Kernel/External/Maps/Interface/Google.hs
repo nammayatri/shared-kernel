@@ -164,7 +164,8 @@ parseDuration distanceMatrixElement = do
 snapToRoad ::
   ( HasCallStack,
     EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasField "snapToRoadSnippetThreshold" r HighPrecMeters
   ) =>
   GoogleCfg ->
   SnapToRoadReq ->
@@ -174,7 +175,8 @@ snapToRoad cfg SnapToRoadReq {..} = do
   key <- decrypt cfg.googleKey
   res <- GoogleRoads.snapToRoad roadsUrl key points
   let pts = map (.location) res.snappedPoints
-  unless (everySnippetIs (< 300) pts) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
+  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+  unless (everySnippetIs (< snippetThreshold) pts) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
   let dist = getRouteLinearLength pts
   pure
     SnapToRoadResp

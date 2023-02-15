@@ -6,6 +6,7 @@ import DistanceCalculation
 import EulerHS.Prelude
 import SignatureAuth
 import SlidingWindowLimiter
+import SnippetsCheck (snippetsCheckTests)
 import Test.Tasty
 import Version
 
@@ -23,5 +24,6 @@ specs = return $ testGroup "Tests" [unitTests]
           httpExceptionTests,
           slidingWindowLimiterTests,
           distanceCalculation,
-          readVersionTests
+          readVersionTests,
+          snippetsCheckTests
         ]
