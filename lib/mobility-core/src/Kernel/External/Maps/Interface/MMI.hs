@@ -1,14 +1,18 @@
 module Kernel.External.Maps.Interface.MMI
   ( autoSuggest,
     getDistanceMatrix,
+    getRoutes,
   )
 where
 
 import qualified Data.List.Extra as List
+import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import qualified Data.Text as T
 import EulerHS.Prelude
+import GHC.Float (double2Int)
 import Kernel.External.Encryption
+import qualified Kernel.External.Maps.Google.PolyLinePoints as PP
 import Kernel.External.Maps.HasCoordinates (HasCoordinates (..))
 import Kernel.External.Maps.Interface.Types as IT
 import Kernel.External.Maps.MMI.AutoSuggest as MMI
@@ -17,11 +21,13 @@ import Kernel.External.Maps.MMI.DistanceMatrix as MMI
 import Kernel.External.Maps.MMI.MMIAuthToken as MMIAuthToken
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMITypes
+import Kernel.External.Maps.MMI.Routes as MMI
 import Kernel.External.Maps.Types
 import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
+import Kernel.Utils.Common (logTagWarning)
 import Kernel.Utils.Error.Throwing
 
 autoSuggest ::
@@ -114,3 +120,56 @@ buildResp listSrc listDest distanceMatrixResp pair =
       duration = floor $ (distanceMatrixResp.results.durations !! fst pair) !! snd pair,
       status = distanceMatrixResp.results.code
     }
+
+getRoutes ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Log m
+  ) =>
+  MMICfg ->
+  IT.GetRoutesReq ->
+  m IT.GetRoutesResp
+getRoutes mmiCfg req = do
+  key <- decrypt mmiCfg.mmiApiKey
+  let origin = latLongToText (NE.head req.waypoints)
+      destination = latLongToText (NE.last req.waypoints)
+      points = origin <> ";" <> destination
+      mapsUrl = mmiCfg.mmiKeyUrl
+  resp <- MMI.mmiRoute mapsUrl key points
+  traverse (mkRoute req resp) resp.routes
+
+mkRoute ::
+  (MonadFlow m) =>
+  IT.GetRoutesReq ->
+  MMI.RouteResponse ->
+  MMI.Routes ->
+  m IT.RouteInfo
+mkRoute req resp route = do
+  let bound = Nothing
+  if null route.legs
+    then do
+      logTagWarning "MMIRoutes" ("Empty route.legs, " <> show req)
+      return $ RouteInfo Nothing Nothing bound [] []
+    else do
+      when (length route.legs > 1) $
+        logTagWarning "MMIRoutes" ("More than one element in route.legs, " <> show req)
+      let points = PP.decode route.geometry
+          bounds = boundingBoxCal points
+          boundBox = Just $ BoundingBoxWithoutCRSXY (PointXY bounds.minLat bounds.minLon) (PointXY bounds.minLat bounds.minLon)
+          snappedWayPoints = (\waypoint -> waypoint.location.getLatLong) <$> resp.waypoints
+          distanceInM = Just $ Meters $ double2Int route.distance
+          durationInS = Just $ Seconds $ double2Int route.duration
+      return $ RouteInfo durationInS distanceInM boundBox snappedWayPoints points
+  where
+    createAcc = Acc {minLat = 91.0, maxLat = -91.0, minLon = 180.0, maxLon = -180.0}
+    boundingBoxCal points = foldl' compareLatLong createAcc points
+    compareLatLong :: Acc -> LatLong -> Acc
+    compareLatLong acc loc =
+      let max_lat = max loc.lat acc.maxLat
+          max_lng = max loc.lon acc.maxLon
+          min_lat = min loc.lat acc.minLat
+          min_lng = min loc.lon acc.minLon
+       in Acc {minLat = min_lat, maxLat = max_lat, minLon = min_lng, maxLon = max_lng}
+
+data Acc = Acc {minLat :: Double, maxLat :: Double, minLon :: Double, maxLon :: Double}
+  deriving (Generic, ToJSON, FromJSON)
