@@ -13,7 +13,7 @@ copyright: "2023 Juspay Technologies Private Limited"
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description: Please see the README on GitHub at <https://bitbucket.org/juspay/beckn#readme> # insert github link
+description: Please see the README on GitHub at <https://github.com/nammayatri/shared-kernel/blob/main/README.md> # insert github link
 
 default-extensions:
   - ConstraintKinds

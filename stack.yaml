@@ -42,13 +42,13 @@ packages:
 # extra-deps: []
 
 extra-deps:
-  - git: ssh://git@bitbucket.org/juspay/passetto-hs
-    commit: 3c1596eaa7dd77e7bc017125aa7023d14e74d44f
+  - git: https://github.com/juspay/passetto
+    commit: bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff
     subdirs:
       - core
       - client
-  - git: git@bitbucket.org:juspay/euler-hs.git
-    commit: b9bf8f6b32f593f49aff782690e8029f74a9947e
+  - git: https://github.com/juspay/euler-hs
+    commit: 0fdda6ef43c1a6c9c7221d7c194c278e375b9936
   - git: https://github.com/juspay/hedis
     commit: 46ea0ea78e6d8d1a2b1a66e6f08078a37864ad80
   - git: https://github.com/juspay/beam-mysql
@@ -64,8 +64,8 @@ extra-deps:
       - beam-migrate
       - beam-sqlite
       - beam-postgres
-  - git: git@bitbucket.org:juspay/haskell-sequelize.git
-    commit: bcbf4481372d77491896a5d2051ddb2eb90640ca
+  - git: https://github.com/juspay/haskell-sequelize.git
+    commit: 3abc8fe10edde3fd1c9a776ede81d057dc590341
   - generic-lens-1.1.0.0 # Random breakage without this
 
   - servant-0.18.1

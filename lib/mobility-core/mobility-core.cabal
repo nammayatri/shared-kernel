@@ -6,9 +6,9 @@ cabal-version: 1.12
 
 name:           mobility-core
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://bitbucket.org/juspay/beckn#readme>
-homepage:       https://github.com/juspay/atlas-shared-kernel#readme
-bug-reports:    https://github.com/juspay/atlas-shared-kernel/issues
+description:    Please see the README on GitHub at <https://github.com/nammayatri/shared-kernel/blob/main/README.md>
+homepage:       https://github.com/nammayatri/shared-kernel/
+bug-reports:    https://github.com/nammayatri/shared-kernel/issues
 author:         Juspay
 maintainer:     Juspay
 copyright:      2023 Juspay Technologies Private Limited
@@ -48,8 +48,10 @@ library
       Kernel.External.Maps.Interface.Types
       Kernel.External.Maps.MMI.AutoSuggest
       Kernel.External.Maps.MMI.Config
+      Kernel.External.Maps.MMI.DistanceMatrix
       Kernel.External.Maps.MMI.MapsClient.Types
       Kernel.External.Maps.MMI.MMIAuthToken
+      Kernel.External.Maps.MMI.Routes
       Kernel.External.Maps.OSRM.Config
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
@@ -86,6 +88,7 @@ library
       Kernel.Prelude.OrphanInstances
       Kernel.Product.Validation.Context
       Kernel.Randomizer
+      Kernel.ServantMultipart
       Kernel.Serviceability
       Kernel.Sms.Config
       Kernel.Storage.Esqueleto
@@ -318,6 +321,7 @@ library
     , servant
     , servant-client
     , servant-client-core
+    , servant-multipart
     , servant-openapi3
     , servant-server
     , stm
@@ -352,6 +356,7 @@ test-suite mobility-core-tests
       DistanceCalculation
       SignatureAuth
       SlidingWindowLimiter
+      SnippetsCheck
       TestSilentIOLogger
       Utils.Numeric
       Version
@@ -457,6 +462,7 @@ test-suite mobility-core-tests
     , servant
     , servant-client
     , servant-client-core
+    , servant-multipart
     , servant-openapi3
     , servant-server
     , stm
