@@ -7,8 +7,8 @@ cabal-version: 1.12
 name:           mobility-core
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/nammayatri/shared-kernel/blob/main/README.md>
-homepage:       https://github.com/nammayatri/shared-kernel/
-bug-reports:    https://github.com/nammayatri/shared-kernel/issues
+homepage:       https://github.com/juspay/atlas-shared-kernel#readme
+bug-reports:    https://github.com/juspay/atlas-shared-kernel/issues
 author:         Juspay
 maintainer:     Juspay
 copyright:      2023 Juspay Technologies Private Limited
