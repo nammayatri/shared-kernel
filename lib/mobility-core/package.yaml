@@ -1,10 +1,10 @@
 name: mobility-core
 version: 0.1.0.0
-github: "juspay/atlas-shared-kernel" # update if needed
+github: "nammayatri/shared-kernel" # update if needed
 license: AllRightsReserved
-author: "Juspay"
-maintainer: "Juspay"
-copyright: "2023 Juspay Technologies Private Limited"
+author: "nammayatri"
+maintainer: "nammayatri"
+copyright: "nammayatri.in"
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
