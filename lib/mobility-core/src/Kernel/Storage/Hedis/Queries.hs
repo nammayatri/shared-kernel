@@ -19,6 +19,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.String.Conversions
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
 import Database.Redis
   ( Queued,
     Redis,
