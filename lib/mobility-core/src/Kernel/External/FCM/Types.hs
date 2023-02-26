@@ -114,6 +114,7 @@ data FCMNotificationType
   | DRIVER_HAS_REACHED
   | CLEARED_FARE
   | CANCELLED_SEARCH_REQUEST
+  | NEW_MESSAGE
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
