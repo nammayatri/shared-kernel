@@ -42,6 +42,7 @@ import Kernel.Types.Time as Common
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.GenericPretty
 import Text.Show (Show (..))
+import Servant
 
 newtype IdObject = IdObject
   { id :: Text
@@ -52,7 +53,7 @@ newtype IdObject = IdObject
 newtype Meters = Meters
   { getMeters :: Int
   }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
 newtype HighPrecMeters = HighPrecMeters
@@ -83,7 +84,7 @@ newtype Money = Money
   { getMoney :: Int
   }
   deriving stock (Generic)
-  deriving newtype (Show, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema)
+  deriving newtype (Show, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData)
 
 newtype HighPrecMoney = HighPrecMoney
   { getHighPrecMoney :: Rational
