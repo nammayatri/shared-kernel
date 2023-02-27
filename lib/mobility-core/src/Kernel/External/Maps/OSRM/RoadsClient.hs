@@ -1,17 +1,16 @@
- {-
+{-
   Copyright 2022-23, Juspay India Pvt Ltd
-  
-  This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License 
-  
-  as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is 
-  
-  distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
-  
-  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero 
-  
+
+  This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+
+  as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is
+
+  distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero
+
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-
 {-# LANGUAGE DerivingVia #-}
 
 module Kernel.External.Maps.OSRM.RoadsClient where
@@ -43,7 +42,7 @@ type MatchAPI =
     :> MandatoryQueryParam "geometries" GeometryRespType
     :> Get '[JSON] MatchResp
 
-type TableAPI = 
+type TableAPI =
   "table"
     :> "v1"
     :> "driving"
@@ -52,9 +51,11 @@ type TableAPI =
     :> MandatoryQueryParam "sources" SourcesList
     :> MandatoryQueryParam "destinations" DestinationsList
     :> Get '[JSON] OSRMTableResponse
-  
+
 newtype PointsList = PointsList {getPointsList :: [Maps.LatLong]}
+
 newtype SourcesList = SourcesList {getSourcesList :: [Int]}
+
 newtype DestinationsList = DestinationsList {getDestinationsList :: [Int]}
 
 instance ToHttpApiData PointsList where
@@ -84,11 +85,11 @@ data GeometryRespType = GeoJson
 instance ToHttpApiData GeometryRespType where
   toUrlPiece GeoJson = "geojson"
 
-data OSRMTableResponse = OSRMTableResponse {
-  distances :: [[Double]],
-  code :: String,
-  durations :: [[Double]]
-}
+data OSRMTableResponse = OSRMTableResponse
+  { distances :: [[Double]],
+    code :: String,
+    durations :: [[Double]]
+  }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -168,15 +169,16 @@ getResultOneRouteExpected resp = do
 
 callOsrmGetDistancesAPI ::
   ( HasCallStack,
-      Metrics.CoreMetrics m,
-      MonadFlow m
-    ) =>
-    BaseUrl ->
-    PointsList ->
-    SourcesList ->
-    DestinationsList -> 
-    m OSRMTableResponse
-callOsrmGetDistancesAPI osrmUrl pointsList sourcesList destinationsList = do
-  let eulerClient = Euler.client (Proxy @TableAPI)
-  callAPI osrmUrl (eulerClient pointsList "distance,duration" sourcesList destinationsList) "osrm-table"
-  >>= fromEitherM (\err -> InternalError $ "Failed to call osrm table API: " <> show err)
+    Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  PointsList ->
+  SourcesList ->
+  DestinationsList ->
+  m OSRMTableResponse
+callOsrmGetDistancesAPI osrmUrl pointsList sourcesList destinationsList =
+  do
+    let eulerClient = Euler.client (Proxy @TableAPI)
+    callAPI osrmUrl (eulerClient pointsList "distance,duration" sourcesList destinationsList) "osrm-table"
+    >>= fromEitherM (\err -> InternalError $ "Failed to call osrm table API: " <> show err)
