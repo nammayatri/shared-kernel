@@ -12,7 +12,7 @@ bug-reports:    https://github.com/nammayatri/shared-kernel/issues
 author:         nammayatri
 maintainer:     nammayatri
 copyright:      nammayatri.in
-license:        AllRightsReserved
+license:        AGPL
 build-type:     Simple
 
 source-repository head
