@@ -75,7 +75,6 @@ import Database.Esqueleto.Experimental as EsqExport hiding
   )
 import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Esqueleto.Internal.Internal as Esq
-import Database.Persist.Postgresql hiding (delete, repsert, update, upsert, upsertBy)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Class
 import Kernel.Storage.Esqueleto.DTypeBuilder
