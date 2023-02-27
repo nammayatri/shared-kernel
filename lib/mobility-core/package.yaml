@@ -100,7 +100,7 @@ dependencies:
   - unordered-containers
   - geojson
   - safe-money
-  - dhall
+  - dhall <= 1.35.0
   - tasty
   - tasty-hunit
   - either
