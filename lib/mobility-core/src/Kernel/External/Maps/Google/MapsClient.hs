@@ -28,6 +28,8 @@ module Kernel.External.Maps.Google.MapsClient
   )
 where
 
+import qualified Data.Aeson as J
+import Data.Either.Combinators (whenLeft)
 import EulerHS.Types (EulerClient, client)
 import Kernel.External.Maps.Google.MapsClient.Types as GoogleMaps
 import Kernel.External.Maps.Types
@@ -37,8 +39,9 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
+import Network.HTTP.Types (Status (statusCode, statusMessage))
 import Servant hiding (throwError)
-import Servant.Client.Core (ClientError)
+import Servant.Client.Core ( ClientError, ClientError(FailureResponse), ResponseF(Response) )
 
 type GoogleMapsAPI =
   AutocompleteAPI
@@ -155,8 +158,20 @@ getPlaceName ::
   Maybe Language ->
   m GoogleMaps.GetPlaceNameResp
 getPlaceName url apiKey sessiontoken mbByPlaceId mbByLatLong language = do
-  callAPI url (getPlaceNameClient sessiontoken apiKey mbByLatLong mbByPlaceId language) "getPlaceName"
-    >>= checkGoogleMapsError url
+  res <- callAPI url (getPlaceNameClient sessiontoken apiKey mbByLatLong mbByPlaceId language) "getPlaceName"
+  whenLeft res $
+    \(FailureResponse _ (Response code _ _ resBody)) ->
+      case statusCode code of
+        400 -> case J.eitherDecode resBody of
+          Right (apiEr :: GoogleMaps.ResBody) ->
+            throwError $ GoogleMapsInvalidRequest $ apiEr.error_message
+          Left _ ->
+            throwError $ GoogleMapsInvalidRequest $ Just $ show (statusMessage code)
+        500 ->
+          throwError $ InternalError $ show $ statusMessage code
+        _ ->
+          throwError $ GoogleMapsCallError $ show $ statusMessage code
+  checkGoogleMapsError url res
 
 distanceMatrix ::
   ( CoreMetrics m,
@@ -202,5 +217,5 @@ validateResponseStatus response =
   case response.status of
     "OK" -> pure response
     "ZERO_RESULTS" -> pure response
-    "INVALID_REQUEST" -> throwError GoogleMapsInvalidRequest
+    "INVALID_REQUEST" -> throwError $ GoogleMapsInvalidRequest Nothing
     _ -> throwError $ GoogleMapsCallError response.status

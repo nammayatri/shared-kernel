@@ -205,3 +205,9 @@ data DepartureTime = Now | FutureTime UTCTime
 instance ToHttpApiData DepartureTime where
   toUrlPiece Now = "now"
   toUrlPiece (FutureTime time) = show time
+
+data ResBody = ResBody
+  { error_message :: Maybe Text,
+    status :: Maybe Text
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)

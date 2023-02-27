@@ -187,7 +187,7 @@ instance IsHTTPError PersonError where
     PersonNotFound _ -> E500
     PersonDoesNotExist _ -> E400
     PersonFieldNotPresent _ -> E500
-    PersonWithPhoneNotFound _ -> E500
+    PersonWithPhoneNotFound _ -> E400
     PersonEmailExists -> E400
 
 instance IsAPIError PersonError
@@ -396,7 +396,7 @@ instance IsHTTPError RideError where
     RideDoesNotExist _ -> E400
     RideFieldNotPresent _ -> E500
     RideWithBookingIdNotFound _ -> E500
-    RideForDriverNotFound _ -> E500
+    RideForDriverNotFound _ -> E400
     RideInvalidStatus _ -> E400
     DriverNotAtPickupLocation _ -> E400
 
@@ -556,22 +556,23 @@ instance IsHTTPError SMSError where
 
 instance IsAPIError SMSError
 
-data GoogleMapsCallError = GoogleMapsInvalidRequest | GoogleMapsCallError Text
+data GoogleMapsCallError
+   = GoogleMapsInvalidRequest (Maybe Text)
+  | GoogleMapsCallError Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''GoogleMapsCallError
 
 instance IsBaseError GoogleMapsCallError where
   toMessage = \case
-    GoogleMapsInvalidRequest -> Just "Invalid request to Google Maps."
+    GoogleMapsInvalidRequest statusMessage -> Just (fromMaybe "Invalid request to Google Maps" statusMessage)
     GoogleMapsCallError googleErrorCode -> Just googleErrorCode
-
 instance IsHTTPError GoogleMapsCallError where
   toErrorCode = \case
-    GoogleMapsInvalidRequest -> "GOOGLE_MAPS_INVALID_REQUEST"
+    GoogleMapsInvalidRequest _ -> "GOOGLE_MAPS_INVALID_REQUEST"
     GoogleMapsCallError _ -> "GOOGLE_MAPS_CALL_ERROR"
   toHttpCode = \case
-    GoogleMapsInvalidRequest -> E400
+    GoogleMapsInvalidRequest _ -> E400
     GoogleMapsCallError _ -> E500
 
 instance IsAPIError GoogleMapsCallError
