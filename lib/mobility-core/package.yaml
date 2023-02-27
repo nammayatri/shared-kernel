@@ -118,7 +118,7 @@ dependencies:
   - monad-logger
   - unliftio-core
   - resource-pool
-  - universum
+  - universum < 1.8
   - scientific
   - vector
   - unliftio
