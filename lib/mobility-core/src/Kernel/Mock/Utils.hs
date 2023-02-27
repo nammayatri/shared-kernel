@@ -20,7 +20,7 @@ import qualified Data.Aeson.Types as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.Either.Extra
-import Data.List
+import qualified Data.List as List
 import Data.String.Conversions
 import qualified Data.Text as T
 import Data.Time
@@ -64,6 +64,6 @@ decodeEitherJSON bs = do
   first T.pack $ Ae.parseEither parseJSON val
 
 findAndDecode :: (FromJSON a) => BS.ByteString -> [(BS.ByteString, BS.ByteString)] -> Either Text a
-findAndDecode key list = maybeToEither errMsg (lookup key list) >>= decodeEitherJSON
+findAndDecode key list = maybeToEither errMsg (List.lookup key list) >>= decodeEitherJSON
   where
     errMsg = "failed to find key: " <> cs key
