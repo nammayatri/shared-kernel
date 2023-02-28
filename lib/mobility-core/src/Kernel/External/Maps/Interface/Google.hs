@@ -15,6 +15,7 @@
 module Kernel.External.Maps.Interface.Google
   ( module Reexport,
     getDistances,
+    getDistance,
     getRoutes,
     snapToRoad,
     autoComplete,
@@ -106,6 +107,33 @@ routeToRouteProxyConverter req =
       calcPoints = req.calcPoints,
       waypoints = originAndDestinationRemover $ NE.toList req.waypoints
     }
+
+getDistance ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasCoordinates a,
+    HasCoordinates b
+  ) =>
+  GoogleCfg ->
+  GetDistanceReq a b ->
+  m (GetDistanceResp a b)
+getDistance cfg GetDistanceReq {..} = do
+  let googleMapsUrl = cfg.googleMapsUrl
+  key <- decrypt cfg.googleKey
+  let placeOrigin = latLongToPlace $ getCoordinates origin
+      placeDestination = latLongToPlace $ getCoordinates destination
+  response <- GoogleMaps.directions googleMapsUrl key placeOrigin placeDestination mode Nothing True
+  let routesData = map (sumLegsDistancesAndDuration . (.legs)) response.routes
+  let sortedRoutesData = List.sortOn fst routesData -- shortest data is the first element now
+  case sortedRoutesData of
+    (distance, duration) : _ -> pure $ GetDistanceResp {status = response.status, ..}
+    _ -> throwError (InternalError "Empty routes list in Distance API.")
+  where
+    sumLegsDistancesAndDuration =
+      foldr
+        (\x (accDistance, accDuration) -> (Meters x.distance.value + accDistance, Seconds x.duration.value + accDuration))
+        (0, 0)
+    mode = mapToMode <$> travelMode
 
 getRoutes ::
   ( EncFlow m r,
