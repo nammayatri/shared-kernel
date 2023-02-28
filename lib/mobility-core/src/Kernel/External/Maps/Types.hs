@@ -26,8 +26,8 @@ import Data.Geospatial
 import Data.LineString
 import Data.OpenApi
 import Data.Text
+import Database.Persist.TH (derivePersistField)
 import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.GenericPretty (PrettyShow)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 

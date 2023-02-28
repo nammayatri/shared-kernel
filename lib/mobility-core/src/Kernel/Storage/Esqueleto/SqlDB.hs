@@ -22,6 +22,7 @@ module Kernel.Storage.Esqueleto.SqlDB
     liftToFullEntitySqlDB,
     withFullEntity,
     withFullEntities,
+    finalize,
   )
 where
 
@@ -35,41 +36,42 @@ import Kernel.Types.MonadGuid
 import Kernel.Types.Time (MonadTime (..))
 import Kernel.Utils.Logging
 
-newtype SqlDBEnv = SqlDBEnv
-  { currentTime :: UTCTime
+data SqlDBEnv m = SqlDBEnv
+  { currentTime :: UTCTime,
+    actions :: m ()
   }
 
-newtype SqlDB a = SqlDB {unSqlDB :: ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO) a}
-  deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid, Log, MonadThrow)
+newtype SqlDB k a = SqlDB {unSqlDB :: StateT (SqlDBEnv k) (ReaderT SqlBackend LoggerIO) a}
+  deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid, Log, MonadThrow, MonadState (SqlDBEnv k), MonadIO)
 
-instance Monad m => MonadTime (ReaderT SqlDBEnv m) where
-  getCurrentTime = asks (.currentTime)
+instance Monad m => MonadTime (StateT (SqlDBEnv k) m) where
+  getCurrentTime = gets (.currentTime)
 
-instance MonadGuid (ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
+instance MonadGuid (StateT (SqlDBEnv k) (ReaderT SqlBackend LoggerIO)) where
   generateGUIDText = lift $ lift generateGUID
 
-instance Log (ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
+instance Log (StateT (SqlDBEnv k) (ReaderT SqlBackend LoggerIO)) where
   logOutput a b = lift . lift $ logOutput a b
-  withLogTag a (ReaderT f1) = ReaderT $ \env1 -> do
+  withLogTag a (StateT f1) = StateT $ \env1 -> do
     let (ReaderT f2) = f1 env1
     ReaderT $ \env2 ->
       withLogTag a $ f2 env2
 
-newtype SelectSqlDB a = SelectSqlDB {unSelectSqlDB :: SqlDB a}
+newtype SelectSqlDB m a = SelectSqlDB {unSelectSqlDB :: SqlDB m a}
   deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid, Log, MonadThrow)
 
-newtype FullEntitySqlDB t = FullEntitySqlDB
-  { getSqlDB :: SqlDB t
+newtype FullEntitySqlDB m t = FullEntitySqlDB
+  { getSqlDB :: SqlDB m t
   }
   deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid)
 
-liftToFullEntitySqlDB :: SqlDB t -> FullEntitySqlDB t
+liftToFullEntitySqlDB :: SqlDB m t -> FullEntitySqlDB m t
 liftToFullEntitySqlDB = FullEntitySqlDB
 
 withFullEntity' :: TType t a => a -> (t -> b) -> b
 withFullEntity' dtype func = func $ toTType dtype
 
-withFullEntity :: TType t a => a -> (t -> FullEntitySqlDB b) -> SqlDB b
+withFullEntity :: TType t a => a -> (t -> FullEntitySqlDB m b) -> SqlDB m b
 withFullEntity dtype func = getSqlDB $ withFullEntity' dtype func
 
 withFullEntities' :: TType t a => [a] -> ([t] -> b) -> b
@@ -78,5 +80,11 @@ withFullEntities' (x : xs) f =
   withFullEntity' x $ \y ->
     withFullEntities' xs \ys -> f (y : ys)
 
-withFullEntities :: TType t a => [a] -> ([t] -> FullEntitySqlDB b) -> SqlDB b
+withFullEntities :: TType t a => [a] -> ([t] -> FullEntitySqlDB m b) -> SqlDB m b
 withFullEntities dtypes func = getSqlDB $ withFullEntities' dtypes func
+
+finalize :: forall m. (Monad m) => m () -> SqlDB m ()
+finalize someAction = do
+  env <- get
+  let prevAction = actions env
+  put $ env{actions = prevAction >> someAction}
