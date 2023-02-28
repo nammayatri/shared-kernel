@@ -1,14 +1,14 @@
- {-
+{-
   Copyright 2022-23, Juspay India Pvt Ltd
-  
-  This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License 
-  
-  as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is 
-  
-  distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
-  
-  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero 
-  
+
+  This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+
+  as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is
+
+  distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero
+
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
@@ -58,3 +58,10 @@ camelCaseToSnakeCase :: Text -> Text
 camelCaseToSnakeCase =
   T.concatMap \c ->
     if Char.isUpper c then T.pack ['_', Char.toLower c] else T.singleton c
+
+validateAllDigitWithMinLength :: Int -> Text -> Bool
+validateAllDigitWithMinLength minLength str = validateLength && validateAllDigits (T.unpack str)
+  where
+    validateLength = T.length str == minLength
+    validateAllDigits (x : xs) = fromEnum x <= 57 && fromEnum x >= 48 && validateAllDigits xs
+    validateAllDigits [] = True

@@ -1,20 +1,18 @@
- {-
+{-
   Copyright 2022-23, Juspay India Pvt Ltd
-  
-  This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License 
-  
-  as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is 
-  
-  distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
-  
-  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero 
-  
+
+  This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+
+  as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is
+
+  distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero
+
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedLists #-}
@@ -26,16 +24,16 @@
 
 module Kernel.External.Maps.MMI.MapsClient.Types where
 
+import Data.Aeson
 import qualified Data.Text as T
+import qualified Data.Vector as V
+import EulerHS.Prelude ((...))
+import qualified Kernel.External.Maps.Google.PolyLinePoints as PP
 import qualified Kernel.External.Maps.Types as Maps
 import Kernel.Prelude
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON (constructorsWithSnakeCase, stripPrefixUnderscoreIfAny)
 import Kernel.Utils.TH
-import qualified Kernel.External.Maps.Google.PolyLinePoints as PP
-import Data.Aeson
-import qualified Data.Vector as V
-import EulerHS.Prelude ((...))
 import Web.FormUrlEncoded (ToForm, toForm)
 import Web.Internal.HttpApiData
 

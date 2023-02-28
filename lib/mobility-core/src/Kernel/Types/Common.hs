@@ -1,17 +1,16 @@
- {-
+{-
   Copyright 2022-23, Juspay India Pvt Ltd
-  
-  This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License 
-  
-  as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is 
-  
-  distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
-  
-  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero 
-  
+
+  This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+
+  as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is
+
+  distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero
+
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -43,6 +42,7 @@ import Kernel.Types.Time as Common
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.GenericPretty
 import Text.Show (Show (..))
+import Servant
 
 newtype IdObject = IdObject
   { id :: Text
@@ -53,7 +53,7 @@ newtype IdObject = IdObject
 newtype Meters = Meters
   { getMeters :: Int
   }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
 newtype HighPrecMeters = HighPrecMeters
@@ -84,7 +84,7 @@ newtype Money = Money
   { getMoney :: Int
   }
   deriving stock (Generic)
-  deriving newtype (Show, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema)
+  deriving newtype (Show, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData)
 
 newtype HighPrecMoney = HighPrecMoney
   { getHighPrecMoney :: Rational
