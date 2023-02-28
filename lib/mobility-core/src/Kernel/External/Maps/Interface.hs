@@ -56,10 +56,12 @@ getDistance ::
   MapsServiceConfig ->
   GetDistanceReq a b ->
   m (GetDistanceResp a b)
-getDistance serviceConfig GetDistanceReq {..} =
-  getDistances serviceConfig getDistancesReq >>= \case
-    (a :| []) -> return a
-    _ -> throwError (InternalError "Exactly one getDistance result expected.")
+getDistance serviceConfig req@GetDistanceReq {..} = case serviceConfig of
+  GoogleConfig cfg -> Google.getDistance cfg req
+  _ ->
+    getDistances serviceConfig getDistancesReq >>= \case
+      (a :| []) -> return a
+      _ -> throwError (InternalError "Exactly one getDistance result expected.")
   where
     getDistancesReq =
       GetDistancesReq
