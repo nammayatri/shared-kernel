@@ -27,6 +27,8 @@ module Kernel.External.Maps.Interface
     getPlaceDetails,
     getPlaceNameProvided,
     getPlaceName,
+    getNearBySearch,
+    getNearBySearchProvided,
   )
 where
 
@@ -188,3 +190,21 @@ getPlaceName serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceName cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
   MMIConfig _ -> throwNotProvidedError "getPlaceName" MMI
+
+getNearBySearchProvided :: MapsService -> Bool
+getNearBySearchProvided = \case
+  Google -> True
+  OSRM -> False
+  MMI -> False
+
+getNearBySearch ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  MapsServiceConfig ->
+  GetNearBySearchReq ->
+  m Text
+getNearBySearch serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getNearBySearch cfg req
+  OSRMConfig _ -> throwNotProvidedError "getNearBySearch" OSRM
+  MMIConfig _ -> throwNotProvidedError "getNearBySearch" MMI
