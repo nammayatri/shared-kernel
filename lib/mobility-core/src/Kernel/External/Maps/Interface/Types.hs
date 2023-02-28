@@ -49,14 +49,16 @@ data GetDistanceReq a b = GetDistanceReq
     destination :: b,
     travelMode :: Maybe TravelMode
   }
-  deriving (Generic, Show)
+  deriving (Generic, Show, FromJSON, ToJSON)
+
+instance (ToSchema a, ToSchema b) => ToSchema (GetDistanceReq a b)
 
 data GetDistancesReq a b = GetDistancesReq
   { origins :: NonEmpty a,
     destinations :: NonEmpty b,
     travelMode :: Maybe TravelMode
   }
-  deriving (Generic, Show, ToSchema)
+  deriving (Generic, Show, ToSchema, ToJSON, FromJSON)
 
 data GetDistanceResp a b = GetDistanceResp
   { origin :: a,
@@ -65,9 +67,17 @@ data GetDistanceResp a b = GetDistanceResp
     duration :: Seconds,
     status :: Text
   }
-  deriving (Generic, Show, PrettyShow, FromJSON)
+  deriving (Generic, Show, PrettyShow, FromJSON, ToJSON)
+
+instance (ToSchema a, ToSchema b) => ToSchema (GetDistanceResp a b)
 
 type GetDistancesResp a b = NonEmpty (GetDistanceResp a b)
+
+data GetDistanceData a b = GetDistanceData
+  { request :: GetDistancesReq a b,
+    response :: [GetDistanceResp a b]
+  }
+  deriving (Generic, Show, FromJSON, ToJSON, ToSchema)
 
 data GetRoutesReq = GetRoutesReq
   { waypoints :: NonEmpty LatLong,
@@ -140,13 +150,13 @@ data AutoCompleteReq = AutoCompleteReq
 newtype AutoCompleteResp = AutoCompleteResp
   { predictions :: [Prediction]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 data Prediction = Prediction
   { description :: Text,
     placeId :: Maybe Text
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 data GetPlaceDetailsReq = GetPlaceDetailsReq
   { placeId :: Text,

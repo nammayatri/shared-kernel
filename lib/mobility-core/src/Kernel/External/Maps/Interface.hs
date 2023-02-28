@@ -42,6 +42,7 @@ import Kernel.External.Maps.OSRM.Config as Reexport
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
 import Kernel.Storage.Hedis as Redis
+import Kernel.Streaming.Kafka.Producer.Types (KafkaProducerTools)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
@@ -51,13 +52,18 @@ getDistance ::
   ( EncFlow m r,
     CoreMetrics m,
     HasCoordinates a,
-    HasCoordinates b
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
+    HasFlowEnv m r '["appPrefix" ::: Text]
   ) =>
+  Text ->
   MapsServiceConfig ->
   GetDistanceReq a b ->
   m (GetDistanceResp a b)
-getDistance serviceConfig GetDistanceReq {..} =
-  getDistances serviceConfig getDistancesReq >>= \case
+getDistance someId serviceConfig GetDistanceReq {..} =
+  getDistances someId serviceConfig getDistancesReq >>= \case
     (a :| []) -> return a
     _ -> throwError (InternalError "Exactly one getDistance result expected.")
   where
@@ -86,13 +92,18 @@ getDistances ::
   ( EncFlow m r,
     CoreMetrics m,
     HasCoordinates a,
-    HasCoordinates b
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
+    HasFlowEnv m r '["appPrefix" ::: Text]
   ) =>
+  Text ->
   MapsServiceConfig ->
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
-getDistances serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getDistances cfg req
+getDistances someId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getDistances cfg req someId
   OSRMConfig cfg -> OSRM.getDistances cfg req
   MMIConfig cfg -> MMI.getDistanceMatrix cfg req
 
@@ -100,18 +111,21 @@ getRoutesProvided :: MapsService -> Bool
 getRoutesProvided = \case
   Google -> True
   OSRM -> False
-  MMI -> False
+  MMI -> True
 
 getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
+    HasFlowEnv m r '["appPrefix" ::: Text]
   ) =>
+  Text ->
   MapsServiceConfig ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getRoutes cfg req
+getRoutes somedId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getRoutes cfg req somedId
   OSRMConfig osrmCfg -> OSRM.getRoutes osrmCfg req
   MMIConfig cfg -> MMI.getRoutes cfg req
 
@@ -124,13 +138,16 @@ snapToRoadProvided = \case
 snapToRoad ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
+    HasFlowEnv m r '["appPrefix" ::: Text]
   ) =>
+  Text ->
   MapsServiceConfig ->
   SnapToRoadReq ->
   m SnapToRoadResp
-snapToRoad serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.snapToRoad cfg req
+snapToRoad someId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.snapToRoad cfg req someId
   OSRMConfig osrmCfg -> OSRM.callOsrmMatch osrmCfg req
   MMIConfig mmiCfg -> MMI.snapToRoad mmiCfg req
 
@@ -143,13 +160,17 @@ autoCompleteProvided = \case
 autoComplete ::
   ( EncFlow m r,
     Redis.HedisFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    MonadFlow m,
+    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
+    HasFlowEnv m r '["appPrefix" ::: Text]
   ) =>
+  Text ->
   MapsServiceConfig ->
   AutoCompleteReq ->
   m AutoCompleteResp
-autoComplete serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.autoComplete cfg req
+autoComplete someId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.autoComplete cfg req someId
   OSRMConfig _ -> throwNotProvidedError "autoComplete" OSRM
   MMIConfig cfg -> MMI.autoSuggest cfg req
 
@@ -161,13 +182,16 @@ getPlaceDetailsProvided = \case
 
 getPlaceDetails ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
+    HasFlowEnv m r '["appPrefix" ::: Text]
   ) =>
+  Text ->
   MapsServiceConfig ->
   GetPlaceDetailsReq ->
   m GetPlaceDetailsResp
-getPlaceDetails serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getPlaceDetails cfg req
+getPlaceDetails someId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getPlaceDetails cfg req someId
   OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
   MMIConfig cfg -> MMI.getPlaceDetails cfg req
 
@@ -180,12 +204,15 @@ getPlaceNameProvided = \case
 getPlaceName ::
   ( EncFlow m r,
     CoreMetrics m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
+    HasFlowEnv m r '["appPrefix" ::: Text]
   ) =>
+  Text ->
   MapsServiceConfig ->
   GetPlaceNameReq ->
   m GetPlaceNameResp
-getPlaceName serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getPlaceName cfg req
+getPlaceName someId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getPlaceName cfg req someId
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
   MMIConfig cfg -> MMI.geocode cfg req

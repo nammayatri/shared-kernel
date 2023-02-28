@@ -20,7 +20,8 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.Double.Conversion.Text (toFixed)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as DT
-import Kernel.External.Maps.Google.PolyLinePoints (PolyLinePoints)
+import Kernel.External.Maps.Google.PolyLinePoints (LatLong, PolyLinePoints)
+import Kernel.External.Types (Language)
 import Kernel.Prelude
 import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData (toUrlPiece))
 
@@ -28,30 +29,61 @@ data AutoCompleteResp = AutoCompleteResp
   { status :: Text,
     predictions :: [Prediction]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
+
+data AutoCompleteReq = AutoCompleteReq
+  { input :: Text,
+    sessionToken :: Maybe Text,
+    location :: Text,
+    radius :: Integer,
+    components :: Text,
+    language :: Language
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
+
+data GoogleAutoCompleteData = GoogleAutoCompleteData
+  { request :: AutoCompleteReq,
+    response :: AutoCompleteResp
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
 
 data Prediction = Prediction
   { description :: Text,
     place_id :: Maybe Text
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 data GetPlaceDetailsResp = GetPlaceDetailsResp
   { status :: Text,
     result :: PlaceDetailsResult
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
+
+data GetPlaceDetailsReq = GetPlaceDetailsReq
+  { mapsUrl :: BaseUrl,
+    key :: Text,
+    sessionToken :: Maybe Text,
+    placeId :: Text,
+    fields :: Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON)
+
+data GetPlaceDetailsData = GetPlaceDetailsData
+  { request :: GetPlaceDetailsReq,
+    response :: GetPlaceDetailsResp
+  }
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 newtype PlaceDetailsResult = PlaceDetailsResult
   { geometry :: Geometry
   }
-  deriving stock (Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 newtype Geometry = Geometry
   { location :: LocationS
   }
-  deriving stock (Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data LocationS = LocationS
@@ -80,7 +112,23 @@ data GetPlaceNameResp = GetPlaceNameResp
   { status :: Text,
     results :: [ResultsResp]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
+
+data GetPlaceNameReq = GetPlaceNameReq
+  { mapsUrl :: BaseUrl,
+    key :: Text,
+    sessionToken :: Maybe Text,
+    mbByPlaceId :: Maybe Text,
+    mbByLatLong :: Maybe LatLong,
+    language :: Maybe Language
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data GetPlaceNameData = GetPlaceNameData
+  { request :: GetPlaceNameReq,
+    response :: GetPlaceNameResp
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data ResultsResp = ResultsResp
   { formatted_address :: Maybe Text,
@@ -89,7 +137,7 @@ data ResultsResp = ResultsResp
     geometry :: Geometry,
     place_id :: Maybe Text
   }
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data AddressResp = AddressResp
@@ -106,23 +154,39 @@ newtype PlusCodeResp = PlusCodeResp
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
+data DirectionReq = DirectionReq
+  { url :: BaseUrl,
+    key :: Text,
+    origin :: Place,
+    destination :: Place,
+    mode :: Maybe Mode,
+    waypoints :: Maybe [Place]
+  }
+  deriving (Generic, Show, FromJSON, ToJSON)
+
 data DirectionsResp = DirectionsResp
   { routes :: [Route],
     status :: Text
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
+
+data GoogleDirectionsData = GoogleDirectionsData
+  { request :: DirectionReq,
+    response :: DirectionsResp
+  }
+  deriving (Generic, ToJSON, FromJSON, Show)
 
 data Route = Route
   { bounds :: Bounds,
     legs :: [Leg]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 data Bounds = Bounds
   { northeast :: LocationS,
     southwest :: LocationS
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 data Leg = Leg
   { distance :: TextValue,
@@ -131,7 +195,7 @@ data Leg = Leg
     start_location :: LocationS,
     steps :: [Step]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 data Step = Step
   { distance :: TextValue,
@@ -141,10 +205,10 @@ data Step = Step
     start_location :: LocationS,
     travel_mode :: Mode
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 newtype EncodedPointObject = EncodedPointObject {points :: PolyLinePoints}
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data DistanceMatrixResp = DistanceMatrixResp
@@ -170,9 +234,9 @@ data TextValue = TextValue
   { text :: Text,
     value :: Int
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
-data Place = Location LocationS | Address Text deriving (Show)
+data Place = Location LocationS | Address Text deriving (Show, Generic, FromJSON, ToJSON)
 
 instance ToHttpApiData Place where
   toUrlPiece (Location location) = toUrlPiece location

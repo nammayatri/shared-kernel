@@ -46,3 +46,18 @@ newtype TranslatedText = TranslatedText
   { translatedText :: Text
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
+
+data TranslateReq = TranslateReq
+  { url :: BaseUrl,
+    apiKey :: Text,
+    source :: Text,
+    target :: Text,
+    query :: Text
+  }
+  deriving (Generic, Show, ToJSON, FromJSON)
+
+data TranslateData = TranslateData
+  { request :: TranslateReq,
+    response :: TranslateResp
+  }
+  deriving (Generic, Show, ToJSON, FromJSON)
