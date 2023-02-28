@@ -20,6 +20,7 @@ module Kernel.External.Maps.Interface.Google
     autoComplete,
     getPlaceDetails,
     getPlaceName,
+    getNearBySearch,
   )
 where
 
@@ -298,3 +299,21 @@ getPlaceName cfg GetPlaceNameReq {..} = do
     (mbByPlaceId, mbByLatLong) = case getBy of
       ByPlaceId id -> (Just id, Nothing)
       ByLatLong latLong -> (Nothing, Just latLong)
+
+getNearBySearch ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  GoogleCfg ->
+  GetNearBySearchReq ->
+  m GoogleMaps.NearBySearchResp
+getNearBySearch cfg getNearBySearchReq =
+  do
+    let mapsUrl = cfg.googleMapsUrl
+    key <- decrypt cfg.googleKey
+    res <- GoogleMaps.getNearBySearch mapsUrl getNearBySearchReq.location key getNearBySearchReq.rankby
+    return
+      GoogleMaps.NearBySearchResp
+        { results = res.results,
+          status = "Success"
+        }
