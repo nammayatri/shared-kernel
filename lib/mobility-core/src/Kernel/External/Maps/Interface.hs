@@ -55,9 +55,10 @@ getDistance ::
   ) =>
   MapsServiceConfig ->
   GetDistanceReq a b ->
+  (NonEmpty (Meters, Seconds) -> (Meters, Seconds)) ->
   m (GetDistanceResp a b)
-getDistance serviceConfig req@GetDistanceReq {..} = case serviceConfig of
-  GoogleConfig cfg -> Google.getDistance cfg req
+getDistance serviceConfig req@GetDistanceReq {..} dataDecider = case serviceConfig of
+  GoogleConfig cfg -> Google.getDistance cfg req dataDecider
   _ ->
     getDistances serviceConfig getDistancesReq >>= \case
       (a :| []) -> return a

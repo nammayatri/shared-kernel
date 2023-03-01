@@ -26,6 +26,7 @@ where
 
 import Control.Monad.Extra (concatForM)
 import qualified Data.List.Extra as List
+import Data.List.NonEmpty (nonEmpty)
 import qualified Data.List.NonEmpty as NE
 import GHC.Float (double2Int)
 import Kernel.External.Encryption
@@ -103,18 +104,20 @@ getDistance ::
   ) =>
   GoogleCfg ->
   GetDistanceReq a b ->
+  (NonEmpty (Meters, Seconds) -> (Meters, Seconds)) ->
   m (GetDistanceResp a b)
-getDistance cfg GetDistanceReq {..} = do
+getDistance cfg GetDistanceReq {..} dataDecider = do
   let googleMapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
   let placeOrigin = latLongToPlace $ getCoordinates origin
       placeDestination = latLongToPlace $ getCoordinates destination
-  response <- GoogleMaps.directions googleMapsUrl key placeOrigin placeDestination mode Nothing
+  response <- mkDirectionsCall $ GoogleMaps.directions googleMapsUrl key placeOrigin placeDestination mode Nothing
   let routesData = map (sumLegsDistancesAndDuration . (.legs)) response.routes
-  let sortedRoutesData = List.sortOn fst routesData -- shortest data is the first element now
-  case sortedRoutesData of
-    (distance, duration) : _ -> pure $ GetDistanceResp {status = response.status, ..}
-    _ -> throwError (InternalError "Empty routes list in Distance API.")
+  case nonEmpty routesData of
+    Nothing -> throwError (InternalError "Empty routes list in Distance API.")
+    Just routesDataNE -> do
+      let (distance, duration) = dataDecider routesDataNE
+      pure $ GetDistanceResp {status = response.status, ..}
   where
     sumLegsDistancesAndDuration =
       foldr
@@ -137,17 +140,20 @@ getRoutes cfg req = do
       destination = latLongToPlace (NE.last req.waypoints)
       waypoints = getWayPoints req.waypoints
       mode = mapToMode <$> req.mode
-  gRes <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints True
-  if null gRes.routes
-    then do
-      gResp <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints False
-      traverse (mkRoute req) gResp.routes
-    else traverse (mkRoute req) gRes.routes
+  res <- mkDirectionsCall $ GoogleMaps.directions googleMapsUrl key origin destination mode waypoints
+  traverse (mkRoute req) res.routes
   where
     getWayPoints waypoints =
       case NE.tail waypoints of
         [] -> Nothing
         _ -> Just (map latLongToPlace (init $ NE.tail waypoints))
+
+mkDirectionsCall :: Monad m => (Bool -> m GoogleMaps.DirectionsResp) -> m GoogleMaps.DirectionsResp
+mkDirectionsCall directionsCall = do
+  resWithoutTolls <- directionsCall True
+  case resWithoutTolls.routes of
+    [] -> directionsCall False
+    _ -> pure resWithoutTolls
 
 mkRoute ::
   (MonadFlow m) =>
