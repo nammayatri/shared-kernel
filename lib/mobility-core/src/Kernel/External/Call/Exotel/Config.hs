@@ -11,28 +11,27 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wno-missing-signatures #-}
+{-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.Utils.Predicates where
+module Kernel.External.Call.Exotel.Config
+  ( ExotelCfg (..),
+    ExotelApiKey (..),
+    ExotelApiToken (..),
+    ExotelAccountSID (..),
+    ExotelCallerId (..),
+  )
+where
 
+import Kernel.External.Call.Exotel.Types
 import Kernel.Prelude
-import Kernel.Types.Predicate
 
-digit, latinUC, latinLC, latin, alphanum, latinOrSpace :: Regex
-digit = charRange '0' '9'
-latinUC = charRange 'A' 'Z'
-latinLC = charRange 'a' 'z'
-latin = latinUC \/ latinLC
-alphanum = latin \/ digit
-latinOrSpace = latin \/ " "
-
-mobileNumber = ExactLength 10 `And` star digit
-
-mobileCountryCode = LengthInRange 2 4 `And` ("+" <> star digit)
-
-fullMobilePhone = LengthInRange 12 14 `And` ("+" <> star digit)
-
-mobileIndianCode :: Regex
-mobileIndianCode = "+91"
-
-name = star latinOrSpace
+-- | Exotel Service config
+data ExotelCfg = ExotelCfg
+  { exotelUrl :: BaseUrl,
+    callbackUrl :: BaseUrl,
+    apiKey :: ExotelApiKey,
+    apiToken :: ExotelApiToken,
+    accountSID :: ExotelAccountSID,
+    callerId :: ExotelCallerId
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
