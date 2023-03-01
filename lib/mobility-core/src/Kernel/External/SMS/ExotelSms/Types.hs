@@ -31,7 +31,7 @@ import Data.OpenApi (ToSchema)
 import Data.Text as T
 import Data.Text.Conversions
 import EulerHS.Prelude
-import Kernel.External.Exotel.Types (ExotelAccountSID)
+import Kernel.External.Call.Exotel.Types (ExotelAccountSID)
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.JSON
 import Kernel.Utils.TH

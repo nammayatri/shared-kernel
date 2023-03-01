@@ -144,16 +144,14 @@ newtype Location = Location {getLatLong :: Maps.LatLong}
   deriving (PrettyShow) via (Showable Location)
 
 data OSRMRouteResponse = OSRMRouteResponse
-  {
-    routes :: [OSRMRouteRoutes],
+  { routes :: [OSRMRouteRoutes],
     waypoints :: [OSRMRouteWaypoint]
   }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
 
 data OSRMRouteRoutes = OSRMRouteRoutes
-  {
-    geometry :: RouteGeometry,
+  { geometry :: RouteGeometry,
     legs :: [RouteResponseLeg],
     distance :: Double, -- meters
     duration :: Double, -- seconds
@@ -162,35 +160,34 @@ data OSRMRouteRoutes = OSRMRouteRoutes
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
 
-data RouteResponseLeg = RouteResponseLeg {
-  steps :: [Steps],
-  distance :: Double,
-  duration :: Double,
-  weight :: Double
-}
+data RouteResponseLeg = RouteResponseLeg
+  { steps :: [Steps],
+    distance :: Double,
+    duration :: Double,
+    weight :: Double
+  }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
 
-data Steps = Steps {
-  geometry :: RouteGeometry,
-  maneuver :: Maneuver
-}
+data Steps = Steps
+  { geometry :: RouteGeometry,
+    maneuver :: Maneuver
+  }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
 
-newtype Maneuver = Maneuver {
-  location :: Location
-}
+newtype Maneuver = Maneuver
+  { location :: Location
+  }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
 
 data OSRMRouteWaypoint = OSRMRouteWaypoint
- {
-  distance :: Double,
-  location :: Location
- }
- deriving stock (Generic, Show, Eq)
- deriving anyclass (FromJSON, ToJSON)
+  { distance :: Double,
+    location :: Location
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
 
 instance FromJSON Location where
   parseJSON = withArray "array [lon, lat]" $ \arr_ -> case toList arr_ of
@@ -252,5 +249,5 @@ callOsrmRouteAPI ::
   m OSRMRouteResponse
 callOsrmRouteAPI osrmUrl pointsList = do
   let eulerClient = Euler.client (Proxy @RouteAPI)
-  callAPI osrmUrl (eulerClient pointsList GeoJson True True ) "osrm-route"
+  callAPI osrmUrl (eulerClient pointsList GeoJson True True) "osrm-route"
     >>= fromEitherM (\err -> InternalError $ "Failed to call osrm route API: " <> show err)

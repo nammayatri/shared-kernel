@@ -22,19 +22,18 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Kernel.External.Exotel.Types where
+module Kernel.External.Call.Exotel.Types where
 
 import Control.Lens.TH
 import Data.Aeson (encode)
 import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.Aeson.Types
-import Data.OpenApi (ToSchema)
 import qualified Data.Text as T
-import Data.Text.Conversions
-import EulerHS.Prelude
+import EulerHS.Prelude (decodeJSON)
+import Kernel.Prelude hiding (showBaseUrl)
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Utils.Dhall (FromDhall)
+import Kernel.Types.Beckn.Ack (AckResponse)
 import Kernel.Utils.JSON
 import Kernel.Utils.TH
 import Servant.Client
@@ -45,42 +44,25 @@ import Web.Internal.HttpApiData
 newtype ExotelApiToken = ExotelApiToken
   { getExotelApiToken :: Text
   }
-  deriving newtype (Show, FromDhall)
-
-deriveIdentifierInstances ''ExotelApiToken
+  deriving newtype (Show, Eq, ToJSON, FromJSON)
 
 -- | Exotel API token
 newtype ExotelApiKey = ExotelApiKey
   { getExotelApiKey :: Text
   }
-  deriving newtype (Show, FromDhall)
-
-deriveIdentifierInstances ''ExotelApiKey
+  deriving newtype (Show, Eq, ToJSON, FromJSON)
 
 -- | Exotel sid
 newtype ExotelAccountSID = ExotelAccountSID
   { getExotelAccountSID :: Text
   }
-  deriving newtype (Show, FromDhall)
-
-deriveIdentifierInstances ''ExotelAccountSID
+  deriving newtype (Show, ToHttpApiData, Eq, ToJSON, FromJSON)
 
 -- | Exotel caller id
 newtype ExotelCallerId = ExotelCallerId
   { getExotelCallerId :: Text
   }
-  deriving newtype (Show, FromDhall)
-
-deriveIdentifierInstances ''ExotelCallerId
-
--- | Exotel Service config
-data ExotelCfg = ExotelCfg
-  { apiKey :: ExotelApiKey,
-    apiToken :: ExotelApiToken,
-    sid :: ExotelAccountSID,
-    callerId :: ExotelCallerId
-  }
-  deriving (Generic, FromDhall)
+  deriving newtype (Show, ToHttpApiData, Eq, ToJSON, FromJSON)
 
 -- | Exotel call sid
 -- an alpha-numeric unique identifier of the call
@@ -91,14 +73,8 @@ newtype ExotelCallSID = ExotelCallSID
 
 deriveIdentifierInstances ''ExotelCallSID
 
-data ExotelAttachments = ExotelAttachments
-  { callId :: Text,
-    rideId :: Text
-  }
-  deriving (Generic, Eq, Show, FromJSON, ToJSON, ToSchema)
-
 -- | Exotel response body
-data ExotelRequest = ExotelRequest
+data ExotelInitiateCallReq a = ExotelInitiateCallReq
   { -- String; The phone number that will be called first.
     -- Preferably in E.164 format. If not set, our system will try to
     -- match it with a country and make a call.
@@ -108,19 +84,19 @@ data ExotelRequest = ExotelRequest
     -- If landline number, prefix it with STD code; Ex: 080XXXX2400
     to :: Text,
     -- String; This is your ExoPhone/Exotel Virtual Number
-    callerId :: Text,
+    callerId :: ExotelCallerId,
     -- 	String; An HTTP POST request will be made to this URL depending
     --  on what events are subscribed using ‘StatusCallbackEvents’.
     --  Refer here for complete list of parameters which will be sent to your endpoint.
     statusCallbackUrl :: BaseUrl,
     -- Any application specific value like order id that will be passed back
     -- as a parameter in StatusCallback (only via 'terminal' StatusCallbackEvent)
-    customField :: ExotelAttachments
+    customField :: a
   }
-  deriving (Generic, Eq, Show)
+  deriving (Generic, Show)
 
-instance ToForm ExotelRequest where
-  toForm ExotelRequest {..} =
+instance ToJSON a => ToForm (ExotelInitiateCallReq a) where
+  toForm ExotelInitiateCallReq {..} =
     [ ("From", toQueryParam from),
       ("To", toQueryParam to),
       ("CallerId", toQueryParam callerId),
@@ -151,20 +127,21 @@ data ExotelCallStatus
     CANCELED
   | -- Invalid call status
     INVALID_STATUS
-  deriving (Show, Eq, Read, Generic, ToSchema)
+  deriving (Show, Eq, Read, Generic, ToSchema, ToParamSchema)
 
-instance FromText ExotelCallStatus where
-  fromText a =
-    case a of
-      "queued" -> QUEUED
-      "ringing" -> RINGING
-      "in-progress" -> IN_PROGRESS
-      "completed" -> COMPLETED
-      "busy" -> BUSY
-      "no-answer" -> NO_ANSWER
-      "failed" -> FAILED
-      "canceled" -> CANCELED
-      _ -> INVALID_STATUS
+instance FromHttpApiData ExotelCallStatus where
+  parseUrlPiece =
+    pure
+      . \case
+        "queued" -> QUEUED
+        "ringing" -> RINGING
+        "in-progress" -> IN_PROGRESS
+        "completed" -> COMPLETED
+        "busy" -> BUSY
+        "no-answer" -> NO_ANSWER
+        "failed" -> FAILED
+        "canceled" -> CANCELED
+        _ -> INVALID_STATUS
 
 $(deriveJSON constructorsWithHyphensToLowerOptions ''ExotelCallStatus)
 
@@ -183,7 +160,7 @@ data ExotelDirection
 $(deriveJSON constructorsWithHyphensToLowerOptions ''ExotelDirection)
 
 -- | Exotel response body
-data ExotelResponseBody = ExotelResponseBody
+data ExotelInitiateCallRespBody = ExotelInitiateCallRespBody
   { -- string; an alpha-numeric unique identifier of the call
     exoSid :: ExotelCallSID,
     -- Time in format YYYY-MM-DD HH:mm:ss
@@ -222,25 +199,25 @@ data ExotelResponseBody = ExotelResponseBody
     -- Link to the call recording
     exoRecordingUrl :: Maybe BaseUrl
   }
-  deriving (Eq, Show, Generic)
+  deriving (Show, Generic)
 
-$(makeLenses ''ExotelResponseBody)
+$(makeLenses ''ExotelInitiateCallRespBody)
 
-$(deriveFromJSON (aesonPrefix pascalCase) ''ExotelResponseBody)
-$(deriveToJSON (aesonPrefix pascalCase) ''ExotelResponseBody)
+$(deriveFromJSON (aesonPrefix pascalCase) ''ExotelInitiateCallRespBody)
+$(deriveToJSON (aesonPrefix pascalCase) ''ExotelInitiateCallRespBody)
 
 -- | Exotel response on success
-newtype ExotelResponse = ExotelResponse
-  { exoCall :: ExotelResponseBody
+newtype ExotelInitiateCallResp = ExotelInitiateCallResp
+  { exoCall :: ExotelInitiateCallRespBody
   }
-  deriving (Eq, Show, Generic)
+  deriving (Show, Generic)
 
-$(makeLenses ''ExotelResponse)
+$(makeLenses ''ExotelInitiateCallResp)
 
-$(deriveFromJSON (aesonPrefix pascalCase) ''ExotelResponse)
-$(deriveToJSON (aesonPrefix pascalCase) ''ExotelResponse)
+$(deriveFromJSON (aesonPrefix pascalCase) ''ExotelInitiateCallResp)
+$(deriveToJSON (aesonPrefix pascalCase) ''ExotelInitiateCallResp)
 
-data ExotelCallCallback = ExotelCallCallback
+data ExotelCallCallbackReq a = ExotelCallCallbackReq
   { -- string; an alpha-numeric unique identifier of the call
     callSid :: Text,
     eventType :: Text,
@@ -260,9 +237,11 @@ data ExotelCallCallback = ExotelCallCallback
     conversationDuration :: Int,
     legs :: [ExotelLeg],
     -- 	The value that was passed in the CustomField (attachments here) parameter of the API (if set during the request) will be populated here.
-    customField :: ExotelAttachments
+    customField :: a
   }
-  deriving (Generic, Show, ToJSON, ToSchema)
+  deriving (Generic, Show)
+
+deriving instance ToSchema a => ToSchema (ExotelCallCallbackReq a)
 
 data ExotelLeg = ExotelLeg
   { onCallDuration :: Int,
@@ -270,10 +249,10 @@ data ExotelLeg = ExotelLeg
   }
   deriving (Generic, Eq, Show, ToJSON, ToSchema)
 
-instance FromJSON ExotelCallCallback where
+instance FromJSON a => FromJSON (ExotelCallCallbackReq a) where
   parseJSON v =
     withObject
-      "ExotelCallCallback"
+      "ExotelCallCallbackReq"
       ( \obj -> do
           callSid <- obj .: "CallSid"
           eventType <- obj .: "EventType"
@@ -291,11 +270,11 @@ instance FromJSON ExotelCallCallback where
           customField <- obj .: "CustomField" >>= withText "CustomField" (parseCustomField v)
           legs <- obj .: "Legs"
 
-          return (ExotelCallCallback {..})
+          return (ExotelCallCallbackReq {..})
       )
       v
 
-parseCustomField :: Value -> Text -> Parser ExotelAttachments
+parseCustomField :: FromJSON a => Value -> Text -> Parser a
 parseCustomField v txt = do
   case decodeJSON txt of
     Just exoAttch -> return exoAttch
@@ -307,3 +286,5 @@ instance FromJSON ExotelLeg where
     status <- obj .: "Status"
 
     return (ExotelLeg {..})
+
+type ExotelCallCallbackResp = AckResponse

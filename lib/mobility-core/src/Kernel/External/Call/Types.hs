@@ -11,28 +11,18 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wno-missing-signatures #-}
+{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Utils.Predicates where
+module Kernel.External.Call.Types
+  ( module Kernel.External.Call.Types,
+  )
+where
 
-import Kernel.Prelude
-import Kernel.Types.Predicate
+import Data.OpenApi
+import EulerHS.Prelude
+import Kernel.Storage.Esqueleto (derivePersistField)
 
-digit, latinUC, latinLC, latin, alphanum, latinOrSpace :: Regex
-digit = charRange '0' '9'
-latinUC = charRange 'A' 'Z'
-latinLC = charRange 'a' 'z'
-latin = latinUC \/ latinLC
-alphanum = latin \/ digit
-latinOrSpace = latin \/ " "
+data CallService = Exotel
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-mobileNumber = ExactLength 10 `And` star digit
-
-mobileCountryCode = LengthInRange 2 4 `And` ("+" <> star digit)
-
-fullMobilePhone = LengthInRange 12 14 `And` ("+" <> star digit)
-
-mobileIndianCode :: Regex
-mobileIndianCode = "+91"
-
-name = star latinOrSpace
+derivePersistField "CallService"
