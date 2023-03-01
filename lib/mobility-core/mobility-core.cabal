@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 
@@ -22,9 +22,15 @@ source-repository head
 library
   exposed-modules:
       Kernel.Exit
+      Kernel.External.Call
+      Kernel.External.Call.Exotel.Client
+      Kernel.External.Call.Exotel.Config
+      Kernel.External.Call.Exotel.Types
+      Kernel.External.Call.Interface
+      Kernel.External.Call.Interface.Exotel
+      Kernel.External.Call.Interface.Types
+      Kernel.External.Call.Types
       Kernel.External.Encryption
-      Kernel.External.Exotel.Flow
-      Kernel.External.Exotel.Types
       Kernel.External.FCM.Flow
       Kernel.External.FCM.Types
       Kernel.External.GoogleTranslate.API
@@ -290,7 +296,7 @@ library
     , cryptonite
     , data-default-class
     , deriving-aeson
-    , dhall
+    , dhall <=1.35.0
     , double-conversion
     , either
     , esqueleto
@@ -353,7 +359,7 @@ library
     , time
     , tinylog
     , transformers
-    , universum
+    , universum <1.8
     , unix
     , unliftio
     , unliftio-core
@@ -431,7 +437,7 @@ test-suite mobility-core-tests
     , cryptonite
     , data-default-class
     , deriving-aeson
-    , dhall
+    , dhall <=1.35.0
     , double-conversion
     , either
     , esqueleto
@@ -495,7 +501,7 @@ test-suite mobility-core-tests
     , time
     , tinylog
     , transformers
-    , universum
+    , universum <1.8
     , unix
     , unliftio
     , unliftio-core

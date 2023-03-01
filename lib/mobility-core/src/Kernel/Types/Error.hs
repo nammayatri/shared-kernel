@@ -19,7 +19,6 @@ module Kernel.Types.Error where
 import EulerHS.Prelude
 import EulerHS.Types (KVDBReply)
 import qualified Kafka.Types as Kafka
-import Kernel.External.Maps.Types (MapsService)
 import Kernel.External.SMS.MyValueFirst.Types (SubmitSmsRes, submitSmsResToText)
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
@@ -196,7 +195,7 @@ data MerchantError
   | MerchantDoesNotExist Text
   | MerchantWithExoPhoneNotFound Text
   | MerchantServiceUsageConfigNotFound Text
-  | MerchantServiceConfigNotFound Text MapsService
+  | MerchantServiceConfigNotFound Text Text Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''MerchantError
@@ -206,7 +205,7 @@ instance IsBaseError MerchantError where
   toMessage (MerchantDoesNotExist merchantId) = Just $ "No merchant matches passed data " <> show merchantId <> "."
   toMessage (MerchantWithExoPhoneNotFound exoPhone) = Just $ "Merchant with ExoPhone \"" <> show exoPhone <> "\" not found."
   toMessage (MerchantServiceUsageConfigNotFound merchantId) = Just $ "MerchantServiceUsageConfig with merchantId \"" <> show merchantId <> "\" not found."
-  toMessage (MerchantServiceConfigNotFound merchantId service) = Just $ "MerchantServiceConfig for service " <> show service <> " with merchantId \"" <> merchantId <> "\" not found."
+  toMessage (MerchantServiceConfigNotFound merchantId serviceType service) = Just $ "MerchantServiceConfig for " <> serviceType <> " service " <> service <> " with merchantId \"" <> merchantId <> "\" not found."
 
 instance IsHTTPError MerchantError where
   toErrorCode = \case
@@ -214,13 +213,13 @@ instance IsHTTPError MerchantError where
     MerchantDoesNotExist _ -> "MERCHANT_DOES_NOT_EXIST"
     MerchantWithExoPhoneNotFound _ -> "MERCHANT_WITH_EXO_PHONE_NOT_FOUND"
     MerchantServiceUsageConfigNotFound _ -> "MERCHANT_SERVICE_USAGE_CONFIG_NOT_FOUND"
-    MerchantServiceConfigNotFound _ _ -> "MERCHANT_SERVICE_CONFIG_NOT_FOUND"
+    MerchantServiceConfigNotFound {} -> "MERCHANT_SERVICE_CONFIG_NOT_FOUND"
   toHttpCode = \case
     MerchantNotFound _ -> E500
     MerchantDoesNotExist _ -> E400
     MerchantWithExoPhoneNotFound _ -> E500
     MerchantServiceUsageConfigNotFound _ -> E500
-    MerchantServiceConfigNotFound _ _ -> E500
+    MerchantServiceConfigNotFound {} -> E500
 
 instance IsAPIError MerchantError
 
@@ -899,4 +898,3 @@ instance IsHTTPError SosError where
   toHttpCode _ = E400
 
 instance IsAPIError SosError
-
