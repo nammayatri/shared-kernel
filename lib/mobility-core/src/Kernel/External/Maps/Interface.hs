@@ -55,20 +55,11 @@ getDistance ::
   ) =>
   MapsServiceConfig ->
   GetDistanceReq a b ->
+  (Seconds -> NonEmpty (Meters, Seconds) -> (Meters, Seconds)) ->
   m (GetDistanceResp a b)
-getDistance serviceConfig req@GetDistanceReq {..} = case serviceConfig of
-  GoogleConfig cfg -> Google.getDistance cfg req
-  _ ->
-    getDistances serviceConfig getDistancesReq >>= \case
-      (a :| []) -> return a
-      _ -> throwError (InternalError "Exactly one getDistance result expected.")
-  where
-    getDistancesReq =
-      GetDistancesReq
-        { origins = origin :| [],
-          destinations = destination :| [],
-          ..
-        }
+getDistance serviceConfig req dataDecider = case serviceConfig of
+  GoogleConfig cfg -> Google.getDistance cfg req dataDecider
+  _ -> throwError $ InternalError "Directrions API not implemented for this service."
 
 mkNotProvidedError :: Text -> MapsService -> Text
 mkNotProvidedError functionName serviceName = "Function " <> functionName <> " is not provided by service " <> show serviceName
