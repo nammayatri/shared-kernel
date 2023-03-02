@@ -104,10 +104,16 @@ getEulerLoggerConfig LoggerConfig {..} =
           then r <> "-eul"
           else Text.init l <> "-eul." <> r
 
-getEulerLoggerRuntime :: Maybe Text -> LoggerConfig -> IO LoggerRuntime
-getEulerLoggerRuntime hostname = createOwnLoggerRuntime (logFlowFormatter hostname) . getEulerLoggerConfig
+-- Note:
+-- createLoggerRuntime & createLoggerRuntime' functions from Euler-hs (after update)
+-- now take an additional argument for "severityCounterHandler",
+-- which is a "Maybe SeverityCounterHandle" type
+-- Keeping it "Nothing" for now, until we need to add something here
 
-createOwnLoggerRuntime :: T.FlowFormatter -> T.LoggerConfig -> IO LoggerRuntime
+getEulerLoggerRuntime :: Maybe Text -> LoggerConfig -> IO LoggerRuntime
+getEulerLoggerRuntime hostname = createOwnLoggerRuntime (logFlowFormatter hostname) Nothing . getEulerLoggerConfig
+
+createOwnLoggerRuntime :: T.FlowFormatter -> Maybe SeverityCounterHandle -> T.LoggerConfig -> IO LoggerRuntime
 createOwnLoggerRuntime = createLoggerRuntime' defaultDateFormat (Just ownRender) defaultBufferSize
   where
     ownRender :: Renderer
