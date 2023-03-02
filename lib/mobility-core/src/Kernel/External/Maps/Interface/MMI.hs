@@ -23,6 +23,7 @@ module Kernel.External.Maps.Interface.MMI
   )
 where
 
+import Data.List.Extra ((!!))
 import qualified Data.List.Extra as List
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
