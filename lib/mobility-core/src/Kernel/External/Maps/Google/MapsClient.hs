@@ -81,6 +81,7 @@ type DistanceMatrixAPI =
     :> MandatoryQueryParam "destinations" [GoogleMaps.Place]
     :> MandatoryQueryParam "key" Text
     :> QueryParam "mode" GoogleMaps.Mode
+    :> QueryParam "avoid" Text
     :> Post '[JSON] GoogleMaps.DistanceMatrixResp
 
 type DirectionsAPI =
@@ -101,6 +102,7 @@ distanceMatrixClient ::
   [GoogleMaps.Place] ->
   Text ->
   Maybe GoogleMaps.Mode ->
+  Maybe Text ->
   EulerClient GoogleMaps.DistanceMatrixResp
 directionsClient ::
   GoogleMaps.Place ->
@@ -167,10 +169,10 @@ distanceMatrix ::
   [GoogleMaps.Place] ->
   [GoogleMaps.Place] ->
   Maybe GoogleMaps.Mode ->
+  Bool ->
   m GoogleMaps.DistanceMatrixResp
-distanceMatrix url key origins destinations mode = do
-  callAPI url (distanceMatrixClient origins destinations key mode) "distanceMatrix"
-    >>= checkGoogleMapsError url
+distanceMatrix url key origins destinations mode isAvoidTolls = do
+  callAPI url (distanceMatrixClient origins destinations key mode (if isAvoidTolls then Just "tolls" else Nothing)) "distanceMatrix" >>= checkGoogleMapsError url
     >>= \resp -> do
       mapM_ (mapM validateResponseStatus . (.elements)) resp.rows
       return resp
