@@ -42,6 +42,28 @@ import Kernel.Types.Error
 import Kernel.Utils.CalculateDistance (everySnippetIs, getRouteLinearLength)
 import Kernel.Utils.Common hiding (id)
 
+getDistancesWrapper ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasCoordinates a,
+    HasCoordinates b
+  ) =>
+  GetDistancesReq a b ->
+  [[a]] ->
+  [[b]] ->
+  BaseUrl ->
+  Text ->
+  Maybe GoogleMaps.Mode ->
+  Bool ->
+  m [GetDistanceResp a b]
+getDistancesWrapper GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode isAvoidTolls = concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
+  concatForM limitedDestinationObjectsList $ \limitedDestinationObjects ->
+    do
+      let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
+          limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
+      GoogleMaps.distanceMatrix googleMapsUrl key limitedOriginPlaces limitedDestinationPlaces mode isAvoidTolls
+      >>= parseDistanceMatrixResp limitedOriginObjects limitedDestinationObjects
+
 getDistances ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -56,14 +78,14 @@ getDistances cfg GetDistancesReq {..} = do
   key <- decrypt cfg.googleKey
   let limitedOriginObjectsList = splitListByAPICap origins
       limitedDestinationObjectsList = splitListByAPICap destinations
-  res <- concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
-    concatForM limitedDestinationObjectsList $ \limitedDestinationObjects -> do
-      let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
-          limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
-      GoogleMaps.distanceMatrix googleMapsUrl key limitedOriginPlaces limitedDestinationPlaces mode
-        >>= parseDistanceMatrixResp limitedOriginObjects limitedDestinationObjects
+  res <- getDistancesWrapper GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode True
   case res of
-    [] -> throwError (InternalError "Empty GoogleMaps.getDistances result.")
+    [] -> do
+      logInfo "Falling back to avoid tolls"
+      resp <- getDistancesWrapper GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode False
+      case resp of
+        [] -> throwError (InternalError "Empty GoogleMaps.getDistances result.")
+        (a : xs) -> return $ a :| xs
     (a : xs) -> return $ a :| xs
   where
     mode = mapToMode <$> travelMode
