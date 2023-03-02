@@ -114,6 +114,7 @@ data FCMNotificationType
   | CLEARED_FARE
   | CANCELLED_SEARCH_REQUEST
   | NEW_MESSAGE
+  | REFERRAL_ACTIVATED
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
