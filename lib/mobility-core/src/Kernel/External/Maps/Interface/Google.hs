@@ -56,7 +56,7 @@ getDistancesWrapper ::
   Maybe GoogleMaps.Mode ->
   Bool ->
   m [GetDistanceResp a b]
-getDistancesWrapper GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode isAvoidTolls = concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
+getDistancesWrapper _ limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode isAvoidTolls = concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
   concatForM limitedDestinationObjectsList $ \limitedDestinationObjects ->
     do
       let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
