@@ -17,11 +17,11 @@ jobs:
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       - name: Download from Nix cache + build external deps
         run: |
-          nix develop -j 4 .#mobility-core -c echo
+          nix develop -j 4 -c echo
       - name: Build all packages 🔨
         id: build-nix
         run: |
-          nix build -L .#all
+          nix build -L 
       - name: Flake checks 🧪
         run: |
           # Because 'nix flake check' is not system-aware
