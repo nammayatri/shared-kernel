@@ -21,6 +21,7 @@ module Kernel.Storage.Esqueleto.Functions
     interval,
     rand,
     unnest,
+    buildRadiusWithin,
   )
 where
 
@@ -39,6 +40,12 @@ getPoint (lat, long) = unsafeSqlFunction "ST_SetSRID" (buildSTPoint (long, lat),
 
 buildSTPoint :: (SqlExpr (Value Double), SqlExpr (Value Double)) -> SqlExpr (Value b)
 buildSTPoint = unsafeSqlFunction "ST_Point"
+
+buildRadiusWithin :: SqlExpr (Value Point) -> (Double, Double) -> SqlExpr (Value Int) -> SqlExpr (Value b)
+buildRadiusWithin pnt (lat, lon) radius = unsafeSqlFunction "ST_DWithin" args
+  where
+    args = (pnt, getPoint', radius)
+    getPoint' = val ("SRID=4326;POINT(" <> show lon <> " " <> show lat <> ")") :: SqlExpr (Value Text)
 
 containsPoint :: (Double, Double) -> SqlExpr (Value b)
 containsPoint (lon, lat) = unsafeSqlFunction "st_contains" args
