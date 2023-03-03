@@ -25,6 +25,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Deriving.Aeson
 import qualified Kernel.External.SMS.ExotelSms.Config as ExotelSms
+import qualified Kernel.External.SMS.GupShup.Config as GupShup
 import qualified Kernel.External.SMS.MyValueFirst.Config as MyValueFirst
 import qualified Kernel.External.SMS.Types as T
 import Kernel.Prelude
@@ -36,7 +37,7 @@ data SmsHandler m = SmsHandler
     getProviderConfig :: T.SmsService -> m SmsServiceConfig
   }
 
-data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg
+data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg | GupShupConfig GupShup.GupShupCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SmsServiceConfig
 
