@@ -14,7 +14,7 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
-        inputs.common.flakeModule
+        inputs.common.flakeModules.default
       ];
       perSystem = { self', pkgs, lib, config, ... }: {
         cachix-push.packages = [ "default" ];
