@@ -1,7 +1,7 @@
 name: mobility-core
 version: 0.1.0.0
 github: "nammayatri/shared-kernel" # update if needed
-license: AllRightsReserved
+license: AGPL
 author: "nammayatri"
 maintainer: "nammayatri"
 copyright: "nammayatri.in"
