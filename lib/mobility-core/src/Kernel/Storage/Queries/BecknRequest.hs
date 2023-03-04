@@ -20,7 +20,7 @@ import Kernel.Storage.Tabular.BecknRequest ()
 import Kernel.Types.BecknRequest
 import Kernel.Utils.Common
 
-logBecknRequest :: Text -> Text -> SqlDB ()
+logBecknRequest :: Text -> Text -> SqlDB m ()
 logBecknRequest reqJSON sign = do
   uuid <- generateGUID
   now <- getCurrentTime

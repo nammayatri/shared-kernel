@@ -54,6 +54,7 @@ module Kernel.Storage.Esqueleto.Queries
   )
 where
 
+import Control.Monad.Trans.State.Strict
 import Data.Text (pack)
 import Data.Typeable
 import Database.Esqueleto.Experimental as EsqExport hiding
@@ -79,19 +80,21 @@ import Database.Persist.Class (OnlyOneUniqueKey, onlyUniqueP)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Class
 import Kernel.Storage.Esqueleto.DTypeBuilder
+import Kernel.Storage.Esqueleto.Logger (LoggerIO (..))
 import Kernel.Storage.Esqueleto.SqlDB
 import Kernel.Storage.Esqueleto.Transactionable
 import Kernel.Types.Logging (Log)
 
-findOne :: (Typeable t, Transactionable m, Esq.SqlSelect b t, QEntity t a) => Esq.SqlQuery b -> m (Maybe a)
-findOne = buildDType . findOneInternal
+findOne :: forall m ma t a b. (Typeable t, Transactionable ma m, Esq.SqlSelect b t, QEntity t a) => Esq.SqlQuery b -> m (Maybe a)
+findOne = buildDType . findOneInternal @m @ma
 
-findOne' :: (Typeable t, Transactionable m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe a)
-findOne' q = extractTType <$> findOneInternal q
+findOne' :: forall m ma t a b. (Typeable t, Transactionable ma m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe a)
+findOne' q = extractTType <$> findOneInternal @m @ma q
 
-findOneInternal :: forall m t b. (Typeable t, Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe t)
+findOneInternal :: forall m ma t b. (Typeable t, Transactionable ma m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe t)
 findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ selectOnlyOne
   where
+    selectOnlyOne :: StateT (SqlDBEnv ma) (ReaderT SqlBackend LoggerIO) (Maybe t)
     selectOnlyOne = do
       list <- lift $ Esq.select q
       case list of
@@ -101,27 +104,30 @@ findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ selec
           let errType = pack . show . typeRep $ (Proxy @t)
           throw $ PersistError $ "Multiple results of " <> errType
 
-findById :: forall a t m. (Typeable t, Transactionable m, QEntity (Entity t) a, TEntityKey t) => DomainKey t -> m (Maybe a)
-findById = buildDType . findByIdInternal @t
+findById :: forall m ma a t. (Typeable t, Transactionable ma m, QEntity (Entity t) a, TEntityKey t) => DomainKey t -> m (Maybe a)
+findById = buildDType . findByIdInternal @t @m @ma
 
-findById' :: forall t m. (Typeable t, Transactionable m, TEntityKey t, TEntity (Entity t) t) => DomainKey t -> DTypeBuilder m (Maybe t)
-findById' dkey = extractTType <$> findByIdInternal @t dkey
+findById' :: forall t m ma. (Typeable t, Transactionable ma m, TEntityKey t, TEntity (Entity t) t) => DomainKey t -> DTypeBuilder m (Maybe t)
+findById' dkey = extractTType <$> findByIdInternal @t @m @ma dkey
 
-findByIdInternal :: forall t m. (Typeable t, Transactionable m, TEntityKey t, Log m) => DomainKey t -> DTypeBuilder m (Maybe (Entity t))
-findByIdInternal dkey = findOneInternal $ do
+findByIdInternal :: forall t m ma. (Typeable t, Transactionable ma m, TEntityKey t, Log m) => DomainKey t -> DTypeBuilder m (Maybe (Entity t))
+findByIdInternal dkey = findOneInternal @m @ma $ do
   let key = toKey @t dkey
   res <- from $ table @t
   where_ $ res Esq.^. persistIdField Esq.==. val key
   return res
 
-findAll :: (Transactionable m, Esq.SqlSelect b t, QEntity [t] [a]) => Esq.SqlQuery b -> m [a]
-findAll q = buildDType $ findAllInternal q
+findAll :: forall m ma t a b. (Transactionable ma m, Esq.SqlSelect b t, QEntity [t] [a]) => Esq.SqlQuery b -> m [a]
+findAll q = buildDType $ findAllInternal @m @ma q
 
-findAll' :: (Transactionable m, Esq.SqlSelect b t, TEntity [t] [a]) => Esq.SqlQuery b -> DTypeBuilder m [a]
-findAll' q = extractTType <$> findAllInternal q
+findAll' :: forall m ma t a b. (Transactionable ma m, Esq.SqlSelect b t, TEntity [t] [a]) => Esq.SqlQuery b -> DTypeBuilder m [a]
+findAll' q = extractTType <$> findAllInternal @m @ma q
 
-findAllInternal :: (Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m [t]
-findAllInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ lift (Esq.select q)
+findAllInternal :: forall m ma b t. (Transactionable ma m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m [t]
+findAllInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ a
+  where
+    a :: StateT (SqlDBEnv ma) (ReaderT SqlBackend LoggerIO) [t]
+    a = lift (Esq.select q)
 
 create ::
   ( PersistEntity t,
@@ -129,7 +135,7 @@ create ::
     TType t a
   ) =>
   a ->
-  SqlDB ()
+  SqlDB m ()
 create q = do
   let ttypes = toTType q
   SqlDB . lift $ Esq.insert_ ttypes
@@ -139,7 +145,7 @@ create' ::
     PersistEntityBackend t ~ SqlBackend
   ) =>
   t ->
-  FullEntitySqlDB ()
+  FullEntitySqlDB m ()
 create' q = do
   liftToFullEntitySqlDB . SqlDB . lift $ Esq.insert_ q
 
@@ -149,7 +155,7 @@ createMany ::
     TType t a
   ) =>
   [a] ->
-  SqlDB ()
+  SqlDB m ()
 createMany q = do
   let ttypes = toTType `fmap` q
   SqlDB . lift $ Esq.insertMany_ ttypes
@@ -159,7 +165,7 @@ createMany' ::
     PersistEntityBackend t ~ SqlBackend
   ) =>
   [t] ->
-  FullEntitySqlDB ()
+  FullEntitySqlDB m ()
 createMany' q = do
   liftToFullEntitySqlDB . SqlDB . lift $ Esq.insertMany_ q
 
@@ -168,7 +174,7 @@ update ::
     BackendCompatible SqlBackend (PersistEntityBackend a)
   ) =>
   (Esq.SqlExpr (Entity a) -> Esq.SqlQuery ()) ->
-  SqlDB ()
+  SqlDB m ()
 update = SqlDB . lift . Esq.update
 
 update' ::
@@ -176,7 +182,7 @@ update' ::
     BackendCompatible SqlBackend (PersistEntityBackend a)
   ) =>
   (Esq.SqlExpr (Entity a) -> Esq.SqlQuery ()) ->
-  FullEntitySqlDB ()
+  FullEntitySqlDB m ()
 update' = liftToFullEntitySqlDB . SqlDB . lift . Esq.update
 
 updateReturningCount ::
@@ -184,7 +190,7 @@ updateReturningCount ::
     BackendCompatible SqlBackend (PersistEntityBackend a)
   ) =>
   (Esq.SqlExpr (Entity a) -> Esq.SqlQuery ()) ->
-  SqlDB Int64
+  SqlDB m Int64
 updateReturningCount = SqlDB . lift . Esq.updateCount
 
 updateReturningCount' ::
@@ -192,15 +198,15 @@ updateReturningCount' ::
     BackendCompatible SqlBackend (PersistEntityBackend a)
   ) =>
   (Esq.SqlExpr (Entity a) -> Esq.SqlQuery ()) ->
-  FullEntitySqlDB Int64
+  FullEntitySqlDB m Int64
 updateReturningCount' = liftToFullEntitySqlDB . SqlDB . lift . Esq.updateCount
 
 deleteByKey ::
-  forall t.
+  forall t m.
   ( TEntityKey t
   ) =>
   DomainKey t ->
-  SqlDB ()
+  SqlDB m ()
 deleteByKey = SqlDB . lift . Esq.deleteKey . toKey @t
 
 deleteByKey' ::
@@ -208,27 +214,27 @@ deleteByKey' ::
     PersistEntityBackend t ~ SqlBackend
   ) =>
   Key t ->
-  FullEntitySqlDB ()
+  FullEntitySqlDB m ()
 deleteByKey' = liftToFullEntitySqlDB . SqlDB . lift . Esq.deleteKey
 
 delete ::
   Esq.SqlQuery () ->
-  SqlDB ()
+  SqlDB m ()
 delete = SqlDB . lift . Esq.delete
 
 delete' ::
   Esq.SqlQuery () ->
-  FullEntitySqlDB ()
+  FullEntitySqlDB m ()
 delete' = liftToFullEntitySqlDB . SqlDB . lift . Esq.delete
 
 deleteReturningCount ::
   Esq.SqlQuery () ->
-  SqlDB Int64
+  SqlDB m Int64
 deleteReturningCount = SqlDB . lift . Esq.deleteCount
 
 deleteReturningCount' ::
   Esq.SqlQuery () ->
-  FullEntitySqlDB Int64
+  FullEntitySqlDB m Int64
 deleteReturningCount' = liftToFullEntitySqlDB . SqlDB . lift . Esq.deleteCount
 
 repsert ::
@@ -238,7 +244,7 @@ repsert ::
   ) =>
   DomainKey t ->
   a ->
-  SqlDB ()
+  SqlDB m ()
 repsert k v = do
   let ttype = toTType v
   SqlDB . lift $ Esq.repsert (toKey k) ttype
@@ -249,7 +255,7 @@ repsert' ::
   ) =>
   Key t ->
   t ->
-  FullEntitySqlDB ()
+  FullEntitySqlDB m ()
 repsert' k v = do
   liftToFullEntitySqlDB . SqlDB . lift $ Esq.repsert k v
 
@@ -260,7 +266,7 @@ upsert ::
   ) =>
   a ->
   [SqlExpr (Entity t) -> SqlExpr Esq.Update] ->
-  SqlDB ()
+  SqlDB m ()
 upsert r u = do
   let uniqueKey = onlyUniqueP $ toTType r
   upsertBy uniqueKey r u
@@ -271,7 +277,7 @@ upsert' ::
   ) =>
   t ->
   [SqlExpr (Entity t) -> SqlExpr Esq.Update] ->
-  FullEntitySqlDB ()
+  FullEntitySqlDB m ()
 upsert' r u = do
   let uniqueKey = onlyUniqueP r
   upsertBy' uniqueKey r u
@@ -284,7 +290,7 @@ upsertBy ::
   Unique t ->
   a ->
   [SqlExpr (Entity t) -> SqlExpr Esq.Update] ->
-  SqlDB ()
+  SqlDB m ()
 upsertBy k r u = do
   mbEntity <- SqlDB . lift $ getBy k
   case mbEntity of
@@ -302,7 +308,7 @@ upsertBy' ::
   Unique t ->
   t ->
   [SqlExpr (Entity t) -> SqlExpr Esq.Update] ->
-  FullEntitySqlDB ()
+  FullEntitySqlDB m ()
 upsertBy' k r u = do
   mbEntity <- liftToFullEntitySqlDB . SqlDB . lift $ getBy k
   case mbEntity of
@@ -317,28 +323,28 @@ insertSelect ::
   ( PersistEntity t
   ) =>
   SqlQuery (SqlExpr (Esq.Insertion t)) ->
-  SqlDB ()
+  SqlDB m ()
 insertSelect = SqlDB . lift . Esq.insertSelect
 
 insertSelect' ::
   ( PersistEntity t
   ) =>
   SqlQuery (SqlExpr (Esq.Insertion t)) ->
-  FullEntitySqlDB ()
+  FullEntitySqlDB m ()
 insertSelect' = liftToFullEntitySqlDB . SqlDB . lift . Esq.insertSelect
 
 insertSelectCount ::
   ( PersistEntity t
   ) =>
   SqlQuery (SqlExpr (Esq.Insertion t)) ->
-  SqlDB Int64
+  SqlDB m Int64
 insertSelectCount = SqlDB . lift . Esq.insertSelectCount
 
 insertSelectCount' ::
   ( PersistEntity t
   ) =>
   SqlQuery (SqlExpr (Esq.Insertion t)) ->
-  FullEntitySqlDB Int64
+  FullEntitySqlDB m Int64
 insertSelectCount' = liftToFullEntitySqlDB . SqlDB . lift . Esq.insertSelectCount
 
 (<#>) :: SqlExpr (Esq.Insertion (a -> b)) -> SqlExpr (Value a) -> SqlExpr (Esq.Insertion b)
