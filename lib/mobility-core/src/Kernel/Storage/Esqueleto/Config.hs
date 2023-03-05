@@ -72,6 +72,6 @@ type HasEsqEnv m r = (HasEsq m r, HasField "esqDBEnv" r EsqDBEnv)
 
 type HasEsqReplica m r = (HasEsq m r, HasField "esqDBReplicaEnv" r EsqDBEnv)
 
-type EsqDBFlow m r = (HasEsqEnv m r, MonadFlow m)
+type EsqDBFlow m r = (HasEsqEnv m r, MonadFlow m, Typeable m)
 
-type EsqDBReplicaFlow m r = (HasEsqReplica m r, MonadFlow m)
+type EsqDBReplicaFlow m r = (HasEsqReplica m r, MonadFlow m, Typeable m)
