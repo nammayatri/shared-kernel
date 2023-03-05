@@ -22,10 +22,12 @@ module Kernel.Storage.Esqueleto.SqlDB
     liftToFullEntitySqlDB,
     withFullEntity,
     withFullEntities,
+    finalize,
   )
 where
 
 import Data.Time (UTCTime)
+import Data.Typeable (cast)
 import Database.Esqueleto.Experimental (SqlBackend)
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto.Class
@@ -35,22 +37,25 @@ import Kernel.Types.MonadGuid
 import Kernel.Types.Time (MonadTime (..))
 import Kernel.Utils.Logging
 
-newtype SqlDBEnv = SqlDBEnv
-  { currentTime :: UTCTime
+data SqlDBEnv = forall m.
+  (Typeable m, Monad m) =>
+  SqlDBEnv
+  { currentTime :: UTCTime,
+    actions :: m ()
   }
 
-newtype SqlDB a = SqlDB {unSqlDB :: ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO) a}
-  deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid, Log, MonadThrow)
+newtype SqlDB a = SqlDB {unSqlDB :: StateT SqlDBEnv (ReaderT SqlBackend LoggerIO) a}
+  deriving newtype (Functor, Applicative, Monad, MonadTime, MonadGuid, Log, MonadThrow, MonadState SqlDBEnv)
 
-instance Monad m => MonadTime (ReaderT SqlDBEnv m) where
-  getCurrentTime = asks (.currentTime)
+instance Monad m => MonadTime (StateT SqlDBEnv m) where
+  getCurrentTime = gets (.currentTime)
 
-instance MonadGuid (ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
+instance MonadGuid (StateT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
   generateGUIDText = lift $ lift generateGUID
 
-instance Log (ReaderT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
+instance Log (StateT SqlDBEnv (ReaderT SqlBackend LoggerIO)) where
   logOutput a b = lift . lift $ logOutput a b
-  withLogTag a (ReaderT f1) = ReaderT $ \env1 -> do
+  withLogTag a (StateT f1) = StateT $ \env1 -> do
     let (ReaderT f2) = f1 env1
     ReaderT $ \env2 ->
       withLogTag a $ f2 env2
@@ -80,3 +85,16 @@ withFullEntities' (x : xs) f =
 
 withFullEntities :: ToTType t a => [a] -> ([t] -> FullEntitySqlDB b) -> SqlDB b
 withFullEntities dtypes func = getSqlDB $ withFullEntities' dtypes func
+
+finalize :: forall m. (Monad m, Typeable m) => m () -> SqlDB ()
+finalize someAction = do
+  SqlDBEnv {..} <- get
+  let mbPrevActions = cast @_ @(m ()) actions
+  case mbPrevActions of
+    Nothing -> do
+      logWarning $
+        "Couldn't append finalizer action."
+          <> "It caused because action was created in other monad, then monad in which we are trying to append it."
+    Just _ -> pure ()
+  let prevActions = fromMaybe (pure ()) mbPrevActions
+  put $ SqlDBEnv {actions = prevActions >> someAction, currentTime}

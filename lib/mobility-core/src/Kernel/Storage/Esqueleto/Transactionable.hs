@@ -14,6 +14,8 @@
 
 module Kernel.Storage.Esqueleto.Transactionable where
 
+import Control.Monad.Trans.State.Strict
+import Data.Typeable (cast)
 import Database.Esqueleto.Experimental (runSqlPool)
 import Database.Persist.Postgresql (runSqlPoolNoTransaction)
 import Kernel.Prelude
@@ -24,6 +26,7 @@ import Kernel.Storage.Esqueleto.SqlDB
 import Kernel.Types.Logging
 import Kernel.Types.Time (getCurrentTime)
 import Kernel.Utils.IOLogging (LoggerEnv)
+import Kernel.Utils.Logging (logWarning)
 
 type Transactionable m = Transactionable' SelectSqlDB m
 
@@ -39,7 +42,7 @@ instance {-# OVERLAPPING #-} Transactionable' SelectSqlDB SqlDB where
 instance {-# OVERLAPPING #-} Transactionable' SelectSqlDB SelectSqlDB where
   runTransaction = identity
 
-instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m) => Transactionable' SelectSqlDB m where
+instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m, Typeable m) => Transactionable' SelectSqlDB m where
   runTransaction (SelectSqlDB m) = do
     dbEnv <- asks (.esqDBEnv)
     runNoTransactionImpl dbEnv m
@@ -55,48 +58,62 @@ instance {-# OVERLAPPING #-} Transactionable' SqlDB m => Transactionable' SqlDB 
 -- But with INCOHERENT it will always use Transactionable' m instance.
 -- It's fine since Transactionable' SqlDB instance should be used only in find... functions,
 -- which have proper Transactionable' instance.
-instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m) => Transactionable' SqlDB m where
+instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m, Typeable m) => Transactionable' SqlDB m where
   runTransaction m = do
     dbEnv <- asks (.esqDBEnv)
-    runTransactionImpl dbEnv m
+    (result, SqlDBEnv {actions}) <- runTransactionImpl dbEnv m
+    let mbActions = cast @_ @(m ()) actions
+    case mbActions of
+      Nothing -> do
+        logWarning $
+          "Couldn't apply finalizer action."
+            <> "It caused because action was created in other monad, then monad in which we are trying to apply it."
+        pure ()
+      Just action -> action
+    return result
 
 runTransactionImpl ::
-  (HasEsq m r) =>
+  forall m r a.
+  (HasEsq m r, Typeable m) =>
   EsqDBEnv ->
   SqlDB a ->
-  m a
+  m (a, SqlDBEnv)
 runTransactionImpl dbEnv run = do
   logEnv <- asks (.loggerEnv)
-  liftIO $ runTransactionIO logEnv dbEnv run
+  liftIO $ runTransactionIO logEnv dbEnv run (Proxy @m)
 
-runTransactionIO :: LoggerEnv -> EsqDBEnv -> SqlDB a -> IO a
-runTransactionIO logEnv dbEnv (SqlDB run) = do
+runTransactionIO :: forall m a. (Typeable m, Monad m) => LoggerEnv -> EsqDBEnv -> SqlDB a -> Proxy m -> IO (a, SqlDBEnv)
+runTransactionIO logEnv dbEnv (SqlDB run) _ = do
   now <- getCurrentTime
   let sqlDBEnv =
         SqlDBEnv
-          { currentTime = now
+          { currentTime = now,
+            actions = pure @m ()
           }
-  runLoggerIO logEnv $ runSqlPool (runReaderT run sqlDBEnv) dbEnv.connPool
+  runLoggerIO logEnv $ runSqlPool (runStateT run sqlDBEnv) dbEnv.connPool
 
-runInReplica :: (EsqDBReplicaFlow m r, MonadThrow m, Log m) => SelectSqlDB a -> m a
+runInReplica :: (EsqDBReplicaFlow m r, MonadThrow m, Log m, Typeable m) => SelectSqlDB a -> m a
 runInReplica (SelectSqlDB m) = do
   dbEnv <- asks (.esqDBReplicaEnv)
   runNoTransactionImpl dbEnv m
 
 runNoTransactionImpl ::
+  forall m r a.
+  (HasEsq m r, Typeable m) =>
   (HasEsq m r) =>
   EsqDBEnv ->
   SqlDB a ->
   m a
 runNoTransactionImpl dbEnv run = do
   logEnv <- asks (.loggerEnv)
-  liftIO $ runNoTransactionIO logEnv dbEnv run
+  liftIO $ runNoTransactionIO logEnv dbEnv run (Proxy @m)
 
-runNoTransactionIO :: LoggerEnv -> EsqDBEnv -> SqlDB a -> IO a
-runNoTransactionIO logEnv dbEnv (SqlDB run) = do
+runNoTransactionIO :: forall m a. (Typeable m, Monad m) => LoggerEnv -> EsqDBEnv -> SqlDB a -> Proxy m -> IO a
+runNoTransactionIO logEnv dbEnv (SqlDB run) _ = do
   now <- getCurrentTime
   let sqlDBEnv =
         SqlDBEnv
-          { currentTime = now
+          { currentTime = now,
+            actions = pure @m ()
           }
-  runLoggerIO logEnv $ runSqlPoolNoTransaction (runReaderT run sqlDBEnv) dbEnv.connPool Nothing
+  runLoggerIO logEnv $ runSqlPoolNoTransaction (evalStateT run sqlDBEnv) dbEnv.connPool Nothing

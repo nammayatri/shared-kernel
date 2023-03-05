@@ -56,6 +56,7 @@ module Kernel.Storage.Esqueleto.Queries
   )
 where
 
+import Control.Monad.Trans.State.Strict
 import Data.Text (pack)
 import Data.Typeable
 import Database.Esqueleto.Experimental as EsqExport hiding
@@ -81,6 +82,7 @@ import Database.Persist.Class (OnlyOneUniqueKey, onlyUniqueP)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Class
 import Kernel.Storage.Esqueleto.DTypeBuilder
+import Kernel.Storage.Esqueleto.Logger (LoggerIO (..))
 import Kernel.Storage.Esqueleto.SqlDB
 import Kernel.Storage.Esqueleto.Transactionable
 import Kernel.Types.Logging (Log)
@@ -94,6 +96,7 @@ findOne' q = extractTType <$> findOneInternal q
 findOneInternal :: forall m t b. (Typeable t, Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe t)
 findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ selectOnlyOne
   where
+    selectOnlyOne :: StateT SqlDBEnv (ReaderT SqlBackend LoggerIO) (Maybe t)
     selectOnlyOne = do
       list <- lift $ Esq.select q
       case list of
