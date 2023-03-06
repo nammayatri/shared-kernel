@@ -133,11 +133,11 @@
         "sequelize": "sequelize"
       },
       "locked": {
-        "lastModified": 1678142326,
-        "narHash": "sha256-JK5WqdJI0ksiM3yMSNVU0GnsfUYI3GOw4AG0spZH/oM=",
+        "lastModified": 1678142505,
+        "narHash": "sha256-yUlBIgOrdQG30sg0yh9godjE9hYnVxUo29kvcmmsWmI=",
         "owner": "srid",
         "repo": "euler-hs",
-        "rev": "d856f22d1a33a04aae5cf8ba9f50fd4bfd35d0e5",
+        "rev": "44a85bb82f41a2ad9de2a516faa76f0a4040682a",
         "type": "github"
       },
       "original": {
