@@ -1,9 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    haskell-flake.url = "github:srid/haskell-flake/srid/gen-prj-modules";
     common.url = "github:nammayatri/common";
-    common.inputs.haskell-flake.follows = "haskell-flake";
     flake-parts.follows = "common/flake-parts";
 
     passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
@@ -11,7 +9,6 @@
 
     # euler-hs and its transitive dependencies
     euler-hs.url = "github:srid/euler-hs/ghc810--nixify";
-    euler-hs.inputs.haskell-flake.follows = "haskell-flake";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } ({ withSystem, ... }: {
@@ -41,7 +38,5 @@
           packages.mobility-core.root = ./lib/mobility-core;
         };
       };
-
     });
-
 }
