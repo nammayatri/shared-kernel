@@ -27,6 +27,8 @@ module Kernel.Storage.Esqueleto.Queries
     update',
     createMany,
     createMany',
+    createUnique,
+    createUnique',
     updateReturningCount,
     updateReturningCount',
     deleteByKey,
@@ -162,6 +164,26 @@ createMany' ::
   FullEntitySqlDB ()
 createMany' q = do
   liftToFullEntitySqlDB . SqlDB . lift $ Esq.insertMany_ q
+
+createUnique ::
+  ( PersistEntity t,
+    PersistEntityBackend t ~ SqlBackend,
+    TType t a
+  ) =>
+  a ->
+  SqlDB (Maybe (Key t))
+createUnique q = do
+  let ttypes = toTType q
+  SqlDB . lift $ Esq.insertUnique ttypes
+
+createUnique' ::
+  ( PersistEntity t,
+    PersistEntityBackend t ~ SqlBackend
+  ) =>
+  t ->
+  FullEntitySqlDB (Maybe (Key t))
+createUnique' q = do
+  liftToFullEntitySqlDB . SqlDB . lift $ Esq.insertUnique q
 
 update ::
   ( PersistEntity a,
