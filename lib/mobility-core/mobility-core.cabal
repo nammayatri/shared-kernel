@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -52,6 +52,7 @@ library
       Kernel.External.Maps.MMI.MapsClient.Types
       Kernel.External.Maps.MMI.MMIAuthToken
       Kernel.External.Maps.MMI.Routes
+      Kernel.External.Maps.MMI.SnapToRoad
       Kernel.External.Maps.OSRM.Config
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
@@ -290,7 +291,7 @@ library
     , cryptonite
     , data-default-class
     , deriving-aeson
-    , dhall
+    , dhall <=1.35.0
     , double-conversion
     , either
     , esqueleto
@@ -353,7 +354,7 @@ library
     , time
     , tinylog
     , transformers
-    , universum
+    , universum <1.8
     , unix
     , unliftio
     , unliftio-core
@@ -431,7 +432,7 @@ test-suite mobility-core-tests
     , cryptonite
     , data-default-class
     , deriving-aeson
-    , dhall
+    , dhall <=1.35.0
     , double-conversion
     , either
     , esqueleto
@@ -495,7 +496,7 @@ test-suite mobility-core-tests
     , time
     , tinylog
     , transformers
-    , universum
+    , universum <1.8
     , unix
     , unliftio
     , unliftio-core

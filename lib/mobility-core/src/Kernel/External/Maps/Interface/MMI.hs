@@ -16,6 +16,7 @@ module Kernel.External.Maps.Interface.MMI
   ( autoSuggest,
     getDistanceMatrix,
     getRoutes,
+    snapToRoad,
   )
 where
 
@@ -36,11 +37,13 @@ import Kernel.External.Maps.MMI.MMIAuthToken as MMIAuthToken
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMITypes
 import Kernel.External.Maps.MMI.Routes as MMI
+import Kernel.External.Maps.MMI.SnapToRoad as MMI
 import Kernel.External.Maps.Types
 import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
+import Kernel.Utils.CalculateDistance (everySnippetIs, getRouteLinearLength)
 import Kernel.Utils.Common (logTagWarning)
 import Kernel.Utils.Error.Throwing
 
@@ -187,3 +190,34 @@ mkRoute req resp route = do
 
 data Acc = Acc {minLat :: Double, maxLat :: Double, minLon :: Double, maxLon :: Double}
   deriving (Generic, ToJSON, FromJSON)
+
+snapToRoad ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Log m,
+    HasField "snapToRoadSnippetThreshold" r HighPrecMeters
+  ) =>
+  MMICfg ->
+  IT.SnapToRoadReq ->
+  m IT.SnapToRoadResp
+snapToRoad mmiCfg req = do
+  key <- decrypt mmiCfg.mmiApiKey
+  let points = T.intercalate ";" $ latLongToMmiText <$> req.points
+      mapsUrl = mmiCfg.mmiKeyUrl
+  resp <- MMI.mmiSnapToRoad mapsUrl key points
+
+  let listOfSnappedPoints = sortOn (.waypoint_index) $ catMaybes $ resp.results.snappedPoints
+  let listOfPoints = getPoints listOfSnappedPoints
+  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+  unless (everySnippetIs (< snippetThreshold) listOfPoints) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
+  let dist = getRouteLinearLength listOfPoints
+  pure
+    SnapToRoadResp
+      { distance = dist,
+        snappedPoints = listOfPoints
+      }
+  where
+    getPoints :: [MMITypes.SnappedPoint] -> [LatLong]
+    getPoints = fmap (\x -> x.location.getLatLong)
+    latLongToMmiText :: LatLong -> Text
+    latLongToMmiText LatLong {..} = show lon <> "," <> show lat

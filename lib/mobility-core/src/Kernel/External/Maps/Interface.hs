@@ -119,7 +119,7 @@ snapToRoadProvided :: MapsService -> Bool
 snapToRoadProvided = \case
   Google -> True
   OSRM -> True
-  MMI -> False
+  MMI -> True
 
 snapToRoad ::
   ( EncFlow m r,
@@ -132,7 +132,7 @@ snapToRoad ::
 snapToRoad serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.snapToRoad cfg req
   OSRMConfig osrmCfg -> OSRM.callOsrmMatch osrmCfg req
-  MMIConfig _ -> throwNotProvidedError "snapToRoad" MMI
+  MMIConfig mmiCfg -> MMI.snapToRoad mmiCfg req
 
 autoCompleteProvided :: MapsService -> Bool
 autoCompleteProvided = \case
