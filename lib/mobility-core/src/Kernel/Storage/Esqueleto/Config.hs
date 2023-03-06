@@ -20,6 +20,7 @@ import Database.PostgreSQL.Simple (execute_)
 import Database.PostgreSQL.Simple.Types (Query (Query))
 import EulerHS.Prelude
 import GHC.Records.Extra
+import Kernel.Storage.Esqueleto.Class (Finalize)
 import Kernel.Storage.Esqueleto.Logger (runLoggerIO)
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.Time (MonadTime)
@@ -72,6 +73,6 @@ type HasEsqEnv m r = (HasEsq m r, HasField "esqDBEnv" r EsqDBEnv)
 
 type HasEsqReplica m r = (HasEsq m r, HasField "esqDBReplicaEnv" r EsqDBEnv)
 
-type EsqDBFlow m r = (HasEsqEnv m r, MonadFlow m, Typeable m)
+type EsqDBFlow m r = (HasEsqEnv m r, MonadFlow m, Finalize m)
 
-type EsqDBReplicaFlow m r = (HasEsqReplica m r, MonadFlow m, Typeable m)
+type EsqDBReplicaFlow m r = (HasEsqReplica m r, MonadFlow m, Finalize m)

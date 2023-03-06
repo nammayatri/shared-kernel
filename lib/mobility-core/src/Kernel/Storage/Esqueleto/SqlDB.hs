@@ -38,7 +38,7 @@ import Kernel.Types.Time (MonadTime (..))
 import Kernel.Utils.Logging
 
 data SqlDBEnv = forall m.
-  (Typeable m, Monad m) =>
+  Finalize m =>
   SqlDBEnv
   { currentTime :: UTCTime,
     actions :: m ()
@@ -86,15 +86,18 @@ withFullEntities' (x : xs) f =
 withFullEntities :: ToTType t a => [a] -> ([t] -> FullEntitySqlDB b) -> SqlDB b
 withFullEntities dtypes func = getSqlDB $ withFullEntities' dtypes func
 
-finalize :: forall m. (Monad m, Typeable m) => m () -> SqlDB ()
+finalize :: forall m. Finalize m => m () -> SqlDB ()
 finalize someAction = do
   SqlDBEnv {..} <- get
   let mbPrevActions = cast @_ @(m ()) actions
   case mbPrevActions of
     Nothing -> do
       logWarning $
-        "Couldn't append finalizer action."
-          <> "It caused because action was created in other monad, then monad in which we are trying to append it."
+        "Couldn't append finalizer action in \""
+          <> monadType someAction
+          <> "\"monad. It caused because previous action was created in \""
+          <> monadType actions
+          <> "\"monad."
     Just _ -> pure ()
   let prevActions = fromMaybe (pure ()) mbPrevActions
   put $ SqlDBEnv {actions = prevActions >> someAction, currentTime}
