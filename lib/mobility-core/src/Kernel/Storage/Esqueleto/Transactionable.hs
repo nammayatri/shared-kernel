@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE TypeApplications #-}
 
 module Kernel.Storage.Esqueleto.Transactionable where
 
@@ -76,6 +77,10 @@ instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m, Finalize m) => 
         emptyAction
       Just action -> action
     return result
+
+-- This function created for type safety. Finalize function should be applied to the same monad within transaction
+runTransactionF :: forall m r a. (HasEsqEnv m r, MonadThrow m, Log m, Finalize m) => ((m () -> SqlDB ()) -> SqlDB a) -> m a
+runTransactionF mkAction = runTransaction $ mkAction (finalize @m)
 
 runTransactionImpl ::
   forall m r a.
