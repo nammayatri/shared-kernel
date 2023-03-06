@@ -22,24 +22,6 @@
         packages.default = self'.packages.mobility-core;
         haskellProjects.default = {
           imports = [
-            self.haskellFlakeProjectModules.input
-          ];
-          basePackages = config.haskellProjects.ghc810.outputs.finalPackages;
-          packages.mobility-core.root = ./lib/mobility-core;
-        };
-      };
-
-      flake.haskellFlakeProjectModules = rec {
-        output = { pkgs, lib, ... }: {
-          imports = [ input local ];
-        };
-        local = { pkgs, lib, ... }: withSystem pkgs.system ({ config, ... }: {
-          source-overrides =
-            lib.mapAttrs (name: ks: ks.root)
-              config.haskellProjects.default.packages;
-        });
-        input = { pkgs, lib, ... }: {
-          imports = [
             inputs.euler-hs.haskellFlakeProjectModules.output
           ];
           source-overrides = {
@@ -49,9 +31,37 @@
           overrides = self: super:
             with pkgs.haskell.lib.compose;
             lib.mapAttrs (k: v: lib.pipe super.${k} v) {
+              # Tests and documentation generation fail for some reason.
               euler-hs = [ dontCheck dontHaddock ];
             };
+          basePackages = config.haskellProjects.ghc810.outputs.finalPackages;
+          packages.mobility-core.root = ./lib/mobility-core;
         };
+      };
+
+      # Typically the consumer of this flake will want to use one of the
+      # following modules:
+      #
+      # - output: provides both local package and dependency overrides.
+      # - local: provides only local package overrides (ignores dependency
+      #   overrides in this flake)
+      flake.haskellFlakeProjectModules = rec {
+        # The 'output' module provides both local package and dependency
+        # overrides.
+        output = {
+          imports = [ input local ];
+        };
+        # The 'local' module provides only local package overrides.
+        local = { pkgs, lib, ... }: withSystem pkgs.system ({ config, ... }: {
+          source-overrides =
+            lib.mapAttrs (_: v: v.root)
+              config.haskellProjects.default.packages;
+        });
+        # The 'input' module contains only dependency overrides.
+        input = { pkgs, ... }: withSystem pkgs.system ({ config, ... }: {
+          inherit (config.haskellProjects.default)
+            source-overrides overrides;
+        });
       };
     });
 
