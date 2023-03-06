@@ -46,9 +46,11 @@
             passetto-client = inputs.passetto-hs + /client;
             passetto-core = inputs.passetto-hs + /core;
           };
-          overrides = self: super: with pkgs.haskell.lib; {
-            euler-hs = dontHaddock (dontCheck super.euler-hs);
-          };
+          overrides = self: super:
+            with pkgs.haskell.lib.compose;
+            lib.mapAttrs (k: v: lib.pipe super.${k} v) {
+              euler-hs = [ dontCheck dontHaddock ];
+            };
         };
       };
     });
