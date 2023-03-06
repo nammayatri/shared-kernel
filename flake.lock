@@ -69,7 +69,9 @@
         "cachix-push": "cachix-push",
         "flake-parts": "flake-parts",
         "flake-root": "flake-root",
-        "haskell-flake": "haskell-flake",
+        "haskell-flake": [
+          "haskell-flake"
+        ],
         "nixpkgs-140774-workaround": "nixpkgs-140774-workaround",
         "nixpkgs-21_11": "nixpkgs-21_11",
         "treefmt-nix": "treefmt-nix"
@@ -93,7 +95,7 @@
         "cachix-push": "cachix-push_2",
         "flake-parts": "flake-parts_2",
         "flake-root": "flake-root_2",
-        "haskell-flake": "haskell-flake_2",
+        "haskell-flake": "haskell-flake",
         "nixpkgs-140774-workaround": "nixpkgs-140774-workaround_2",
         "nixpkgs-21_11": "nixpkgs-21_11_2",
         "treefmt-nix": "treefmt-nix_2"
@@ -123,8 +125,6 @@
           "flake-parts"
         ],
         "haskell-flake": [
-          "euler-hs",
-          "common",
           "haskell-flake"
         ],
         "hedis": "hedis",
@@ -230,17 +230,14 @@
     },
     "haskell-flake_2": {
       "locked": {
-        "lastModified": 1677784539,
-        "narHash": "sha256-lOhq23Ovg3QEPVjNgctJnPkF/kWq65t+3RCxt78LtrU=",
-        "owner": "srid",
-        "repo": "haskell-flake",
-        "rev": "9e2f7f159a03f70f8993e453ac57b004734a83ac",
-        "type": "github"
+        "lastModified": 1678128176,
+        "narHash": "sha256-l/lkAp17MIHZ5IGrmgHm5RypZoKOgvHMuAMGRopNR20=",
+        "path": "/Users/srid/code/haskell-flake",
+        "type": "path"
       },
       "original": {
-        "owner": "srid",
-        "repo": "haskell-flake",
-        "type": "github"
+        "path": "/Users/srid/code/haskell-flake",
+        "type": "path"
       }
     },
     "hedis": {
@@ -464,6 +461,7 @@
           "common",
           "flake-parts"
         ],
+        "haskell-flake": "haskell-flake_2",
         "nixpkgs": "nixpkgs_4",
         "passetto-hs": "passetto-hs"
       }
