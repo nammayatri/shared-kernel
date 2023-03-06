@@ -31,6 +31,7 @@ import EulerHS.Prelude ((...))
 import qualified Kernel.External.Maps.Google.PolyLinePoints as PP
 import qualified Kernel.External.Maps.Types as Maps
 import Kernel.Prelude
+import Kernel.Types.Common (HighPrecMeters)
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON (constructorsWithSnakeCase, stripPrefixUnderscoreIfAny)
 import Kernel.Utils.TH
@@ -232,3 +233,29 @@ instance FromJSON LngLat where
 
 instance ToJSON LngLat where
   toJSON (LngLat Maps.LatLong {..}) = Array $ V.fromList $ map toJSON [lon, lat]
+
+data SnapToRoadResp = SnapToRoadResp
+  { responseCode :: Int,
+    version :: Text,
+    results :: SnapToRoadResult
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
+
+data SnapToRoadResult = SnapToRoadResult
+  { snappedPoints :: [Maybe SnappedPoint],
+    matchings :: Maybe [Matching]
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
+
+data SnappedPoint = SnappedPoint
+  { location :: LngLat,
+    distance :: HighPrecMeters,
+    waypoint_index :: Int
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
+
+newtype Matching = Matching
+  { geometry :: String
+  }
+  deriving (Generic, Show)
+  deriving anyclass (FromJSON, ToJSON)

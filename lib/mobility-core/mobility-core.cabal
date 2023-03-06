@@ -58,6 +58,7 @@ library
       Kernel.External.Maps.MMI.MapsClient.Types
       Kernel.External.Maps.MMI.MMIAuthToken
       Kernel.External.Maps.MMI.Routes
+      Kernel.External.Maps.MMI.SnapToRoad
       Kernel.External.Maps.OSRM.Config
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
