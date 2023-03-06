@@ -230,14 +230,18 @@
     },
     "haskell-flake_2": {
       "locked": {
-        "lastModified": 1678128176,
-        "narHash": "sha256-l/lkAp17MIHZ5IGrmgHm5RypZoKOgvHMuAMGRopNR20=",
-        "path": "/Users/srid/code/haskell-flake",
-        "type": "path"
+        "lastModified": 1678127673,
+        "narHash": "sha256-GZVvPBN6eaW/OAghC9XppMW/gihB4HbWQfDF/NTWdpo=",
+        "owner": "srid",
+        "repo": "haskell-flake",
+        "rev": "833e5b083f70275f66169d11f9412dceba4bf2c5",
+        "type": "github"
       },
       "original": {
-        "path": "/Users/srid/code/haskell-flake",
-        "type": "path"
+        "owner": "srid",
+        "ref": "srid/gen-prj-modules",
+        "repo": "haskell-flake",
+        "type": "github"
       }
     },
     "hedis": {
