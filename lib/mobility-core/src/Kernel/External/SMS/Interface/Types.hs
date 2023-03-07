@@ -69,5 +69,3 @@ sendOtpResToText = \case
   Fail -> "Fail"
   Pending -> "Pending"
   UnknownError -> "unknown request"
-
-type OtpTemplate = Text

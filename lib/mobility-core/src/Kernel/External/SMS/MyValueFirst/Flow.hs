@@ -14,7 +14,6 @@
 
 module Kernel.External.SMS.MyValueFirst.Flow where
 
-import qualified Data.Text as T
 import EulerHS.Prelude
 import qualified Kernel.External.SMS.MyValueFirst.API as API
 import Kernel.External.SMS.MyValueFirst.Types (SubmitSms (..), SubmitSmsRes (..))
@@ -40,9 +39,6 @@ type OtpTemplate = Text
 type OrgName = Text
 
 type InviteTemplate = Text
-
-constructInviteSms :: OrgName -> InviteTemplate -> Text
-constructInviteSms = T.replace "{#org#}"
 
 sendOTPApi ::
   ( CoreMetrics m,

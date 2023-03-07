@@ -16,11 +16,9 @@ module Kernel.External.SMS.Interface
   ( module Reexport,
     sendSMS,
     checkSmsResult,
-    constructSendSMSReq,
   )
 where
 
-import qualified Data.Text as T
 import EulerHS.Prelude
 import Kernel.External.SMS.ExotelSms.Config as Reexport
 import qualified Kernel.External.SMS.Interface.ExotelSms as ExotelSms
@@ -32,14 +30,6 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
-
-constructSendSMSReq :: Text -> Text -> Text -> Text -> Text -> SendSMSReq
-constructSendSMSReq otpCode otpHash otpSmsTemplate phone sender =
-  SendSMSReq
-    { smsBody = constructOtpSms otpCode otpHash otpSmsTemplate,
-      phoneNumber = phone,
-      sender = sender
-    }
 
 sendSMS :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => SmsHandler m -> SendSMSReq -> m SendSMSRes
 sendSMS SmsHandler {..} req = do
@@ -77,9 +67,3 @@ checkSmsResult txt =
     Fail -> throwError SMSInvalidNumber
     Pending -> pure ()
     _ -> throwError SMSInvalidNumber
-
-constructOtpSms :: Text -> Text -> OtpTemplate -> Text
-constructOtpSms otp hash =
-  let otpTemp = "{#otp#}"
-      hashTemp = "{#hash#}"
-   in T.replace otpTemp otp . T.replace hashTemp hash

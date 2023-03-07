@@ -867,3 +867,21 @@ instance IsHTTPError MMIError where
     MMIServerError -> "MMI_SERVER_ERROR"
 
 instance IsAPIError MMIError
+
+data MerchantMessageError
+  = MerchantMessageNotFound Text Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''MerchantMessageError
+
+instance IsBaseError MerchantMessageError where
+  toMessage = \case
+    MerchantMessageNotFound merchantId messageKey -> Just $ "MerchantMessage with merchantId \"" <> show merchantId <> " and message key" <> show messageKey <> "\" not found. "
+
+instance IsHTTPError MerchantMessageError where
+  toErrorCode = \case
+    MerchantMessageNotFound _ _ -> "MERCHANT_MESSAGE_NOT_FOUND"
+  toHttpCode = \case
+    MerchantMessageNotFound _ _ -> E500
+
+instance IsAPIError MerchantMessageError
