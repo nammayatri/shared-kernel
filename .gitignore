@@ -31,3 +31,7 @@ dhall-configs/dev/secrets/top-secret.dhall
 
 # load test files
 .dev/load-test/*.json
+
+# Nix
+.direnv
+result
