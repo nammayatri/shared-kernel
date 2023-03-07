@@ -30,9 +30,10 @@ jobs:
         run: |
           # Because 'nix flake check' is not system-aware
           # See https://srid.ca/haskell-template/checks
+          CURRENT_SYSTEM=$(nix eval --raw --impure --expr builtins.currentSystem)
           nix run nixpkgs#sd \
-            'systems = nixpkgs.lib.systems.flakeExposed' \
-            'systems = [ "x86_64-linux" ]' \
+            "systems = nixpkgs.lib.systems.flakeExposed" \
+            "systems = [ \"${CURRENT_SYSTEM}\" ]" \
             flake.nix
 
           # Sandbox must be disabed for:
