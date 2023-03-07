@@ -112,7 +112,7 @@ getRoutes ::
   m GetRoutesResp
 getRoutes serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getRoutes cfg req
-  OSRMConfig _ -> throwNotProvidedError "getRoutes" OSRM
+  OSRMConfig osrmCfg -> OSRM.getRoutes osrmCfg req
   MMIConfig cfg -> MMI.getRoutes cfg req
 
 snapToRoadProvided :: MapsService -> Bool
