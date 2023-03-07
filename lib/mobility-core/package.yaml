@@ -136,6 +136,7 @@ dependencies:
   - tinylog
   - wai-app-static
   - servant-multipart
+  - clickhouse-haskell
 
 ghc-options:
   - -fwrite-ide-info

@@ -92,6 +92,7 @@ type DirectionsAPI =
     :> QueryParam "alternatives" Bool
     :> QueryParam "mode" GoogleMaps.Mode
     :> QueryParam "waypoints" [GoogleMaps.Place]
+    :> QueryParam "avoid" Text
     :> Get '[JSON] GoogleMaps.DirectionsResp
 
 autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Language -> EulerClient GoogleMaps.AutoCompleteResp
@@ -111,6 +112,7 @@ directionsClient ::
   Maybe Bool ->
   Maybe GoogleMaps.Mode ->
   Maybe [GoogleMaps.Place] ->
+  Maybe Text ->
   EulerClient GoogleMaps.DirectionsResp
 autoCompleteClient :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient = client (Proxy :: Proxy GoogleMapsAPI)
 
@@ -187,9 +189,10 @@ directions ::
   GoogleMaps.Place ->
   Maybe GoogleMaps.Mode ->
   Maybe [GoogleMaps.Place] ->
+  Bool ->
   m GoogleMaps.DirectionsResp
-directions url key origin destination mode waypoints = do
-  callAPI url (directionsClient origin destination key (Just True) mode waypoints) "directionsAPI"
+directions url key origin destination mode waypoints isAvoidTolls = do
+  callAPI url (directionsClient origin destination key (Just True) mode waypoints (if isAvoidTolls then Just "tolls" else Nothing)) "directionsAPI"
     >>= checkGoogleMapsError url
 
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
