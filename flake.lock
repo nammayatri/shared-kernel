@@ -36,11 +36,11 @@
     },
     "cachix-push": {
       "locked": {
-        "lastModified": 1677778852,
-        "narHash": "sha256-FefOb/BgLNHyv+1Fn3+D9/+Hdaipf+Fy/GAY2XWPsVQ=",
+        "lastModified": 1678223023,
+        "narHash": "sha256-nZVrSAyh9IAi75UIAy9YNR6Wbdlxv0AHD6A9/DqIVfw=",
         "owner": "juspay",
         "repo": "cachix-push",
-        "rev": "1644299005fffe87df6e366f7e7da87caaa9391e",
+        "rev": "7f284a373d811ac397a25b113025b34ac249f489",
         "type": "github"
       },
       "original": {
@@ -91,11 +91,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1677948923,
-        "narHash": "sha256-chaw+4M/bhpRpuLJWFdN6ASLOjzdWDMdtIwmyDRt87w=",
+        "lastModified": 1678223065,
+        "narHash": "sha256-bCbKpWRhRVqjAWN6a4VUFVj1soRCQXxUtZVRhuI2FkU=",
         "owner": "nammayatri",
         "repo": "common",
-        "rev": "0c527f30843bc8a7f3e47658291e43fac00e046a",
+        "rev": "f78eb1fbac4a038b9bbfb5d3b79ef01fb27e2421",
         "type": "github"
       },
       "original": {
