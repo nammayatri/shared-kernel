@@ -114,8 +114,7 @@ getRoutes cfg req = do
     then do
       gResp <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints False
       traverse (mkRoute req) gResp.routes
-    else
-      traverse (mkRoute req) gRes.routes
+    else traverse (mkRoute req) gRes.routes
   where
     getWayPoints waypoints =
       case NE.tail waypoints of

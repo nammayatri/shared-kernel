@@ -30,10 +30,10 @@ newtype ClickhouseEnv = ClickhouseEnv
 createConn :: ClickhouseCfg -> IO ClickhouseEnv
 createConn ClickhouseCfg {..} =
   ClickhouseEnv
-    <$>  CH.httpConnectDb
-          (if T.null database then DB.traceShowId Nothing else DB.traceShowId $ Just (cs database))
-          (cs username)
-          (cs password)
-          (fromIntegral port)
-          (cs host)
-          tls
+    <$> CH.httpConnectDb
+      (if T.null database then DB.traceShowId Nothing else DB.traceShowId $ Just (cs database))
+      (cs username)
+      (cs password)
+      (fromIntegral port)
+      (cs host)
+      tls
