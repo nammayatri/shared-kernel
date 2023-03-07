@@ -82,8 +82,8 @@ data EncKind
 -- Implementation of this hash, as well as the overall need in it is to be
 -- revised later.
 newtype DbHash = DbHash {unDbHash :: ByteString}
-  deriving stock (Show, Eq)
-  deriving newtype (PersistField, PersistFieldSql)
+  deriving stock (Eq, Ord)
+  deriving newtype (PersistField, PersistFieldSql, Show, Read)
 
 -- These json instances are necessary for Euler's ART system only
 instance ToJSON DbHash where
