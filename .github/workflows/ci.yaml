@@ -4,7 +4,10 @@ on:
   pull_request:
 jobs:
   Nix:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - uses: nixbuild/nix-quick-install-action@v21
