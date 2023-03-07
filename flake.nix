@@ -6,6 +6,8 @@
 
     passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
     passetto-hs.flake = false;
+    clickhouse-haskell.url = "github:piyushKumar-1/clickhouse-haskell";
+    clickhouse-haskell.flake = false;
 
     # euler-hs and its transitive dependencies
     euler-hs.url = "github:srid/euler-hs/ghc810--nixify";
@@ -27,12 +29,14 @@
           source-overrides = {
             passetto-client = inputs.passetto-hs + /client;
             passetto-core = inputs.passetto-hs + /core;
+            clickhouse-haskell = inputs.clickhouse-haskell;
           };
           overrides = self: super:
             with pkgs.haskell.lib.compose;
             lib.mapAttrs (k: v: lib.pipe super.${k} v) {
               # Tests and documentation generation fail for some reason.
               euler-hs = [ dontCheck dontHaddock ];
+              clickhouse-haskell = [ doJailbreak ];
             };
           basePackages = config.haskellProjects.ghc810.outputs.finalPackages;
           packages.mobility-core.root = ./lib/mobility-core;

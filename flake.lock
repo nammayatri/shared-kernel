@@ -64,6 +64,22 @@
         "type": "github"
       }
     },
+    "clickhouse-haskell": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1676920142,
+        "narHash": "sha256-uEWtTQU+YIB/BWMf8wf+p8pv34W2Ohhv2xigC8YV1PY=",
+        "owner": "piyushKumar-1",
+        "repo": "clickhouse-haskell",
+        "rev": "5eafcf35b7f2f5619f21dbafb55d98b1e57b1d39",
+        "type": "github"
+      },
+      "original": {
+        "owner": "piyushKumar-1",
+        "repo": "clickhouse-haskell",
+        "type": "github"
+      }
+    },
     "common": {
       "inputs": {
         "cachix-push": "cachix-push",
@@ -458,6 +474,7 @@
     },
     "root": {
       "inputs": {
+        "clickhouse-haskell": "clickhouse-haskell",
         "common": "common",
         "euler-hs": "euler-hs",
         "flake-parts": [
