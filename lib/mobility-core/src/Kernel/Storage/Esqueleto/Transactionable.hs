@@ -11,12 +11,16 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE TypeApplications #-}
 
 module Kernel.Storage.Esqueleto.Transactionable where
 
+import Control.Monad.Trans.State.Strict
+import Data.Typeable (cast)
 import Database.Esqueleto.Experimental (runSqlPool)
 import Database.Persist.Postgresql (runSqlPoolNoTransaction)
 import Kernel.Prelude
+import Kernel.Storage.Esqueleto.Class
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Esqueleto.DTypeBuilder
 import Kernel.Storage.Esqueleto.Logger
@@ -24,6 +28,7 @@ import Kernel.Storage.Esqueleto.SqlDB
 import Kernel.Types.Logging
 import Kernel.Types.Time (getCurrentTime)
 import Kernel.Utils.IOLogging (LoggerEnv)
+import Kernel.Utils.Logging (logWarning)
 
 type Transactionable m = Transactionable' SelectSqlDB m
 
@@ -39,7 +44,7 @@ instance {-# OVERLAPPING #-} Transactionable' SelectSqlDB SqlDB where
 instance {-# OVERLAPPING #-} Transactionable' SelectSqlDB SelectSqlDB where
   runTransaction = identity
 
-instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m) => Transactionable' SelectSqlDB m where
+instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m, Finalize m) => Transactionable' SelectSqlDB m where
   runTransaction (SelectSqlDB m) = do
     dbEnv <- asks (.esqDBEnv)
     runNoTransactionImpl dbEnv m
@@ -55,48 +60,69 @@ instance {-# OVERLAPPING #-} Transactionable' SqlDB m => Transactionable' SqlDB 
 -- But with INCOHERENT it will always use Transactionable' m instance.
 -- It's fine since Transactionable' SqlDB instance should be used only in find... functions,
 -- which have proper Transactionable' instance.
-instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m) => Transactionable' SqlDB m where
+instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m, Finalize m) => Transactionable' SqlDB m where
   runTransaction m = do
     dbEnv <- asks (.esqDBEnv)
-    runTransactionImpl dbEnv m
+    (result, SqlDBEnv {actions}) <- runTransactionImpl dbEnv m
+    let mbActions = cast @_ @(m ()) actions
+    case mbActions of
+      Nothing -> do
+        let emptyAction = pure @m ()
+        logWarning $
+          "Couldn't apply finalizer action in \""
+            <> monadType emptyAction
+            <> "\"monad. It caused because previous action was created in \""
+            <> monadType actions
+            <> "\"monad."
+        emptyAction
+      Just action -> action
+    return result
+
+-- This function created for type safety. Finalize function should be applied to the same monad within transaction
+runTransactionF :: forall m r a. (HasEsqEnv m r, MonadThrow m, Log m, Finalize m) => ((m () -> SqlDB ()) -> SqlDB a) -> m a
+runTransactionF mkAction = runTransaction $ mkAction (finalize @m)
 
 runTransactionImpl ::
-  (HasEsq m r) =>
+  forall m r a.
+  (HasEsq m r, Finalize m) =>
   EsqDBEnv ->
   SqlDB a ->
-  m a
+  m (a, SqlDBEnv)
 runTransactionImpl dbEnv run = do
   logEnv <- asks (.loggerEnv)
-  liftIO $ runTransactionIO logEnv dbEnv run
+  liftIO $ runTransactionIO (Proxy @m) logEnv dbEnv run
 
-runTransactionIO :: LoggerEnv -> EsqDBEnv -> SqlDB a -> IO a
-runTransactionIO logEnv dbEnv (SqlDB run) = do
+runTransactionIO :: forall m a. Finalize m => Proxy m -> LoggerEnv -> EsqDBEnv -> SqlDB a -> IO (a, SqlDBEnv)
+runTransactionIO _ logEnv dbEnv (SqlDB run) = do
   now <- getCurrentTime
   let sqlDBEnv =
         SqlDBEnv
-          { currentTime = now
+          { currentTime = now,
+            actions = pure @m ()
           }
-  runLoggerIO logEnv $ runSqlPool (runReaderT run sqlDBEnv) dbEnv.connPool
+  runLoggerIO logEnv $ runSqlPool (runStateT run sqlDBEnv) dbEnv.connPool
 
-runInReplica :: (EsqDBReplicaFlow m r, MonadThrow m, Log m) => SelectSqlDB a -> m a
+runInReplica :: (EsqDBReplicaFlow m r, MonadThrow m, Log m, Finalize m) => SelectSqlDB a -> m a
 runInReplica (SelectSqlDB m) = do
   dbEnv <- asks (.esqDBReplicaEnv)
   runNoTransactionImpl dbEnv m
 
 runNoTransactionImpl ::
-  (HasEsq m r) =>
+  forall m r a.
+  (HasEsq m r, Finalize m) =>
   EsqDBEnv ->
   SqlDB a ->
   m a
 runNoTransactionImpl dbEnv run = do
   logEnv <- asks (.loggerEnv)
-  liftIO $ runNoTransactionIO logEnv dbEnv run
+  liftIO $ runNoTransactionIO (Proxy @m) logEnv dbEnv run
 
-runNoTransactionIO :: LoggerEnv -> EsqDBEnv -> SqlDB a -> IO a
-runNoTransactionIO logEnv dbEnv (SqlDB run) = do
+runNoTransactionIO :: forall m a. Finalize m => Proxy m -> LoggerEnv -> EsqDBEnv -> SqlDB a -> IO a
+runNoTransactionIO _ logEnv dbEnv (SqlDB run) = do
   now <- getCurrentTime
   let sqlDBEnv =
         SqlDBEnv
-          { currentTime = now
+          { currentTime = now,
+            actions = pure @m ()
           }
-  runLoggerIO logEnv $ runSqlPoolNoTransaction (runReaderT run sqlDBEnv) dbEnv.connPool Nothing
+  runLoggerIO logEnv $ runSqlPoolNoTransaction (evalStateT run sqlDBEnv) dbEnv.connPool Nothing

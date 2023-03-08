@@ -21,6 +21,7 @@ import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
+import Kernel.Storage.Esqueleto.Class (Finalize (..))
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Forkable
 import Kernel.Types.Logging
@@ -120,6 +121,9 @@ instance MonadMonitor (FlowR r) where
 
 instance MonadGuid (FlowR r) where
   generateGUIDText = FlowR L.generateGUID
+
+instance Typeable r => Finalize (FlowR r) where
+  monadType _ = "FlowR r"
 
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => Forkable (FlowR r) where
   fork tag f = do
