@@ -17,6 +17,7 @@ module Kernel.External.Maps.Interface.MMI
     getDistanceMatrix,
     getRoutes,
     snapToRoad,
+    reverseGeocode,
   )
 where
 
@@ -34,6 +35,7 @@ import Kernel.External.Maps.MMI.AutoSuggest as MMI
 import Kernel.External.Maps.MMI.Config
 import Kernel.External.Maps.MMI.DistanceMatrix as MMI
 import Kernel.External.Maps.MMI.MMIAuthToken as MMIAuthToken
+import Kernel.External.Maps.MMI.ReverseGeocoding as MMI
 import Kernel.External.Maps.MMI.Routes as MMI
 import Kernel.External.Maps.MMI.SnapToRoad as MMI
 import qualified Kernel.External.Maps.MMI.Types as MMI
@@ -221,3 +223,16 @@ snapToRoad mmiCfg req = do
     getPoints = fmap (\x -> x.location.getLatLong)
     latLongToMmiText :: LatLong -> Text
     latLongToMmiText LatLong {..} = show lon <> "," <> show lat
+
+reverseGeocode ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Log m
+  ) =>
+  MMICfg ->
+  MMITypes.ReverseGeocodeReq ->
+  m MMITypes.ReverseGeocodeResp
+reverseGeocode mmiCfg MMITypes.ReverseGeocodeReq {..} = do
+  key <- decrypt mmiCfg.mmiApiKey
+  let mapsUrl = mmiCfg.mmiKeyUrl
+  MMI.mmiReverseGeocode mapsUrl key location region lang
