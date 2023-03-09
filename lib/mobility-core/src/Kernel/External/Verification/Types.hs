@@ -14,8 +14,8 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Whatsapp.Types
-  ( module Kernel.External.Whatsapp.Types,
+module Kernel.External.Verification.Types
+  ( module Kernel.External.Verification.Types,
   )
 where
 
@@ -23,10 +23,10 @@ import Data.OpenApi
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data WhatsappService = GupShup
+data VerificationService = Idfy
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-availableWhatsappServices :: [WhatsappService]
-availableWhatsappServices = [GupShup]
+availableVerificationServices :: [VerificationService]
+availableVerificationServices = [Idfy]
 
-derivePersistField "WhatsappService"
+derivePersistField "VerificationService"
