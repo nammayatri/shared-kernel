@@ -52,6 +52,16 @@ type TableAPI =
     :> MandatoryQueryParam "destinations" DestinationsList
     :> Get '[JSON] OSRMTableResponse
 
+type RouteAPI =
+  "route"
+    :> "v1"
+    :> "driving"
+    :> Capture "coordinates" PointsList
+    :> MandatoryQueryParam "geometries" GeometryRespType
+    :> MandatoryQueryParam "alternatives" Bool
+    :> MandatoryQueryParam "steps" Bool
+    :> Get '[JSON] OSRMRouteResponse
+
 newtype PointsList = PointsList {getPointsList :: [Maps.LatLong]}
 
 newtype SourcesList = SourcesList {getSourcesList :: [Int]}
@@ -133,6 +143,52 @@ newtype Location = Location {getLatLong :: Maps.LatLong}
   deriving stock (Generic, Show, Eq)
   deriving (PrettyShow) via (Showable Location)
 
+data OSRMRouteResponse = OSRMRouteResponse
+  { routes :: [OSRMRouteRoutes],
+    waypoints :: [OSRMRouteWaypoint]
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+data OSRMRouteRoutes = OSRMRouteRoutes
+  { geometry :: RouteGeometry,
+    legs :: [RouteResponseLeg],
+    distance :: Double, -- meters
+    duration :: Double, -- seconds
+    weight :: Double
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+data RouteResponseLeg = RouteResponseLeg
+  { steps :: [Steps],
+    distance :: Double,
+    duration :: Double,
+    weight :: Double
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+data Steps = Steps
+  { geometry :: RouteGeometry,
+    maneuver :: Maneuver
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+newtype Maneuver = Maneuver
+  { location :: Location
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+data OSRMRouteWaypoint = OSRMRouteWaypoint
+  { distance :: Double,
+    location :: Location
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
 instance FromJSON Location where
   parseJSON = withArray "array [lon, lat]" $ \arr_ -> case toList arr_ of
     [lonVal, latVal] -> Location ... Maps.LatLong <$> parseJSON latVal <*> parseJSON lonVal
@@ -182,3 +238,16 @@ callOsrmGetDistancesAPI osrmUrl pointsList sourcesList destinationsList =
     let eulerClient = Euler.client (Proxy @TableAPI)
     callAPI osrmUrl (eulerClient pointsList "distance,duration" sourcesList destinationsList) "osrm-table"
     >>= fromEitherM (\err -> InternalError $ "Failed to call osrm table API: " <> show err)
+
+callOsrmRouteAPI ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  PointsList ->
+  m OSRMRouteResponse
+callOsrmRouteAPI osrmUrl pointsList = do
+  let eulerClient = Euler.client (Proxy @RouteAPI)
+  callAPI osrmUrl (eulerClient pointsList GeoJson True True) "osrm-route"
+    >>= fromEitherM (\err -> InternalError $ "Failed to call osrm route API: " <> show err)
