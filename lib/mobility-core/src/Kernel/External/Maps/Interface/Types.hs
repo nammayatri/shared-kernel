@@ -85,7 +85,7 @@ data RouteInfo = RouteInfo
     snappedWaypoints :: [LatLong],
     points :: [LatLong]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
+  deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
 
 instance ToSchema BoundingBoxWithoutCRS where
   declareNamedSchema _ = do
@@ -181,3 +181,9 @@ data AddressResp = AddressResp
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data GetNearBySearchReq = GetNearBySearchReq
+  { location :: Text,
+    rankby :: Text
+  }
+  deriving stock (Generic)

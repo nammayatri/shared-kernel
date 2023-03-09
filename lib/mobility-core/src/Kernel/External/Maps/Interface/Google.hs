@@ -20,12 +20,14 @@ module Kernel.External.Maps.Interface.Google
     autoComplete,
     getPlaceDetails,
     getPlaceName,
+    getNearBySearch,
   )
 where
 
 import Control.Monad.Extra (concatForM)
 import qualified Data.List.Extra as List
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Text as T
 import GHC.Float (double2Int)
 import Kernel.External.Encryption
 import Kernel.External.Maps.Google.Config as Reexport
@@ -284,3 +286,24 @@ getPlaceName cfg GetPlaceNameReq {..} = do
     (mbByPlaceId, mbByLatLong) = case getBy of
       ByPlaceId id -> (Just id, Nothing)
       ByLatLong latLong -> (Nothing, Just latLong)
+
+getArea :: Text -> Text
+getArea fullArea = do
+  T.intercalate ", " $ List.takeEnd 2 $ List.dropEnd 1 (T.split (== ',') fullArea)
+
+getNearBySearch ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  GoogleCfg ->
+  GetNearBySearchReq ->
+  m Text
+getNearBySearch cfg getNearBySearchReq =
+  do
+    let mapsUrl = cfg.googleMapsUrl
+    key <- decrypt cfg.googleKey
+    res <- GoogleMaps.getNearBySearch mapsUrl getNearBySearchReq.location key getNearBySearchReq.rankby
+    let results = listToMaybe res.results
+    case results of
+      Just result -> return $ getArea result.vicinity
+      Nothing -> throwError (InternalError "NULL Location")

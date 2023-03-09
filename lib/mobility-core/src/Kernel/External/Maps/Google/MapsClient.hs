@@ -25,6 +25,7 @@ module Kernel.External.Maps.Google.MapsClient
     getPlaceName,
     distanceMatrix,
     directions,
+    getNearBySearch,
   )
 where
 
@@ -46,6 +47,7 @@ type GoogleMapsAPI =
     :<|> PlaceNameAPI
     :<|> DistanceMatrixAPI
     :<|> DirectionsAPI
+    :<|> NearBySearchAPI
 
 type AutocompleteAPI =
   "place" :> "autocomplete" :> "json"
@@ -95,6 +97,13 @@ type DirectionsAPI =
     :> QueryParam "avoid" Text
     :> Get '[JSON] GoogleMaps.DirectionsResp
 
+type NearBySearchAPI =
+  "place" :> "nearbysearch" :> "json"
+    :> MandatoryQueryParam "location" Text
+    :> MandatoryQueryParam "key" Text
+    :> MandatoryQueryParam "rankby" Text
+    :> Get '[JSON] GoogleMaps.NearBySearchResp
+
 autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Language -> EulerClient GoogleMaps.AutoCompleteResp
 getPlaceDetailsClient :: Maybe Text -> Text -> Text -> Text -> EulerClient GoogleMaps.GetPlaceDetailsResp
 getPlaceNameClient :: Maybe Text -> Text -> Maybe LatLong -> Maybe Text -> Maybe Language -> EulerClient GoogleMaps.GetPlaceNameResp
@@ -114,7 +123,8 @@ directionsClient ::
   Maybe [GoogleMaps.Place] ->
   Maybe Text ->
   EulerClient GoogleMaps.DirectionsResp
-autoCompleteClient :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient = client (Proxy :: Proxy GoogleMapsAPI)
+getNearBySearchClient :: Text -> Text -> Text -> EulerClient GoogleMaps.NearBySearchResp
+autoCompleteClient :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> getNearBySearchClient = client (Proxy :: Proxy GoogleMapsAPI)
 
 autoComplete ::
   ( CoreMetrics m,
@@ -193,6 +203,19 @@ directions ::
   m GoogleMaps.DirectionsResp
 directions url key origin destination mode waypoints isAvoidTolls = do
   callAPI url (directionsClient origin destination key (Just True) mode waypoints (if isAvoidTolls then Just "tolls" else Nothing)) "directionsAPI"
+    >>= checkGoogleMapsError url
+
+getNearBySearch ::
+  ( CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Text ->
+  m GoogleMaps.NearBySearchResp
+getNearBySearch url location key rankby = do
+  callAPI url (getNearBySearchClient location key rankby) "getNearBySearch"
     >>= checkGoogleMapsError url
 
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
