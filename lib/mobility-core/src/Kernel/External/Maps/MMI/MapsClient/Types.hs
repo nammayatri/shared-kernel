@@ -30,6 +30,7 @@ import qualified Data.Vector as V
 import EulerHS.Prelude ((...))
 import qualified Kernel.External.Maps.Google.PolyLinePoints as PP
 import qualified Kernel.External.Maps.Types as Maps
+import Kernel.External.Types
 import Kernel.Prelude
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON (constructorsWithSnakeCase, stripPrefixUnderscoreIfAny)
@@ -232,3 +233,40 @@ instance FromJSON LngLat where
 
 instance ToJSON LngLat where
   toJSON (LngLat Maps.LatLong {..}) = Array $ V.fromList $ map toJSON [lon, lat]
+
+data ReverseGeocodeResp = ReverseGeocodeResp
+  { responseCode :: Int,
+    version :: Text,
+    results :: [PlaceInfo]
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data PlaceInfo = PlaceInfo
+  { houseNumber :: Maybe Text,
+    houseName :: Maybe Text,
+    poi :: Maybe Text,
+    poi_dist :: Maybe Text,
+    street :: Maybe Text,
+    street_dist :: Maybe Text,
+    subSubLocality :: Maybe Text,
+    subLocality :: Maybe Text,
+    locality :: Maybe Text,
+    village :: Maybe Text,
+    district :: Maybe Text,
+    subDistrict :: Maybe Text,
+    city :: Maybe Text,
+    state :: Maybe Text,
+    pincode :: Maybe Text,
+    lat :: Maybe Text,
+    lng :: Maybe Text,
+    area :: Maybe Text,
+    formatted_address :: Maybe Text
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data ReverseGeocodeReq = ReverseGeocodeReq
+  { location :: Maps.LatLong,
+    region :: Maybe Text,
+    lang :: Maybe Language
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
