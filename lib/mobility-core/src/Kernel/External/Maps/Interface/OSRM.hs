@@ -17,21 +17,24 @@ module Kernel.External.Maps.Interface.OSRM
     callOsrmMatch,
     getDistances,
     getOSRMTable,
+    getRoutes,
   )
 where
 
 import qualified Data.List.NonEmpty as NE
+import GHC.Float (double2Int)
 import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.Google.PolyLinePoints
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
 import Kernel.External.Maps.Interface.Types
 import Kernel.External.Maps.OSRM.Config
+import Kernel.External.Maps.OSRM.RoadsClient
 import qualified Kernel.External.Maps.OSRM.RoadsClient as OSRM
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
-import Kernel.Types.App
-import Kernel.Types.Common
+import Kernel.Types.Error
+import Kernel.Utils.Common
 
 callOsrmMatch ::
   ( HasCallStack,
@@ -98,3 +101,39 @@ getOSRMTable tableResponse request = do
         )
         []
         pairOfIndexSource
+
+getRoutes ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  OSRMCfg ->
+  GetRoutesReq ->
+  m GetRoutesResp
+getRoutes osrmCfg request = do
+  response <- OSRM.callOsrmRouteAPI osrmCfg.osrmUrl $ OSRM.PointsList {getPointsList = NE.take 2 request.waypoints}
+  getOSRMRoute response
+
+convertRouteToRouteInfo :: (Log m, MonadThrow m) => OSRM.OSRMRouteRoutes -> m RouteInfo
+convertRouteToRouteInfo osrmRouteRoutes =
+  if length osrmRouteRoutes.legs < 1
+    then do
+      throwError $ InternalError "OSRM snapped waypoints has no routes"
+    else
+      return
+        RouteInfo
+          { distance = Just $ Meters $ double2Int $ osrmRouteRoutes.distance,
+            duration = Just $ Seconds $ double2Int $ osrmRouteRoutes.duration,
+            points = map (.getLatLong) osrmRouteRoutes.geometry.coordinates,
+            snappedWaypoints = map (\steps -> getLatLong $ head steps.geometry.coordinates) $ OSRM.steps $ head osrmRouteRoutes.legs,
+            boundingBox = Nothing
+          }
+
+getOSRMRoute ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  OSRM.OSRMRouteResponse ->
+  m GetRoutesResp
+getOSRMRoute osrmRouteResponse = sequence $ map convertRouteToRouteInfo osrmRouteResponse.routes
