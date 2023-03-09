@@ -885,3 +885,18 @@ instance IsHTTPError MerchantMessageError where
     MerchantMessageNotFound _ _ -> E500
 
 instance IsAPIError MerchantMessageError
+
+newtype SosError = SosIdDoesNotExist Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''SosError
+
+instance IsBaseError SosError where
+  toMessage (SosIdDoesNotExist sosId) = Just $ "Sos with sosId \"" <> show sosId <> "\" not found. "
+
+instance IsHTTPError SosError where
+  toErrorCode _ = "SOS_ID_DOES_NOT_EXITS"
+  toHttpCode _ = E400
+
+instance IsAPIError SosError
+
