@@ -16,7 +16,8 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Storage.Esqueleto.Class
-  ( TType (..),
+  ( FromTType (..),
+    ToTType (..),
     TEntityKey (..),
     extractSolidType,
     QEntity (..),
@@ -32,11 +33,16 @@ import qualified GHC.Generics as Gen
 import Kernel.Types.Logging (Log)
 
 class
-  TType t a
+  FromTType t a
+    | a -> t
+  where
+  fromTType :: (MonadThrow m, Log m) => t -> m a
+
+class
+  ToTType t a
     | a -> t
   where
   toTType :: a -> t
-  fromTType :: (MonadThrow m, Log m) => t -> m a
 
 class
   ( PersistEntity t,
@@ -50,7 +56,7 @@ class
 
 -- Use this type to bind returns of different tables/values.
 -- It will allow to build combined type of them (i.e. (Entity a1, Entity a2) -> b )
-extractSolidType :: forall solidt a. TType a solidt => a -> SolidType a
+extractSolidType :: forall solidt a. FromTType a solidt => a -> SolidType a
 extractSolidType = SolidType
 
 --------------------------------------------------------------------------------
@@ -70,7 +76,7 @@ class QEntity t a where
 instance {-# OVERLAPPABLE #-} (Generic t, Generic a, GQEntity (Gen.Rep t) (Gen.Rep a)) => QEntity t a where
   toResult t = Gen.to <$> toResultGen (Gen.from t)
 
-instance {-# OVERLAPPING #-} TType a b => QEntity (Entity a) b where
+instance {-# OVERLAPPING #-} FromTType a b => QEntity (Entity a) b where
   toResult = fromTType . extractTType
 
 instance {-# OVERLAPPING #-} QEntity a b => QEntity [a] [b] where
@@ -88,7 +94,7 @@ instance {-# OVERLAPPING #-} ((b ~ DomainKey a), TEntityKey a) => QEntity (Value
 instance {-# OVERLAPPING #-} QEntity (Value a) a where
   toResult = return . unValue
 
-instance {-# OVERLAPPING #-} (TType a b) => QEntity (SolidType a) b where
+instance {-# OVERLAPPING #-} (FromTType a b) => QEntity (SolidType a) b where
   toResult = fromTType . unSolidType
 
 class GQEntity gt ga where

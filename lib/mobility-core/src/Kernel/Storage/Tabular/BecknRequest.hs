@@ -42,13 +42,15 @@ instance TEntityKey BecknRequestT where
   fromKey (BecknRequestTKey _id) = Id _id
   toKey (Id id) = BecknRequestTKey id
 
-instance TType BecknRequestT Domain.BecknRequest where
+instance FromTType BecknRequestT Domain.BecknRequest where
   fromTType BecknRequestT {..} = do
     return $
       Domain.BecknRequest
         { id = Id id,
           ..
         }
+
+instance ToTType BecknRequestT Domain.BecknRequest where
   toTType Domain.BecknRequest {..} =
     BecknRequestT
       { id = getId id,

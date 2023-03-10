@@ -899,4 +899,3 @@ instance IsHTTPError SosError where
   toHttpCode _ = E400
 
 instance IsAPIError SosError
-
