@@ -11,22 +11,22 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.External.Whatsapp.Types
-  ( module Kernel.External.Whatsapp.Types,
-  )
-where
+module Kernel.External.Verification.Idfy.Config where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.External.Encryption
+import Kernel.Prelude
 
-data WhatsappService = GupShup
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+data IdfyCfg = IdfyCfg
+  { accountId :: EncryptedField 'AsEncrypted AccountId,
+    apiKey :: EncryptedField 'AsEncrypted ApiKey,
+    secret :: EncryptedField 'AsEncrypted Text,
+    url :: BaseUrl
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
-availableWhatsappServices :: [WhatsappService]
-availableWhatsappServices = [GupShup]
+type AccountId = Text
 
-derivePersistField "WhatsappService"
+type ApiKey = Text

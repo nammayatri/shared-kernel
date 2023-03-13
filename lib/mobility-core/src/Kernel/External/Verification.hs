@@ -11,22 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Whatsapp.Types
-  ( module Kernel.External.Whatsapp.Types,
-  )
-where
+module Kernel.External.Verification (module Reexport) where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
-
-data WhatsappService = GupShup
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
-
-availableWhatsappServices :: [WhatsappService]
-availableWhatsappServices = [GupShup]
-
-derivePersistField "WhatsappService"
+import Kernel.External.Verification.Interface as Reexport
