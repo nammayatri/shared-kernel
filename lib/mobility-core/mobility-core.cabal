@@ -21,6 +21,7 @@ source-repository head
 
 library
   exposed-modules:
+      Kernel.Data.HeterogeneousList
       Kernel.Exit
       Kernel.External.Encryption
       Kernel.External.Exotel.Flow
@@ -103,6 +104,7 @@ library
       Kernel.Storage.Esqueleto.Logger
       Kernel.Storage.Esqueleto.Migration
       Kernel.Storage.Esqueleto.Queries
+      Kernel.Storage.Esqueleto.Queries.Raw
       Kernel.Storage.Esqueleto.SqlDB
       Kernel.Storage.Esqueleto.Transactionable
       Kernel.Storage.Esqueleto.Types

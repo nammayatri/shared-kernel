@@ -91,6 +91,9 @@ instance {-# OVERLAPPING #-} ((b ~ DomainKey a), TEntityKey a) => QEntity (Value
 instance {-# OVERLAPPING #-} ((b ~ DomainKey a), TEntityKey a) => QEntity (Value (Maybe (Key a))) (Maybe b) where
   toResult = return . fmap fromKey . unValue
 
+-- instance {-# OVERLAPPING #-} ((b ~ DomainKey a), TEntityKey a) => QEntity (Key a) b where
+--   toResult = return . fromKey
+
 instance {-# OVERLAPPING #-} QEntity (Value a) a where
   toResult = return . unValue
 

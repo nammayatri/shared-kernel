@@ -54,9 +54,9 @@ defaultQQ =
 defaultSqlSettings :: MkPersistSettings
 defaultSqlSettings =
   sqlSettings
-    { mpsConstraintLabelModifier = \tableName fieldName ->
-        if T.last tableName /= 'T'
+    { mpsConstraintLabelModifier = \tableName_ fieldName_ ->
+        if T.last tableName_ /= 'T'
           then "Table_name_must_end_with_T"
-          else T.init tableName <> fieldName,
-      mpsFieldLabelModifier = \_ fieldName -> fieldName
+          else T.init tableName_ <> fieldName_,
+      mpsFieldLabelModifier = \_ fieldName_ -> fieldName_
     }
