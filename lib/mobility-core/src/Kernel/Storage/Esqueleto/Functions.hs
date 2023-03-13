@@ -22,6 +22,12 @@ module Kernel.Storage.Esqueleto.Functions
     rand,
     unnest,
     buildRadiusWithin,
+    (<#>),
+    whenJust_,
+    whenTrue_,
+    updateWhenJust_,
+    maybe_,
+    module Reexport,
   )
 where
 
@@ -29,6 +35,9 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TL
 import qualified Database.Esqueleto.Experimental as Esq
 import Database.Esqueleto.Internal.Internal hiding (rand)
+import qualified Database.Esqueleto.Internal.Internal as Esq
+import Database.Esqueleto.PostgreSQL as Reexport hiding (upsert, upsertBy)
+import Database.Persist.Postgresql hiding (delete, repsert, tableName, update, upsert, upsertBy)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Types
 
@@ -74,3 +83,28 @@ rand = Esq.rand
 
 unnest :: PostgresListField a => SqlExpr (Value a) -> SqlExpr (Value b)
 unnest = unsafeSqlFunction "unnest"
+
+(<#>) :: SqlExpr (Esq.Insertion (a -> b)) -> SqlExpr (Value a) -> SqlExpr (Esq.Insertion b)
+(<#>) = (Esq.<&>)
+
+whenJust_ :: Maybe a -> (a -> SqlExpr (Value Bool)) -> SqlExpr (Value Bool)
+whenJust_ mbVal func = maybe (Esq.val True) func mbVal
+
+whenTrue_ :: Bool -> SqlExpr (Value Bool) -> SqlExpr (Value Bool)
+whenTrue_ bl func = bool (Esq.val True) func bl
+
+updateWhenJust_ :: (a -> SqlExpr (Entity e) -> SqlExpr Esq.Update) -> Maybe a -> [SqlExpr (Entity e) -> SqlExpr Esq.Update]
+updateWhenJust_ f = maybe [] (\value -> [f value])
+
+maybe_ ::
+  forall a b.
+  (PersistField a, PersistField b) =>
+  SqlExpr (Value b) ->
+  (SqlExpr (Value a) -> SqlExpr (Value b)) ->
+  SqlExpr (Value (Maybe a)) ->
+  SqlExpr (Value b)
+maybe_ def f mbVal =
+  case_
+    [when_ (Esq.isNothing mbVal) then_ def]
+    ( else_ $ f $ Esq.veryUnsafeCoerceSqlExprValue mbVal
+    )

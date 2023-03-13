@@ -13,6 +13,7 @@
 -}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-deprecations #-}
 
 module Kernel.Storage.Esqueleto.Queries
   ( findOne,
@@ -47,12 +48,8 @@ module Kernel.Storage.Esqueleto.Queries
     insertSelect',
     insertSelectCount,
     insertSelectCount',
-    (<#>),
-    whenJust_,
-    whenTrue_,
-    updateWhenJust_,
-    maybe_,
     module EsqExport,
+    module Reexport,
   )
 where
 
@@ -67,6 +64,8 @@ import Database.Esqueleto.Experimental as EsqExport hiding
     insertSelect,
     insertSelectCount,
     rand,
+    random_,
+    rawSql,
     repsert,
     selectOne,
     update,
@@ -77,10 +76,11 @@ import Database.Esqueleto.Experimental as EsqExport hiding
   )
 import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Esqueleto.Internal.Internal as Esq
-import Database.Persist.Class (OnlyOneUniqueKey, onlyUniqueP)
+import Database.Persist.Postgresql hiding (delete, rawSql, repsert, update, upsert, upsertBy)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Class
 import Kernel.Storage.Esqueleto.DTypeBuilder
+import Kernel.Storage.Esqueleto.Queries.Raw as Reexport
 import Kernel.Storage.Esqueleto.SqlDB
 import Kernel.Storage.Esqueleto.Transactionable
 import Kernel.Types.Logging (Log)
@@ -362,28 +362,3 @@ insertSelectCount' ::
   SqlQuery (SqlExpr (Esq.Insertion t)) ->
   FullEntitySqlDB Int64
 insertSelectCount' = liftToFullEntitySqlDB . SqlDB . lift . Esq.insertSelectCount
-
-(<#>) :: SqlExpr (Esq.Insertion (a -> b)) -> SqlExpr (Value a) -> SqlExpr (Esq.Insertion b)
-(<#>) = (Esq.<&>)
-
-whenJust_ :: Maybe a -> (a -> SqlExpr (Value Bool)) -> SqlExpr (Value Bool)
-whenJust_ mbVal func = maybe (Esq.val True) func mbVal
-
-whenTrue_ :: Bool -> SqlExpr (Value Bool) -> SqlExpr (Value Bool)
-whenTrue_ bl func = bool (Esq.val True) func bl
-
-updateWhenJust_ :: (a -> SqlExpr (Entity e) -> SqlExpr Esq.Update) -> Maybe a -> [SqlExpr (Entity e) -> SqlExpr Esq.Update]
-updateWhenJust_ f = maybe [] (\value -> [f value])
-
-maybe_ ::
-  forall a b.
-  (PersistField a, PersistField b) =>
-  SqlExpr (Value b) ->
-  (SqlExpr (Value a) -> SqlExpr (Value b)) ->
-  SqlExpr (Value (Maybe a)) ->
-  SqlExpr (Value b)
-maybe_ def f mbVal =
-  case_
-    [when_ (Esq.isNothing mbVal) then_ def]
-    ( else_ $ f $ Esq.veryUnsafeCoerceSqlExprValue mbVal
-    )

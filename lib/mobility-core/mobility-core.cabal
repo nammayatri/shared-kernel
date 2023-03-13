@@ -21,6 +21,7 @@ source-repository head
 
 library
   exposed-modules:
+      Kernel.Data.HeterogeneousList
       Kernel.Exit
       Kernel.External.Call
       Kernel.External.Call.Exotel.Client
@@ -123,6 +124,7 @@ library
       Kernel.Storage.Esqueleto.Logger
       Kernel.Storage.Esqueleto.Migration
       Kernel.Storage.Esqueleto.Queries
+      Kernel.Storage.Esqueleto.Queries.Raw
       Kernel.Storage.Esqueleto.SqlDB
       Kernel.Storage.Esqueleto.Transactionable
       Kernel.Storage.Esqueleto.Types
