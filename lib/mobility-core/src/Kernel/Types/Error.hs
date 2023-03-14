@@ -197,6 +197,7 @@ data MerchantError
   | MerchantWithExoPhoneNotFound Text
   | MerchantServiceUsageConfigNotFound Text
   | MerchantServiceConfigNotFound Text MapsService
+  | MerchantDriverOnboardingConfigNotFound Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''MerchantError
@@ -207,6 +208,7 @@ instance IsBaseError MerchantError where
   toMessage (MerchantWithExoPhoneNotFound exoPhone) = Just $ "Merchant with ExoPhone \"" <> show exoPhone <> "\" not found."
   toMessage (MerchantServiceUsageConfigNotFound merchantId) = Just $ "MerchantServiceUsageConfig with merchantId \"" <> show merchantId <> "\" not found."
   toMessage (MerchantServiceConfigNotFound merchantId service) = Just $ "MerchantServiceConfig for service " <> show service <> " with merchantId \"" <> merchantId <> "\" not found."
+  toMessage (MerchantDriverOnboardingConfigNotFound merchantId) = Just $ "DriverOnboardingConfig with merchantId \"" <> merchantId <> "\" not found."
 
 instance IsHTTPError MerchantError where
   toErrorCode = \case
@@ -215,12 +217,15 @@ instance IsHTTPError MerchantError where
     MerchantWithExoPhoneNotFound _ -> "MERCHANT_WITH_EXO_PHONE_NOT_FOUND"
     MerchantServiceUsageConfigNotFound _ -> "MERCHANT_SERVICE_USAGE_CONFIG_NOT_FOUND"
     MerchantServiceConfigNotFound _ _ -> "MERCHANT_SERVICE_CONFIG_NOT_FOUND"
+    MerchantDriverOnboardingConfigNotFound _ -> "DRIVER_ONBOARDING_CONFIG_NOT_FOUND"
+
   toHttpCode = \case
     MerchantNotFound _ -> E500
     MerchantDoesNotExist _ -> E400
     MerchantWithExoPhoneNotFound _ -> E500
     MerchantServiceUsageConfigNotFound _ -> E500
     MerchantServiceConfigNotFound _ _ -> E500
+    MerchantDriverOnboardingConfigNotFound _ -> E500
 
 instance IsAPIError MerchantError
 
@@ -899,4 +904,3 @@ instance IsHTTPError SosError where
   toHttpCode _ = E400
 
 instance IsAPIError SosError
-
