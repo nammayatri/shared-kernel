@@ -12,66 +12,55 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.Exotel.Flow where
+module Kernel.External.Call.Exotel.Client where
 
 import Data.Maybe
-import qualified Data.Text as T
 import qualified Data.Text.Encoding as DT
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
-import Kernel.External.Exotel.Types
+import Kernel.External.Call.Exotel.Config
+import Kernel.External.Call.Exotel.Types
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
 import Servant hiding (throwError)
-import Servant.Client
 
 -- | Exotel API interface
-type ExotelConnectAPI =
-  BasicAuth "apikey-apitoken" BasicAuthData
-    :> ReqBody '[FormUrlEncoded] ExotelRequest
-    :> Post '[JSON] ExotelResponse
+type InitiateCallAPI a =
+  "v1" :> "Accounts"
+    :> Capture "ExotelAccountSID" ExotelAccountSID
+    :> "Calls"
+    :> "connect.json"
+    :> BasicAuth "apikey-apitoken" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] (ExotelInitiateCallReq a)
+    :> Post '[JSON] ExotelInitiateCallResp
 
-exotelConnectAPI :: Proxy ExotelConnectAPI
-exotelConnectAPI = Proxy
-
-defaultBaseUrl :: ExotelAccountSID -> BaseUrl
-defaultBaseUrl sid =
-  BaseUrl
-    { baseUrlScheme = Https,
-      baseUrlHost = "api.exotel.com",
-      baseUrlPort = 443,
-      baseUrlPath =
-        T.unpack $
-          "/v1/Accounts/"
-            <> getExotelAccountSID sid
-            <> "/Calls/connect.json"
-    }
+type ExotelCallbackAPI a =
+  "statusCallback"
+    :> ReqBody '[JSON] (ExotelCallCallbackReq a)
+    :> Post '[JSON] ExotelCallCallbackResp
 
 initiateCall ::
   ( CoreMetrics m,
-    HasFlowEnv m r '["exotelCfg" ::: Maybe ExotelCfg]
+    MonadFlow m,
+    ToJSON a
   ) =>
-  T.Text ->
-  T.Text ->
-  BaseUrl ->
-  ExotelAttachments ->
-  m ExotelResponse
-initiateCall from to callbackUrl attachments = do
+  ExotelCfg ->
+  ExotelInitiateCallReq a ->
+  m ExotelInitiateCallResp
+initiateCall ExotelCfg {..} exoRequest = do
   withLogTag "Exotel" $ do
-    ExotelCfg {..} <- asks (.exotelCfg) >>= fromMaybeM ExotelNotConfigured
-    let exoRequest = ExotelRequest from to (getExotelCallerId callerId) callbackUrl attachments
-        authData =
+    let authData =
           BasicAuthData
             (DT.encodeUtf8 $ getExotelApiKey apiKey)
             (DT.encodeUtf8 $ getExotelApiToken apiToken)
     callExotelAPI
-      (defaultBaseUrl sid)
-      (callExotel authData exoRequest)
+      exotelUrl
+      (callExotel accountSID authData)
       "initiateCall"
   where
-    callExotel authData exoRequest = ET.client exotelConnectAPI authData exoRequest
+    callExotel sid authData = ET.client (Proxy :: Proxy (InitiateCallAPI a)) sid authData exoRequest
 
 callExotelAPI :: CallAPI env a
 callExotelAPI =
