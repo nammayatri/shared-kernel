@@ -186,7 +186,7 @@ instance IsHTTPError PersonError where
     PersonNotFound _ -> E500
     PersonDoesNotExist _ -> E400
     PersonFieldNotPresent _ -> E500
-    PersonWithPhoneNotFound _ -> E500
+    PersonWithPhoneNotFound _ -> E422
     PersonEmailExists -> E400
 
 instance IsAPIError PersonError
@@ -395,7 +395,7 @@ instance IsHTTPError RideError where
     RideDoesNotExist _ -> E400
     RideFieldNotPresent _ -> E500
     RideWithBookingIdNotFound _ -> E500
-    RideForDriverNotFound _ -> E500
+    RideForDriverNotFound _ -> E422
     RideInvalidStatus _ -> E400
     DriverNotAtPickupLocation _ -> E400
 
