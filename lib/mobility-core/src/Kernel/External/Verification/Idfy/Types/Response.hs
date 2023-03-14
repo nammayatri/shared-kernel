@@ -116,7 +116,6 @@ data RCVerificationOutput = RCVerificationOutput
     standing_capacity :: Maybe Text,
     status_message :: Maybe Text,
     number_of_cylinder :: Maybe Text,
-    colour :: Maybe Text,
     puc_valid_upto :: Maybe Text,
     permanent_address :: Maybe Text,
     permit_no :: Maybe Text,
