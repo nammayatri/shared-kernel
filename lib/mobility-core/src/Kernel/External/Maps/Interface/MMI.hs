@@ -16,6 +16,7 @@ module Kernel.External.Maps.Interface.MMI
   ( autoSuggest,
     getDistanceMatrix,
     getRoutes,
+    reverseGeocode,
   )
 where
 
@@ -35,6 +36,7 @@ import Kernel.External.Maps.MMI.DistanceMatrix as MMI
 import Kernel.External.Maps.MMI.MMIAuthToken as MMIAuthToken
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
 import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMITypes
+import Kernel.External.Maps.MMI.ReverseGeocoding as MMI
 import Kernel.External.Maps.MMI.Routes as MMI
 import Kernel.External.Maps.Types
 import Kernel.Storage.Hedis as Redis
@@ -187,3 +189,16 @@ mkRoute req resp route = do
 
 data Acc = Acc {minLat :: Double, maxLat :: Double, minLon :: Double, maxLon :: Double}
   deriving (Generic, ToJSON, FromJSON)
+
+reverseGeocode ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Log m
+  ) =>
+  MMICfg ->
+  MMITypes.ReverseGeocodeReq ->
+  m MMITypes.ReverseGeocodeResp
+reverseGeocode mmiCfg MMITypes.ReverseGeocodeReq {..} = do
+  key <- decrypt mmiCfg.mmiApiKey
+  let mapsUrl = mmiCfg.mmiKeyUrl
+  MMI.mmiReverseGeocode mapsUrl key location region lang
