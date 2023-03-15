@@ -12,7 +12,49 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.Storage.Hedis.Queries where
+module Kernel.Storage.Hedis.Queries
+  ( withCrossAppRedis,
+    get,
+    get',
+    safeGet,
+    set,
+    setExp,
+    setNx,
+    del,
+    rPushExp,
+    lPush,
+    rPush,
+    rPop,
+    lTrim,
+    clearList,
+    lLen,
+    lRange,
+    getList,
+    incr,
+    incrby,
+    decr,
+    decrby,
+    incrByFloat,
+    expire,
+    setNxExpire,
+    delByPattern,
+    tryLockRedis,
+    unlockRedis,
+    whenWithLockRedis,
+    withLockRedis,
+    hSetExp,
+    hGet,
+    hDel,
+    hGetAll,
+    xAdd,
+    xReadGroup,
+    xReadGroupOpts,
+    xGroupCreate,
+    Hedis.XReadOpts (..),
+    XReadGroupRes (..),
+    xAck,
+  )
+where
 
 import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
@@ -246,3 +288,55 @@ hGetAll :: (FromJSON a, HedisFlow m env) => Text -> m [(Text, a)]
 hGetAll key = do
   hMap <- runWithPrefix key Hedis.hgetall
   pure $ mapMaybe (\(k, val) -> (cs k,) <$> Ae.decode (BSL.fromStrict val)) hMap
+
+-------------------------------------------------------------------------------------------------
+--------------------------------------------GROUPS-----------------------------------------------
+-------------------------------------------------------------------------------------------------
+
+mkGroupKey :: BS.ByteString -> BS.ByteString
+mkGroupKey = (<> "-Group")
+
+xAdd :: (HedisFlow m env, ToJSON a) => Text -> a -> m ()
+xAdd key value = void . runWithPrefix key $ \prefKey -> Hedis.xadd prefKey "*" [("JSON", BSL.toStrict $ Ae.encode value)]
+
+data XReadGroupRes a = XReadGroupRes
+  { recordId :: Text,
+    value :: a
+  }
+
+xReadGroup :: (HedisFlow m env, FromJSON a) => Text -> Text -> m (Maybe (XReadGroupRes a))
+xReadGroup consumerName key = do
+  res <- xReadGroupOpts consumerName key Hedis.defaultXreadOpts
+  case res of
+    Nothing -> return Nothing
+    (Just [a]) -> return (Just a)
+    _ -> Error.throwError (HedisDecodeError "Expected exactly one result in xReadGroup, but got many.")
+
+xReadGroupOpts :: (HedisFlow m env, FromJSON a) => Text -> Text -> Hedis.XReadOpts -> m (Maybe [XReadGroupRes a])
+-- group name and stream name are almost the same, i don't see any reason to make them different atm
+xReadGroupOpts consumerName key opts = do
+  res <- runWithPrefix key $ \prefKey -> Hedis.xreadGroupOpts (mkGroupKey prefKey) consumerNameBS [(prefKey, ">")] opts
+  case res of
+    Nothing -> return Nothing
+    (Just [Hedis.XReadResponse _ [Hedis.StreamsRecord recordId vals]]) -> do
+      Just <$> vals `for` \(_, val) -> do
+        decVal <- Ae.decode (BSL.fromStrict val) & Error.fromMaybeM (HedisDecodeError "Unable to decode stored value.")
+        return $
+          XReadGroupRes
+            { recordId = decodeUtf8 recordId,
+              value = decVal
+            }
+    _ -> Error.throwError (HedisDecodeError "Expected exactly one XReadResponse and StreamsRecord in xReadGroupOpt, but got many.")
+  where
+    consumerNameBS = encodeUtf8 consumerName
+
+xAck :: (HedisFlow m env) => Text -> [Text] -> m ()
+xAck key recordIds = void . runWithPrefix key $ \prefKey -> Hedis.xack prefKey (mkGroupKey prefKey) (encodeUtf8 <$> recordIds)
+
+xGroupCreate :: (HedisFlow m env) => Text -> m ()
+-- group name and stream name are almost the same, i don't see any reason to make them different atm
+xGroupCreate key = void . runWithPrefix key $ \prefKey -> Hedis.xgroupCreate prefKey (mkGroupKey prefKey) "$"
+
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------

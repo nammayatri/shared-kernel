@@ -133,8 +133,6 @@ library
       Kernel.Storage.Hedis.Config
       Kernel.Storage.Hedis.Error
       Kernel.Storage.Hedis.Queries
-      Kernel.Storage.Queries.BecknRequest
-      Kernel.Storage.Tabular.BecknRequest
       Kernel.Streaming.Kafka.Commons
       Kernel.Streaming.Kafka.Consumer
       Kernel.Streaming.Kafka.Consumer.Types
