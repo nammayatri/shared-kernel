@@ -24,6 +24,7 @@ import Kernel.Types.Common
 
 initiateCall ::
   ( CoreMetrics m,
+    EncFlow m r,
     MonadFlow m,
     ToJSON a
   ) =>

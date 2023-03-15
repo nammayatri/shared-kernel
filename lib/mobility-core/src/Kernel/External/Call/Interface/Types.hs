@@ -15,11 +15,11 @@
 
 module Kernel.External.Call.Interface.Types where
 
-import qualified Kernel.External.Call.Exotel.Config as Expotel
+import qualified Kernel.External.Call.Exotel.Config as Exotel
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-newtype CallServiceConfig = ExotelConfig Expotel.ExotelCfg
+newtype CallServiceConfig = ExotelConfig Exotel.ExotelCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data InitiateCallReq a = InitiateCallReq

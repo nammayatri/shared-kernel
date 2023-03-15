@@ -20,6 +20,7 @@ import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import Kernel.External.Call.Exotel.Config
 import Kernel.External.Call.Exotel.Types
+import Kernel.External.Encryption (decrypt)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
@@ -43,6 +44,7 @@ type ExotelCallbackAPI a =
 
 initiateCall ::
   ( CoreMetrics m,
+    EncFlow m r,
     MonadFlow m,
     ToJSON a
   ) =>
@@ -50,10 +52,11 @@ initiateCall ::
   ExotelInitiateCallReq a ->
   m ExotelInitiateCallResp
 initiateCall ExotelCfg {..} exoRequest = do
+  apiKey_ <- decrypt apiKey
   withLogTag "Exotel" $ do
     let authData =
           BasicAuthData
-            (DT.encodeUtf8 $ getExotelApiKey apiKey)
+            (DT.encodeUtf8 $ getExotelApiKey apiKey_)
             (DT.encodeUtf8 $ getExotelApiToken apiToken)
     callExotelAPI
       exotelUrl

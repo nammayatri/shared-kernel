@@ -23,13 +23,14 @@ module Kernel.External.Call.Exotel.Config
 where
 
 import Kernel.External.Call.Exotel.Types
+import Kernel.External.Encryption
 import Kernel.Prelude
 
 -- | Exotel Service config
 data ExotelCfg = ExotelCfg
   { exotelUrl :: BaseUrl,
     callbackUrl :: BaseUrl,
-    apiKey :: ExotelApiKey,
+    apiKey :: EncryptedField 'AsEncrypted ExotelApiKey,
     apiToken :: ExotelApiToken,
     accountSID :: ExotelAccountSID,
     callerId :: ExotelCallerId
