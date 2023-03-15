@@ -31,6 +31,7 @@ import Data.Aeson.TH
 import Data.Aeson.Types
 import qualified Data.Text as T
 import EulerHS.Prelude (decodeJSON)
+import Kernel.External.Encryption (DbHashable)
 import Kernel.Prelude hiding (showBaseUrl)
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Beckn.Ack (AckResponse)
@@ -50,7 +51,7 @@ newtype ExotelApiToken = ExotelApiToken
 newtype ExotelApiKey = ExotelApiKey
   { getExotelApiKey :: Text
   }
-  deriving newtype (Show, Eq, ToJSON, FromJSON)
+  deriving newtype (Show, Eq, ToJSON, FromJSON, DbHashable)
 
 -- | Exotel sid
 newtype ExotelAccountSID = ExotelAccountSID

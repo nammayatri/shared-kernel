@@ -28,7 +28,7 @@ import Kernel.Types.Common
 
 initiateCall ::
   ( CoreMetrics m,
-    MonadFlow m,
+    EncFlow m r,
     ToJSON a
   ) =>
   CallServiceConfig ->
