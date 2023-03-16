@@ -53,11 +53,12 @@ initiateCall ::
   m ExotelInitiateCallResp
 initiateCall ExotelCfg {..} exoRequest = do
   apiKey_ <- decrypt apiKey
+  apiToken_ <- decrypt apiToken
   withLogTag "Exotel" $ do
     let authData =
           BasicAuthData
             (DT.encodeUtf8 $ getExotelApiKey apiKey_)
-            (DT.encodeUtf8 $ getExotelApiToken apiToken)
+            (DT.encodeUtf8 $ getExotelApiToken apiToken_)
     callExotelAPI
       exotelUrl
       (callExotel accountSID authData)

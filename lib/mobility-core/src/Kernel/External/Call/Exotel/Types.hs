@@ -45,7 +45,7 @@ import Web.Internal.HttpApiData
 newtype ExotelApiToken = ExotelApiToken
   { getExotelApiToken :: Text
   }
-  deriving newtype (Show, Eq, ToJSON, FromJSON)
+  deriving newtype (Show, Eq, ToJSON, FromJSON, DbHashable)
 
 -- | Exotel API token
 newtype ExotelApiKey = ExotelApiKey
