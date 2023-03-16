@@ -31,7 +31,7 @@ data ExotelCfg = ExotelCfg
   { exotelUrl :: BaseUrl,
     callbackUrl :: BaseUrl,
     apiKey :: EncryptedField 'AsEncrypted ExotelApiKey,
-    apiToken :: ExotelApiToken,
+    apiToken :: EncryptedField 'AsEncrypted ExotelApiToken,
     accountSID :: ExotelAccountSID,
     callerId :: ExotelCallerId
   }
