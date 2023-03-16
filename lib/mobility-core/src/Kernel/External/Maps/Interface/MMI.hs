@@ -18,6 +18,7 @@ module Kernel.External.Maps.Interface.MMI
     getRoutes,
     snapToRoad,
     reverseGeocode,
+    getPlaceDetails,
   )
 where
 
@@ -35,6 +36,7 @@ import Kernel.External.Maps.MMI.AutoSuggest as MMI
 import Kernel.External.Maps.MMI.Config
 import Kernel.External.Maps.MMI.DistanceMatrix as MMI
 import Kernel.External.Maps.MMI.MMIAuthToken as MMIAuthToken
+import qualified Kernel.External.Maps.MMI.PlaceDetails as MMI
 import Kernel.External.Maps.MMI.ReverseGeocoding as MMI
 import Kernel.External.Maps.MMI.Routes as MMI
 import Kernel.External.Maps.MMI.SnapToRoad as MMI
@@ -156,6 +158,20 @@ getRoutes mmiCfg req = do
       mapsUrl = mmiCfg.mmiKeyUrl
   resp <- MMI.mmiRoute mapsUrl key points
   traverse (mkRoute req resp) resp.routes
+
+getPlaceDetails ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Log m
+  ) =>
+  MMICfg ->
+  IT.GetPlaceDetailsReq ->
+  m IT.GetPlaceDetailsResp
+getPlaceDetails mmiCfg GetPlaceDetailsReq {..} = do
+  key <- decrypt mmiCfg.mmiApiKey
+  resp <- MMI.mmiPlaceDetails mmiCfg.mmiKeyUrl key placeId
+  let MMITypes.PlaceDetail {..} = NE.head resp.results
+  pure $ GetPlaceDetailsResp (LatLong {lat = latitude, lon = longitude})
 
 mkRoute ::
   (MonadFlow m) =>

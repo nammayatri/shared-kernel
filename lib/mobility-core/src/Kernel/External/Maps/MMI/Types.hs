@@ -151,6 +151,19 @@ data RouteResponse = RouteResponse
   }
   deriving (Generic, FromJSON, ToJSON)
 
+data PlaceDetailResponse = PlaceDetailResponse
+  { responseCode :: Int,
+    version :: Text,
+    results :: NonEmpty PlaceDetail
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+data PlaceDetail = PlaceDetail
+  { longitude :: Double,
+    latitude :: Double
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
 data Routes = Routes
   { legs :: [Legs],
     weight_name :: Text,
