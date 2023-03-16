@@ -56,6 +56,7 @@ library
       Kernel.External.Maps.MMI.Config
       Kernel.External.Maps.MMI.DistanceMatrix
       Kernel.External.Maps.MMI.MMIAuthToken
+      Kernel.External.Maps.MMI.PlaceDetails
       Kernel.External.Maps.MMI.ReverseGeocoding
       Kernel.External.Maps.MMI.Routes
       Kernel.External.Maps.MMI.SnapToRoad

@@ -157,7 +157,7 @@ getPlaceDetailsProvided :: MapsService -> Bool
 getPlaceDetailsProvided = \case
   Google -> True
   OSRM -> False
-  MMI -> False
+  MMI -> True
 
 getPlaceDetails ::
   ( EncFlow m r,
@@ -169,7 +169,7 @@ getPlaceDetails ::
 getPlaceDetails serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceDetails cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
-  MMIConfig _ -> throwNotProvidedError "getPlaceDetails" MMI
+  MMIConfig cfg -> MMI.getPlaceDetails cfg req
 
 getPlaceNameProvided :: MapsService -> Bool
 getPlaceNameProvided = \case
