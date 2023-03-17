@@ -55,6 +55,7 @@ library
       Kernel.External.Maps.MMI.AutoSuggest
       Kernel.External.Maps.MMI.Config
       Kernel.External.Maps.MMI.DistanceMatrix
+      Kernel.External.Maps.MMI.Geocode
       Kernel.External.Maps.MMI.MMIAuthToken
       Kernel.External.Maps.MMI.PlaceDetails
       Kernel.External.Maps.MMI.ReverseGeocoding

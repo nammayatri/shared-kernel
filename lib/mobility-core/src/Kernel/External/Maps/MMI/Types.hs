@@ -310,3 +310,36 @@ data ReverseGeocodeReq = ReverseGeocodeReq
     lang :: Maybe Language
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype GeocodeResp = GeocodeResp
+  { copResults :: GeocodeResult
+  }
+  deriving (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data GeocodeResult = GeocodeResult
+  { locality :: Text,
+    district :: Text,
+    formattedAddress :: Text,
+    eLoc :: Text,
+    geocodeLevel :: Text
+    {-
+
+    doc link: https://github.com/MapmyIndia/mapmyindia-rest-api/tree/master/mapmyindia-maps-geocoding-rest-api-example
+
+    other fields that can be used
+    houseNumber :: Text,
+    houseName :: Text,
+    poi :: Text,
+    street :: Text,
+    subSubLocality :: Text,
+    subLocality :: Text,
+    confidenceScore :: Int,
+    village :: Text,
+    subDistrict :: Text,
+    city :: Text,
+    state :: Text,
+    pincode :: Text
+     -}
+  }
+  deriving (Show, Generic, FromJSON, ToJSON)
