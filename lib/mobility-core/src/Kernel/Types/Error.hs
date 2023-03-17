@@ -554,6 +554,33 @@ instance IsHTTPError SMSError where
 
 instance IsAPIError SMSError
 
+data SpecialZoneError
+  = OtpNotFoundForSpecialZoneBooking Text
+  | BookingNotFoundForSpecialZoneOtp Text
+  | DriverForRideNotFound Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''SpecialZoneError
+
+instance IsBaseError SpecialZoneError where
+  toMessage = \case
+    OtpNotFoundForSpecialZoneBooking bookingId -> Just $ "No otp found for special zone booking with \"" <> bookingId <> "\"bookingId"
+    BookingNotFoundForSpecialZoneOtp otp -> Just $ "No booking found for special zone otp with \"" <> otp <> "\"otp"
+    DriverForRideNotFound rideId -> Just $ "No driver found for ride with \"" <> rideId <> "\"rideId"
+
+instance IsHTTPError SpecialZoneError where
+  toErrorCode = \case
+    OtpNotFoundForSpecialZoneBooking _ -> "OTP_NOT_FOUND_FOR_SPECIAL_ZONE_BOOKING"
+    DriverForRideNotFound _ -> "DRIVER_FOR_RIDE_NOT_FOUND"
+    BookingNotFoundForSpecialZoneOtp _ -> "BOOKING_NOT_FOUND_FOR_SPECIAL_ZONE_OTP"
+
+  toHttpCode = \case
+    OtpNotFoundForSpecialZoneBooking _ -> E400
+    DriverForRideNotFound _ -> E400
+    BookingNotFoundForSpecialZoneOtp _ -> E400
+
+instance IsAPIError SpecialZoneError
+
 data GoogleMapsCallError = GoogleMapsInvalidRequest | GoogleMapsCallError Text
   deriving (Eq, Show, IsBecknAPIError)
 
