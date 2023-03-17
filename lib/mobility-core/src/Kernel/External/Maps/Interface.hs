@@ -175,11 +175,12 @@ getPlaceNameProvided :: MapsService -> Bool
 getPlaceNameProvided = \case
   Google -> True
   OSRM -> False
-  MMI -> False
+  MMI -> True
 
 getPlaceName ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    Redis.HedisFlow m r
   ) =>
   MapsServiceConfig ->
   GetPlaceNameReq ->
@@ -187,4 +188,4 @@ getPlaceName ::
 getPlaceName serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceName cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
-  MMIConfig _ -> throwNotProvidedError "getPlaceName" MMI
+  MMIConfig cfg -> MMI.geocode cfg req
