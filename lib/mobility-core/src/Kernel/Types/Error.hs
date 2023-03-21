@@ -195,6 +195,7 @@ newtype TransporterError
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''TransporterError
+
 instance IsBaseError TransporterError where
   toMessage (TransporterConfigNotFound merchantId) = Just $ "Transporter with merchantId \"" <> show merchantId <> "\" not found."
 
