@@ -34,10 +34,10 @@ import Kernel.External.Maps.MMI.AutoSuggest as MMI
 import Kernel.External.Maps.MMI.Config
 import Kernel.External.Maps.MMI.DistanceMatrix as MMI
 import Kernel.External.Maps.MMI.MMIAuthToken as MMIAuthToken
-import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
-import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMITypes
 import Kernel.External.Maps.MMI.Routes as MMI
 import Kernel.External.Maps.MMI.SnapToRoad as MMI
+import qualified Kernel.External.Maps.MMI.Types as MMI
+import qualified Kernel.External.Maps.MMI.Types as MMITypes
 import Kernel.External.Maps.Types
 import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)

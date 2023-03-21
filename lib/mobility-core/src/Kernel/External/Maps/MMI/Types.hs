@@ -22,7 +22,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Kernel.External.Maps.MMI.MapsClient.Types where
+module Kernel.External.Maps.MMI.Types where
 
 import Data.Aeson
 import qualified Data.Text as T

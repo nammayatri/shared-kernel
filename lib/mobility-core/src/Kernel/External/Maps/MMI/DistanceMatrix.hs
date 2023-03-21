@@ -18,7 +18,7 @@ import Data.Maybe
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import Kernel.External.Encryption
-import qualified Kernel.External.Maps.MMI.MapsClient.Types as MMI
+import qualified Kernel.External.Maps.MMI.Types as MMI
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
