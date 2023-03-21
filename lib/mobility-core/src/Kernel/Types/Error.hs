@@ -190,20 +190,24 @@ instance IsHTTPError PersonError where
 
 instance IsAPIError PersonError
 
-newtype TransporterError
+data TransporterError
   = TransporterConfigNotFound Text
+  | TransporterConfigDoesNotExist Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''TransporterError
 
 instance IsBaseError TransporterError where
   toMessage (TransporterConfigNotFound merchantId) = Just $ "Transporter with merchantId \"" <> show merchantId <> "\" not found."
+  toMessage (TransporterConfigDoesNotExist merchantId) = Just $ "Transporter with merchantId \"" <> show merchantId <> "\" does not exist."
 
 instance IsHTTPError TransporterError where
   toErrorCode = \case
     TransporterConfigNotFound _ -> "TRANSPORTER_NOT_FOUND"
+    TransporterConfigDoesNotExist _ -> "TRANSPORTER_NOT_EXISTS"
   toHttpCode = \case
-    TransporterConfigNotFound _ -> E400
+    TransporterConfigNotFound _ -> E500
+    TransporterConfigDoesNotExist _ -> E400
 
 instance IsAPIError TransporterError
 
