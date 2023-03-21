@@ -73,12 +73,6 @@ instance (ToSchema a, ToSchema b) => ToSchema (GetDistanceResp a b)
 
 type GetDistancesResp a b = NonEmpty (GetDistanceResp a b)
 
-data GetDistanceData a b = GetDistanceData
-  { request :: GetDistancesReq a b,
-    response :: [GetDistanceResp a b]
-  }
-  deriving (Generic, Show, FromJSON, ToJSON, ToSchema)
-
 data GetRoutesReq = GetRoutesReq
   { waypoints :: NonEmpty LatLong,
     mode :: Maybe TravelMode, -- Defaults to CAR

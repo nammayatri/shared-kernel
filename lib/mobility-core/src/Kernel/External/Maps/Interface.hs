@@ -42,6 +42,7 @@ import Kernel.External.Maps.OSRM.Config as Reexport
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
 import Kernel.Storage.Hedis as Redis
+import Kernel.Streaming.Kafka.DataAnalytics
 import Kernel.Streaming.Kafka.Producer.Types (KafkaProducerTools)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
@@ -103,7 +104,7 @@ getDistances ::
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
 getDistances someId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getDistances cfg req someId
+  GoogleConfig cfg -> withDataStreaming req (Google.getDistances cfg) someId "google-get-distances-data"
   OSRMConfig cfg -> OSRM.getDistances cfg req
   MMIConfig cfg -> MMI.getDistanceMatrix cfg req
 
@@ -125,7 +126,7 @@ getRoutes ::
   GetRoutesReq ->
   m GetRoutesResp
 getRoutes somedId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getRoutes cfg req somedId
+  GoogleConfig cfg -> withDataStreaming req (Google.getRoutes cfg) somedId "google-get-routes-data"
   OSRMConfig osrmCfg -> OSRM.getRoutes osrmCfg req
   MMIConfig cfg -> MMI.getRoutes cfg req
 
@@ -147,7 +148,7 @@ snapToRoad ::
   SnapToRoadReq ->
   m SnapToRoadResp
 snapToRoad someId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.snapToRoad cfg req someId
+  GoogleConfig cfg -> withDataStreaming req (Google.snapToRoad cfg) someId "google-snap-to-road-data"
   OSRMConfig osrmCfg -> OSRM.callOsrmMatch osrmCfg req
   MMIConfig mmiCfg -> MMI.snapToRoad mmiCfg req
 
@@ -170,7 +171,7 @@ autoComplete ::
   AutoCompleteReq ->
   m AutoCompleteResp
 autoComplete someId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.autoComplete cfg req someId
+  GoogleConfig cfg -> withDataStreaming req (Google.autoComplete cfg) someId "google-auto-complete-data"
   OSRMConfig _ -> throwNotProvidedError "autoComplete" OSRM
   MMIConfig cfg -> MMI.autoSuggest cfg req
 
@@ -191,7 +192,7 @@ getPlaceDetails ::
   GetPlaceDetailsReq ->
   m GetPlaceDetailsResp
 getPlaceDetails someId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getPlaceDetails cfg req someId
+  GoogleConfig cfg -> withDataStreaming req (Google.getPlaceDetails cfg) someId "google-get-place-details-data"
   OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
   MMIConfig cfg -> MMI.getPlaceDetails cfg req
 
@@ -213,6 +214,6 @@ getPlaceName ::
   GetPlaceNameReq ->
   m GetPlaceNameResp
 getPlaceName someId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getPlaceName cfg req someId
+  GoogleConfig cfg -> withDataStreaming req (Google.getPlaceName cfg) someId "google-get-place-name-data"
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
   MMIConfig cfg -> MMI.geocode cfg req

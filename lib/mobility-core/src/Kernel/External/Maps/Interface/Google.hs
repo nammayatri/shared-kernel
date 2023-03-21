@@ -30,16 +30,12 @@ import GHC.Float (double2Int)
 import Kernel.External.Encryption
 import Kernel.External.Maps.Google.Config as Reexport
 import qualified Kernel.External.Maps.Google.MapsClient as GoogleMaps
-import qualified Kernel.External.Maps.Google.MapsClient.Types as GoogleTypes
 import Kernel.External.Maps.Google.PolyLinePoints
 import qualified Kernel.External.Maps.Google.RoadsClient as GoogleRoads
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
 import Kernel.External.Maps.Interface.Types
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
-import Kernel.Streaming.Kafka.Commons (KafkaTopic)
-import Kernel.Streaming.Kafka.Producer (produceMessage)
-import Kernel.Streaming.Kafka.Producer.Types (KafkaProducerTools)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
@@ -50,11 +46,7 @@ getDistancesWrapper ::
   ( EncFlow m r,
     CoreMetrics m,
     HasCoordinates a,
-    HasCoordinates b,
-    ToJSON a,
-    ToJSON b,
-    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
-    HasFlowEnv m r '["appPrefix" ::: Text]
+    HasCoordinates b
   ) =>
   GetDistancesReq a b ->
   [[a]] ->
@@ -76,23 +68,17 @@ getDistances ::
   ( EncFlow m r,
     CoreMetrics m,
     HasCoordinates a,
-    HasCoordinates b,
-    ToJSON a,
-    ToJSON b,
-    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
-    HasFlowEnv m r '["appPrefix" ::: Text]
+    HasCoordinates b
   ) =>
   GoogleCfg ->
   GetDistancesReq a b ->
-  Text ->
   m (NonEmpty (GetDistanceResp a b))
-getDistances cfg req@GetDistancesReq {..} someId = do
+getDistances cfg GetDistancesReq {..} = do
   let googleMapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
   let limitedOriginObjectsList = splitListByAPICap origins
       limitedDestinationObjectsList = splitListByAPICap destinations
   res <- getDistancesWrapper GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode True
-  streamToKafka (GetDistanceData req res) someId "google-get-distances-data"
   case res of
     [] -> do
       logInfo "Falling back to avoid tolls"
@@ -124,15 +110,12 @@ routeToRouteProxyConverter req =
 getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m,
-    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
-    HasFlowEnv m r '["appPrefix" ::: Text]
+    Log m
   ) =>
   GoogleCfg ->
   GetRoutesReq ->
-  Text ->
   m GetRoutesResp
-getRoutes cfg req someId = do
+getRoutes cfg req = do
   let routeProxyReq = routeToRouteProxyConverter req
   let googleMapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
@@ -144,11 +127,8 @@ getRoutes cfg req someId = do
   if null gRes.routes
     then do
       gResp <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints False
-      streamToKafka (GoogleTypes.GoogleDirectionsData {request = GoogleTypes.DirectionReq {url = googleMapsUrl, ..}, response = gResp}) someId "google-directions-data"
       traverse (mkRoute routeProxyReq) gResp.routes
-    else do
-      streamToKafka (GoogleTypes.GoogleDirectionsData {request = GoogleTypes.DirectionReq {url = googleMapsUrl, ..}, response = gRes}) someId "google-directions-data"
-      traverse (mkRoute routeProxyReq) gRes.routes
+    else traverse (mkRoute routeProxyReq) gRes.routes
   where
     getWayPoints waypoints =
       case waypoints of
@@ -240,15 +220,12 @@ snapToRoad ::
   ( HasCallStack,
     EncFlow m r,
     CoreMetrics m,
-    HasField "snapToRoadSnippetThreshold" r HighPrecMeters,
-    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
-    HasFlowEnv m r '["appPrefix" ::: Text]
+    HasField "snapToRoadSnippetThreshold" r HighPrecMeters
   ) =>
   GoogleCfg ->
   SnapToRoadReq ->
-  Text ->
   m SnapToRoadResp
-snapToRoad cfg SnapToRoadReq {..} someId = do
+snapToRoad cfg SnapToRoadReq {..} = do
   let roadsUrl = cfg.googleRoadsUrl
   key <- decrypt cfg.googleKey
   res <- GoogleRoads.snapToRoad roadsUrl key points
@@ -256,7 +233,6 @@ snapToRoad cfg SnapToRoadReq {..} someId = do
   snippetThreshold <- asks (.snapToRoadSnippetThreshold)
   unless (everySnippetIs (< snippetThreshold) pts) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
   let dist = getRouteLinearLength pts
-  streamToKafka (GoogleRoads.SnapToRoadData {request = GoogleRoads.GoogleSnapToRoadReq {..}, response = res}) someId "google-snap-to-road-data"
   pure
     SnapToRoadResp
       { distance = dist,
@@ -265,57 +241,45 @@ snapToRoad cfg SnapToRoadReq {..} someId = do
 
 autoComplete ::
   ( EncFlow m r,
-    CoreMetrics m,
-    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
-    HasFlowEnv m r '["appPrefix" ::: Text]
+    CoreMetrics m
   ) =>
   GoogleCfg ->
   AutoCompleteReq ->
-  Text ->
   m AutoCompleteResp
-autoComplete cfg AutoCompleteReq {..} someId = do
+autoComplete cfg AutoCompleteReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
   let components = "country:in"
   res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location radius components language
   let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, ..}) res.predictions
-  streamToKafka (GoogleTypes.GoogleAutoCompleteData {request = GoogleTypes.AutoCompleteReq {..}, response = res}) someId "google-auto-complete-data"
   return $ AutoCompleteResp predictions
 
 getPlaceDetails ::
   ( EncFlow m r,
-    CoreMetrics m,
-    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
-    HasFlowEnv m r '["appPrefix" ::: Text]
+    CoreMetrics m
   ) =>
   GoogleCfg ->
   GetPlaceDetailsReq ->
-  Text ->
   m GetPlaceDetailsResp
-getPlaceDetails cfg GetPlaceDetailsReq {..} someId = do
+getPlaceDetails cfg GetPlaceDetailsReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
   let fields = "geometry"
   res <- GoogleMaps.getPlaceDetails mapsUrl key sessionToken placeId fields
-  streamToKafka (GoogleTypes.GetPlaceDetailsData {request = GoogleTypes.GetPlaceDetailsReq {..}, response = res}) someId "google-get-place-details-data"
   let location = let loc = res.result.geometry.location in LatLong loc.lat loc.lng
   return $ GetPlaceDetailsResp location
 
 getPlaceName ::
   ( EncFlow m r,
-    CoreMetrics m,
-    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
-    HasFlowEnv m r '["appPrefix" ::: Text]
+    CoreMetrics m
   ) =>
   GoogleCfg ->
   GetPlaceNameReq ->
-  Text ->
   m GetPlaceNameResp
-getPlaceName cfg GetPlaceNameReq {..} someId = do
+getPlaceName cfg GetPlaceNameReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
   res <- GoogleMaps.getPlaceName mapsUrl key sessionToken mbByPlaceId mbByLatLong language
-  streamToKafka (GoogleTypes.GetPlaceNameData {request = GoogleTypes.GetPlaceNameReq {..}, response = res}) someId "get-place-name-data"
   return $ map reformatePlaceName res.results
   where
     reformatePlaceName (placeName :: GoogleMaps.ResultsResp) =
@@ -335,20 +299,3 @@ getPlaceName cfg GetPlaceNameReq {..} someId = do
     (mbByPlaceId, mbByLatLong) = case getBy of
       ByPlaceId id -> (Just id, Nothing)
       ByLatLong latLong -> (Nothing, Just latLong)
-
-streamToKafka ::
-  ( MonadFlow m,
-    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
-    HasFlowEnv m r '["appPrefix" ::: Text],
-    ToJSON a
-  ) =>
-  a ->
-  Text ->
-  KafkaTopic ->
-  m ()
-streamToKafka a someId topic = fork "stream data to clickhouse" $ do
-  appPrefix <- asks (.appPrefix)
-  now <- getCurrentTime
-  let kafkaKey = appPrefix <> ":" <> someId <> ":" <> show now
-  produceMessage (topic, Just (encodeUtf8 kafkaKey)) a
-  logInfo "Stream sended"

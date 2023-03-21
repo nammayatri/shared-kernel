@@ -27,25 +27,12 @@ import Servant hiding (throwError)
 
 type SnapToRoadResponse = SnapToRoadResponse' LatLong
 
-data GoogleSnapToRoadReq = GoogleSnapToRoadReq
-  { roadsUrl :: BaseUrl,
-    key :: Text,
-    points :: [LatLong]
-  }
-  deriving (Show, Generic, ToJSON, FromJSON)
-
 data SnapToRoadResponse' a = SnapToRoadResponse
   { snappedPoints :: [SnappedPoint' a],
     warningMessage :: Maybe Text
   }
-  deriving stock (Generic, Show)
+  deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON)
-
-data SnapToRoadData = SnapToRoadData
-  { request :: GoogleSnapToRoadReq,
-    response :: SnapToRoadResponse
-  }
-  deriving (Show, Generic, ToJSON, FromJSON)
 
 type SnappedPoint = SnappedPoint' LatLong
 
@@ -54,7 +41,7 @@ data SnappedPoint' a = SnappedPoint
     originalIndex :: Maybe Int,
     placeId :: Text
   }
-  deriving (Generic, FromJSON, ToJSON, Show)
+  deriving (Generic, FromJSON, ToJSON)
 
 data SPLocation = SPLocation
   { latitude :: Double,

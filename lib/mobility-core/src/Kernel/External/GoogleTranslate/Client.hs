@@ -17,8 +17,7 @@ module Kernel.External.GoogleTranslate.Client where
 import EulerHS.Prelude
 import qualified Kernel.External.GoogleTranslate.API as API
 import qualified Kernel.External.GoogleTranslate.Types as GoogleTranslate
-import Kernel.Streaming.Kafka.Commons (KafkaTopic)
-import Kernel.Streaming.Kafka.Producer (produceMessage)
+import Kernel.Streaming.Kafka.DataAnalytics
 import Kernel.Streaming.Kafka.Producer.Types (KafkaProducerTools)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
@@ -43,7 +42,7 @@ translate url apiKey source target query someId = do
   res <-
     callAPI url (API.translate apiKey source target query) "translate" API.googleTranslateAPI
       >>= checkGoogleTranslateError url
-  streamToKafka (GoogleTranslate.TranslateData {request = GoogleTranslate.TranslateReq {..}, response = res}) someId "google-translate-data"
+  streamToKafka (RequestResponseData {request = GoogleTranslate.TranslateReq {..}, response = res}) someId "google-translate-data"
   return res
 
 checkGoogleTranslateError :: (MonadThrow m, Log m, HasField "_error" a (Maybe GoogleTranslate.TranslateError)) => BaseUrl -> Either ClientError a -> m a
@@ -58,20 +57,3 @@ validateResponseStatus response =
   case response._error of
     Nothing -> pure response
     _ -> throwError GoogleTranslateInvalidRequest
-
-streamToKafka ::
-  ( MonadFlow m,
-    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
-    HasFlowEnv m r '["appPrefix" ::: Text],
-    ToJSON a
-  ) =>
-  a ->
-  Text ->
-  KafkaTopic ->
-  m ()
-streamToKafka a someId topic = fork "stream data to clickhouse" $ do
-  appPrefix <- asks (.appPrefix)
-  now <- getCurrentTime
-  let kafkaKey = appPrefix <> ":" <> someId <> ":" <> show now
-  produceMessage (topic, Just (encodeUtf8 kafkaKey)) a
-  logInfo "Stream sended"

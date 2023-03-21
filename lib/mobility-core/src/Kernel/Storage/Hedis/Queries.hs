@@ -119,14 +119,6 @@ setExp key val expirationTime = do
     void . Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
     Hedis.expire prefKey (toInteger expirationTime)
 
-setExpBS ::
-  (HedisFlow m env) => Text -> BSL.ByteString -> ExpirationTime -> m ()
-setExpBS key val expirationTime = do
-  prefKey <- buildKey key
-  void . runHedisTransaction $ do
-    void . Hedis.set prefKey $ BSL.toStrict val
-    Hedis.expire prefKey (toInteger expirationTime)
-
 setNx ::
   (ToJSON a, HedisFlow m env) => Text -> a -> m Bool
 setNx key val = runWithPrefix key $ \prefKey ->
