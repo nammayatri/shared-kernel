@@ -27,7 +27,7 @@ import Data.LineString
 import Data.OpenApi
 import Data.Text
 import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Storage.Esqueleto.Functions (derivePersistField)
 import Kernel.Utils.GenericPretty (PrettyShow)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 

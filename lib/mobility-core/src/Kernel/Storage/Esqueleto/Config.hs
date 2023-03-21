@@ -20,8 +20,8 @@ import Database.PostgreSQL.Simple (execute_)
 import Database.PostgreSQL.Simple.Types (Query (Query))
 import EulerHS.Prelude
 import GHC.Records.Extra
-import Kernel.Storage.Esqueleto.Class (Finalize)
 import Kernel.Storage.Esqueleto.Logger (runLoggerIO)
+import Kernel.Storage.Esqueleto.SqlDB (Finalize)
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.Time (MonadTime)
 import Kernel.Utils.Dhall (FromDhall)

@@ -18,16 +18,15 @@ module Kernel.Storage.Esqueleto.SqlDB
   ( SqlDBEnv (..),
     SqlDB (..),
     SelectSqlDB (..),
+    Finalize (..),
     FullEntitySqlDB,
     liftToFullEntitySqlDB,
     withFullEntity,
     withFullEntities,
-    finalize,
   )
 where
 
 import Data.Time (UTCTime)
-import Data.Typeable (cast)
 import Database.Esqueleto.Experimental (SqlBackend)
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto.Class
@@ -36,6 +35,13 @@ import Kernel.Types.GuidLike
 import Kernel.Types.MonadGuid
 import Kernel.Types.Time (MonadTime (..))
 import Kernel.Utils.Logging
+
+-- This class created for type safety. We can use finalizer actions only when we have this instance
+class (Typeable m, Monad m) => Finalize m where
+  monadType :: m () -> Text
+
+instance Finalize IO where
+  monadType _ = "IO"
 
 data SqlDBEnv = forall m.
   Finalize m =>
@@ -85,19 +91,3 @@ withFullEntities' (x : xs) f =
 
 withFullEntities :: ToTType t a => [a] -> ([t] -> FullEntitySqlDB b) -> SqlDB b
 withFullEntities dtypes func = getSqlDB $ withFullEntities' dtypes func
-
-finalize :: forall m. Finalize m => m () -> SqlDB ()
-finalize someAction = do
-  SqlDBEnv {..} <- get
-  let mbPrevActions = cast @_ @(m ()) actions
-  case mbPrevActions of
-    Nothing -> do
-      logWarning $
-        "Couldn't append finalizer action in \""
-          <> monadType someAction
-          <> "\"monad. It caused because previous action was created in \""
-          <> monadType actions
-          <> "\"monad."
-    Just _ -> pure ()
-  let prevActions = fromMaybe (pure ()) mbPrevActions
-  put $ SqlDBEnv {actions = prevActions >> someAction, currentTime}

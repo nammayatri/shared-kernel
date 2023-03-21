@@ -21,7 +21,7 @@ import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
-import Kernel.Storage.Esqueleto.Class (Finalize (..))
+import Kernel.Storage.Esqueleto.SqlDB (Finalize (..))
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Forkable
 import Kernel.Types.Logging

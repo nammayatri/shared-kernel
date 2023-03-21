@@ -13,22 +13,30 @@
 -}
 {-# LANGUAGE TypeApplications #-}
 
-module Kernel.Storage.Esqueleto.Transactionable where
+module Kernel.Storage.Esqueleto.Transactionable
+  ( Transactionable,
+    Transactionable' (..),
+    runTransactionF,
+    ignoreFinalize,
+    runTransactionIO,
+    runInReplica,
+  )
+where
 
-import Control.Monad.Trans.State.Strict
 import Data.Typeable (cast)
 import Database.Esqueleto.Experimental (runSqlPool)
 import Database.Persist.Postgresql (runSqlPoolNoTransaction)
+import EulerHS.Prelude
 import Kernel.Prelude
-import Kernel.Storage.Esqueleto.Class
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Esqueleto.DTypeBuilder
 import Kernel.Storage.Esqueleto.Logger
 import Kernel.Storage.Esqueleto.SqlDB
+import Kernel.Types.Error
 import Kernel.Types.Logging
 import Kernel.Types.Time (getCurrentTime)
+import Kernel.Utils.Error.Throwing
 import Kernel.Utils.IOLogging (LoggerEnv)
-import Kernel.Utils.Logging (logWarning)
 
 type Transactionable m = Transactionable' SelectSqlDB m
 
@@ -63,24 +71,54 @@ instance {-# OVERLAPPING #-} Transactionable' SqlDB m => Transactionable' SqlDB 
 instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m, Finalize m) => Transactionable' SqlDB m where
   runTransaction m = do
     dbEnv <- asks (.esqDBEnv)
-    (result, SqlDBEnv {actions}) <- runTransactionImpl dbEnv m
-    let mbActions = cast @_ @(m ()) actions
-    case mbActions of
-      Nothing -> do
-        let emptyAction = pure @m ()
-        logWarning $
+    (a, _env) <- runTransactionImpl dbEnv m
+    pure a
+
+-- | Type safe plug for ignoring finalize function
+ignoreFinalize :: forall m. Finalize m => (m () -> SqlDB ()) -> (m () -> SqlDB ())
+ignoreFinalize _ _ = pure ()
+
+-- This function created for type safety. Finalize function should be applied to the same monad within transaction
+runTransactionF :: forall m r a. (HasEsqEnv m r, MonadThrow m, Log m, Finalize m) => ((m () -> SqlDB ()) -> SqlDB a) -> m a
+runTransactionF mkAction = do
+  dbEnv <- asks (.esqDBEnv)
+  let m = mkAction (finalizeImpl @m)
+  (result, env) <- runTransactionImpl dbEnv m
+  applyFinalizeImpl @m env
+  pure result
+
+-- | This function should not be used outside of Transactionable module!
+finalizeImpl :: forall m. Finalize m => m () -> SqlDB ()
+finalizeImpl someAction = do
+  SqlDBEnv {..} <- get
+  let mbPrevActions = cast @_ @(m ()) actions
+  prevActions <- case mbPrevActions of
+    Nothing -> do
+      throwError $
+        InternalError $
+          "Couldn't append finalizer action in \""
+            <> monadType someAction
+            <> "\"monad. It caused because previous action was created in \""
+            <> monadType actions
+            <> "\"monad."
+    Just a -> pure a
+  put $ SqlDBEnv {actions = prevActions >> someAction, currentTime}
+
+-- | This function should not be used outside of Transactionable module!
+applyFinalizeImpl :: forall m. (MonadThrow m, Log m, Finalize m) => SqlDBEnv -> m ()
+applyFinalizeImpl SqlDBEnv {actions} = do
+  let mbActions = cast @_ @(m ()) actions
+  case mbActions of
+    Nothing -> do
+      let emptyAction = pure @m ()
+      throwError $
+        InternalError $
           "Couldn't apply finalizer action in \""
             <> monadType emptyAction
             <> "\"monad. It caused because previous action was created in \""
             <> monadType actions
             <> "\"monad."
-        emptyAction
-      Just action -> action
-    return result
-
--- This function created for type safety. Finalize function should be applied to the same monad within transaction
-runTransactionF :: forall m r a. (HasEsqEnv m r, MonadThrow m, Log m, Finalize m) => ((m () -> SqlDB ()) -> SqlDB a) -> m a
-runTransactionF mkAction = runTransaction $ mkAction (finalize @m)
+    Just action -> action
 
 runTransactionImpl ::
   forall m r a.

@@ -22,6 +22,7 @@ module Kernel.Storage.Esqueleto.Functions
     rand,
     unnest,
     buildRadiusWithin,
+    derivePersistField,
   )
 where
 
@@ -29,6 +30,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TL
 import qualified Database.Esqueleto.Experimental as Esq
 import Database.Esqueleto.Internal.Internal hiding (rand)
+import Database.Persist.TH (derivePersistField)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Types
 

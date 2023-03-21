@@ -23,7 +23,6 @@ module Kernel.Storage.Esqueleto.Class
     QEntity (..),
     TEntity (..),
     SolidType,
-    Finalize (..),
   )
 where
 
@@ -177,10 +176,3 @@ instance
   GTEntity (Gen.K1 i a1) (Gen.K1 i a2)
   where
   extractTTypeGen (Gen.K1 a1) = Gen.K1 $ extractTType a1
-
--- This class created for type safety. We can use finalizer actions only when we have this instance
-class (Typeable m, Monad m) => Finalize m where
-  monadType :: m () -> Text
-
-instance Finalize IO where
-  monadType _ = "IO"
