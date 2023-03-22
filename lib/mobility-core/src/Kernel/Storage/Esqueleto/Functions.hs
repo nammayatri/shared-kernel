@@ -17,6 +17,7 @@ module Kernel.Storage.Esqueleto.Functions
   ( (<->.),
     getPoint,
     containsPoint,
+    getGeomGeoJSON,
     IntervalVal (..),
     interval,
     rand,
@@ -40,6 +41,11 @@ getPoint (lat, long) = unsafeSqlFunction "ST_SetSRID" (buildSTPoint (long, lat),
 
 buildSTPoint :: (SqlExpr (Value Double), SqlExpr (Value Double)) -> SqlExpr (Value b)
 buildSTPoint = unsafeSqlFunction "ST_Point"
+
+getGeomGeoJSON :: SqlExpr (Value Text)
+getGeomGeoJSON = unsafeSqlFunction "ST_AsGeoJSON" args
+  where
+    args = unsafeSqlValue "geom"
 
 buildRadiusWithin :: SqlExpr (Value Point) -> (Double, Double) -> SqlExpr (Value Int) -> SqlExpr (Value b)
 buildRadiusWithin pnt (lat, lon) radius = unsafeSqlFunction "ST_DWithin" args
