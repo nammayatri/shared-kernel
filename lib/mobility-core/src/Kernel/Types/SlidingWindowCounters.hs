@@ -15,8 +15,7 @@
 
 module Kernel.Types.SlidingWindowCounters where
 
-import Data.Time (UTCTime)
-import EulerHS.Prelude
+import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistFieldJSON)
 import Kernel.Utils.Dhall (FromDhall)
 
@@ -24,9 +23,9 @@ data SlidingWindowOptions = SlidingWindowOptions
   { period :: Integer,
     periodType :: PeriodType
   }
-  deriving (Read, Generic, FromDhall, Show, FromJSON, ToJSON)
+  deriving (Read, Generic, FromDhall, Show, FromJSON, ToJSON, ToSchema)
 
-data PeriodType = Minutes | Hours | Days | Months | Years deriving (Read, Generic, FromDhall, Show, Eq, FromJSON, ToJSON)
+data PeriodType = Minutes | Hours | Days | Months | Years deriving (Read, Generic, FromDhall, Show, Eq, FromJSON, ToJSON, ToSchema)
 
 type TimePair = (UTCTime, UTCTime) -- (startTime, endTime)
 
