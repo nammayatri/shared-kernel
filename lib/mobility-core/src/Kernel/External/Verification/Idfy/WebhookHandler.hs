@@ -15,6 +15,7 @@
 module Kernel.External.Verification.Idfy.WebhookHandler where
 
 import Data.Aeson.Types as DAT
+import Data.Maybe (listToMaybe)
 import EulerHS.Prelude
 import Kernel.External.Verification.Idfy.Auth
 import Kernel.External.Verification.Idfy.Config
