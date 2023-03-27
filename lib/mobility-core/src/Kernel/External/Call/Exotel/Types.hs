@@ -30,7 +30,7 @@ import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.Aeson.Types
 import qualified Data.Text as T
-import EulerHS.Prelude (decodeJSON)
+import EulerHS.Prelude
 import Kernel.External.Encryption (DbHashable)
 import Kernel.Prelude hiding (showBaseUrl)
 import Kernel.Storage.Esqueleto (derivePersistField)
