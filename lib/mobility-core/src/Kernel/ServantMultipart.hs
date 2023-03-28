@@ -15,6 +15,8 @@
 
 module Kernel.ServantMultipart
   ( module Servant.Multipart,
+    module Servant.Multipart.API,
+    module Servant.Multipart.Client
   )
 where
 
@@ -22,6 +24,8 @@ import Kernel.Prelude
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import Servant hiding (ResponseHeader (..))
 import Servant.Multipart
+import Servant.Multipart.API
+import Servant.Multipart.Client
 import qualified Servant.OpenApi as S
 
 instance

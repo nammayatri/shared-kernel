@@ -138,6 +138,8 @@ dependencies:
   - tinylog
   - wai-app-static
   - servant-multipart
+  - servant-multipart-api
+  - servant-multipart-client
   - clickhouse-haskell
   - beam-postgres
   - beam-core
