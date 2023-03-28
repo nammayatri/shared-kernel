@@ -211,4 +211,4 @@ getTask apiKey accountId url request_id = callIdfyAPI url task "getTask" getTask
         request_id
 
 callIdfyAPI :: CallAPI env api res
-callIdfyAPI = callApiUnwrappingApiError (identity @IdfyError) (Just $ T.ManagerSelector $ DT.pack idfyHttpManagerKey) (Just "IDFY_ERROR")
+callIdfyAPI = callApiUnwrappingApiError (identity @IdfyError) (Just $ T.ManagerSelector idfyHttpManagerKey) (Just "IDFY_ERROR")
