@@ -18,9 +18,6 @@ import Safe (at)
 import System.Random
 import Universum
 
-getRandom :: (MonadIO m, Random a) => m a
-getRandom = liftIO randomIO
-
 getRandomInRange :: (MonadIO m, Random a) => (a, a) -> m a
 getRandomInRange = liftIO . randomRIO
 

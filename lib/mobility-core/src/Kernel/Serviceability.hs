@@ -19,16 +19,6 @@ import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Types.Geofencing
 
-rideServiceableDefault ::
-  (EsqDBFlow m r, HasField "geofencingConfig" r GeofencingConfig) =>
-  (LatLong -> [Text] -> m Bool) ->
-  LatLong ->
-  Maybe LatLong ->
-  m Bool
-rideServiceableDefault someGeometriesContain origin mbDestination = do
-  geoConfig <- asks (.geofencingConfig)
-  rideServiceable geoConfig someGeometriesContain origin mbDestination
-
 rideServiceable ::
   EsqDBFlow m r =>
   GeofencingConfig ->
