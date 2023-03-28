@@ -301,7 +301,6 @@ data SearchRequestError
   = SearchRequestNotFound Text
   | SearchRequestDoesNotExist Text
   | SearchRequestExpired
-  | SearchRequestCancelled Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''SearchRequestError
@@ -310,7 +309,6 @@ instance IsBaseError SearchRequestError where
   toMessage = \case
     SearchRequestNotFound searchId -> Just $ "Search with searchId \"" <> show searchId <> "\"not found. "
     SearchRequestDoesNotExist searchId -> Just $ "No case matches passed data \"<>" <> show searchId <> "\" not exist"
-    SearchRequestCancelled searchId -> Just $ "Search with searchId \"<>" <> show searchId <> "\" was cancelled. "
     _ -> Nothing
 
 instance IsHTTPError SearchRequestError where
@@ -318,12 +316,10 @@ instance IsHTTPError SearchRequestError where
     SearchRequestNotFound _ -> "SEARCH_REQUEST_NOT_FOUND"
     SearchRequestDoesNotExist _ -> "SEARCH_REQUEST_DOES_NOT_EXIST"
     SearchRequestExpired -> "SEARCH_REQUEST_EXPIRED"
-    SearchRequestCancelled _ -> "SEARCH_REQUEST_CANCELLED"
   toHttpCode = \case
     SearchRequestNotFound _ -> E500
     SearchRequestDoesNotExist _ -> E400
     SearchRequestExpired -> E400
-    SearchRequestCancelled _ -> E403
 
 instance IsAPIError SearchRequestError
 
@@ -595,7 +591,6 @@ instance IsAPIError SMSError
 data SpecialZoneError
   = OtpNotFoundForSpecialZoneBooking Text
   | BookingNotFoundForSpecialZoneOtp Text
-  | DriverForRideNotFound Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''SpecialZoneError
@@ -604,17 +599,14 @@ instance IsBaseError SpecialZoneError where
   toMessage = \case
     OtpNotFoundForSpecialZoneBooking bookingId -> Just $ "No otp found for special zone booking with \"" <> bookingId <> "\"bookingId"
     BookingNotFoundForSpecialZoneOtp otp -> Just $ "No booking found for special zone otp with \"" <> otp <> "\"otp"
-    DriverForRideNotFound rideId -> Just $ "No driver found for ride with \"" <> rideId <> "\"rideId"
 
 instance IsHTTPError SpecialZoneError where
   toErrorCode = \case
     OtpNotFoundForSpecialZoneBooking _ -> "OTP_NOT_FOUND_FOR_SPECIAL_ZONE_BOOKING"
-    DriverForRideNotFound _ -> "DRIVER_FOR_RIDE_NOT_FOUND"
     BookingNotFoundForSpecialZoneOtp _ -> "BOOKING_NOT_FOUND_FOR_SPECIAL_ZONE_OTP"
 
   toHttpCode = \case
     OtpNotFoundForSpecialZoneBooking _ -> E400
-    DriverForRideNotFound _ -> E400
     BookingNotFoundForSpecialZoneOtp _ -> E400
 
 instance IsAPIError SpecialZoneError
