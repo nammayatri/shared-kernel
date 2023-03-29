@@ -13,11 +13,10 @@
 -}
 
 module Kernel.Serviceability where
-
-import Kernel.External.Maps.Types
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Types.Geofencing
+import Kernel.Types.CommonImport
 
 rideServiceableDefault ::
   (EsqDBFlow m r, HasField "geofencingConfig" r GeofencingConfig) =>

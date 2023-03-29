@@ -14,7 +14,7 @@
 
 module Kernel.Streaming.Kafka.Topic.PublicTransportSearch.Types where
 
-import Kernel.External.Maps.Types (LatLong)
+import Kernel.Types.CommonImport
 import Kernel.Prelude
 import qualified Kernel.Streaming.Kafka.Consumer as Cons
 import Kernel.Streaming.Kafka.Consumer.Types (HasKafkaConsumer, KafkaConsumerTools)

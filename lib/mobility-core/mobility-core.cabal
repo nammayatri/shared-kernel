@@ -22,76 +22,6 @@ source-repository head
 library
   exposed-modules:
       Kernel.Exit
-      Kernel.External.Encryption
-      Kernel.External.Exotel.Flow
-      Kernel.External.Exotel.Types
-      Kernel.External.FCM.Flow
-      Kernel.External.FCM.Types
-      Kernel.External.GoogleTranslate.API
-      Kernel.External.GoogleTranslate.Client
-      Kernel.External.GoogleTranslate.Types
-      Kernel.External.Infobip.API.SendSms
-      Kernel.External.Infobip.API.WebengageWebhook
-      Kernel.External.Infobip.Flow
-      Kernel.External.Infobip.Types
-      Kernel.External.Maps
-      Kernel.External.Maps.Google.Config
-      Kernel.External.Maps.Google.MapsClient
-      Kernel.External.Maps.Google.MapsClient.Types
-      Kernel.External.Maps.Google.PolyLinePoints
-      Kernel.External.Maps.Google.RoadsClient
-      Kernel.External.Maps.HasCoordinates
-      Kernel.External.Maps.Interface
-      Kernel.External.Maps.Interface.Google
-      Kernel.External.Maps.Interface.MMI
-      Kernel.External.Maps.Interface.OSRM
-      Kernel.External.Maps.Interface.Types
-      Kernel.External.Maps.MMI.AutoSuggest
-      Kernel.External.Maps.MMI.Config
-      Kernel.External.Maps.MMI.DistanceMatrix
-      Kernel.External.Maps.MMI.MapsClient.Types
-      Kernel.External.Maps.MMI.MMIAuthToken
-      Kernel.External.Maps.MMI.Routes
-      Kernel.External.Maps.OSRM.Config
-      Kernel.External.Maps.OSRM.RoadsClient
-      Kernel.External.Maps.Types
-      Kernel.External.Slack.Flow
-      Kernel.External.Slack.Types
-      Kernel.External.SMS
-      Kernel.External.SMS.ExotelSms.API
-      Kernel.External.SMS.ExotelSms.Config
-      Kernel.External.SMS.ExotelSms.Flow
-      Kernel.External.SMS.ExotelSms.Types
-      Kernel.External.SMS.Interface
-      Kernel.External.SMS.Interface.ExotelSms
-      Kernel.External.SMS.Interface.MyValueFirst
-      Kernel.External.SMS.Interface.Types
-      Kernel.External.SMS.MyValueFirst.API
-      Kernel.External.SMS.MyValueFirst.Config
-      Kernel.External.SMS.MyValueFirst.Flow
-      Kernel.External.SMS.MyValueFirst.Types
-      Kernel.External.SMS.Types
-      Kernel.External.Types
-      Kernel.External.Verification
-      Kernel.External.Verification.Idfy.Auth
-      Kernel.External.Verification.Idfy.Client
-      Kernel.External.Verification.Idfy.Config
-      Kernel.External.Verification.Idfy.Flow
-      Kernel.External.Verification.Idfy.Types
-      Kernel.External.Verification.Idfy.Types.Error
-      Kernel.External.Verification.Idfy.Types.Request
-      Kernel.External.Verification.Idfy.Types.Response
-      Kernel.External.Verification.Idfy.WebhookHandler
-      Kernel.External.Verification.Interface
-      Kernel.External.Verification.Interface.Idfy
-      Kernel.External.Verification.Interface.Types
-      Kernel.External.Verification.Types
-      Kernel.External.Whatsapp.GupShup.Config
-      Kernel.External.Whatsapp.GupShup.Flow
-      Kernel.External.Whatsapp.Interface
-      Kernel.External.Whatsapp.Interface.GupShup
-      Kernel.External.Whatsapp.Interface.Types
-      Kernel.External.Whatsapp.Types
       Kernel.InternalAPI.Auth.API
       Kernel.InternalAPI.Auth.Client
       Kernel.Mock.App
@@ -162,6 +92,7 @@ library
       Kernel.Types.Cache
       Kernel.Types.Centesimal
       Kernel.Types.Common
+      Kernel.Types.CommonImport
       Kernel.Types.Credentials
       Kernel.Types.Error
       Kernel.Types.Error.BaseError
@@ -290,7 +221,7 @@ library
     , cryptonite
     , data-default-class
     , deriving-aeson
-    , dhall
+    , dhall <=1.35.0
     , double-conversion
     , either
     , esqueleto
@@ -353,7 +284,7 @@ library
     , time
     , tinylog
     , transformers
-    , universum
+    , universum <1.8
     , unix
     , unliftio
     , unliftio-core
@@ -431,7 +362,7 @@ test-suite mobility-core-tests
     , cryptonite
     , data-default-class
     , deriving-aeson
-    , dhall
+    , dhall <=1.35.0
     , double-conversion
     , either
     , esqueleto
@@ -495,7 +426,7 @@ test-suite mobility-core-tests
     , time
     , tinylog
     , transformers
-    , universum
+    , universum <1.8
     , unix
     , unliftio
     , unliftio-core

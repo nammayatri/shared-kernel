@@ -15,7 +15,7 @@
 module SnippetsCheck where
 
 import EulerHS.Prelude
-import Kernel.External.Maps.Types (LatLong (..))
+import Kernel.Types.CommonImport
 import Kernel.Utils.CalculateDistance (everySnippetIs)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit

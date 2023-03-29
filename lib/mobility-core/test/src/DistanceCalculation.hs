@@ -15,7 +15,7 @@
 module DistanceCalculation where
 
 import EulerHS.Prelude
-import Kernel.External.Maps.Types
+import Kernel.Types.CommonImport
 import Kernel.Types.Common
 import Kernel.Utils.CalculateDistance
 import Test.Tasty
