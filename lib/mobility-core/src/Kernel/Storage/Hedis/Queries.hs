@@ -19,7 +19,14 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.String.Conversions
 import qualified Data.Text as Text
-import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
+import qualified Data.Text.Encoding as Text
+import Database.Redis
+  ( Queued,
+    Redis,
+    RedisTx,
+    Reply,
+    TxResult (..),
+  )
 import qualified Database.Redis as Hedis
 import GHC.Records.Extra
 import Kernel.Prelude
@@ -198,9 +205,20 @@ setNxExpire key expirationTime val = do
     _ -> False
 
 delByPattern :: HedisFlow m env => Text -> m ()
-delByPattern ptrn = do
-  runWithPrefix_ ptrn $ \prefKey ->
-    Hedis.eval @_ @_ @Reply "for i, name in ipairs(redis.call('KEYS', ARGV[1])) do redis.call('DEL', name); end" ["0"] [prefKey]
+delByPattern pattern' = do
+  runHedis $ go Hedis.cursor0
+  where
+    ptrn = Text.encodeUtf8 pattern'
+    go cursor = do
+      eScanResult <- Hedis.scanOpts cursor (Hedis.ScanOpts (Just ptrn) Nothing)
+      case eScanResult of
+        Right (cursor', keys) -> do
+          mapM_ (\key -> Hedis.del [key]) keys
+          if cursor' /= Hedis.cursor0
+            then go cursor'
+            else pure (Right ())
+        Left eScanReply ->
+          pure $ Left eScanReply
 
 tryLockRedis :: HedisFlow m env => Text -> ExpirationTime -> m Bool
 tryLockRedis key timeout = setNxExpire (buildLockResourceName key) timeout ()
