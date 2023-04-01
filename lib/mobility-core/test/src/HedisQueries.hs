@@ -66,7 +66,10 @@ hedisQueryTestCases :: IO HedisConfig.HedisEnv -> TestTree
 hedisQueryTestCases hedisEnv =
   testGroup
     "Hedis Queries Tests"
-    [ hedisTestCase "Set test" setTest
+    [ hedisTestCase "Set test" setTest,
+      hedisTestCase "delTest" delTest,
+      hedisTestCase "delByPattern test" delByPatternTest,
+      hedisTestCase "delByPatternMatchAll test" delByPatternMatchAllTest
     ]
   where
     hedisTestCase :: [Char] -> Flow Assertion -> TestTree
@@ -82,3 +85,36 @@ setTest = do
   mResult <- Hedis.get key
 
   pure $ (Just value) @=? mResult
+
+delTest :: Flow Assertion
+delTest = do
+  let key = "delTestKey"
+      value = "delTestVal" :: Text
+
+  Hedis.set key value
+  Hedis.del key
+  mResult <- Hedis.get key
+
+  pure $ (Nothing :: Maybe Text) @=? mResult
+
+delByPatternTest :: Flow Assertion
+delByPatternTest = do
+  let key = "delByPatternTestKey"
+      value = "delByPatternTestVal" :: Text
+
+  Hedis.set key value
+  Hedis.delByPattern key
+  mResult <- Hedis.get key
+
+  pure $ (Just value) @=? mResult
+
+delByPatternMatchAllTest :: Flow Assertion
+delByPatternMatchAllTest = do
+  let key = "delByPatternMatchAllTestKey"
+      value = "delByPatternMatchAllTestKeyVal" :: Text
+
+  Hedis.set key value
+  Hedis.delByPattern "*MatchAllTest*"
+  mResult <- Hedis.get key
+
+  pure $ (Nothing :: Maybe Text) @=? mResult
