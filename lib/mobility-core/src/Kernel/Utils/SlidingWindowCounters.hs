@@ -245,6 +245,73 @@ decrementByValueImpl mbTimeStamp val keyModifier key SlidingWindowOptions {..} =
 --    ** counts = {<TIMEBASED_KEY_FOR_POSITIVE_CASE>: positiveCases , <TIMEBASED_KEY_FOR_THE_TOTAL_CASES>: totalCases}
 
 -- | getLatestRatio :: (id to getResult for, and generate TIMEBASED_KEY_FOR_THE_TOTAL_CASES) -> (id modifier to create TIMEBASED_KEY_FOR_POSITIVE_CASE) -> Resultsant Ratio of the sliding window
+-- Minutes | Hours | Days | Months | Years
+calculateRatioForFirstTime ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r
+  ) =>
+  Text ->
+  (Text -> Text) ->
+  (Text -> Text) ->
+  (Text -> Text) ->
+  SlidingWindowOptions ->
+  m Double
+calculateRatioForFirstTime driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn mkRatioKeyfn s@SlidingWindowOptions {..} = do
+  utcTime <- L.runIO getCurrentTime
+  let positiveCaseKeysList = getkeysForLastPeriods s utcTime $ makeSlidingWindowKey periodType (mkPostiveCaseKeyfn driverId)
+      totalCountKeysList = getkeysForLastPeriods s utcTime $ makeSlidingWindowKey periodType (mkTotalCaseKeyfn driverId)
+  positiveCases <- sum <$> mapMaybeM Redis.get positiveCaseKeysList
+  totalCases <- nonZero . sum <$> mapMaybeM Redis.get totalCountKeysList
+  let ratio = positiveCases / totalCases
+      expTime = fromInteger . floor $ diffUTCTime (incrementPeriod periodType utcTime) utcTime
+  Redis.setExp (mkTotalCaseKeyfn driverId) totalCases expTime
+  Redis.setExp (mkRatioKeyfn driverId) ratio expTime
+  pure ratio
+  where
+    nonZero :: Double -> Double
+    nonZero a = if a == 0.0 then 1.0 else a
+
+recalculateRatio ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r
+  ) =>
+  Text ->
+  (Text -> Text) ->
+  (Text -> Text) ->
+  (Text -> Text) ->
+  Integer ->
+  Integer ->
+  SlidingWindowOptions ->
+  m Double
+recalculateRatio driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn mkRatioKeyfn changeInTotalCase changeInPositiveCase s@SlidingWindowOptions {..} = do
+  utcTime <- L.runIO getCurrentTime
+  let positiveCaseKey = mkPostiveCaseKeyfn driverId
+      totalCaseKey = mkTotalCaseKeyfn driverId
+      ratioKey = mkRatioKeyfn driverId
+  totalCase <-
+    Redis.get totalCaseKey >>= \case
+      Nothing -> findTotalCase mkTotalCaseKeyfn
+      Just total -> return total
+  ratio <-
+    Redis.get ratioKey >>= \case
+      Nothing -> calculateRatioForFirstTime driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn mkRatioKeyfn s
+      Just currRatio -> return currRatio
+  let positiveCase = totalCase * ratio
+      newRatio = (positiveCase + fromIntegral changeInPositiveCase) / (totalCase + fromIntegral changeInTotalCase)
+  _ <- if changeInTotalCase > 0 then Redis.incrby totalCaseKey changeInTotalCase else if changeInTotalCase < 0 then Redis.decrby totalCaseKey changeInTotalCase else pure 0
+  _ <- if changeInPositiveCase > 0 then Redis.incrby positiveCaseKey changeInPositiveCase else if changeInPositiveCase < 0 then Redis.decrby positiveCaseKey changeInPositiveCase else pure 0
+  let expTime = fromInteger . floor $ diffUTCTime (incrementPeriod periodType utcTime) utcTime
+  Redis.setExp ratioKey newRatio expTime
+  return newRatio
+  where
+    findTotalCase mkTotalCaseKeyfun = do
+      utcTime <- L.runIO getCurrentTime
+      let totalCountKeysList = getkeysForLastPeriods s utcTime $ makeSlidingWindowKey periodType (mkTotalCaseKeyfun driverId)
+      nonZero . sum <$> mapMaybeM Redis.get totalCountKeysList
+      where
+        nonZero :: Double -> Double
+        nonZero a = if a == 0.0 then 1.0 else a
+
 getLatestRatio ::
   ( L.MonadFlow m,
     Redis.HedisFlow m r
@@ -252,18 +319,16 @@ getLatestRatio ::
   Text ->
   (Text -> Text) ->
   (Text -> Text) ->
+  (Text -> Text) ->
+  Integer ->
+  Integer ->
   SlidingWindowOptions ->
   m Double
-getLatestRatio driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn s@SlidingWindowOptions {..} = do
-  utcTime <- L.runIO getCurrentTime
-  let positiveCaseKeysList = getkeysForLastPeriods s utcTime $ makeSlidingWindowKey periodType (mkPostiveCaseKeyfn driverId)
-  let totalCountKeysList = getkeysForLastPeriods s utcTime $ makeSlidingWindowKey periodType (mkTotalCaseKeyfn driverId)
-  positiveCases <- sum <$> mapMaybeM Redis.get positiveCaseKeysList
-  totalCases <- nonZero . sum <$> mapMaybeM Redis.get totalCountKeysList
-  pure $ positiveCases / totalCases
-  where
-    nonZero :: Double -> Double
-    nonZero a = if a == 0.0 then 1.0 else a
+getLatestRatio driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn mkRatioKeyfn changeInTotalCase changeInPositiveCase SlidingWindowOptions {..} = do
+  ratio :: (Maybe Double) <- Redis.get (mkRatioKeyfn driverId)
+  case ratio of
+    Nothing -> calculateRatioForFirstTime driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn mkRatioKeyfn SlidingWindowOptions {..}
+    _ -> recalculateRatio driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn mkRatioKeyfn changeInTotalCase changeInPositiveCase SlidingWindowOptions {..}
 
 getCurrentWindowValues ::
   ( L.MonadFlow m,
