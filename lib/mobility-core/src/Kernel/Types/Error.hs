@@ -591,6 +591,8 @@ instance IsAPIError SMSError
 data SpecialZoneError
   = OtpNotFoundForSpecialZoneBooking Text
   | BookingNotFoundForSpecialZoneOtp Text
+  | SpecialZoneNotFound
+  | PointNotFound
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''SpecialZoneError
@@ -599,15 +601,21 @@ instance IsBaseError SpecialZoneError where
   toMessage = \case
     OtpNotFoundForSpecialZoneBooking bookingId -> Just $ "No otp found for special zone booking with \"" <> bookingId <> "\"bookingId"
     BookingNotFoundForSpecialZoneOtp otp -> Just $ "No booking found for special zone otp with \"" <> otp <> "\"otp"
+    SpecialZoneNotFound -> Just "Special Zone not found."
+    PointNotFound -> Just "Point not found."
 
 instance IsHTTPError SpecialZoneError where
   toErrorCode = \case
     OtpNotFoundForSpecialZoneBooking _ -> "OTP_NOT_FOUND_FOR_SPECIAL_ZONE_BOOKING"
     BookingNotFoundForSpecialZoneOtp _ -> "BOOKING_NOT_FOUND_FOR_SPECIAL_ZONE_OTP"
+    SpecialZoneNotFound -> "SPECIAL_ZONE_NOT_FOUND"
+    PointNotFound -> "POINT_NOT_FOUND"
 
   toHttpCode = \case
     OtpNotFoundForSpecialZoneBooking _ -> E400
     BookingNotFoundForSpecialZoneOtp _ -> E400
+    SpecialZoneNotFound -> E400
+    PointNotFound -> E400
 
 instance IsAPIError SpecialZoneError
 

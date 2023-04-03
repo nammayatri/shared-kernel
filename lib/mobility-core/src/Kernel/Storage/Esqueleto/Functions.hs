@@ -23,6 +23,11 @@ module Kernel.Storage.Esqueleto.Functions
     rand,
     unnest,
     buildRadiusWithin,
+    buildRegionWithin,
+    containsRegion,
+    getTextFromGeoJSON,
+    geojsonToBin,
+    containsPointGeom,
   )
 where
 
@@ -47,6 +52,14 @@ getGeomGeoJSON = unsafeSqlFunction "ST_AsGeoJSON" args
   where
     args = unsafeSqlValue "geom"
 
+getTextFromGeoJSON :: SqlExpr (Value Text) -> SqlExpr (Value Text)
+getTextFromGeoJSON geoJson = unsafeSqlFunction "ST_SetSRID" args
+  where
+    args = (unsafeSqlFunction "ST_GeomFromGeoJSON" geoJson, val (4326 :: Int))
+
+geojsonToBin :: SqlExpr (Value Text) -> SqlExpr (Value Geom)
+geojsonToBin = unsafeSqlFunction "geojson_to_bin"
+
 buildRadiusWithin :: SqlExpr (Value Point) -> (Double, Double) -> SqlExpr (Value Int) -> SqlExpr (Value b)
 buildRadiusWithin pnt (lat, lon) radius = unsafeSqlFunction "ST_DWithin" args
   where
@@ -59,6 +72,25 @@ containsPoint (lon, lat) = unsafeSqlFunction "st_contains" args
     args = (unsafeSqlValue "geom", geomFromText pointText)
     geomFromText = unsafeSqlFunction "ST_GeomFromText"
     pointText = val ("POINT (" <> show lon <> " " <> show lat <> ")") :: SqlExpr (Value Text)
+
+containsPointGeom :: (Double, Double) -> SqlExpr (Value b)
+containsPointGeom (lon, lat) = unsafeSqlFunction "st_contains" args
+  where
+    args = (unsafeSqlValue "geom", geomFromText gftArgs)
+    geomFromText = unsafeSqlFunction "ST_GeomFromText"
+    gftArgs = (pointText, val (4326 :: Int))
+    pointText = val ("POINT (" <> show lon <> " " <> show lat <> ")") :: SqlExpr (Value Text)
+
+containsRegion :: (Double, Double) -> (Double, Double) -> SqlExpr (Value b)
+containsRegion (minLon, minLat) (maxLon, maxLat) = unsafeSqlFunction "st_intersects" args
+  where
+    args = (unsafeSqlValue "geom", unsafeSqlFunction "ST_MakeEnvelope" points)
+    points = (val minLon, val minLat, val maxLon, val maxLat, val (4326 :: Int))
+
+buildRegionWithin :: (Double, Double) -> (Double, Double) -> SqlExpr (Value b)
+buildRegionWithin (minLat, minLon) (maxLat, maxLon) = unsafeSqlFunction "ST_MakeEnvelope" args
+  where
+    args = (val minLon, val minLat, val maxLon, val maxLat)
 
 data IntervalVal = YEAR Int | MONTH Int | DAY Int | HOUR Int | MINUTE Int | SECOND Int deriving (Show)
 
