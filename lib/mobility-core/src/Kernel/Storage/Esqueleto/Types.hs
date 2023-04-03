@@ -14,6 +14,7 @@
 
 module Kernel.Storage.Esqueleto.Types
   ( Point (..),
+    Geom (..),
     PostgresList (..),
     PostgresNonEmptyList (..),
     Table,
@@ -34,6 +35,16 @@ instance PersistField Point where
 
 instance PersistFieldSql Point where
   sqlType _ = SqlOther "geography"
+
+data Geom = Geom
+  deriving (Generic, Show, Read, Eq, ToSchema)
+
+instance PersistField Geom where
+  toPersistValue _ = error "This value should not be used in queries directly."
+  fromPersistValue _ = return Geom
+
+instance PersistFieldSql Geom where
+  sqlType _ = SqlOther "geometry"
 
 class PostgresListField a
 
