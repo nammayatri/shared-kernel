@@ -19,7 +19,6 @@ module Kernel.Types.Error where
 import EulerHS.Prelude
 import EulerHS.Types (KVDBReply)
 import qualified Kafka.Types as Kafka
-import Kernel.External.SMS.MyValueFirst.Types (SubmitSmsRes, submitSmsResToText)
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromResponse))
@@ -570,7 +569,7 @@ instance IsHTTPError RedisError where
 instance IsAPIError RedisError
 
 data SMSError
-  = SMSError SubmitSmsRes
+  = SMSError Text
   | SMSInvalidNumber
   deriving (Eq, Show, IsBecknAPIError)
 
@@ -578,7 +577,7 @@ instanceExceptionWithParent 'HTTPException ''SMSError
 
 instance IsBaseError SMSError where
   toMessage = \case
-    SMSError err -> Just $ submitSmsResToText err
+    SMSError err -> Just err
     _ -> Nothing
 
 instance IsHTTPError SMSError where

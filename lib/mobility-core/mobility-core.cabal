@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -63,20 +63,6 @@ library
       Kernel.External.Maps.Types
       Kernel.External.Slack.Flow
       Kernel.External.Slack.Types
-      Kernel.External.SMS
-      Kernel.External.SMS.ExotelSms.API
-      Kernel.External.SMS.ExotelSms.Config
-      Kernel.External.SMS.ExotelSms.Flow
-      Kernel.External.SMS.ExotelSms.Types
-      Kernel.External.SMS.Interface
-      Kernel.External.SMS.Interface.ExotelSms
-      Kernel.External.SMS.Interface.MyValueFirst
-      Kernel.External.SMS.Interface.Types
-      Kernel.External.SMS.MyValueFirst.API
-      Kernel.External.SMS.MyValueFirst.Config
-      Kernel.External.SMS.MyValueFirst.Flow
-      Kernel.External.SMS.MyValueFirst.Types
-      Kernel.External.SMS.Types
       Kernel.External.Types
       Kernel.External.Verification
       Kernel.External.Verification.Idfy.Auth
@@ -110,7 +96,6 @@ library
       Kernel.Randomizer
       Kernel.ServantMultipart
       Kernel.Serviceability
-      Kernel.Sms.Config
       Kernel.Storage.Clickhouse.Config
       Kernel.Storage.Clickhouse.Operators
       Kernel.Storage.Clickhouse.Queries
