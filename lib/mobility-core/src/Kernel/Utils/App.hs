@@ -23,6 +23,7 @@ module Kernel.Utils.App
     withModifiedEnv,
     hashBodyForSignature,
     getPodName,
+    getVersion,
     supportProxyAuthorization,
     logRequestAndResponseGeneric,
     withModifiedEnvGeneric,
@@ -189,3 +190,6 @@ withModifiedEnvGeneric f env = \req resp -> do
 
 getPodName :: IO (Maybe Text)
 getPodName = fmap T.pack <$> lookupEnv "POD_NAME"
+
+getVersion :: IO Text
+getVersion = T.pack . fromMaybe "DEV" <$> lookupEnv "DEPLOYMENT_VERSION"
