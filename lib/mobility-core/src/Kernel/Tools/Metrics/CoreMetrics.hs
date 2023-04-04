@@ -42,7 +42,8 @@ incrementErrorCounterImplementation ::
   m ()
 incrementErrorCounterImplementation errorContext err = do
   cmContainer <- asks (.coreMetrics)
-  incrementErrorCounterImplementation' cmContainer errorContext err
+  version <- asks (.version)
+  incrementErrorCounterImplementation' cmContainer errorContext err version
 
 addUrlCallRetriesImplementation ::
   ( HasCoreMetrics r,
@@ -54,7 +55,8 @@ addUrlCallRetriesImplementation ::
   m ()
 addUrlCallRetriesImplementation url retryCount = do
   cmContainer <- asks (.coreMetrics)
-  addUrlCallRetriesImplementation' cmContainer url retryCount
+  version <- asks (.version)
+  addUrlCallRetriesImplementation' cmContainer url retryCount version
 
 addUrlCallFailuresImplementation ::
   ( HasCoreMetrics r,
@@ -65,7 +67,8 @@ addUrlCallFailuresImplementation ::
   m ()
 addUrlCallFailuresImplementation url = do
   cmContainer <- asks (.coreMetrics)
-  addUrlCallFailuresImplementation' cmContainer url
+  version <- asks (.version)
+  addUrlCallFailuresImplementation' cmContainer url version
 
 addRequestLatencyImplementation ::
   ( HasCoreMetrics r,
@@ -79,7 +82,8 @@ addRequestLatencyImplementation ::
   m ()
 addRequestLatencyImplementation host serviceName dur status = do
   cmContainer <- asks (.coreMetrics)
-  addRequestLatencyImplementation' cmContainer host serviceName dur status
+  version <- asks (.version)
+  addRequestLatencyImplementation' cmContainer host serviceName dur status version
 
 addRequestLatencyImplementation' ::
   L.MonadFlow m =>
@@ -88,13 +92,14 @@ addRequestLatencyImplementation' ::
   Text ->
   Milliseconds ->
   Either ClientError a ->
+  Text ->
   m ()
-addRequestLatencyImplementation' cmContainer host serviceName dur status = do
+addRequestLatencyImplementation' cmContainer host serviceName dur status version = do
   let requestLatencyMetric = cmContainer.requestLatency
   L.runIO $
     P.withLabel
       requestLatencyMetric
-      (host, serviceName, status')
+      (host, serviceName, status', version)
       (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds dur))
   where
     status' =
@@ -106,8 +111,8 @@ addRequestLatencyImplementation' cmContainer host serviceName dur status = do
         Left (UnsupportedContentType _ (Response code _ _ _)) -> show code
         Left (ConnectionError _) -> "Connection error"
 
-incrementErrorCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> SomeException -> m ()
-incrementErrorCounterImplementation' cmContainers errorContext exc
+incrementErrorCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> SomeException -> Text -> m ()
+incrementErrorCounterImplementation' cmContainers errorContext exc version
   | Just (HTTPException err) <- fromException exc = incCounter' err
   | Just (BaseException err) <- fromException exc = incCounter' . InternalError . fromMaybe (show err) $ toMessage err
   | otherwise = incCounter' . InternalError $ show exc
@@ -119,23 +124,23 @@ incrementErrorCounterImplementation' cmContainers errorContext exc
       L.runIO $
         P.withLabel
           errorCounterMetric
-          (show $ toHttpCode err, errorContext, toErrorCode err)
+          (show $ toHttpCode err, errorContext, toErrorCode err, version)
           P.incCounter
 
-addUrlCallRetriesImplementation' :: L.MonadFlow m => CoreMetricsContainer -> BaseUrl -> Int -> m ()
-addUrlCallRetriesImplementation' cmContainers url retryCount = do
+addUrlCallRetriesImplementation' :: L.MonadFlow m => CoreMetricsContainer -> BaseUrl -> Int -> Text -> m ()
+addUrlCallRetriesImplementation' cmContainers url retryCount version = do
   let urlCallRetriesMetric = cmContainers.urlCallRetries
   L.runIO $
     P.withLabel
       urlCallRetriesMetric
-      (showBaseUrlText url, show retryCount)
+      (showBaseUrlText url, show retryCount, version)
       P.incCounter
 
-addUrlCallFailuresImplementation' :: L.MonadFlow m => CoreMetricsContainer -> BaseUrl -> m ()
-addUrlCallFailuresImplementation' cmContainers url = do
+addUrlCallFailuresImplementation' :: L.MonadFlow m => CoreMetricsContainer -> BaseUrl -> Text -> m ()
+addUrlCallFailuresImplementation' cmContainers url version = do
   let urlCallRetriesMetric = cmContainers.urlCallRetryFailures
   L.runIO $
     P.withLabel
       urlCallRetriesMetric
-      (showBaseUrlText url)
+      (showBaseUrlText url, version)
       P.incCounter

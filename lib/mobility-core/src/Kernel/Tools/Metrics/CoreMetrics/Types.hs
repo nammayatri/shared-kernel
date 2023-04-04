@@ -26,16 +26,17 @@ import Kernel.Types.Time (Milliseconds)
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError)
 
-type RequestLatencyMetric = P.Vector P.Label3 P.Histogram
+type RequestLatencyMetric = P.Vector P.Label4 P.Histogram
 
-type ErrorCounterMetric = P.Vector P.Label3 P.Counter
+type ErrorCounterMetric = P.Vector P.Label4 P.Counter
 
-type URLCallRetriesMetric = P.Vector P.Label2 P.Counter
+type URLCallRetriesMetric = P.Vector P.Label3 P.Counter
 
-type URLCallRetryFailuresMetric = P.Vector P.Label1 P.Counter
+type URLCallRetryFailuresMetric = P.Vector P.Label2 P.Counter
 
 type HasCoreMetrics r =
-  ( HasField "coreMetrics" r CoreMetricsContainer
+  ( HasField "coreMetrics" r CoreMetricsContainer,
+    HasField "version" r Text
   )
 
 class CoreMetrics m where
@@ -68,7 +69,7 @@ registerCoreMetricsContainer = do
 registerRequestLatencyMetric :: IO RequestLatencyMetric
 registerRequestLatencyMetric =
   P.register $
-    P.vector ("host", "service", "status") $
+    P.vector ("host", "service", "status", "version") $
       P.histogram info P.defaultBuckets
   where
     info = P.Info "external_request_duration" ""
@@ -76,7 +77,7 @@ registerRequestLatencyMetric =
 registerErrorCounterMetric :: IO ErrorCounterMetric
 registerErrorCounterMetric =
   P.register $
-    P.vector ("HttpCode", "ErrorContext", "ErrorCode") $
+    P.vector ("HttpCode", "ErrorContext", "ErrorCode", "version") $
       P.counter info
   where
     info = P.Info "error_counter" ""
@@ -84,7 +85,7 @@ registerErrorCounterMetric =
 registerURLCallRetriesMetric :: IO URLCallRetriesMetric
 registerURLCallRetriesMetric =
   P.register $
-    P.vector ("URL", "RetryCount") $
+    P.vector ("URL", "RetryCount", "version") $
       P.counter info
   where
     info = P.Info "url_call_retries_counter" ""
@@ -92,7 +93,7 @@ registerURLCallRetriesMetric =
 registerURLCallRetryFailuresMetric :: IO URLCallRetryFailuresMetric
 registerURLCallRetryFailuresMetric =
   P.register $
-    P.vector "URL" $
+    P.vector ("URL", "version") $
       P.counter info
   where
     info = P.Info "url_call_retry_failures_counter" ""
