@@ -11,7 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wno-missing-signatures #-}
 
 module Kernel.Utils.Predicates where
 
@@ -26,13 +25,17 @@ latin = latinUC \/ latinLC
 alphanum = latin \/ digit
 latinOrSpace = latin \/ " "
 
+mobileNumber :: ExactLength `And` Regex
 mobileNumber = ExactLength 10 `And` star digit
 
+mobileCountryCode :: LengthInRange `And` Regex
 mobileCountryCode = LengthInRange 2 4 `And` ("+" <> star digit)
 
+fullMobilePhone :: LengthInRange `And` Regex
 fullMobilePhone = LengthInRange 12 14 `And` ("+" <> star digit)
 
 mobileIndianCode :: Regex
 mobileIndianCode = "+91"
 
+name :: Regex
 name = star latinOrSpace
