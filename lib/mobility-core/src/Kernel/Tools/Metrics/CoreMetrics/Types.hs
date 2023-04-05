@@ -16,6 +16,7 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
   ( HasCoreMetrics,
     CoreMetrics (..),
     CoreMetricsContainer (..),
+    Version (..),
     registerCoreMetricsContainer,
   )
 where
@@ -36,8 +37,10 @@ type URLCallRetryFailuresMetric = P.Vector P.Label2 P.Counter
 
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
-    HasField "version" r Text
+    HasField "version" r Version
   )
+
+newtype Version = Version {getVersion :: Text}
 
 class CoreMetrics m where
   addRequestLatency ::

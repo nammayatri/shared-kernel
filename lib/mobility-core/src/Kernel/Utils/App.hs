@@ -23,7 +23,7 @@ module Kernel.Utils.App
     withModifiedEnv,
     hashBodyForSignature,
     getPodName,
-    getVersion,
+    getDeploymentVersion,
     supportProxyAuthorization,
     logRequestAndResponseGeneric,
     withModifiedEnvGeneric,
@@ -40,6 +40,7 @@ import qualified Data.Text as T (pack)
 import Data.UUID.V4 (nextRandom)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
+import Kernel.Tools.Metrics.CoreMetrics (Version (Version))
 import Kernel.Types.App
 import Kernel.Types.Flow
 import Kernel.Utils.Common
@@ -191,5 +192,5 @@ withModifiedEnvGeneric f env = \req resp -> do
 getPodName :: IO (Maybe Text)
 getPodName = fmap T.pack <$> lookupEnv "POD_NAME"
 
-getVersion :: IO Text
-getVersion = T.pack . fromMaybe "DEV" <$> lookupEnv "DEPLOYMENT_VERSION"
+getDeploymentVersion :: IO Version
+getDeploymentVersion = Version . T.pack . fromMaybe "DEV" <$> lookupEnv "DEPLOYMENT_VERSION"
