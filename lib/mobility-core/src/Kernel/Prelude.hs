@@ -134,3 +134,9 @@ infixl 1 =<<<
 
 (=<<<) :: (Traversable n, Monad m, Monad n) => (a -> m (n b)) -> m (n a) -> m (n b)
 (=<<<) a b = b >>>= a
+
+-- Do not have this function in snapshot resolver
+
+-- | Convert a 'Maybe' computation to 'MaybeT'.
+hoistMaybe :: Applicative m => Maybe b -> MaybeT m b
+hoistMaybe = MaybeT . pure
