@@ -17,9 +17,10 @@
 module Kernel.Storage.Esqueleto.Queries
   ( findOne,
     findOne',
+    findOneM,
     findById,
     findById',
-    findByIdT,
+    findByIdM,
     findAll,
     findAll',
     create,
@@ -92,6 +93,9 @@ findOne = buildDType . findOneInternal
 findOne' :: (Typeable t, Transactionable m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe a)
 findOne' q = extractTType <$> findOneInternal q
 
+findOneM :: (Typeable t, Transactionable m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery b -> MaybeT (DTypeBuilder m) a
+findOneM = MaybeT . findOne'
+
 findOneInternal :: forall m t b. (Typeable t, Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe t)
 findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ selectOnlyOne
   where
@@ -110,8 +114,8 @@ findById = buildDType . findByIdInternal @t . toKey @t
 findById' :: forall t m. (Typeable t, Transactionable m, TEntityKey t, TEntity (Entity t) t) => Key t -> DTypeBuilder m (Maybe t)
 findById' key = extractTType <$> findByIdInternal @t key
 
-findByIdT :: forall t m. (Typeable t, Transactionable m, TEntityKey t, TEntity (Entity t) t) => Key t -> MaybeT (DTypeBuilder m) t
-findByIdT = MaybeT . findById'
+findByIdM :: forall t m. (Typeable t, Transactionable m, TEntityKey t, TEntity (Entity t) t) => Key t -> MaybeT (DTypeBuilder m) t
+findByIdM = MaybeT . findById'
 
 findByIdInternal :: forall t m. (Typeable t, Transactionable m, TEntityKey t, Log m) => Key t -> DTypeBuilder m (Maybe (Entity t))
 findByIdInternal key = findOneInternal $ do
