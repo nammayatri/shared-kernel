@@ -27,6 +27,7 @@ import qualified Data.Text as T
 import EulerHS.Prelude
 import GHC.Records.Extra
 import GHC.TypeLits (KnownSymbol, symbolVal)
+import Kernel.Types.Value
 import Kleene
 import qualified Kleene.DFA as KDFA
 import Kleene.Internal.Pretty (pretty)
@@ -86,6 +87,17 @@ instance (Predicate x p) => Predicate (Maybe x) (InMaybe p) where
 
 instance (ShowablePredicate p) => ShowablePredicate (InMaybe p) where
   pShow (InMaybe p) = liftPredShow "ifNotNull" p
+
+newtype InValue p = InValue p
+
+instance (Predicate x p) => Predicate (MandatoryValue x) (InValue p) where
+  pFun (InValue p) (MandatoryValue x) = pFun p x
+
+instance (Predicate x p) => Predicate (OptionalValue x) (InValue p) where
+  pFun (InValue p) (OptionalValue x) = maybe True (pFun p) x
+
+instance (ShowablePredicate p) => ShowablePredicate (InValue p) where
+  pShow (InValue p) = liftPredShow "inValue" p
 
 newtype InList p = InList p
 

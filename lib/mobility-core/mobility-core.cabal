@@ -200,6 +200,7 @@ library
       Kernel.Types.Time
       Kernel.Types.TimeRFC339
       Kernel.Types.Validation
+      Kernel.Types.Value
       Kernel.Types.Version
       Kernel.Utils.App
       Kernel.Utils.CalculateDistance
