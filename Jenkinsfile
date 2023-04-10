@@ -3,26 +3,18 @@ pipeline {
     stages {
         stage ('Cachix setup') {
             steps {
-                sh 'nix run nixpkgs#cachix use nammayatri'
+                cachixUse "nammayatri"
             }
         }
-        stage ('Nix Build') {
+        stage ('Nix Build All') {
             steps {
-                sh 'nix build -L'
+                nixBuildAll ()
             }
         }
-        stage ('Flake check') {
+        stage ('Cachix push') {
             steps {
-                sh 'nix build -L .#check'
+                cachixPush "nammayatri"
             }
         }
-        /* stage ('Push to cachix') {
-          environment {
-            CACHIX_AUTH_TOKEN = credentials('cachix-auth-token')
-          }
-          steps {
-            sh 'nix run .#cachix-push'
-          }
-        } */
     }
 }
