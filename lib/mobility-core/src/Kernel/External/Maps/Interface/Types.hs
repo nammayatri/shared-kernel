@@ -72,7 +72,8 @@ type GetDistancesResp a b = NonEmpty (GetDistanceResp a b)
 data GetRoutesReq = GetRoutesReq
   { waypoints :: NonEmpty LatLong,
     mode :: Maybe TravelMode, -- Defaults to CAR
-    calcPoints :: Bool -- True (default) if points needs to be calculated
+    calcPoints :: Bool, -- True (default) if points needs to be calculated
+    isWaypointNeeded :: Maybe Bool
   }
   deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
 

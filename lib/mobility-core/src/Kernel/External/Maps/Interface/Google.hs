@@ -109,10 +109,10 @@ getRoutes cfg req = do
       destination = latLongToPlace (NE.last req.waypoints)
       waypoints = getWayPoints req.waypoints
       mode = mapToMode <$> req.mode
-  gRes <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints True
+  gRes <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints True (fromMaybe False req.isWaypointNeeded)
   if null gRes.routes
     then do
-      gResp <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints False
+      gResp <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints False (fromMaybe False req.isWaypointNeeded)
       traverse (mkRoute req) gResp.routes
     else traverse (mkRoute req) gRes.routes
   where

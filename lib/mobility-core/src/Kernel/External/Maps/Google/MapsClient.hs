@@ -190,9 +190,10 @@ directions ::
   Maybe GoogleMaps.Mode ->
   Maybe [GoogleMaps.Place] ->
   Bool ->
+  Bool ->
   m GoogleMaps.DirectionsResp
-directions url key origin destination mode waypoints isAvoidTolls = do
-  callAPI url (directionsClient origin destination key (Just True) mode waypoints (if isAvoidTolls then Just "tolls" else Nothing)) "directionsAPI"
+directions url key origin destination mode waypoints isAvoidTolls isWaypointNeeded = do
+  callAPI url (directionsClient origin destination key (Just True) mode (if isWaypointNeeded then waypoints else Nothing) (if isAvoidTolls then Just "tolls" else Nothing)) "directionsAPI"
     >>= checkGoogleMapsError url
 
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
