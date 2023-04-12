@@ -31,13 +31,14 @@ import Deriving.Aeson
 import EulerHS.Prelude
 import qualified Kernel.External.Maps.Google.Config as Google
 import qualified Kernel.External.Maps.MMI.Config as MMI
+import qualified Kernel.External.Maps.OSM.Config as OSM
 import qualified Kernel.External.Maps.OSRM.Config as OSRM
 import Kernel.External.Maps.Types
 import Kernel.External.Types (Language)
 import Kernel.Types.Common
 import Kernel.Utils.GenericPretty (PrettyShow)
 
-data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg
+data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg | OSMConfig OSM.OSMCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MapsServiceConfig
 
@@ -181,3 +182,24 @@ data AddressResp = AddressResp
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data GetPlaceDetailsFromLatLonReq = GetPlaceDetailsFromLatLonReq
+  { location :: LatLong,
+    responseFormat :: Text
+  }
+
+data GetPlaceDetailsFromLatLonResp = GetPlaceDetailsFromLatLonResp
+  { placeId :: Text,
+    displayName :: Text,
+    address :: PlaceDetails
+  }
+
+data PlaceDetails = PlaceDetails
+  { city :: Text,
+    state_ :: Text,
+    country :: Text,
+    street :: Text,
+    building :: Maybe Text,
+    areaCode :: Text,
+    area :: Text
+  }

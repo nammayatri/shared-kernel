@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -50,6 +50,7 @@ library
       Kernel.External.Maps.Interface
       Kernel.External.Maps.Interface.Google
       Kernel.External.Maps.Interface.MMI
+      Kernel.External.Maps.Interface.OSM
       Kernel.External.Maps.Interface.OSRM
       Kernel.External.Maps.Interface.Types
       Kernel.External.Maps.MMI.AutoSuggest
@@ -58,6 +59,9 @@ library
       Kernel.External.Maps.MMI.MapsClient.Types
       Kernel.External.Maps.MMI.MMIAuthToken
       Kernel.External.Maps.MMI.Routes
+      Kernel.External.Maps.OSM.Config
+      Kernel.External.Maps.OSM.MapsClient.Types
+      Kernel.External.Maps.OSM.ReverseGeocode
       Kernel.External.Maps.OSRM.Config
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
