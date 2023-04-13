@@ -94,6 +94,19 @@ getDistances cfg GetDistancesReq {..} = do
     splitListByAPICap inputList = do
       List.chunksOf 25 $ toList inputList
 
+originAndDestinationRemover :: [a] -> [a]
+originAndDestinationRemover waypoints = if length waypoints > 2 then init $ tail waypoints else []
+
+routeToRouteProxyConverter :: GetRoutesReq -> GetRoutesReqProxy
+routeToRouteProxyConverter req =
+  GetRoutesReqProxy
+    { origin = NE.head req.waypoints,
+      destination = NE.last req.waypoints,
+      mode = req.mode,
+      calcPoints = req.calcPoints,
+      waypoints = originAndDestinationRemover $ NE.toList req.waypoints
+    }
+
 getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -103,27 +116,28 @@ getRoutes ::
   GetRoutesReq ->
   m GetRoutesResp
 getRoutes cfg req = do
+  let routeProxyReq = routeToRouteProxyConverter req
   let googleMapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
-  let origin = latLongToPlace (NE.head req.waypoints)
-      destination = latLongToPlace (NE.last req.waypoints)
-      waypoints = getWayPoints req.waypoints
-      mode = mapToMode <$> req.mode
+  let origin = latLongToPlace routeProxyReq.origin
+      destination = latLongToPlace routeProxyReq.destination
+      waypoints = getWayPoints routeProxyReq.waypoints
+      mode = mapToMode <$> routeProxyReq.mode
   gRes <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints True
   if null gRes.routes
     then do
       gResp <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints False
-      traverse (mkRoute req) gResp.routes
-    else traverse (mkRoute req) gRes.routes
+      traverse (mkRoute routeProxyReq) gResp.routes
+    else traverse (mkRoute routeProxyReq) gRes.routes
   where
     getWayPoints waypoints =
-      case NE.tail waypoints of
+      case waypoints of
         [] -> Nothing
-        _ -> Just (map latLongToPlace (init $ NE.tail waypoints))
+        _ -> Just (map latLongToPlace waypoints)
 
 mkRoute ::
   (MonadFlow m) =>
-  GetRoutesReq ->
+  GetRoutesReqProxy ->
   GoogleMaps.Route ->
   m RouteInfo
 mkRoute req route = do

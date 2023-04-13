@@ -76,6 +76,15 @@ data GetRoutesReq = GetRoutesReq
   }
   deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
 
+data GetRoutesReqProxy = GetRoutesReqProxy
+  { waypoints :: [LatLong],
+    origin :: LatLong,
+    destination :: LatLong,
+    mode :: Maybe TravelMode, -- Defaults to CAR
+    calcPoints :: Bool -- True (default) if points needs to be calculated
+  }
+  deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
+
 type GetRoutesResp = [RouteInfo]
 
 data RouteInfo = RouteInfo
