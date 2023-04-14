@@ -86,7 +86,8 @@ data ResultsResp = ResultsResp
   { formatted_address :: Maybe Text,
     address_components :: [AddressResp],
     plus_code :: Maybe PlusCodeResp,
-    geometry :: Geometry
+    geometry :: Geometry,
+    place_id :: Maybe Text
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -96,13 +97,13 @@ data AddressResp = AddressResp
     short_name :: Text,
     types :: [Text]
   }
-  deriving stock (Generic)
+  deriving stock (Generic, Show, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 newtype PlusCodeResp = PlusCodeResp
   { compound_code :: Text
   }
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data DirectionsResp = DirectionsResp
