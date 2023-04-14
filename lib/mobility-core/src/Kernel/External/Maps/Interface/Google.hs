@@ -287,7 +287,8 @@ getPlaceName cfg GetPlaceNameReq {..} = do
         { formattedAddress = placeName.formatted_address,
           addressComponents = map reformateAddressResp placeName.address_components,
           plusCode = placeName.plus_code <&> (.compound_code),
-          location = let loc = placeName.geometry.location in LatLong loc.lat loc.lng
+          location = let loc = placeName.geometry.location in LatLong loc.lat loc.lng,
+          placeId = placeName.place_id
         }
     reformateAddressResp aResp =
       AddressResp

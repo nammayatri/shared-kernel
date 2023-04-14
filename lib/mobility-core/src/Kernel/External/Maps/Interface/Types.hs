@@ -178,7 +178,8 @@ data PlaceName = PlaceName
   { formattedAddress :: Maybe Text,
     addressComponents :: [AddressResp],
     plusCode :: Maybe Text,
-    location :: LatLong
+    location :: LatLong,
+    placeId :: Maybe Text
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
