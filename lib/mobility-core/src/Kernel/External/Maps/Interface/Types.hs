@@ -190,3 +190,9 @@ data AddressResp = AddressResp
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data GetNearBySearchReq = GetNearBySearchReq
+  { location :: Text,
+    rankby :: Text
+  }
+  deriving stock (Generic)

@@ -27,11 +27,14 @@ module Kernel.External.Maps.Interface
     getPlaceDetails,
     getPlaceNameProvided,
     getPlaceName,
+    getNearBySearch,
+    getNearBySearchProvided,
   )
 where
 
 import EulerHS.Prelude ((...))
 import Kernel.External.Maps.Google.Config as Reexport
+import Kernel.External.Maps.Google.MapsClient.Types (NearBySearchResp)
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
 import qualified Kernel.External.Maps.Interface.Google as Google
 import qualified Kernel.External.Maps.Interface.MMI as MMI
@@ -188,3 +191,21 @@ getPlaceName serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceName cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
   MMIConfig _ -> throwNotProvidedError "getPlaceName" MMI
+
+getNearBySearchProvided :: MapsService -> Bool
+getNearBySearchProvided = \case
+  Google -> True
+  OSRM -> False
+  MMI -> False
+
+getNearBySearch ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  MapsServiceConfig ->
+  GetNearBySearchReq ->
+  m NearBySearchResp
+getNearBySearch serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getNearBySearch cfg req
+  OSRMConfig _ -> throwNotProvidedError "getNearBySearch" OSRM
+  MMIConfig _ -> throwNotProvidedError "getNearBySearch" MMI

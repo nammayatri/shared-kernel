@@ -60,6 +60,17 @@ data LocationS = LocationS
   }
   deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
 
+data NearBySearchResp = NearBySearchResp
+  { results :: [Results],
+    status :: Text
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype Results = Results
+  { vicinity :: Text
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
 instance ToHttpApiData LocationS where
   toUrlPiece (LocationS lat' lng') =
     T.concat [toFixed precision lat', ",", toFixed precision lng']
