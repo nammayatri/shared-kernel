@@ -11,6 +11,8 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Kernel.Tools.Metrics.CoreMetrics.Types
   ( HasCoreMetrics,
@@ -21,10 +23,12 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
   )
 where
 
+import Data.OpenApi (ToParamSchema)
 import EulerHS.Prelude as E
 import GHC.Records.Extra
 import Kernel.Types.Time (Milliseconds)
 import Prometheus as P
+import Servant (FromHttpApiData, ToHttpApiData)
 import Servant.Client (BaseUrl, ClientError)
 
 type RequestLatencyMetric = P.Vector P.Label4 P.Histogram
@@ -40,7 +44,10 @@ type HasCoreMetrics r =
     HasField "version" r DeploymentVersion
   )
 
-newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}
+newtype DeploymentVersion = DeploymentVersion
+  { getDeploymentVersion :: Text
+  }
+  deriving newtype (FromHttpApiData, ToHttpApiData, ToParamSchema)
 
 class CoreMetrics m where
   addRequestLatency ::
