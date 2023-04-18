@@ -19,6 +19,7 @@ module Kernel.External.Maps.Interface.MMI
     snapToRoad,
     reverseGeocode,
     getPlaceDetails,
+    geocode,
   )
 where
 
@@ -35,6 +36,7 @@ import Kernel.External.Maps.Interface.Types as IT
 import Kernel.External.Maps.MMI.AutoSuggest as MMI
 import Kernel.External.Maps.MMI.Config
 import Kernel.External.Maps.MMI.DistanceMatrix as MMI
+import Kernel.External.Maps.MMI.Geocode as MMI
 import Kernel.External.Maps.MMI.MMIAuthToken as MMIAuthToken
 import qualified Kernel.External.Maps.MMI.PlaceDetails as MMI
 import Kernel.External.Maps.MMI.ReverseGeocoding as MMI
@@ -252,3 +254,35 @@ reverseGeocode mmiCfg MMITypes.ReverseGeocodeReq {..} = do
   key <- decrypt mmiCfg.mmiApiKey
   let mapsUrl = mmiCfg.mmiKeyUrl
   MMI.mmiReverseGeocode mapsUrl key location region lang
+
+geocode ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    MonadFlow m
+  ) =>
+  MMICfg ->
+  IT.GetPlaceNameReq ->
+  m IT.GetPlaceNameResp
+geocode mmiCfg GetPlaceNameReq {..} = do
+  let mapsUrl = mmiCfg.mmiNonKeyUrl
+  token <- MMIAuthToken.getTokenText mmiCfg
+  res <- MMI.mmiGeoCode mapsUrl (Just $ MMI.MMIAuthToken token) mbByPlaceId
+  return [reformatePlaceName res.copResults]
+  where
+    reformatePlaceName (res :: MMI.GeocodeResult) =
+      PlaceName
+        { formattedAddress = Just res.formattedAddress,
+          addressComponents = [reformateAddressResp res],
+          plusCode = Just res.eLoc,
+          location = LatLong {lat = 0.00, lon = 0.00}
+        }
+    reformateAddressResp aResp =
+      AddressResp
+        { longName = aResp.district,
+          shortName = aResp.locality,
+          types = [aResp.geocodeLevel]
+        }
+    mbByPlaceId = case getBy of
+      ByPlaceId placeId -> placeId -- Do we need to add a ByAddress?
+      ByLatLong _ -> "BAD_REQUEST" --TO be fixed post discussion with MMI to add lat-long in response as per our product requirement
