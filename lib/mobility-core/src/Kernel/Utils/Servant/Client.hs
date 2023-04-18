@@ -47,7 +47,8 @@ import Servant.Client.Core
 import WaiAppStatic.Storage.Filesystem
 import WaiAppStatic.Types (StaticSettings (..))
 import Kernel.Utils.Monitoring.Prometheus.Servant
-
+import qualified Debug.Trace as DB
+import qualified Text.Regex as TR
 newtype HttpClientOptions = HttpClientOptions
   { timeoutMs :: Int
   }
@@ -106,11 +107,14 @@ callAPI' mbManagerSelector baseUrl eulerClient desc api =
     return res
   where 
     buildSanitizedUrl = do
-      let url = T.split (=='/') $ T.pack (baseUrlPath baseUrl)
+      let url = T.split (=='/') $ T.pack (baseUrlPath $ DB.traceShowId baseUrl)
           urlPath = if headMaybe url == Just "" then drop 1 url else url
       let req = Wai.defaultRequest
-          baseRequest = req {Wai.pathInfo = urlPath}
-      fromMaybe (showBaseUrlText baseUrl) (getSanitizedUrl api baseRequest)
+          baseRequest = DB.traceShowId $ req {Wai.pathInfo = DB.traceShowId urlPath}
+      fromMaybe (removeUUID $ showBaseUrlText baseUrl) (DB.traceShowId $ getSanitizedUrl  api baseRequest)
+
+    removeUUID url = T.pack $ TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}") (T.unpack url) ":id"
+
 
     headMaybe [] = Nothing
     headMaybe (x : _) = Just x
