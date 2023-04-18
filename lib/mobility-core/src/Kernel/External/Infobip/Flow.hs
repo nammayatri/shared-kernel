@@ -57,7 +57,7 @@ submitSms ::
   Text ->
   m SMSRes
 submitSms url userName password from phoneNumber smsTemplate entityId templetId webhookurl = do
-  callAPI url (APISend.sendSms userName password from phoneNumber smsTemplate entityId templetId webhookurl) "sendSms"
+  callAPI url (APISend.sendSms userName password from phoneNumber smsTemplate entityId templetId webhookurl) "sendSms" APISend.serviceAPI
     >>= fromEitherM (ExternalAPICallError (Just "UNABLE_TO_SEND_SMS") url)
 
 callWebengageWebhook ::
@@ -69,5 +69,5 @@ callWebengageWebhook ::
   m APISuccess
 callWebengageWebhook webCfg req = do
   let url = webCfg.url
-  callAPI url (APIStatus.sendStatus req) "success"
+  callAPI url (APIStatus.sendStatus req) "success" APIStatus.serviceAPI
     >>= fromEitherM (ExternalAPICallError (Just "UNABLE_TO_CALL_WEBHOOK") url)

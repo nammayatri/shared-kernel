@@ -25,6 +25,7 @@ import Kernel.Types.Error
 import Kernel.Types.Error.BaseError.HTTPError.BecknAPIError
 import Kernel.Types.TimeRFC339 (UTCTimeRFC3339 (..))
 import Kernel.Utils.Common
+import Kernel.Utils.Monitoring.Prometheus.Servant
 import Servant.Client
 
 someExceptionToCallbackReqMig :: M.Context.Context -> SomeException -> BecknCallbackReq a
@@ -37,6 +38,7 @@ someExceptionToCallbackReqMig context exc =
 
 type WithBecknCallbackMig api callback_success m =
   ( MonadFlow m,
+    SanitizedUrl api,
     CoreMetrics m,
     HasClient ET.EulerClient api,
     Client ET.EulerClient api

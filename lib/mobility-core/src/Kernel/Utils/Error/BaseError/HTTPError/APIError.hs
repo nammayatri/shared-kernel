@@ -42,7 +42,7 @@ instance IsAPIError APICallError
 callOwnAPI ::
   Maybe ET.ManagerSelector ->
   Maybe Text ->
-  CallAPI env a
+  CallAPI env api a
 callOwnAPI = callApiUnwrappingApiError APICallError
 
 catchOwnAPI ::

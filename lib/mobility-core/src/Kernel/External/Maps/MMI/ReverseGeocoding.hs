@@ -58,8 +58,9 @@ mmiReverseGeocode url apiKey LatLong {..} region lang = do
     url
     (getReverseGeocodeClient apiKey lat lon region lang)
     "mmi-reverse-geocode"
+    mmiReverseGeocodeAPI
 
-callMMIAPI :: CallAPI env a
+callMMIAPI :: CallAPI env api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

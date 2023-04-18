@@ -61,10 +61,11 @@ mmiAuthToken mmiCfg = do
     url
     (callMMIAuth authReq)
     "mmi-auto-suggest"
+    mmiAuthAPI
   where
     callMMIAuth authReq = ET.client mmiAuthAPI authReq
 
-callMMIAPI :: CallAPI env a
+callMMIAPI :: CallAPI env api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

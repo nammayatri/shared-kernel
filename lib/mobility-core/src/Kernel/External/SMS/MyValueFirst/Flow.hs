@@ -31,7 +31,7 @@ submitSms ::
   SubmitSms ->
   m SubmitSmsRes
 submitSms url params = do
-  callAPI url (API.submitSms params) "submitSms"
+  callAPI url (API.submitSms params) "submitSms" API.serviceAPI
     >>= fromEitherM (ExternalAPICallError (Just "UNABLE_TO_SEND_SMS") url)
 
 type OtpTemplate = Text

@@ -21,6 +21,7 @@ import qualified EulerHS.Types as ET
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Utils.Monitoring.Prometheus.Servant
 import Kernel.Utils.Servant.Client
 import Servant.Client (Client, HasClient)
 
@@ -48,7 +49,8 @@ type IsBecknAPI api req res =
 callBecknAPI ::
   ( MonadFlow m,
     CoreMetrics m,
-    IsBecknAPI api req res
+    IsBecknAPI api req res,
+    SanitizedUrl api
   ) =>
   Maybe ET.ManagerSelector ->
   Maybe Text ->
@@ -58,14 +60,14 @@ callBecknAPI ::
   req ->
   m res
 callBecknAPI mbManagerSelector errorCodeMb action api baseUrl req =
-  callBecknAPI' mbManagerSelector errorCodeMb baseUrl (ET.client api req) action
+  callBecknAPI' mbManagerSelector errorCodeMb baseUrl (ET.client api req) action api
 
 callBecknAPI' ::
   MonadFlow m =>
   Maybe ET.ManagerSelector ->
   Maybe Text ->
-  CallAPI m res
-callBecknAPI' mbManagerSelector errorCodeMb baseUrl eulerClient name =
+  CallAPI m api res
+callBecknAPI' mbManagerSelector errorCodeMb baseUrl eulerClient name api =
   callApiUnwrappingApiError
     (becknAPIErrorToException name)
     mbManagerSelector
@@ -73,12 +75,13 @@ callBecknAPI' mbManagerSelector errorCodeMb baseUrl eulerClient name =
     baseUrl
     eulerClient
     name
+    api
 
 callPseudoBecknAPI ::
   Maybe ET.ManagerSelector ->
   Maybe Text ->
-  CallAPI env a
-callPseudoBecknAPI mbManagerSelector errorCodeMb baseUrl eulerClient name =
+  CallAPI env api a
+callPseudoBecknAPI mbManagerSelector errorCodeMb baseUrl eulerClient name api =
   callApiUnwrappingApiError
     (becknAPIErrorToException name)
     mbManagerSelector
@@ -86,6 +89,7 @@ callPseudoBecknAPI mbManagerSelector errorCodeMb baseUrl eulerClient name =
     baseUrl
     eulerClient
     name
+    api
 
 becknAPIErrorToException :: Text -> BecknAPIError -> BecknAPICallError
 becknAPIErrorToException name (BecknAPIError becknErr) = BecknAPICallError name becknErr
