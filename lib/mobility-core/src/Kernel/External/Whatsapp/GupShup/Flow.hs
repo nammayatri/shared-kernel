@@ -74,7 +74,7 @@ whatsAppOptAPI ::
   Text ->
   m Whatsapp.OptApiResp
 whatsAppOptAPI url userid password phone_number method auth_scheme v channel format = do
-  callAPI url (gupShupOptAPIClient userid password phone_number method auth_scheme v channel format) "GupShup Opt api"
+  callAPI url (gupShupOptAPIClient userid password phone_number method auth_scheme v channel format) "GupShup Opt api" (Proxy :: Proxy GupShupAPI)
     >>= checkGupShupOptError url
 
 checkGupShupOptError :: (MonadThrow m, Log m, HasField "_response" a Whatsapp.OptApiResponse) => BaseUrl -> Either ClientError a -> m a
@@ -118,5 +118,5 @@ whatsAppSendOtpAPI ::
   Text ->
   m Whatsapp.SendOtpApiResp
 whatsAppSendOtpAPI url userid password sendTo method auth_scheme v msgType format var1 templateId = do
-  callAPI url (gupShupSendOtpAPIClient userid password sendTo method auth_scheme v msgType format var1 templateId) "GupShup Otp api"
+  callAPI url (gupShupSendOtpAPIClient userid password sendTo method auth_scheme v msgType format var1 templateId) "GupShup Otp api" (Proxy :: Proxy GupShupAPI)
     >>= checkGupShupOptError url

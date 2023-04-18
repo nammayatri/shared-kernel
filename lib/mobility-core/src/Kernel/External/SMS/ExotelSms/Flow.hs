@@ -64,10 +64,11 @@ sendOTPApi
       (defaultBaseUrlSms sid url)
       (callExotel auth submitSmsReq)
       "sendOTPApi"
+      API.exotelConnectAPI
     where
       callExotel auth submitSmsReq = ET.client API.exotelConnectAPI auth submitSmsReq
 
-callExotelAPI :: CallAPI env a
+callExotelAPI :: CallAPI env api a
 callExotelAPI =
   callApiUnwrappingApiError
     (identity @ExotelError)

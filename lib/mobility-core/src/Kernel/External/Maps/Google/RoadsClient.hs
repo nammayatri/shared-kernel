@@ -69,7 +69,7 @@ snapToRoad roadsUrl apiKey pointsList = do
   let eulerClient = Euler.client (Proxy @SnapToRoadAPI)
       interpolate = True
   res <-
-    callAPI roadsUrl (eulerClient apiKey interpolate $ convertPointsList pointsList) "snap-to-road"
+    callAPI roadsUrl (eulerClient apiKey interpolate $ convertPointsList pointsList) "snap-to-road" (Proxy @SnapToRoadAPI)
       >>= fromEitherM (\err -> InternalError $ "Failed to call snap-to-road API: " <> show err)
   maybe
     (pure ())

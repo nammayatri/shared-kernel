@@ -68,7 +68,7 @@ registryFetch ::
   API.LookupRequest ->
   m [Subscriber]
 registryFetch registryUrl request = do
-  callAPI registryUrl (T.client Registry.lookupAPI request) "lookup"
+  callAPI registryUrl (T.client Registry.lookupAPI request) "lookup" (Registry.lookupAPI)
     >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
 
 whitelisting ::

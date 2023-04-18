@@ -130,7 +130,7 @@ autoComplete ::
   Language ->
   m GoogleMaps.AutoCompleteResp
 autoComplete url apiKey input sessiontoken location radius components lang = do
-  callAPI url (autoCompleteClient sessiontoken apiKey input location radius components lang) "autoComplete"
+  callAPI url (autoCompleteClient sessiontoken apiKey input location radius components lang) "autoComplete" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
 
 getPlaceDetails ::
@@ -144,7 +144,7 @@ getPlaceDetails ::
   Text ->
   m GoogleMaps.GetPlaceDetailsResp
 getPlaceDetails url apiKey sessiontoken placeId fields = do
-  callAPI url (getPlaceDetailsClient sessiontoken apiKey placeId fields) "getPlaceDetails"
+  callAPI url (getPlaceDetailsClient sessiontoken apiKey placeId fields) "getPlaceDetails" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
 
 getPlaceName ::
@@ -159,7 +159,7 @@ getPlaceName ::
   Maybe Language ->
   m GoogleMaps.GetPlaceNameResp
 getPlaceName url apiKey sessiontoken mbByPlaceId mbByLatLong language = do
-  callAPI url (getPlaceNameClient sessiontoken apiKey mbByLatLong mbByPlaceId language) "getPlaceName"
+  callAPI url (getPlaceNameClient sessiontoken apiKey mbByLatLong mbByPlaceId language) "getPlaceName" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
 
 distanceMatrix ::
@@ -174,7 +174,7 @@ distanceMatrix ::
   Bool ->
   m GoogleMaps.DistanceMatrixResp
 distanceMatrix url key origins destinations mode isAvoidTolls = do
-  callAPI url (distanceMatrixClient origins destinations key mode (if isAvoidTolls then Just "tolls" else Nothing)) "distanceMatrix" >>= checkGoogleMapsError url
+  callAPI url (distanceMatrixClient origins destinations key mode (if isAvoidTolls then Just "tolls" else Nothing)) "distanceMatrix" (Proxy :: Proxy GoogleMapsAPI) >>= checkGoogleMapsError url 
     >>= \resp -> do
       mapM_ (mapM validateResponseStatus . (.elements)) resp.rows
       return resp
@@ -192,7 +192,7 @@ directions ::
   Bool ->
   m GoogleMaps.DirectionsResp
 directions url key origin destination mode waypoints isAvoidTolls = do
-  callAPI url (directionsClient origin destination key (Just True) mode waypoints (if isAvoidTolls then Just "tolls" else Nothing)) "directionsAPI"
+  callAPI url (directionsClient origin destination key (Just True) mode waypoints (if isAvoidTolls then Just "tolls" else Nothing)) "directionsAPI" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
 
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
