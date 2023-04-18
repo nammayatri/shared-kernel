@@ -56,8 +56,9 @@ mmiRoute url apiKey points = do
     url
     (getRouteClient apiKey points (Just True) (Just "ind") (Just "full"))
     "mmi-route"
+    mmiRouteAPI
 
-callMMIAPI :: CallAPI env a
+callMMIAPI :: CallAPI env api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

@@ -19,6 +19,8 @@ module Kernel.Utils.Servant.Client where
 
 import qualified Data.Aeson as A
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as T
+import qualified Debug.Trace as DB
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id, notElem)
 import qualified EulerHS.Types as ET
@@ -33,6 +35,7 @@ import Kernel.Types.Error.BaseError.HTTPError.FromResponse
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.Error.Throwing
 import Kernel.Utils.Logging
+import Kernel.Utils.Monitoring.Prometheus.Servant
 import Kernel.Utils.Servant.BaseUrl
 import Kernel.Utils.Text
 import Kernel.Utils.Time
@@ -43,6 +46,7 @@ import qualified Network.Wai as Wai
 import Network.Wai.Application.Static (staticApp)
 import qualified Servant
 import Servant.Client.Core
+import qualified Text.Regex as TR
 import WaiAppStatic.Storage.Filesystem
 import WaiAppStatic.Types (StaticSettings (..))
 
@@ -67,9 +71,10 @@ type HasLongDurationRetryCfg r c = HasField "longDurationRetryCfg" r RetryCfg
 
 data RetryType = ShortDurationRetry | LongDurationRetry
 
-type CallAPI' m res res' =
+type CallAPI' m api res res' =
   ( HasCallStack,
     Metrics.CoreMetrics m,
+    SanitizedUrl api,
     MonadFlow m,
     ET.JSONEx res,
     ToJSON res
@@ -77,37 +82,48 @@ type CallAPI' m res res' =
   BaseUrl ->
   ET.EulerClient res ->
   Text ->
+  Proxy api ->
   m res'
 
-type CallAPI m res = CallAPI' m res res
+type CallAPI m api res = CallAPI' m api res res
 
 callAPI ::
-  CallAPI' m res (Either ClientError res)
+  CallAPI' m api res (Either ClientError res)
 callAPI = callAPI' Nothing
 
 -- Why do we call L.callAPI' (Just "default") instead of L.callAPI' Nothing?
 callAPI' ::
   Maybe ET.ManagerSelector ->
-  CallAPI' m res (Either ClientError res)
-callAPI' mbManagerSelector baseUrl eulerClient desc =
+  CallAPI' m api res (Either ClientError res)
+callAPI' mbManagerSelector baseUrl eulerClient desc api =
   withLogTag "callAPI" $ do
     let managerSelector = fromMaybe defaultHttpManager mbManagerSelector
+    logDebug $ "Sanitized URL is " <> buildSanitizedUrl
     res <-
-      measuringDuration (Metrics.addRequestLatency (showBaseUrlText baseUrl) desc) $
+      measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
         L.callAPI' (Just managerSelector) baseUrl eulerClient
     case res of
       Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
       Left err -> logDebug $ "Error occured during client call: " <> show err
     return res
+  where
+    buildSanitizedUrl = do
+      let url = T.split (== '/') $ T.pack (baseUrlPath $ DB.traceShowId baseUrl)
+          urlPath = if listToMaybe url == Just "" then drop 1 url else url
+      let req = Wai.defaultRequest
+          baseRequest = DB.traceShowId $ req {Wai.pathInfo = DB.traceShowId urlPath}
+      fromMaybe (removeUUID $ showBaseUrlText baseUrl) (DB.traceShowId $ getSanitizedUrl api baseRequest)
+
+    removeUUID url = T.pack $ TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}") (T.unpack url) ":id"
 
 callApiExtractingApiError ::
   ( Metrics.CoreMetrics m,
     FromResponse err
   ) =>
   Maybe ET.ManagerSelector ->
-  CallAPI' m a (Either (CallAPIError err) a)
-callApiExtractingApiError mbManagerSelector baseUrl eulerClient desc =
-  callAPI' mbManagerSelector baseUrl eulerClient desc
+  CallAPI' m api a (Either (CallAPIError err) a)
+callApiExtractingApiError mbManagerSelector baseUrl eulerClient desc api =
+  callAPI' mbManagerSelector baseUrl eulerClient desc api
     <&> extractApiError
 
 callApiUnwrappingApiError ::
@@ -118,9 +134,9 @@ callApiUnwrappingApiError ::
   (err -> exc) ->
   Maybe ET.ManagerSelector ->
   Maybe Text ->
-  CallAPI m a
-callApiUnwrappingApiError toAPIException mbManagerSelector errorCodeMb baseUrl eulerClient desc =
-  callApiExtractingApiError mbManagerSelector baseUrl eulerClient desc
+  CallAPI m api a
+callApiUnwrappingApiError toAPIException mbManagerSelector errorCodeMb baseUrl eulerClient desc api =
+  callApiExtractingApiError mbManagerSelector baseUrl eulerClient desc api
     >>= unwrapEitherCallAPIError errorCodeMb baseUrl toAPIException
 
 defaultHttpManager :: String

@@ -42,7 +42,7 @@ mmiSnapToRoadAPI = Proxy
 getSnapToRoadClient :: Text -> Text -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> ET.EulerClient MMI.SnapToRoadResp
 getSnapToRoadClient = ET.client mmiSnapToRoadAPI
 
-callMMIAPI :: CallAPI env a
+callMMIAPI :: CallAPI env api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)
@@ -63,3 +63,4 @@ mmiSnapToRoad url apiKey points = do
     url
     (getSnapToRoadClient apiKey points Nothing Nothing Nothing (Just "ind"))
     "mmi-snap-to-road"
+    mmiSnapToRoadAPI

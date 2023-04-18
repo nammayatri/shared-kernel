@@ -54,8 +54,9 @@ mmiGeoCode url authToken address = do
     url
     (mmiGeocodeClient authToken address (Just "ind"))
     "mmi-auto-suggest"
+    mmiGeocodeAPI
 
-callMMIGeocodeAPI :: CallAPI env a
+callMMIGeocodeAPI :: CallAPI env api a
 callMMIGeocodeAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

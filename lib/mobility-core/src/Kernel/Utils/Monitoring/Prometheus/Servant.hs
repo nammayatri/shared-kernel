@@ -103,6 +103,12 @@ instance
 
 instance
   SanitizedUrl (subroute :: Type) =>
+  SanitizedUrl (BasicAuth h a :> subroute)
+  where
+  getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
+
+instance
+  SanitizedUrl (subroute :: Type) =>
   SanitizedUrl (ReqBody cts a :> subroute)
   where
   getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)

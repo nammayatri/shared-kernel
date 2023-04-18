@@ -59,8 +59,9 @@ mmiDistanceMatrix url apiKey points srcList destList = do
     url
     (getDistanceMatrixClient apiKey points (Just 0) (Just "ind") srcList destList)
     "mmi-distance-matrix"
+    mmiDistanceMatrixAPI
 
-callMMIAPI :: CallAPI env a
+callMMIAPI :: CallAPI env api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

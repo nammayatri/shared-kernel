@@ -34,7 +34,7 @@ translate ::
   Text ->
   m GoogleTranslate.TranslateResp
 translate url apiKey source target query = do
-  callAPI url (API.translate apiKey source target query) "translate"
+  callAPI url (API.translate apiKey source target query) "translate" API.googleTranslateAPI
     >>= checkGoogleTranslateError url
 
 checkGoogleTranslateError :: (MonadThrow m, Log m, HasField "_error" a (Maybe GoogleTranslate.TranslateError)) => BaseUrl -> Either ClientError a -> m a

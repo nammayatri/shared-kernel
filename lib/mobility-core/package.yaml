@@ -66,6 +66,7 @@ dependencies:
   - hspec
   - http-api-data
   - http-client
+  - regex-compat
   - http-client-tls
   - http-types
   - http-media

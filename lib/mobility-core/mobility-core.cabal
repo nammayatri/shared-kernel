@@ -343,6 +343,7 @@ library
     , random-strings
     , record-dot-preprocessor
     , record-hasfield
+    , regex-compat
     , resource-pool
     , safe
     , safe-exceptions
@@ -485,6 +486,7 @@ test-suite mobility-core-tests
     , random-strings
     , record-dot-preprocessor
     , record-hasfield
+    , regex-compat
     , resource-pool
     , safe
     , safe-exceptions

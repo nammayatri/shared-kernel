@@ -59,8 +59,9 @@ mmiAutoSuggest url authToken query location region lang = do
     url
     (mmiAutoSuggestClient authToken query location region lang)
     "mmi-auto-suggest"
+    mmiAutoSuggestAPI
 
-callMMIAutoSuggestAPI :: CallAPI env a
+callMMIAutoSuggestAPI :: CallAPI env api a
 callMMIAutoSuggestAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

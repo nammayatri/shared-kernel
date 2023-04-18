@@ -187,7 +187,7 @@ sendMessage config fcmMsg toWhom = fork desc $ do
   case authToken of
     Right token -> do
       let fcmUrl = config.fcmUrl
-      res <- callAPI fcmUrl (callFCM (Just $ FCMAuthToken token) fcmMsg) "sendMessage"
+      res <- callAPI fcmUrl (callFCM (Just $ FCMAuthToken token) fcmMsg) "sendMessage" fcmSendMessageAPI
       case res of
         Right _ -> logTagInfo fcm $ "message sent successfully to a person with id " <> toWhom
         Left x -> logTagError fcm $ "error while sending message to person with id " <> toWhom <> " : " <> show x

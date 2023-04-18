@@ -61,10 +61,11 @@ postMessage message = do
       defaultBaseUrl
       (callSlack slackToken slackRequest)
       "PostMessage"
+      slackConnectAPI
   where
     callSlack token slackRequest = ET.client slackConnectAPI (Just $ "Bearer " <> token) slackRequest
 
-callSlackAPI :: CallAPI env a
+callSlackAPI :: CallAPI env api a
 callSlackAPI =
   callApiUnwrappingApiError
     (identity @Error)

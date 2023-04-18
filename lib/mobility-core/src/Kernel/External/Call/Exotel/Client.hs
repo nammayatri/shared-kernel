@@ -63,10 +63,11 @@ initiateCall ExotelCfg {..} exoRequest = do
       exotelUrl
       (callExotel accountSID authData)
       "initiateCall"
+      (Proxy :: Proxy (InitiateCallAPI a))
   where
     callExotel sid authData = ET.client (Proxy :: Proxy (InitiateCallAPI a)) sid authData exoRequest
 
-callExotelAPI :: CallAPI env a
+callExotelAPI :: CallAPI env api a
 callExotelAPI =
   callApiUnwrappingApiError
     (identity @ExotelError)

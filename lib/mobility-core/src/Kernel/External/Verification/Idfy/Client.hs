@@ -58,7 +58,7 @@ verifyDLAsync ::
   BaseUrl ->
   DLVerificationRequest ->
   m IdfySuccess
-verifyDLAsync apiKey accountId url req = callIdfyAPI url task "verifyDLAsync"
+verifyDLAsync apiKey accountId url req = callIdfyAPI url task "verifyDLAsync" verifyDLAPI
   where
     task =
       T.client
@@ -86,7 +86,7 @@ verifyRCAsync ::
   BaseUrl ->
   RCVerificationRequest ->
   m IdfySuccess
-verifyRCAsync apiKey accountId url req = callIdfyAPI url task "verifyRCAsync"
+verifyRCAsync apiKey accountId url req = callIdfyAPI url task "verifyRCAsync" verifyRCAPI
   where
     task =
       T.client
@@ -114,7 +114,7 @@ validateImage ::
   BaseUrl ->
   ImageValidateRequest ->
   m ImageValidateResponse
-validateImage apiKey accountId url req = callIdfyAPI url task "validateImage"
+validateImage apiKey accountId url req = callIdfyAPI url task "validateImage" validateImageAPI
   where
     task =
       T.client
@@ -142,7 +142,7 @@ extractRCImage ::
   BaseUrl ->
   ImageExtractRequest ->
   m RCExtractResponse
-extractRCImage apiKey accountId url req = callIdfyAPI url task "extractRCImage"
+extractRCImage apiKey accountId url req = callIdfyAPI url task "extractRCImage" extractRCAPI
   where
     task =
       T.client
@@ -170,7 +170,7 @@ extractDLImage ::
   BaseUrl ->
   ImageExtractRequest ->
   m DLExtractResponse
-extractDLImage apiKey accountId url req = callIdfyAPI url task "extractDLImage"
+extractDLImage apiKey accountId url req = callIdfyAPI url task "extractDLImage" extractDLAPI
   where
     task =
       T.client
@@ -198,7 +198,7 @@ getTask ::
   BaseUrl ->
   Text ->
   m VerificationResponse
-getTask apiKey accountId url request_id = callIdfyAPI url task "getTask"
+getTask apiKey accountId url request_id = callIdfyAPI url task "getTask" getTaskApi
   where
     task =
       T.client
@@ -207,5 +207,5 @@ getTask apiKey accountId url request_id = callIdfyAPI url task "getTask"
         (Just accountId)
         request_id
 
-callIdfyAPI :: CallAPI env res
+callIdfyAPI :: CallAPI env api res
 callIdfyAPI = callApiUnwrappingApiError (identity @IdfyError) (Just idfyHttpManagerKey) (Just "IDFY_ERROR")

@@ -52,8 +52,9 @@ mmiPlaceDetails url apiKey placeId = do
     url
     (getPlaceDetailsClient apiKey placeId)
     "mmi-get-place-details"
+    mmiPlaceDetailsAPI
 
-callMMIAPI :: CallAPI env a
+callMMIAPI :: CallAPI env api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)
