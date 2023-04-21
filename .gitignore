@@ -35,3 +35,8 @@ dhall-configs/dev/secrets/top-secret.dhall
 .direnv
 result
 .pre-commit-config.yaml
+
+# Non-Nix bans
+Makefile
+*.sh
+
