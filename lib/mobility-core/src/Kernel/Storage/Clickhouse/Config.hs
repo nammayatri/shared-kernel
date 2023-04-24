@@ -5,7 +5,6 @@ import Data.String.Conversions
 import Data.Text as T
 import Data.Word (Word16)
 import qualified Database.ClickHouseDriver.HTTP as CH
-import Debug.Trace as DB
 import Kernel.Prelude
 import Kernel.Types.Common
 import Kernel.Utils.Dhall (FromDhall)
@@ -31,7 +30,7 @@ createConn :: ClickhouseCfg -> IO ClickhouseEnv
 createConn ClickhouseCfg {..} =
   ClickhouseEnv
     <$> CH.httpConnectDb
-      (if T.null database then DB.traceShowId Nothing else DB.traceShowId $ Just (cs database))
+      (if T.null database then Nothing else Just (cs database))
       (cs username)
       (cs password)
       (fromIntegral port)

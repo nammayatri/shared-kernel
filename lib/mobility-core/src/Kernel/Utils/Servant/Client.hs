@@ -20,7 +20,6 @@ module Kernel.Utils.Servant.Client where
 import qualified Data.Aeson as A
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
-import qualified Debug.Trace as DB
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id, notElem)
 import qualified EulerHS.Types as ET
@@ -108,11 +107,11 @@ callAPI' mbManagerSelector baseUrl eulerClient desc api =
     return res
   where
     buildSanitizedUrl = do
-      let url = T.split (== '/') $ T.pack (baseUrlPath $ DB.traceShowId baseUrl)
+      let url = T.split (== '/') $ T.pack (baseUrlPath baseUrl)
           urlPath = if listToMaybe url == Just "" then drop 1 url else url
       let req = Wai.defaultRequest
-          baseRequest = DB.traceShowId $ req {Wai.pathInfo = DB.traceShowId urlPath}
-      fromMaybe (removeUUID $ showBaseUrlText baseUrl) (DB.traceShowId $ getSanitizedUrl api baseRequest)
+          baseRequest = req {Wai.pathInfo = urlPath}
+      fromMaybe (removeUUID $ showBaseUrlText baseUrl) (getSanitizedUrl api baseRequest)
 
     removeUUID url = T.pack $ TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}") (T.unpack url) ":id"
 
