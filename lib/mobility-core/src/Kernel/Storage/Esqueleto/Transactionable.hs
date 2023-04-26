@@ -83,6 +83,11 @@ runInReplica (SelectSqlDB m) = do
   dbEnv <- asks (.esqDBReplicaEnv)
   runNoTransactionImpl dbEnv m
 
+runNoTransaction :: (EsqDBFlow m r, MonadThrow m, Log m) => SqlDB a -> m a
+runNoTransaction m = do
+  dbEnv <- asks (.esqDBEnv)
+  runNoTransactionImpl dbEnv m
+
 runNoTransactionImpl ::
   (HasEsq m r) =>
   EsqDBEnv ->
