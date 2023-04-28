@@ -10,7 +10,7 @@
     clickhouse-haskell.url = "github:piyushKumar-1/clickhouse-haskell";
     clickhouse-haskell.flake = false;
 
-    euler-hs.url = "github:srid/euler-hs/ghc810--nixify";
+    euler-hs.url = "github:juspay/euler-hs";
   };
   outputs = inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {

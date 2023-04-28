@@ -221,16 +221,15 @@
         "sequelize": "sequelize"
       },
       "locked": {
-        "lastModified": 1678142505,
+        "lastModified": 1682697194,
         "narHash": "sha256-yUlBIgOrdQG30sg0yh9godjE9hYnVxUo29kvcmmsWmI=",
-        "owner": "srid",
+        "owner": "juspay",
         "repo": "euler-hs",
-        "rev": "44a85bb82f41a2ad9de2a516faa76f0a4040682a",
+        "rev": "b7eb8a74b6fd784f37b28b79466071f5716e172f",
         "type": "github"
       },
       "original": {
-        "owner": "srid",
-        "ref": "ghc810--nixify",
+        "owner": "juspay",
         "repo": "euler-hs",
         "type": "github"
       }
