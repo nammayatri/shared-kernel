@@ -138,6 +138,8 @@ dependencies:
   - wai-app-static
   - servant-multipart
   - clickhouse-haskell
+  - beam-postgres
+  - beam-core
 
 ghc-options:
   - -fwrite-ide-info

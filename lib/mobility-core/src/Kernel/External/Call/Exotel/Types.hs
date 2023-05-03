@@ -30,8 +30,8 @@ import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.Aeson.Types
 import qualified Data.Text as T
-import EulerHS.Prelude (decodeJSON)
 import Kernel.External.Encryption (DbHashable)
+import Kernel.Mock.Utils (decodeJSONText)
 import Kernel.Prelude hiding (showBaseUrl)
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Beckn.Ack (AckResponse)
@@ -283,7 +283,7 @@ instance FromJSON a => FromJSON (ExotelCallCallbackReq a) where
 
 parseCustomField :: FromJSON a => Value -> Text -> Parser a
 parseCustomField v txt = do
-  case decodeJSON txt of
+  case decodeJSONText txt of
     Just exoAttch -> return exoAttch
     Nothing -> typeMismatch "CustomField" v
 

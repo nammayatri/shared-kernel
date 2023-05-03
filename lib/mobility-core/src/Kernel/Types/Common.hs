@@ -23,15 +23,33 @@ module Kernel.Types.Common
   )
 where
 
+-- import Kernel.Types.Beckn.Context as Context
+
+import qualified Data.Aeson as A
+import Data.ByteString.Internal (ByteString, unpackChars)
+import Data.ByteString.Lazy (fromStrict)
+import Data.Fixed (Centi, Fixed (MkFixed))
 import Data.Generics.Labels ()
 import Data.OpenApi
+import qualified Data.Vector as V
+import Database.Beam
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.Beam.Postgres.Syntax
+import qualified Database.Beam.Query as BQ
 import Database.Persist.Class
 import Database.Persist.Sql
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
+import Kernel.External.Encryption
 import Kernel.External.Encryption as Common (EncFlow)
-import Kernel.Prelude hiding (show)
+import Kernel.External.Types
+import Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto.Config as Common (EsqDBFlow)
+import Kernel.Storage.Esqueleto.Types
 import Kernel.Types.App as Common
 import Kernel.Types.Centesimal as Common
 import Kernel.Types.Forkable as Common
@@ -39,7 +57,7 @@ import Kernel.Types.GuidLike as Common
 import Kernel.Types.Logging as Common
 import Kernel.Types.MonadGuid as Common
 import Kernel.Types.Time as Common
-import Kernel.Utils.Dhall (FromDhall)
+import Kernel.Utils.Dhall (FromDhall, Natural)
 import Kernel.Utils.GenericPretty
 import Servant
 import Text.Show (Show (..))
@@ -84,7 +102,7 @@ newtype Money = Money
   { getMoney :: Int
   }
   deriving stock (Generic)
-  deriving newtype (Show, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData)
+  deriving newtype (Show, Read, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData)
 
 newtype HighPrecMoney = HighPrecMoney
   { getHighPrecMoney :: Rational
@@ -92,8 +110,15 @@ newtype HighPrecMoney = HighPrecMoney
   deriving stock (Generic)
   deriving newtype (Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
 
+data Tables = Tables
+  { enableKVForWriteAlso :: [Text],
+    enableKVForRead :: [Text],
+    tableAllocation :: Natural
+  }
+  deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
+
 instance Show HighPrecMoney where
-  show = show @Double . realToFrac
+  show = Text.Show.show @Double . realToFrac
 
 instance Read HighPrecMoney where
   readsPrec d s = do
@@ -110,3 +135,253 @@ instance ToSchema HighPrecMoney where
   declareNamedSchema _ = do
     aSchema <- declareSchema (Proxy :: Proxy Double)
     return $ NamedSchema (Just "HighPrecMoney") aSchema
+
+instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Money where
+  sqlValueSyntax = sqlValueSyntax . getMoney
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Money
+
+instance FromBackendRow Postgres Money
+
+instance FromField Money where
+  fromField = fromFieldJSON
+
+instance IsString Money where
+  fromString = KP.show
+
+instance FromField Centi where
+  fromField = fromFieldCenti
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Minutes where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Minutes
+
+instance FromBackendRow Postgres Minutes
+
+fromFieldMoney ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion Money
+fromFieldMoney f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just _ -> Money <$> fromField f mbValue
+
+fromFieldCenti ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion Centi
+fromFieldCenti f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just value' ->
+    case readMaybe (unpackChars value') of
+      Just val -> pure val
+      _ -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
+
+fromFieldCentesimal ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion Centesimal
+fromFieldCentesimal f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just _ -> Centesimal <$> fromField f mbValue
+
+fromFieldMinutes ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion Minutes
+fromFieldMinutes f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just _ -> Minutes <$> fromField f mbValue
+
+fromFieldMeters ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion Meters
+fromFieldMeters f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just _ -> Meters <$> fromField f mbValue
+
+fromFieldHighPrecMeters ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion HighPrecMeters
+fromFieldHighPrecMeters f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just _ -> HighPrecMeters <$> fromField f mbValue
+
+fromFieldHighPrecMoney ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion HighPrecMoney
+fromFieldHighPrecMoney f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just _ -> HighPrecMoney <$> fromField f mbValue
+
+fromFieldSeconds ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion Seconds
+fromFieldSeconds f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just _ -> Seconds <$> fromField f mbValue
+
+instance FromField Minutes where
+  fromField = fromFieldMinutes
+
+instance HasSqlValueSyntax be Integer => HasSqlValueSyntax be Centi where
+  sqlValueSyntax (MkFixed i) = sqlValueSyntax (div i 100)
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Centesimal
+
+instance FromBackendRow Postgres Centesimal
+
+instance FromField Centesimal where
+  fromField = fromFieldEnum
+
+instance (HasSqlValueSyntax be (V.Vector Text)) => HasSqlValueSyntax be [Text] where
+  sqlValueSyntax x = sqlValueSyntax (V.fromList x)
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be [Text]
+
+instance FromBackendRow Postgres [Text]
+
+instance FromField [Text] where
+  fromField f mbValue = V.toList <$> fromField f mbValue
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Centi
+
+instance FromBackendRow Postgres Centi
+
+instance IsString Centi where
+  fromString = KP.show
+
+instance HasSqlValueSyntax be Centi => HasSqlValueSyntax be Centesimal where
+  sqlValueSyntax = sqlValueSyntax . getCenti
+
+instance HasSqlValueSyntax be Centesimal => HasSqlValueSyntax be HighPrecMeters where
+  sqlValueSyntax = sqlValueSyntax . getHighPrecMeters
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecMeters
+
+instance FromBackendRow Postgres HighPrecMeters
+
+instance FromField HighPrecMeters where
+  fromField = fromFieldHighPrecMeters
+
+instance IsString HighPrecMeters where
+  fromString = KP.show
+
+instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Meters where
+  sqlValueSyntax = sqlValueSyntax . getMeters
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Meters
+
+instance FromBackendRow Postgres Meters
+
+instance FromField Meters where
+  fromField = fromFieldJSON
+
+instance IsString Meters where
+  fromString = KP.show
+
+instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Seconds where
+  sqlValueSyntax = sqlValueSyntax . getSeconds
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Seconds
+
+instance FromBackendRow Postgres Seconds
+
+instance IsString Seconds where
+  fromString = KP.show
+
+instance FromField HighPrecMoney where
+  fromField = fromFieldHighPrecMoney
+
+instance HasSqlValueSyntax be Rational => HasSqlValueSyntax be HighPrecMoney where
+  sqlValueSyntax = sqlValueSyntax . getHighPrecMoney
+
+instance HasSqlValueSyntax be Double => HasSqlValueSyntax be Rational where
+  sqlValueSyntax = sqlValueSyntax . (fromRational :: Rational -> Double)
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecMoney
+
+instance FromBackendRow Postgres HighPrecMoney
+
+instance IsString HighPrecMoney where
+  fromString = KP.show
+
+instance FromField Seconds where
+  fromField = fromFieldSeconds
+
+instance FromField DbHash where
+  fromField = fromFieldEnumDbHash
+
+instance HasSqlValueSyntax be ByteString => HasSqlValueSyntax be DbHash where
+  sqlValueSyntax = sqlValueSyntax . unDbHash
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be DbHash
+
+instance FromBackendRow Postgres DbHash
+
+instance IsString DbHash where
+  fromString = KP.show
+
+fromFieldJSON ::
+  (Typeable a, FromJSON a) =>
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion a
+fromFieldJSON f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just value' -> case A.decode $ fromStrict value' of
+    Just res -> pure res
+    Nothing -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Language where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance FromField Language => FromBackendRow Postgres Language
+
+instance FromField Language where
+  fromField = fromFieldEnum
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Language
+
+fromFieldEnum ::
+  (Typeable a, Read a) =>
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion a
+fromFieldEnum f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just value' ->
+    case readMaybe (unpackChars value') of
+      Just val -> pure val
+      _ -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
+
+fromFieldEnumDbHash ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion DbHash
+fromFieldEnumDbHash f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just value' -> pure $ DbHash value'
+
+getPoint :: (Double, Double) -> BQ.QGenExpr context Postgres s Point
+getPoint (lat, lon) = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ "ST_SetSRID (ST_Point (" <> KP.show lon <> " , " <> KP.show lat <> "),4326)"))
+
+containsPoint'' :: (Double, Double) -> BQ.QGenExpr context Postgres s BQ.SqlBool
+containsPoint'' (lon, lat) = B.sqlBool_ (BQ.QExpr (\_ -> PgExpressionSyntax (emit $ "st_contains (" <> KP.show lon <> " , " <> KP.show lat <> ")")))
+
+containsPoint' :: (Double, Double) -> BQ.QGenExpr context Postgres s BQ.SqlBool
+containsPoint' (lon, lat) = B.sqlBool_ (BQ.QExpr (\_ -> PgExpressionSyntax (emit $ "st_contains (geom, ST_GeomFromText('POINT (" <> KP.show lon <> " " <> KP.show lat <> ")'))")))
+
+buildRadiusWithin' :: Point -> (Double, Double) -> Int -> BQ.QGenExpr context Postgres s BQ.SqlBool
+buildRadiusWithin' pnt (lat, lon) rad =
+  BQ.QExpr (\_ -> PgExpressionSyntax (emit $ "ST_DWithin(" <> KP.show pnt <> " , " <> getPoint' <> " , " <> KP.show rad <> ")"))
+  where
+    getPoint' = "(SRID=4326;POINT(" <> KP.show lon <> " " <> KP.show lat <> "))"
+
+(<->.) :: Point -> Point -> BQ.QGenExpr context Postgres s Double
+(<->.) p1 p2 = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ KP.show p1 <> " <-> " <> KP.show p2))

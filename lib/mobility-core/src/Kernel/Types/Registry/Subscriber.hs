@@ -17,7 +17,7 @@ module Kernel.Types.Registry.Subscriber where
 import Data.Aeson
 import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
-import EulerHS.Prelude hiding ((.=))
+import EulerHS.Prelude
 import Kernel.Types.Base64
 import Kernel.Types.Beckn.City (City)
 import Kernel.Types.Beckn.Country (Country)

@@ -19,6 +19,8 @@ import qualified Data.Aeson as Ae
 import qualified Data.Aeson.Types as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
+import Data.Text as Text
+import Data.Text.Encoding as Text
 import Kernel.Randomizer (getRandomInRange)
 import Kernel.Types.Beckn.Error
 import Universum
@@ -37,3 +39,6 @@ generateOrderId = show <$> getRandomInRange (1000000, 9999999 :: Int)
 
 decodeJSON :: (FromJSON a) => BS.ByteString -> Maybe a
 decodeJSON bs = Ae.decode (BSL.fromStrict bs) >>= Ae.parseMaybe parseJSON
+
+decodeJSONText :: (FromJSON a) => Text.Text -> Maybe a
+decodeJSONText = Ae.decode . BSL.fromStrict . Text.encodeUtf8

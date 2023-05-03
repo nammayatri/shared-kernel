@@ -14,19 +14,40 @@
 
 module Kernel.Serviceability where
 
+-- import Kernel.Storage.Esqueleto.Config
+-- import Kernel.Storage.Esqueleto.SqlDB
+-- import Kernel.Storage.Esqueleto.Transactionable
+
+import qualified EulerHS.Language as L
 import Kernel.External.Maps.Types
 import Kernel.Prelude
-import Kernel.Storage.Esqueleto.Config
-import Kernel.Storage.Esqueleto.SqlDB
-import Kernel.Storage.Esqueleto.Transactionable
 import Kernel.Types.Geofencing
 
+-- rideServiceable ::
+--   ( EsqDBFlow m r,
+--     EsqDBReplicaFlow m r
+--   ) =>
+--   GeofencingConfig ->
+--   (LatLong -> [Text] -> SelectSqlDB Bool) ->
+--   LatLong ->
+--   Maybe LatLong ->
+--   m Bool
+-- rideServiceable geofencingConfig someGeometriesContain origin mbDestination = do
+--   originServiceable <-
+--     case geofencingConfig.origin of
+--       Unrestricted -> pure True
+--       Regions regions -> runInReplica $ someGeometriesContain origin regions
+--   destinationServiceable <-
+--     case geofencingConfig.destination of
+--       Unrestricted -> pure True
+--       Regions regions -> do
+--         maybe (pure True) (runInReplica . (flip someGeometriesContain) regions) mbDestination
+--   pure $ originServiceable && destinationServiceable
+
 rideServiceable ::
-  ( EsqDBFlow m r,
-    EsqDBReplicaFlow m r
-  ) =>
+  L.MonadFlow m =>
   GeofencingConfig ->
-  (LatLong -> [Text] -> SelectSqlDB Bool) ->
+  (LatLong -> [Text] -> m Bool) ->
   LatLong ->
   Maybe LatLong ->
   m Bool
@@ -34,10 +55,10 @@ rideServiceable geofencingConfig someGeometriesContain origin mbDestination = do
   originServiceable <-
     case geofencingConfig.origin of
       Unrestricted -> pure True
-      Regions regions -> runInReplica $ someGeometriesContain origin regions
+      Regions regions -> someGeometriesContain origin regions
   destinationServiceable <-
     case geofencingConfig.destination of
       Unrestricted -> pure True
       Regions regions -> do
-        maybe (pure True) (runInReplica . (flip someGeometriesContain) regions) mbDestination
+        maybe (pure True) (`someGeometriesContain` regions) mbDestination
   pure $ originServiceable && destinationServiceable
