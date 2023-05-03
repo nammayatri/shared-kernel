@@ -2,16 +2,19 @@ pipeline {
     agent {
         label 'nixos'
     }
+    options {
+        parallelsAlwaysFailFast()
+    }
     stages {
-        stage ('Platform Matrix') {
+        stage ('Matrix') {
             matrix {
                 agent {
-                    label "${PLATFORM}"
+                    label "${SYSTEM}"
                 }
                 axes {
                     axis {
-                        name 'PLATFORM'
-                        values 'nixos', 'macos'
+                        name 'SYSTEM'
+                        values 'x86_64-linux', 'aarch64-darwin', 'x86_64-darwin'
                     }
                 }
                 stages {
@@ -22,7 +25,7 @@ pipeline {
                     }
                     stage ('Nix Build All') {
                         steps {
-                            nixBuildAll ()
+                            nixBuildAll system: env.SYSTEM
                         }
                     }
                     stage ('Cachix push') {
