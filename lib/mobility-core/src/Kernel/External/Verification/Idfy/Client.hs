@@ -27,6 +27,9 @@ module Kernel.External.Verification.Idfy.Client
   )
 where
 
+-- import qualified Data.Text as T
+
+import qualified Data.Text as DT
 import EulerHS.Prelude
 import qualified EulerHS.Types as T
 import Kernel.External.Verification.Idfy.Auth
@@ -208,4 +211,4 @@ getTask apiKey accountId url request_id = callIdfyAPI url task "getTask" getTask
         request_id
 
 callIdfyAPI :: CallAPI env api res
-callIdfyAPI = callApiUnwrappingApiError (identity @IdfyError) (Just idfyHttpManagerKey) (Just "IDFY_ERROR")
+callIdfyAPI = callApiUnwrappingApiError (identity @IdfyError) (Just $ T.ManagerSelector $ DT.pack idfyHttpManagerKey) (Just "IDFY_ERROR")

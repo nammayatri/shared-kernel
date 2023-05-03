@@ -14,6 +14,8 @@
 
 module Kernel.External.AadhaarVerification.Gridline.Client where
 
+import qualified Data.Text as T
+import qualified EulerHS.Types as ET
 import Kernel.External.AadhaarVerification.Gridline.API as API
 import Kernel.External.AadhaarVerification.Gridline.Config
 import Kernel.External.AadhaarVerification.Gridline.Error
@@ -53,7 +55,7 @@ verifyAadhaarOtp url apiKey authType transactionId req = do
     >>= validateVerifyResponseStatus
 
 callGridlineAPI :: CallAPI env api res
-callGridlineAPI = callApiUnwrappingApiError (identity @GridlineError) (Just gridlineHttpManagerKey) (Just "GRIDLINE_ERROR")
+callGridlineAPI = callApiUnwrappingApiError (identity @GridlineError) (Just $ ET.ManagerSelector $ T.pack gridlineHttpManagerKey) (Just "GRIDLINE_ERROR")
 
 validateGenerateResponseStatus :: (MonadThrow m, Log m) => Gridline.GridlineVerifyAadhaarResp -> m Gridline.GridlineVerifyAadhaarResp
 validateGenerateResponseStatus response = do

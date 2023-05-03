@@ -32,7 +32,7 @@ serve port = do
   _ <- register ghcMetrics
   _ <- register procMetrics
   putStrLn @String $ "Prometheus server started at port " <> show port
-  _ <- forkIO $ W.run port metricsApp
+  _ <- forkIO $ W.run port (metricsApp Nothing)
   return ()
 
 addServantInfo ::

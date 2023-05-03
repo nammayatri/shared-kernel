@@ -155,16 +155,18 @@ logRequestAndResponseGeneric logInfoIO f req respF =
 withModifiedEnv :: HasLog f => (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv f env = \req resp -> do
   requestId <- getRequestId $ Wai.requestHeaders req
-  let modifiedEnv = modifyEnvR requestId
+  modifiedEnv <- modifyEnvR requestId
   let app = f modifiedEnv
   app req resp
   where
     modifyEnvR requestId = do
       let appEnv = env.appEnv
           updLogEnv = appendLogTag requestId appEnv.loggerEnv
-      env{appEnv = appEnv{loggerEnv = updLogEnv},
-          flowRuntime = L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
-         }
+      newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
+      pure $
+        env{appEnv = appEnv{loggerEnv = updLogEnv},
+            flowRuntime = newFlowRt
+           }
     getRequestId headers = do
       let value = lookup "x-request-id" headers
       case value of

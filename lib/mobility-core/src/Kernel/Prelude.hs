@@ -45,7 +45,7 @@ import GHC.Records.Compat as E
 import GHC.Stack as E (HasCallStack)
 import Kernel.Prelude.OrphanInstances ()
 import Safe as E
-import Servant.Client as E (BaseUrl)
+import Servant.Client as E (BaseUrl (..))
 import qualified Servant.Client as Servant
 import Text.Read as E (readMaybe)
 import Universum.Debug as E

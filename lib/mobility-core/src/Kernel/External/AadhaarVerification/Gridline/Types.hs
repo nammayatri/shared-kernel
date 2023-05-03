@@ -16,7 +16,7 @@
 module Kernel.External.AadhaarVerification.Gridline.Types where
 
 import Data.Aeson
-import EulerHS.Prelude hiding (error, state, (.=))
+import EulerHS.Prelude hiding (error, state)
 import qualified Network.HTTP.Media as M
 import qualified Servant.API as S
 

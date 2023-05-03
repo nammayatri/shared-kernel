@@ -20,7 +20,6 @@
           imports = [
             inputs.euler-hs.haskellFlakeProjectModules.output
             inputs.clickhouse-haskell.haskellFlakeProjectModules.output
-            inputs.prometheus-haskell.haskellFlakeProjectModules.output
           ];
           packages = {
             passetto-client.source = inputs.passetto-hs + /client;
@@ -52,3 +51,4 @@
       };
     };
 }
+

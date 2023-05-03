@@ -14,6 +14,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wwarn=missing-methods #-}
 
 module Kernel.Types.Flow (FlowR, runFlowR) where
 
@@ -47,8 +48,9 @@ newtype FlowR r a = FlowR {unFlowR :: ReaderT r L.Flow a}
 instance L.MonadFlow (FlowR r) where
   {-# INLINEABLE callServantAPI #-}
   callServantAPI mbMgrSel url cl = FlowR $ L.callServantAPI mbMgrSel url cl
-  {-# INLINEABLE callHTTPWithCert #-}
-  callHTTPWithCert url cert = FlowR $ L.callHTTPWithCert url cert
+
+  --{-# INLINEABLE callHTTPWithCert #-}
+  --callHTTPWithCert url cert = FlowR $ L.callHTTPWithCert url cert
   {-# INLINEABLE evalLogger' #-}
   evalLogger' logAct = FlowR $ L.evalLogger' logAct
   {-# INLINEABLE runIO' #-}
@@ -57,6 +59,10 @@ instance L.MonadFlow (FlowR r) where
   getOption k = FlowR $ L.getOption k
   {-# INLINEABLE setOption #-}
   setOption k v = FlowR $ L.setOption k v
+  {-# INLINEABLE getOptionLocal #-}
+  getOptionLocal k = FlowR $ L.getOptionLocal k
+  {-# INLINEABLE setOptionLocal #-}
+  setOptionLocal k v = FlowR $ L.setOptionLocal k v
   {-# INLINEABLE delOption #-}
   delOption k = FlowR $ L.delOption k
   {-# INLINEABLE generateGUID #-}
@@ -95,6 +101,48 @@ instance L.MonadFlow (FlowR r) where
   psubscribe channels cb = FlowR $ L.psubscribe channels cb
   {-# INLINEABLE withModifiedRuntime #-}
   withModifiedRuntime f flow = FlowR $ L.withModifiedRuntime f flow
+  {-# INLINEABLE setLoggerContext #-}
+  setLoggerContext k v = FlowR $ L.setLoggerContext k v
+  {-# INLINEABLE getLoggerContext #-}
+  getLoggerContext k = FlowR $ L.getLoggerContext k
+
+-- {-# INLINEABLE callAPIUsingManager #-}
+-- callAPIUsingManager f flow = FlowR $ L.callAPIUsingManager f flow
+-- {-# INLINEABLE lookupHTTPManager #-}
+-- lookupHTTPManager f flow = FlowR $ L.lookupHTTPManager f flow
+-- {-# INLINEABLE getHTTPManager #-}
+-- getHTTPManager f flow = FlowR $ L.getHTTPManager f flow
+-- {-# INLINEABLE callHTTPUsingManager #-}
+-- callHTTPUsingManager f flow = FlowR $ L.callHTTPUsingManager f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+-- {-# INLINEABLE setLoggerContext #-}
+-- setLoggerContext f flow = FlowR $ L.setLoggerContext f flow
+
+-- `L.callAPIUsingManager', `L.lookupHTTPManager', `L.getHTTPManager',
+--       `L.callHTTPUsingManager', `L.getLoggerContext',
+--       `L.setLoggerContextMap', `L.modifyOption', `L.delOptionLocal',
+--       `L.getConfig', `L.setConfig', `L.modifyConfig', `L.trySetConfig',
+--       `L.delConfig', `L.acquireConfigLock',
+--       `L.releaseConfigLock', and `L.fork'
 
 instance MonadIO (FlowR r) where
   liftIO = FlowR . L.runIO
