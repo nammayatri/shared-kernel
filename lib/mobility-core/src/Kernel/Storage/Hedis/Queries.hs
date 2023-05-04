@@ -30,6 +30,18 @@ import Kernel.Utils.Logging
 
 type ExpirationTime = Int
 
+runHedis' ::
+  HedisFlow m env => Redis (Either Reply a) -> m a
+runHedis' action = do
+  eithRes <- runHedisEither action
+  Error.fromEitherM (HedisReplyError . show) eithRes
+
+runHedisEither' ::
+  HedisFlow m env => Redis (Either Reply a) -> m (Either Reply a)
+runHedisEither' action = do
+  con <- asks (.hedisEnv.hedisConnection)
+  liftIO $ Hedis.runRedis con action
+
 runHedis ::
   HedisFlow m env => Redis (Either Reply a) -> m a
 runHedis action = do
@@ -39,13 +51,13 @@ runHedis action = do
 runHedisEither ::
   HedisFlow m env => Redis (Either Reply a) -> m (Either Reply a)
 runHedisEither action = do
-  con <- asks (.hedisEnv.hedisConnection)
+  con <- asks (.hedisClusterEnv.hedisConnection)
   liftIO $ Hedis.runRedis con action
 
 runHedisTransaction ::
   HedisFlow m env => RedisTx (Queued a) -> m a
 runHedisTransaction action = do
-  con <- asks (.hedisEnv.hedisConnection)
+  con <- asks (.hedisClusterEnv.hedisConnection)
   res <- liftIO . Hedis.runRedis con $ Hedis.multiExec action
   case res of
     TxError err -> Error.throwError $ HedisReplyError err
@@ -80,21 +92,49 @@ runWithPrefix key action = do
 runWithPrefix_ :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Reply a)) -> m ()
 runWithPrefix_ key action = void $ runWithPrefix key action
 
+runWithPrefix'_ :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Reply a)) -> m ()
+runWithPrefix'_ key action = void $ runWithPrefix' key action
+
+runWithPrefix' :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Reply a)) -> m a
+runWithPrefix' key action = do
+  prefKey <- buildKey key
+  withLogTag "Redis" $ logDebug $ "working with key : " <> cs prefKey
+  runHedis' $ action prefKey
+
 get ::
   (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
 get key = do
   maybeBS <- runWithPrefix key Hedis.get
   case maybeBS of
-    Nothing -> pure Nothing
-    Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+    Nothing -> do
+      migrating <- asks (.hedisMigrationStage)
+      if migrating
+        then do
+          maybeBS' <- runWithPrefix' key Hedis.get
+          parseResult maybeBS'
+        else do
+          pure Nothing
+    bs -> parseResult bs
+  where
+    parseResult Nothing = pure Nothing
+    parseResult (Just bs) = Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
 get' ::
   (FromJSON a, HedisFlow m env) => Text -> m () -> m (Maybe a)
 get' key decodeErrHandler = do
   maybeBS <- runWithPrefix key Hedis.get
   case maybeBS of
-    Nothing -> pure Nothing
-    Just bs -> do
+    Nothing -> do
+      migrating <- asks (.hedisMigrationStage)
+      if migrating
+        then do
+          maybeBS' <- runWithPrefix' key Hedis.get
+          parseResult maybeBS'
+        else pure Nothing
+    bs -> parseResult bs
+  where
+    parseResult Nothing = pure Nothing
+    parseResult (Just bs) =
       case Ae.decode $ BSL.fromStrict bs of
         Just a -> return $ Just a
         Nothing -> do
@@ -125,7 +165,9 @@ setNx key val = runWithPrefix key $ \prefKey ->
   Hedis.setnx prefKey $ BSL.toStrict $ Ae.encode val
 
 del :: (HedisFlow m env) => Text -> m ()
-del key = runWithPrefix_ key $ \prefKey -> Hedis.del [prefKey]
+del key = do
+  runWithPrefix_ key $ \prefKey -> Hedis.del [prefKey]
+  runWithPrefix'_ key $ \prefKey -> Hedis.del [prefKey]
 
 rPushExp :: (HedisFlow m env, ToJSON a) => Text -> [a] -> ExpirationTime -> m ()
 rPushExp key list ex = do

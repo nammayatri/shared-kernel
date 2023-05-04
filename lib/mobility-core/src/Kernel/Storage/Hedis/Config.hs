@@ -24,7 +24,7 @@ import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
 type HedisFlow m env =
-  (MonadReader env m, HasField "hedisEnv" env HedisEnv, MonadIO m, C.MonadThrow m, Log m)
+  (MonadReader env m, HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, MonadIO m, C.MonadThrow m, Log m)
 
 type KeyModifierFunc = (Text -> Text)
 
@@ -59,6 +59,26 @@ defaultHedisCfg =
 
 withHedisEnv :: HedisCfg -> KeyModifierFunc -> (HedisEnv -> IO a) -> IO a
 withHedisEnv cfg keyModifier = C.bracket (connectHedis cfg keyModifier) disconnectHedis
+
+connectHedisCluster :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
+connectHedisCluster cfg keyModifier = do
+  conn <- connectCluster connectInfo
+  return $
+    HedisEnv
+      { hedisConnection = conn,
+        keyModifier = keyModifier
+      }
+  where
+    connectInfo :: ConnectInfo
+    connectInfo =
+      defaultConnectInfo
+        { connectHost = cfg.connectHost,
+          connectPort = PortNumber $ toEnum $ fromEnum cfg.connectPort,
+          connectAuth = encodeUtf8 <$> cfg.connectAuth,
+          connectDatabase = cfg.connectDatabase,
+          connectMaxConnections = cfg.connectMaxConnections,
+          connectMaxIdleTime = cfg.connectMaxIdleTime
+        }
 
 connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
 connectHedis cfg keyModifier = do
