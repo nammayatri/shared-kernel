@@ -116,6 +116,23 @@
         "type": "github"
       }
     },
+    "cereal": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1668616659,
+        "narHash": "sha256-FkwxTJzY4A2CaGnQ+YBdEKZr+apEBK8Awcxrfp4uIvE=",
+        "owner": "juspay",
+        "repo": "cereal",
+        "rev": "213f145ccbd99e630ee832d2f5b22894c810d3cc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "juspay",
+        "repo": "cereal",
+        "rev": "213f145ccbd99e630ee832d2f5b22894c810d3cc",
+        "type": "github"
+      }
+    },
     "clickhouse-haskell": {
       "flake": false,
       "locked": {
@@ -337,6 +354,7 @@
       "inputs": {
         "beam": "beam",
         "beam-mysql": "beam-mysql",
+        "cereal": "cereal",
         "common": "common_2",
         "euler-events-hs": "euler-events-hs",
         "flake-parts": [
@@ -356,10 +374,10 @@
         "sequelize": "sequelize"
       },
       "locked": {
-        "lastModified": 1683123370,
-        "narHash": "sha256-fZJjCqBQbp3anPCjmKLp9c+ZBfycP1tUbHNoFT2DkMU=",
+        "lastModified": 1683196408,
+        "narHash": "sha256-glurxv6p3+CJGbc8yzhRKOWnPlFP5ggFxSO+cR2HZg4=",
         "ref": "ny-compatible",
-        "rev": "8981785dd72769dfa45cb7872cdd93a7c8e83c29",
+        "rev": "584929c38de58509e985474b700da7fbc9c3b6a4",
         "revCount": 2115,
         "type": "git",
         "url": "ssh://git@ssh.bitbucket.juspay.net/iris/euler-hs"

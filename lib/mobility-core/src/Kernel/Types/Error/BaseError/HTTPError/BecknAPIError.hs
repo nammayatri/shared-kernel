@@ -20,7 +20,7 @@ module Kernel.Types.Error.BaseError.HTTPError.BecknAPIError
 where
 
 import Data.Aeson.Types
-import EulerHS.Prelude hiding (Show, show, (.=))
+import EulerHS.Prelude hiding (Show, show)
 import qualified Kernel.Types.Beckn.Error as Error
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse
 import Prelude (Show (..))

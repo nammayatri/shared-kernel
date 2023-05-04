@@ -18,7 +18,8 @@
 module Kernel.Utils.Servant.Client where
 
 import qualified Data.Aeson as A
-import qualified Data.Map.Strict as Map
+--import qualified Data.Map.Strict as Map
+import qualified Data.HashMap.Internal as HMap
 import qualified Data.Text as T
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id, notElem)
@@ -75,7 +76,6 @@ type CallAPI' m api res res' =
     Metrics.CoreMetrics m,
     SanitizedUrl api,
     MonadFlow m,
-    ET.JSONEx res,
     ToJSON res
   ) =>
   BaseUrl ->
@@ -96,7 +96,7 @@ callAPI' ::
   CallAPI' m api res (Either ClientError res)
 callAPI' mbManagerSelector baseUrl eulerClient desc api =
   withLogTag "callAPI" $ do
-    let managerSelector = fromMaybe defaultHttpManager mbManagerSelector
+    let managerSelector = fromMaybe (ET.ManagerSelector (defaultHttpManager)) mbManagerSelector
     logDebug $ "Sanitized URL is " <> buildSanitizedUrl
     res <-
       measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
@@ -138,8 +138,8 @@ callApiUnwrappingApiError toAPIException mbManagerSelector errorCodeMb baseUrl e
   callApiExtractingApiError mbManagerSelector baseUrl eulerClient desc api
     >>= unwrapEitherCallAPIError errorCodeMb baseUrl toAPIException
 
-defaultHttpManager :: String
-defaultHttpManager = "default"
+defaultHttpManager :: Text
+defaultHttpManager = T.pack "default"
 
 setResponseTimeout :: Int -> Http.ManagerSettings -> Http.ManagerSettings
 setResponseTimeout timeout settings =
@@ -150,8 +150,8 @@ createManagers ::
     HasHttpClientOptions r c,
     MonadFlow m
   ) =>
-  Map String Http.ManagerSettings ->
-  m (Map String Http.Manager)
+  HMap.HashMap Text Http.ManagerSettings ->
+  m (HMap.HashMap Text Http.Manager)
 createManagers managerSettings = do
   timeout <- asks (.httpClientOptions.timeoutMs)
   liftIO $ managersFromManagersSettings timeout managerSettings
@@ -161,20 +161,20 @@ createManagersWithTimeout ::
     HasHttpClientOptions r c,
     MonadFlow m
   ) =>
-  Map String Http.ManagerSettings ->
+  HMap.HashMap Text Http.ManagerSettings ->
   Maybe Int ->
-  m (Map String Http.Manager)
+  m (HMap.HashMap Text Http.Manager)
 createManagersWithTimeout managerSettings Nothing = createManagers managerSettings
 createManagersWithTimeout managerSettings (Just timeout) = liftIO $ managersFromManagersSettings timeout managerSettings
 
 managersFromManagersSettings ::
   Int ->
-  Map String Http.ManagerSettings ->
-  IO (Map String Http.Manager)
+  HMap.HashMap Text Http.ManagerSettings ->
+  IO (HMap.HashMap Text Http.Manager)
 managersFromManagersSettings timeout =
   mapM Http.newManager
     . fmap (setResponseTimeout timeout)
-    . Map.insert defaultHttpManager Http.tlsManagerSettings
+    . HMap.insert defaultHttpManager Http.tlsManagerSettings
 
 catchConnectionErrors :: (MonadCatch m, Log m) => m a -> (ExternalAPICallError -> m a) -> m a
 catchConnectionErrors action errorHandler =

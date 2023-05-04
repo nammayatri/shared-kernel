@@ -14,6 +14,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wwarn=missing-methods #-}
 
 module Kernel.Types.Flow (FlowR, runFlowR) where
 
@@ -47,8 +48,9 @@ newtype FlowR r a = FlowR {unFlowR :: ReaderT r L.Flow a}
 instance L.MonadFlow (FlowR r) where
   {-# INLINEABLE callServantAPI #-}
   callServantAPI mbMgrSel url cl = FlowR $ L.callServantAPI mbMgrSel url cl
-  {-# INLINEABLE callHTTPWithCert #-}
-  callHTTPWithCert url cert = FlowR $ L.callHTTPWithCert url cert
+
+  --{-# INLINEABLE callHTTPWithCert #-}
+  --callHTTPWithCert url cert = FlowR $ L.callHTTPWithCert url cert
   {-# INLINEABLE evalLogger' #-}
   evalLogger' logAct = FlowR $ L.evalLogger' logAct
   {-# INLINEABLE runIO' #-}

@@ -16,6 +16,7 @@
 module Kernel.Types.Beckn.Context (module Kernel.Types.Beckn.Context, module Reexport) where
 
 import Data.Aeson
+import Data.Maybe (fromJust)
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
 import Kernel.Types.App

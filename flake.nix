@@ -34,7 +34,7 @@
             with pkgs.haskell.lib.compose;
             lib.mapAttrs (k: lib.pipe super.${k}) {
               # Tests and documentation generation fail for some reason.
-              euler-hs = [ dontCheck dontHaddock ];
+              euler-hs = [ dontCheck dontHaddock doJailbreak ];
               clickhouse-haskell = [ doJailbreak ];
             };
           autoWire = [ "packages" "checks" ];

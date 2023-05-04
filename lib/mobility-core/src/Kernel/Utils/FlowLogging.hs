@@ -36,7 +36,7 @@ import Kernel.Types.Logging
 import System.Logger (DateFormat, Renderer, renderDefault)
 import qualified Prelude as P
 
-logOutputImplementation :: L.MonadFlow m => LogLevel -> T.Message -> m ()
+logOutputImplementation :: L.MonadFlow m => LogLevel -> Text.Text -> m ()
 logOutputImplementation logLevel message =
   case logLevel of
     DEBUG -> L.logDebug EmtpyTag message
@@ -47,12 +47,11 @@ logOutputImplementation logLevel message =
 withLogTagImplementation ::
   L.MonadFlow m =>
   Text ->
-  ReaderT r L.Flow a ->
+  ReaderT r m a ->
   ReaderT r m a
 withLogTagImplementation lc flowR =
   ReaderT $
-    L.withLoggerContext (appendLogContext lc)
-      . runReaderT flowR
+    (\r -> appendLogContext' lc *> runReaderT flowR r)
 
 data EmtpyTag = EmtpyTag
 
@@ -62,10 +61,17 @@ instance P.Show EmtpyTag where
 formatTag :: Text -> Text
 formatTag tag = "[" <> tag <> "]"
 
-appendLogContext :: Text -> LogContext -> LogContext
-appendLogContext val lc =
-  let oldLCText = fromMaybe "" $ HM.lookup logContextKey lc
-   in HM.insert logContextKey (oldLCText <> formatTag val) lc
+appendLogContext' :: L.MonadFlow m => Text -> m ()
+appendLogContext' val = do
+  oldLCText <- fromMaybe "" <$> L.getLoggerContext logContextKey
+  L.setLoggerContext logContextKey (oldLCText <> formatTag val)
+
+appendLogContext :: Text -> (IORef LogContext) -> IO (IORef LogContext)
+appendLogContext val lcRef = modifyIORef lcRef func *> pure lcRef
+  where
+    func lc =
+      let oldLCText = fromMaybe "" $ HM.lookup logContextKey lc
+       in HM.insert logContextKey (oldLCText <> formatTag val) lc
 
 getEulerLoggerConfig :: LoggerConfig -> T.LoggerConfig
 getEulerLoggerConfig LoggerConfig {..} =
@@ -98,7 +104,7 @@ getEulerLoggerRuntime :: Maybe Text -> LoggerConfig -> IO LoggerRuntime
 getEulerLoggerRuntime hostname = createOwnLoggerRuntime (logFlowFormatter hostname) . getEulerLoggerConfig
 
 createOwnLoggerRuntime :: T.FlowFormatter -> T.LoggerConfig -> IO LoggerRuntime
-createOwnLoggerRuntime = createLoggerRuntime' defaultDateFormat (Just ownRender) defaultBufferSize
+createOwnLoggerRuntime flowFt = createLoggerRuntime' defaultDateFormat (Just ownRender) defaultBufferSize flowFt Nothing
   where
     ownRender :: Renderer
     ownRender s _ _ xs =
@@ -108,7 +114,7 @@ createOwnLoggerRuntime = createLoggerRuntime' defaultDateFormat (Just ownRender)
             else Builder.lazyByteString lbsFromBuilder
 
     defaultBufferSize :: T.BufferSize
-    defaultBufferSize = 4096 -- value from euler-hs
+    defaultBufferSize = 4096 -- value fro/m euler-hs
     defaultDateFormat :: Maybe DateFormat
     defaultDateFormat = Nothing -- value from euler-hs
 
@@ -121,7 +127,7 @@ logFormatterText :: Time.UTCTime -> Maybe Text -> T.MessageFormatter
 logFormatterText
   timestamp
   hostname
-  (T.PendingMsg _mbFlowGuid elvl eTag msg msgNum logContHM) = res
+  (T.V1 _mbFlowGuid elvl eTag (T.Message msg _) msgNum logContHM) = res
     where
       logCont = HM.lookupDefault "" logContextKey logContHM
       tag = if null eTag || eTag == "\"\"" then "" else formatTag eTag
@@ -131,21 +137,41 @@ logFormatterText
         T.Info -> INFO
         T.Error -> ERROR
       -- textToLBS = LBS.fromStrict . Txt.encodeUtf8
-      log =
-        show timestamp
-          <> " "
-          <> show lvl
-          <> " "
-          <> show msgNum
-          <> "> @"
-          <> fromMaybe "null" hostname
-          <> " "
-          <> logCont
-          <> tag
-          <> " |> "
-          <> msg
       res =
-        T.SimpleLBS (A.encode (A.Object $ HM.insert "log" (A.String log) HM.empty))
+        T.SimpleLBS . A.encode $
+          A.Object $
+            HM.fromList
+              [ ("timestamp", A.String $ show timestamp),
+                ("lvl", A.String $ show lvl),
+                ("msgNum", A.String $ show msgNum),
+                ("hostname", A.String $ fromMaybe "" hostname),
+                ("logCont", A.String logCont),
+                ("tag", A.String tag),
+                ("msg", fromMaybe A.Null msg)
+              ]
+logFormatterText
+  timestamp
+  hostname
+  (T.V2 _mbFlowGuid elvl _ _ _ _ _ _ (T.Message msg _) msgNum logContHM) = res
+    where
+      logCont = HM.lookupDefault "" logContextKey logContHM
+      lvl = case elvl of
+        T.Debug -> DEBUG
+        T.Warning -> WARNING
+        T.Info -> INFO
+        T.Error -> ERROR
+      -- textToLBS = LBS.fromStrict . Txt.encodeUtf8
+      res =
+        T.SimpleLBS . A.encode $
+          A.Object $
+            HM.fromList
+              [ ("timestamp", A.String $ show timestamp),
+                ("lvl", A.String $ show lvl),
+                ("msgNum", A.String $ show msgNum),
+                ("hostname", A.String $ fromMaybe "" hostname),
+                ("logCont", A.String logCont),
+                ("msg", fromMaybe A.Null msg)
+              ]
 
 logContextKey :: Text
 logContextKey = "log_context"

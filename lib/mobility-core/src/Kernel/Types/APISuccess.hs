@@ -17,7 +17,7 @@ module Kernel.Types.APISuccess (APISuccess (..)) where
 import Data.Aeson hiding (Success)
 import Data.Aeson.Types (parseFail, typeMismatch)
 import Data.OpenApi (ToSchema)
-import EulerHS.Prelude hiding ((.=))
+import EulerHS.Prelude
 
 data APISuccess = Success deriving (Generic, Show, Eq, ToSchema)
 

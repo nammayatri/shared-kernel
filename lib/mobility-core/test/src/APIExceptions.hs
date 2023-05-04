@@ -20,6 +20,7 @@ module APIExceptions (httpExceptionTests) where
 
 import Control.Arrow (left)
 import qualified Data.Aeson as A
+import Data.Maybe (fromJust)
 import EulerHS.Prelude
 import Kernel.Tools.Metrics.CoreMetrics
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics

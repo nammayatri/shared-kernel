@@ -27,7 +27,7 @@ import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.Aeson.Types
 import Data.Default.Class
-import EulerHS.Prelude hiding (id, (.=))
+import EulerHS.Prelude hiding (id)
 import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Kernel.Types.App
 import Kernel.Utils.GenericPretty
