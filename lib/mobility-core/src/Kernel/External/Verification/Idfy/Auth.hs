@@ -14,7 +14,7 @@
 
 module Kernel.External.Verification.Idfy.Auth where
 
-import qualified Data.Map.Strict as Map
+import qualified Data.HashMap.Internal as HMap
 import EulerHS.Prelude
 import Kernel.External.Encryption
 import Kernel.External.Verification.Idfy.Config
@@ -41,7 +41,7 @@ verifyAuth cfg authSecret = do
 
 prepareIdfyHttpManager :: Int -> Map String Http.ManagerSettings
 prepareIdfyHttpManager timeout =
-  Map.singleton idfyHttpManagerKey $
+  HMap.singleton idfyHttpManagerKey $
     Http.tlsManagerSettings {Http.managerResponseTimeout = Http.responseTimeoutMicro (timeout * 1000)}
 
 idfyHttpManagerKey :: String
