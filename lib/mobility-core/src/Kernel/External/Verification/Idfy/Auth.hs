@@ -39,7 +39,7 @@ verifyAuth cfg authSecret = do
   cfgSecret <- decrypt cfg.secret
   unless (authSecret == Just cfgSecret) $ throwError (InvalidRequest "INVALID_AUTHORIZATION_HEADER")
 
-prepareIdfyHttpManager :: Int -> Map String Http.ManagerSettings
+prepareIdfyHttpManager :: Int -> HMap.HashMap String Http.ManagerSettings
 prepareIdfyHttpManager timeout =
   HMap.singleton idfyHttpManagerKey $
     Http.tlsManagerSettings {Http.managerResponseTimeout = Http.responseTimeoutMicro (timeout * 1000)}
