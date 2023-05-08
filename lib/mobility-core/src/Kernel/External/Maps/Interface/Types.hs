@@ -132,7 +132,9 @@ data AutoCompleteReq = AutoCompleteReq
     sessionToken :: Maybe Text,
     location :: Text,
     radius :: Integer,
-    language :: Language
+    language :: Language,
+    strictbounds :: Maybe Bool,
+    origin :: Maybe LatLong
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -144,7 +146,8 @@ newtype AutoCompleteResp = AutoCompleteResp
 
 data Prediction = Prediction
   { description :: Text,
-    placeId :: Maybe Text
+    placeId :: Maybe Text,
+    distance :: Maybe Int
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
