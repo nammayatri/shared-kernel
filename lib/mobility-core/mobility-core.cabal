@@ -21,6 +21,9 @@ source-repository head
 
 library
   exposed-modules:
+      Kernel.Connection.EnvVars
+      Kernel.Connection.Postgres
+      Kernel.Connection.Types
       Kernel.Exit
       Kernel.External.Call
       Kernel.External.Call.Exotel.Client
