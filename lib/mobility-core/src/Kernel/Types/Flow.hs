@@ -59,6 +59,10 @@ instance L.MonadFlow (FlowR r) where
   getOption k = FlowR $ L.getOption k
   {-# INLINEABLE setOption #-}
   setOption k v = FlowR $ L.setOption k v
+  {-# INLINEABLE getOption #-}
+  getOptionLocal k = FlowR $ L.getOptionLocal k
+  {-# INLINEABLE setOption #-}
+  setOptionLocal k v = FlowR $ L.setOptionLocal k v
   {-# INLINEABLE delOption #-}
   delOption k = FlowR $ L.delOption k
   {-# INLINEABLE generateGUID #-}
