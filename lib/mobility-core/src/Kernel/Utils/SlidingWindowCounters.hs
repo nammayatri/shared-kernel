@@ -23,6 +23,7 @@ module Kernel.Utils.SlidingWindowCounters
     splitOnPeriodGranuality,
     incrementPeriod,
     convertPeriodTypeToSeconds,
+    deleteCurrentWindowValues,
   )
 where
 
@@ -319,3 +320,15 @@ getCurrentWindowValues key swo = do
   utcTime <- L.runIO getCurrentTime
   let keysToFetch = getkeysForLastPeriods swo utcTime $ makeSlidingWindowKey (periodType swo) key
   mapM Redis.get keysToFetch
+
+deleteCurrentWindowValues ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r
+  ) =>
+  Text ->
+  SlidingWindowOptions ->
+  m ()
+deleteCurrentWindowValues key swo = do
+  utcTime <- L.runIO getCurrentTime
+  let keysToDel = getkeysForLastPeriods swo utcTime $ makeSlidingWindowKey (periodType swo) key
+  mapM_ Redis.del keysToDel
