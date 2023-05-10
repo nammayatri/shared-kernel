@@ -908,7 +908,8 @@
           "nixpkgs"
         ],
         "passetto-hs": "passetto-hs",
-        "systems": "systems"
+        "systems": "systems",
+        "wai-middleware-prometheus": "wai-middleware-prometheus"
       }
     },
     "sequelize": {
@@ -977,6 +978,19 @@
         "owner": "numtide",
         "repo": "treefmt-nix",
         "type": "github"
+      }
+    },
+    "wai-middleware-prometheus": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1683725875,
+        "narHash": "sha256-UFVfZ7kwhb+HJqb1PyESLV1lP2gvOZoL86kQZdKYM9o=",
+        "path": "/home/roman/Projects/beckn/nammayatri/prometheus-juspay/prometheus-haskell",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/roman/Projects/beckn/nammayatri/prometheus-juspay/prometheus-haskell",
+        "type": "path"
       }
     }
   },

@@ -9,6 +9,9 @@
     passetto-hs.flake = false;
     clickhouse-haskell.url = "github:piyushKumar-1/clickhouse-haskell";
     clickhouse-haskell.flake = false;
+    wai-middleware-prometheus.url = "/home/roman/Projects/beckn/nammayatri/prometheus-juspay/prometheus-haskell";
+    # wai-middleware-prometheus.url = "github:juspay/prometheus-haskell/more-proc-metrics";
+    wai-middleware-prometheus.flake = false;
 
     euler-hs.url = "github:juspay/euler-hs";
   };
@@ -27,6 +30,8 @@
           source-overrides = {
             passetto-client = inputs.passetto-hs + /client;
             passetto-core = inputs.passetto-hs + /core;
+            wai-middleware-prometheus = inputs.wai-middleware-prometheus + /wai-middleware-prometheus;
+            prometheus-client = inputs.wai-middleware-prometheus + /prometheus-client;
             inherit (inputs) clickhouse-haskell;
           };
           overrides = self: super:
