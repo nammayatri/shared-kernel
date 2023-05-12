@@ -9,6 +9,7 @@
     passetto-hs.flake = false;
     clickhouse-haskell.url = "github:piyushKumar-1/clickhouse-haskell";
     clickhouse-haskell.flake = false;
+    wai-middleware-prometheus.url = "github:juspay/prometheus-haskell/more-proc-metrics";
 
     euler-hs.url = "github:juspay/euler-hs";
   };
@@ -23,6 +24,7 @@
         haskellProjects.default = {
           imports = [
             inputs.euler-hs.haskellFlakeProjectModules.output
+            inputs.wai-middleware-prometheus.haskellFlakeProjectModules.output
           ];
           source-overrides = {
             passetto-client = inputs.passetto-hs + /client;
@@ -34,6 +36,7 @@
             lib.mapAttrs (k: lib.pipe super.${k}) {
               # Tests and documentation generation fail for some reason.
               euler-hs = [ dontCheck dontHaddock ];
+              wai-middleware-prometheus = [ dontCheck dontHaddock ];
               clickhouse-haskell = [ doJailbreak ];
             };
           autoWire = [ "packages" "checks" ];
