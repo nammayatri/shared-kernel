@@ -19,6 +19,7 @@ import EulerHS.Prelude
 import qualified EulerHS.Runtime as E
 import GHC.Records.Extra (HasField)
 import Kernel.Prelude (identity)
+import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Metrics
 import qualified Kernel.Tools.Metrics.Init as Metrics
 import Kernel.Types.App (EnvR (..), FlowHandlerR, FlowServerR)
 import Kernel.Types.Flow
@@ -107,6 +108,7 @@ runServer ::
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
+    HasField "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
@@ -134,7 +136,7 @@ runServer appEnv serverAPI serverHandler waiMiddleware waiSettings servantCtx se
   let server = withModifiedEnv $ \modifiedEnv ->
         run serverAPI serverHandler servantCtx modifiedEnv
           & logRequestAndResponse modifiedEnv
-          & Metrics.addServantInfo serverAPI
+          & Metrics.addServantInfo appEnv.version serverAPI
           & waiMiddleware
   E.withFlowRuntime (Just loggerRt) $ \flowRt -> do
     flowRt' <-
@@ -150,6 +152,7 @@ runServerGeneric ::
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
+    HasField "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
     HasContextEntry (env ': (ctx .++ '[ErrorFormatters])) ErrorFormatters,
     HasServer api (env ': ctx)
@@ -176,7 +179,7 @@ runServerGeneric appEnv serverAPI serverHandler waiMiddleware waiSettings servan
         let loggerFunc = \tag info -> logOutputIO (appendLogTag tag $ modifiedEnv.loggerEnv) INFO info
          in runGeneric serverAPI serverHandler servantCtx modifiedEnv runMonad
               & logRequestAndResponseGeneric loggerFunc
-              & Metrics.addServantInfo serverAPI
+              & Metrics.addServantInfo appEnv.version serverAPI
               & waiMiddleware
   serverStartAction appEnv $ runSettings settings $ server appEnv
 
@@ -192,6 +195,7 @@ runHealthCheckServerWithService ::
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
+    HasField "version" env Metrics.DeploymentVersion,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters
   ) =>
   env ->
@@ -216,6 +220,7 @@ runServerWithHealthCheck ::
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
+    HasField "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
