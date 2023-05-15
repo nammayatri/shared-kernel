@@ -33,7 +33,7 @@ type ExpirationTime = Int
 runHedis' ::
   HedisFlow m env => Redis (Either Reply a) -> m a
 runHedis' action = do
-  eithRes <- runHedisEither action
+  eithRes <- runHedisEither' action
   Error.fromEitherM (HedisReplyError . show) eithRes
 
 runHedisEither' ::
@@ -107,6 +107,7 @@ get key = do
   maybeBS <- runWithPrefix key Hedis.get
   case maybeBS of
     Nothing -> do
+      withLogTag "Redis" $ logDebug $ "NotFoundInCluster: " <> cs key
       migrating <- asks (.hedisMigrationStage)
       if migrating
         then do
@@ -116,8 +117,10 @@ get key = do
           pure Nothing
     bs -> parseResult bs
   where
-    parseResult Nothing = pure Nothing
-    parseResult (Just bs) = Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+    parseResult Nothing = withLogTag "Redis" (logDebug ("NotFoundInStandAloneAsWell: " <> cs key)) $> Nothing
+    parseResult (Just bs) = do
+      withLogTag "Redis" $ logDebug $ "FoundInStandAlone: " <> cs key
+      Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
 get' ::
   (FromJSON a, HedisFlow m env) => Text -> m () -> m (Maybe a)
@@ -148,8 +151,15 @@ safeGet key = get' key (del key)
 
 set ::
   (ToJSON a, HedisFlow m env) => Text -> a -> m ()
-set key val = runWithPrefix_ key $ \prefKey ->
-  Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
+set key val = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  if migrating
+    then do
+      runWithPrefix'_ key $ \prefKey -> Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
+      logDebug $ "SetInStandAloneRedisSuccess: " <> cs key
+    else pure ()
+  runWithPrefix_ key $ \prefKey -> Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
+  logDebug $ "SetInClusterRedisSuccess: " <> cs key
 
 setExp ::
   (ToJSON a, HedisFlow m env) => Text -> a -> ExpirationTime -> m ()
