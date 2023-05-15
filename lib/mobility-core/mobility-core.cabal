@@ -102,8 +102,6 @@ library
       Kernel.External.Whatsapp.Interface.GupShup
       Kernel.External.Whatsapp.Interface.Types
       Kernel.External.Whatsapp.Types
-      Kernel.InternalAPI.Auth.API
-      Kernel.InternalAPI.Auth.Client
       Kernel.Mock.App
       Kernel.Mock.Exceptions
       Kernel.Mock.ExternalAPI
