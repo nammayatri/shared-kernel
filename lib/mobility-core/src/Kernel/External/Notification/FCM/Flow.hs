@@ -27,7 +27,7 @@
 -- a payload of up to 4KB to a client app.
 --
 -- Protocol description : https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages
-module Kernel.External.FCM.Flow
+module Kernel.External.Notification.FCM.Flow
   ( createMessage,
     createAndroidNotification,
     notifyPerson,
@@ -45,7 +45,7 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Base64 as B64
 import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
-import Kernel.External.FCM.Types
+import Kernel.External.Notification.FCM.Types
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
