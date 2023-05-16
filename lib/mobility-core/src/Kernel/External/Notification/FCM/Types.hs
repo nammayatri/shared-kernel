@@ -19,7 +19,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.FCM.Types where
+module Kernel.External.Notification.FCM.Types where
 
 import Control.Lens.TH
 import Data.Aeson
@@ -39,7 +39,7 @@ data FCMConfig = FCMConfig
     fcmServiceAccount :: Text,
     fcmTokenKeyPrefix :: Text
   }
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
   deriving anyclass (PrettyShow, FromJSON, ToJSON)
 
 data FCMNotificationRecipient = FCMNotificationRecipient

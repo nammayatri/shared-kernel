@@ -31,8 +31,6 @@ library
       Kernel.External.Call.Interface.Types
       Kernel.External.Call.Types
       Kernel.External.Encryption
-      Kernel.External.FCM.Flow
-      Kernel.External.FCM.Types
       Kernel.External.GoogleTranslate.API
       Kernel.External.GoogleTranslate.Client
       Kernel.External.GoogleTranslate.Types
@@ -65,6 +63,17 @@ library
       Kernel.External.Maps.OSRM.Config
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
+      Kernel.External.Notification
+      Kernel.External.Notification.FCM.Flow
+      Kernel.External.Notification.FCM.Types
+      Kernel.External.Notification.Interface
+      Kernel.External.Notification.Interface.FCM
+      Kernel.External.Notification.Interface.PayTM
+      Kernel.External.Notification.Interface.Types
+      Kernel.External.Notification.PayTM.API
+      Kernel.External.Notification.PayTM.Client
+      Kernel.External.Notification.PayTM.Types
+      Kernel.External.Notification.Types
       Kernel.External.Slack.Flow
       Kernel.External.Slack.Types
       Kernel.External.SMS
