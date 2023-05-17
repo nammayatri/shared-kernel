@@ -24,3 +24,10 @@ newtype DatabaseError = DatabaseError
   deriving (Eq, Show, Generic)
 
 instance Exception DatabaseError
+
+type BeamFlow = ReaderT BeamState
+
+data BeamState = BeamState
+  { dbConf :: (DBConfig BP.Pg)
+  }
+  deriving (Eq, Show, Generic)
