@@ -21,6 +21,8 @@ source-repository head
 
 library
   exposed-modules:
+      Kernel.Beam.Types
+      Kernel.Beam.Utils
       Kernel.Connection.EnvVars
       Kernel.Connection.Postgres
       Kernel.Connection.Types
@@ -296,6 +298,7 @@ library
     , base >=4.7 && <5
     , base64
     , base64-bytestring
+    , beam-postgres
     , bytestring
     , case-insensitive
     , clickhouse-haskell
@@ -438,6 +441,7 @@ test-suite mobility-core-tests
     , base >=4.7 && <5
     , base64
     , base64-bytestring
+    , beam-postgres
     , bytestring
     , case-insensitive
     , clickhouse-haskell
