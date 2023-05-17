@@ -21,11 +21,13 @@ source-repository head
 
 library
   exposed-modules:
+      Kernel.Beam.Connection.EnvVars
+      Kernel.Beam.Connection.Flow
+      Kernel.Beam.Connection.Postgres
+      Kernel.Beam.Connection.Redis
+      Kernel.Beam.Connection.Types
       Kernel.Beam.Types
       Kernel.Beam.Utils
-      Kernel.Connection.EnvVars
-      Kernel.Connection.Postgres
-      Kernel.Connection.Types
       Kernel.Exit
       Kernel.External.Call
       Kernel.External.Call.Exotel.Client

@@ -1,4 +1,4 @@
-module Kernel.Connection.Types where
+module Kernel.Beam.Connection.Types where
 
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Hedis.Config

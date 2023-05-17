@@ -1,13 +1,13 @@
-module Kernel.Connection.Postgres where
+module Kernel.Beam.Connection.Postgres where
 
 import qualified Data.Text as T
 import qualified Database.Beam.Postgres as BP
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
+import qualified Kernel.Beam.Connection.EnvVars as EnvVars
+import qualified Kernel.Beam.Connection.Types as ECT
 import qualified Kernel.Beam.Types as KBT
-import qualified Kernel.Connection.EnvVars as EnvVars
-import qualified Kernel.Connection.Types as ECT
 import qualified Kernel.Storage.Esqueleto.Config as KSEC
 
 prepareDBConnections :: L.MonadFlow m => ECT.ConnectionConfig -> m ()

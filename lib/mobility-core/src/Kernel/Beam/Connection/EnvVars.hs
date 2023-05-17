@@ -1,4 +1,4 @@
-module Kernel.Connection.EnvVars where
+module Kernel.Beam.Connection.EnvVars where
 
 import Data.Char (toLower, toUpper)
 import qualified Data.Text as T
@@ -32,4 +32,9 @@ getPreparePosgreSqlConnection = do
 getPreparePosgreSqlR1Connection :: IO Bool
 getPreparePosgreSqlR1Connection = do
   envVal <- lookupEnv "PREPARE_POSGRESQL_R1_CONNECTION"
+  pure $ fromMaybe True (readMaybe . toTitle =<< envVal)
+
+getPrepareRedisClusterConnection :: IO Bool
+getPrepareRedisClusterConnection = do
+  envVal <- lookupEnv "PREPARE_REDIS_CLUSTER_CONNECTION"
   pure $ fromMaybe True (readMaybe . toTitle =<< envVal)
