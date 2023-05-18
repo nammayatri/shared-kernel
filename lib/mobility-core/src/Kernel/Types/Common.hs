@@ -84,7 +84,7 @@ newtype Money = Money
   { getMoney :: Int
   }
   deriving stock (Generic)
-  deriving newtype (Show, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData)
+  deriving newtype (Show, Read, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData)
 
 newtype HighPrecMoney = HighPrecMoney
   { getHighPrecMoney :: Rational
