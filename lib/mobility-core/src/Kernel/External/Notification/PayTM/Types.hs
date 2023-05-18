@@ -16,6 +16,8 @@
 
 module Kernel.External.Notification.PayTM.Types where
 
+import Data.Aeson
+import Data.Aeson.Types as A
 import Kernel.External.Encryption
 import Kernel.Prelude
 
@@ -37,7 +39,10 @@ data PayTMConfig = PayTMConfig
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
-data NotificationReceiverType = CUSTOMERID deriving (Generic, Show, FromJSON, ToJSON)
+data NotificationReceiverType = CUSTOMERID deriving (Generic, Show, FromJSON)
+
+instance ToJSON NotificationReceiverType where
+  toJSON CUSTOMERID = A.String "CUSTOMERID"
 
 data NotificationReciever = NotificationReciever
   { notificationReceiverType :: NotificationReceiverType,
