@@ -13,11 +13,13 @@
 -}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Notification.PayTM.Types where
 
-import Data.Aeson
-import Data.Aeson.Types as A
+import Data.Aeson.Casing
+import Data.Aeson.TH
+import Data.Aeson.Types
 import Kernel.External.Encryption
 import Kernel.Prelude
 
@@ -39,27 +41,31 @@ data PayTMConfig = PayTMConfig
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
-data NotificationReceiverType = CUSTOMERID deriving (Generic, Show, FromJSON)
-
-instance ToJSON NotificationReceiverType where
-  toJSON CUSTOMERID = A.String "CUSTOMERID"
-
 data NotificationReciever = NotificationReciever
-  { notificationReceiverType :: NotificationReceiverType,
+  { notificationReceiverType :: Text,
     notificationReceiverIdentifier :: [Text]
   }
-  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving (Generic, Show, ToJSON)
 
-data DeviceType = ANDROIDAPP | IOSAPP deriving (Generic, Show, FromJSON, ToJSON)
+data DeviceType = ANDROIDAPP | IOSAPP deriving (Generic, Show, ToJSON)
+
+data ExtraCommonParams = ExtraCommonParams
+  { urlType :: Text,
+    url :: Text
+  }
+  deriving (Generic, Show)
+
+deriveJSON (defaultOptions {fieldLabelModifier = snakeCase}) ''ExtraCommonParams
 
 data NotificationReq a = NotificationReq
   { sendBroadcastPush :: Bool,
     notificationReceiver :: NotificationReciever,
     deviceType :: [DeviceType],
     templateName :: Text,
+    extraCommonParams :: ExtraCommonParams,
     dynamicParams :: a
   }
-  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving (Generic, Show, ToJSON)
 
 data Status = SUCCESS | FAILURE deriving (Generic, Show, FromJSON, ToJSON)
 

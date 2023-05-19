@@ -23,7 +23,7 @@ type NotificationAPI a =
   Header "client_id" Text
     :> Header "secret_key" Text
     :> ReqBody '[JSON] (Notification.NotificationReq a)
-    :> Get '[JSON] Notification.NotificationResp
+    :> Post '[JSON] Notification.NotificationResp
 
 notifyClient :: ToJSON a => Text -> Text -> Notification.NotificationReq a -> EulerClient Notification.NotificationResp
 notifyClient clientId apiKey = client notificationAPI (Just clientId) (Just apiKey)
