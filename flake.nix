@@ -4,9 +4,9 @@
 
     passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
     passetto-hs.flake = false;
-    clickhouse-haskell.url = "github:piyushKumar-1/clickhouse-haskell";
-    clickhouse-haskell.flake = false;
-    wai-middleware-prometheus.url = "github:juspay/prometheus-haskell/more-proc-metrics";
+    clickhouse-haskell.url = "github:nammayatri/clickhouse-haskell";
+    clickhouse-haskell.inputs.common.follows = "common";
+    prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
 
     euler-hs.url = "github:juspay/euler-hs";
   };
@@ -16,12 +16,12 @@
         haskellProjects.default = {
           imports = [
             inputs.euler-hs.haskellFlakeProjectModules.output
-            inputs.wai-middleware-prometheus.haskellFlakeProjectModules.output
+            inputs.clickhouse-haskell.haskellFlakeProjectModules.output
+            inputs.prometheus-haskell.haskellFlakeProjectModules.output
           ];
           source-overrides = {
             passetto-client = inputs.passetto-hs + /client;
             passetto-core = inputs.passetto-hs + /core;
-            inherit (inputs) clickhouse-haskell;
           };
           overrides = self: super:
             with pkgs.haskell.lib.compose;
