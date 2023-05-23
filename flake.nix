@@ -1,9 +1,6 @@
 {
   inputs = {
     common.url = "github:nammayatri/common";
-    nixpkgs.follows = "common/nixpkgs";
-    flake-parts.follows = "common/flake-parts";
-    systems.url = "github:nix-systems/default";
 
     passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
     passetto-hs.flake = false;
@@ -13,9 +10,10 @@
 
     euler-hs.url = "github:juspay/euler-hs";
   };
-  outputs = inputs@{ flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = import inputs.systems;
+  outputs = inputs: inputs.common.inputs.flake-parts.lib.mkFlake
+    { inputs = inputs // { inherit (inputs.common.inputs) nixpkgs; }; }
+    {
+      systems = import inputs.common.inputs.systems;
       imports = [
         inputs.common.flakeModules.default
       ];
