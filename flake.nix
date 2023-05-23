@@ -10,14 +10,8 @@
 
     euler-hs.url = "github:juspay/euler-hs";
   };
-  outputs = inputs: inputs.common.inputs.flake-parts.lib.mkFlake
-    { inputs = inputs // { inherit (inputs.common.inputs) nixpkgs; }; }
-    {
-      systems = import inputs.common.inputs.systems;
-      imports = [
-        inputs.common.flakeModules.default
-      ];
-
+  outputs = inputs:
+    inputs.common.lib.mkFlake { inherit inputs; } {
       perSystem = { self', pkgs, lib, config, ... }: {
         haskellProjects.default = {
           imports = [
