@@ -21,6 +21,7 @@ module Kernel.Storage.Esqueleto.Queries
     findById',
     findAll,
     findAll',
+    findAllInternal,
     create,
     create',
     update,

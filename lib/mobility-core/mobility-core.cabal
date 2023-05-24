@@ -131,6 +131,7 @@ library
       Kernel.Storage.Esqueleto
       Kernel.Storage.Esqueleto.Class
       Kernel.Storage.Esqueleto.Config
+      Kernel.Storage.Esqueleto.DeletedEntity
       Kernel.Storage.Esqueleto.DTypeBuilder
       Kernel.Storage.Esqueleto.Functions
       Kernel.Storage.Esqueleto.Logger
@@ -146,6 +147,7 @@ library
       Kernel.Storage.Hedis.Queries
       Kernel.Storage.Queries.BecknRequest
       Kernel.Storage.Tabular.BecknRequest
+      Kernel.Storage.Tabular.DeletedEntity
       Kernel.Streaming.Kafka.Commons
       Kernel.Streaming.Kafka.Consumer
       Kernel.Streaming.Kafka.Consumer.Types
@@ -182,6 +184,7 @@ library
       Kernel.Types.Centesimal
       Kernel.Types.Common
       Kernel.Types.Credentials
+      Kernel.Types.DeletedEntity
       Kernel.Types.Error
       Kernel.Types.Error.BaseError
       Kernel.Types.Error.BaseError.HTTPError
