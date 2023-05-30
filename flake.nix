@@ -39,6 +39,7 @@
           inputsFrom = [
             config.haskellProjects.default.outputs.devShell
             config.pre-commit.devShell
+            config.flake-root.devShell
           ];
         };
       };
