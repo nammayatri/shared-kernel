@@ -29,14 +29,16 @@ newtype VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg
 
 data VerifyDLAsyncReq = VerifyDLAsyncReq
   { dlNumber :: Text,
+    driverId :: Text,
     dateOfBirth :: UTCTime
   }
   deriving stock (Show, Generic)
 
 type VerifyDLAsyncResp = VerifyAsyncResp
 
-newtype VerifyRCAsyncReq = VerifyRCAsyncReq
-  { rcNumber :: Text
+data VerifyRCAsyncReq = VerifyRCAsyncReq
+  { rcNumber :: Text,
+    driverId :: Text
   }
   deriving stock (Show, Generic)
 
@@ -49,7 +51,8 @@ newtype VerifyAsyncResp = VerifyAsyncResp
 
 data ValidateImageReq = ValidateImageReq
   { image :: Text,
-    imageType :: ImageType
+    imageType :: ImageType,
+    driverId :: Text
   }
   deriving stock (Show, Generic)
 
@@ -76,7 +79,8 @@ type ExtractDLImageReq = ExtractImageReq
 
 data ExtractImageReq = ExtractImageReq
   { image1 :: Text,
-    image2 :: Maybe Text
+    image2 :: Maybe Text,
+    driverId :: Text
   }
   deriving stock (Show, Generic)
 
