@@ -27,6 +27,8 @@ data Subscriber = Subscriber
   { unique_key_id :: Text,
     subscriber_id :: Text,
     subscriber_url :: BaseUrl,
+    name :: Maybe Text,
+    image_url :: Maybe BaseUrl,
     _type :: SubscriberType,
     domain :: Domain,
     city :: Maybe Text,
