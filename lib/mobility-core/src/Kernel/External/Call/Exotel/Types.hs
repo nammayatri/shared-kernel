@@ -131,18 +131,17 @@ data ExotelCallStatus
   deriving (Show, Eq, Read, Generic, ToSchema, ToParamSchema)
 
 instance FromHttpApiData ExotelCallStatus where
-  parseUrlPiece =
-    pure
-      . \case
-        "queued" -> QUEUED
-        "ringing" -> RINGING
-        "in-progress" -> IN_PROGRESS
-        "completed" -> COMPLETED
-        "busy" -> BUSY
-        "no-answer" -> NO_ANSWER
-        "failed" -> FAILED
-        "canceled" -> CANCELED
-        _ -> INVALID_STATUS
+  parseUrlPiece status =
+    pure case T.toLower status of
+      "queued" -> QUEUED
+      "ringing" -> RINGING
+      "in-progress" -> IN_PROGRESS
+      "completed" -> COMPLETED
+      "busy" -> BUSY
+      "no-answer" -> NO_ANSWER
+      "failed" -> FAILED
+      "canceled" -> CANCELED
+      _ -> INVALID_STATUS
 
 $(deriveJSON constructorsWithHyphensToLowerOptions ''ExotelCallStatus)
 
