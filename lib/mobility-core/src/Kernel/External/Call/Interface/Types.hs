@@ -54,7 +54,7 @@ data CallStatus
     CANCELED
   | -- Invalid call status
     INVALID_STATUS
-  deriving (Generic, Show, Read, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, Eq, Show, Read, ToJSON, FromJSON, ToSchema)
 
 derivePersistField "CallStatus"
 
