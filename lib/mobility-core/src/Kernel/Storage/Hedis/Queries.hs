@@ -26,6 +26,7 @@ import GHC.Records.Extra
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Storage.Hedis.Error
+import Kernel.Utils.DatastoreLatencyCalculator
 import qualified Kernel.Utils.Error.Throwing as Error
 import Kernel.Utils.Logging
 
@@ -114,14 +115,14 @@ runHedisEither' action = do
 
 tryGetFromStandalone :: HedisFlow m env => Text -> m (Maybe BS.ByteString)
 tryGetFromStandalone key = withLogTag "STANDALONE" $ do
-  eitherMaybeBS <- try @_ @SomeException (runWithPrefix' key Hedis.get)
+  eitherMaybeBS <- withTime "RedisStandalone" "get" $ try @_ @SomeException (runWithPrefix' key Hedis.get)
   case eitherMaybeBS of
     Left err -> logTagInfo "ERROR_WHILE_GET" (show err) $> Nothing
     Right maybeBS -> pure maybeBS
 
 tryGetFromCluster :: HedisFlow m env => Text -> m (Maybe BS.ByteString)
 tryGetFromCluster key = withLogTag "CLUSTER" $ do
-  eitherMaybeBS <- try @_ @SomeException (runWithPrefix key Hedis.get)
+  eitherMaybeBS <- withTime "RedisCluster" "get" $ try @_ @SomeException (runWithPrefix key Hedis.get)
   case eitherMaybeBS of
     Left err -> logTagInfo "ERROR_WHILE_GET" (show err) $> Nothing
     Right maybeBS -> pure maybeBS
@@ -165,31 +166,33 @@ set key val = withLogTag "Redis" $ do
   migrating <- asks (.hedisMigrationStage)
   if migrating
     then do
-      res <- try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.set prefKey $ BSL.toStrict $ Ae.encode val)
+      res <- withTime "RedisStandalone" "set" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.set prefKey $ BSL.toStrict $ Ae.encode val)
       whenLeft res (\err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_SET" $ show err)
     else pure ()
-  res <- try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.set prefKey $ BSL.toStrict $ Ae.encode val)
+  res <- withTime "RedisCluster" "set" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.set prefKey $ BSL.toStrict $ Ae.encode val)
   whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_SET" $ show err)
 
 setExp ::
   (ToJSON a, HedisFlow m env) => Text -> a -> ExpirationTime -> m ()
-setExp key val expirationTime = withLogTag "Redis" $ do
+setExp key val expirationTime = withTime "Redis" "setExp" . withLogTag "Redis" $ do
   prefKey <- buildKey key
   migrating <- asks (.hedisMigrationStage)
   if migrating
     then do
       standaloneRes <-
-        try @_ @SomeException $ do
-          void . runHedisTransaction' $ do
-            void . Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
-            Hedis.expire prefKey (toInteger expirationTime)
+        withTime "RedisStandalone" "setExp" $
+          try @_ @SomeException $ do
+            void . runHedisTransaction' $ do
+              void . Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
+              Hedis.expire prefKey (toInteger expirationTime)
       whenLeft standaloneRes (\err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_SETEXP" $ show err)
     else pure ()
   clusterRes <-
-    try @_ @SomeException $ do
-      void . runHedisTransaction $ do
-        void . Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
-        Hedis.expire prefKey (toInteger expirationTime)
+    withTime "RedisCluster" "setExp" $
+      try @_ @SomeException $ do
+        void . runHedisTransaction $ do
+          void . Hedis.set prefKey $ BSL.toStrict $ Ae.encode val
+          Hedis.expire prefKey (toInteger expirationTime)
   whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_SETEXP" $ show err)
 
 setNx ::
@@ -199,12 +202,12 @@ setNx key val = withLogTag "Redis" $ do
   writtenInStandalone <-
     if migrating
       then do
-        standaloneRes <- try @_ @SomeException $ runWithPrefix' key $ \prefKey -> Hedis.setnx prefKey $ BSL.toStrict $ Ae.encode val
+        standaloneRes <- withTime "RedisStandalone" "setNx" $ try @_ @SomeException $ runWithPrefix' key $ \prefKey -> Hedis.setnx prefKey $ BSL.toStrict $ Ae.encode val
         case standaloneRes of
           Left err -> withLogTag "STANDALONE" (logTagInfo "FAILED_TO_SETNX" $ show err) $> False
           Right res -> pure res
       else pure False
-  clusterRes <- try @_ @SomeException $ runWithPrefix key $ \prefKey -> Hedis.setnx prefKey $ BSL.toStrict $ Ae.encode val
+  clusterRes <- withTime "RedisCluster" "setNx" $ try @_ @SomeException $ runWithPrefix key $ \prefKey -> Hedis.setnx prefKey $ BSL.toStrict $ Ae.encode val
   case clusterRes of
     Left err -> withLogTag "CLUSTER" (logTagInfo "FAILED_TO_SETNX" $ show err) $> (writtenInStandalone || False)
     Right res -> pure $ writtenInStandalone || res
@@ -214,10 +217,10 @@ del key = withLogTag "Redis" do
   migrating <- asks (.hedisMigrationStage)
   if migrating
     then do
-      res <- try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.del [prefKey])
+      res <- withTime "RedisStandalone" "del" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.del [prefKey])
       whenLeft res (\err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_DELETE" $ show err)
     else pure ()
-  res <- try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.del [prefKey])
+  res <- withTime "RedisCluster" "del" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.del [prefKey])
   whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_DELETE" $ show err)
 
 rPushExp :: (HedisFlow m env, ToJSON a) => Text -> [a] -> ExpirationTime -> m ()
@@ -229,44 +232,46 @@ rPushExp key list ex = withLogTag "Redis" $ do
     if migrating
       then do
         standaloneRes <-
-          try @_ @SomeException $ do
-            void . runHedisTransaction' $ do
-              void . Hedis.rpush prefKey $ map (BSL.toStrict . Ae.encode) list
-              Hedis.expire prefKey (toInteger ex)
+          withTime "RedisStandalone" "rPushExp" $ do
+            try @_ @SomeException $ do
+              void . runHedisTransaction' $ do
+                void . Hedis.rpush prefKey $ map (BSL.toStrict . Ae.encode) list
+                Hedis.expire prefKey (toInteger ex)
         whenLeft standaloneRes (\err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_PUSHEXP" $ show err)
       else pure ()
     clusterRes <-
-      try @_ @SomeException $ do
-        void . runHedisTransaction $ do
-          void . Hedis.rpush prefKey $ map (BSL.toStrict . Ae.encode) list
-          Hedis.expire prefKey (toInteger ex)
+      withTime "RedisCluster" "rPushExp" $ do
+        try @_ @SomeException $ do
+          void . runHedisTransaction $ do
+            void . Hedis.rpush prefKey $ map (BSL.toStrict . Ae.encode) list
+            Hedis.expire prefKey (toInteger ex)
     whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_PUSHEXP" $ show err)
 
 lPush :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
-lPush key list = runWithPrefix_ key $ \prefKey ->
+lPush key list = withTime "RedisCluster" "lPush" . runWithPrefix_ key $ \prefKey ->
   Hedis.lpush prefKey $ map (BSL.toStrict . Ae.encode) (toList list)
 
 rPush :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
-rPush key list = runWithPrefix_ key $ \prefKey ->
+rPush key list = withTime "RedisCluster" "rPush" . runWithPrefix_ key $ \prefKey ->
   Hedis.rpush prefKey $ map (BSL.toStrict . Ae.encode) (toList list)
 
 rPop :: (HedisFlow m env, FromJSON a) => Text -> m (Maybe a)
-rPop key = do
+rPop key = withTime "RedisCluster" "rPop" $ do
   res <- runWithPrefix key $ \prefKey -> Hedis.rpop prefKey
   pure $ Ae.decode . BSL.fromStrict =<< res
 
 lTrim :: (HedisFlow m env) => Text -> Integer -> Integer -> m ()
-lTrim key start stop = runWithPrefix_ key $ \prefKey ->
+lTrim key start stop = withTime "RedisCluster" "lTrim" . runWithPrefix_ key $ \prefKey ->
   Hedis.ltrim prefKey start stop
 
 clearList :: (HedisFlow m env) => Text -> m ()
 clearList key = lTrim key 2 1
 
 lLen :: (HedisFlow m env) => Text -> m Integer
-lLen key = runWithPrefix key Hedis.llen
+lLen key = withTime "RedisCluster" "lLen" $ runWithPrefix key Hedis.llen
 
 lRange :: (HedisFlow m env, FromJSON a) => Text -> Integer -> Integer -> m [a]
-lRange key start stop = do
+lRange key start stop = withTime "RedisCluster" "lRange" $ do
   res <- runWithPrefix key $ \prefKey ->
     Hedis.lrange prefKey start stop
   mapM (\a -> Error.fromMaybeM (HedisDecodeError $ cs a) . Ae.decode $ cs a) res
@@ -275,27 +280,29 @@ getList :: (HedisFlow m env, FromJSON a) => Text -> m [a]
 getList key = lRange key 0 (-1)
 
 incr :: (HedisFlow m env) => Text -> m Integer
-incr key = runWithPrefix key Hedis.incr
+incr key = withTime "RedisCluster" "incr" $ runWithPrefix key Hedis.incr
 
 incrby :: (HedisFlow m env) => Text -> Integer -> m Integer
-incrby key val = runWithPrefix key $ flip Hedis.incrby val
+incrby key val = withTime "RedisCluster" "incrBy" $ runWithPrefix key $ flip Hedis.incrby val
 
 decr :: (HedisFlow m env) => Text -> m Integer
-decr key = runWithPrefix key Hedis.decr
+decr key = withTime "RedisCluster" "decr" $ runWithPrefix key Hedis.decr
 
 decrby :: (HedisFlow m env) => Text -> Integer -> m Integer
-decrby key val = runWithPrefix key $ flip Hedis.decrby val
+decrby key val = withTime "RedisCluster" "decrBy" $ runWithPrefix key $ flip Hedis.decrby val
 
 incrByFloat :: (HedisFlow m env) => Text -> Double -> m Double
-incrByFloat key toAdd = runWithPrefix key $ \prefKey ->
+incrByFloat key toAdd = withTime "RedisCluster" "incrByFloat" . runWithPrefix key $ \prefKey ->
   Hedis.incrbyfloat prefKey toAdd
 
 expire :: (HedisFlow m env) => Text -> ExpirationTime -> m ()
-expire key expirationTime = runWithPrefix_ key $ \prefKey ->
-  Hedis.expire prefKey (toInteger expirationTime)
+expire key expirationTime = do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating . withTime "RedisStandalone" "expire" . runWithPrefix'_ key $ \prefKey -> Hedis.expire prefKey (toInteger expirationTime)
+  withTime "RedisCluster" "expire" . runWithPrefix_ key $ \prefKey -> Hedis.expire prefKey (toInteger expirationTime)
 
 setNxExpire :: (ToJSON a, HedisFlow m env) => Text -> ExpirationTime -> a -> m Bool
-setNxExpire key expirationTime val = do
+setNxExpire key expirationTime val = withTime "RedisCluster" "setNxExpire" $ do
   eithRes <- runWithPrefixEither key $ \prefKey ->
     Hedis.setOpts prefKey (cs $ Ae.encode val) $
       Hedis.SetOpts (Just $ toInteger expirationTime) Nothing (Just Hedis.Nx)
@@ -304,7 +311,7 @@ setNxExpire key expirationTime val = do
     _ -> False
 
 delByPattern :: HedisFlow m env => Text -> m ()
-delByPattern ptrn = do
+delByPattern ptrn = withTime "RedisCluster" "delByPattern" $ do
   runWithPrefix_ ptrn $ \prefKey ->
     Hedis.eval @_ @_ @Reply "for i, name in ipairs(redis.call('KEYS', ARGV[1])) do redis.call('DEL', name); end" ["0"] [prefKey]
 
@@ -338,30 +345,33 @@ hSetExp key field value expirationTime = withLogTag "Redis" $ do
   if migrating
     then do
       standaloneRes <-
-        try @_ @SomeException $ do
-          void . runHedisTransaction' $ do
-            void . Hedis.hset prefKey (cs field) $ BSL.toStrict $ Ae.encode value
-            Hedis.expire prefKey (toInteger expirationTime)
+        withTime "RedisStandalone" "hSetExp" $ do
+          try @_ @SomeException $ do
+            void . runHedisTransaction' $ do
+              void . Hedis.hset prefKey (cs field) $ BSL.toStrict $ Ae.encode value
+              Hedis.expire prefKey (toInteger expirationTime)
       whenLeft standaloneRes (\err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_HSETEXP" $ show err)
     else pure ()
   clusterRes <-
-    try @_ @SomeException $ do
-      void . runHedisTransaction $ do
-        void . Hedis.hset prefKey (cs field) $ BSL.toStrict $ Ae.encode value
-        Hedis.expire prefKey (toInteger expirationTime)
+    withTime "RedisCluster" "hSetExp" $ do
+      try @_ @SomeException $ do
+        void . runHedisTransaction $ do
+          void . Hedis.hset prefKey (cs field) $ BSL.toStrict $ Ae.encode value
+          Hedis.expire prefKey (toInteger expirationTime)
   whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_HSETEXP" $ show err)
 
 hGet :: (FromJSON a, HedisFlow m env) => Text -> Text -> m (Maybe a)
-hGet key field = do
-  maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
-  case maybeBS of
-    Nothing -> pure Nothing
-    Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+hGet key field =
+  withTime "RedisCluster" "hGet" $ do
+    maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
+    case maybeBS of
+      Nothing -> pure Nothing
+      Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
 hDel :: HedisFlow m env => Text -> [Text] -> m ()
-hDel key fields = runWithPrefix_ key (`Hedis.hdel` map cs fields)
+hDel key fields = withTime "RedisCluster" "hDel" $ runWithPrefix_ key (`Hedis.hdel` map cs fields)
 
 hGetAll :: (FromJSON a, HedisFlow m env) => Text -> m [(Text, a)]
-hGetAll key = do
+hGetAll key = withTime "RedisCluster" "hGetAll" $ do
   hMap <- runWithPrefix key Hedis.hgetall
   pure $ mapMaybe (\(k, val) -> (cs k,) <$> Ae.decode (BSL.fromStrict val)) hMap
