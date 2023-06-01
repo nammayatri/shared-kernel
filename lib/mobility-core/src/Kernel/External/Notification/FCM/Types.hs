@@ -19,7 +19,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.FCM.Types where
+module Kernel.External.Notification.FCM.Types where
 
 import Control.Lens.TH
 import Data.Aeson
@@ -39,7 +39,7 @@ data FCMConfig = FCMConfig
     fcmServiceAccount :: Text,
     fcmTokenKeyPrefix :: Text
   }
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
   deriving anyclass (PrettyShow, FromJSON, ToJSON)
 
 data FCMNotificationRecipient = FCMNotificationRecipient
@@ -115,6 +115,7 @@ data FCMNotificationType
   | CANCELLED_SEARCH_REQUEST
   | NEW_MESSAGE
   | REFERRAL_ACTIVATED
+  | CHAT_MESSAGE
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 

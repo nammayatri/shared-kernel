@@ -18,6 +18,7 @@ module Kernel.Tools.Metrics.Init where
 
 import Data.Text as DT
 import EulerHS.Prelude as E
+import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import Network.Wai (Application, Request (..))
 import Network.Wai.Handler.Warp as W
@@ -36,10 +37,11 @@ serve port = do
 
 addServantInfo ::
   SanitizedUrl a =>
+  DeploymentVersion ->
   Proxy a ->
   Application ->
   Application
-addServantInfo proxy app request respond =
+addServantInfo version proxy app request respond =
   let mpath = getSanitizedUrl proxy request
       fullpath = DT.intercalate "/" (pathInfo request)
-   in instrumentHandlerValue (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
+   in instrumentHandlerValueWithVersionLabel version.getDeploymentVersion (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
