@@ -19,12 +19,14 @@ import Data.Word (Word16)
 import Database.Redis
 import GHC.Records.Extra
 import Kernel.Prelude
+import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Logging
+import Kernel.Types.Time
 import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
 type HedisFlow m env =
-  (MonadCatch m, MonadReader env m, HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, MonadIO m, C.MonadThrow m, Log m)
+  (MonadTime m, CoreMetrics m, MonadCatch m, MonadReader env m, HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, MonadIO m, C.MonadThrow m, Log m)
 
 type KeyModifierFunc = (Text -> Text)
 
@@ -77,7 +79,8 @@ connectHedisCluster cfg keyModifier = do
           connectAuth = encodeUtf8 <$> cfg.connectAuth,
           connectDatabase = cfg.connectDatabase,
           connectMaxConnections = cfg.connectMaxConnections,
-          connectMaxIdleTime = cfg.connectMaxIdleTime
+          connectMaxIdleTime = cfg.connectMaxIdleTime,
+          connectTimeout = cfg.connectTimeout
         }
 
 connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
@@ -97,7 +100,8 @@ connectHedis cfg keyModifier = do
           connectAuth = encodeUtf8 <$> cfg.connectAuth,
           connectDatabase = cfg.connectDatabase,
           connectMaxConnections = cfg.connectMaxConnections,
-          connectMaxIdleTime = cfg.connectMaxIdleTime
+          connectMaxIdleTime = cfg.connectMaxIdleTime,
+          connectTimeout = cfg.connectTimeout
         }
 
 disconnectHedis :: HedisEnv -> IO ()

@@ -19,6 +19,7 @@ module Kernel.Mock.App where
 
 import qualified Control.Monad.Catch as C
 import Control.Monad.IO.Unlift
+import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Common
 import Kernel.Utils.IOLogging
 import Servant
@@ -50,6 +51,13 @@ newtype MockM e a = MockM {runMockM :: ReaderT e IO a}
 
 runMock :: e -> MockM e a -> IO a
 runMock env action = runReaderT (runMockM action) env
+
+instance CoreMetrics (MockM e) where
+  addRequestLatency _ _ _ _ = return ()
+  addDatastoreLatency _ _ _ = return ()
+  incrementErrorCounter _ _ = return ()
+  addUrlCallRetries _ _ = return ()
+  addUrlCallRetryFailures _ = return ()
 
 instance MonadTime (MockM e) where
   getCurrentTime = liftIO getCurrentTime

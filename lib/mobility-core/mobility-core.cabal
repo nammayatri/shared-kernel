@@ -220,6 +220,7 @@ library
       Kernel.Utils.Callback
       Kernel.Utils.Common
       Kernel.Utils.Context
+      Kernel.Utils.DatastoreLatencyCalculator
       Kernel.Utils.Dhall
       Kernel.Utils.Error
       Kernel.Utils.Error.BaseError.HTTPError.APIError
