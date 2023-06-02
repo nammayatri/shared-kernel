@@ -365,3 +365,12 @@ hGetAll :: (FromJSON a, HedisFlow m env) => Text -> m [(Text, a)]
 hGetAll key = do
   hMap <- runWithPrefix key Hedis.hgetall
   pure $ mapMaybe (\(k, val) -> (cs k,) <$> Ae.decode (BSL.fromStrict val)) hMap
+
+zadd :: (HedisFlow m env) => Text -> [(Double, BS.ByteString)] -> m ()
+zadd key val = do
+  runWithPrefix_ key $ \prefKey -> Hedis.zadd prefKey val
+
+zrangebyscore :: (HedisFlow m env) => Text -> Double -> Double -> m [BS.ByteString]
+zrangebyscore key start end = do
+  preKey <- buildKey key
+  runHedis $ Hedis.zrangebyscore preKey start end
