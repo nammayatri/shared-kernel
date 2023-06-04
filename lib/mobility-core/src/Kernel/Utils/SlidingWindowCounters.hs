@@ -17,6 +17,7 @@ module Kernel.Utils.SlidingWindowCounters
     incrementByValue,
     incrementByValueInTimeBucket,
     decrementWindowCount,
+    getkeysForLastPeriods,
     getLatestRatio,
     getCurrentWindowValues,
     makeSlidingWindowKey,
