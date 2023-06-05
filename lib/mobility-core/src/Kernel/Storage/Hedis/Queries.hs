@@ -19,7 +19,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.String.Conversions
 import qualified Data.Text as Text
-import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
+import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..),RedisResult)
 import qualified Database.Redis as Hedis
 import EulerHS.Prelude (whenLeft)
 import GHC.Records.Extra
@@ -307,6 +307,11 @@ delByPattern :: HedisFlow m env => Text -> m ()
 delByPattern ptrn = do
   runWithPrefix_ ptrn $ \prefKey ->
     Hedis.eval @_ @_ @Reply "for i, name in ipairs(redis.call('KEYS', ARGV[1])) do redis.call('DEL', name); end" ["0"] [prefKey]
+
+eval ::(RedisResult a, HedisFlow m env) => Text -> [Text] -> [Text] -> m a
+eval script keys args = do
+  nKeys <- mapM buildKey keys
+  runHedis $ Hedis.eval (cs script) nKeys (map cs args)
 
 tryLockRedis :: HedisFlow m env => Text -> ExpirationTime -> m Bool
 tryLockRedis key timeout = setNxExpire (buildLockResourceName key) timeout ()
