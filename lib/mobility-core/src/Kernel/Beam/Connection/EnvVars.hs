@@ -9,7 +9,7 @@ postgresConnectionName :: IO Text
 postgresConnectionName = (T.pack . (fromMaybe "postgres") <$> lookupEnv "POSTGRES_CONNECTION_NAME")
 
 postgresR1ConnectionName :: IO Text
-postgresR1ConnectionName = (T.pack . (fromMaybe "postgres") <$> lookupEnv "POSTGRES_R1_CONNECTION_NAME")
+postgresR1ConnectionName = (T.pack . (fromMaybe "postgresR1") <$> lookupEnv "POSTGRES_R1_CONNECTION_NAME")
 
 getPostgresPoolStripes :: IO Int
 getPostgresPoolStripes = ((fromMaybe 1) . (readMaybe =<<)) <$> lookupEnv "POSTGRES_POOL_STRIPES"
