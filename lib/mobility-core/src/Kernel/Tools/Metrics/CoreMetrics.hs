@@ -102,7 +102,7 @@ addDatastoreLatencyImplementation storeType operation latency = do
     P.withLabel
       cmContainer.datastoresLatency
       (storeType, operation, version.getDeploymentVersion)
-      (`P.observe` (fromIntegral $ div (fromEnum . nominalDiffTimeToSeconds $ latency) 1000000000))
+      (`P.observe` (fromIntegral $ div (fromEnum . nominalDiffTimeToSeconds $ latency) 1000000000000))
 
 addRequestLatencyImplementation' ::
   L.MonadFlow m =>
