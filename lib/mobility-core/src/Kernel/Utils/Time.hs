@@ -101,6 +101,10 @@ threadDelayMilliSec milli = liftIO $ threadDelay $ milli.getMilliseconds * 1000
 threadDelaySec :: (MonadIO m) => Seconds -> m ()
 threadDelaySec sec = liftIO $ threadDelay $ sec.getSeconds * 1000000
 
+secondsFromTimeOfDay :: TimeOfDay -> Seconds
+secondsFromTimeOfDay timeOfDay =
+  Seconds . fromIntegral $ (diffTimeToPicoseconds $ timeOfDayToTime timeOfDay) `div` 1000000000000
+
 compareTimeWithInterval :: NominalDiffTime -> UTCTime -> UTCTime -> Ordering
 compareTimeWithInterval dt time1 time2
   | abs (diffUTCTime time1 time2) < abs dt = EQ

@@ -18,7 +18,9 @@ import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.String.Conversions
+import Data.Text hiding (map, null)
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as DE
 import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
 import EulerHS.Prelude (whenLeft)
@@ -385,3 +387,45 @@ hGetAll :: (FromJSON a, HedisFlow m env) => Text -> m [(Text, a)]
 hGetAll key = withTime "RedisCluster" "hGetAll" $ do
   hMap <- runWithPrefix key Hedis.hgetall
   pure $ mapMaybe (\(k, val) -> (cs k,) <$> Ae.decode (BSL.fromStrict val)) hMap
+
+zAddExp :: (ToJSON Integer, HedisFlow m env) => Text -> Text -> Integer -> ExpirationTime -> m ()
+zAddExp key field value expirationTime = withLogTag "Redis" $ do
+  prefKey <- buildKey key
+  migrating <- asks (.hedisMigrationStage)
+  if migrating
+    then do
+      standaloneRes <-
+        try @_ @SomeException $ do
+          void . runHedisTransaction' $ do
+            void . Hedis.zadd prefKey $ [(fromIntegral value, cs field)]
+            Hedis.expire prefKey (toInteger expirationTime)
+      whenLeft standaloneRes (\err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_ZADDEXP" $ show err)
+    else pure ()
+  clusterRes <-
+    try @_ @SomeException $ do
+      void . runHedisTransaction $ do
+        void . Hedis.zadd prefKey $ [(fromIntegral value, cs field)]
+        Hedis.expire prefKey (toInteger expirationTime)
+  whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZADDEXP" $ show err)
+
+zrevrangeWithscores :: (HedisFlow m env) => Text -> Integer -> Integer -> m [(Text, Double)]
+zrevrangeWithscores key start stop = do
+  res <- runWithPrefix key $ \prefKey ->
+    Hedis.zrevrangeWithscores prefKey start stop
+  pure $ map (\(k, score) -> (cs' k, score)) res
+  where
+    cs' :: BS.ByteString -> Text
+    cs' = DE.decodeUtf8
+
+zScore :: (FromJSON Double, HedisFlow m env) => Text -> Text -> m (Maybe Double)
+zScore key member = do
+  maybeZS <- runWithPrefix key (`Hedis.zscore` cs member)
+  pure maybeZS
+
+zRevRank :: (FromJSON Integer, HedisFlow m env) => Text -> Text -> m (Maybe Integer)
+zRevRank key member = do
+  maybeZr <- runWithPrefix key (`Hedis.zrevrank` cs member)
+  pure maybeZr
+
+zCard :: (HedisFlow m env) => Text -> m Integer
+zCard key = runWithPrefix key Hedis.zcard
