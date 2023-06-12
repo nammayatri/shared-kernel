@@ -17,8 +17,10 @@
 module Kernel.Storage.Esqueleto.Queries
   ( findOne,
     findOne',
+    findOneM,
     findById,
     findById',
+    findByIdM,
     findAll,
     findAll',
     create,
@@ -91,6 +93,9 @@ findOne = buildDType . findOneInternal
 findOne' :: (Typeable t, Transactionable m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe a)
 findOne' q = extractTType <$> findOneInternal q
 
+findOneM :: (Typeable t, Transactionable m, TEntity t a, Esq.SqlSelect b t) => Esq.SqlQuery b -> MaybeT (DTypeBuilder m) a
+findOneM = MaybeT . findOne'
+
 findOneInternal :: forall m t b. (Typeable t, Transactionable m, Esq.SqlSelect b t) => Esq.SqlQuery b -> DTypeBuilder m (Maybe t)
 findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ selectOnlyOne
   where
@@ -104,14 +109,16 @@ findOneInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ selec
           throw $ PersistError $ "Multiple results of " <> errType
 
 findById :: forall a t m. (Typeable t, Transactionable m, QEntity (Entity t) a, TEntityKey t) => DomainKey t -> m (Maybe a)
-findById = buildDType . findByIdInternal @t
+findById = buildDType . findByIdInternal @t . toKey @t
 
-findById' :: forall t m. (Typeable t, Transactionable m, TEntityKey t, TEntity (Entity t) t) => DomainKey t -> DTypeBuilder m (Maybe t)
-findById' dkey = extractTType <$> findByIdInternal @t dkey
+findById' :: forall t m. (Typeable t, Transactionable m, TEntityKey t, TEntity (Entity t) t) => Key t -> DTypeBuilder m (Maybe t)
+findById' key = extractTType <$> findByIdInternal @t key
 
-findByIdInternal :: forall t m. (Typeable t, Transactionable m, TEntityKey t, Log m) => DomainKey t -> DTypeBuilder m (Maybe (Entity t))
-findByIdInternal dkey = findOneInternal $ do
-  let key = toKey @t dkey
+findByIdM :: forall t m. (Typeable t, Transactionable m, TEntityKey t, TEntity (Entity t) t) => Key t -> MaybeT (DTypeBuilder m) t
+findByIdM = MaybeT . findById'
+
+findByIdInternal :: forall t m. (Typeable t, Transactionable m, TEntityKey t, Log m) => Key t -> DTypeBuilder m (Maybe (Entity t))
+findByIdInternal key = findOneInternal $ do
   res <- from $ table @t
   where_ $ res Esq.^. persistIdField Esq.==. val key
   return res
