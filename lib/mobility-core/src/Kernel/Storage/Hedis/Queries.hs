@@ -60,7 +60,17 @@ runHedisTransaction action = do
 withCrossAppRedis ::
   (HedisFlow m env) => m f -> m f
 withCrossAppRedis f = do
-  local (\env -> env{hedisEnv = env.hedisEnv{keyModifier = identity}}) f
+  local (\env -> env{hedisEnv = env.hedisEnv{keyModifier = identity}, hedisClusterEnv = env.hedisClusterEnv{keyModifier = identity}}) f
+
+withNonCriticalCrossAppRedis ::
+  (HedisFlow m env) => m f -> m f
+withNonCriticalCrossAppRedis f = do
+  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv{keyModifier = identity}, hedisClusterEnv = env.hedisNonCriticalClusterEnv{keyModifier = identity}}) f
+
+withNonCriticalRedis ::
+  (HedisFlow m env) => m f -> m f
+withNonCriticalRedis f = do
+  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv, hedisClusterEnv = env.hedisNonCriticalClusterEnv}) f
 
 buildKey :: HedisFlow m env => Text -> m BS.ByteString
 buildKey key = do
