@@ -653,20 +653,6 @@ instance IsHTTPError GoogleTranslateCallError where
 
 instance IsAPIError GoogleTranslateCallError
 
-data GridlineCallError = GridlineInvalidRequest
-  deriving (Eq, Show, IsBecknAPIError)
-
-instanceExceptionWithParent 'HTTPException ''GridlineCallError
-
-instance IsBaseError GridlineCallError where
-  toMessage GridlineInvalidRequest = Just "Invalid request to Gridline"
-
-instance IsHTTPError GridlineCallError where
-  toErrorCode GridlineInvalidRequest = "GRIDLINE_INVALID_REQUEST"
-  toHttpCode GridlineInvalidRequest = E400
-
-instance IsAPIError GridlineCallError
-
 data GupShupError
   = GupShupInvalidRequest
   | GupShupNotConfigured

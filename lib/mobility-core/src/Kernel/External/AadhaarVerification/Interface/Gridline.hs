@@ -32,38 +32,20 @@ generateAadhaarOtp ::
 generateAadhaarOtp cfg req = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
-  authType <- decrypt cfg.authType
+  let authType = cfg.authType
   let reqData =
         GT.GridlineAadhaarOtpReq
           { aadhaar_number = req.aadhaarNumber,
             consent = req.consent
           }
-  gridLineVerificationSuccess <- Gridline.generateAadhaarOtp url apiKey authType reqData
-  case (gridLineVerificationSuccess._data, gridLineVerificationSuccess._error) of
-    (Just _data, Nothing) -> do
-      pure $
-        AadhaarVerificationResp
-          { statusCode = _data.code,
-            message = _data.message,
-            transactionId = _data.transaction_id,
-            requestId = gridLineVerificationSuccess.request_id
-          }
-    (_, Just _error) -> do
-      pure $
-        AadhaarVerificationResp
-          { statusCode = _error.code,
-            message = _error.message,
-            transactionId = " ",
-            requestId = gridLineVerificationSuccess.request_id
-          }
-    (_, _) -> do
-      pure $
-        AadhaarVerificationResp
-          { statusCode = " ",
-            message = "error occurred in the interface side",
-            transactionId = " ",
-            requestId = " "
-          }
+  resp <- Gridline.generateAadhaarOtp url apiKey authType reqData
+  return $
+    AadhaarVerificationResp
+      { statusCode = resp._data.code,
+        message = resp._data.message,
+        transactionId = resp._data.transaction_id,
+        requestId = resp.request_id
+      }
 
 verifyAadhaarOtp ::
   ( EncFlow m r,
@@ -75,52 +57,24 @@ verifyAadhaarOtp ::
 verifyAadhaarOtp cfg req = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
-  authType <- decrypt cfg.authType
+  let authType = cfg.authType
   let transactionId = req.transactionId
   let reqData =
         GT.GridlineAadhaarOtpVerifyReq
           { otp = req.otp,
-            include_xml = req.includeXml,
+            include_xml = False,
             share_code = req.shareCode
           }
-  gridLineVerificationSuccess <- Gridline.verifyAadhaarOtp url apiKey authType transactionId reqData
-  case (gridLineVerificationSuccess._data, gridLineVerificationSuccess._error) of
-    (Just _data, Nothing) -> do
-      pure $
-        AadhaarOtpVerifyRes
-          { transactionId = _data.transaction_id,
-            message = _data.message,
-            code = _data.code,
-            name = _data.aadhaar_data.name,
-            gender = _data.aadhaar_data.gender,
-            date_of_birth = _data.aadhaar_data.date_of_birth,
-            share_code = _data.share_code,
-            image = _data.aadhaar_data.photo_base64,
-            request_id = gridLineVerificationSuccess.request_id
-          }
-    (_, Just _error) -> do
-      pure $
-        AadhaarOtpVerifyRes
-          { transactionId = " ",
-            message = _error.message,
-            code = " ",
-            name = " ",
-            gender = " ",
-            date_of_birth = " ",
-            share_code = " ",
-            image = " ",
-            request_id = gridLineVerificationSuccess.request_id
-          }
-    (_, _) -> do
-      pure $
-        AadhaarOtpVerifyRes
-          { transactionId = " ",
-            message = "error occured in interface side",
-            code = " ",
-            name = " ",
-            gender = " ",
-            date_of_birth = " ",
-            share_code = " ",
-            image = " ",
-            request_id = " "
-          }
+  resp <- Gridline.verifyAadhaarOtp url apiKey authType transactionId reqData
+  return $
+    AadhaarOtpVerifyRes
+      { transactionId = resp._data.transaction_id,
+        message = resp._data.message,
+        code = resp._data.code,
+        name = resp._data.aadhaar_data.name,
+        gender = resp._data.aadhaar_data.gender,
+        date_of_birth = resp._data.aadhaar_data.date_of_birth,
+        share_code = resp._data.share_code,
+        image = resp._data.aadhaar_data.photo_base64,
+        request_id = resp.request_id
+      }

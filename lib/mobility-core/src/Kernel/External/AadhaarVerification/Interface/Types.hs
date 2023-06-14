@@ -41,7 +41,6 @@ data AadhaarOtpReq = AadhaarOtpReq
 
 data AadhaarOtpVerifyReq = AadhaarOtpVerifyReq
   { otp :: Int,
-    includeXml :: Bool,
     shareCode :: Text,
     transactionId :: Text
   }

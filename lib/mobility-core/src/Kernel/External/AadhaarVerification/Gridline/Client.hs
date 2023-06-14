@@ -15,13 +15,12 @@
 module Kernel.External.AadhaarVerification.Gridline.Client where
 
 import Kernel.External.AadhaarVerification.Gridline.API as API
+import Kernel.External.AadhaarVerification.Gridline.Error
 import qualified Kernel.External.AadhaarVerification.Gridline.Types as Gridline
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.Common
-import Kernel.Types.Error
 import Kernel.Utils.Common hiding (Error)
-import Servant.Client.Core (ClientError)
 
 generateAadhaarOtp ::
   ( MonadFlow m,
@@ -33,8 +32,8 @@ generateAadhaarOtp ::
   Gridline.GridlineAadhaarOtpReq ->
   m Gridline.GridlineVerifyAadhaarResp
 generateAadhaarOtp url apiKey authType req = do
-  callAPI url (API.generateAadhaarOtp (Just apiKey) (Just authType) req) "generateAadhaarOtp" API.generateAadhaarOtpAPI
-    >>= checkVerifyGridlineError url
+  let client = API.generateAadhaarOtp (Just apiKey) (Just authType) req
+  callGridlineAPI url client "generateAadhaarOtp" API.generateAadhaarOtpAPI
 
 verifyAadhaarOtp ::
   ( MonadFlow m,
@@ -47,30 +46,8 @@ verifyAadhaarOtp ::
   Gridline.GridlineAadhaarOtpVerifyReq ->
   m Gridline.GridlineSubmitResponse
 verifyAadhaarOtp url apiKey authType transactionId req = do
-  callAPI url (API.verifyAadhaarOtp (Just apiKey) (Just authType) (Just transactionId) req) "verifyAadhaarOtp" API.verifyAadhaarOtpAPI
-    >>= checkSubmitGridlineError url
+  let client = API.verifyAadhaarOtp (Just apiKey) (Just authType) (Just transactionId) req
+  callGridlineAPI url client "verifyAadhaarOtp" API.verifyAadhaarOtpAPI
 
-checkSubmitGridlineError :: (MonadThrow m, Log m) => BaseUrl -> Either ClientError Gridline.GridlineSubmitResponse -> m Gridline.GridlineSubmitResponse
-checkSubmitGridlineError url res = do
-  fromEitherM (gridlineError url) res >>= validateSubmitResponseStatus
-
-gridlineError :: BaseUrl -> ClientError -> ExternalAPICallError
-gridlineError = ExternalAPICallError (Just "GRIDLINE_API_ERROR")
-
-validateSubmitResponseStatus :: (MonadThrow m, Log m) => Gridline.GridlineSubmitResponse -> m Gridline.GridlineSubmitResponse
-validateSubmitResponseStatus response =
-  case (response._data, response._error) of
-    (Just _, Nothing) -> pure response
-    (Nothing, Just _) -> pure response
-    _ -> throwError GridlineInvalidRequest
-
-checkVerifyGridlineError :: (MonadThrow m, Log m) => BaseUrl -> Either ClientError Gridline.GridlineVerifyAadhaarResp -> m Gridline.GridlineVerifyAadhaarResp
-checkVerifyGridlineError url res = do
-  fromEitherM (gridlineError url) res >>= validateVerifyResponseStatus
-
-validateVerifyResponseStatus :: (MonadThrow m, Log m) => Gridline.GridlineVerifyAadhaarResp -> m Gridline.GridlineVerifyAadhaarResp
-validateVerifyResponseStatus response =
-  case (response._data, response._error) of
-    (Just _, Nothing) -> pure response
-    (Nothing, Just _) -> pure response
-    _ -> throwError GridlineInvalidRequest
+callGridlineAPI :: CallAPI env api res
+callGridlineAPI = callApiUnwrappingApiError (identity @GridlineError) Nothing (Just "GRIDLINE_ERROR")

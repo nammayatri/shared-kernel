@@ -26,6 +26,7 @@ library
       Kernel.External.AadhaarVerification.Gridline.API
       Kernel.External.AadhaarVerification.Gridline.Client
       Kernel.External.AadhaarVerification.Gridline.Config
+      Kernel.External.AadhaarVerification.Gridline.Error
       Kernel.External.AadhaarVerification.Gridline.Types
       Kernel.External.AadhaarVerification.Interface
       Kernel.External.AadhaarVerification.Interface.Gridline
