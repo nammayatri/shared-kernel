@@ -74,6 +74,17 @@ library
       Kernel.External.Notification.PayTM.Client
       Kernel.External.Notification.PayTM.Types
       Kernel.External.Notification.Types
+      Kernel.External.Payment.Interface
+      Kernel.External.Payment.Interface.Juspay
+      Kernel.External.Payment.Interface.Types
+      Kernel.External.Payment.Juspay.Config
+      Kernel.External.Payment.Juspay.Flow
+      Kernel.External.Payment.Juspay.Types
+      Kernel.External.Payment.Juspay.Types.Common
+      Kernel.External.Payment.Juspay.Types.CreateOrder
+      Kernel.External.Payment.Juspay.Types.Webhook
+      Kernel.External.Payment.Juspay.Webhook
+      Kernel.External.Payment.Types
       Kernel.External.Slack.Flow
       Kernel.External.Slack.Types
       Kernel.External.SMS
@@ -243,6 +254,7 @@ library
       Kernel.Utils.Schema
       Kernel.Utils.Servant.API
       Kernel.Utils.Servant.BaseUrl
+      Kernel.Utils.Servant.BasicAuth
       Kernel.Utils.Servant.Client
       Kernel.Utils.Servant.HeaderAuth
       Kernel.Utils.Servant.HTML
