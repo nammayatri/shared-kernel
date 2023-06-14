@@ -20,7 +20,7 @@ import Kernel.Prelude
 
 data GridlineCfg = GridlineCfg
   { apiKey :: EncryptedField 'AsEncrypted Text,
-    authType :: EncryptedField 'AsEncrypted Text,
+    authType :: Text,
     url :: BaseUrl
   }
   deriving stock (Show, Eq, Generic)

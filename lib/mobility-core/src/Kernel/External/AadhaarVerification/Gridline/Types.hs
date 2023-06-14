@@ -24,6 +24,14 @@ data GridlineAadhaarOtpReq = GridlineAadhaarOtpReq
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
+data GridlineVerifyAadhaarResp = GridlineVerifyAadhaarResp
+  { request_id :: Text,
+    status :: Int,
+    _data :: GridlineVerifyAadhaarData,
+    path :: Text
+  }
+  deriving (Show, Generic, ToJSON)
+
 data GridlineVerifyAadhaarData = GridlineVerifyAadhaarData
   { code :: Text,
     message :: Text,
@@ -31,29 +39,13 @@ data GridlineVerifyAadhaarData = GridlineVerifyAadhaarData
   }
   deriving (Show, Generic, ToJSON, FromJSON)
 
-data GridlineVerifyAadhaarError = GridlineVerifyAadhaarError
-  { code :: Text,
-    message :: Text
-  }
-  deriving (Show, Generic, ToJSON, FromJSON)
-
-data GridlineVerifyAadhaarResp = GridlineVerifyAadhaarResp
-  { request_id :: Text,
-    status :: Int,
-    _data :: Maybe GridlineVerifyAadhaarData,
-    _error :: Maybe GridlineVerifyAadhaarError,
-    path :: Text
-  }
-  deriving (Show, Generic, ToJSON)
-
 instance FromJSON GridlineVerifyAadhaarResp where
   parseJSON = withObject "GridlineVerifyAadhaarResp" $ \v -> do
     request_id <- v .: "request_id"
     path <- v .: "path"
     status <- v .: "status"
-    _data <- v .:? "data"
-    _error <- v .:? "error"
-    return (GridlineVerifyAadhaarResp request_id status _data _error path)
+    _data <- v .: "data"
+    return (GridlineVerifyAadhaarResp request_id status _data path)
 
 data GridlineAadhaarOtpVerifyReq = GridlineAadhaarOtpVerifyReq
   { otp :: Int,
@@ -63,8 +55,7 @@ data GridlineAadhaarOtpVerifyReq = GridlineAadhaarOtpVerifyReq
   deriving (Show, Generic, ToJSON, FromJSON)
 
 data GridlineSubmitResponse = GridlineSubmitResponse
-  { _data :: Maybe GridlineSubmitAadhaarData,
-    _error :: Maybe GridlineSubmitAadhaarError,
+  { _data :: GridlineSubmitAadhaarData,
     request_id :: Text
   }
   deriving (Show, Generic, ToJSON)
@@ -101,15 +92,8 @@ data AadhaarData = AadhaarData
   }
   deriving (Show, Generic, ToJSON, FromJSON)
 
-data GridlineSubmitAadhaarError = GridlineSubmitAadhaarError
-  { message :: Text,
-    cause :: Text
-  }
-  deriving (Show, Generic, ToJSON, FromJSON)
-
 instance FromJSON GridlineSubmitResponse where
   parseJSON = withObject "GridlineSubmitResponse" $ \v -> do
-    _data <- v .:? "data"
-    _error <- v .:? "error"
+    _data <- v .: "data"
     request_id <- v .: "request_id"
-    return (GridlineSubmitResponse _data _error request_id)
+    return (GridlineSubmitResponse _data request_id)
