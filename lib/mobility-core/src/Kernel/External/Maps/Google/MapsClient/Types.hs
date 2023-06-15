@@ -104,7 +104,7 @@ data AddressResp = AddressResp
 newtype PlusCodeResp = PlusCodeResp
   { compound_code :: Text
   }
-  deriving stock (Generic, Show)
+  deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data DirectionsResp = DirectionsResp

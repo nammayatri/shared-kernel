@@ -17,6 +17,8 @@ module Kernel.External.GoogleTranslate.Client where
 import EulerHS.Prelude
 import qualified Kernel.External.GoogleTranslate.API as API
 import qualified Kernel.External.GoogleTranslate.Types as GoogleTranslate
+import Kernel.Streaming.Kafka.DataAnalytics
+import Kernel.Streaming.Kafka.Producer.Types (KafkaProducerTools)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
@@ -25,17 +27,23 @@ import Servant.Client.Core (ClientError)
 
 translate ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasFlowEnv m r '["kafkaProducerTools" ::: KafkaProducerTools],
+    HasFlowEnv m r '["appPrefix" ::: Text]
   ) =>
   BaseUrl ->
   Text ->
   Text ->
   Text ->
   Text ->
+  Text ->
   m GoogleTranslate.TranslateResp
-translate url apiKey source target query = do
-  callAPI url (API.translate apiKey source target query) "translate" API.googleTranslateAPI
-    >>= checkGoogleTranslateError url
+translate url apiKey source target query someId = do
+  res <-
+    callAPI url (API.translate apiKey source target query) "translate" API.googleTranslateAPI
+      >>= checkGoogleTranslateError url
+  streamToKafka (RequestResponseData {request = GoogleTranslate.TranslateReq {..}, response = res}) someId "google-translate-data"
+  return res
 
 checkGoogleTranslateError :: (MonadThrow m, Log m, HasField "_error" a (Maybe GoogleTranslate.TranslateError)) => BaseUrl -> Either ClientError a -> m a
 checkGoogleTranslateError url res =
