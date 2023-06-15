@@ -26,7 +26,7 @@ import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
 type HedisFlow m env =
-  (MonadTime m, CoreMetrics m, MonadCatch m, MonadReader env m, HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, MonadIO m, C.MonadThrow m, Log m)
+  (MonadTime m, CoreMetrics m, MonadCatch m, MonadReader env m, HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, MonadIO m, C.MonadThrow m, Log m)
 
 type KeyModifierFunc = (Text -> Text)
 
