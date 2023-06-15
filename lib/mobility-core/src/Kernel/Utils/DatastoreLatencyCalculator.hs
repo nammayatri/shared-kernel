@@ -17,11 +17,18 @@
 module Kernel.Utils.DatastoreLatencyCalculator where
 
 import Kernel.Prelude
+import Kernel.Storage.Hedis.Config
 import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Utils.Common
 
 withTime ::
-  (Log m, Monad m, MonadTime m, CoreMetrics m) =>
+  ( MonadReader r m,
+    HedisFlow m r,
+    Log m,
+    Monad m,
+    MonadTime m,
+    CoreMetrics m
+  ) =>
   Text ->
   Text ->
   m a ->
@@ -31,6 +38,8 @@ withTime storeType operationName operation = do
   res <- operation
   atime <- getCurrentTime
   let latency = diffUTCTime atime btime
-  logTagInfo (storeType <> ":" <> operationName) $ show latency
-  addDatastoreLatency storeType operationName latency
+  enableRedisLatencyLogging <- asks (.enableRedisLatencyLogging)
+  when enableRedisLatencyLogging $ logTagInfo (storeType <> ":" <> operationName) $ show latency
+  enablePrometheusMetricLogging <- asks (.enablePrometheusMetricLogging)
+  when enablePrometheusMetricLogging $ addDatastoreLatency storeType operationName latency
   pure res
