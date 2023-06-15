@@ -16,7 +16,7 @@
 
 module Kernel.Utils.Servant.BasicAuth () where
 
-import Control.Lens ((?=))
+import Control.Lens (at, (.=), (?=))
 import qualified Data.OpenApi as DS
 import Data.Typeable (typeRep)
 import EulerHS.Prelude

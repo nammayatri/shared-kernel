@@ -384,11 +384,11 @@
         "sequelize": "sequelize"
       },
       "locked": {
-        "lastModified": 1685661687,
-        "narHash": "sha256-QVBsg/GtxB25hNvGvQLLKlCQ4vm0swEFyq8f6vwZoVQ=",
+        "lastModified": 1686833766,
+        "narHash": "sha256-qbaixw86Xf6GqAbUz2iNNvSBF/M9ogEu8D1K2aPGAIY=",
         "ref": "ny-compatible",
-        "rev": "d7648a633173d048c67e01c0cce712fdb227e7cd",
-        "revCount": 2116,
+        "rev": "b36d5b37e1a8ebbd257cf6884cc2647741cf0755",
+        "revCount": 2117,
         "type": "git",
         "url": "ssh://git@ssh.bitbucket.juspay.net/iris/euler-hs"
       },
@@ -767,14 +767,14 @@
       "locked": {
         "lastModified": 1685620412,
         "narHash": "sha256-cPRZRbR76M7fBNSXcrSOqLlIcs2KSj/Ynf0AdZ46qrE=",
-        "owner": "juspay",
-        "repo": "hedis",
+        "ref": "refs/heads/master",
         "rev": "92a3d5ab73dcb0ea11139a01d6f2950a8b8e7e0e",
-        "type": "github"
+        "revCount": 712,
+        "type": "git",
+        "url": "https://github.com/juspay/hedis"
       },
       "original": {
-        "ref": "cluster",
-        "rev": "f8b11e0512b864f165a4a086713b41a0e3d622ea",
+        "rev": "92a3d5ab73dcb0ea11139a01d6f2950a8b8e7e0e",
         "type": "git",
         "url": "https://github.com/juspay/hedis"
       }

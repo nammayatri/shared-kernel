@@ -11,6 +11,7 @@
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
     euler-hs.url = "git+ssh://git@ssh.bitbucket.juspay.net/iris/euler-hs?ref=ny-compatible"; # https://github.com/juspay/euler-hs/pull/9
+    # euler-hs.url = "path:/Users/apoorv.agarwal/Documents/projects/euler-hs/"; # https://github.com/juspay/euler-hs/pull/9
   };
   outputs = inputs:
     inputs.common.lib.mkFlake { inherit inputs; } {
