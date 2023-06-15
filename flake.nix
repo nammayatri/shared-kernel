@@ -4,6 +4,7 @@
 
     passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
     passetto-hs.flake = false;
+
     clickhouse-haskell.url = "github:nammayatri/clickhouse-haskell";
     clickhouse-haskell.inputs.common.follows = "common";
     prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";

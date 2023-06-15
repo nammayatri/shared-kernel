@@ -21,6 +21,7 @@ module Kernel.Tools.Metrics.CoreMetrics
 where
 
 import Data.Text as DT
+import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude as E
 import GHC.Records.Extra
@@ -84,6 +85,24 @@ addRequestLatencyImplementation host serviceName dur status = do
   cmContainer <- asks (.coreMetrics)
   version <- asks (.version)
   addRequestLatencyImplementation' cmContainer host serviceName dur status version
+
+addDatastoreLatencyImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Text ->
+  NominalDiffTime ->
+  m ()
+addDatastoreLatencyImplementation storeType operation latency = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  L.runIO $
+    P.withLabel
+      cmContainer.datastoresLatency
+      (storeType, operation, version.getDeploymentVersion)
+      (`P.observe` (fromIntegral $ div (fromEnum . nominalDiffTimeToSeconds $ latency) 1000000000000))
 
 addRequestLatencyImplementation' ::
   L.MonadFlow m =>

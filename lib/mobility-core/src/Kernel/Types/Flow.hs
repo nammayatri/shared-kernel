@@ -159,6 +159,7 @@ instance MonadClock (FlowR r) where
 
 instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   addRequestLatency = Metrics.addRequestLatencyImplementation
+  addDatastoreLatency = Metrics.addDatastoreLatencyImplementation
   incrementErrorCounter = Metrics.incrementErrorCounterImplementation
   addUrlCallRetries = Metrics.addUrlCallRetriesImplementation
   addUrlCallRetryFailures = Metrics.addUrlCallFailuresImplementation

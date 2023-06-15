@@ -21,6 +21,7 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
   )
 where
 
+import Data.Time (NominalDiffTime)
 import EulerHS.Prelude as E
 import GHC.Records.Extra
 import Kernel.Types.Time (Milliseconds)
@@ -28,6 +29,8 @@ import Prometheus as P
 import Servant.Client (BaseUrl, ClientError)
 
 type RequestLatencyMetric = P.Vector P.Label4 P.Histogram
+
+type DatastoresLatencyMetric = P.Vector P.Label3 P.Histogram
 
 type ErrorCounterMetric = P.Vector P.Label4 P.Counter
 
@@ -49,12 +52,14 @@ class CoreMetrics m where
     Milliseconds ->
     Either ClientError a ->
     m ()
+  addDatastoreLatency :: Text -> Text -> NominalDiffTime -> m ()
   incrementErrorCounter :: Text -> SomeException -> m ()
   addUrlCallRetries :: BaseUrl -> Int -> m ()
   addUrlCallRetryFailures :: BaseUrl -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
+    datastoresLatency :: DatastoresLatencyMetric,
     errorCounter :: ErrorCounterMetric,
     urlCallRetries :: URLCallRetriesMetric,
     urlCallRetryFailures :: URLCallRetryFailuresMetric
@@ -63,11 +68,20 @@ data CoreMetricsContainer = CoreMetricsContainer
 registerCoreMetricsContainer :: IO CoreMetricsContainer
 registerCoreMetricsContainer = do
   requestLatency <- registerRequestLatencyMetric
+  datastoresLatency <- registerDatastoresLatencyMetrics
   errorCounter <- registerErrorCounterMetric
   urlCallRetries <- registerURLCallRetriesMetric
   urlCallRetryFailures <- registerURLCallRetryFailuresMetric
 
   return CoreMetricsContainer {..}
+
+registerDatastoresLatencyMetrics :: IO DatastoresLatencyMetric
+registerDatastoresLatencyMetrics =
+  P.register $
+    P.vector ("datastore", "operation", "version") $
+      P.histogram info P.defaultBuckets
+  where
+    info = P.Info "datastore_operation_duration" ""
 
 registerRequestLatencyMetric :: IO RequestLatencyMetric
 registerRequestLatencyMetric =
