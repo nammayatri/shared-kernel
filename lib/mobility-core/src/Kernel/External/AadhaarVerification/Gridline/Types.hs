@@ -16,7 +16,7 @@
 module Kernel.External.AadhaarVerification.Gridline.Types where
 
 import Data.Aeson
-import EulerHS.Prelude hiding (error, state, (.=))
+import EulerHS.Prelude hiding (error, state)
 
 data GridlineAadhaarOtpReq = GridlineAadhaarOtpReq
   { aadhaar_number :: Text,
