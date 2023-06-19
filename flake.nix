@@ -1,16 +1,24 @@
 {
   inputs = {
-    common.url = "github:nammayatri/common";
+    # Note: replace with upstream url when PR
+    # https://github.com/nammayatri/common/pull/13 gets merged
+    # common.url = "github:nammayatri/common";
+    common.url = "github:arjunkathuria/common/Mobility-GHC927-Rebased";
+    nixpkgs.follows = "common/nixpkgs";
+    flake-parts.follows = "common/flake-parts";
+    systems.url = "github:nix-systems/default";
 
     passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
     passetto-hs.flake = false;
 
-    clickhouse-haskell.url = "github:nammayatri/clickhouse-haskell";
+    # replace this with upstream when done
+    clickhouse-haskell.url = "github:arjunkathuria/clickhouse-haskell/Mobility\/GHC-927-rebased";
     clickhouse-haskell.inputs.common.follows = "common";
-    prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
-    prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
-    euler-hs.url = "github:nammayatri/euler-hs/haskell-flake-0.4"; # https://github.com/juspay/euler-hs/pull/9
+    # Note: Prometheus-haskell now comes transitively from euler-events-hs
+    # which is a dependency of euler-hs flake
+    # prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
+    euler-hs.url = "github:arjunkathuria/euler-hs/Mobility-GHC927";
   };
   outputs = inputs:
     inputs.common.lib.mkFlake { inherit inputs; } {
@@ -20,7 +28,7 @@
           imports = [
             inputs.euler-hs.haskellFlakeProjectModules.output
             inputs.clickhouse-haskell.haskellFlakeProjectModules.output
-            inputs.prometheus-haskell.haskellFlakeProjectModules.output
+            # inputs.prometheus-haskell.haskellFlakeProjectModules.output
           ];
           packages = {
             passetto-client.source = inputs.passetto-hs + /client;
@@ -32,11 +40,19 @@
               check = false;
               haddock = false;
             };
+            haxl = {
+              broken = false;
+              jailbreak = true;
+            };
             wai-middleware-prometheus = {
               check = false;
               haddock = false;
             };
             clickhouse-haskell.jailbreak = true;
+            openapi3 = {
+              broken = false;
+              check = false;
+            };
           };
           autoWire = [ "packages" "checks" ];
         };
