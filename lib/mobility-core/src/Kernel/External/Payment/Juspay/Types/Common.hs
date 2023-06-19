@@ -56,11 +56,11 @@ type OrderStatusResp = OrderData
 
 data OrderData = OrderData
   { order_id :: Text,
-    txn_uuid :: Text,
+    txn_uuid :: Maybe Text,
     status_id :: Int,
     status :: TransactionStatus,
-    payment_method_type :: Text,
-    payment_method :: Text,
+    payment_method_type :: Maybe Text,
+    payment_method :: Maybe Text,
     resp_message :: Maybe Text,
     resp_code :: Maybe Text,
     gateway_reference_id :: Maybe Text,

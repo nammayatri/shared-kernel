@@ -43,11 +43,11 @@ newtype OrderStatusReq = OrderStatusReq
 
 data OrderStatusResp = OrderStatusResp
   { orderShortId :: Text,
-    transactionUUID :: Text,
+    transactionUUID :: Maybe Text,
     transactionStatusId :: Int,
     transactionStatus :: TransactionStatus,
-    paymentMethodType :: Text,
-    paymentMethod :: Text,
+    paymentMethodType :: Maybe Text,
+    paymentMethod :: Maybe Text,
     respMessage :: Maybe Text,
     respCode :: Maybe Text,
     gatewayReferenceId :: Maybe Text,
