@@ -963,3 +963,26 @@ instance IsHTTPError SosError where
   toHttpCode _ = E400
 
 instance IsAPIError SosError
+
+data PaymentOrderError
+  = PaymentOrderNotFound Text
+  | PaymentOrderDoesNotExist Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''PaymentOrderError
+
+instance IsBaseError PaymentOrderError where
+  toMessage = \case
+    PaymentOrderNotFound orderId -> Just $ "PaymentOrder with orderId \"" <> show orderId <> "\"not found. "
+    PaymentOrderDoesNotExist orderId -> Just $ "No payment order matches passed data \"" <> show orderId <> "\" not exist. "
+
+instance IsHTTPError PaymentOrderError where
+  toErrorCode = \case
+    PaymentOrderNotFound _ -> "PAYMENT_ORDER_NOT_FOUND"
+    PaymentOrderDoesNotExist _ -> "PAYMENT_ORDER_DOES_NOT_EXIST"
+
+  toHttpCode = \case
+    PaymentOrderNotFound _ -> E500
+    PaymentOrderDoesNotExist _ -> E400
+
+instance IsAPIError PaymentOrderError

@@ -38,10 +38,10 @@ import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 
-buildIdfyRequest :: MonadGuid m => a -> m (Idfy.IdfyRequest a)
-buildIdfyRequest a = do
+buildIdfyRequest :: MonadGuid m => Text -> a -> m (Idfy.IdfyRequest a)
+buildIdfyRequest driverId a = do
   task_id <- generateGUID
-  group_id <- generateGUID
+  let group_id = driverId
   pure
     Idfy.IdfyRequest
       { _data = a,
@@ -65,7 +65,7 @@ verifyDLAsync cfg req = do
           { id_number = req.dlNumber,
             date_of_birth = dobDay
           }
-  idfyReq <- buildIdfyRequest reqData
+  idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyDLAsync apiKey accountId url idfyReq
   pure $ VerifyAsyncResp {requestId = idfySuccess.request_id}
 
@@ -85,7 +85,7 @@ verifyRCAsync cfg req = do
           { rc_number = req.rcNumber,
             _a = Nothing
           }
-  idfyReq <- buildIdfyRequest reqData
+  idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyRCAsync apiKey accountId url idfyReq
   pure $ VerifyAsyncResp {requestId = idfySuccess.request_id}
 
@@ -108,7 +108,7 @@ validateImage cfg req = do
               { document1 = req.image,
                 doc_type = getDocType req.imageType
               }
-      idfyReq <- buildIdfyRequest reqData
+      idfyReq <- buildIdfyRequest req.driverId reqData
       resp <- Idfy.validateImage apiKey accountId url idfyReq
       pure $ mkValidateImageResp resp
     VehicleRegistrationCertificate -> do
@@ -157,7 +157,7 @@ extractRCImage cfg req = do
           { document1 = req.image1,
             document2 = req.image2
           }
-  idfyReq <- buildIdfyRequest reqData
+  idfyReq <- buildIdfyRequest req.driverId reqData
   resp <- Idfy.extractRCImage apiKey accountId url idfyReq
   pure
     ExtractRCImageResp
@@ -182,7 +182,7 @@ extractDLImage cfg req = do
           { document1 = req.image1,
             document2 = req.image2
           }
-  idfyReq <- buildIdfyRequest reqData
+  idfyReq <- buildIdfyRequest req.driverId reqData
   resp <- Idfy.extractDLImage apiKey accountId url idfyReq
   pure
     ExtractDLImageResp
