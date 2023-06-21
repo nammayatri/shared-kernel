@@ -36,7 +36,7 @@ orderStatusWebhook ::
   (Juspay.WebhookReq -> Text -> m AckResponse) ->
   BasicAuthData ->
   Value ->
-  m AckResponse
+  m (Maybe Juspay.OrderStatusContent)
 orderStatusWebhook paymentConfig orderStatusHandler authData val = do
   withLogTag "webhookPaymentOrderStatus" $ do
     let respDump = encodeToText val
@@ -45,10 +45,10 @@ orderStatusWebhook paymentConfig orderStatusHandler authData val = do
       DAT.Success (resp :: Juspay.WebhookReq) -> do
         void $ verifyAuth paymentConfig authData
         void $ orderStatusHandler resp respDump
-        pure Ack
+        pure (Just resp.content)
       DAT.Error err -> do
         logInfo $ "OrderStatus Parsing failed :: " <> show err
-        pure Ack
+        pure Nothing
 
 verifyAuth ::
   EncFlow m r =>
