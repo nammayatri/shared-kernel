@@ -222,7 +222,6 @@ library
       Kernel.Types.Predicate
       Kernel.Types.Registry
       Kernel.Types.Registry.API
-      Kernel.Types.Registry.City
       Kernel.Types.Registry.Country
       Kernel.Types.Registry.Domain
       Kernel.Types.Registry.Routes
