@@ -986,3 +986,26 @@ instance IsHTTPError PaymentOrderError where
     PaymentOrderDoesNotExist _ -> E400
 
 instance IsAPIError PaymentOrderError
+
+data DriverFeeError
+  = DriverFeeNotFound Text
+  | DriverFeeAlreadySettled Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''DriverFeeError
+
+instance IsBaseError DriverFeeError where
+  toMessage = \case
+    DriverFeeNotFound driverFeeId -> Just $ "DriverFee with id \"" <> show driverFeeId <> "\"not found. "
+    DriverFeeAlreadySettled driverFeeId -> Just $ "DriverFee with id \"" <> show driverFeeId <> "\"is already settled."
+
+instance IsHTTPError DriverFeeError where
+  toErrorCode = \case
+    DriverFeeNotFound _ -> "DRIVER_FEE_NOT_FOUND"
+    DriverFeeAlreadySettled _ -> "DRIVER_FEE_ALREDAY_SETTLED"
+
+  toHttpCode = \case
+    DriverFeeNotFound _ -> E500
+    DriverFeeAlreadySettled _ -> E400
+
+instance IsAPIError DriverFeeError

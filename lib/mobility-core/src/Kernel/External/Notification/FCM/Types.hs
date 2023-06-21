@@ -116,6 +116,8 @@ data FCMNotificationType
   | NEW_MESSAGE
   | REFERRAL_ACTIVATED
   | CHAT_MESSAGE
+  | PAYMENT_PENDING
+  | PAYMENT_OVERDUE
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
