@@ -62,23 +62,23 @@ data SDKPayload = SDKPayload
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data SDKPayloadDetails = SDKPayloadDetails
-  { clientId :: Text,
+  { clientId :: Maybe Text,
     amount :: Text,
-    merchantId :: Text,
+    merchantId :: Maybe Text,
     clientAuthToken :: Text,
     clientAuthTokenExpiry :: UTCTime,
     environment :: Maybe Text,
     options_getUpiDeepLinks :: Maybe Bool,
-    lastName :: Text,
-    action :: Text,
-    customerId :: Text,
-    returnUrl :: Text,
+    lastName :: Maybe Text,
+    action :: Maybe Text,
+    customerId :: Maybe Text,
+    returnUrl :: Maybe Text,
     currency :: Currency,
-    firstName :: Text,
-    customerPhone :: Text,
-    customerEmail :: Text,
-    orderId :: Text,
-    description :: Text
+    firstName :: Maybe Text,
+    customerPhone :: Maybe Text,
+    customerEmail :: Maybe Text,
+    orderId :: Maybe Text,
+    description :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
