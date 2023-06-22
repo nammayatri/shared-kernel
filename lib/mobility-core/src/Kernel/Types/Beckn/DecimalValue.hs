@@ -14,6 +14,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wwarn=identities #-}
 
 -- Functions rationalToString, validate
 -- are only exported for testing purposes.

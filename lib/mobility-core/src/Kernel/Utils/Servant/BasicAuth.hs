@@ -16,12 +16,13 @@
 
 module Kernel.Utils.Servant.BasicAuth () where
 
-import Control.Lens ((?=))
+import Control.Lens (at, (.=), (.~), (?=))
 import qualified Data.OpenApi as DS
 import Data.Typeable (typeRep)
-import EulerHS.Prelude
+import EulerHS.Prelude hiding (fromList, (.~))
 import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol)
+import Kernel.Prelude.OrphanInstances ()
 import Servant hiding (ResponseHeader (..))
 import qualified Servant.OpenApi as S
 import qualified Servant.OpenApi.Internal as S

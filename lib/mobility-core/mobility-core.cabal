@@ -318,7 +318,7 @@ library
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
   build-depends:
       aeson
     , aeson-casing
@@ -333,7 +333,7 @@ library
     , cryptonite
     , data-default-class
     , deriving-aeson
-    , dhall <=1.35.0
+    , dhall
     , double-conversion
     , either
     , esqueleto
@@ -342,6 +342,7 @@ library
     , extra
     , fast-logger
     , fmt
+    , formatting
     , generic-lens
     , geojson
     , hedis
@@ -385,6 +386,8 @@ library
     , servant-client
     , servant-client-core
     , servant-multipart
+    , servant-multipart-api
+    , servant-multipart-client
     , servant-openapi3
     , servant-server
     , stm
@@ -397,7 +400,7 @@ library
     , time
     , tinylog
     , transformers
-    , universum <1.8
+    , universum
     , unix
     , unliftio
     , unliftio-core
@@ -460,7 +463,7 @@ test-suite mobility-core-tests
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
   build-depends:
       aeson
     , aeson-casing
@@ -475,7 +478,7 @@ test-suite mobility-core-tests
     , cryptonite
     , data-default-class
     , deriving-aeson
-    , dhall <=1.35.0
+    , dhall
     , double-conversion
     , either
     , esqueleto
@@ -484,6 +487,7 @@ test-suite mobility-core-tests
     , extra
     , fast-logger
     , fmt
+    , formatting
     , generic-lens
     , geojson
     , hedis
@@ -528,6 +532,8 @@ test-suite mobility-core-tests
     , servant-client
     , servant-client-core
     , servant-multipart
+    , servant-multipart-api
+    , servant-multipart-client
     , servant-openapi3
     , servant-server
     , stm
@@ -540,7 +546,7 @@ test-suite mobility-core-tests
     , time
     , tinylog
     , transformers
-    , universum <1.8
+    , universum
     , unix
     , unliftio
     , unliftio-core

@@ -26,6 +26,8 @@ import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as Text
+import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.Builder as LTB
 import qualified Data.Time as Time
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
@@ -35,14 +37,22 @@ import qualified EulerHS.Types as T
 import Kernel.Types.Logging
 import System.Logger (DateFormat, Renderer, renderDefault)
 import qualified Prelude as P
+import qualified Data.Aeson.KeyMap as AKM
+import qualified Formatting.Buildable as FB (build)
 
 logOutputImplementation :: L.MonadFlow m => LogLevel -> T.Message -> m ()
 logOutputImplementation logLevel message =
   case logLevel of
-    DEBUG -> L.logDebug EmtpyTag message
-    INFO -> L.logInfo EmtpyTag message
-    WARNING -> L.logWarning EmtpyTag message
-    ERROR -> L.logError EmtpyTag message
+    DEBUG -> L.logDebug EmtpyTag msg
+    INFO -> L.logInfo EmtpyTag msg
+    WARNING -> L.logWarning EmtpyTag msg
+    ERROR -> L.logError EmtpyTag msg
+    where
+      -- the T.Message type from an older version of Euler-hs
+      -- previously used to be a type-synonym to "Text"
+      -- It is now a record, with a "Buildable" instance
+      -- While the logging functions still expect a Text
+      msg = LT.toStrict . LTB.toLazyText $ FB.build message
 
 withLogTagImplementation ::
   L.MonadFlow m =>
@@ -94,10 +104,16 @@ getEulerLoggerConfig LoggerConfig {..} =
           then r <> "-eul"
           else Text.init l <> "-eul." <> r
 
-getEulerLoggerRuntime :: Maybe Text -> LoggerConfig -> IO LoggerRuntime
-getEulerLoggerRuntime hostname = createOwnLoggerRuntime (logFlowFormatter hostname) . getEulerLoggerConfig
+-- Note:
+-- createLoggerRuntime & createLoggerRuntime' functions from Euler-hs (after update)
+-- now take an additional argument for "severityCounterHandler",
+-- which is a "Maybe SeverityCounterHandle" type
+-- Keeping it "Nothing" for now, until we need to add something here
 
-createOwnLoggerRuntime :: T.FlowFormatter -> T.LoggerConfig -> IO LoggerRuntime
+getEulerLoggerRuntime :: Maybe Text -> LoggerConfig -> IO LoggerRuntime
+getEulerLoggerRuntime hostname = createOwnLoggerRuntime (logFlowFormatter hostname) Nothing . getEulerLoggerConfig
+
+createOwnLoggerRuntime :: T.FlowFormatter -> Maybe SeverityCounterHandle -> T.LoggerConfig -> IO LoggerRuntime
 createOwnLoggerRuntime = createLoggerRuntime' defaultDateFormat (Just ownRender) defaultBufferSize
   where
     ownRender :: Renderer
@@ -131,21 +147,20 @@ logFormatterText
         T.Info -> INFO
         T.Error -> ERROR
       -- textToLBS = LBS.fromStrict . Txt.encodeUtf8
-      log =
-        show timestamp
-          <> " "
-          <> show lvl
-          <> " "
-          <> show msgNum
-          <> "> @"
-          <> fromMaybe "null" hostname
-          <> " "
-          <> logCont
-          <> tag
-          <> " |> "
-          <> msg
+      log = show timestamp
+            <> " "
+            <> show lvl
+            <> " "
+            <> show msgNum
+            <> "> @"
+            <> fromMaybe "null" hostname
+            <> " "
+            <> logCont
+            <>  tag
+            <> " |> "
+            <> (LT.toStrict . LTB.toLazyText $ FB.build msg)
       res =
-        T.SimpleLBS (A.encode (A.Object $ HM.insert "log" (A.String log) HM.empty))
+        T.SimpleLBS (A.encode (A.Object $ AKM.insert "log" (A.String log) AKM.empty))
 
 logContextKey :: Text
 logContextKey = "log_context"

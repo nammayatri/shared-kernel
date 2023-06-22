@@ -62,6 +62,7 @@ dependencies:
   - double-conversion
   - exceptions
   - euler-hs
+  - formatting
   - hex-text
   - hspec
   - http-api-data
@@ -101,7 +102,7 @@ dependencies:
   - unordered-containers
   - geojson
   - safe-money
-  - dhall <= 1.35.0
+  - dhall
   - tasty
   - tasty-hunit
   - either
@@ -119,7 +120,7 @@ dependencies:
   - monad-logger
   - unliftio-core
   - resource-pool
-  - universum < 1.8
+  - universum
   - scientific
   - vector
   - unliftio
@@ -137,6 +138,8 @@ dependencies:
   - tinylog
   - wai-app-static
   - servant-multipart
+  - servant-multipart-api
+  - servant-multipart-client
   - clickhouse-haskell
 
 ghc-options:
@@ -148,6 +151,7 @@ ghc-options:
   - -fhide-source-paths
   - -Werror
   - -fplugin=RecordDotPreprocessor
+  - -Wwarn=ambiguous-fields
 
 library:
   source-dirs:

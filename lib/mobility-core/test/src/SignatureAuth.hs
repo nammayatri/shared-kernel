@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE PackageImports #-}
+{-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 
 module SignatureAuth
   ( signatureAuthTests,

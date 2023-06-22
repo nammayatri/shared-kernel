@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 
 module Kernel.Utils.Version (Reexport.versionToText, readVersion) where
 

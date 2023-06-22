@@ -50,7 +50,7 @@ import qualified Servant.Client as Servant
 import Text.Read as E (readMaybe)
 import Universum.Debug as E
 import Universum.Print as E
-import Universum.String.Conversion as E
+import Universum.String.Conversion as E hiding (readMaybe)
 import Prelude as E hiding (error, id, log, print, putStr, putStrLn, show, undefined)
 
 foldWIndex :: (Integer -> acc -> a -> acc) -> acc -> [a] -> acc

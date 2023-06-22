@@ -14,7 +14,7 @@
 
 module Kernel.External.Verification.Idfy.Auth where
 
-import qualified Data.Map.Strict as Map
+import qualified Data.HashMap.Strict as HMS
 import EulerHS.Prelude
 import Kernel.External.Encryption
 import Kernel.External.Verification.Idfy.Config
@@ -39,10 +39,10 @@ verifyAuth cfg authSecret = do
   cfgSecret <- decrypt cfg.secret
   unless (authSecret == Just cfgSecret) $ throwError (InvalidRequest "INVALID_AUTHORIZATION_HEADER")
 
-prepareIdfyHttpManager :: Int -> Map String Http.ManagerSettings
+prepareIdfyHttpManager :: Int -> HashMap Text Http.ManagerSettings
 prepareIdfyHttpManager timeout =
-  Map.singleton idfyHttpManagerKey $
+  HMS.singleton idfyHttpManagerKey $
     Http.tlsManagerSettings {Http.managerResponseTimeout = Http.responseTimeoutMicro (timeout * 1000)}
 
-idfyHttpManagerKey :: String
+idfyHttpManagerKey :: Text
 idfyHttpManagerKey = "idfy-http-manager"

@@ -19,23 +19,15 @@ module Kernel.Utils.Validation
   )
 where
 
+import Control.Lens ((%~))
 import qualified Data.Either.Validation as V
 import Data.Generics.Labels ()
-import EulerHS.Prelude hiding (pred)
+import EulerHS.Prelude hiding (pred, (%~))
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Logging
 import Kernel.Types.Predicate
 import Kernel.Types.Validation
 import Kernel.Utils.Error.Throwing
-
-runRequestValidation ::
-  (MonadThrow m, Log m) =>
-  Validate obj ->
-  obj ->
-  m ()
-runRequestValidation validator obj =
-  V.validationToEither (validator obj)
-    & fromEitherM RequestValidationFailure
 
 newtype RequestValidationFailure = RequestValidationFailure [ValidationDescription]
   deriving (Show, IsBaseError, IsBecknAPIError)
@@ -48,6 +40,15 @@ instance IsAPIError RequestValidationFailure where
   toPayload (RequestValidationFailure failures) = toJSON failures
 
 instanceExceptionWithParent 'HTTPException ''RequestValidationFailure
+
+runRequestValidation ::
+  (MonadThrow m, Log m) =>
+  Validate obj ->
+  obj ->
+  m ()
+runRequestValidation validator obj =
+  V.validationToEither (validator obj)
+    & fromEitherM RequestValidationFailure
 
 validateField ::
   (Predicate a p, ShowablePredicate p) =>

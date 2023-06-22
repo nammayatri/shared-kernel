@@ -26,8 +26,9 @@ where
 import Data.Aeson (encode)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
+import qualified Data.Aeson.Key as AesonKey
+import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.ByteString.Lazy as LBS
-import qualified Data.HashMap.Lazy as HM
 import EulerHS.Prelude
 import Kafka.Producer as KafkaProd
 import Kernel.Streaming.Kafka.Producer.Types
@@ -58,5 +59,5 @@ produceMessageImpl (topic, key) event mbPartitionId = do
           prValue = Just . LBS.toStrict $ encode event
         }
 
-(..=) :: ToJSON a => Text -> a -> HM.HashMap Text A.Value
+(..=) :: ToJSON a => AesonKey.Key -> a -> AKM.KeyMap A.Value
 (..=) = (A..=)

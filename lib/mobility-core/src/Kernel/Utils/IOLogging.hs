@@ -29,13 +29,13 @@ where
 
 import qualified Control.Monad.Catch as C
 import Data.Aeson as A
-import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import System.Log.FastLogger
+import qualified Data.Aeson.KeyMap as AKM
 
 type HasLog r = HasField "loggerEnv" r LoggerEnv
 
@@ -133,4 +133,4 @@ logFormatterText timestamp hostname lvl tags msg = res
         <> tag
         <> " |> "
         <> msg
-    res = A.Object $ HM.insert "log" (A.String log) HM.empty
+    res = A.Object $ AKM.insert "log" (A.String log) AKM.empty
