@@ -15,6 +15,7 @@
 module Kernel.External.AadhaarVerification.Gridline.Client where
 
 import Kernel.External.AadhaarVerification.Gridline.API as API
+import Kernel.External.AadhaarVerification.Gridline.Config
 import Kernel.External.AadhaarVerification.Gridline.Error
 import qualified Kernel.External.AadhaarVerification.Gridline.Types as Gridline
 import Kernel.Prelude
@@ -50,4 +51,4 @@ verifyAadhaarOtp url apiKey authType transactionId req = do
   callGridlineAPI url client "verifyAadhaarOtp" API.verifyAadhaarOtpAPI
 
 callGridlineAPI :: CallAPI env api res
-callGridlineAPI = callApiUnwrappingApiError (identity @GridlineError) Nothing (Just "GRIDLINE_ERROR")
+callGridlineAPI = callApiUnwrappingApiError (identity @GridlineError) (Just gridlineHttpManagerKey) (Just "GRIDLINE_ERROR")
