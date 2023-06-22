@@ -15,8 +15,12 @@
 
 module Kernel.External.AadhaarVerification.Gridline.Config where
 
+import qualified Data.Map.Strict as Map
+import EulerHS.Prelude
 import Kernel.External.Encryption
 import Kernel.Prelude
+import Network.HTTP.Client as Http
+import Network.HTTP.Client.TLS as Http
 
 data GridlineCfg = GridlineCfg
   { apiKey :: EncryptedField 'AsEncrypted Text,
@@ -25,3 +29,11 @@ data GridlineCfg = GridlineCfg
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
+
+prepareGridlineHttpManager :: Int -> Map String Http.ManagerSettings
+prepareGridlineHttpManager timeout =
+  Map.singleton gridlineHttpManagerKey $
+    Http.tlsManagerSettings {Http.managerResponseTimeout = Http.responseTimeoutMicro (timeout * 1000)}
+
+gridlineHttpManagerKey :: String
+gridlineHttpManagerKey = "gridline-http-manager"
