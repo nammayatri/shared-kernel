@@ -25,7 +25,7 @@ where
 import qualified EulerHS.Types as T
 import qualified Kernel.External.AadhaarVerification.Gridline.Types as Gridline
 import Kernel.Prelude
-import Servant (Header, JSON, Post, ReqBody, (:>))
+import Servant (Header, Post, ReqBody, (:>))
 
 type GenerateAadhaarOtpAPI =
   "aadhaar-api"
@@ -33,8 +33,8 @@ type GenerateAadhaarOtpAPI =
     :> "generate-otp"
     :> Header "X-API-Key" Text
     :> Header "X-Auth-Type" Text
-    :> ReqBody '[JSON] Gridline.GridlineAadhaarOtpReq
-    :> Post '[JSON] Gridline.GridlineVerifyAadhaarResp
+    :> ReqBody '[Gridline.AADHAARJSON] Gridline.GridlineAadhaarOtpReq
+    :> Post '[Gridline.AADHAARJSON] Gridline.GridlineVerifyAadhaarResp
 
 generateAadhaarOtpAPI :: Proxy GenerateAadhaarOtpAPI
 generateAadhaarOtpAPI = Proxy
@@ -53,8 +53,8 @@ type VerifyAadhaarOtpAPI =
     :> Header "X-API-Key" Text
     :> Header "X-Auth-Type" Text
     :> Header "X-Transaction-ID" Text
-    :> ReqBody '[JSON] Gridline.GridlineAadhaarOtpVerifyReq
-    :> Post '[JSON] Gridline.GridlineSubmitResponse
+    :> ReqBody '[Gridline.AADHAARJSON] Gridline.GridlineAadhaarOtpVerifyReq
+    :> Post '[Gridline.AADHAARJSON] Gridline.GridlineSubmitResponse
 
 verifyAadhaarOtpAPI :: Proxy VerifyAadhaarOtpAPI
 verifyAadhaarOtpAPI = Proxy

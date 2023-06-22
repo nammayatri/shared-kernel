@@ -17,6 +17,37 @@ module Kernel.External.AadhaarVerification.Gridline.Types where
 
 import Data.Aeson
 import EulerHS.Prelude hiding (error, state, (.=))
+import qualified Network.HTTP.Media as M
+import qualified Servant.API as S
+
+data AADHAARJSON deriving (Typeable)
+
+instance S.Accept AADHAARJSON where
+  contentType _ = "application" M.// "json"
+
+instance S.MimeRender AADHAARJSON GridlineAadhaarOtpReq where
+  mimeRender _ = encode
+
+instance S.MimeUnrender AADHAARJSON GridlineAadhaarOtpReq where
+  mimeUnrender _ = eitherDecode
+
+instance S.MimeRender AADHAARJSON GridlineSubmitResponse where
+  mimeRender _ = encode
+
+instance S.MimeUnrender AADHAARJSON GridlineSubmitResponse where
+  mimeUnrender _ = eitherDecode
+
+instance S.MimeRender AADHAARJSON GridlineVerifyAadhaarResp where
+  mimeRender _ = encode
+
+instance S.MimeUnrender AADHAARJSON GridlineVerifyAadhaarResp where
+  mimeUnrender _ = eitherDecode
+
+instance S.MimeRender AADHAARJSON GridlineAadhaarOtpVerifyReq where
+  mimeRender _ = encode
+
+instance S.MimeUnrender AADHAARJSON GridlineAadhaarOtpVerifyReq where
+  mimeUnrender _ = eitherDecode
 
 data GridlineAadhaarOtpReq = GridlineAadhaarOtpReq
   { aadhaar_number :: Text,
@@ -28,6 +59,7 @@ data GridlineVerifyAadhaarResp = GridlineVerifyAadhaarResp
   { request_id :: Text,
     status :: Int,
     _data :: GridlineVerifyAadhaarData,
+    timestamp :: Int,
     path :: Text
   }
   deriving (Show, Generic, ToJSON)
@@ -44,8 +76,9 @@ instance FromJSON GridlineVerifyAadhaarResp where
     request_id <- v .: "request_id"
     path <- v .: "path"
     status <- v .: "status"
+    timestamp <- v .: "timestamp"
     _data <- v .: "data"
-    return (GridlineVerifyAadhaarResp request_id status _data path)
+    return (GridlineVerifyAadhaarResp request_id status _data timestamp path)
 
 data GridlineAadhaarOtpVerifyReq = GridlineAadhaarOtpVerifyReq
   { otp :: Int,
@@ -70,30 +103,23 @@ data GridlineSubmitAadhaarData = GridlineSubmitAadhaarData
   deriving (Show, Generic, ToJSON, FromJSON)
 
 data AadhaarData = AadhaarData
-  { document_type :: Text,
-    name :: Text,
-    date_of_birth :: Text,
+  { name :: Text,
     gender :: Text,
-    care_of :: Text,
-    house :: Text,
-    street :: Text,
-    district :: Text,
-    sub_district :: Text,
-    landmark :: Text,
-    locality :: Text,
-    post_office_name :: Text,
-    state :: Text,
-    pincode :: Text,
-    country :: Text,
-    vtc_name :: Text,
-    mobile :: Text,
-    email :: Text,
-    photo_base64 :: Text
+    date_of_birth :: Text,
+    image :: Text
   }
-  deriving (Show, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON)
 
 instance FromJSON GridlineSubmitResponse where
   parseJSON = withObject "GridlineSubmitResponse" $ \v -> do
     _data <- v .: "data"
     request_id <- v .: "request_id"
     return (GridlineSubmitResponse _data request_id)
+
+instance FromJSON AadhaarData where
+  parseJSON = withObject "AadhaarData" $ \v -> do
+    name <- v .: "name"
+    gender <- v .: "gender"
+    date_of_birth <- v .: "date_of_birth"
+    image <- v .: "photo_base64"
+    return (AadhaarData name gender date_of_birth image)

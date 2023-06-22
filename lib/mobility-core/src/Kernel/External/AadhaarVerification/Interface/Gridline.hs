@@ -75,6 +75,6 @@ verifyAadhaarOtp cfg req = do
         gender = resp._data.aadhaar_data.gender,
         date_of_birth = resp._data.aadhaar_data.date_of_birth,
         share_code = resp._data.share_code,
-        image = resp._data.aadhaar_data.photo_base64,
+        image = resp._data.aadhaar_data.image,
         request_id = resp.request_id
       }
