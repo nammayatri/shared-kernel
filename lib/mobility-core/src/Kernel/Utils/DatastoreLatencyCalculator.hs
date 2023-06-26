@@ -17,20 +17,63 @@
 module Kernel.Utils.DatastoreLatencyCalculator where
 
 import Kernel.Prelude
+import Kernel.Storage.Hedis.Config
 import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Utils.Common
 
-withTime ::
-  (Log m, Monad m, MonadTime m, CoreMetrics m) =>
+withTimeRedis ::
+  ( MonadReader r m,
+    HedisFlow m r,
+    Log m,
+    Monad m,
+    MonadTime m,
+    CoreMetrics m
+  ) =>
   Text ->
   Text ->
   m a ->
   m a
-withTime storeType operationName operation = do
+withTimeRedis storeType operationName operation = do
+  enableRedisLatencyLogging <- asks (.enableRedisLatencyLogging)
+  enablePrometheusMetricLogging <- asks (.enablePrometheusMetricLogging)
+  withTime storeType operationName enableRedisLatencyLogging enablePrometheusMetricLogging operation
+
+withTime ::
+  ( MonadReader r m,
+    Log m,
+    Monad m,
+    MonadTime m,
+    CoreMetrics m
+  ) =>
+  Text ->
+  Text ->
+  Bool ->
+  Bool ->
+  m a ->
+  m a
+withTime storeType operationName enableKibanaLatencyLogging enablePrometheusMetricLogging operation = do
   btime <- getCurrentTime
   res <- operation
   atime <- getCurrentTime
   let latency = diffUTCTime atime btime
-  logTagInfo (storeType <> ":" <> operationName) $ show latency
-  addDatastoreLatency storeType operationName latency
+  when enableKibanaLatencyLogging $ logTagInfo (storeType <> ":" <> operationName) $ show latency
+  when enablePrometheusMetricLogging $ addDatastoreLatency storeType operationName latency
   pure res
+
+withTimeAPI ::
+  ( MonadReader r m,
+    HasField "enableAPILatencyLogging" r Bool,
+    HasField "enableAPIPrometheusMetricLogging" r Bool,
+    Log m,
+    Monad m,
+    MonadTime m,
+    CoreMetrics m
+  ) =>
+  Text ->
+  Text ->
+  m a ->
+  m a
+withTimeAPI storeType operationName operation = do
+  enableAPILatencyLogging <- asks (.enableAPILatencyLogging)
+  enableAPIPrometheusMetricLogging <- asks (.enableAPIPrometheusMetricLogging)
+  withTime storeType operationName enableAPILatencyLogging enableAPIPrometheusMetricLogging operation

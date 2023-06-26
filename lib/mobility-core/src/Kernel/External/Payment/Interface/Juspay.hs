@@ -98,6 +98,6 @@ orderStatusWebhook ::
   (OrderStatusResp -> Text -> m AckResponse) ->
   BasicAuthData ->
   Value ->
-  m AckResponse
+  m (Maybe Juspay.OrderStatusContent)
 orderStatusWebhook paymentConfig orderStatusHandler authData val = do
   Juspay.orderStatusWebhook paymentConfig (orderStatusHandler . mkOrderStatusResp . (.content.order)) authData val

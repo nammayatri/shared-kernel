@@ -11,21 +11,22 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Registry.City (City (..)) where
+module Kernel.External.AadhaarVerification.Types
+  ( module Kernel.External.AadhaarVerification.Types,
+  )
+where
 
-import Data.OpenApi (ToSchema)
+import Data.OpenApi
 import EulerHS.Prelude
-import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
+import Kernel.Storage.Esqueleto (derivePersistField)
 
-data City = City
-  { name :: Maybe Text,
-    code :: Maybe Text
-  }
-  deriving (Generic, Show, ToSchema)
+data AadhaarVerificationService = Gridline
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-instance FromJSON City where
-  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+availableVerificationServices :: [AadhaarVerificationService]
+availableVerificationServices = [Gridline]
 
-instance ToJSON City where
-  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+derivePersistField "AadhaarVerificationService"

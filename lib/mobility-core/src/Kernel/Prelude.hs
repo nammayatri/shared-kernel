@@ -134,3 +134,6 @@ infixl 1 =<<<
 
 (=<<<) :: (Traversable n, Monad m, Monad n) => (a -> m (n b)) -> m (n a) -> m (n b)
 (=<<<) a b = b >>>= a
+
+hoistMaybe :: Applicative m => Maybe b -> MaybeT m b
+hoistMaybe = MaybeT . pure
