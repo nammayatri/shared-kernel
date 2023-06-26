@@ -23,7 +23,7 @@ import Kernel.Utils.GenericPretty
 data GeoRestriction
   = Unrestricted
   | Regions [Text]
-  deriving (Show, Generic, FromDhall, FromJSON, ToJSON)
+  deriving (Show, Generic, FromDhall, FromJSON, ToJSON, Read)
 
 instance PrettyShow GeoRestriction where
   prettyShow = prettyShow . geoRestrictionToMaybeList
@@ -46,4 +46,4 @@ data GeofencingConfig = GeofencingConfig
   { origin :: GeoRestriction,
     destination :: GeoRestriction
   }
-  deriving (Show, Generic, FromDhall, PrettyShow, FromJSON, ToJSON)
+  deriving (Show, Generic, FromDhall, PrettyShow, FromJSON, ToJSON, Read)

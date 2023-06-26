@@ -96,7 +96,7 @@ callAPI' ::
   CallAPI' m api res (Either ClientError res)
 callAPI' mbManagerSelector baseUrl eulerClient desc api =
   withLogTag "callAPI" $ do
-    let managerSelector = fromMaybe (ET.ManagerSelector (defaultHttpManager)) mbManagerSelector
+    let managerSelector = fromMaybe (T.unpack defaultHttpManager) mbManagerSelector
     logDebug $ "Sanitized URL is " <> buildSanitizedUrl
     res <-
       measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
