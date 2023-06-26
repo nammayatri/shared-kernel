@@ -30,7 +30,7 @@ import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData)
 newtype Id domain = Id
   {getId :: Text}
   deriving stock (Generic, Show, Eq, Ord)
-  deriving newtype (ToJSON, FromJSON, ToHttpApiData, ToSchema, ToParamSchema, FromField, PrettyShow)
+  deriving newtype (ToJSON, FromJSON, ToHttpApiData, ToSchema, ToParamSchema, FromField, PrettyShow, Hashable)
 
 cast :: Id a -> Id b
 cast = Id . getId
