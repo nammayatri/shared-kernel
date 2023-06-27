@@ -122,7 +122,7 @@ data AuthPIError = NotAnExecutor deriving (Eq, Show, IsBecknAPIError)
 instanceExceptionWithParent 'HTTPException ''AuthPIError
 
 instance IsBaseError AuthPIError where
-  toMessage NotAnExecutor = Just "You are not an executor of this ride."
+  toMessage NotAnExecutor = Just "You are not an executor of this operation."
 
 instance IsHTTPError AuthPIError where
   toErrorCode NotAnExecutor = "NOT_AN_EXECUTOR"
@@ -990,6 +990,7 @@ instance IsAPIError PaymentOrderError
 data DriverFeeError
   = DriverFeeNotFound Text
   | DriverFeeAlreadySettled Text
+  | DriverFeeNotInUse Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''DriverFeeError
@@ -998,14 +999,17 @@ instance IsBaseError DriverFeeError where
   toMessage = \case
     DriverFeeNotFound driverFeeId -> Just $ "DriverFee with id \"" <> show driverFeeId <> "\"not found. "
     DriverFeeAlreadySettled driverFeeId -> Just $ "DriverFee with id \"" <> show driverFeeId <> "\"is already settled."
+    DriverFeeNotInUse driverFeeId -> Just $ "DriverFee with id \"" <> show driverFeeId <> "\"is either Ongoing or Inactive."
 
 instance IsHTTPError DriverFeeError where
   toErrorCode = \case
     DriverFeeNotFound _ -> "DRIVER_FEE_NOT_FOUND"
     DriverFeeAlreadySettled _ -> "DRIVER_FEE_ALREDAY_SETTLED"
+    DriverFeeNotInUse _ -> "DRIVER_FEE_NOT_ACTIVE"
 
   toHttpCode = \case
     DriverFeeNotFound _ -> E500
     DriverFeeAlreadySettled _ -> E400
+    DriverFeeNotInUse _ -> E400
 
 instance IsAPIError DriverFeeError
