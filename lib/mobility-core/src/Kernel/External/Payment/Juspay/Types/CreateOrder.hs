@@ -54,8 +54,8 @@ data PaymentLinks = PaymentLinks
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data SDKPayload = SDKPayload
-  { requestId :: Text,
-    service :: Text,
+  { requestId :: Maybe Text,
+    service :: Maybe Text,
     payload :: SDKPayloadDetails
   }
   deriving stock (Show, Eq, Generic)
