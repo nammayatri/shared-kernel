@@ -22,8 +22,8 @@ module Kernel.Utils.Time
 where
 
 import qualified Data.Text as T
-import Data.Time hiding (getCurrentTime, nominalDiffTimeToSeconds)
-import qualified Data.Time as Time
+import Data.Time hiding (getCurrentTime, nominalDiffTimeToSeconds, secondsToNominalDiffTime)
+import qualified Data.Time as Time hiding (secondsToNominalDiffTime)
 import EulerHS.Prelude
 import Kernel.Types.Time
 import Kernel.Utils.Logging
@@ -34,6 +34,9 @@ isExpired nominal time = do
   now <- getCurrentTime
   let addedUTCTime = addUTCTime nominal time
   return $ now > addedUTCTime
+
+getLocalCurrentTime :: MonadTime m => Seconds -> m UTCTime
+getLocalCurrentTime timeDiff = addUTCTime (secondsToNominalDiffTime timeDiff) <$> getCurrentTime
 
 -- | Format time in IST and return it as text
 -- Converts and Formats in the format
