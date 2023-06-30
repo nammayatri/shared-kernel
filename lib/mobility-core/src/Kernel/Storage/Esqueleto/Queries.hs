@@ -54,6 +54,7 @@ module Kernel.Storage.Esqueleto.Queries
     whenTrue_,
     updateWhenJust_,
     maybe_,
+    limitOffset,
     module EsqExport,
   )
 where
@@ -372,6 +373,9 @@ insertSelectCount' = liftToFullEntitySqlDB . SqlDB . lift . Esq.insertSelectCoun
 
 (<#>) :: SqlExpr (Esq.Insertion (a -> b)) -> SqlExpr (Value a) -> SqlExpr (Esq.Insertion b)
 (<#>) = (Esq.<&>)
+
+limitOffset :: Int -> Int -> [a] -> [a]
+limitOffset limitVal offsetVal xs = take limitVal (drop offsetVal xs)
 
 whenJust_ :: Maybe a -> (a -> SqlExpr (Value Bool)) -> SqlExpr (Value Bool)
 whenJust_ mbVal func = maybe (Esq.val True) func mbVal
