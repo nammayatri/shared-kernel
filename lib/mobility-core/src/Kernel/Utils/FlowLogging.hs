@@ -67,11 +67,12 @@ appendLogContext' val = do
   L.setLoggerContext logContextKey (oldLCText <> formatTag val)
 
 appendLogContext :: Text -> (IORef LogContext) -> IO (IORef LogContext)
-appendLogContext val lcRef = modifyIORef lcRef func *> pure lcRef
-  where
-    func lc =
-      let oldLCText = fromMaybe "" $ HM.lookup logContextKey lc
-       in HM.insert logContextKey (oldLCText <> formatTag val) lc
+appendLogContext val _ = newIORef (HM.insert logContextKey (formatTag val) HM.empty)
+
+-- where
+--   func lc =
+--     let oldLCText = fromMaybe "" $ HM.lookup logContextKey lc
+--      in HM.insert logContextKey (oldLCText <> formatTag val) lc
 
 getEulerLoggerConfig :: LoggerConfig -> T.LoggerConfig
 getEulerLoggerConfig LoggerConfig {..} =
