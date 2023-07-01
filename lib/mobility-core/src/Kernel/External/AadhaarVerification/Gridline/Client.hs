@@ -35,6 +35,7 @@ generateAadhaarOtp ::
 generateAadhaarOtp url apiKey authType req = do
   let client = API.generateAadhaarOtp (Just apiKey) (Just authType) req
   callGridlineAPI url client "generateAadhaarOtp" API.generateAadhaarOtpAPI
+    >>= validateGenerateResponseStatus
 
 verifyAadhaarOtp ::
   ( MonadFlow m,
@@ -49,6 +50,24 @@ verifyAadhaarOtp ::
 verifyAadhaarOtp url apiKey authType transactionId req = do
   let client = API.verifyAadhaarOtp (Just apiKey) (Just authType) (Just transactionId) req
   callGridlineAPI url client "verifyAadhaarOtp" API.verifyAadhaarOtpAPI
+    >>= validateVerifyResponseStatus
 
 callGridlineAPI :: CallAPI env api res
 callGridlineAPI = callApiUnwrappingApiError (identity @GridlineError) (Just gridlineHttpManagerKey) (Just "GRIDLINE_ERROR")
+
+validateGenerateResponseStatus :: (MonadThrow m, Log m) => Gridline.GridlineVerifyAadhaarResp -> m Gridline.GridlineVerifyAadhaarResp
+validateGenerateResponseStatus response = do
+  let code = response._data.code
+  case code of
+    "1008" -> throwError NoMobileNumberRegistered
+    "1011" -> throwError ExceedOtpGenerationLimit
+    "1012" -> throwError AadhaarNumberNotExist
+    _ -> pure response
+
+validateVerifyResponseStatus :: (MonadThrow m, Log m) => Gridline.GridlineSubmitResponse -> m Gridline.GridlineSubmitResponse
+validateVerifyResponseStatus response = do
+  let code = response._data.code
+  case code of
+    "1003" -> throwError SessionExpired
+    "1005" -> throwError OtpAttemptExceeded
+    _ -> pure response

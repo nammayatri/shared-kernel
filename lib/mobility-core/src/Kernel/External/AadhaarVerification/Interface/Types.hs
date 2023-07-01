@@ -28,7 +28,7 @@ newtype AadhaarVerificationServiceConfig = GridlineConfig Gridline.GridlineCfg
 data AadhaarVerificationResp = AadhaarVerificationResp
   { statusCode :: Text,
     message :: Text,
-    transactionId :: Text,
+    transactionId :: Maybe Text,
     requestId :: Text
   }
   deriving (Show, Generic, ToSchema, ToJSON, FromJSON)
