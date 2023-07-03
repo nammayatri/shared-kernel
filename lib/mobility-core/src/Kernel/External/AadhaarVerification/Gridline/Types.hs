@@ -67,7 +67,7 @@ data GridlineVerifyAadhaarResp = GridlineVerifyAadhaarResp
 data GridlineVerifyAadhaarData = GridlineVerifyAadhaarData
   { code :: Text,
     message :: Text,
-    transaction_id :: Text
+    transaction_id :: Maybe Text
   }
   deriving (Show, Generic, ToJSON, FromJSON)
 
