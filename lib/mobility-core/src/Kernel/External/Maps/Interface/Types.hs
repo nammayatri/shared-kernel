@@ -127,6 +127,10 @@ data SnapToRoadResp = SnapToRoadResp
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data Country = India | France
+  deriving stock (Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data AutoCompleteReq = AutoCompleteReq
   { input :: Text,
     sessionToken :: Maybe Text,
@@ -134,7 +138,8 @@ data AutoCompleteReq = AutoCompleteReq
     radius :: Integer,
     language :: Language,
     strictbounds :: Maybe Bool,
-    origin :: Maybe LatLong
+    origin :: Maybe LatLong,
+    country :: Country
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

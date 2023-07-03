@@ -37,11 +37,6 @@ validateDomain expectedDomain context =
   unless (context.domain == expectedDomain) $
     throwError InvalidDomain
 
-validateCountry :: (L.MonadFlow m, Log m) => CoreContext.Context -> m ()
-validateCountry context =
-  unless (context.country == "IND") $
-    throwError InvalidCountry
-
 validateAction :: (L.MonadFlow m, Log m) => CoreContext.Action -> CoreContext.Context -> m ()
 validateAction expectedAction context =
   unless (context.action == expectedAction) $
@@ -69,4 +64,3 @@ validateContextCommons expectedAction context = do
   -- TODO: City validation
   validateAction expectedAction context
   validateCoreVersion context
-  validateCountry context

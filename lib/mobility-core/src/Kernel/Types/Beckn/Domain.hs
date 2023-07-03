@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.Types.Beckn.Domain (Domain (..)) where
 
@@ -19,9 +20,12 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.OpenApi hiding (Example)
 import EulerHS.Prelude
+import Kernel.Storage.Esqueleto
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.Example
 import Kernel.Utils.GenericPretty
+
+derivePersistField "Domain"
 
 data Domain
   = MOBILITY

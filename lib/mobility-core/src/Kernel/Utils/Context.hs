@@ -30,9 +30,10 @@ buildTaxiContext ::
   BaseUrl ->
   Maybe Text ->
   Maybe BaseUrl ->
-  Text ->
+  Cab.City ->
+  Cab.Country ->
   m Cab.Context
-buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city = do
+buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country = do
   currTime <- getCurrentTime
   return $
     Cab.Context
@@ -46,6 +47,6 @@ buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city = do
         transaction_id = txnId,
         message_id = msgId,
         timestamp = UTCTimeRFC3339 currTime,
-        country = "IND",
+        country,
         city
       }
