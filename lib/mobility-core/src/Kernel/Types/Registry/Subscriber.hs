@@ -19,7 +19,9 @@ import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
 import EulerHS.Prelude hiding ((.=))
 import Kernel.Types.Base64
-import Kernel.Types.Registry.Domain (Domain)
+import Kernel.Types.Beckn.City (City)
+import Kernel.Types.Beckn.Country (Country)
+import Kernel.Types.Beckn.Domain (Domain)
 import Kernel.Utils.Dhall (FromDhall)
 import Servant.Client (BaseUrl)
 
@@ -29,8 +31,8 @@ data Subscriber = Subscriber
     subscriber_url :: BaseUrl,
     _type :: SubscriberType,
     domain :: Domain,
-    city :: Maybe Text,
-    country :: Maybe Text,
+    city :: Maybe City,
+    country :: Maybe Country,
     signing_public_key :: Base64,
     encr_public_key :: Maybe Base64,
     valid_from :: Maybe UTCTime,

@@ -16,8 +16,9 @@ module Kernel.Types.Registry.API where
 
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
-import Kernel.Types.Registry.Country (Country)
-import Kernel.Types.Registry.Domain (Domain)
+import Kernel.Types.Beckn.City (City)
+import Kernel.Types.Beckn.Country (Country)
+import Kernel.Types.Beckn.Domain (Domain)
 import Kernel.Types.Registry.Subscriber (Subscriber, SubscriberType)
 import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
 
@@ -27,7 +28,7 @@ data LookupRequest = LookupRequest
     _type :: Maybe SubscriberType,
     domain :: Maybe Domain,
     country :: Maybe Country,
-    city :: Maybe Text
+    city :: Maybe City
   }
   deriving (Show, Generic, ToSchema)
 
