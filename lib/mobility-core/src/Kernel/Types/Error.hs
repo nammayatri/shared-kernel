@@ -811,16 +811,22 @@ instance IsAPIError CallStatusError
 
 data ServiceabilityError
   = RideNotServiceable
+  | OriginAndDestinationCityMismatch Text Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''ServiceabilityError
 
 instance IsBaseError ServiceabilityError where
   toMessage RideNotServiceable = Just "Requested ride is not serviceable due to georestrictions."
+  toMessage (OriginAndDestinationCityMismatch originCity destCity) = Just $ "Requested ride is not serviceable due to origin \"" <> originCity <> "\" and destination \"" <> destCity <> "\" city mismatch."
 
 instance IsHTTPError ServiceabilityError where
-  toErrorCode RideNotServiceable = "RIDE_NOT_SERVICEABLE"
-  toHttpCode RideNotServiceable = E400
+  toErrorCode = \case
+    RideNotServiceable -> "RIDE_NOT_SERVICEABLE"
+    OriginAndDestinationCityMismatch _ _ -> "RIDE_NOT_SERVICEABLE_ORIGIN_DESTINATION_CITY_MISMATCH"
+  toHttpCode = \case
+    RideNotServiceable -> E400
+    OriginAndDestinationCityMismatch _ _ -> E400
 
 instance IsAPIError ServiceabilityError
 

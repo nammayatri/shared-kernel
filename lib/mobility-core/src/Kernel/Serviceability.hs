@@ -19,25 +19,26 @@ import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Esqueleto.SqlDB
 import Kernel.Storage.Esqueleto.Transactionable
+import qualified Kernel.Types.Beckn.Context as Context
+import Kernel.Types.Error (ServiceabilityError (..))
 import Kernel.Types.Geofencing
+import Kernel.Utils.Common
 
 rideServiceable ::
   ( EsqDBFlow m r,
     EsqDBReplicaFlow m r
   ) =>
   GeofencingConfig ->
-  (LatLong -> [Text] -> SelectSqlDB Bool) ->
+  (LatLong -> [Text] -> SelectSqlDB (Maybe (Context.City, Context.Country))) ->
   LatLong ->
   Maybe LatLong ->
-  m Bool
+  m (Context.City, Context.Country)
 rideServiceable geofencingConfig someGeometriesContain origin mbDestination = do
-  originServiceable <-
-    case geofencingConfig.origin of
-      Unrestricted -> pure True
-      Regions regions -> runInReplica $ someGeometriesContain origin regions
-  destinationServiceable <-
-    case geofencingConfig.destination of
-      Unrestricted -> pure True
-      Regions regions -> do
-        maybe (pure True) (runInReplica . (flip someGeometriesContain) regions) mbDestination
-  pure $ originServiceable && destinationServiceable
+  case (geofencingConfig.origin, geofencingConfig.destination) of
+    (Regions originRegions, Regions destRegions) -> do
+      (originCity, originCountry) <- runInReplica $ someGeometriesContain origin originRegions >>= fromMaybeM RideNotServiceable
+      (destCity, _destCountry) <- maybe (pure (originCity, originCountry)) (\destination -> runInReplica $ someGeometriesContain destination destRegions >>= fromMaybeM RideNotServiceable) mbDestination
+      if originCity == destCity
+        then return (originCity, originCountry)
+        else throwError $ OriginAndDestinationCityMismatch (show originCity) (show destCity)
+    (_, _) -> throwError RideNotServiceable
