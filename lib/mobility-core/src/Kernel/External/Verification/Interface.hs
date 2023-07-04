@@ -19,15 +19,22 @@ module Kernel.External.Verification.Interface
     validateImage,
     extractRCImage,
     extractDLImage,
+    validateFaceImage,
   )
 where
 
+import EulerHS.Prelude
+import Kernel.External.Encryption (EncFlow)
 import Kernel.External.Verification.Idfy.Config as Reexport
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
+import qualified Kernel.External.Verification.Interface.InternalScripts as IS
 import Kernel.External.Verification.Interface.Types as Reexport
+import Kernel.External.Verification.InternalScripts.Types
 import Kernel.External.Verification.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics.Types
-import Kernel.Types.Common
+import Kernel.Types.App (MonadFlow)
+import Kernel.Types.Error
+import Kernel.Utils.Error.Throwing
 
 verifyDLAsync ::
   ( EncFlow m r,
@@ -38,6 +45,7 @@ verifyDLAsync ::
   m VerifyDLAsyncResp
 verifyDLAsync serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyDLAsync cfg req
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyRCAsync ::
   ( EncFlow m r,
@@ -48,6 +56,7 @@ verifyRCAsync ::
   m VerifyRCAsyncResp
 verifyRCAsync serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyRCAsync cfg req
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateImage ::
   ( EncFlow m r,
@@ -58,6 +67,18 @@ validateImage ::
   m ValidateImageResp
 validateImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.validateImage cfg req
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+
+validateFaceImage ::
+  ( CoreMetrics m,
+    MonadFlow m
+  ) =>
+  VerificationServiceConfig ->
+  FaceValidationReq ->
+  m FaceValidationRes
+validateFaceImage serviceConfig req = case serviceConfig of
+  IdfyConfig _ -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig cfg -> IS.validateFace cfg req
 
 extractRCImage ::
   ( EncFlow m r,
@@ -68,6 +89,7 @@ extractRCImage ::
   m ExtractRCImageResp
 extractRCImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractRCImage cfg req
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
   ( EncFlow m r,
@@ -78,3 +100,4 @@ extractDLImage ::
   m ExtractDLImageResp
 extractDLImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractDLImage cfg req
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"

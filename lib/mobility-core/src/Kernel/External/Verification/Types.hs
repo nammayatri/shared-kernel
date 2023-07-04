@@ -23,10 +23,10 @@ import Data.OpenApi
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data VerificationService = Idfy
+data VerificationService = Idfy | InternalScripts
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 availableVerificationServices :: [VerificationService]
-availableVerificationServices = [Idfy]
+availableVerificationServices = [Idfy, InternalScripts]
 
 derivePersistField "VerificationService"
