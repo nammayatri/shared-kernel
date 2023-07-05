@@ -384,11 +384,11 @@
         "sequelize": "sequelize"
       },
       "locked": {
-        "lastModified": 1687788036,
-        "narHash": "sha256-G1klby6mwVsLKMMhnlELS3sfaLYccnV7DItV/+rb8k0=",
+        "lastModified": 1688551247,
+        "narHash": "sha256-Y6p6hHQkKvSNpeYTzuqMdzwCbbACz7+jysbF/vCiq5U=",
         "ref": "ny-compatible",
-        "rev": "ad46399802023b1bc7cdcf5b0240033e767c26e6",
-        "revCount": 2118,
+        "rev": "93e95e2658f26c50d99dc0d5251fd563c1a07f36",
+        "revCount": 2119,
         "type": "git",
         "url": "ssh://git@ssh.bitbucket.juspay.net/iris/euler-hs"
       },
