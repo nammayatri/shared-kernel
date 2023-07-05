@@ -96,11 +96,11 @@ callAPI' ::
   CallAPI' m api res (Either ClientError res)
 callAPI' mbManagerSelector baseUrl eulerClient desc api =
   withLogTag "callAPI" $ do
-    let managerSelector = fromMaybe (T.unpack defaultHttpManager) mbManagerSelector
+    let managerSelector = maybe defaultHttpManager (\(ET.ManagerSelector ms) -> ms) mbManagerSelector
     logDebug $ "Sanitized URL is " <> buildSanitizedUrl
     res <-
       measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
-        L.callAPI' (Just managerSelector) baseUrl eulerClient
+        L.callAPI' (Just (ET.ManagerSelector managerSelector)) baseUrl eulerClient
     case res of
       Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
       Left err -> logDebug $ "Error occured during client call: " <> show err
