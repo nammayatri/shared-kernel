@@ -97,26 +97,17 @@ validateImage ::
   ValidateImageReq ->
   m ValidateImageResp
 validateImage cfg req = do
-  -- skipping validation for rc as validation not available in idfy
-  case req.imageType of
-    DriverLicense -> do
-      let url = cfg.url
-      apiKey <- decrypt cfg.apiKey
-      accountId <- decrypt cfg.accountId
-      let reqData =
-            Idfy.ValidateRequest
-              { document1 = req.image,
-                doc_type = getDocType req.imageType
-              }
-      idfyReq <- buildIdfyRequest req.driverId reqData
-      resp <- Idfy.validateImage apiKey accountId url idfyReq
-      pure $ mkValidateImageResp resp
-    VehicleRegistrationCertificate -> do
-      pure
-        ValidateImageResp
-          { validationAvailable = False,
-            detectedImage = Nothing
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.ValidateRequest
+          { document1 = req.image,
+            doc_type = getDocType req.imageType
           }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  resp <- Idfy.validateImage apiKey accountId url idfyReq
+  pure $ mkValidateImageResp resp
 
 mkValidateImageResp :: Idfy.IdfyResponse Idfy.ValidateResponse -> ValidateImageResp
 mkValidateImageResp resp = do
