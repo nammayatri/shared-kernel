@@ -10,7 +10,7 @@
     prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
-    euler-hs.url = "git+ssh://git@ssh.bitbucket.juspay.net/iris/euler-hs?ref=ny-compatible"; # https://github.com/juspay/euler-hs/pull/9
+    euler-hs.url = "github:juspay/euler-hs/aac2c0fd84a54e7ee108578d8bce45f1a6d03d9f";
   };
   outputs = inputs:
     inputs.common.lib.mkFlake { inherit inputs; } {
@@ -20,7 +20,6 @@
           imports = [
             inputs.euler-hs.haskellFlakeProjectModules.output
             inputs.clickhouse-haskell.haskellFlakeProjectModules.output
-            inputs.prometheus-haskell.haskellFlakeProjectModules.output
           ];
           packages = {
             passetto-client.source = inputs.passetto-hs + /client;
@@ -62,3 +61,4 @@
       };
     };
 }
+
