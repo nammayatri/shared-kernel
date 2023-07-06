@@ -30,7 +30,7 @@ import Servant hiding (throwError)
 type CreateOrderAPI =
   "session"
     :> BasicAuth "username-password" BasicAuthData
-    :> MandatoryQueryParam "x-merchantid" Text
+    :> Header "x-merchantid" Text
     :> ReqBody '[JSON] CreateOrderReq
     :> Post '[JSON] CreateOrderResp
 
@@ -50,15 +50,15 @@ createOrder url apiKey merchantId req = do
           { basicAuthUsername = DT.encodeUtf8 apiKey,
             basicAuthPassword = ""
           }
-  callAPI url (eulerClient basicAuthData merchantId req) "create-order" (Proxy @CreateOrderAPI)
+  callAPI url (eulerClient basicAuthData (Just merchantId) req) "create-order" (Proxy @CreateOrderAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call create order API: " <> show err)
 
 type OrderStatusAPI =
   "orders"
     :> Capture "orderId" Text
     :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
     :> MandatoryQueryParam "version" Text
-    :> MandatoryQueryParam "x-merchantid" Text
     :> Get '[JSON] OrderStatusResp
 
 orderStatus ::
@@ -78,7 +78,7 @@ orderStatus url apiKey merchantId orderId = do
           { basicAuthUsername = DT.encodeUtf8 apiKey,
             basicAuthPassword = ""
           }
-  callAPI url (eulerClient orderId basicAuthData version merchantId) "order-status" (Proxy @OrderStatusAPI)
+  callAPI url (eulerClient orderId basicAuthData (Just merchantId) version) "order-status" (Proxy @OrderStatusAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call order status API: " <> show err)
 
 getCurrentDate :: MonadFlow m => m Text
