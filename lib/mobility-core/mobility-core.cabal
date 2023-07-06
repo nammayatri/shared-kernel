@@ -199,7 +199,9 @@ library
       Kernel.Types.App
       Kernel.Types.Base64
       Kernel.Types.Beckn.Ack
+      Kernel.Types.Beckn.City
       Kernel.Types.Beckn.Context
+      Kernel.Types.Beckn.Country
       Kernel.Types.Beckn.DecimalValue
       Kernel.Types.Beckn.Domain
       Kernel.Types.Beckn.Error
@@ -229,8 +231,6 @@ library
       Kernel.Types.Predicate
       Kernel.Types.Registry
       Kernel.Types.Registry.API
-      Kernel.Types.Registry.Country
-      Kernel.Types.Registry.Domain
       Kernel.Types.Registry.Routes
       Kernel.Types.Registry.Subscriber
       Kernel.Types.Schema

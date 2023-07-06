@@ -20,6 +20,8 @@ import Data.Maybe (fromJust)
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
 import Kernel.Types.App
+import Kernel.Types.Beckn.City as Reexport
+import Kernel.Types.Beckn.Country as Reexport
 import Kernel.Types.Beckn.Domain as Reexport
 import Kernel.Types.TimeRFC339 (UTCTimeRFC3339 (..))
 import Kernel.Utils.Example
@@ -29,8 +31,8 @@ import Servant.Client (parseBaseUrl)
 
 data Context = Context
   { domain :: Domain,
-    country :: Text,
-    city :: Text,
+    country :: Country,
+    city :: City,
     action :: Action,
     core_version :: Text,
     bap_id :: Text,
@@ -59,8 +61,8 @@ instance Example Context where
         transaction_id = Just idExample,
         message_id = idExample,
         timestamp = UTCTimeRFC3339 example,
-        country = "IND",
-        city = "Kochi"
+        country = India,
+        city = Kochi
       }
 
 data Action

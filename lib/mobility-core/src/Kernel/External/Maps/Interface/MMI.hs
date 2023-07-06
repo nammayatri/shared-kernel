@@ -66,7 +66,10 @@ autoSuggest ::
 autoSuggest mmiCfg AutoCompleteReq {..} = do
   let query = input
       loc = location
-      region = "ind"
+      region =
+        case country of
+          India -> "ind"
+          France -> "fr"
       lang = language
       mapsUrl = mmiCfg.mmiNonKeyUrl
   token <- MMIAuthToken.getTokenText mmiCfg

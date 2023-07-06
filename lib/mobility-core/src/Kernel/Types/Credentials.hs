@@ -16,7 +16,7 @@ module Kernel.Types.Credentials where
 
 import Kernel.Prelude
 import Kernel.Types.Base64
-import Kernel.Types.Registry.Domain
+import Kernel.Types.Beckn.Domain
 import Kernel.Types.Registry.Subscriber (SubscriberType)
 import Kernel.Utils.Dhall
 
