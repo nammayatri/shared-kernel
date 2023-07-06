@@ -31,9 +31,13 @@ data City = Bangalore | Kolkata | Paris | Kochi
 
 instance FromJSON City where
   parseJSON (String "std:080") = pure Bangalore
+  parseJSON (String "Bangalore") = pure Bangalore
   parseJSON (String "std:033") = pure Kolkata
+  parseJSON (String "Kolkata") = pure Kolkata
   parseJSON (String "std:001") = pure Paris
+  parseJSON (String "Paris") = pure Paris
   parseJSON (String "std:484") = pure Kochi
+  parseJSON (String "Kochi") = pure Kochi
   parseJSON (String _) = parseFail "Invalid City"
   parseJSON e = typeMismatch "String" e
 
