@@ -1004,7 +1004,7 @@ instance IsBaseError DriverFeeError where
 instance IsHTTPError DriverFeeError where
   toErrorCode = \case
     DriverFeeNotFound _ -> "DRIVER_FEE_NOT_FOUND"
-    DriverFeeAlreadySettled _ -> "DRIVER_FEE_ALREDAY_SETTLED"
+    DriverFeeAlreadySettled _ -> "DRIVER_FEE_ALREADY_SETTLED"
     DriverFeeNotInUse _ -> "DRIVER_FEE_NOT_ACTIVE"
 
   toHttpCode = \case
