@@ -30,11 +30,11 @@ data Country = India | France
   deriving (PrettyShow) via Showable Country
 
 instance FromJSON Country where
-  parseJSON (String "IN") = pure India
-  parseJSON (String "FR") = pure France
+  parseJSON (String "IND") = pure India
+  parseJSON (String "FRA") = pure France
   parseJSON (String _) = parseFail "Invalid Country"
   parseJSON e = typeMismatch "String" e
 
 instance ToJSON Country where
-  toJSON India = String "IN"
-  toJSON France = String "FR"
+  toJSON India = String "IND"
+  toJSON France = String "FRA"
