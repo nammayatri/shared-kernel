@@ -37,7 +37,7 @@ import Kernel.Storage.Esqueleto.Config as Config (EsqDBFlow, EsqDBReplicaFlow)
 import Kernel.Storage.Esqueleto.DTypeBuilder as DTypeBuilder (DTypeBuilder, buildDType)
 import Kernel.Storage.Esqueleto.Functions as Functions
 import Kernel.Storage.Esqueleto.Logger as Logger (LoggerIO)
-import Kernel.Storage.Esqueleto.Queries as Queries
+import Kernel.Storage.Esqueleto.Queries as Queries hiding (findAllInternal)
 import Kernel.Storage.Esqueleto.SqlDB as SqlDB
 import Kernel.Storage.Esqueleto.Transactionable as Transactionable
 import Kernel.Storage.Esqueleto.Types as Types

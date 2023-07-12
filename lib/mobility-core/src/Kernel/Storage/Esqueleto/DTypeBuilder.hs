@@ -18,6 +18,7 @@ module Kernel.Storage.Esqueleto.DTypeBuilder
   ( DTypeBuilder,
     liftToBuilder,
     buildDType,
+    doNotBuildDType,
   )
 where
 
@@ -35,3 +36,7 @@ liftToBuilder = DTypeBuilder
 
 buildDType :: (MonadThrow m, Log m, QEntity t a) => DTypeBuilder m t -> m a
 buildDType b = toResult =<< getTType b
+
+-- | Simple plug, used if we don't need to build domain type
+doNotBuildDType :: DTypeBuilder m () -> m ()
+doNotBuildDType = getTType

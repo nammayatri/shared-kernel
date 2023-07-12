@@ -11,6 +11,8 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Kernel.Storage.Esqueleto.Types
   ( Point (..),
@@ -27,7 +29,7 @@ import Database.Esqueleto.Experimental hiding (Table)
 import Kernel.Prelude
 
 data Point = Point
-  deriving (Generic, Show, Read, Eq, ToSchema)
+  deriving (Generic, Show, Read, Eq, ToJSON, ToSchema)
 
 instance PersistField Point where
   toPersistValue _ = error "This value should not be used in queries directly."
@@ -54,6 +56,7 @@ instance PostgresListField (PostgresNonEmptyList a)
 
 --
 newtype PostgresList a = PostgresList {unPostgresList :: [a]}
+  deriving newtype (ToJSON)
 
 -- It works, but what the hell is going on here?
 -- toPersistValue -- [a] -> PersistArray
