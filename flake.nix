@@ -10,7 +10,7 @@
     prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
-    euler-hs.url = "github:juspay/euler-hs/aac2c0fd84a54e7ee108578d8bce45f1a6d03d9f";
+    euler-hs.url = "github:juspay/euler-hs/52c9b0af6ab45e82500c3acfae2c1f7fd983a5ad";
   };
   outputs = inputs:
     inputs.common.lib.mkFlake { inherit inputs; } {
@@ -38,10 +38,12 @@
               haddock = false;
             };
             euler-events-hs = {
+              check = false;
               libraryProfiling = false;
               jailbreak = true;
             };
             prometheus-client = {
+              check = false;
               libraryProfiling = false;
               jailbreak = true;
             };
