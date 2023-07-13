@@ -331,6 +331,7 @@ library
     , base >=4.7 && <5
     , base64
     , base64-bytestring
+    , beam-core
     , beam-postgres
     , bytestring
     , case-insensitive
@@ -474,6 +475,7 @@ test-suite mobility-core-tests
     , base >=4.7 && <5
     , base64
     , base64-bytestring
+    , beam-core
     , beam-postgres
     , bytestring
     , case-insensitive
