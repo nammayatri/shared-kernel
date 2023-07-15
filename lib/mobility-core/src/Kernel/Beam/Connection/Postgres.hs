@@ -9,6 +9,7 @@ import qualified Kernel.Beam.Connection.EnvVars as EnvVars
 import qualified Kernel.Beam.Connection.Types as ECT
 import qualified Kernel.Beam.Types as KBT
 import qualified Kernel.Storage.Esqueleto.Config as KSEC
+import qualified Kernel.Types.Common as KTC
 
 prepareDBConnections :: L.MonadFlow m => ECT.ConnectionConfig -> m ()
 prepareDBConnections ECT.ConnectionConfig {..} = do
@@ -16,6 +17,10 @@ prepareDBConnections ECT.ConnectionConfig {..} = do
   when preparePosgreSqlConnection (preparePsqlMasterConnection esqDBCfg)
   preparePosgreSqlR1Connection <- L.runIO $ EnvVars.getPreparePosgreSqlR1Connection
   when preparePosgreSqlR1Connection (preparePsqlR1Connection esqDBReplicaCfg)
+
+prepareTables :: L.MonadFlow m => KTC.Tables -> m ()
+prepareTables tables' = do
+  L.setOption KBT.Tables tables'
 
 --   when EnvVars.getPrepareRedisClusterConnection prepareRedisClusterConnection
 

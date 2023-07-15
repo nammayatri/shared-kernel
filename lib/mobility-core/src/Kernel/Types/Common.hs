@@ -110,6 +110,12 @@ newtype HighPrecMoney = HighPrecMoney
   deriving stock (Generic)
   deriving newtype (Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
 
+data Tables = Tables
+  { kVTables :: [Text],
+    kVHardKilledTables :: [Text]
+  }
+  deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
+
 instance Show HighPrecMoney where
   show = Text.Show.show @Double . realToFrac
 
