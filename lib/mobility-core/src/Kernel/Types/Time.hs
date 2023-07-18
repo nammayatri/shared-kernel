@@ -17,13 +17,14 @@
 module Kernel.Types.Time where
 
 import Data.OpenApi (ToSchema)
-import Data.Time (UTCTime)
 import qualified Data.Time as Time
 import Database.Persist.Class
 import Database.Persist.Sql
 import EulerHS.Prelude
+import Kernel.Prelude hiding (ToSchema)
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.GenericPretty
+import Servant
 import qualified System.Clock as Clock
 
 newtype Microseconds = Microseconds
@@ -61,6 +62,25 @@ newtype Days = Days
   }
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
+
+data LocalZone = IST | CET
+  deriving (Show, Eq, Enum, Generic, ToParamSchema, ToJSON, FromJSON, ToSchema)
+
+instance FromHttpApiData LocalZone where
+  parseUrlPiece "IST" = pure IST
+  parseUrlPiece "CET" = pure CET
+  parseUrlPiece _ = Left "Unable to parse localzone"
+
+instance ToHttpApiData LocalZone where
+  toUrlPiece IST = "IST"
+  toUrlPiece CET = "CET"
+
+convertTimeZone :: UTCTime -> LocalZone -> Time.LocalTime
+convertTimeZone timeInUTC localZone =
+  let timeZone = case localZone of
+        IST -> Time.minutesToTimeZone 330 -- Offset for Indian Standard Time: +05:30
+        CET -> Time.minutesToTimeZone 60 -- Offset for France Time Zone +01:00
+   in Time.utcToLocalTime timeZone timeInUTC
 
 daysToSeconds :: Days -> Seconds
 daysToSeconds = Seconds . (* 86400) . getDays
