@@ -21,14 +21,33 @@ import GHC.Records.Extra
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Logging
+import Kernel.Types.MonadGuid (MonadGuid)
 import Kernel.Types.Time
 import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
 type HedisFlow m env =
-  (MonadTime m, CoreMetrics m, MonadCatch m, MonadReader env m, HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, MonadIO m, C.MonadThrow m, Log m)
+  ( MonadTime m,
+    CoreMetrics m,
+    MonadCatch m,
+    MonadReader env m,
+    HasField "hedisMigrationStage" env Bool,
+    HasField "hedisClusterEnv" env HedisEnv,
+    HasField "hedisNonCriticalClusterEnv" env HedisEnv,
+    HasField "hedisEnv" env HedisEnv,
+    HasField "hedisNonCriticalEnv" env HedisEnv,
+    HasField "enablePrometheusMetricLogging" env Bool,
+    HasField "enableRedisLatencyLogging" env Bool,
+    MonadIO m,
+    C.MonadThrow m,
+    Log m,
+    HasEnvPrefix env,
+    MonadGuid m
+  )
 
 type KeyModifierFunc = (Text -> Text)
+
+type HasEnvPrefix env = (HasField "envPrefix" env Text)
 
 data HedisCfg = HedisCfg
   { connectHost :: HostName,

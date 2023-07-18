@@ -28,6 +28,7 @@ import GHC.Records.Extra
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Storage.Hedis.Error
+import Kernel.Types.MonadGuid
 import Kernel.Utils.DatastoreLatencyCalculator
 import qualified Kernel.Utils.Error.Throwing as Error
 import Kernel.Utils.Logging
@@ -152,14 +153,14 @@ getImpl decodeResult key = withLogTag "Redis" $ do
         else pure Nothing
     Just res' -> decodeResult res'
 
-get :: (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
-get key = getImpl decodeResult key
+getValue :: (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
+getValue key = getImpl decodeResult key
   where
     decodeResult bs = Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
-get' ::
+getValue' ::
   (FromJSON a, HedisFlow m env) => Text -> m () -> m (Maybe a)
-get' key decodeErrHandler = getImpl decodeResult key
+getValue' key decodeErrHandler = getImpl decodeResult key
   where
     decodeResult bs =
       case Ae.decode $ BSL.fromStrict bs of
@@ -168,13 +169,13 @@ get' key decodeErrHandler = getImpl decodeResult key
           decodeErrHandler
           return Nothing
 
-safeGet ::
+safeGetValue ::
   (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
-safeGet key = get' key (del key)
+safeGetValue key = getValue' key (delValue key)
 
-set ::
+setValue ::
   (ToJSON a, HedisFlow m env) => Text -> a -> m ()
-set key val = withLogTag "Redis" $ do
+setValue key val = withLogTag "Redis" $ do
   migrating <- asks (.hedisMigrationStage)
   if migrating
     then do
@@ -184,9 +185,9 @@ set key val = withLogTag "Redis" $ do
   res <- withTimeRedis "RedisCluster" "set" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.set prefKey $ BSL.toStrict $ Ae.encode val)
   whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_SET" $ show err)
 
-setExp ::
+setExpValue ::
   (ToJSON a, HedisFlow m env) => Text -> a -> ExpirationTime -> m ()
-setExp key val expirationTime = withTimeRedis "Redis" "setExp" . withLogTag "Redis" $ do
+setExpValue key val expirationTime = withTimeRedis "Redis" "setExp" . withLogTag "Redis" $ do
   prefKey <- buildKey key
   migrating <- asks (.hedisMigrationStage)
   if migrating
@@ -207,9 +208,9 @@ setExp key val expirationTime = withTimeRedis "Redis" "setExp" . withLogTag "Red
           Hedis.expire prefKey (toInteger expirationTime)
   whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_SETEXP" $ show err)
 
-setNx ::
+setNxValue ::
   (ToJSON a, HedisFlow m env) => Text -> a -> m Bool
-setNx key val = withLogTag "Redis" $ do
+setNxValue key val = withLogTag "Redis" $ do
   migrating <- asks (.hedisMigrationStage)
   writtenInStandalone <-
     if migrating
@@ -224,8 +225,8 @@ setNx key val = withLogTag "Redis" $ do
     Left err -> withLogTag "CLUSTER" (logTagInfo "FAILED_TO_SETNX" $ show err) $> (writtenInStandalone || False)
     Right res -> pure $ writtenInStandalone || res
 
-del :: (HedisFlow m env) => Text -> m ()
-del key = withLogTag "Redis" do
+delValue :: (HedisFlow m env) => Text -> m ()
+delValue key = withLogTag "Redis" do
   migrating <- asks (.hedisMigrationStage)
   if migrating
     then do
@@ -235,8 +236,8 @@ del key = withLogTag "Redis" do
   res <- withTimeRedis "RedisCluster" "del" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.del [prefKey])
   whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_DELETE" $ show err)
 
-rPushExp :: (HedisFlow m env, ToJSON a) => Text -> [a] -> ExpirationTime -> m ()
-rPushExp key list ex = withLogTag "Redis" $ do
+rPushExpValue :: (HedisFlow m env, ToJSON a) => Text -> [a] -> ExpirationTime -> m ()
+rPushExpValue key list ex = withLogTag "Redis" $ do
   prefKey <- buildKey key
   logDebug $ "working with key : " <> cs prefKey
   unless (null list) $ do
@@ -259,62 +260,62 @@ rPushExp key list ex = withLogTag "Redis" $ do
             Hedis.expire prefKey (toInteger ex)
     whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_PUSHEXP" $ show err)
 
-lPush :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
-lPush key list = withTimeRedis "RedisCluster" "lPush" . runWithPrefix_ key $ \prefKey ->
+lPushValue :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
+lPushValue key list = withTimeRedis "RedisCluster" "lPush" . runWithPrefix_ key $ \prefKey ->
   Hedis.lpush prefKey $ map (BSL.toStrict . Ae.encode) (toList list)
 
-rPush :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
-rPush key list = withTimeRedis "RedisCluster" "rPush" . runWithPrefix_ key $ \prefKey ->
+rPushValue :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
+rPushValue key list = withTimeRedis "RedisCluster" "rPush" . runWithPrefix_ key $ \prefKey ->
   Hedis.rpush prefKey $ map (BSL.toStrict . Ae.encode) (toList list)
 
-rPop :: (HedisFlow m env, FromJSON a) => Text -> m (Maybe a)
-rPop key = withTimeRedis "RedisCluster" "rPop" $ do
+rPopValue :: (HedisFlow m env, FromJSON a) => Text -> m (Maybe a)
+rPopValue key = withTimeRedis "RedisCluster" "rPop" $ do
   res <- runWithPrefix key $ \prefKey -> Hedis.rpop prefKey
   pure $ Ae.decode . BSL.fromStrict =<< res
 
-lTrim :: (HedisFlow m env) => Text -> Integer -> Integer -> m ()
-lTrim key start stop = withTimeRedis "RedisCluster" "lTrim" . runWithPrefix_ key $ \prefKey ->
+lTrimValue :: (HedisFlow m env) => Text -> Integer -> Integer -> m ()
+lTrimValue key start stop = withTimeRedis "RedisCluster" "lTrim" . runWithPrefix_ key $ \prefKey ->
   Hedis.ltrim prefKey start stop
 
-clearList :: (HedisFlow m env) => Text -> m ()
-clearList key = lTrim key 2 1
+--clearList :: (HedisFlow m env) => Text -> m ()
+--clearList key = lTrimValue key 2 1
 
-lLen :: (HedisFlow m env) => Text -> m Integer
-lLen key = withTimeRedis "RedisCluster" "lLen" $ runWithPrefix key Hedis.llen
+lLenValue :: (HedisFlow m env) => Text -> m Integer
+lLenValue key = withTimeRedis "RedisCluster" "lLen" $ runWithPrefix key Hedis.llen
 
-lRange :: (HedisFlow m env, FromJSON a) => Text -> Integer -> Integer -> m [a]
-lRange key start stop = withTimeRedis "RedisCluster" "lRange" $ do
+lRangeValue :: (HedisFlow m env, FromJSON a) => Text -> Integer -> Integer -> m [a]
+lRangeValue key start stop = withTimeRedis "RedisCluster" "lRange" $ do
   res <- runWithPrefix key $ \prefKey ->
     Hedis.lrange prefKey start stop
   mapM (\a -> Error.fromMaybeM (HedisDecodeError $ cs a) . Ae.decode $ cs a) res
 
-getList :: (HedisFlow m env, FromJSON a) => Text -> m [a]
-getList key = lRange key 0 (-1)
+--getList :: (HedisFlow m env, FromJSON a) => Text -> m [a]
+--getList key = lRangeValue key 0 (-1)
 
-incr :: (HedisFlow m env) => Text -> m Integer
-incr key = withTimeRedis "RedisCluster" "incr" $ runWithPrefix key Hedis.incr
+incrValue :: (HedisFlow m env) => Text -> m Integer
+incrValue key = withTimeRedis "RedisCluster" "incr" $ runWithPrefix key Hedis.incr
 
-incrby :: (HedisFlow m env) => Text -> Integer -> m Integer
-incrby key val = withTimeRedis "RedisCluster" "incrBy" $ runWithPrefix key $ flip Hedis.incrby val
+incrValueby :: (HedisFlow m env) => Text -> Integer -> m Integer
+incrValueby key val = withTimeRedis "RedisCluster" "incrBy" $ runWithPrefix key $ flip Hedis.incrby val
 
-decr :: (HedisFlow m env) => Text -> m Integer
-decr key = withTimeRedis "RedisCluster" "decr" $ runWithPrefix key Hedis.decr
+decrValue :: (HedisFlow m env) => Text -> m Integer
+decrValue key = withTimeRedis "RedisCluster" "decr" $ runWithPrefix key Hedis.decr
 
-decrby :: (HedisFlow m env) => Text -> Integer -> m Integer
-decrby key val = withTimeRedis "RedisCluster" "decrBy" $ runWithPrefix key $ flip Hedis.decrby val
+decrValueby :: (HedisFlow m env) => Text -> Integer -> m Integer
+decrValueby key val = withTimeRedis "RedisCluster" "decrBy" $ runWithPrefix key $ flip Hedis.decrby val
 
-incrByFloat :: (HedisFlow m env) => Text -> Double -> m Double
-incrByFloat key toAdd = withTimeRedis "RedisCluster" "incrByFloat" . runWithPrefix key $ \prefKey ->
+incrValueByFloat :: (HedisFlow m env) => Text -> Double -> m Double
+incrValueByFloat key toAdd = withTimeRedis "RedisCluster" "incrByFloat" . runWithPrefix key $ \prefKey ->
   Hedis.incrbyfloat prefKey toAdd
 
-expire :: (HedisFlow m env) => Text -> ExpirationTime -> m ()
-expire key expirationTime = do
+expireValue :: (HedisFlow m env) => Text -> ExpirationTime -> m ()
+expireValue key expirationTime = do
   migrating <- asks (.hedisMigrationStage)
   when migrating . withTimeRedis "RedisStandalone" "expire" . runWithPrefix'_ key $ \prefKey -> Hedis.expire prefKey (toInteger expirationTime)
   withTimeRedis "RedisCluster" "expire" . runWithPrefix_ key $ \prefKey -> Hedis.expire prefKey (toInteger expirationTime)
 
-setNxExpire :: (ToJSON a, HedisFlow m env) => Text -> ExpirationTime -> a -> m Bool
-setNxExpire key expirationTime val = withTimeRedis "RedisCluster" "setNxExpire" $ do
+setNxExpireValue :: (ToJSON a, HedisFlow m env) => Text -> ExpirationTime -> a -> m Bool
+setNxExpireValue key expirationTime val = withTimeRedis "RedisCluster" "setNxExpire" $ do
   eithRes <- runWithPrefixEither key $ \prefKey ->
     Hedis.setOpts prefKey (cs $ Ae.encode val) $
       Hedis.SetOpts (Just $ toInteger expirationTime) Nothing (Just Hedis.Nx)
@@ -328,10 +329,10 @@ delByPattern ptrn = withTimeRedis "RedisCluster" "delByPattern" $ do
     Hedis.eval @_ @_ @Reply "for i, name in ipairs(redis.call('KEYS', ARGV[1])) do redis.call('DEL', name); end" ["0"] [prefKey]
 
 tryLockRedis :: HedisFlow m env => Text -> ExpirationTime -> m Bool
-tryLockRedis key timeout = setNxExpire (buildLockResourceName key) timeout ()
+tryLockRedis key timeout = setNxExpireValue (buildLockResourceName key) timeout ()
 
 unlockRedis :: HedisFlow m env => Text -> m ()
-unlockRedis key = void . del $ buildLockResourceName key
+unlockRedis key = void . delValue $ buildLockResourceName key
 
 whenWithLockRedis :: (HedisFlow m env, MonadMask m) => Text -> ExpirationTime -> m () -> m ()
 whenWithLockRedis key timeout func = do
@@ -350,8 +351,8 @@ withLockRedis key timeout func = do
 buildLockResourceName :: (IsString a) => Text -> a
 buildLockResourceName key = fromString $ "mobility:locker:" <> Text.unpack key
 
-hSetExp :: (ToJSON a, HedisFlow m env) => Text -> Text -> a -> ExpirationTime -> m ()
-hSetExp key field value expirationTime = withLogTag "Redis" $ do
+hSetExpValue :: (ToJSON a, HedisFlow m env) => Text -> Text -> a -> ExpirationTime -> m ()
+hSetExpValue key field value expirationTime = withLogTag "Redis" $ do
   prefKey <- buildKey key
   migrating <- asks (.hedisMigrationStage)
   if migrating
@@ -372,24 +373,24 @@ hSetExp key field value expirationTime = withLogTag "Redis" $ do
           Hedis.expire prefKey (toInteger expirationTime)
   whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_HSETEXP" $ show err)
 
-hGet :: (FromJSON a, HedisFlow m env) => Text -> Text -> m (Maybe a)
-hGet key field =
+hGetValue :: (FromJSON a, HedisFlow m env) => Text -> Text -> m (Maybe a)
+hGetValue key field =
   withTimeRedis "RedisCluster" "hGet" $ do
     maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
     case maybeBS of
       Nothing -> pure Nothing
       Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
-hDel :: HedisFlow m env => Text -> [Text] -> m ()
-hDel key fields = withTimeRedis "RedisCluster" "hDel" $ runWithPrefix_ key (`Hedis.hdel` map cs fields)
+hDelValue :: HedisFlow m env => Text -> [Text] -> m ()
+hDelValue key fields = withTimeRedis "RedisCluster" "hDel" $ runWithPrefix_ key (`Hedis.hdel` map cs fields)
 
-hGetAll :: (FromJSON a, HedisFlow m env) => Text -> m [(Text, a)]
-hGetAll key = withTimeRedis "RedisCluster" "hGetAll" $ do
+hGetAllValues :: (FromJSON a, HedisFlow m env) => Text -> m [(Text, a)]
+hGetAllValues key = withTimeRedis "RedisCluster" "hGetAll" $ do
   hMap <- runWithPrefix key Hedis.hgetall
   pure $ mapMaybe (\(k, val) -> (cs k,) <$> Ae.decode (BSL.fromStrict val)) hMap
 
-zAddExp :: (ToJSON Integer, HedisFlow m env) => Text -> Text -> Integer -> ExpirationTime -> m ()
-zAddExp key field value expirationTime = withLogTag "Redis" $ do
+zAddExpValue :: (ToJSON Integer, HedisFlow m env) => Text -> Text -> Integer -> ExpirationTime -> m ()
+zAddExpValue key field value expirationTime = withLogTag "Redis" $ do
   prefKey <- buildKey key
   migrating <- asks (.hedisMigrationStage)
   if migrating
@@ -408,8 +409,8 @@ zAddExp key field value expirationTime = withLogTag "Redis" $ do
         Hedis.expire prefKey (toInteger expirationTime)
   whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZADDEXP" $ show err)
 
-zrevrangeWithscores :: (HedisFlow m env) => Text -> Integer -> Integer -> m [(Text, Double)]
-zrevrangeWithscores key start stop = do
+zrevrangeWithscoresValue :: (HedisFlow m env) => Text -> Integer -> Integer -> m [(Text, Double)]
+zrevrangeWithscoresValue key start stop = do
   res <- runWithPrefix key $ \prefKey ->
     Hedis.zrevrangeWithscores prefKey start stop
   pure $ map (\(k, score) -> (cs' k, score)) res
@@ -417,15 +418,335 @@ zrevrangeWithscores key start stop = do
     cs' :: BS.ByteString -> Text
     cs' = DE.decodeUtf8
 
-zScore :: (FromJSON Double, HedisFlow m env) => Text -> Text -> m (Maybe Double)
-zScore key member = do
+zScoreValue :: (FromJSON Double, HedisFlow m env) => Text -> Text -> m (Maybe Double)
+zScoreValue key member = do
   maybeZS <- runWithPrefix key (`Hedis.zscore` cs member)
   pure maybeZS
 
-zRevRank :: (FromJSON Integer, HedisFlow m env) => Text -> Text -> m (Maybe Integer)
-zRevRank key member = do
+zRevRankValue :: (FromJSON Integer, HedisFlow m env) => Text -> Text -> m (Maybe Integer)
+zRevRankValue key member = do
   maybeZr <- runWithPrefix key (`Hedis.zrevrank` cs member)
   pure maybeZr
 
+zCardValue :: (HedisFlow m env) => Text -> m Integer
+zCardValue key = runWithPrefix key Hedis.zcard
+
+----------------- Redis Queries for Two Keys ---------------------------------------
+
+buildKeyWithPrefix :: (MonadReader env m, HasEnvPrefix env) => Text -> m Text
+buildKeyWithPrefix key = do
+  prefix <- asks (.envPrefix)
+  pure $ prefix <> ":" <> key
+
+withTwoKeysVoid :: (MonadReader env m, HasEnvPrefix env) => (Text -> m ()) -> Text -> m ()
+withTwoKeysVoid func key = do
+  _ <- func key
+  newKey <- buildKeyWithPrefix key
+  func newKey
+
+withTwoKeysMaybe :: (MonadReader env m, HasEnvPrefix env) => (Text -> m (Maybe b)) -> Text -> m (Maybe b)
+withTwoKeysMaybe func key = do
+  newKey <- buildKeyWithPrefix key
+  result <- func newKey
+  case result of
+    Just _ -> pure result
+    Nothing -> func key
+
+withTwoKeysList :: (MonadReader env m, HasEnvPrefix env) => (Text -> m [b]) -> Text -> m [b]
+withTwoKeysList func key = do
+  newKey <- buildKeyWithPrefix key
+  result <- func newKey
+  if null result
+    then func key
+    else pure result
+
+{-
+  Redis does not support multiple keys for a single value.
+  Therefore, we will use the following logic.
+  We will create a uuid for one value for each value. The same uuid will be written for keys with and without prefix.
+  When we work with a value, we will query that key first and then edit the value by uuid.
+-}
+
+getUUID :: HedisFlow m env => Text -> m (Maybe Text)
+getUUID key = do
+  keyWithPrefix <- buildKeyWithPrefix key
+  mbUuidKey <- getValue keyWithPrefix
+  case mbUuidKey of
+    Just _ -> return mbUuidKey
+    Nothing -> do
+      getValue key
+
+get :: (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
+get key = do
+  mbUuidKey <- getUUID key
+  case mbUuidKey of
+    Just uuidKey -> getValue uuidKey
+    Nothing -> pure Nothing
+
+get' ::
+  (FromJSON a, HedisFlow m env) => Text -> m () -> m (Maybe a)
+get' key decodeErrHandler = do
+  keyWithPrefix <- buildKeyWithPrefix key
+  mbUuidKey <- getValue' keyWithPrefix decodeErrHandler
+  case mbUuidKey of
+    Just uuidKey -> getValue' uuidKey decodeErrHandler
+    Nothing -> do
+      mbUuidKeyWithoutPrefix <- getValue' key decodeErrHandler
+      case mbUuidKeyWithoutPrefix of
+        Just uuidKey -> getValue' uuidKey decodeErrHandler
+        Nothing -> return Nothing
+
+safeGet ::
+  (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
+safeGet key = get' key (del key)
+
+set ::
+  (ToJSON a, HedisFlow m env, MonadGuid m) => Text -> a -> m ()
+set key val = do
+  uuid <- generateGUIDText
+  keyWithPrefix <- buildKeyWithPrefix key
+  setValue key uuid
+  setValue keyWithPrefix uuid
+  setValue uuid val
+
+setExp ::
+  (ToJSON a, HedisFlow m env, MonadGuid m) => Text -> a -> ExpirationTime -> m ()
+setExp key val expirationTime = do
+  uuid <- generateGUIDText
+  keyWithPrefix <- buildKeyWithPrefix key
+  setExpValue key uuid expirationTime
+  setExpValue keyWithPrefix uuid expirationTime
+  setExpValue uuid val expirationTime
+
+setNx ::
+  (ToJSON a, HedisFlow m env, MonadGuid m) => Text -> a -> m Bool
+setNx key val = do
+  uuid <- generateGUIDText
+  keyWithPrefix <- buildKeyWithPrefix key
+  void $ setNxValue key uuid
+  void $ setNxValue keyWithPrefix uuid
+  setNxValue uuid val
+
+del :: (HedisFlow m env) => Text -> m ()
+del key = do
+  keyWithPrefix <- buildKeyWithPrefix key
+  mbUuid <- getUUID key
+  delValue key
+  delValue keyWithPrefix
+  forM_ mbUuid delValue
+
+rPushExp :: (HedisFlow m env, ToJSON a, MonadGuid m) => Text -> [a] -> ExpirationTime -> m ()
+rPushExp key list ex = do
+  mbUuid <- getUUID key
+  uuid <- case mbUuid of
+    Just uuid' -> pure uuid'
+    _ -> generateGUIDText
+  keyWithPrefix <- buildKeyWithPrefix key
+  void $ setNxExpireValue key ex uuid
+  void $ setNxExpireValue keyWithPrefix ex uuid
+  rPushExpValue uuid list ex
+
+lPush :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
+lPush key list = do
+  mbUuid <- getUUID key
+  uuid <- case mbUuid of
+    Just uuid' -> pure uuid'
+    _ -> generateGUIDText
+  keyWithPrefix <- buildKeyWithPrefix key
+  void $ setNx key uuid
+  void $ setNx keyWithPrefix uuid
+  lPushValue uuid list
+
+rPush :: (HedisFlow m env, ToJSON a) => Text -> NonEmpty a -> m ()
+rPush key list = do
+  mbUuid <- getUUID key
+  uuid <- case mbUuid of
+    Just uuid' -> pure uuid'
+    _ -> generateGUIDText
+  keyWithPrefix <- buildKeyWithPrefix key
+  void $ setNx key uuid
+  void $ setNx keyWithPrefix uuid
+  rPushValue uuid list
+
+rPop :: (HedisFlow m env, FromJSON a) => Text -> m (Maybe a)
+rPop key = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> rPopValue uuid
+    Nothing -> pure Nothing
+
+lTrim :: (HedisFlow m env) => Text -> Integer -> Integer -> m ()
+lTrim key start stop = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> lTrimValue uuid start stop
+    Nothing -> pure ()
+
+clearList :: (HedisFlow m env) => Text -> m ()
+clearList key = lTrim key 2 1
+
+lLen :: (HedisFlow m env) => Text -> m Integer
+lLen key = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> lLenValue uuid
+    Nothing -> pure 0
+
+lRange :: (HedisFlow m env, FromJSON a) => Text -> Integer -> Integer -> m [a]
+lRange key start stop = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> lRangeValue uuid start stop
+    Nothing -> pure []
+
+getList :: (HedisFlow m env, FromJSON a) => Text -> m [a]
+getList key = lRange key 0 (-1)
+
+incr :: (HedisFlow m env) => Text -> m Integer
+incr key = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> incrValue uuid
+    Nothing -> do
+      uuid <- generateGUIDText
+      keyWithPrefix <- buildKeyWithPrefix key
+      setValue key uuid
+      setValue keyWithPrefix uuid
+      incrValue uuid
+
+incrby :: (HedisFlow m env) => Text -> Integer -> m Integer
+incrby key val = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> incrValueby uuid val
+    Nothing -> do
+      uuid <- generateGUIDText
+      keyWithPrefix <- buildKeyWithPrefix key
+      setValue key uuid
+      setValue keyWithPrefix uuid
+      incrValueby uuid val
+
+decr :: (HedisFlow m env) => Text -> m Integer
+decr key = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> decrValue uuid
+    Nothing -> do
+      uuid <- generateGUIDText
+      keyWithPrefix <- buildKeyWithPrefix key
+      setValue key uuid
+      setValue keyWithPrefix uuid
+      decrValue uuid
+
+decrby :: (HedisFlow m env) => Text -> Integer -> m Integer
+decrby key val = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> decrValueby uuid val
+    Nothing -> do
+      uuid <- generateGUIDText
+      keyWithPrefix <- buildKeyWithPrefix key
+      setValue key uuid
+      setValue keyWithPrefix uuid
+      decrValueby uuid val
+
+incrByFloat :: (HedisFlow m env) => Text -> Double -> m Double
+incrByFloat key toAdd = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> incrValueByFloat uuid toAdd
+    Nothing -> do
+      uuid <- generateGUIDText
+      keyWithPrefix <- buildKeyWithPrefix key
+      setValue key uuid
+      setValue keyWithPrefix uuid
+      incrValueByFloat uuid toAdd
+
+expire :: (HedisFlow m env) => Text -> ExpirationTime -> m ()
+expire key expirationTime = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> do
+      keyWithPrefix <- buildKeyWithPrefix key
+      expireValue uuid expirationTime
+      expireValue key expirationTime
+      expireValue keyWithPrefix expirationTime
+    Nothing -> pure ()
+
+setNxExpire :: (ToJSON a, HedisFlow m env) => Text -> ExpirationTime -> a -> m Bool
+setNxExpire key expirationTime val = do
+  uuid <- generateGUIDText
+  keyWithPrefix <- buildKeyWithPrefix key
+  void $ setNxExpireValue key expirationTime uuid
+  void $ setNxExpireValue keyWithPrefix expirationTime uuid
+  setNxExpireValue uuid expirationTime val
+
+hSetExp :: (ToJSON a, HedisFlow m env) => Text -> Text -> a -> ExpirationTime -> m ()
+hSetExp key field val expirationTime = do
+  uuid <- generateGUIDText
+  keyWithPrefix <- buildKeyWithPrefix key
+  setExpValue key uuid expirationTime
+  setExpValue keyWithPrefix uuid expirationTime
+  hSetExpValue uuid field val expirationTime
+
+hGet :: (FromJSON a, HedisFlow m env) => Text -> Text -> m (Maybe a)
+hGet key field = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Nothing -> pure Nothing
+    Just uuid -> hGetValue uuid field
+
+hDel :: HedisFlow m env => Text -> [Text] -> m ()
+hDel key fields = do
+  mbUuid <- getUUID key
+  keyWithPrefix <- buildKeyWithPrefix key
+  forM_ mbUuid (`hDelValue` fields)
+  delValue key
+  delValue keyWithPrefix
+
+hGetAll :: (FromJSON a, HedisFlow m env) => Text -> m [(Text, a)]
+hGetAll key = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Nothing -> pure []
+    Just uuid -> hGetAllValues uuid
+
+zAddExp :: (ToJSON Integer, HedisFlow m env) => Text -> Text -> Integer -> ExpirationTime -> m ()
+zAddExp key field value expirationTime = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> zAddExpValue uuid field value expirationTime
+    Nothing -> do
+      uuid <- generateGUIDText
+      keyWithPrefix <- buildKeyWithPrefix key
+      setExpValue key uuid expirationTime
+      setExpValue keyWithPrefix uuid expirationTime
+      zAddExpValue uuid field value expirationTime
+
+zrevrangeWithscores :: (HedisFlow m env) => Text -> Integer -> Integer -> m [(Text, Double)]
+zrevrangeWithscores key start stop = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> zrevrangeWithscoresValue uuid start stop
+    Nothing -> pure []
+
+zScore :: (FromJSON Double, HedisFlow m env) => Text -> Text -> m (Maybe Double)
+zScore key member = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> zScoreValue uuid member
+    Nothing -> pure Nothing
+
+zRevRank :: (FromJSON Integer, HedisFlow m env) => Text -> Text -> m (Maybe Integer)
+zRevRank key member = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> zRevRankValue uuid member
+    Nothing -> pure Nothing
+
 zCard :: (HedisFlow m env) => Text -> m Integer
-zCard key = runWithPrefix key Hedis.zcard
+zCard key = do
+  mbUuid <- getUUID key
+  case mbUuid of
+    Just uuid -> zCardValue uuid
+    Nothing -> pure 0
