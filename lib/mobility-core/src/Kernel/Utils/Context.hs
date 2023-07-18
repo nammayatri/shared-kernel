@@ -41,7 +41,7 @@ buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country autoA
     Cab.Context
       { domain = Cab.MOBILITY,
         action,
-        core_version = "0.9.3",
+        core_version = "0.9.4",
         bap_id = bapId,
         bap_uri = bapUri,
         bpp_id = bppId,
