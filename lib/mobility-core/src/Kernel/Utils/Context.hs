@@ -32,9 +32,11 @@ buildTaxiContext ::
   Maybe BaseUrl ->
   Cab.City ->
   Cab.Country ->
+  Bool ->
   m Cab.Context
-buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country = do
+buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country autoAssignEnabled = do
   currTime <- getCurrentTime
+  let max_callbacks = if autoAssignEnabled && action == Cab.SELECT then Just 1 else Nothing
   return $
     Cab.Context
       { domain = Cab.MOBILITY,
@@ -48,5 +50,6 @@ buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country = do
         message_id = msgId,
         timestamp = UTCTimeRFC3339 currTime,
         country,
-        city
+        city,
+        max_callbacks
       }

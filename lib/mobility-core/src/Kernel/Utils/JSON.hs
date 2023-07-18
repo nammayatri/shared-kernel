@@ -108,3 +108,9 @@ constructorsWithSnakeCase =
   defaultOptions
     { fieldLabelModifier = camelToSnakeCase
     }
+
+removeNullFields :: Options
+removeNullFields =
+  defaultOptions
+    { omitNothingFields = True
+    }
