@@ -40,7 +40,8 @@ data Context = Context
     bpp_uri :: Maybe BaseUrl,
     transaction_id :: Maybe Text,
     message_id :: Text,
-    timestamp :: UTCTimeRFC3339
+    timestamp :: UTCTimeRFC3339,
+    max_callbacks :: Maybe Int
   }
   deriving (Generic, FromJSON, Show, ToSchema, PrettyShow)
 
@@ -61,7 +62,8 @@ instance Example Context where
         message_id = idExample,
         timestamp = UTCTimeRFC3339 example,
         country = India,
-        city = Kochi
+        city = Kochi,
+        max_callbacks = Just 1
       }
 
 data Action
