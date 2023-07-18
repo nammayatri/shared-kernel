@@ -43,7 +43,7 @@ data PublicTransportStation = PublicTransportStation
 data PublicTransportQuote = PublicTransportQuote
   { id :: Text,
     description :: Text,
-    fare :: Money,
+    fare :: HighPrecMoney,
     departureTime :: UTCTime,
     arrivalTime :: UTCTime,
     departureStation :: PublicTransportStation,
