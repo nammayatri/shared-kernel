@@ -25,7 +25,7 @@ import Kernel.Utils.GenericPretty
 
 derivePersistField "City"
 
-data City = Bangalore | Kolkata | Paris | Kochi
+data City = Bangalore | Kolkata | Paris | Kochi | AnyCity
   deriving (Eq, Generic, Show, Read, ToSchema)
   deriving (PrettyShow) via Showable City
 
@@ -38,6 +38,7 @@ instance FromJSON City where
   parseJSON (String "Paris") = pure Paris
   parseJSON (String "std:484") = pure Kochi
   parseJSON (String "Kochi") = pure Kochi
+  parseJSON (String "*") = pure AnyCity
   parseJSON (String _) = parseFail "Invalid City"
   parseJSON e = typeMismatch "String" e
 
@@ -46,3 +47,4 @@ instance ToJSON City where
   toJSON Kolkata = String "std:033"
   toJSON Paris = String "std:001"
   toJSON Kochi = String "std:484"
+  toJSON AnyCity = String "*"
