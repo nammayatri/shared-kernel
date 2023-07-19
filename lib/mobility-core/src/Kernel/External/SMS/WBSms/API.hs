@@ -11,22 +11,22 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.SMS.Types
-  ( module Kernel.External.SMS.Types,
-  )
-where
+module Kernel.External.SMS.WBSms.API where
 
-import Data.OpenApi
 import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
+import qualified EulerHS.Types as ET
+import Kernel.External.SMS.WBSms.Types (SubmitSms (..), SubmitSmsRes (..))
+import Kernel.Utils.Servant.HTML (HTML)
+import Servant hiding (throwError)
 
-data SmsService = MyValueFirst | ExotelSms | WBSms
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+type WBSmsConnectAPI =
+  "send_sms_yatri_sathi.php"
+    :> ReqBody '[FormUrlEncoded] SubmitSms
+    :> Post '[HTML] SubmitSmsRes
 
-availableSmsServices :: [SmsService]
-availableSmsServices = [MyValueFirst, ExotelSms, WBSms]
+wbSmsConnectAPI :: Proxy WBSmsConnectAPI
+wbSmsConnectAPI = Proxy
 
-derivePersistField "SmsService"
+wbSmsAPIClient :: SubmitSms -> ET.EulerClient SubmitSmsRes
+wbSmsAPIClient = ET.client wbSmsConnectAPI

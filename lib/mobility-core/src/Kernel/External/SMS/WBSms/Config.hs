@@ -11,22 +11,17 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.SMS.Types
-  ( module Kernel.External.SMS.Types,
-  )
-where
+module Kernel.External.SMS.WBSms.Config where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.External.Encryption
+import Kernel.Prelude
 
-data SmsService = MyValueFirst | ExotelSms | WBSms
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
-
-availableSmsServices :: [SmsService]
-availableSmsServices = [MyValueFirst, ExotelSms, WBSms]
-
-derivePersistField "SmsService"
+data WBSmsCfg = WBSmsCfg
+  { passkey :: EncryptedField 'AsEncrypted Text,
+    templSendOtp :: Text,
+    templAltNo :: Text,
+    templWelcome :: Text,
+    url :: BaseUrl
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)

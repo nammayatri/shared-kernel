@@ -24,8 +24,10 @@ import Kernel.External.SMS.ExotelSms.Config as Reexport
 import qualified Kernel.External.SMS.Interface.ExotelSms as ExotelSms
 import qualified Kernel.External.SMS.Interface.MyValueFirst as MyValueFirst
 import Kernel.External.SMS.Interface.Types as Reexport
+import qualified Kernel.External.SMS.Interface.WBSms as WBSms
 import Kernel.External.SMS.MyValueFirst.Config as Reexport
 import Kernel.External.SMS.Types as Reexport
+import Kernel.External.SMS.WBSms.Config as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
@@ -41,12 +43,15 @@ sendSMS SmsHandler {..} req = do
     sendSmsWithFallback (preferredProvider : restProviders) = do
       smsConfig <- getProviderConfig preferredProvider
       result <- try @_ @SomeException $ sendSMS' smsConfig req
-      case result of
-        Left _ -> sendSmsWithFallback restProviders
-        Right res -> case res of
-          UnknownError -> sendSmsWithFallback restProviders
-          Fail -> sendSmsWithFallback restProviders
-          _ -> pure res
+      case smsConfig of
+        WBSmsConfig _ -> pure Success
+        _ -> case result of
+          Left _ -> sendSmsWithFallback restProviders
+          Right res -> do
+            case res of
+              UnknownError -> sendSmsWithFallback restProviders
+              Fail -> sendSmsWithFallback restProviders
+              _ -> pure res
 
 sendSMS' ::
   ( EncFlow m r,
@@ -58,6 +63,7 @@ sendSMS' ::
 sendSMS' serviceConfig req = case serviceConfig of
   ExotelSmsConfig cfg -> ExotelSms.sendOTP cfg req
   MyValueFirstConfig cfg -> MyValueFirst.sendOTP cfg req
+  WBSmsConfig cfg -> WBSms.sendOTP cfg req
 
 checkSmsResult ::
   (Log m, MonadThrow m) => SendSMSRes -> m ()

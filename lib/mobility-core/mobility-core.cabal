@@ -106,11 +106,16 @@ library
       Kernel.External.SMS.Interface.ExotelSms
       Kernel.External.SMS.Interface.MyValueFirst
       Kernel.External.SMS.Interface.Types
+      Kernel.External.SMS.Interface.WBSms
       Kernel.External.SMS.MyValueFirst.API
       Kernel.External.SMS.MyValueFirst.Config
       Kernel.External.SMS.MyValueFirst.Flow
       Kernel.External.SMS.MyValueFirst.Types
       Kernel.External.SMS.Types
+      Kernel.External.SMS.WBSms.API
+      Kernel.External.SMS.WBSms.Config
+      Kernel.External.SMS.WBSms.Flow
+      Kernel.External.SMS.WBSms.Types
       Kernel.External.Types
       Kernel.External.Verification
       Kernel.External.Verification.Idfy.Auth
