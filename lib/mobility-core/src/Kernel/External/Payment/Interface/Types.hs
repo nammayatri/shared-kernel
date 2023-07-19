@@ -28,7 +28,7 @@ newtype PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg
 
 data CreateOrderReq = CreateOrderReq
   { orderShortId :: Text, -- Should be Alphanumeric with character length less than 18.
-    amount :: HighPrecMoney,
+    amount :: Money,
     customerId :: Text,
     customerEmail :: Text,
     customerPhone :: Text,
