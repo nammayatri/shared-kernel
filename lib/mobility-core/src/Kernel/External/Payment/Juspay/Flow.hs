@@ -17,6 +17,7 @@ module Kernel.External.Payment.Juspay.Flow where
 import qualified Data.Text.Encoding as DT
 import Data.Time.Format
 import EulerHS.Types as Euler
+import Kernel.External.Payment.Interface.Types (RegisterMandateReq, RegisterMandateResp)
 import Kernel.External.Payment.Juspay.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -33,6 +34,30 @@ type CreateOrderAPI =
     :> Header "x-merchantid" Text
     :> ReqBody '[JSON] CreateOrderReq
     :> Post '[JSON] CreateOrderResp
+
+type RegisterMandateAPI =
+  "txns"
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] RegisterMandateReq
+    :> Post '[JSON] RegisterMandateResp
+
+registerMandate ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  RegisterMandateReq ->
+  m RegisterMandateResp
+registerMandate url apiKey req = do
+  let eulerClient = Euler.client (Proxy @RegisterMandateAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient basicAuthData req) "register-mandate" (Proxy @RegisterMandateAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call register mandate API: " <> show err)
 
 createOrder ::
   ( Metrics.CoreMetrics m,
