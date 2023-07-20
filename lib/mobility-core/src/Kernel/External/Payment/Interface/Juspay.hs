@@ -17,6 +17,7 @@ module Kernel.External.Payment.Interface.Juspay
     createOrder,
     orderStatus,
     orderStatusWebhook,
+    registerMandate,
   )
 where
 
@@ -44,6 +45,18 @@ createOrder config req = do
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   Juspay.createOrder url apiKey merchantId (mkCreateOrderReq config.returnUrl req)
+
+registerMandate ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  RegisterMandateReq ->
+  m RegisterMandateResp
+registerMandate config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  Juspay.registerMandate url apiKey req
 
 mkCreateOrderReq :: BaseUrl -> CreateOrderReq -> Juspay.CreateOrderReq
 mkCreateOrderReq returnUrl CreateOrderReq {..} =
