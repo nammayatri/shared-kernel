@@ -16,7 +16,18 @@
 module Kernel.Types.Cache where
 
 import Kernel.Prelude
+import Kernel.Storage.Hedis.Config
 import Kernel.Types.Time (Seconds)
+import Kernel.Utils.Dhall (FromDhall)
+
+newtype CacheConfig = CacheConfig
+  { configsExpTime :: Seconds
+  }
+  deriving (Generic, FromDhall)
+
+type HasCacheConfig r = HasField "cacheConfig" r CacheConfig
+
+type CacheFlow m r = (HasCacheConfig r, HedisFlow m r)
 
 class Cache a m where
   type CacheKey a
