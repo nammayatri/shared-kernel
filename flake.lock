@@ -802,6 +802,30 @@
         "type": "github"
       }
     },
+    "juspay-extra": {
+      "inputs": {
+        "flake-parts": "flake-parts_5",
+        "haskell-flake": [
+          "euler-hs",
+          "common",
+          "haskell-flake"
+        ],
+        "nixpkgs": "nixpkgs_13"
+      },
+      "locked": {
+        "lastModified": 1686322580,
+        "narHash": "sha256-EDdBN4Nfm/u+QRDZRv+vb8RfcJZpoToSr9pSBGc9vBI=",
+        "owner": "juspay",
+        "repo": "euler-haskell-common",
+        "rev": "4892071b7af07e5faa085e7917ab12110399f0e5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "juspay",
+        "repo": "euler-haskell-common",
+        "type": "github"
+      }
+    },
     "lowdown-src": {
       "flake": false,
       "locked": {
@@ -1619,7 +1643,7 @@
           "common",
           "haskell-flake"
         ],
-        "nixpkgs": "nixpkgs_11"
+        "nixpkgs": "nixpkgs_14"
       },
       "locked": {
         "lastModified": 1687373886,
@@ -1657,8 +1681,8 @@
       },
       "original": {
         "owner": "juspay",
-        "ref": "beckn-compatible",
         "repo": "haskell-sequelize",
+        "rev": "dc01b0f9e6ba5a51dd8f9d0744a549dc9c0ba244",
         "type": "github"
       }
     },

@@ -125,6 +125,13 @@ library
       Kernel.External.SMS.MyValueFirst.Flow
       Kernel.External.SMS.MyValueFirst.Types
       Kernel.External.SMS.Types
+      Kernel.External.Ticket.Interface
+      Kernel.External.Ticket.Interface.Kapture
+      Kernel.External.Ticket.Interface.Types
+      Kernel.External.Ticket.Kapture.Config
+      Kernel.External.Ticket.Kapture.Flow
+      Kernel.External.Ticket.Kapture.Types
+      Kernel.External.Ticket.Types
       Kernel.External.Types
       Kernel.External.Verification
       Kernel.External.Verification.Idfy.Auth
