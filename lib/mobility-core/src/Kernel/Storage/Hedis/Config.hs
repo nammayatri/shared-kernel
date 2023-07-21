@@ -47,6 +47,15 @@ data HedisEnv = HedisEnv
   }
   deriving (Generic)
 
+newtype CacheConfig = CacheConfig
+  { configsExpTime :: Seconds
+  }
+  deriving (Generic, FromDhall)
+
+type HasCacheConfig r = HasField "cacheConfig" r CacheConfig
+
+type CacheFlow m r = (HasCacheConfig r, HedisFlow m r)
+
 defaultHedisCfg :: HedisCfg
 defaultHedisCfg =
   HedisCfg
