@@ -29,11 +29,23 @@
             # Tests and documentation generation fail for some reason.
             euler-hs = {
               check = false;
+              jailbreak = true;
               haddock = false;
+              libraryProfiling = false;
             };
             wai-middleware-prometheus = {
               check = false;
               haddock = false;
+            };
+            euler-events-hs = {
+              check = false;
+              libraryProfiling = false;
+              jailbreak = true;
+            };
+            prometheus-client = {
+              check = false;
+              libraryProfiling = false;
+              jailbreak = true;
             };
             clickhouse-haskell.jailbreak = true;
           };
