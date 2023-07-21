@@ -114,3 +114,9 @@ removeNullFields =
   defaultOptions
     { omitNothingFields = True
     }
+
+constructorsWithLowerCase :: Options
+constructorsWithLowerCase =
+  defaultOptions
+    { fieldLabelModifier = unpack . toLower . pack
+    }
