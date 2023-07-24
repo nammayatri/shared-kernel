@@ -128,6 +128,10 @@ data ExotelCallStatus
     CANCELED
   | -- Invalid call status
     INVALID_STATUS
+  | -- Knowlarity status
+    CONNECTED
+  | NOT_CONNECTED
+  | MISSED
   deriving (Show, Eq, Read, Generic, ToSchema, ToParamSchema)
 
 instance FromHttpApiData ExotelCallStatus where
@@ -141,6 +145,9 @@ instance FromHttpApiData ExotelCallStatus where
       "no-answer" -> NO_ANSWER
       "failed" -> FAILED
       "canceled" -> CANCELED
+      "connected" -> CONNECTED
+      "not-connected" -> NOT_CONNECTED
+      "missed" -> MISSED
       _ -> INVALID_STATUS
 
 $(deriveJSON constructorsWithHyphensToLowerOptions ''ExotelCallStatus)
@@ -233,7 +240,7 @@ data ExotelCallCallbackReq a = ExotelCallCallbackReq
     startTime :: Text,
     endTime :: Text,
     direction :: ExotelDirection,
-    recordingUrl :: BaseUrl,
+    recordingUrl :: Text,
     conversationDuration :: Int,
     legs :: [ExotelLeg],
     -- 	The value that was passed in the CustomField (attachments here) parameter of the API (if set during the request) will be populated here.

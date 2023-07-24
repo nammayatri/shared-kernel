@@ -54,6 +54,10 @@ data CallStatus
     CANCELED
   | -- Invalid call status
     INVALID_STATUS
+  | -- KNOWLARITY STATUS
+    CONNECTED
+  | NOT_CONNECTED
+  | MISSED
   deriving (Generic, Eq, Show, Read, ToJSON, FromJSON, ToSchema)
 
 derivePersistField "CallStatus"
