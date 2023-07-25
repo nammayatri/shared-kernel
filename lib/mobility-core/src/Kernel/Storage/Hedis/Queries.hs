@@ -429,3 +429,14 @@ zRevRank key member = do
 
 zCard :: (HedisFlow m env) => Text -> m Integer
 zCard key = runWithPrefix key Hedis.zcard
+
+zrangebyscore :: (HedisFlow m env) => Text -> Double -> Double -> m [BS.ByteString]
+zrangebyscore key start end = do
+  preKey <- buildKey key
+  runHedis $ Hedis.zrangebyscore preKey start end
+
+xadd :: (HedisFlow m env) => Text -> Text -> [(BS.ByteString, BS.ByteString)] -> m ()
+xadd key entryId fieldValues = do
+  preKey <- buildKey key
+  let entryId_ = DE.encodeUtf8 entryId
+  void . runHedis $ Hedis.xadd preKey entryId_ fieldValues
