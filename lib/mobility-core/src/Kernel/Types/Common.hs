@@ -57,7 +57,7 @@ import Kernel.Types.GuidLike as Common
 import Kernel.Types.Logging as Common
 import Kernel.Types.MonadGuid as Common
 import Kernel.Types.Time as Common
-import Kernel.Utils.Dhall (FromDhall)
+import Kernel.Utils.Dhall (FromDhall, Natural)
 import Kernel.Utils.GenericPretty
 import Servant
 import Text.Show (Show (..))
@@ -112,7 +112,8 @@ newtype HighPrecMoney = HighPrecMoney
 
 data Tables = Tables
   { kVTables :: [Text],
-    kVHardKilledTables :: [Text]
+    kVHardKilledTables :: [Text],
+    tableAllocation :: Natural
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
