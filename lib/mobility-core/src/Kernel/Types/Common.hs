@@ -111,8 +111,8 @@ newtype HighPrecMoney = HighPrecMoney
   deriving newtype (Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
 
 data Tables = Tables
-  { kVTables :: [Text],
-    kVHardKilledTables :: [Text],
+  { enableKVForWriteAlso :: [Text],
+    enableKVForRead :: [Text],
     tableAllocation :: Natural
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
