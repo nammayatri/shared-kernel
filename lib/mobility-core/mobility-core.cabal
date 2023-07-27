@@ -202,6 +202,7 @@ library
       Kernel.Types.Beckn.ReqTypes
       Kernel.Types.BecknRequest
       Kernel.Types.Cache
+      Kernel.Types.CacheFlow
       Kernel.Types.Centesimal
       Kernel.Types.Common
       Kernel.Types.Credentials
