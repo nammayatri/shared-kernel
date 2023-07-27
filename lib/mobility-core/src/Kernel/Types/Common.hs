@@ -230,7 +230,7 @@ instance FromField Minutes where
   fromField = fromFieldMinutes
 
 instance HasSqlValueSyntax be Integer => HasSqlValueSyntax be Centi where
-  sqlValueSyntax (MkFixed i) = sqlValueSyntax i
+  sqlValueSyntax (MkFixed i) = sqlValueSyntax (div i 100)
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be Centesimal
 
