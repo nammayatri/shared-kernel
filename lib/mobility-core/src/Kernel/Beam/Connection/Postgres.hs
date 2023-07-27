@@ -13,10 +13,17 @@ import qualified Kernel.Types.Common as KTC
 
 prepareDBConnections :: L.MonadFlow m => ECT.ConnectionConfig -> m ()
 prepareDBConnections ECT.ConnectionConfig {..} = do
-  preparePosgreSqlConnection <- L.runIO $ EnvVars.getPreparePosgreSqlConnection
+  preparePosgreSqlConnection <- L.runIO EnvVars.getPreparePosgreSqlConnection
   when preparePosgreSqlConnection (preparePsqlMasterConnection esqDBCfg)
-  preparePosgreSqlR1Connection <- L.runIO $ EnvVars.getPreparePosgreSqlR1Connection
+
+  preparePosgreSqlR1Connection <- L.runIO EnvVars.getPreparePosgreSqlR1Connection
   when preparePosgreSqlR1Connection (preparePsqlR1Connection esqDBReplicaCfg)
+
+  prepareLocDBConnections <- L.runIO EnvVars.getPrepareLocationDBConnection
+  when prepareLocDBConnections (prepareLocDbConn locationDbCfg)
+
+  prepareLocDBReplicaConnections <- L.runIO EnvVars.getPrepareLocationDBReplicaConnection
+  when prepareLocDBReplicaConnections (prepareLocDbReplicaConn locationDbReplicaCfg)
 
 prepareTables :: L.MonadFlow m => KTC.Tables -> m ()
 prepareTables tables' = do
@@ -26,13 +33,23 @@ prepareTables tables' = do
 
 preparePsqlMasterConnection :: L.MonadFlow m => KSEC.EsqDBConfig -> m ()
 preparePsqlMasterConnection conf = do
-  pgConnName <- L.runIO $ EnvVars.postgresConnectionName
+  pgConnName <- L.runIO EnvVars.postgresConnectionName
   preparePSqlConnection pgConnName KBT.PsqlDbCfg conf
 
 preparePsqlR1Connection :: L.MonadFlow m => KSEC.EsqDBConfig -> m ()
 preparePsqlR1Connection conf = do
-  pgConnName <- L.runIO $ EnvVars.postgresR1ConnectionName
+  pgConnName <- L.runIO EnvVars.postgresR1ConnectionName
   preparePSqlConnection pgConnName KBT.PsqlDbCfgR1 conf
+
+prepareLocDbConn :: L.MonadFlow m => KSEC.EsqDBConfig -> m ()
+prepareLocDbConn conf = do
+  pgConnName <- L.runIO EnvVars.postgresLocationDBConnectionName
+  preparePSqlConnection pgConnName KBT.PsqlLocDbCfg conf
+
+prepareLocDbReplicaConn :: L.MonadFlow m => KSEC.EsqDBConfig -> m ()
+prepareLocDbReplicaConn conf = do
+  pgConnName <- L.runIO EnvVars.postgresLocationDBReplicaConnectionName
+  preparePSqlConnection pgConnName KBT.PsqlLocReplicaDbCfg conf
 
 preparePSqlConnection :: L.MonadFlow m => (ET.OptionEntity a (ET.DBConfig BP.Pg)) => Text -> a -> KSEC.EsqDBConfig -> m ()
 preparePSqlConnection pgConnName psqlDBCfgId KSEC.EsqDBConfig {..} = do

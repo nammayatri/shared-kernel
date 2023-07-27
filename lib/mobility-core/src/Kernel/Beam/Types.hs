@@ -38,3 +38,15 @@ data BeamState = BeamState
   { dbConf :: (DBConfig BP.Pg)
   }
   deriving (Eq, Show, Generic)
+
+data PsqlLocDbCfg = PsqlLocDbCfg
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity PsqlLocDbCfg (DBConfig BP.Pg)
+
+data PsqlLocReplicaDbCfg = PsqlLocReplicaDbCfg
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity PsqlLocReplicaDbCfg (DBConfig BP.Pg)

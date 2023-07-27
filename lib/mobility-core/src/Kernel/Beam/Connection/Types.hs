@@ -6,5 +6,7 @@ import Kernel.Storage.Hedis.Config
 data ConnectionConfig = ConnectionConfig
   { esqDBCfg :: EsqDBConfig,
     esqDBReplicaCfg :: EsqDBConfig,
-    hedisClusterCfg :: HedisCfg
+    hedisClusterCfg :: HedisCfg,
+    locationDbCfg :: EsqDBConfig,
+    locationDbReplicaCfg :: EsqDBConfig
   }
