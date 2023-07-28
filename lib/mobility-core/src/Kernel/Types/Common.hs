@@ -14,6 +14,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# OPTIONS_GHC -Wno-identities #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Types.Common
@@ -25,6 +26,7 @@ where
 
 import Data.Generics.Labels ()
 import Data.OpenApi
+import qualified Data.Text as T
 import Database.Persist.Class
 import Database.Persist.Sql
 import GHC.Float (double2Int, int2Double)
@@ -110,3 +112,25 @@ instance ToSchema HighPrecMoney where
   declareNamedSchema _ = do
     aSchema <- declareSchema (Proxy :: Proxy Double)
     return $ NamedSchema (Just "HighPrecMoney") aSchema
+
+instance ToParamSchema Rational where
+  toParamSchema _ = mempty
+
+instance ToParamSchema HighPrecMoney where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy Double)
+
+instance FromHttpApiData HighPrecMoney where
+  parseUrlPiece t = case parseUrlPiece t of
+    Left err -> Left err
+    Right r -> Right (HighPrecMoney r)
+
+instance FromHttpApiData Rational where
+  parseUrlPiece t = case reads (T.unpack t) of
+    [(x, "")] -> Right x
+    _ -> Left "Invalid Rational value"
+
+instance ToHttpApiData HighPrecMoney where
+  toUrlPiece = toUrlPiece . getHighPrecMoney
+
+instance ToHttpApiData Rational where
+  toUrlPiece = toUrlPiece . toRational
