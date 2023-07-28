@@ -406,6 +406,7 @@ library
     , vector
     , wai
     , wai-app-static
+    , wai-extra
     , wai-middleware-prometheus
     , warp
   default-language: Haskell2010

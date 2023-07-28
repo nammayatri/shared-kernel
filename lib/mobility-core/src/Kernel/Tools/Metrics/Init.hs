@@ -22,17 +22,23 @@ import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import Network.Wai (Application, Request (..))
 import Network.Wai.Handler.Warp as W
+import Network.Wai.Middleware.Gzip as Gzip
 import Network.Wai.Middleware.Prometheus
 import Prometheus as P
 import Prometheus.Metric.GHC (ghcMetrics)
 import Prometheus.Metric.Proc
+import System.Environment (lookupEnv)
 
 serve :: Int -> IO ()
 serve port = do
+  isEnabled <- lookupEnv "METRICS_COMPRESSION_ENABLED"
   _ <- register ghcMetrics
   _ <- register procMetrics
   putStrLn @String $ "Prometheus server started at port " <> show port
-  _ <- forkIO $ W.run port metricsApp
+  let compressFn = if isEnabled == Just "true" || isEnabled == Just "True"
+                      then Gzip.gzip Gzip.def
+                      else id
+  _ <- forkIO $ W.run port $ compressFn metricsApp
   return ()
 
 addServantInfo ::
