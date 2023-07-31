@@ -7,9 +7,14 @@ import qualified Kernel.Beam.Connection.EnvVars as EnvVars
 import qualified Kernel.Beam.Connection.Types as ECT
 import qualified Kernel.Storage.Hedis.Config as KSHC
 
-prepareRedisConnections :: L.MonadFlow m => ECT.ConnectionConfig -> m ()
-prepareRedisConnections ECT.ConnectionConfig {..} = do
-  preparePosgreSqlConnection <- L.runIO $ EnvVars.getPreparePosgreSqlConnection
+prepareRedisConnectionsDriver :: L.MonadFlow m => ECT.ConnectionConfigDriver -> m ()
+prepareRedisConnectionsDriver ECT.ConnectionConfigDriver {..} = do
+  preparePosgreSqlConnection <- L.runIO EnvVars.getPreparePosgreSqlConnection
+  when preparePosgreSqlConnection (prepareRedisClusterConnection hedisClusterCfg)
+
+prepareRedisConnectionsRider :: L.MonadFlow m => ECT.ConnectionConfigRider -> m ()
+prepareRedisConnectionsRider ECT.ConnectionConfigRider {..} = do
+  preparePosgreSqlConnection <- L.runIO EnvVars.getPreparePosgreSqlConnection
   when preparePosgreSqlConnection (prepareRedisClusterConnection hedisClusterCfg)
 
 kvRedis :: Text
