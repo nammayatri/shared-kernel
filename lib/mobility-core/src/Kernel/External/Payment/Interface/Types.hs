@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE OverloadedLists #-}
 
 module Kernel.External.Payment.Interface.Types
   ( module Kernel.External.Payment.Interface.Types,
@@ -22,6 +23,10 @@ import qualified Kernel.External.Payment.Juspay.Config as Juspay
 import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), PaymentLinks (..), TransactionStatus (..))
 import Kernel.Prelude
 import Kernel.Types.Common
+import Web.FormUrlEncoded
+
+-- import Servant (ToHttpApiData(toQueryParam))
+-- import Web.Internal.HttpApiData
 
 newtype PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -36,6 +41,40 @@ data CreateOrderReq = CreateOrderReq
     customerFirstName :: Maybe Text,
     customerLastName :: Maybe Text
   }
+
+data RegisterMandateReq = RegisterMandateReq
+  { order_id :: Text,
+    merchant_id :: Text,
+    payment_method_type :: Text,
+    payment_method :: Text,
+    upi_vpa :: Text,
+    redirect_after_payment :: Bool,
+    format :: Text,
+    mandate_type :: Text,
+    should_create_mandate :: Bool
+  }
+  deriving (Eq, Show, Generic, ToForm)
+
+-- instance ToForm RegisterMandateReq where
+--   toForm RegisterMandateReq {..} =
+--     [ ("order_id", toQueryParam order_id),
+--       ("merchant_id", toQueryParam merchant_id),
+--       ("payment_method_type", toQueryParam payment_method_type),
+--       ("payment_method", toQueryParam payment_method),
+--       ("upi_vpa", toQueryParam upi_vpa)
+--       -- ("redirect_after_payment", toQueryParam (T.pack $ show redirect_after_payment)),
+--       -- ("format", toQueryParam format),
+--       -- ("mandate_type", toQueryParam mandate_type),
+--       -- ("should_create_mandate", toQueryParam (T.pack $ show should_create_mandate))
+--     ]
+
+data RegisterMandateResp = RegisterMandateRequestResp
+  { status :: String,
+    paymentAuthenticationMethod :: Maybe String,
+    paymentAuthenticationUrl :: Maybe String,
+    paymentAuthenticationParams :: Maybe String
+  }
+  deriving (Eq, Show, Generic, FromJSON, ToJSON, ToSchema)
 
 newtype OrderStatusReq = OrderStatusReq
   { orderShortId :: Text

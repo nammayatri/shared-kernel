@@ -18,6 +18,21 @@ module Kernel.External.Payment.Juspay.Types.Common where
 
 import Data.Aeson.Types
 import Kernel.Prelude
+  ( Applicative (pure),
+    Double,
+    Eq,
+    Generic,
+    HasField (hasField),
+    Int,
+    Maybe,
+    Read,
+    Show,
+    Text,
+    ToSchema,
+    UTCTime,
+    show,
+    (.),
+  )
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data Currency = INR
