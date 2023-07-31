@@ -11,8 +11,8 @@ import qualified Kernel.Beam.Types as KBT
 import qualified Kernel.Storage.Esqueleto.Config as KSEC
 import qualified Kernel.Types.Common as KTC
 
-prepareDBConnections :: L.MonadFlow m => ECT.ConnectionConfig -> m ()
-prepareDBConnections ECT.ConnectionConfig {..} = do
+prepareDBConnectionsDriver :: L.MonadFlow m => ECT.ConnectionConfigDriver -> m ()
+prepareDBConnectionsDriver ECT.ConnectionConfigDriver {..} = do
   preparePosgreSqlConnection <- L.runIO EnvVars.getPreparePosgreSqlConnection
   when preparePosgreSqlConnection (preparePsqlMasterConnection esqDBCfg)
 
@@ -24,6 +24,14 @@ prepareDBConnections ECT.ConnectionConfig {..} = do
 
   prepareLocDBReplicaConnections <- L.runIO EnvVars.getPrepareLocationDBReplicaConnection
   when prepareLocDBReplicaConnections (prepareLocDbReplicaConn locationDbReplicaCfg)
+
+prepareDBConnectionsRider :: L.MonadFlow m => ECT.ConnectionConfigRider -> m ()
+prepareDBConnectionsRider ECT.ConnectionConfigRider {..} = do
+  preparePosgreSqlConnection <- L.runIO EnvVars.getPreparePosgreSqlConnection
+  when preparePosgreSqlConnection (preparePsqlMasterConnection esqDBCfg)
+
+  preparePosgreSqlR1Connection <- L.runIO EnvVars.getPreparePosgreSqlR1Connection
+  when preparePosgreSqlR1Connection (preparePsqlR1Connection esqDBReplicaCfg)
 
 prepareTables :: L.MonadFlow m => KTC.Tables -> m ()
 prepareTables tables' = do

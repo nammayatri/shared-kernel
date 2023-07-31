@@ -1,4 +1,7 @@
 {-# LANGUAGE DerivingStrategies #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Kernel.Beam.Types where
 
@@ -35,7 +38,7 @@ instance Exception DatabaseError
 type BeamFlow = ReaderT BeamState
 
 data BeamState = BeamState
-  { dbConf :: (DBConfig BP.Pg)
+  { dbConf :: DBConfig BP.Pg
   }
   deriving (Eq, Show, Generic)
 
