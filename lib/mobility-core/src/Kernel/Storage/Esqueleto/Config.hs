@@ -32,7 +32,8 @@ data EsqDBConfig = EsqDBConfig
     connectUser :: Text,
     connectPassword :: Text,
     connectDatabase :: Text,
-    connectSchemaName :: Text
+    connectSchemaName :: Text,
+    connectionPoolCount :: Int
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
@@ -49,7 +50,7 @@ prepareEsqDBEnv cfg logEnv = do
         if logEnv.logRawSql
           then logEnv
           else logEnv {fileLogger = Nothing, consoleLogger = Nothing}
-  pool <- liftIO . runLoggerIO checkedLogEnv $ createPostgresqlPoolModified (modifyConn modifyConnString) connStr 10
+  pool <- liftIO . runLoggerIO checkedLogEnv $ createPostgresqlPoolModified (modifyConn modifyConnString) connStr cfg.connectionPoolCount
   return $ EsqDBEnv pool
   where
     makeConnString dbConfig =

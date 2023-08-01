@@ -57,4 +57,7 @@ exotelStatusToInterfaceStatus = \case
   Exotel.BUSY -> Interface.BUSY
   Exotel.NO_ANSWER -> Interface.NO_ANSWER
   Exotel.CANCELED -> Interface.CANCELED
+  Exotel.CONNECTED -> Interface.CONNECTED
+  Exotel.NOT_CONNECTED -> Interface.NOT_CONNECTED
+  Exotel.MISSED -> Interface.MISSED
   Exotel.INVALID_STATUS -> Interface.INVALID_STATUS

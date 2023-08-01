@@ -32,14 +32,16 @@ buildTaxiContext ::
   Maybe BaseUrl ->
   Cab.City ->
   Cab.Country ->
+  -- Bool ->
   m Cab.Context
 buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country = do
   currTime <- getCurrentTime
+  let max_callbacks = Just 1
   return $
     Cab.Context
       { domain = Cab.MOBILITY,
         action,
-        core_version = "0.9.3",
+        core_version = "0.9.4",
         bap_id = bapId,
         bap_uri = bapUri,
         bpp_id = bppId,
@@ -48,5 +50,6 @@ buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country = do
         message_id = msgId,
         timestamp = UTCTimeRFC3339 currTime,
         country,
-        city
+        city,
+        max_callbacks
       }

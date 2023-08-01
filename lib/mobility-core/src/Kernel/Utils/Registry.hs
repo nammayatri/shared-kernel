@@ -24,6 +24,7 @@ import Data.Generics.Labels ()
 import qualified EulerHS.Types as T
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Beckn.Domain
 import Kernel.Types.Cache
 import Kernel.Types.Common
 import Kernel.Types.Error
@@ -57,7 +58,8 @@ registryLookup registryUrl request =
     toLookupReq SimpleLookupRequest {..} =
       API.emptyLookupRequest
         { API.unique_key_id = Just unique_key_id,
-          API.subscriber_id = Just subscriber_id
+          API.subscriber_id = Just subscriber_id,
+          API.domain = Just MOBILITY
         }
 
 registryFetch ::

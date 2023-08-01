@@ -11,22 +11,24 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Kernel.External.Verification.Types
-  ( module Kernel.External.Verification.Types,
-  )
-where
+module Kernel.External.SMS.GupShup.Types where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Data.Text (Text)
+import Kernel.Prelude (Eq, FromJSON, Generic, HasField (hasField), ToJSON)
 
-data VerificationService = Idfy | InternalScripts
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+newtype SubmitSmsRes = SubmitSmsRes
+  { response :: SmsResponse
+  }
+  deriving (Generic, ToJSON, FromJSON, Eq)
 
-availableVerificationServices :: [VerificationService]
-availableVerificationServices = [Idfy, InternalScripts]
-
-derivePersistField "VerificationService"
+data SmsResponse = SmsResponse
+  { id :: Text,
+    phone :: Text,
+    details :: Text,
+    status :: Text
+  }
+  deriving (Generic, ToJSON, FromJSON, Eq)

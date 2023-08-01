@@ -216,6 +216,7 @@ data MerchantError
   | MerchantDoesNotExist Text
   | MerchantServiceUsageConfigNotFound Text
   | MerchantServiceConfigNotFound Text Text Text
+  | MerchantOperatingCityNotFound Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''MerchantError
@@ -225,6 +226,7 @@ instance IsBaseError MerchantError where
   toMessage (MerchantDoesNotExist merchantId) = Just $ "No merchant matches passed data " <> show merchantId <> "."
   toMessage (MerchantServiceUsageConfigNotFound merchantId) = Just $ "MerchantServiceUsageConfig with merchantId \"" <> show merchantId <> "\" not found."
   toMessage (MerchantServiceConfigNotFound merchantId serviceType service) = Just $ "MerchantServiceConfig for " <> serviceType <> " service " <> service <> " with merchantId \"" <> merchantId <> "\" not found."
+  toMessage (MerchantOperatingCityNotFound merchantId) = Just $ "MerchantOperatingCity with merchantId \"" <> show merchantId <> "\" not found."
 
 instance IsHTTPError MerchantError where
   toErrorCode = \case
@@ -232,11 +234,14 @@ instance IsHTTPError MerchantError where
     MerchantDoesNotExist _ -> "MERCHANT_DOES_NOT_EXIST"
     MerchantServiceUsageConfigNotFound _ -> "MERCHANT_SERVICE_USAGE_CONFIG_NOT_FOUND"
     MerchantServiceConfigNotFound {} -> "MERCHANT_SERVICE_CONFIG_NOT_FOUND"
+    MerchantOperatingCityNotFound _ -> "MERCHANT_OPERATING_CITY_NOT_FOUND"
+
   toHttpCode = \case
     MerchantNotFound _ -> E500
     MerchantDoesNotExist _ -> E400
     MerchantServiceUsageConfigNotFound _ -> E500
     MerchantServiceConfigNotFound {} -> E500
+    MerchantOperatingCityNotFound _ -> E500
 
 instance IsAPIError MerchantError
 
@@ -1004,7 +1009,7 @@ instance IsBaseError DriverFeeError where
 instance IsHTTPError DriverFeeError where
   toErrorCode = \case
     DriverFeeNotFound _ -> "DRIVER_FEE_NOT_FOUND"
-    DriverFeeAlreadySettled _ -> "DRIVER_FEE_ALREDAY_SETTLED"
+    DriverFeeAlreadySettled _ -> "DRIVER_FEE_ALREADY_SETTLED"
     DriverFeeNotInUse _ -> "DRIVER_FEE_NOT_ACTIVE"
 
   toHttpCode = \case

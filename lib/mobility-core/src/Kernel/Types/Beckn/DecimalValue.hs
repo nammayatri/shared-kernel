@@ -19,6 +19,8 @@
 -- are only exported for testing purposes.
 module Kernel.Types.Beckn.DecimalValue
   ( DecimalValue (..),
+    valueToString,
+    valueFromString,
   )
 where
 

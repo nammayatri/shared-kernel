@@ -11,22 +11,16 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Verification.Types
-  ( module Kernel.External.Verification.Types,
-  )
-where
+module Kernel.External.SMS.GupShup.Config where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.External.Encryption
+import Kernel.Prelude
 
-data VerificationService = Idfy | InternalScripts
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
-
-availableVerificationServices :: [VerificationService]
-availableVerificationServices = [Idfy, InternalScripts]
-
-derivePersistField "VerificationService"
+data GupShupCfg = GupShupCfg
+  { userName :: EncryptedField 'AsEncrypted Text,
+    password :: EncryptedField 'AsEncrypted Text,
+    url :: BaseUrl,
+    templateId :: EncryptedField 'AsEncrypted Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)

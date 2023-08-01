@@ -21,9 +21,10 @@ where
 import Deriving.Aeson
 import qualified Kernel.External.Verification.Idfy.Config as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
+import qualified Kernel.External.Verification.InternalScripts.Types as FV
 import Kernel.Prelude
 
-newtype VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 

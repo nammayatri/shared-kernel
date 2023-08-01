@@ -23,10 +23,10 @@ import Data.OpenApi
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data SmsService = MyValueFirst | ExotelSms
+data SmsService = MyValueFirst | ExotelSms | GupShup
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 availableSmsServices :: [SmsService]
-availableSmsServices = [MyValueFirst, ExotelSms]
+availableSmsServices = [MyValueFirst, ExotelSms, GupShup]
 
 derivePersistField "SmsService"

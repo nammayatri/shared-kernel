@@ -11,22 +11,18 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TemplateHaskell #-}
+module Kernel.Types.CacheFlow where
 
-module Kernel.External.Verification.Types
-  ( module Kernel.External.Verification.Types,
-  )
-where
+import Kernel.Prelude
+import Kernel.Storage.Hedis (HedisFlow)
+import Kernel.Types.Common
+import Kernel.Utils.Dhall
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
+newtype CacheConfig = CacheConfig
+  { configsExpTime :: Seconds
+  }
+  deriving (Generic, FromDhall)
 
-data VerificationService = Idfy | InternalScripts
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+type HasCacheConfig r = HasField "cacheConfig" r CacheConfig
 
-availableVerificationServices :: [VerificationService]
-availableVerificationServices = [Idfy, InternalScripts]
-
-derivePersistField "VerificationService"
+type CacheFlow m r = (HasCacheConfig r, HedisFlow m r)

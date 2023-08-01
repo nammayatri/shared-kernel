@@ -109,8 +109,13 @@ library
       Kernel.External.SMS.ExotelSms.Config
       Kernel.External.SMS.ExotelSms.Flow
       Kernel.External.SMS.ExotelSms.Types
+      Kernel.External.SMS.GupShup.API
+      Kernel.External.SMS.GupShup.Config
+      Kernel.External.SMS.GupShup.Flow
+      Kernel.External.SMS.GupShup.Types
       Kernel.External.SMS.Interface
       Kernel.External.SMS.Interface.ExotelSms
+      Kernel.External.SMS.Interface.GupShup
       Kernel.External.SMS.Interface.MyValueFirst
       Kernel.External.SMS.Interface.Types
       Kernel.External.SMS.MyValueFirst.API
@@ -131,7 +136,11 @@ library
       Kernel.External.Verification.Idfy.WebhookHandler
       Kernel.External.Verification.Interface
       Kernel.External.Verification.Interface.Idfy
+      Kernel.External.Verification.Interface.InternalScripts
       Kernel.External.Verification.Interface.Types
+      Kernel.External.Verification.InternalScripts.Error
+      Kernel.External.Verification.InternalScripts.FaceVerification
+      Kernel.External.Verification.InternalScripts.Types
       Kernel.External.Verification.Types
       Kernel.External.Whatsapp.GupShup.Config
       Kernel.External.Whatsapp.GupShup.Flow
@@ -209,6 +218,7 @@ library
       Kernel.Types.Beckn.ReqTypes
       Kernel.Types.BecknRequest
       Kernel.Types.Cache
+      Kernel.Types.CacheFlow
       Kernel.Types.Centesimal
       Kernel.Types.Common
       Kernel.Types.Credentials
