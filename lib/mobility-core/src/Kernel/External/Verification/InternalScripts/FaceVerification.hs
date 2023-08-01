@@ -15,8 +15,10 @@
 module Kernel.External.Verification.InternalScripts.FaceVerification where
 
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as DT
 import EulerHS.Prelude
 import EulerHS.Types (EulerClient, client)
+import qualified EulerHS.Types as ET
 import Kernel.External.Verification.InternalScripts.Error
 import Kernel.External.Verification.InternalScripts.Types
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -48,4 +50,4 @@ internalScriptsManagerKey :: String
 internalScriptsManagerKey = "internal-scripts-http-manager"
 
 callFaceVerificationApi :: CallAPI env api res
-callFaceVerificationApi = callApiUnwrappingApiError (identity @FaceVerificationError) (Just internalScriptsManagerKey) (Just "FACE_VERIFICATION_ERROR")
+callFaceVerificationApi = callApiUnwrappingApiError (identity @FaceVerificationError) (Just $ ET.ManagerSelector $ DT.pack internalScriptsManagerKey) (Just "FACE_VERIFICATION_ERROR")
