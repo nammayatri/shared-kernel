@@ -17,6 +17,7 @@ module Kernel.External.Payment.Juspay.Flow where
 import qualified Data.Text.Encoding as DT
 import Data.Time.Format
 import EulerHS.Types as Euler
+import Kernel.External.Payment.Interface.Types (RegisterMandateReq, RegisterMandateResp)
 import Kernel.External.Payment.Juspay.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -33,6 +34,30 @@ type CreateOrderAPI =
     :> Header "x-merchantid" Text
     :> ReqBody '[JSON] CreateOrderReq
     :> Post '[JSON] CreateOrderResp
+
+type RegisterMandateAPI =
+  "txns"
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] RegisterMandateReq
+    :> Post '[JSON] RegisterMandateResp
+
+registerMandate ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  RegisterMandateReq ->
+  m RegisterMandateResp
+registerMandate url apiKey req = do
+  let eulerClient = Euler.client (Proxy @RegisterMandateAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient basicAuthData req) "register-mandate" (Proxy @RegisterMandateAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call register mandate API: " <> show err)
 
 createOrder ::
   ( Metrics.CoreMetrics m,
@@ -87,3 +112,81 @@ getCurrentDate = do
   let dateFormat = "%Y-%m-%d"
       formattedDate = formatTime defaultTimeLocale dateFormat currentTime
   return $ encodeToText formattedDate
+
+type MandateNotificationAPI =
+  "mandates"
+    :> Capture "merchantId" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] MandateNotificationReq
+    :> Post '[JSON] MandateNotificationRes
+
+mandateNotification ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  MandateNotificationReq ->
+  m MandateNotificationRes
+mandateNotification url apiKey merchantId req = do
+  let eulerClient = Euler.client (Proxy @MandateNotificationAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient merchantId basicAuthData req) "mandate-notification" (Proxy @MandateNotificationAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate notification API: " <> show err)
+
+type MandateExecutionAPI =
+  "txns"
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] MandateExecutionReq
+    :> Post '[JSON] MandateExecutionRes
+
+mandateExecution ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  MandateExecutionReq ->
+  m MandateExecutionRes
+mandateExecution url apiKey req = do
+  let eulerClient = Euler.client (Proxy @MandateExecutionAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient basicAuthData req) "mandate-notification" (Proxy @MandateExecutionAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate Execution API: " <> show err)
+
+type MandateRevokeAPI =
+  "mandates"
+    :> Header "x-merchantid" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> Capture "mandateId" Text
+    :> ReqBody '[FormUrlEncoded] MandateRevokeReq
+    :> Post '[JSON] MandateRevokeRes
+
+mandateRevoke ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Text ->
+  MandateRevokeReq ->
+  m MandateRevokeRes
+mandateRevoke url apiKey merchantId mandateId req = do
+  let eulerClient = Euler.client (Proxy @MandateRevokeAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient (Just merchantId) basicAuthData mandateId req) "mandate-Revoke" (Proxy @MandateRevokeAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate Revoke API: " <> show err)

@@ -17,6 +17,10 @@ module Kernel.External.Payment.Interface.Juspay
     createOrder,
     orderStatus,
     orderStatusWebhook,
+    registerMandate,
+    mandateNotification,
+    mandateExecution,
+    mandateRevoke,
   )
 where
 
@@ -26,6 +30,7 @@ import Kernel.External.Payment.Interface.Types
 import Kernel.External.Payment.Juspay.Config as Reexport
 import qualified Kernel.External.Payment.Juspay.Flow as Juspay
 import qualified Kernel.External.Payment.Juspay.Types as Juspay
+import Kernel.External.Payment.Juspay.Types.Mandate
 import qualified Kernel.External.Payment.Juspay.Webhook as Juspay
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -44,6 +49,57 @@ createOrder config req = do
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   Juspay.createOrder url apiKey merchantId (mkCreateOrderReq config.returnUrl req)
+
+registerMandate ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  RegisterMandateReq ->
+  m RegisterMandateResp
+registerMandate config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  Juspay.registerMandate url apiKey req
+
+mandateNotification ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  MandateNotificationReq ->
+  Text ->
+  m MandateNotificationRes
+mandateNotification config req merchantId = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  Juspay.mandateNotification url apiKey merchantId req
+
+mandateExecution ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  MandateExecutionReq ->
+  m MandateExecutionRes
+mandateExecution config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  Juspay.mandateExecution url apiKey req
+
+mandateRevoke ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  Text ->
+  Text ->
+  MandateRevokeReq ->
+  m MandateRevokeRes
+mandateRevoke config merchantId mandateId req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  Juspay.mandateRevoke url apiKey merchantId mandateId req
 
 mkCreateOrderReq :: BaseUrl -> CreateOrderReq -> Juspay.CreateOrderReq
 mkCreateOrderReq returnUrl CreateOrderReq {..} =
