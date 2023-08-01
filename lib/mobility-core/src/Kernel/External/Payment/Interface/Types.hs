@@ -19,8 +19,9 @@ module Kernel.External.Payment.Interface.Types
 where
 
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), PaymentLinks (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), OfferStatus (..), PaymentLinks (..), TransactionStatus (..))
 import Kernel.Prelude
+import Kernel.Types.APISuccess (APISuccess)
 import Kernel.Types.Common
 
 newtype PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg
@@ -55,3 +56,85 @@ data OrderStatusResp = OrderStatusResp
     currency :: Currency,
     dateCreated :: Maybe UTCTime
   }
+
+-- offer list request --
+
+data OfferListReq = OfferListReq
+  { order :: OfferOrder,
+    customer :: OfferCustomer
+  }
+
+data OfferOrder = OfferOrder
+  { orderId :: Text,
+    amount :: HighPrecMoney,
+    currency :: Currency
+  }
+
+data OfferCustomer = OfferCustomer
+  { customerId :: Text,
+    email :: Maybe Text,
+    mobile :: Maybe Text
+  }
+
+-- offer list response --
+
+data OfferListResp = OfferListResp
+  { bestOfferCombination :: Maybe BestOfferCombination,
+    offerResp :: [OfferResp]
+  }
+
+data BestOfferCombination = BestOfferCombination
+  { offers :: [BestOfferCombinationOffer],
+    orderBreakup :: OrderBreakup
+  }
+
+data BestOfferCombinationOffer = BestOfferCombinationOffer
+  { offerId :: Text,
+    cashbackAmount :: HighPrecMoney,
+    discountAmount :: HighPrecMoney,
+    merchantDiscountAmount :: HighPrecMoney,
+    totalOfferedAmount :: HighPrecMoney
+  }
+
+data OrderBreakup = OrderBreakup
+  { orderAmount :: HighPrecMoney,
+    finalOrderAmount :: HighPrecMoney,
+    discountAmount :: HighPrecMoney,
+    merchantDiscountAmount :: HighPrecMoney,
+    cashbackAmount :: HighPrecMoney,
+    offerAmount :: HighPrecMoney
+  }
+
+data OfferResp = OfferResp
+  { offerId :: Text,
+    status :: OfferStatus,
+    offerDescription :: Maybe Text
+  }
+
+-- offer apply --
+
+data OfferApplyReq = OfferApplyReq
+  { orderShortId :: Text,
+    offers :: [Text],
+    customerId :: Text,
+    amount :: Money,
+    currency :: Currency
+  }
+
+type OfferApplyResp = APISuccess -- FIXME
+
+-- offer notify --
+
+data OfferNotifyReq = OfferNotifyReq
+  { orderShortId :: Text,
+    transactionUUID :: Text,
+    transactionStatus :: TransactionStatus,
+    offers :: [OfferNotifyOffer]
+  }
+
+data OfferNotifyOffer = OfferNotifyOffer
+  { offerId :: Text,
+    status :: OfferStatus
+  }
+
+type OfferNotifyResp = APISuccess -- FIXME

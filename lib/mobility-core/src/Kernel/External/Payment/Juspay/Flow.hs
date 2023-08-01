@@ -18,6 +18,7 @@ import qualified Data.Text.Encoding as DT
 import Data.Time.Format
 import EulerHS.Types as Euler
 import Kernel.External.Payment.Juspay.Types
+import qualified Kernel.External.Payment.Juspay.Types.Offer as Offer
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
@@ -87,3 +88,88 @@ getCurrentDate = do
   let dateFormat = "%Y-%m-%d"
       formattedDate = formatTime defaultTimeLocale dateFormat currentTime
   return $ encodeToText formattedDate
+
+type OfferListAPI =
+  "v1" -- is this required?
+    :> "offers"
+    :> "list"
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> ReqBody '[JSON] Offer.OfferListReq
+    :> Post '[JSON] Offer.OfferListResp
+
+offerList ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Offer.OfferListReq ->
+  m Offer.OfferListResp
+offerList url apiKey merchantId req = do
+  let eulerClient = Euler.client (Proxy @OfferListAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient basicAuthData (Just merchantId) req) "offer-list" (Proxy @OfferListAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call offer list API: " <> show err)
+
+type OfferApplyAPI =
+  "merchant"
+    :> "offers"
+    :> Capture "orderId" Text
+    :> "apply"
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> ReqBody '[JSON] Offer.OfferApplyReq
+    :> Post '[JSON] Offer.OfferApplyResp
+
+offerApply ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Offer.OfferApplyReq ->
+  m Offer.OfferApplyResp
+offerApply url apiKey merchantId req = do
+  let eulerClient = Euler.client (Proxy @OfferApplyAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient req.order.order_id basicAuthData (Just merchantId) req) "offer-apply" (Proxy @OfferApplyAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call offer apply API: " <> show err)
+
+type OfferNotifyAPI =
+  "merchant"
+    :> "offers"
+    :> Capture "orderId" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> ReqBody '[JSON] Offer.OfferNotifyReq
+    :> Post '[JSON] Offer.OfferNotifyResp
+
+offerNotify ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Offer.OfferNotifyReq ->
+  m Offer.OfferNotifyResp
+offerNotify url apiKey merchantId req = do
+  let eulerClient = Euler.client (Proxy @OfferNotifyAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient req.order_id basicAuthData (Just merchantId) req) "offer-notify" (Proxy @OfferNotifyAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call offer notify API: " <> show err)

@@ -32,7 +32,7 @@ data CreateOrderReq = CreateOrderReq
     first_name :: Maybe Text,
     last_name :: Maybe Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data CreateOrderResp = CreateOrderResp
@@ -42,7 +42,7 @@ data CreateOrderResp = CreateOrderResp
     payment_links :: Maybe PaymentLinks,
     sdk_payload :: SDKPayload
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data PaymentLinks = PaymentLinks
@@ -58,7 +58,7 @@ data SDKPayload = SDKPayload
     service :: Maybe Text,
     payload :: SDKPayloadDetails
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data SDKPayloadDetails = SDKPayloadDetails
@@ -80,5 +80,5 @@ data SDKPayloadDetails = SDKPayloadDetails
     orderId :: Maybe Text,
     description :: Maybe Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
