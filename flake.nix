@@ -10,7 +10,7 @@
     prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
-    euler-hs.url = "github:juspay/euler-hs/52c9b0af6ab45e82500c3acfae2c1f7fd983a5ad";
+    euler-hs.url = "github:juspay/euler-hs/ag/open-source";
   };
   outputs = inputs:
     inputs.common.lib.mkFlake { inherit inputs; } {
