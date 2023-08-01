@@ -23,7 +23,7 @@ import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
-import Kernel.Utils.Common (callAPI, encodeToText, fromEitherM)
+import Kernel.Utils.Common (CallAPI', callAPI, encodeToText, fromEitherM)
 import Servant hiding (throwError)
 
 -- https://docs.juspay.in/payment-page/ios/base-sdk-integration/order-status-api
@@ -45,14 +45,9 @@ createOrder ::
   CreateOrderReq ->
   m CreateOrderResp
 createOrder url apiKey merchantId req = do
-  let eulerClient = Euler.client (Proxy @CreateOrderAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient basicAuthData (Just merchantId) req) "create-order" (Proxy @CreateOrderAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call create order API: " <> show err)
+  let proxy = Proxy @CreateOrderAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
+  callJuspayAPI url eulerClient "create-order" proxy
 
 type OrderStatusAPI =
   "orders"
@@ -73,14 +68,9 @@ orderStatus ::
   m OrderStatusResp
 orderStatus url apiKey merchantId orderId = do
   version <- getCurrentDate
-  let eulerClient = Euler.client (Proxy @OrderStatusAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient orderId basicAuthData (Just merchantId) version) "order-status" (Proxy @OrderStatusAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call order status API: " <> show err)
+  let proxy = Proxy @OrderStatusAPI
+      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) version
+  callJuspayAPI url eulerClient "order-status" proxy
 
 getCurrentDate :: MonadFlow m => m Text
 getCurrentDate = do
@@ -108,14 +98,9 @@ offerList ::
   Offer.OfferListReq ->
   m Offer.OfferListResp
 offerList url apiKey merchantId req = do
-  let eulerClient = Euler.client (Proxy @OfferListAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient basicAuthData (Just merchantId) req) "offer-list" (Proxy @OfferListAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call offer list API: " <> show err)
+  let proxy = Proxy @OfferListAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
+  callJuspayAPI url eulerClient "offer-list" proxy
 
 type OfferApplyAPI =
   "merchant"
@@ -137,14 +122,9 @@ offerApply ::
   Offer.OfferApplyReq ->
   m Offer.OfferApplyResp
 offerApply url apiKey merchantId req = do
-  let eulerClient = Euler.client (Proxy @OfferApplyAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient req.order.order_id basicAuthData (Just merchantId) req) "offer-apply" (Proxy @OfferApplyAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call offer apply API: " <> show err)
+  let proxy = Proxy @OfferApplyAPI
+      eulerClient = Euler.client proxy req.order.order_id (mkBasicAuthData apiKey) (Just merchantId) req
+  callJuspayAPI url eulerClient "offer-apply" proxy
 
 type OfferNotifyAPI =
   "merchant"
@@ -165,11 +145,18 @@ offerNotify ::
   Offer.OfferNotifyReq ->
   m Offer.OfferNotifyResp
 offerNotify url apiKey merchantId req = do
-  let eulerClient = Euler.client (Proxy @OfferNotifyAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient req.order_id basicAuthData (Just merchantId) req) "offer-notify" (Proxy @OfferNotifyAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call offer notify API: " <> show err)
+  let proxy = Proxy @OfferNotifyAPI
+      eulerClient = Euler.client proxy req.order_id (mkBasicAuthData apiKey) (Just merchantId) req
+  callJuspayAPI url eulerClient "offer-notify" proxy
+
+callJuspayAPI :: CallAPI' m api res res
+callJuspayAPI url eulerClient description proxy = do
+  callAPI url eulerClient description proxy
+    >>= fromEitherM (\err -> InternalError $ "Failed to call " <> description <> " API: " <> show err)
+
+mkBasicAuthData :: Text -> BasicAuthData
+mkBasicAuthData apiKey =
+  BasicAuthData
+    { basicAuthUsername = DT.encodeUtf8 apiKey,
+      basicAuthPassword = ""
+    }
