@@ -17,6 +17,9 @@ module Kernel.External.Types where
 
 import Data.OpenApi
 import EulerHS.Prelude
+import Kernel.External.Encryption (EncFlow)
+import Kernel.Storage.Esqueleto (EsqDBFlow)
+import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
@@ -49,3 +52,5 @@ instance ToHttpApiData Language where
   toUrlPiece TAMIL = "ta"
   toUrlPiece BENGALI = "bn"
   toUrlPiece FRENCH = "fr"
+
+type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r)
