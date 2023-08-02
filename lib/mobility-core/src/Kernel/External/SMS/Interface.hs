@@ -22,6 +22,7 @@ where
 
 import EulerHS.Prelude
 import Kernel.External.SMS.ExotelSms.Config as Reexport
+import Kernel.External.SMS.GupShup.Config as Reexport
 import qualified Kernel.External.SMS.Interface.ExotelSms as ExotelSms
 import qualified Kernel.External.SMS.Interface.GupShup as GupShup
 import qualified Kernel.External.SMS.Interface.MyValueFirst as MyValueFirst
