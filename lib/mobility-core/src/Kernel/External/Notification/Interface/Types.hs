@@ -47,6 +47,7 @@ data Category
   | NEW_MESSAGE
   | REFERRAL_ACTIVATED
   | CHAT_MESSAGE
+  | SAFETY_ALERT
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
 data SubCategory
