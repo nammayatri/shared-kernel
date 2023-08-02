@@ -14,7 +14,7 @@
 
 module Kernel.External.Verification.InternalScripts.FaceVerification where
 
-import qualified Data.Map.Strict as Map
+import qualified Data.HashMap.Internal as HMap
 import qualified Data.Text as DT
 import EulerHS.Prelude
 import EulerHS.Types (EulerClient, client)
@@ -41,9 +41,9 @@ translate = client faceValidationAPI
 faceValidationAPI :: Proxy FaceValidationAPI
 faceValidationAPI = Proxy
 
-prepareInternalScriptsHttpManager :: Int -> Map String Http.ManagerSettings
+prepareInternalScriptsHttpManager :: Int -> HMap.HashMap DT.Text Http.ManagerSettings
 prepareInternalScriptsHttpManager timeout =
-  Map.singleton internalScriptsManagerKey $
+  HMap.singleton (DT.pack internalScriptsManagerKey) $
     Http.tlsManagerSettings {Http.managerResponseTimeout = Http.responseTimeoutMicro (timeout * 1000)}
 
 internalScriptsManagerKey :: String
