@@ -140,6 +140,9 @@ dependencies:
   - clickhouse-haskell
   - beam-postgres
   - beam-core
+  - cereal
+  - beam-mysql
+  - sequelize
 
 ghc-options:
   - -fwrite-ide-info
