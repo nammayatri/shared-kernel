@@ -139,7 +139,7 @@ data AutoCompleteReq = AutoCompleteReq
     language :: Language,
     strictbounds :: Maybe Bool,
     origin :: Maybe LatLong,
-    country :: Country
+    country :: Maybe Country
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

@@ -251,8 +251,9 @@ autoComplete cfg AutoCompleteReq {..} = do
   key <- decrypt cfg.googleKey
   let components =
         case country of
-          India -> "country:in"
-          France -> "country:fr"
+          Just India -> "country:in"
+          Just France -> "country:fr"
+          _ -> "country:in"
   res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location radius components language strictbounds origin
   let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, distance = distance_meters, ..}) res.predictions
   return $ AutoCompleteResp predictions
