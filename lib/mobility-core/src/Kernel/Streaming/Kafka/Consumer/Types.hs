@@ -38,6 +38,7 @@ type ConsumerGroupId = Text
 data KafkaConsumerCfg = KafkaConsumerCfg
   { brokers :: KafkaBrokersList,
     groupId :: ConsumerGroupId,
+    kafkaCompression :: KafkaCompression,
     timeoutMilliseconds :: Int
   }
   deriving (Generic, FromDhall)
@@ -53,8 +54,15 @@ consumerProps kafkaConsumerCfg =
   brokersList castBrokers
     <> Consumer.groupId (Consumer.ConsumerGroupId kafkaConsumerCfg.groupId)
     <> logLevel KafkaLogDebug
+    <> compression castCompression
   where
     castBrokers = BrokerAddress <$> kafkaConsumerCfg.brokers
+    castCompression =
+      case kafkaConsumerCfg.kafkaCompression of
+        NO_COMPRESSION -> NoCompression
+        GZIP -> Gzip
+        SNAPPY -> Snappy
+        LZ4 -> Lz4
 
 consumerSub :: [KafkaTopic] -> Subscription
 consumerSub topicList =
