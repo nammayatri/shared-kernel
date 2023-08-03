@@ -17,6 +17,7 @@ module Kernel.Streaming.Kafka.Producer.Types
     KafkaProducerTools,
     buildKafkaProducerTools,
     releaseKafkaProducerTools,
+    castCompression,
     HasKafkaProducer,
     module Reexport,
   )
@@ -31,8 +32,9 @@ import Kernel.Utils.Dhall (FromDhall)
 
 type HasKafkaProducer r = HasField "kafkaProducerTools" r KafkaProducerTools
 
-newtype KafkaProducerCfg = KafkaProducerCfg
-  { brokers :: KafkaBrokersList
+data KafkaProducerCfg = KafkaProducerCfg
+  { brokers :: KafkaBrokersList,
+    kafkaCompression :: KafkaCompression
   }
   deriving (Generic, FromDhall)
 
@@ -44,9 +46,18 @@ newtype KafkaProducerTools = KafkaProducerTools
 producerProps :: KafkaProducerCfg -> ProducerProperties
 producerProps kafkaProducerCfg =
   brokersList castBrokers
+    <> compression (castCompression kafkaProducerCfg.kafkaCompression)
     <> logLevel KafkaLogDebug
   where
     castBrokers = BrokerAddress <$> kafkaProducerCfg.brokers
+
+castCompression :: KafkaCompression -> KafkaCompressionCodec
+castCompression kafkaCompression =
+  case kafkaCompression of
+    NO_COMPRESSION -> NoCompression
+    GZIP -> Gzip
+    SNAPPY -> Snappy
+    LZ4 -> Lz4
 
 buildKafkaProducerTools :: KafkaProducerCfg -> IO KafkaProducerTools
 buildKafkaProducerTools kafkaProducerCfg = do

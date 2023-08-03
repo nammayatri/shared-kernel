@@ -15,10 +15,13 @@
 module Kernel.Streaming.Kafka.Commons where
 
 import EulerHS.Prelude
+import Kernel.Utils.Dhall (FromDhall)
 
 type KafkaBrokerAddress = Text
 
 type KafkaBrokersList = [KafkaBrokerAddress]
+
+data KafkaCompression = NO_COMPRESSION | GZIP | SNAPPY | LZ4 deriving (Generic, Show, FromDhall)
 
 type KafkaTopic = Text
 
