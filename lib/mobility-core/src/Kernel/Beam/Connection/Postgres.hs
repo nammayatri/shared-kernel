@@ -7,6 +7,7 @@ import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import qualified Kernel.Beam.Connection.EnvVars as EnvVars
 import qualified Kernel.Beam.Connection.Types as ECT
+import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import qualified Kernel.Storage.Esqueleto.Config as KSEC
 import qualified Kernel.Types.Common as KTC
@@ -36,6 +37,7 @@ prepareDBConnectionsRider ECT.ConnectionConfigRider {..} = do
 prepareTables :: L.MonadFlow m => KTC.Tables -> m ()
 prepareTables tables' = do
   L.setOption KBT.Tables tables'
+  L.setOption ReplicaEnabled False
 
 --   when EnvVars.getPrepareRedisClusterConnection prepareRedisClusterConnection
 
