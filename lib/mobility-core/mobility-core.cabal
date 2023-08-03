@@ -26,8 +26,8 @@ library
       Kernel.Beam.Connection.Postgres
       Kernel.Beam.Connection.Redis
       Kernel.Beam.Connection.Types
+      Kernel.Beam.Functions
       Kernel.Beam.Types
-      Kernel.Beam.Utils
       Kernel.Exit
       Kernel.External.AadhaarVerification
       Kernel.External.AadhaarVerification.Gridline.API
@@ -342,9 +342,11 @@ library
     , base64
     , base64-bytestring
     , beam-core
+    , beam-mysql
     , beam-postgres
     , bytestring
     , case-insensitive
+    , cereal
     , clickhouse-haskell
     , clock
     , containers
@@ -399,6 +401,7 @@ library
     , safe-exceptions
     , safe-money
     , scientific
+    , sequelize
     , servant
     , servant-client
     , servant-client-core
@@ -486,9 +489,11 @@ test-suite mobility-core-tests
     , base64
     , base64-bytestring
     , beam-core
+    , beam-mysql
     , beam-postgres
     , bytestring
     , case-insensitive
+    , cereal
     , clickhouse-haskell
     , clock
     , containers
@@ -544,6 +549,7 @@ test-suite mobility-core-tests
     , safe-exceptions
     , safe-money
     , scientific
+    , sequelize
     , servant
     , servant-client
     , servant-client-core

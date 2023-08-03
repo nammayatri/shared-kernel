@@ -53,3 +53,9 @@ data PsqlLocReplicaDbCfg = PsqlLocReplicaDbCfg
   deriving anyclass (ToJSON, FromJSON)
 
 instance OptionEntity PsqlLocReplicaDbCfg (DBConfig BP.Pg)
+
+data ReplicaEnabled = ReplicaEnabled
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity ReplicaEnabled Bool
