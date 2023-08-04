@@ -1018,3 +1018,34 @@ instance IsHTTPError DriverFeeError where
     DriverFeeNotInUse _ -> E400
 
 instance IsAPIError DriverFeeError
+
+data FeedbackFormError = FeedbackFormDoesNotExist
+  { categoryName :: Text,
+    ratingValue :: Int
+  }
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''FeedbackFormError
+
+instance IsBaseError FeedbackFormError where
+  toMessage (FeedbackFormDoesNotExist name value) = Just $ "Feedback form with name \"" <> name <> "\" and with value \"" <> show value <> "\" not found. "
+
+instance IsHTTPError FeedbackFormError where
+  toErrorCode _ = "FEEDBACK_FORM_DOES_NOT_EXITS"
+  toHttpCode _ = E400
+
+instance IsAPIError FeedbackFormError
+
+newtype RatingCategroy = RatingCategroyDoesNotExist Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''RatingCategroy
+
+instance IsBaseError RatingCategroy where
+  toMessage (RatingCategroyDoesNotExist name) = Just $ "Rating category with name \"" <> show name <> "\" not found. "
+
+instance IsHTTPError RatingCategroy where
+  toErrorCode _ = "RATING_CATEGORY_DOES_NOT_EXITS"
+  toHttpCode _ = E400
+
+instance IsAPIError RatingCategroy

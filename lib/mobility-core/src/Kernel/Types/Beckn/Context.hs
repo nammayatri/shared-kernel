@@ -87,6 +87,10 @@ data Action
   | ON_CANCEL
   | ON_RATING
   | ON_SUPPORT
+  | GET_RATING_CATEGORIES
+  | RATING_CATEGORIES
+  | GET_FEEDBACK_FORM
+  | FEEDBACK_FORM
   deriving (Generic, Show, Eq, ToSchema)
   deriving (PrettyShow) via Showable Action
 
