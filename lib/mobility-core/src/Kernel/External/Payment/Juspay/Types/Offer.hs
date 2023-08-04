@@ -27,14 +27,14 @@ import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
 data OfferListReq = OfferListReq
   { order :: OfferOrder,
     payment_method_info :: [OfferPaymentMethodInfo],
-    customer :: OfferCustomer,
+    customer :: Maybe OfferCustomer,
     offer_code :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data OfferOrder = OfferOrder
-  { order_id :: Text,
+  { order_id :: Maybe Text,
     amount :: Text,
     currency :: Currency
   }
@@ -169,7 +169,7 @@ data OfferApplyReq = OfferApplyReq
   { customer :: OfferApplyCustomer,
     offers :: [Text],
     order :: OfferApplyOrder,
-    payment_method_info :: OfferApplyPaymentMethodInfo
+    payment_method_info :: Maybe OfferApplyPaymentMethodInfo
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)

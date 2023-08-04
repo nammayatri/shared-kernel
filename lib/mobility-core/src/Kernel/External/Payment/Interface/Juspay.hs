@@ -128,7 +128,7 @@ mkOfferListReq OfferListReq {..} = do
   Juspay.OfferListReq
     { order = mkOfferOrder order,
       payment_method_info = [],
-      customer = mkOfferCustomer customer,
+      customer = mkOfferCustomer <$> customer,
       offer_code = Nothing
     }
 
@@ -151,7 +151,7 @@ offerApply config req = do
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferApplyReq merchantId req
-  Juspay.offerApply url apiKey merchantId juspayReq
+  Juspay.offerApply url apiKey merchantId req.mandateId juspayReq
 
 mkOfferApplyReq :: Text -> OfferApplyReq -> Juspay.OfferApplyReq
 mkOfferApplyReq merchantId OfferApplyReq {..} = do
@@ -165,21 +165,11 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
             udf1 = Nothing,
             payment_channel = Just "WEB" -- is it correct?
           }
-  let payment_method_info =
-        Juspay.OfferApplyPaymentMethodInfo
-          { payment_method_type = Juspay.NB, -- is it correct?
-            payment_method_reference = Nothing,
-            payment_method = Nothing,
-            card_type = Nothing,
-            card_sub_type = Nothing,
-            bank_code = Nothing,
-            card_bin = Nothing
-          }
   Juspay.OfferApplyReq
     { customer = Juspay.OfferApplyCustomer {id = customerId},
       offers,
       order,
-      payment_method_info
+      payment_method_info = Nothing
     }
 
 buildOfferListResp :: (MonadThrow m, Log m) => Juspay.OfferListResp -> m OfferListResp
@@ -193,8 +183,11 @@ mkOfferResp Juspay.OfferResp {..} = do
   OfferResp
     { offerId = offer_id,
       status,
-      offerDescription = offer_description.title
+      offerDescription = mkOfferDescription offer_description
     }
+
+mkOfferDescription :: Juspay.OfferDescription -> OfferDescription
+mkOfferDescription Juspay.OfferDescription {..} = OfferDescription {sponsoredBy = sponsored_by, ..}
 
 buildBestOfferCombination :: (MonadThrow m, Log m) => Juspay.BestOfferCombination -> m BestOfferCombination
 buildBestOfferCombination combination = do
@@ -237,7 +230,7 @@ offerNotify config req = do
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferNotifyReq merchantId req
-  Juspay.offerNotify url apiKey merchantId juspayReq
+  Juspay.offerNotify url apiKey merchantId req.mandateId juspayReq
 
 mkOfferNotifyReq :: Text -> OfferNotifyReq -> Juspay.OfferNotifyReq
 mkOfferNotifyReq merchantId OfferNotifyReq {..} = do

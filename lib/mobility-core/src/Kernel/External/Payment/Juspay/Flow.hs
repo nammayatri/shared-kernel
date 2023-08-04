@@ -105,7 +105,7 @@ offerList url apiKey merchantId req = do
 type OfferApplyAPI =
   "merchant"
     :> "offers"
-    :> Capture "orderId" Text
+    :> Capture "mandateId" Text
     :> "apply"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
@@ -119,17 +119,18 @@ offerApply ::
   BaseUrl ->
   Text ->
   Text ->
+  Text ->
   Offer.OfferApplyReq ->
   m Offer.OfferApplyResp
-offerApply url apiKey merchantId req = do
+offerApply url apiKey merchantId mandateId req = do
   let proxy = Proxy @OfferApplyAPI
-      eulerClient = Euler.client proxy req.order.order_id (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) req
   callJuspayAPI url eulerClient "offer-apply" proxy
 
 type OfferNotifyAPI =
   "merchant"
     :> "offers"
-    :> Capture "orderId" Text
+    :> Capture "mandateId" Text
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
     :> ReqBody '[JSON] Offer.OfferNotifyReq
@@ -142,11 +143,12 @@ offerNotify ::
   BaseUrl ->
   Text ->
   Text ->
+  Text ->
   Offer.OfferNotifyReq ->
   m Offer.OfferNotifyResp
-offerNotify url apiKey merchantId req = do
+offerNotify url apiKey merchantId mandateId req = do
   let proxy = Proxy @OfferNotifyAPI
-      eulerClient = Euler.client proxy req.order_id (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) req
   callJuspayAPI url eulerClient "offer-notify" proxy
 
 callJuspayAPI :: CallAPI' m api res res

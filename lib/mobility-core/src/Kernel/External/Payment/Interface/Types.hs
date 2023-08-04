@@ -61,11 +61,11 @@ data OrderStatusResp = OrderStatusResp
 
 data OfferListReq = OfferListReq
   { order :: OfferOrder,
-    customer :: OfferCustomer
+    customer :: Maybe OfferCustomer
   }
 
 data OfferOrder = OfferOrder
-  { orderId :: Text,
+  { orderId :: Maybe Text,
     amount :: HighPrecMoney,
     currency :: Currency
   }
@@ -108,13 +108,21 @@ data OrderBreakup = OrderBreakup
 data OfferResp = OfferResp
   { offerId :: Text,
     status :: OfferStatus,
-    offerDescription :: Maybe Text
+    offerDescription :: OfferDescription
+  }
+
+data OfferDescription = OfferDescription
+  { sponsoredBy :: Maybe Text,
+    title :: Maybe Text,
+    description :: Maybe Text,
+    tnc :: Maybe Text
   }
 
 -- offer apply --
 
 data OfferApplyReq = OfferApplyReq
-  { orderShortId :: Text,
+  { mandateId :: Text,
+    orderShortId :: Text,
     offers :: [Text],
     customerId :: Text,
     amount :: Money,
@@ -126,7 +134,8 @@ type OfferApplyResp = APISuccess -- FIXME
 -- offer notify --
 
 data OfferNotifyReq = OfferNotifyReq
-  { orderShortId :: Text,
+  { mandateId :: Text,
+    orderShortId :: Text,
     transactionUUID :: Text,
     transactionStatus :: TransactionStatus,
     offers :: [OfferNotifyOffer]
