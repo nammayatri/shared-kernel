@@ -213,8 +213,9 @@ findAllWithOptionsKV where' orderBy mbLimit mbOffset = do
     Left err -> throwError $ InternalError $ show err
 
 findAllWithDb ::
-  forall table m.
+  forall table m a.
   ( HasCallStack,
+    FromTType' (table Identity) a,
     BeamRuntime Postgres Pg,
     B.HasQBuilder Postgres,
     BeamRunner Pg,
@@ -230,19 +231,22 @@ findAllWithDb ::
     MonadThrow m
   ) =>
   Where Postgres table ->
-  m [table Identity]
+  m [a]
 findAllWithDb where' = do
   let updatedMeshConfig = meshConfig {meshEnabled = False, kvHardKilled = True}
   inReplica <- L.getOption ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
   case result of
-    Right res -> pure res
+    Right res -> do
+      res' <- mapM fromTType' res
+      pure $ catMaybes res'
     Left err -> throwError $ InternalError $ show err
 
 findAllWithOptionsDb ::
-  forall table m.
+  forall table m a.
   ( HasCallStack,
+    FromTType' (table Identity) a,
     BeamRuntime Postgres Pg,
     B.HasQBuilder Postgres,
     BeamRunner Pg,
@@ -261,14 +265,16 @@ findAllWithOptionsDb ::
   OrderBy table ->
   Maybe Int ->
   Maybe Int ->
-  m [table Identity]
+  m [a]
 findAllWithOptionsDb where' orderBy mbLimit mbOffset = do
   let updatedMeshConfig = meshConfig {meshEnabled = False, kvHardKilled = True}
   inReplica <- L.getOption ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
   case result of
-    Right res -> pure res
+    Right res -> do
+      res' <- mapM fromTType' res
+      pure $ catMaybes res'
     Left err -> throwError $ InternalError $ show err
 
 updateWithKV ::
