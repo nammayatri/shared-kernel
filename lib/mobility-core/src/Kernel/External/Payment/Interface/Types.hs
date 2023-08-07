@@ -129,7 +129,14 @@ data OfferApplyReq = OfferApplyReq
     currency :: Currency
   }
 
-type OfferApplyResp = APISuccess -- FIXME
+newtype OfferApplyResp = OfferApplyResp
+  { offers :: [OfferApplyRespItem]
+  }
+
+data OfferApplyRespItem = OfferApplyRespItem
+  { offerId :: Text,
+    finalOrderAmount :: HighPrecMoney
+  }
 
 -- offer notify --
 
@@ -146,4 +153,4 @@ data OfferNotifyOffer = OfferNotifyOffer
     status :: OfferStatus
   }
 
-type OfferNotifyResp = APISuccess -- FIXME
+type OfferNotifyResp = APISuccess

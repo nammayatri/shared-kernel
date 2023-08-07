@@ -18,7 +18,6 @@ module Kernel.External.Payment.Juspay.Types.Offer where
 import Data.Aeson
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
-import Kernel.Types.APISuccess (APISuccess)
 import Kernel.Types.Common (HighPrecMoney)
 import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
 
@@ -204,9 +203,26 @@ newtype OfferApplyCustomer = OfferApplyCustomer
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
--- offer apply response --
+-- offer apply response (other fields omitted) --
 
-type OfferApplyResp = APISuccess
+newtype OfferApplyResp = OfferApplyResp
+  { offers :: [OfferApplyOffer]
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data OfferApplyOffer = OfferApplyOffer
+  { offer_id :: Text,
+    order_breakup :: OfferApplyOrderBreakup
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+newtype OfferApplyOrderBreakup = OfferApplyOrderBreakup
+  { final_order_amount :: Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 -- offer notify request --
 
@@ -231,4 +247,12 @@ data OfferStatus = INITIATED | AVAILED | REFUNDED | FAILED
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
-type OfferNotifyResp = APISuccess
+-- offer notify response --
+
+data OfferNotifyResp = OfferNotifyResp
+  { code :: Text,
+    status :: Text,
+    response :: Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)

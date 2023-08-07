@@ -23,7 +23,7 @@ module Kernel.External.Payment.Interface.Juspay
   )
 where
 
-import Data.Aeson
+import qualified Data.Aeson as A
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Types
 import Kernel.External.Payment.Juspay.Config as Reexport
@@ -32,6 +32,7 @@ import qualified Kernel.External.Payment.Juspay.Types as Juspay
 import qualified Kernel.External.Payment.Juspay.Webhook as Juspay
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.APISuccess
 import Kernel.Types.Beckn.Ack
 import Kernel.Types.Error
 import Kernel.Utils.Common (HighPrecMoney, Log, fromMaybeM)
@@ -102,7 +103,7 @@ orderStatusWebhook ::
   PaymentServiceConfig ->
   (OrderStatusResp -> Text -> m AckResponse) ->
   BasicAuthData ->
-  Value ->
+  A.Value ->
   m (Maybe Juspay.OrderStatusContent)
 orderStatusWebhook paymentConfig orderStatusHandler authData val = do
   Juspay.orderStatusWebhook paymentConfig (orderStatusHandler . mkOrderStatusResp . (.content.order)) authData val
@@ -137,40 +138,6 @@ mkOfferOrder OfferOrder {..} = Juspay.OfferOrder {order_id = orderId, amount = s
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
 mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile}
-
-offerApply ::
-  ( HasCallStack,
-    Metrics.CoreMetrics m,
-    EncFlow m r
-  ) =>
-  JuspayCfg ->
-  OfferApplyReq ->
-  m OfferApplyResp
-offerApply config req = do
-  let url = config.url
-      merchantId = config.merchantId
-  apiKey <- decrypt config.apiKey
-  let juspayReq = mkOfferApplyReq merchantId req
-  Juspay.offerApply url apiKey merchantId req.mandateId juspayReq
-
-mkOfferApplyReq :: Text -> OfferApplyReq -> Juspay.OfferApplyReq
-mkOfferApplyReq merchantId OfferApplyReq {..} = do
-  let order =
-        Juspay.OfferApplyOrder
-          { order_id = orderShortId,
-            amount = show amount,
-            currency,
-            merchant_id = Just merchantId,
-            order_type = Just "ORDER_PAYMENT",
-            udf1 = Nothing,
-            payment_channel = Just "WEB" -- is it correct?
-          }
-  Juspay.OfferApplyReq
-    { customer = Juspay.OfferApplyCustomer {id = customerId},
-      offers,
-      order,
-      payment_method_info = Nothing
-    }
 
 buildOfferListResp :: (MonadThrow m, Log m) => Juspay.OfferListResp -> m OfferListResp
 buildOfferListResp resp = do
@@ -217,6 +184,52 @@ parseMoney :: (MonadThrow m, Log m) => Text -> Text -> m HighPrecMoney
 parseMoney field desc = do
   readMaybe (show field) & fromMaybeM (InternalError $ "Couldn't parse " <> desc)
 
+offerApply ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  OfferApplyReq ->
+  m OfferApplyResp
+offerApply config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  let juspayReq = mkOfferApplyReq merchantId req
+  juspayResp <- Juspay.offerApply url apiKey merchantId req.mandateId juspayReq
+  buildOfferApplyResp juspayResp
+
+mkOfferApplyReq :: Text -> OfferApplyReq -> Juspay.OfferApplyReq
+mkOfferApplyReq merchantId OfferApplyReq {..} = do
+  let order =
+        Juspay.OfferApplyOrder
+          { order_id = orderShortId,
+            amount = show amount,
+            currency,
+            merchant_id = Just merchantId,
+            order_type = Just "ORDER_PAYMENT",
+            udf1 = Nothing,
+            payment_channel = Just "WEB"
+          }
+  Juspay.OfferApplyReq
+    { customer = Juspay.OfferApplyCustomer {id = customerId},
+      offers,
+      order,
+      payment_method_info = Nothing
+    }
+
+buildOfferApplyResp :: (MonadThrow m, Log m) => Juspay.OfferApplyResp -> m OfferApplyResp
+buildOfferApplyResp resp = do
+  offers <- forM resp.offers $ \offer -> do
+    finalOrderAmount <- parseMoney offer.order_breakup.final_order_amount "final_order_amount"
+    pure
+      OfferApplyRespItem
+        { finalOrderAmount,
+          offerId = offer.offer_id
+        }
+  pure OfferApplyResp {offers}
+
 offerNotify ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
@@ -230,7 +243,8 @@ offerNotify config req = do
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferNotifyReq merchantId req
-  Juspay.offerNotify url apiKey merchantId req.mandateId juspayReq
+  void $ Juspay.offerNotify url apiKey merchantId req.mandateId juspayReq
+  pure Success
 
 mkOfferNotifyReq :: Text -> OfferNotifyReq -> Juspay.OfferNotifyReq
 mkOfferNotifyReq merchantId OfferNotifyReq {..} = do
