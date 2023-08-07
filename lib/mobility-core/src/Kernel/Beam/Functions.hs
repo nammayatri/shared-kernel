@@ -212,6 +212,36 @@ findAllWithOptionsKV where' orderBy mbLimit mbOffset = do
       pure $ catMaybes res'
     Left err -> throwError $ InternalError $ show err
 
+findOneWithDb ::
+  forall table m a.
+  ( HasCallStack,
+    FromTType' (table Identity) a,
+    BeamRuntime Postgres Pg,
+    B.HasQBuilder Postgres,
+    BeamRunner Pg,
+    Model Postgres table,
+    MeshMeta Postgres table,
+    KVConnector (table Identity),
+    FromJSON (table Identity),
+    ToJSON (table Identity),
+    Serialize.Serialize (table Identity),
+    L.MonadFlow m,
+    Show (table Identity),
+    Log m,
+    MonadThrow m
+  ) =>
+  Where Postgres table ->
+  m (Maybe a)
+findOneWithDb where' = do
+  let updatedMeshConfig = meshConfig {meshEnabled = False, kvHardKilled = True}
+  inReplica <- L.getOption ReplicaEnabled
+  dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
+  result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
+  case result of
+    Right (Just res) -> fromTType' res
+    Right Nothing -> pure Nothing
+    Left err -> throwError $ InternalError $ show err
+
 findAllWithDb ::
   forall table m a.
   ( HasCallStack,
