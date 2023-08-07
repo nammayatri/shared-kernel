@@ -19,7 +19,7 @@ import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common (logDebug)
 import Kernel.Utils.Error (throwError)
-import Sequelize (Model, ModelMeta (modelTableName), OrderBy, Set, Where)
+import Sequelize (Model, ModelMeta (modelSchemaName, modelTableName), OrderBy, Set, Where)
 import System.Random
 
 -- classes for converting from beam types to ttypes and vice versa
@@ -55,8 +55,10 @@ runInReplica m = do
   L.setOption ReplicaEnabled False
   pure res
 
-setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> MeshConfig -> m MeshConfig
-setMeshConfig modelName meshConfig' = do
+setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
+setMeshConfig modelName mSchema meshConfig' = do
+  schema <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
+  let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream"
   tables <- L.getOption KBT.Tables
   randomIntV <- L.runIO (randomRIO (1, 100) :: IO Int)
   case tables of
@@ -66,8 +68,8 @@ setMeshConfig modelName meshConfig' = do
       let enableKVForRead = tables'.enableKVForRead
       let tableAllocation = fromIntegral tables'.tableAllocation
       if randomIntV <= tableAllocation
-        then pure $ meshConfig' {meshEnabled = modelName `elem` enableKVForWriteAlso, kvHardKilled = modelName `notElem` enableKVForRead}
-        else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead}
+        then pure $ meshConfig' {meshEnabled = modelName `elem` enableKVForWriteAlso, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
+        else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
 
 getMasterDBConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
 getMasterDBConfig = do
@@ -138,7 +140,7 @@ findOneWithKV ::
   Where Postgres table ->
   m (Maybe a)
 findOneWithKV where' = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) meshConfig
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   inReplica <- L.getOption ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
@@ -168,7 +170,7 @@ findAllWithKV ::
   Where Postgres table ->
   m [a]
 findAllWithKV where' = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) meshConfig
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   inReplica <- L.getOption ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
@@ -202,7 +204,7 @@ findAllWithOptionsKV ::
   Maybe Int ->
   m [a]
 findAllWithOptionsKV where' orderBy mbLimit mbOffset = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) meshConfig
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   inReplica <- L.getOption ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
@@ -329,7 +331,7 @@ updateWithKV ::
   Where Postgres table ->
   m ()
 updateWithKV setClause whereClause = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) meshConfig
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf <- getMasterDBConfig
   res <- KV.updateAllWithKVConnector dbConf updatedMeshConfig setClause whereClause
   case res of
@@ -362,7 +364,7 @@ updateOneWithKV ::
   Where Postgres table ->
   m ()
 updateOneWithKV setClause whereClause = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) meshConfig
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf <- getMasterDBConfig
   res <- KV.updateWoReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
   case res of
@@ -392,7 +394,7 @@ createWithKV ::
   m ()
 createWithKV a = do
   let tType = toTType' a
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) meshConfig
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf' <- getMasterDBConfig
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
   case result of
@@ -426,7 +428,7 @@ deleteWithKV ::
   Where be table ->
   m ()
 deleteWithKV whereClause = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) meshConfig
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf <- getMasterDBConfig
   res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
   case res of
