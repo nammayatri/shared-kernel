@@ -436,3 +436,37 @@ deleteWithKV whereClause = do
         else logDebug $ "Deleted rows in DB: " <> show res
       pure ()
     Left err -> throwError $ InternalError $ show err
+
+deleteWithDb ::
+  forall be table beM m.
+  ( HasCallStack,
+    BeamRuntime be beM,
+    SqlReturning beM be,
+    B.HasQBuilder be,
+    BeamRunner beM,
+    Model be table,
+    MeshMeta be table,
+    KVConnector (table Identity),
+    FromJSON (table Identity),
+    ToJSON (table Identity),
+    Serialize.Serialize (table Identity),
+    L.MonadFlow m,
+    Log m,
+    Show (table Identity),
+    MonadThrow m,
+    SqlReturning Pg be,
+    BeamRuntime be Pg
+  ) =>
+  Where be table ->
+  m ()
+deleteWithDb whereClause = do
+  let updatedMeshConfig = meshConfig {meshEnabled = False, kvHardKilled = True}
+  dbConf <- getMasterDBConfig
+  res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
+  case res of
+    Right _ -> do
+      if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
+        then logDebug $ "Deleted rows in KV: " <> show res
+        else logDebug $ "Deleted rows in DB: " <> show res
+      pure ()
+    Left err -> throwError $ InternalError $ show err
