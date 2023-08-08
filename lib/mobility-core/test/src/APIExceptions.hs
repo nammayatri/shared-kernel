@@ -65,6 +65,9 @@ instance Metrics.CoreMetrics IO where
   incrementErrorCounter _ _ = return ()
   addUrlCallRetries _ _ = return ()
   addUrlCallRetryFailures _ = return ()
+  incrementSortedSetCounter _ = return ()
+  incrementStreamCounter _ = return ()
+  addGenericLatency _ _ = return ()
 
 httpExceptionTests :: TestTree
 httpExceptionTests =

@@ -363,6 +363,7 @@ library
     , cereal
     , clickhouse-haskell
     , clock
+    , concurrency
     , containers
     , cryptonite
     , data-default-class
@@ -511,6 +512,7 @@ test-suite mobility-core-tests
     , cereal
     , clickhouse-haskell
     , clock
+    , concurrency
     , containers
     , cryptonite
     , data-default-class
