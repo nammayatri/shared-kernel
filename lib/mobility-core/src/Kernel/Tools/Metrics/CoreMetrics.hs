@@ -104,6 +104,30 @@ addDatastoreLatencyImplementation storeType operation latency = do
       (storeType, operation, version.getDeploymentVersion)
       (`P.observe` (fromIntegral $ div (fromEnum . nominalDiffTimeToSeconds $ latency) 1000000000000))
 
+incrementSortedSetCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementSortedSetCounterImplementation context = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  incrementSortedSetCounterImplementation' cmContainer context version
+
+incrementStreamCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementStreamCounterImplementation context = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  incrementStreamCounterImplementation' cmContainer context version
+
 addRequestLatencyImplementation' ::
   L.MonadFlow m =>
   CoreMetricsContainer ->
@@ -163,3 +187,38 @@ addUrlCallFailuresImplementation' cmContainers url version = do
       urlCallRetriesMetric
       (showBaseUrlText url, version.getDeploymentVersion)
       P.incCounter
+
+incrementSortedSetCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
+incrementSortedSetCounterImplementation' cmContainers context version = do
+  let sortedSetMetric = cmContainers.sortedSetCounter
+  L.runIO $
+    P.withLabel
+      sortedSetMetric
+      (context, version.getDeploymentVersion)
+      P.incCounter
+
+incrementStreamCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
+incrementStreamCounterImplementation' cmContainers context version = do
+  let sortedSetMetric = cmContainers.sortedSetCounter
+  L.runIO $
+    P.withLabel
+      sortedSetMetric
+      (context, version.getDeploymentVersion)
+      P.incCounter
+
+addGenericLatencyImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  NominalDiffTime ->
+  m ()
+addGenericLatencyImplementation operation latency = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  L.runIO $
+    P.withLabel
+      cmContainer.genericLatency
+      (operation, version.getDeploymentVersion)
+      (`P.observe` (fromIntegral $ div (fromEnum . nominalDiffTimeToSeconds $ latency) 1000000000000))
