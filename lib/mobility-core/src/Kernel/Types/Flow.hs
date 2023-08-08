@@ -115,6 +115,9 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   incrementErrorCounter = Metrics.incrementErrorCounterImplementation
   addUrlCallRetries = Metrics.addUrlCallRetriesImplementation
   addUrlCallRetryFailures = Metrics.addUrlCallFailuresImplementation
+  incrementSortedSetCounter = Metrics.incrementSortedSetCounterImplementation
+  incrementStreamCounter = Metrics.incrementStreamCounterImplementation
+  addGenericLatency = Metrics.addGenericLatencyImplementation
 
 instance MonadMonitor (FlowR r) where
   doIO = liftIO

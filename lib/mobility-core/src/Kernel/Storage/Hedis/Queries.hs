@@ -18,9 +18,8 @@ import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.String.Conversions
-import Data.Text hiding (map, null)
+import Data.Text hiding (concatMap, map, null)
 import qualified Data.Text as Text
-import qualified Data.Text.Encoding as DE
 import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
 import EulerHS.Prelude (whenLeft)
@@ -33,6 +32,32 @@ import qualified Kernel.Utils.Error.Throwing as Error
 import Kernel.Utils.Logging
 
 type ExpirationTime = Int
+
+data XReadResponse = XReadResponse
+  { stream :: BS.ByteString,
+    records :: [StreamsRecord]
+  }
+  deriving (Show)
+
+data StreamsRecord = StreamsRecord
+  { recordId :: BS.ByteString,
+    keyValues :: [(BS.ByteString, BS.ByteString)]
+  }
+  deriving (Show)
+
+convertFromHedisResponse :: Hedis.XReadResponse -> XReadResponse
+convertFromHedisResponse hedisResponse =
+  XReadResponse
+    { stream = Hedis.stream hedisResponse,
+      records = map convertFromHedisRecord (Hedis.records hedisResponse)
+    }
+
+convertFromHedisRecord :: Hedis.StreamsRecord -> StreamsRecord
+convertFromHedisRecord hedisRecord =
+  StreamsRecord
+    { recordId = Hedis.recordId hedisRecord,
+      keyValues = Hedis.keyValues hedisRecord
+    }
 
 runHedis ::
   HedisFlow m env => Redis (Either Reply a) -> m a
@@ -153,7 +178,7 @@ getImpl decodeResult key = withLogTag "Redis" $ do
     Just res' -> decodeResult res'
 
 get :: (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
-get key = getImpl decodeResult key
+get = getImpl decodeResult
   where
     decodeResult bs = Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
@@ -415,7 +440,7 @@ zrevrangeWithscores key start stop = do
   pure $ map (\(k, score) -> (cs' k, score)) res
   where
     cs' :: BS.ByteString -> Text
-    cs' = DE.decodeUtf8
+    cs' = cs
 
 zScore :: (FromJSON Double, HedisFlow m env) => Text -> Text -> m (Maybe Double)
 zScore key member = do
@@ -429,3 +454,143 @@ zRevRank key member = do
 
 zCard :: (HedisFlow m env) => Text -> m Integer
 zCard key = runWithPrefix key Hedis.zcard
+
+zAdd ::
+  (ToJSON member, HedisFlow m env) =>
+  Text ->
+  [(Double, member)] ->
+  m ()
+zAdd key members = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  if migrating
+    then do
+      res <- withTimeRedis "RedisStandalone" "zAdd" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zadd prefKey $ map (\(score, member) -> (score, BSL.toStrict $ Ae.encode member)) members)
+      whenLeft res (\err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_ZADD" $ show err)
+    else pure ()
+  res <- withTimeRedis "RedisCluster" "zAdd" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.zadd prefKey $ map (\(score, member) -> (score, BSL.toStrict $ Ae.encode member)) members)
+  whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZADD" $ show err)
+
+xInfoGroups ::
+  (HedisFlow m env) =>
+  Text -> -- Stream key
+  m Bool
+xInfoGroups key = do
+  eitherMaybeBS <- withTimeRedis "RedisStandalone" "get" $ try @_ @SomeException (runWithPrefix key Hedis.xinfoGroups)
+  ls <-
+    case eitherMaybeBS of
+      Left err -> logTagInfo "ERROR_WHILE_GET" (show err) $> []
+      Right maybeBS -> pure maybeBS
+  return $ not (null ls)
+
+-- Function to create a new consumer group for a stream
+xGroupCreate ::
+  (HedisFlow m env) =>
+  Text -> -- Stream key
+  Text -> -- Group name
+  Text -> -- Start ID
+  m ()
+xGroupCreate key groupName startId = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "xGroupCreate" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.xgroupCreate prefKey (cs groupName) (cs startId))
+    whenLeft res (withLogTag "STANDALONE" . logTagInfo "FAILED_TO_xGroupCreate" . show)
+  res <- withTimeRedis "RedisCluster" "xGroupCreate" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.xgroupCreate prefKey (cs groupName) (cs startId))
+  whenLeft res (withLogTag "CLUSTER" . logTagInfo "FAILED_TO_xGroupCreate" . show)
+
+extractKeyValuePairs :: [StreamsRecord] -> [(Text, Text)]
+extractKeyValuePairs = concatMap (\(StreamsRecord _ keyVals) -> map (\(k, v) -> (cs k, cs v)) keyVals)
+
+extractRecordIds :: [StreamsRecord] -> [BS.ByteString]
+extractRecordIds = map (\(StreamsRecord recordId _) -> recordId)
+
+xReadGroup ::
+  (HedisFlow m env) =>
+  Text -> -- group name
+  Text -> -- consumer name
+  [(Text, Text)] -> -- (stream, id) pairs
+  m (Maybe [XReadResponse])
+xReadGroup groupName consumerName pairsList = do
+  let bsPairsList = map (\(stream, id) -> (cs stream, cs id)) pairsList
+  let mbKeyVal = listToMaybe bsPairsList
+  case mbKeyVal of
+    Just keyVal -> do
+      eitherMaybeBS <- withTimeRedis "RedisStandalone" "get" $ try @_ @SomeException (runWithPrefix (cs $ fst keyVal) $ \_ -> Hedis.xreadGroup (cs groupName) (cs consumerName) bsPairsList)
+      mbRes <-
+        case eitherMaybeBS of
+          Left err -> logTagInfo "ERROR_WHILE_GET" (show err) $> Nothing
+          Right maybeBS -> pure maybeBS
+      case mbRes of
+        Just res -> return $ Just (map convertFromHedisResponse res)
+        Nothing -> pure Nothing
+    Nothing -> pure Nothing
+
+xAdd :: (HedisFlow m env) => Text -> Text -> [(BS.ByteString, BS.ByteString)] -> m BS.ByteString
+xAdd key entryId fieldValues = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "xadd" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.xadd prefKey (cs entryId) fieldValues)
+    whenLeft res (withLogTag "STANDALONE" . logTagInfo "FAILED_TO_xadd" . show)
+  res <- withTimeRedis "RedisCluster" "xadd" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.xadd prefKey (cs entryId) fieldValues)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "xadd" $ show err
+      pure "" -- Return an empty list if there was an error
+    Right items -> pure items
+
+zRangeByScore :: (HedisFlow m env) => Text -> Double -> Double -> m [BS.ByteString]
+zRangeByScore key start end = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "zRangeByScore" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zrangebyscore prefKey start end)
+    whenLeft res (withLogTag "STANDALONE" . logTagInfo "FAILED_TO_ZRANGEBYSCORE" . show)
+  res <- withTimeRedis "RedisCluster" "zRangeByScore" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.zrangebyscore prefKey start end)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZRANGEBYSCORE" $ show err
+      pure [] -- Return an empty list if there was an error
+    Right items -> pure items
+
+zRemRangeByScore :: (HedisFlow m env) => Text -> Double -> Double -> m Integer
+zRemRangeByScore key start end = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "zRemRangeByScore" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zremrangebyscore prefKey start end)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_ZREMRANGEBYSCORE" $ show err
+      Right items -> pure items
+  res <- withTimeRedis "RedisCluster" "zRemRangeByScore" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.zremrangebyscore prefKey start end)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZREMRANGEBYSCORE" $ show err
+      pure (-1) -- Return -1 if there was an error
+    Right items -> pure items
+
+xDel :: (HedisFlow m env) => Text -> [BS.ByteString] -> m Integer
+xDel key entryId = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "xDel" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.xdel prefKey entryId)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_XDEL" $ show err
+      Right items -> pure items
+  res <- withTimeRedis "RedisCluster" "xDel" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.xdel prefKey entryId)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_XDEL" $ show err
+      pure (-1) -- Return -1 if there was an error
+    Right items -> pure items
+
+xAck :: (HedisFlow m env) => Text -> Text -> [BS.ByteString] -> m Integer
+xAck key groupName entryId = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "xAck" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.xack prefKey (cs groupName) entryId)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_xAck" $ show err
+      Right items -> pure items
+  res <- withTimeRedis "RedisCluster" "xAck" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.xack prefKey (cs groupName) entryId)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_xAck" $ show err
+      pure (-1) -- Return -1 if there was an error
+    Right items -> pure items
