@@ -37,7 +37,7 @@ prepareDBConnectionsRider ECT.ConnectionConfigRider {..} = do
 prepareTables :: L.MonadFlow m => KTC.Tables -> m ()
 prepareTables tables' = do
   L.setOption KBT.Tables tables'
-  L.setOption ReplicaEnabled False
+  L.setOptionLocal ReplicaEnabled False
 
 --   when EnvVars.getPrepareRedisClusterConnection prepareRedisClusterConnection
 

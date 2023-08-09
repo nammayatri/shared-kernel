@@ -50,9 +50,9 @@ meshConfig =
 
 runInReplica :: (L.MonadFlow m, Log m) => m a -> m a
 runInReplica m = do
-  L.setOption ReplicaEnabled True
+  L.setOptionLocal ReplicaEnabled True
   res <- m
-  L.setOption ReplicaEnabled False
+  L.setOptionLocal ReplicaEnabled False
   pure res
 
 setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
@@ -87,7 +87,7 @@ getLocDbConfig = do
 
 getMasterBeamConfig :: (HasCallStack, L.MonadFlow m) => m (SqlConn Pg)
 getMasterBeamConfig = do
-  inReplica <- L.getOption ReplicaEnabled
+  inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   conn <- L.getOrInitSqlConn dbConf
   case conn of
@@ -96,7 +96,7 @@ getMasterBeamConfig = do
 
 getLocationDbBeamConfig :: (HasCallStack, L.MonadFlow m) => m (SqlConn Pg)
 getLocationDbBeamConfig = do
-  inReplica <- L.getOption ReplicaEnabled
+  inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf <- maybe getLocDbConfig (\inReplica' -> if inReplica' then getReplicaLocationDbConfig else getLocDbConfig) inReplica
   conn <- L.getOrInitSqlConn dbConf
   case conn of
@@ -141,7 +141,7 @@ findOneWithKV ::
   m (Maybe a)
 findOneWithKV where' = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
-  inReplica <- L.getOption ReplicaEnabled
+  inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
   case result of
@@ -171,7 +171,7 @@ findAllWithKV ::
   m [a]
 findAllWithKV where' = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
-  inReplica <- L.getOption ReplicaEnabled
+  inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
   case result of
@@ -205,7 +205,7 @@ findAllWithOptionsKV ::
   m [a]
 findAllWithOptionsKV where' orderBy mbLimit mbOffset = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
-  inReplica <- L.getOption ReplicaEnabled
+  inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
   case result of
@@ -236,7 +236,7 @@ findOneWithDb ::
   m (Maybe a)
 findOneWithDb where' = do
   let updatedMeshConfig = meshConfig {meshEnabled = False, kvHardKilled = True}
-  inReplica <- L.getOption ReplicaEnabled
+  inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
   case result of
@@ -266,7 +266,7 @@ findAllWithDb ::
   m [a]
 findAllWithDb where' = do
   let updatedMeshConfig = meshConfig {meshEnabled = False, kvHardKilled = True}
-  inReplica <- L.getOption ReplicaEnabled
+  inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
   case result of
@@ -300,7 +300,7 @@ findAllWithOptionsDb ::
   m [a]
 findAllWithOptionsDb where' orderBy mbLimit mbOffset = do
   let updatedMeshConfig = meshConfig {meshEnabled = False, kvHardKilled = True}
-  inReplica <- L.getOption ReplicaEnabled
+  inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
   case result of

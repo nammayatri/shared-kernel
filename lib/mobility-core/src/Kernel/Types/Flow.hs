@@ -172,9 +172,11 @@ instance MonadGuid (FlowR r) where
 
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => Forkable (FlowR r) where
   fork tag f = do
-    FlowR $ ReaderT $ L.forkFlow tag . runReaderT (unFlowR $ handleExc f)
+    newLocalOptions <- newMVar mempty
+    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
     where
       handleExc = try >=> (`whenLeft` err)
       err (e :: SomeException) = do
         logError $ "Thread " <> show tag <> " died with error: " <> makeLogSomeException e
         Metrics.incrementErrorCounter "FORKED_THREAD_ERROR" e
+      refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalOptions}
