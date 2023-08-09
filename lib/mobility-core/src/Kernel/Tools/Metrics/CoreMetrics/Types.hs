@@ -38,6 +38,12 @@ type URLCallRetriesMetric = P.Vector P.Label3 P.Counter
 
 type URLCallRetryFailuresMetric = P.Vector P.Label2 P.Counter
 
+type SortedSetMetric = P.Vector P.Label3 P.Counter
+
+type StreamMetric = P.Vector P.Label3 P.Counter
+
+type GenericLatencyMetric = P.Vector P.Label2 P.Histogram
+
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
     HasField "version" r DeploymentVersion
@@ -46,32 +52,36 @@ type HasCoreMetrics r =
 newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}
 
 class CoreMetrics m where
-  addRequestLatency ::
-    Text ->
-    Text ->
-    Milliseconds ->
-    Either ClientError a ->
-    m ()
+  addRequestLatency :: Text -> Text -> Milliseconds -> Either ClientError a -> m ()
   addDatastoreLatency :: Text -> Text -> NominalDiffTime -> m ()
   incrementErrorCounter :: Text -> SomeException -> m ()
   addUrlCallRetries :: BaseUrl -> Int -> m ()
   addUrlCallRetryFailures :: BaseUrl -> m ()
+  incrementSortedSetCounter :: Text -> Int -> m ()
+  incrementStreamCounter :: Text -> Int -> m ()
+  addGenericLatency :: Text -> NominalDiffTime -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
     datastoresLatency :: DatastoresLatencyMetric,
+    genericLatency :: GenericLatencyMetric,
     errorCounter :: ErrorCounterMetric,
     urlCallRetries :: URLCallRetriesMetric,
-    urlCallRetryFailures :: URLCallRetryFailuresMetric
+    urlCallRetryFailures :: URLCallRetryFailuresMetric,
+    sortedSetCounter :: SortedSetMetric,
+    streamCounter :: StreamMetric
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
 registerCoreMetricsContainer = do
   requestLatency <- registerRequestLatencyMetric
   datastoresLatency <- registerDatastoresLatencyMetrics
+  genericLatency <- registerGenericLatencyMetrics
   errorCounter <- registerErrorCounterMetric
   urlCallRetries <- registerURLCallRetriesMetric
   urlCallRetryFailures <- registerURLCallRetryFailuresMetric
+  sortedSetCounter <- registerSortedSetMetric
+  streamCounter <- registerStreamCounter
 
   return CoreMetricsContainer {..}
 
@@ -114,3 +124,27 @@ registerURLCallRetryFailuresMetric =
       P.counter info
   where
     info = P.Info "url_call_retry_failures_counter" ""
+
+registerSortedSetMetric :: IO SortedSetMetric
+registerSortedSetMetric =
+  P.register $
+    P.vector ("job_type", "scheduled_second", "version") $
+      P.counter info
+  where
+    info = P.Info "sortedset_scheduled_jobs_counter" ""
+
+registerStreamCounter :: IO StreamMetric
+registerStreamCounter =
+  P.register $
+    P.vector ("job_type", "executed_seconds", "version") $
+      P.counter info
+  where
+    info = P.Info "stream_jobs_counter" ""
+
+registerGenericLatencyMetrics :: IO GenericLatencyMetric
+registerGenericLatencyMetrics =
+  P.register $
+    P.vector ("operation", "version") $
+      P.histogram info P.defaultBuckets
+  where
+    info = P.Info "producer_operation_duration" ""
