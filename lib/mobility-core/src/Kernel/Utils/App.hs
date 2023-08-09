@@ -40,6 +40,7 @@ import qualified Data.Text as T (pack)
 import Data.UUID.V4 (nextRandom)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
+import qualified EulerHS.Runtime as R
 import Kernel.Tools.Metrics.CoreMetrics (DeploymentVersion (..))
 import Kernel.Types.App
 import Kernel.Types.Flow
@@ -163,9 +164,10 @@ withModifiedEnv f env = \req resp -> do
       let appEnv = env.appEnv
           updLogEnv = appendLogTag requestId appEnv.loggerEnv
       newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
+      newOptionsLocal <- newMVar mempty
       pure $
         env{appEnv = appEnv{loggerEnv = updLogEnv},
-            flowRuntime = newFlowRt
+            flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
            }
     getRequestId headers = do
       let value = lookup "x-request-id" headers
