@@ -59,7 +59,7 @@ createOrder config req = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  Juspay.createOrder url apiKey merchantId (mkCreateOrderReq config.returnUrl config.clientId req)
+  Juspay.createOrder url apiKey merchantId (mkCreateOrderReq config.returnUrl merchantId req)
 
 mandateNotification ::
   ( Metrics.CoreMetrics m,
@@ -299,7 +299,7 @@ mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
           mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
           mandateId = justMandate.mandate_id,
           mandateFrequency = justMandate.frequency,
-          mandateMaxAmount = read $ T.unpack justMandate.max_amount
+          mandateMaxAmount = justMandate.max_amount
         }
     (_, _) -> BadStatusResp
 
