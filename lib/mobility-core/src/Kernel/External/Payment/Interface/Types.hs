@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -90,6 +91,8 @@ data OrderStatusResp
         mandateMaxAmount :: HighPrecMoney
       }
   | BadStatusResp
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 -- notification request --
 data MandateNotificationReq = MandateNotificationReq

@@ -19,6 +19,7 @@ module Kernel.External.Payment.Juspay.Types.Webhook where
 import Data.Aeson
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
+import Kernel.Utils.Common
 
 data WebhookReq = WebhookReq
   { id :: Text,
@@ -44,7 +45,7 @@ data WebhookMandateData = WebhookMandateData
     end_date :: Text,
     mandate_id :: Text,
     frequency :: MandateFrequency,
-    max_amount :: Text
+    max_amount :: HighPrecMoney
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
