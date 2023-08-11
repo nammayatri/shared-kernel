@@ -24,6 +24,7 @@ data JuspayCfg = JuspayCfg
     returnUrl :: BaseUrl,
     url :: BaseUrl,
     merchantId :: Text,
+    clientId :: Text,
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text
   }
