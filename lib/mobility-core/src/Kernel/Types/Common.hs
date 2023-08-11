@@ -23,8 +23,13 @@ module Kernel.Types.Common
   )
 where
 
+import Data.Aeson
+import qualified Data.Bifunctor as BF
+import Data.ByteString.Lazy as BSL
 import Data.Generics.Labels ()
 import Data.OpenApi
+import Data.Text as T
+import qualified Data.Text.Encoding as DT
 import Database.Persist.Class
 import Database.Persist.Sql
 import GHC.Float (double2Int, int2Double)
@@ -110,3 +115,13 @@ instance ToSchema HighPrecMoney where
   declareNamedSchema _ = do
     aSchema <- declareSchema (Proxy :: Proxy Double)
     return $ NamedSchema (Just "HighPrecMoney") aSchema
+
+instance FromHttpApiData HighPrecMoney where
+  parseUrlPiece = parseHeader . DT.encodeUtf8
+  parseQueryParam = parseUrlPiece
+  parseHeader = BF.first T.pack . eitherDecode . BSL.fromStrict
+
+instance ToHttpApiData HighPrecMoney where
+  toUrlPiece = DT.decodeUtf8 . toHeader
+  toQueryParam = toUrlPiece
+  toHeader = BSL.toStrict . encode
