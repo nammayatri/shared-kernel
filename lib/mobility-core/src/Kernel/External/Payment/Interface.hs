@@ -42,33 +42,3 @@ orderStatus ::
   m OrderStatusResp
 orderStatus serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.orderStatus cfg req
-
-offerList ::
-  ( EncFlow m r,
-    CoreMetrics m
-  ) =>
-  PaymentServiceConfig ->
-  OfferListReq ->
-  m OfferListResp
-offerList serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.offerList cfg req
-
-offerApply ::
-  ( EncFlow m r,
-    CoreMetrics m
-  ) =>
-  PaymentServiceConfig ->
-  OfferApplyReq ->
-  m OfferApplyResp
-offerApply serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.offerApply cfg req
-
-offerNotify ::
-  ( EncFlow m r,
-    CoreMetrics m
-  ) =>
-  PaymentServiceConfig ->
-  OfferNotifyReq ->
-  m OfferNotifyResp
-offerNotify serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.offerNotify cfg req

@@ -19,31 +19,6 @@ module Kernel.External.Payment.Juspay.Types.Common where
 import Data.Aeson.Types
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common (HighPrecMoney)
-
-data PaymentStatus
-  = ORDER_SUCCEEDED
-  | ORDER_REFUNDED
-  | ORDER_FAILED
-  | ORDER_REFUND_FAILED
-  | TXN_CREATED
-  | REFUND_MANUAL_REVIEW_NEEDED
-  | REFUND_INITIATED
-  | AUTO_REFUND_SUCCEEDED
-  | AUTO_REFUND_FAILED
-  | MANDATE_CREATED
-  | MANDATE_ACTIVATED
-  | MANDATE_FAILED
-  | MANDATE_REVOKED
-  | MANDATE_PAUSED
-  | MANDATE_EXPIRED
-  | NOTIFICATION_FAILED
-  | NOTIFICATION_SUCCEEDED
-  | ORDER_AUTHORIZED
-  | TXN_CHARGED
-  | TXN_FAILED
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data Currency = INR
   deriving stock (Show, Read, Eq, Generic)
@@ -59,24 +34,6 @@ instance FromJSON Currency where
 
 instance ToJSON Currency where
   toJSON = String . show
-
-data MandateType = OPTIONAL | REQUIRED
-  deriving stock (Show, Read, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-derivePersistField "MandateType"
-
-data MandateFrequency = ONETIME | DAILY | WEEKLY | FORTNIGHTLY | MONTHLY | BIMONTHLY | QUARTERLY | HALFYEARLY | YEARLY | ASPRESENTED
-  deriving stock (Show, Read, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-derivePersistField "MandateFrequency"
-
-data MandateStatus = CREATED | ACTIVE | FAILURE | PAUSED | EXPIRED | REVOKED
-  deriving stock (Show, Read, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-derivePersistField "MandateStatus"
 
 data TransactionStatus
   = NEW
@@ -94,13 +51,13 @@ data TransactionStatus
 
 derivePersistField "TransactionStatus"
 
+-- order status api return the same data as webhook
 type OrderStatusResp = OrderData
 
 data OrderData = OrderData
   { order_id :: Text,
     txn_uuid :: Maybe Text,
     status_id :: Int,
-    event_name :: Maybe PaymentStatus, --- only webhook res contains this field ---
     status :: TransactionStatus,
     payment_method_type :: Maybe Text,
     payment_method :: Maybe Text,
@@ -109,19 +66,7 @@ data OrderData = OrderData
     gateway_reference_id :: Maybe Text,
     amount :: Double,
     currency :: Currency,
-    date_created :: Maybe UTCTime,
-    mandate :: Maybe MandateData
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-data MandateData = MandateData
-  { mandate_status :: MandateStatus,
-    start_date :: Text,
-    end_date :: Text,
-    mandate_id :: Text,
-    frequency :: MandateFrequency,
-    max_amount :: HighPrecMoney
+    date_created :: Maybe UTCTime
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

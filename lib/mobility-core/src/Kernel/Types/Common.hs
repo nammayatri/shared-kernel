@@ -25,15 +25,12 @@ where
 
 -- import Kernel.Types.Beckn.Context as Context
 
-import Data.Aeson
-import qualified Data.Bifunctor as BF
+import qualified Data.Aeson as A
 import Data.ByteString.Internal (ByteString, unpackChars)
-import Data.ByteString.Lazy (fromStrict, toStrict)
+import Data.ByteString.Lazy (fromStrict)
 import Data.Fixed (Centi, Fixed (MkFixed))
 import Data.Generics.Labels ()
 import Data.OpenApi
-import Data.Text as T
-import qualified Data.Text.Encoding as DT
 import qualified Data.Vector as V
 import Database.Beam
 import qualified Database.Beam as B
@@ -337,7 +334,7 @@ fromFieldJSON ::
   DPSF.Conversion a
 fromFieldJSON f mbValue = case mbValue of
   Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just value' -> case decode $ fromStrict value' of
+  Just value' -> case A.decode $ fromStrict value' of
     Just res -> pure res
     Nothing -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
 
@@ -388,13 +385,3 @@ buildRadiusWithin' pnt (lat, lon) rad =
 
 (<->.) :: Point -> Point -> BQ.QGenExpr context Postgres s Double
 (<->.) p1 p2 = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ KP.show p1 <> " <-> " <> KP.show p2))
-
-instance FromHttpApiData HighPrecMoney where
-  parseUrlPiece = parseHeader . DT.encodeUtf8
-  parseQueryParam = parseUrlPiece
-  parseHeader = BF.first T.pack . eitherDecode . fromStrict
-
-instance ToHttpApiData HighPrecMoney where
-  toUrlPiece = DT.decodeUtf8 . toHeader
-  toQueryParam = toUrlPiece
-  toHeader = toStrict . encode

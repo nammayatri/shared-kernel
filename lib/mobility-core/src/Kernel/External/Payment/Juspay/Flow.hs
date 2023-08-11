@@ -18,12 +18,11 @@ import qualified Data.Text.Encoding as DT
 import Data.Time.Format
 import EulerHS.Types as Euler
 import Kernel.External.Payment.Juspay.Types
-import qualified Kernel.External.Payment.Juspay.Types.Offer as Offer
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
-import Kernel.Utils.Common (CallAPI', callAPI, encodeToText, fromEitherM)
+import Kernel.Utils.Common (callAPI, encodeToText, fromEitherM)
 import Servant hiding (throwError)
 
 -- https://docs.juspay.in/payment-page/ios/base-sdk-integration/order-status-api
@@ -45,9 +44,14 @@ createOrder ::
   CreateOrderReq ->
   m CreateOrderResp
 createOrder url apiKey merchantId req = do
-  let proxy = Proxy @CreateOrderAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
-  callJuspayAPI url eulerClient "create-order" proxy
+  let eulerClient = Euler.client (Proxy @CreateOrderAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient basicAuthData (Just merchantId) req) "create-order" (Proxy @CreateOrderAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call create order API: " <> show err)
 
 type OrderStatusAPI =
   "orders"
@@ -68,9 +72,14 @@ orderStatus ::
   m OrderStatusResp
 orderStatus url apiKey merchantId orderId = do
   version <- getCurrentDate
-  let proxy = Proxy @OrderStatusAPI
-      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) version
-  callJuspayAPI url eulerClient "order-status" proxy
+  let eulerClient = Euler.client (Proxy @OrderStatusAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient orderId basicAuthData (Just merchantId) version) "order-status" (Proxy @OrderStatusAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call order status API: " <> show err)
 
 getCurrentDate :: MonadFlow m => m Text
 getCurrentDate = do
@@ -78,217 +87,3 @@ getCurrentDate = do
   let dateFormat = "%Y-%m-%d"
       formattedDate = formatTime defaultTimeLocale dateFormat currentTime
   return $ encodeToText formattedDate
-
-type OfferListAPI =
-  "v1" -- is this required?
-    :> "offers"
-    :> "list"
-    :> BasicAuth "username-password" BasicAuthData
-    :> Header "x-merchantid" Text
-    :> ReqBody '[JSON] Offer.OfferListReq
-    :> Post '[JSON] Offer.OfferListResp
-
-offerList ::
-  ( Metrics.CoreMetrics m,
-    MonadFlow m
-  ) =>
-  BaseUrl ->
-  Text ->
-  Text ->
-  Offer.OfferListReq ->
-  m Offer.OfferListResp
-offerList url apiKey merchantId req = do
-  let proxy = Proxy @OfferListAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
-  callJuspayAPI url eulerClient "offer-list" proxy
-
-type OfferApplyAPI =
-  "merchant"
-    :> "offers"
-    :> Capture "mandateId" Text
-    :> "apply"
-    :> BasicAuth "username-password" BasicAuthData
-    :> Header "x-merchantid" Text
-    :> ReqBody '[JSON] Offer.OfferApplyReq
-    :> Post '[JSON] Offer.OfferApplyResp
-
-offerApply ::
-  ( Metrics.CoreMetrics m,
-    MonadFlow m
-  ) =>
-  BaseUrl ->
-  Text ->
-  Text ->
-  Text ->
-  Offer.OfferApplyReq ->
-  m Offer.OfferApplyResp
-offerApply url apiKey merchantId mandateId req = do
-  let proxy = Proxy @OfferApplyAPI
-      eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) req
-  callJuspayAPI url eulerClient "offer-apply" proxy
-
-type OfferNotifyAPI =
-  "merchant"
-    :> "offers"
-    :> Capture "mandateId" Text
-    :> BasicAuth "username-password" BasicAuthData
-    :> Header "x-merchantid" Text
-    :> ReqBody '[JSON] Offer.OfferNotifyReq
-    :> Post '[JSON] Offer.OfferNotifyResp
-
-offerNotify ::
-  ( Metrics.CoreMetrics m,
-    MonadFlow m
-  ) =>
-  BaseUrl ->
-  Text ->
-  Text ->
-  Text ->
-  Offer.OfferNotifyReq ->
-  m Offer.OfferNotifyResp
-offerNotify url apiKey merchantId mandateId req = do
-  let proxy = Proxy @OfferNotifyAPI
-      eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) req
-  callJuspayAPI url eulerClient "offer-notify" proxy
-
-callJuspayAPI :: CallAPI' m api res res
-callJuspayAPI url eulerClient description proxy = do
-  callAPI url eulerClient description proxy
-    >>= fromEitherM (\err -> InternalError $ "Failed to call " <> description <> " API: " <> show err)
-
-mkBasicAuthData :: Text -> BasicAuthData
-mkBasicAuthData apiKey =
-  BasicAuthData
-    { basicAuthUsername = DT.encodeUtf8 apiKey,
-      basicAuthPassword = ""
-    }
-
-type MandateNotificationAPI =
-  "mandates"
-    :> Capture "mandateId" Text
-    :> BasicAuth "username-password" BasicAuthData
-    :> ReqBody '[FormUrlEncoded] MandateNotificationReq
-    :> Post '[JSON] MandateNotificationRes
-
-mandateNotification ::
-  ( Metrics.CoreMetrics m,
-    MonadFlow m
-  ) =>
-  BaseUrl ->
-  Text ->
-  Text ->
-  MandateNotificationReq ->
-  m MandateNotificationRes
-mandateNotification url apiKey mandateId req = do
-  let eulerClient = Euler.client (Proxy @MandateNotificationAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient mandateId basicAuthData req) "mandate-notification" (Proxy @MandateNotificationAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate notification API: " <> show err)
-
-type MandateExecutionAPI =
-  "txns"
-    :> BasicAuth "username-password" BasicAuthData
-    :> ReqBody '[FormUrlEncoded] MandateExecutionReq
-    :> Post '[JSON] MandateExecutionRes
-
-mandateExecution ::
-  ( Metrics.CoreMetrics m,
-    MonadFlow m
-  ) =>
-  BaseUrl ->
-  Text ->
-  MandateExecutionReq ->
-  m MandateExecutionRes
-mandateExecution url apiKey req = do
-  let eulerClient = Euler.client (Proxy @MandateExecutionAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient basicAuthData req) "mandate-notification" (Proxy @MandateExecutionAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate Execution API: " <> show err)
-
-type MandateRevokeAPI =
-  "mandates"
-    :> Header "x-merchantid" Text
-    :> BasicAuth "username-password" BasicAuthData
-    :> Capture "mandateId" Text
-    :> ReqBody '[FormUrlEncoded] MandateRevokeReq
-    :> Post '[JSON] MandateRevokeRes
-
-mandateRevoke ::
-  ( Metrics.CoreMetrics m,
-    MonadFlow m
-  ) =>
-  BaseUrl ->
-  Text ->
-  Text ->
-  Text ->
-  MandateRevokeReq ->
-  m MandateRevokeRes
-mandateRevoke url apiKey merchantId mandateId req = do
-  let eulerClient = Euler.client (Proxy @MandateRevokeAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient (Just merchantId) basicAuthData mandateId req) "mandate-Revoke" (Proxy @MandateRevokeAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate Revoke API: " <> show err)
-
-type MandatePauseAPI =
-  "mandates"
-    :> Capture "mandateId" Text
-    :> BasicAuth "username-password" BasicAuthData
-    :> ReqBody '[FormUrlEncoded] MandatePauseReq
-    :> Post '[JSON] ()
-
-mandatePause ::
-  ( Metrics.CoreMetrics m,
-    MonadFlow m
-  ) =>
-  BaseUrl ->
-  Text ->
-  Text ->
-  MandatePauseReq ->
-  m ()
-mandatePause url apiKey mandateId req = do
-  let eulerClient = Euler.client (Proxy @MandatePauseAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient mandateId basicAuthData req) "mandate-pause" (Proxy @MandatePauseAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate pause API: " <> show err)
-
-type MandateResumeAPI =
-  "mandates"
-    :> Capture "mandateId" Text
-    :> BasicAuth "username-password" BasicAuthData
-    :> ReqBody '[FormUrlEncoded] MandateResumeReq
-    :> Post '[JSON] ()
-
-mandateResume ::
-  ( Metrics.CoreMetrics m,
-    MonadFlow m
-  ) =>
-  BaseUrl ->
-  Text ->
-  Text ->
-  MandateResumeReq ->
-  m ()
-mandateResume url apiKey mandateId req = do
-  let eulerClient = Euler.client (Proxy @MandateResumeAPI)
-  let basicAuthData =
-        BasicAuthData
-          { basicAuthUsername = DT.encodeUtf8 apiKey,
-            basicAuthPassword = ""
-          }
-  callAPI url (eulerClient mandateId basicAuthData req) "mandate-resume" (Proxy @MandateResumeAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate resume API: " <> show err)
