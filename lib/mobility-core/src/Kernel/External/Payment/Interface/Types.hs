@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -41,16 +42,157 @@ newtype OrderStatusReq = OrderStatusReq
   { orderShortId :: Text
   }
 
-data OrderStatusResp = OrderStatusResp
-  { orderShortId :: Text,
-    transactionUUID :: Maybe Text,
-    transactionStatusId :: Int,
-    transactionStatus :: TransactionStatus,
-    paymentMethodType :: Maybe Text,
-    paymentMethod :: Maybe Text,
-    respMessage :: Maybe Text,
-    respCode :: Maybe Text,
-    gatewayReferenceId :: Maybe Text,
+data OrderStatusResp
+  = OrderStatusResp
+      { orderShortId :: Text,
+        transactionUUID :: Maybe Text,
+        transactionStatusId :: Int,
+        transactionStatus :: TransactionStatus,
+        paymentMethodType :: Maybe Text,
+        paymentMethod :: Maybe Text,
+        respMessage :: Maybe Text,
+        respCode :: Maybe Text,
+        gatewayReferenceId :: Maybe Text,
+        amount :: HighPrecMoney,
+        currency :: Currency,
+        dateCreated :: Maybe UTCTime
+      }
+  | MandateOrderStatusResp
+      { orderShortId :: Text,
+        transactionUUID :: Maybe Text,
+        transactionStatusId :: Int,
+        transactionStatus :: TransactionStatus,
+        paymentMethodType :: Maybe Text,
+        paymentMethod :: Maybe Text,
+        respMessage :: Maybe Text,
+        respCode :: Maybe Text,
+        gatewayReferenceId :: Maybe Text,
+        amount :: HighPrecMoney,
+        currency :: Currency,
+        dateCreated :: Maybe UTCTime,
+        mandateStartDate :: UTCTime,
+        mandateEndDate :: UTCTime,
+        mandateId :: Text,
+        mandateStatus :: MandateStatus,
+        mandateFrequency :: MandateFrequency,
+        mandateMaxAmount :: HighPrecMoney
+      }
+  | MandateStatusResp
+      { status :: MandateStatus,
+        mandateStartDate :: UTCTime,
+        mandateEndDate :: UTCTime,
+        mandateId :: Text,
+        mandateFrequency :: MandateFrequency,
+        mandateMaxAmount :: HighPrecMoney
+      }
+  | BadStatusResp
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- notification request --
+data MandateNotificationReq = MandateNotificationReq
+  { amount :: HighPrecMoney,
+    txnDate :: UTCTime,
+    mandateId :: Text,
+    notificationId :: Text
+  }
+  deriving (Eq, Show, Generic)
+
+-- mandate pause | resume | revoke request --
+
+data MandateCommandsReq = Pause MandatePauseReq | Resume MandateResumeReq | Revoke MandateRevokeReq
+
+data MandatePauseReq = MandatePauseReq {mandateId :: Text, pauseStartDate :: UTCTime, pauseEndDate :: Maybe UTCTime}
+
+data MandateResumeReq = MandateResumeReq {mandateId :: Text, resumeDate :: UTCTime}
+
+newtype MandateRevokeReq = MandateRevokeReq {mandateId :: Text}
+
+--- mandate Execution request ---
+
+data MandateExecutionReq = MandateExecutionReq
+  { notificationId :: Text,
+    orderId :: Text,
+    amount :: Text,
+    customerId :: Text,
+    merchantId :: Text,
+    mandateId :: Text,
+    executionDate :: UTCTime
+  }
+
+-- offer list request --
+
+data OfferListReq = OfferListReq
+  { order :: OfferOrder,
+    customer :: Maybe OfferCustomer,
+    planId :: Text,
+    registrationDate :: UTCTime
+  }
+
+data OfferOrder = OfferOrder
+  { orderId :: Maybe Text,
+    amount :: HighPrecMoney,
+    currency :: Currency
+  }
+
+data OfferCustomer = OfferCustomer
+  { customerId :: Text,
+    email :: Maybe Text,
+    mobile :: Maybe Text
+  }
+
+-- offer list response --
+
+data OfferListResp = OfferListResp
+  { bestOfferCombination :: Maybe BestOfferCombination,
+    offerResp :: [OfferResp]
+  }
+
+data BestOfferCombination = BestOfferCombination
+  { offers :: [BestOfferCombinationOffer],
+    orderBreakup :: OrderBreakup
+  }
+
+data BestOfferCombinationOffer = BestOfferCombinationOffer
+  { offerId :: Text,
+    cashbackAmount :: HighPrecMoney,
+    discountAmount :: HighPrecMoney,
+    merchantDiscountAmount :: HighPrecMoney,
+    totalOfferedAmount :: HighPrecMoney
+  }
+
+data OrderBreakup = OrderBreakup
+  { orderAmount :: HighPrecMoney,
+    finalOrderAmount :: HighPrecMoney,
+    discountAmount :: HighPrecMoney,
+    merchantDiscountAmount :: HighPrecMoney,
+    cashbackAmount :: HighPrecMoney,
+    offerAmount :: HighPrecMoney
+  }
+
+data OfferResp = OfferResp
+  { offerId :: Text,
+    status :: OfferListStatus,
+    offerDescription :: OfferDescription,
+    orderAmount :: HighPrecMoney,
+    finalOrderAmount :: HighPrecMoney,
+    discountAmount :: HighPrecMoney
+  }
+
+data OfferDescription = OfferDescription
+  { sponsoredBy :: Maybe Text,
+    title :: Maybe Text,
+    description :: Maybe Text,
+    tnc :: Maybe Text
+  }
+
+-- offer apply --
+
+data OfferApplyReq = OfferApplyReq
+  { mandateId :: Text,
+    orderShortId :: Text,
+    offers :: [Text],
+    customerId :: Text,
     amount :: HighPrecMoney,
     currency :: Currency,
     dateCreated :: Maybe UTCTime
