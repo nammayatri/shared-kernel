@@ -20,6 +20,28 @@ import Data.Aeson
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
 
+data PaymentStatus
+  = ORDER_SUCCEEDED
+  | ORDER_REFUNDED
+  | ORDER_FAILED
+  | ORDER_REFUND_FAILED
+  | TXN_CREATED
+  | REFUND_MANUAL_REVIEW_NEEDED
+  | REFUND_INITIATED
+  | AUTO_REFUND_SUCCEEDED
+  | AUTO_REFUND_FAILED
+  | MANDATE_CREATED
+  | MANDATE_ACTIVATED
+  | MANDATE_FAILED
+  | MANDATE_REVOKED
+  | NOTIFICATION_FAILED
+  | NOTIFICATION_SUCCEEDED
+  | ORDER_AUTHORIZED
+  | TXN_CHARGED
+  | TXN_FAILED
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data WebhookReq = WebhookReq
   { id :: Text,
     date_created :: UTCTime,
@@ -29,22 +51,8 @@ data WebhookReq = WebhookReq
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-type WebhookOrderData = OrderData
-
-data OrderStatusContent = OrderStatusContent
-  { order :: Maybe WebhookOrderData,
-    mandate :: Maybe WebhookMandateData
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-data WebhookMandateData = WebhookMandateData
-  { status :: MandateStatus,
-    start_date :: Text,
-    end_date :: Text,
-    mandate_id :: Text,
-    frequency :: MandateFrequency,
-    max_amount :: Text
+newtype OrderStatusContent = OrderStatusContent
+  { order :: OrderData
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
