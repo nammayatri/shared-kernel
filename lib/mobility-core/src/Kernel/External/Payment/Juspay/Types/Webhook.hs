@@ -19,6 +19,7 @@ module Kernel.External.Payment.Juspay.Types.Webhook where
 import Data.Aeson
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
+import Kernel.Utils.Common
 
 data PaymentStatus
   = ORDER_SUCCEEDED
@@ -51,8 +52,22 @@ data WebhookReq = WebhookReq
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-newtype OrderStatusContent = OrderStatusContent
-  { order :: OrderData
+type WebhookOrderData = OrderData
+
+data OrderStatusContent = OrderStatusContent
+  { order :: Maybe WebhookOrderData,
+    mandate :: Maybe WebhookMandateData
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data WebhookMandateData = WebhookMandateData
+  { status :: MandateStatus,
+    start_date :: Text,
+    end_date :: Text,
+    mandate_id :: Text,
+    frequency :: MandateFrequency,
+    max_amount :: HighPrecMoney
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
