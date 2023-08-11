@@ -30,10 +30,28 @@ data CreateOrderReq = CreateOrderReq
     return_url :: Text,
     description :: Text,
     first_name :: Maybe Text,
-    last_name :: Maybe Text
+    last_name :: Maybe Text,
+    create_mandate :: Maybe MandateType,
+    mandate_max_amount :: Maybe Text,
+    mandate_frequency :: Maybe MandateFrequency
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+
+jsonReqOptions :: Options
+jsonReqOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "create_mandate" -> "options.create_mandate"
+        "mandate_max_amount" -> "mandate.max_amount"
+        "mandate_frequency" -> "mandate.mandate_frequency"
+        other -> other
+    }
+
+instance FromJSON CreateOrderReq where
+  parseJSON = genericParseJSON jsonReqOptions
+
+instance ToJSON CreateOrderReq where
+  toJSON = genericToJSON jsonReqOptions
 
 data CreateOrderResp = CreateOrderResp
   { status :: TransactionStatus,
@@ -42,7 +60,7 @@ data CreateOrderResp = CreateOrderResp
     payment_links :: Maybe PaymentLinks,
     sdk_payload :: SDKPayload
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data PaymentLinks = PaymentLinks
@@ -58,7 +76,7 @@ data SDKPayload = SDKPayload
     service :: Maybe Text,
     payload :: SDKPayloadDetails
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data SDKPayloadDetails = SDKPayloadDetails
@@ -78,7 +96,28 @@ data SDKPayloadDetails = SDKPayloadDetails
     customerPhone :: Maybe Text,
     customerEmail :: Maybe Text,
     orderId :: Maybe Text,
-    description :: Maybe Text
+    description :: Maybe Text,
+    createMandate :: Maybe MandateType,
+    mandateMaxAmount :: Maybe Text,
+    mandateStartDate :: Maybe Text,
+    mandateEndDate :: Maybe Text
   }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+  deriving stock (Show, Generic)
+  deriving anyclass (ToSchema)
+
+jsonOptions :: Options
+jsonOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "createMandate" -> "options.createMandate"
+        "mandateMaxAmount" -> "mandate.maxAmount"
+        "mandateStartDate" -> "mandate.startDate"
+        "mandateEndDate" -> "mandate.endDate"
+        other -> other
+    }
+
+instance FromJSON SDKPayloadDetails where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON SDKPayloadDetails where
+  toJSON = genericToJSON jsonOptions
