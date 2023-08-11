@@ -77,19 +77,51 @@ orderStatus config req = do
 
 mkOrderStatusResp :: Juspay.OrderStatusResp -> OrderStatusResp
 mkOrderStatusResp Juspay.OrderData {..} =
-  OrderStatusResp
-    { orderShortId = order_id,
-      transactionUUID = txn_uuid,
-      transactionStatusId = status_id,
-      transactionStatus = status,
-      paymentMethodType = payment_method_type,
-      paymentMethod = payment_method,
-      respMessage = resp_message,
-      respCode = resp_code,
-      gatewayReferenceId = gateway_reference_id,
-      amount = realToFrac amount,
-      currency,
-      dateCreated = date_created
+  case mandate of
+    Just justMandate ->
+      MandateOrderStatusResp
+        { orderShortId = order_id,
+          transactionUUID = txn_uuid,
+          transactionStatusId = status_id,
+          transactionStatus = status,
+          paymentMethodType = payment_method_type,
+          paymentMethod = payment_method,
+          respMessage = resp_message,
+          respCode = resp_code,
+          gatewayReferenceId = gateway_reference_id,
+          amount = realToFrac amount,
+          currency = currency,
+          dateCreated = date_created,
+          mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
+          mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
+          mandateId = justMandate.mandate_id,
+          mandateStatus = justMandate.mandate_status,
+          mandateFrequency = justMandate.frequency,
+          mandateMaxAmount = justMandate.max_amount
+        }
+    Nothing ->
+      OrderStatusResp
+        { orderShortId = order_id,
+          transactionUUID = txn_uuid,
+          transactionStatusId = status_id,
+          transactionStatus = status,
+          paymentMethodType = payment_method_type,
+          paymentMethod = payment_method,
+          respMessage = resp_message,
+          respCode = resp_code,
+          gatewayReferenceId = gateway_reference_id,
+          amount = realToFrac amount,
+          currency = currency,
+          dateCreated = date_created
+        }
+
+mkNotificationReq :: MandateNotificationReq -> Juspay.MandateNotificationReq
+mkNotificationReq mandateNotificationReq =
+  Juspay.MandateNotificationReq
+    { command = "pre_debit_notify",
+      object_reference_id = mandateNotificationReq.notificationId,
+      sourceInfo = Juspay.SourceInfo {sourceAmount = show mandateNotificationReq.amount, txnDate = show $ utcTimeToPOSIXSeconds mandateNotificationReq.txnDate},
+      description = ""
     }
 
 orderStatusWebhook ::
@@ -100,4 +132,216 @@ orderStatusWebhook ::
   Value ->
   m (Maybe Juspay.OrderStatusContent)
 orderStatusWebhook paymentConfig orderStatusHandler authData val = do
-  Juspay.orderStatusWebhook paymentConfig (orderStatusHandler . mkOrderStatusResp . (.content.order)) authData val
+  response <- Juspay.orderStatusWebhook paymentConfig (orderStatusHandler . mkWebhookOrderStatusResp . (.content)) authData val
+  return $ mkWebhookOrderStatusResp <$> response
+
+mkWebhookOrderStatusResp :: Juspay.OrderStatusContent -> OrderStatusResp
+mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
+  case (order, mandate) of
+    (Just justOrder, Nothing) ->
+      case justOrder.mandate of
+        Just justMandate ->
+          MandateOrderStatusResp
+            { orderShortId = justOrder.order_id,
+              transactionUUID = justOrder.txn_uuid,
+              transactionStatusId = justOrder.status_id,
+              transactionStatus = justOrder.status,
+              paymentMethodType = justOrder.payment_method_type,
+              paymentMethod = justOrder.payment_method,
+              respMessage = justOrder.resp_message,
+              respCode = justOrder.resp_code,
+              gatewayReferenceId = justOrder.gateway_reference_id,
+              amount = realToFrac justOrder.amount,
+              currency = justOrder.currency,
+              dateCreated = justOrder.date_created,
+              mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
+              mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
+              mandateStatus = justMandate.mandate_status,
+              mandateId = justMandate.mandate_id,
+              mandateFrequency = justMandate.frequency,
+              mandateMaxAmount = justMandate.max_amount
+            }
+        Nothing ->
+          OrderStatusResp
+            { orderShortId = justOrder.order_id,
+              transactionUUID = justOrder.txn_uuid,
+              transactionStatusId = justOrder.status_id,
+              transactionStatus = justOrder.status,
+              paymentMethodType = justOrder.payment_method_type,
+              paymentMethod = justOrder.payment_method,
+              respMessage = justOrder.resp_message,
+              respCode = justOrder.resp_code,
+              gatewayReferenceId = justOrder.gateway_reference_id,
+              amount = realToFrac justOrder.amount,
+              currency = justOrder.currency,
+              dateCreated = justOrder.date_created
+            }
+    (Nothing, Just justMandate) ->
+      MandateStatusResp
+        { status = justMandate.status,
+          mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
+          mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
+          mandateId = justMandate.mandate_id,
+          mandateFrequency = justMandate.frequency,
+          mandateMaxAmount = read $ T.unpack justMandate.max_amount
+        }
+    (_, _) -> BadStatusResp
+
+offerList ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  OfferListReq ->
+  m OfferListResp
+offerList config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  let juspayReq = mkOfferListReq req
+  juspayResp <- Juspay.offerList url apiKey merchantId juspayReq
+  buildOfferListResp juspayResp
+
+mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
+mkOfferListReq OfferListReq {..} =
+  Juspay.OfferListReq
+    { order = mkOfferOrder order planId registrationDate,
+      payment_method_info = [],
+      customer = mkOfferCustomer <$> customer,
+      offer_code = Nothing
+    }
+
+mkOfferOrder :: OfferOrder -> Text -> UTCTime -> Juspay.OfferOrder
+mkOfferOrder OfferOrder {..} planId registrationDate =
+  Juspay.OfferOrder
+    { order_id = orderId,
+      amount = show amount,
+      currency,
+      udf1 = replace "-" "_" planId,
+      udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate
+    }
+
+mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
+mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile}
+
+buildOfferListResp :: (MonadThrow m, Log m) => Juspay.OfferListResp -> m OfferListResp
+buildOfferListResp resp = do
+  bestOfferCombination <- buildBestOfferCombination `mapM` (listToMaybe resp.best_offer_combinations)
+  let offerResp = filter (\offer -> offer.status == ELIGIBLE) $ mkOfferResp <$> resp.offers
+  pure OfferListResp {..}
+
+mkOfferResp :: Juspay.OfferResp -> OfferResp
+mkOfferResp Juspay.OfferResp {..} = do
+  OfferResp
+    { offerId = offer_id,
+      status,
+      offerDescription = mkOfferDescription offer_description,
+      orderAmount = read $ T.unpack order_breakup.final_order_amount,
+      finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
+      discountAmount = read $ T.unpack order_breakup.discount_amount
+    }
+
+mkOfferDescription :: Juspay.OfferDescription -> OfferDescription
+mkOfferDescription Juspay.OfferDescription {..} = OfferDescription {sponsoredBy = sponsored_by, ..}
+
+buildBestOfferCombination :: (MonadThrow m, Log m) => Juspay.BestOfferCombination -> m BestOfferCombination
+buildBestOfferCombination combination = do
+  offers <- buildBestOfferCombinationOffer `mapM` combination.offers
+  orderBreakup <- buildOrderBreakup combination.order_breakup
+  pure BestOfferCombination {..}
+
+buildBestOfferCombinationOffer :: (MonadThrow m, Log m) => Juspay.BestOfferCombinationOffer -> m BestOfferCombinationOffer
+buildBestOfferCombinationOffer Juspay.BestOfferCombinationOffer {..} = do
+  cashbackAmount <- parseMoney cashback_amount "cashback_amount"
+  discountAmount <- parseMoney discount_amount "discount_amount"
+  merchantDiscountAmount <- parseMoney merchant_discount_amount "merchant_discount_amount"
+  totalOfferedAmount <- parseMoney total_offered_amount "total_offered_amount"
+  pure $ BestOfferCombinationOffer {offerId = offer_id, ..}
+
+buildOrderBreakup :: (MonadThrow m, Log m) => Juspay.OrderBreakup -> m OrderBreakup
+buildOrderBreakup Juspay.OrderBreakup {..} = do
+  orderAmount <- parseMoney order_amount "order_amount"
+  finalOrderAmount <- parseMoney final_order_amount "final_order_amount"
+  discountAmount <- parseMoney discount_amount "discount_amount"
+  merchantDiscountAmount <- parseMoney merchant_discount_amount "merchant_discount_amount"
+  cashbackAmount <- parseMoney cashback_amount "cashback_amount"
+  offerAmount <- parseMoney offer_amount "offer_amount"
+  pure $ OrderBreakup {..}
+
+parseMoney :: (MonadThrow m, Log m) => Text -> Text -> m HighPrecMoney
+parseMoney field desc = do
+  readMaybe (show field) & fromMaybeM (InternalError $ "Couldn't parse " <> desc)
+
+offerApply ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  OfferApplyReq ->
+  m OfferApplyResp
+offerApply config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  let juspayReq = mkOfferApplyReq merchantId req
+  juspayResp <- Juspay.offerApply url apiKey merchantId req.mandateId juspayReq
+  buildOfferApplyResp juspayResp
+
+mkOfferApplyReq :: Text -> OfferApplyReq -> Juspay.OfferApplyReq
+mkOfferApplyReq merchantId OfferApplyReq {..} = do
+  let order =
+        Juspay.OfferApplyOrder
+          { order_id = orderShortId,
+            amount = show amount,
+            currency,
+            merchant_id = Just merchantId,
+            order_type = Just "ORDER_PAYMENT",
+            udf1 = replace "-" "_" planId,
+            udf2 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" registrationDate,
+            payment_channel = Just "WEB"
+          }
+  Juspay.OfferApplyReq
+    { customer = Juspay.OfferApplyCustomer {id = customerId},
+      offers,
+      order,
+      payment_method_info = Nothing
+    }
+
+buildOfferApplyResp :: (MonadThrow m, Log m) => Juspay.OfferApplyResp -> m OfferApplyResp
+buildOfferApplyResp resp = do
+  offers <- forM resp.offers $ \offer -> do
+    finalOrderAmount <- parseMoney offer.order_breakup.final_order_amount "final_order_amount"
+    pure
+      OfferApplyRespItem
+        { finalOrderAmount,
+          offerId = offer.offer_id
+        }
+  pure OfferApplyResp {offers}
+
+offerNotify ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  OfferNotifyReq ->
+  m OfferNotifyResp
+offerNotify config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  let juspayReq = mkOfferNotifyReq merchantId req
+  void $ Juspay.offerNotify url apiKey merchantId req.mandateId juspayReq
+  pure Success
+
+mkOfferNotifyReq :: Text -> OfferNotifyReq -> Juspay.OfferNotifyReq
+mkOfferNotifyReq merchantId OfferNotifyReq {..} = do
+  Juspay.OfferNotifyReq
+    { order_id = orderShortId,
+      txn_id = transactionUUID,
+      merchant_id = merchantId,
+      txn_status = transactionStatus,
+      offers = offers <&> (\OfferNotifyOffer {offerId, status} -> Juspay.OfferNotifyOffer {offer_id = offerId, status})
+    }
