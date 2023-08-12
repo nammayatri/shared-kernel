@@ -110,7 +110,8 @@ data OrderData = OrderData
     amount :: Double,
     currency :: Currency,
     date_created :: Maybe UTCTime,
-    mandate :: Maybe MandateData
+    mandate :: Maybe MandateData,
+    payer_vpa :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
