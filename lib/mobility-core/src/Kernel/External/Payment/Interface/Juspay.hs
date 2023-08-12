@@ -153,7 +153,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
           mandateId = justMandate.mandate_id,
           mandateStatus = justMandate.mandate_status,
           mandateFrequency = justMandate.frequency,
-          mandateMaxAmount = justMandate.max_amount
+          mandateMaxAmount = justMandate.max_amount,
+          payerVpa = payer_vpa
         }
     Nothing ->
       OrderStatusResp
@@ -275,7 +276,8 @@ mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
               mandateStatus = justMandate.mandate_status,
               mandateId = justMandate.mandate_id,
               mandateFrequency = justMandate.frequency,
-              mandateMaxAmount = justMandate.max_amount
+              mandateMaxAmount = justMandate.max_amount,
+              payerVpa = justOrder.payer_vpa
             }
         Nothing ->
           OrderStatusResp
