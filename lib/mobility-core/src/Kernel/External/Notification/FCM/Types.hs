@@ -118,11 +118,15 @@ data FCMNotificationType
   | CHAT_MESSAGE
   | PAYMENT_PENDING
   | PAYMENT_OVERDUE
+  | PAYMENT_FAILED
+  | PAYMENT_SUCCESS
+  | PAYMENT_MODE_MANUAL
+  | LOW_ACCOUNT_BALANCE
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
 -- | Entity types types
-data FCMEntityType = SearchRequest | Product | Merchant | Person
+data FCMEntityType = SearchRequest | Product | Merchant | Person | PaymentOrder
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMEntityType
 
