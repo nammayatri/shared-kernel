@@ -80,7 +80,8 @@ data OrderStatusResp
         mandateId :: Text,
         mandateStatus :: MandateStatus,
         mandateFrequency :: MandateFrequency,
-        mandateMaxAmount :: HighPrecMoney
+        mandateMaxAmount :: HighPrecMoney,
+        payerVpa :: Maybe Text
       }
   | MandateStatusResp
       { status :: MandateStatus,
