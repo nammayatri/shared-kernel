@@ -29,7 +29,7 @@ module Kernel.External.Payment.Interface.Juspay
 where
 
 import qualified Data.Aeson as A
-import Data.Text (pack, replace)
+import Data.Text (pack, replace, toUpper)
 import qualified Data.Text as T
 import Data.Time (UTCTime (utctDay), addDays)
 import Data.Time.Clock.POSIX (getCurrentTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
@@ -91,12 +91,13 @@ mandateRevoke ::
   ) =>
   JuspayCfg ->
   MandateRevokeReq ->
-  m Juspay.MandateRevokeRes
+  m MandateRevokeRes
 mandateRevoke config req = do
   let url = config.url
   let merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  Juspay.mandateRevoke url apiKey merchantId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
+  void $ Juspay.mandateRevoke url apiKey merchantId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
+  return Success
 
 mkCreateOrderReq :: BaseUrl -> Text -> CreateOrderReq -> Juspay.CreateOrderReq
 mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
@@ -114,7 +115,8 @@ mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
       last_name = customerLastName,
       mandate_max_amount = show <$> mandateMaxAmount,
       mandate_frequency = mandateFrequency,
-      create_mandate = createMandate
+      create_mandate = createMandate,
+      metadata_mandate_name = if isJust createMandate then Just (toUpper clientId) else Nothing
     }
 
 orderStatus ::
