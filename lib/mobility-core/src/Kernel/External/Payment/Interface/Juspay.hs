@@ -299,7 +299,7 @@ mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
         { status = justMandate.status,
           mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
           mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
-          mandateId = read (T.unpack justMandate.mandate_id) :: Text,
+          mandateId = justMandate.mandate_id,
           mandateFrequency = justMandate.frequency,
           mandateMaxAmount = justMandate.max_amount
         }
