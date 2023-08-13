@@ -72,3 +72,13 @@ offerNotify ::
   m OfferNotifyResp
 offerNotify serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.offerNotify cfg req
+
+mandateRevoke ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  PaymentServiceConfig ->
+  MandateRevokeReq ->
+  m MandateRevokeRes
+mandateRevoke serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.mandateRevoke cfg req
