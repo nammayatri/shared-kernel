@@ -114,6 +114,8 @@ data MandateResumeReq = MandateResumeReq {mandateId :: Text, resumeDate :: UTCTi
 
 newtype MandateRevokeReq = MandateRevokeReq {mandateId :: Text}
 
+type MandateRevokeRes = APISuccess
+
 --- mandate Execution request ---
 
 data MandateExecutionReq = MandateExecutionReq

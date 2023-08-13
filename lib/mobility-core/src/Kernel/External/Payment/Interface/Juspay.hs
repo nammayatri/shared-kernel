@@ -91,12 +91,13 @@ mandateRevoke ::
   ) =>
   JuspayCfg ->
   MandateRevokeReq ->
-  m Juspay.MandateRevokeRes
+  m MandateRevokeRes
 mandateRevoke config req = do
   let url = config.url
   let merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  Juspay.mandateRevoke url apiKey merchantId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
+  void $ Juspay.mandateRevoke url apiKey merchantId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
+  return Success
 
 mkCreateOrderReq :: BaseUrl -> Text -> CreateOrderReq -> Juspay.CreateOrderReq
 mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
