@@ -34,6 +34,7 @@ import qualified Data.Text as T
 import Data.Time (UTCTime (utctDay), addDays)
 import Data.Time.Clock.POSIX (getCurrentTime, posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 import Data.Time.Format
+import GHC.Float (double2Int)
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Types
 import Kernel.External.Payment.Juspay.Config as Reexport
@@ -116,7 +117,8 @@ mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
       mandate_max_amount = show <$> mandateMaxAmount,
       mandate_frequency = mandateFrequency,
       create_mandate = createMandate,
-      metadata_mandate_name = if isJust createMandate then Just (toUpper clientId) else Nothing
+      metadata_mandate_name = if isJust createMandate then Just (toUpper clientId) else Nothing,
+      metadata_remarks = ("Amount to be paid now is Rs " <>) . show . double2Int . realToFrac $ amount
     }
 
 orderStatus ::

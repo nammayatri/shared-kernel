@@ -89,6 +89,7 @@ data TransactionStatus
   | COD_INITIATED
   | STARTED
   | AUTO_REFUNDED
+  | CLIENT_AUTH_TOKEN_EXPIRED -- Domain status, not part of Juspay Euler status types
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
