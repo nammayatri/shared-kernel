@@ -34,7 +34,8 @@ data CreateOrderReq = CreateOrderReq
     create_mandate :: Maybe MandateType,
     mandate_max_amount :: Maybe Text,
     mandate_frequency :: Maybe MandateFrequency,
-    metadata_mandate_name :: Maybe Text
+    metadata_mandate_name :: Maybe Text,
+    metadata_remarks :: Text
   }
   deriving stock (Show, Eq, Generic)
 
@@ -46,6 +47,7 @@ jsonReqOptions =
         "mandate_max_amount" -> "mandate.max_amount"
         "mandate_frequency" -> "mandate.mandate_frequency"
         "metadata_mandate_name" -> "metadata.AXIS_BIZ:mandate_name"
+        "metadata_remarks" -> "metadata.AXIS_BIZ:remarks"
         other -> other
     }
 
