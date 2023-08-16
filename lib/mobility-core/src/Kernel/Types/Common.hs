@@ -317,8 +317,10 @@ instance IsString HighPrecMoney where
 instance FromField Seconds where
   fromField = fromFieldSeconds
 
-instance FromField DbHash where
-  fromField = fromFieldEnumDbHash
+instance FromField ByteString => FromField DbHash where
+  fromField f mb = do
+    val <- fromField f mb
+    pure $ DbHash val
 
 instance HasSqlValueSyntax be ByteString => HasSqlValueSyntax be DbHash where
   sqlValueSyntax = sqlValueSyntax . unDbHash
