@@ -113,10 +113,15 @@ newtype HighPrecMoney = HighPrecMoney
   deriving stock (Generic)
   deriving newtype (Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
 
+data KVTable = KVTable
+  { nameOfTable :: Text,
+    percentEnable :: Natural
+  }
+  deriving (Generic, Eq, Show, ToJSON, FromJSON, FromDhall)
+
 data Tables = Tables
-  { enableKVForWriteAlso :: [Text],
-    enableKVForRead :: [Text],
-    tableAllocation :: Natural
+  { enableKVForWriteAlso :: [KVTable],
+    enableKVForRead :: [Text]
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
@@ -317,8 +322,10 @@ instance IsString HighPrecMoney where
 instance FromField Seconds where
   fromField = fromFieldSeconds
 
-instance FromField DbHash where
-  fromField = fromFieldEnumDbHash
+instance FromField ByteString => FromField DbHash where
+  fromField f mb = do
+    val <- fromField f mb
+    pure $ DbHash val
 
 instance HasSqlValueSyntax be ByteString => HasSqlValueSyntax be DbHash where
   sqlValueSyntax = sqlValueSyntax . unDbHash
