@@ -1,4 +1,5 @@
 {-# LANGUAGE DerivingStrategies #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
 
 module Kernel.Beam.Functions where
 
@@ -7,6 +8,7 @@ import Database.Beam
 import qualified Database.Beam as B
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
+import qualified Debug.Trace as T
 import EulerHS.CachedSqlDBQuery (SqlReturning)
 import qualified EulerHS.KVConnector.Flow as KV
 import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta)
@@ -66,9 +68,15 @@ setMeshConfig modelName mSchema meshConfig' = do
     Just tables' -> do
       let enableKVForWriteAlso = tables'.enableKVForWriteAlso
       let enableKVForRead = tables'.enableKVForRead
-      let tableAllocation = fromIntegral tables'.tableAllocation
-      if randomIntV <= tableAllocation
-        then pure $ meshConfig' {meshEnabled = modelName `elem` enableKVForWriteAlso, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
+
+      if modelName `elem` (nameOfTable <$> enableKVForWriteAlso)
+        then do
+          _ <- T.trace "came inside enableKVForWriteAlso" $ pure ()
+          if fromIntegral (percentEnable (fromJust (find (\table -> nameOfTable table == modelName) enableKVForWriteAlso))) >= randomIntV
+            then do
+              _ <- T.trace ("KV enabled for write" <> show (fromIntegral (percentEnable (fromJust (find (\table -> nameOfTable table == modelName) enableKVForWriteAlso))))) $ pure ()
+              pure $ meshConfig' {meshEnabled = True, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
+            else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
         else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
 
 getMasterDBConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)

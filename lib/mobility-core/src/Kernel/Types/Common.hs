@@ -113,10 +113,15 @@ newtype HighPrecMoney = HighPrecMoney
   deriving stock (Generic)
   deriving newtype (Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
 
+data KVTable = KVTable
+  { nameOfTable :: Text,
+    percentEnable :: Natural
+  }
+  deriving (Generic, Eq, Show, ToJSON, FromJSON, FromDhall)
+
 data Tables = Tables
-  { enableKVForWriteAlso :: [Text],
-    enableKVForRead :: [Text],
-    tableAllocation :: Natural
+  { enableKVForWriteAlso :: [KVTable],
+    enableKVForRead :: [Text]
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
