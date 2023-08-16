@@ -8,7 +8,6 @@ import Database.Beam
 import qualified Database.Beam as B
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
-import qualified Debug.Trace as T
 import EulerHS.CachedSqlDBQuery (SqlReturning)
 import qualified EulerHS.KVConnector.Flow as KV
 import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta)
