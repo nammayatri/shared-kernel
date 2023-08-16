@@ -71,10 +71,8 @@ setMeshConfig modelName mSchema meshConfig' = do
 
       if modelName `elem` (nameOfTable <$> enableKVForWriteAlso)
         then do
-          _ <- T.trace "came inside enableKVForWriteAlso" $ pure ()
           if fromIntegral (percentEnable (fromJust (find (\table -> nameOfTable table == modelName) enableKVForWriteAlso))) >= randomIntV
             then do
-              _ <- T.trace ("KV enabled for write" <> show (fromIntegral (percentEnable (fromJust (find (\table -> nameOfTable table == modelName) enableKVForWriteAlso))))) $ pure ()
               pure $ meshConfig' {meshEnabled = True, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
             else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
         else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
