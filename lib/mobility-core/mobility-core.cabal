@@ -27,6 +27,7 @@ library
       Kernel.Beam.Connection.Redis
       Kernel.Beam.Connection.Types
       Kernel.Beam.Functions
+      Kernel.Beam.Lib.UtilsTH
       Kernel.Beam.Types
       Kernel.Exit
       Kernel.External.AadhaarVerification
@@ -355,6 +356,7 @@ library
     , beam-postgres
     , bytestring
     , case-insensitive
+    , casing
     , cereal
     , clickhouse-haskell
     , clock
@@ -502,6 +504,7 @@ test-suite mobility-core-tests
     , beam-postgres
     , bytestring
     , case-insensitive
+    , casing
     , cereal
     , clickhouse-haskell
     , clock
