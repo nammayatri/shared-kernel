@@ -143,6 +143,7 @@ dependencies:
   - cereal
   - beam-mysql
   - sequelize
+  - casing
 
 ghc-options:
   - -fwrite-ide-info
