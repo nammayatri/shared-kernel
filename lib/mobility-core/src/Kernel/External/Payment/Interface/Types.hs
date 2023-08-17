@@ -21,7 +21,7 @@ module Kernel.External.Payment.Interface.Types
 where
 
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), TransactionStatus (..), Upi)
 import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
 import Kernel.Types.Common
@@ -81,7 +81,8 @@ data OrderStatusResp
         mandateStatus :: MandateStatus,
         mandateFrequency :: MandateFrequency,
         mandateMaxAmount :: HighPrecMoney,
-        payerVpa :: Maybe Text
+        payerVpa :: Maybe Text,
+        upi :: Maybe Upi
       }
   | MandateStatusResp
       { status :: MandateStatus,
@@ -104,6 +105,24 @@ data MandateNotificationReq = MandateNotificationReq
   }
   deriving (Eq, Show, Generic)
 
+data MandateNotificationRes = MandateNotificationRes
+  { id :: Text,
+    sourceInfo :: SourceInfo,
+    objectReferenceId :: Text,
+    providerName :: Text,
+    notificationType :: Text,
+    description :: Text,
+    status :: Text,
+    dateCreated :: Text,
+    lastUpdated :: Text
+  }
+
+data SourceInfo = SourceInfo
+  { sourceAmount :: Text,
+    txnDate :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
 -- mandate pause | resume | revoke request --
 
 data MandateCommandsReq = Pause MandatePauseReq | Resume MandateResumeReq | Revoke MandateRevokeReq
@@ -116,7 +135,7 @@ newtype MandateRevokeReq = MandateRevokeReq {mandateId :: Text}
 
 type MandateRevokeRes = APISuccess
 
---- mandate Execution request ---
+--- mandate Execution request and response ---
 
 data MandateExecutionReq = MandateExecutionReq
   { notificationId :: Text,
@@ -127,6 +146,14 @@ data MandateExecutionReq = MandateExecutionReq
     mandateId :: Text,
     executionDate :: UTCTime
   }
+
+data MandateExecutionRes = MandateExecutionRes
+  { orderId :: Text,
+    txnId :: Text,
+    txnUUID :: Text,
+    status :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 -- offer list request --
 

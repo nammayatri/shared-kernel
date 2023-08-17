@@ -11,14 +11,14 @@ import Web.FormUrlEncoded
 data MandateNotificationReq = MandateNotificationReq
   { command :: Text,
     object_reference_id :: Text,
-    sourceInfo :: SourceInfo,
+    source_info :: SourceInfo,
     description :: Text
   }
   deriving (Eq, Show, Generic)
 
 data MandateNotificationRes = MandateNotificationRes
   { id :: Text,
-    source_object :: Text,
+    source_info :: SourceInfo,
     object_reference_id :: Text,
     provider_name :: Text,
     notification_type :: Text,
@@ -30,17 +30,17 @@ data MandateNotificationRes = MandateNotificationRes
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data SourceInfo = SourceInfo
-  { sourceAmount :: Text,
-    txnDate :: Text
+  { source_amount :: Text,
+    txn_date :: Text
   }
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 instance ToForm MandateNotificationReq where
   toForm MandateNotificationReq {..} =
     [ ("command", toQueryParam command),
       ("object_reference_id", toQueryParam object_reference_id),
-      ("source_info.amount", toQueryParam (sourceInfo.sourceAmount)),
-      ("source_info.txn_date", toQueryParam (sourceInfo.txnDate)),
+      ("source_info.amount", toQueryParam (source_info.source_amount)),
+      ("source_info.txn_date", toQueryParam (source_info.txn_date)),
       ("description", toQueryParam description)
     ]
 
