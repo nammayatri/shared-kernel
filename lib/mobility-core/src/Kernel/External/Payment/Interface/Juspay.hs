@@ -190,7 +190,7 @@ mkOrderStatusResp Juspay.OrderData {..} =
           mandateFrequency = justMandate.frequency,
           mandateMaxAmount = justMandate.max_amount,
           payerVpa = payer_vpa,
-          upi = upi
+          upi = castUpi <$> upi
         }
     Nothing ->
       OrderStatusResp
@@ -207,6 +207,9 @@ mkOrderStatusResp Juspay.OrderData {..} =
           currency = currency,
           dateCreated = date_created
         }
+
+castUpi :: Juspay.Upi -> Upi
+castUpi Juspay.Upi {..} = Upi {payerApp = payer_app, payerAppName = payer_app_name}
 
 mkNotificationReq :: MandateNotificationReq -> Juspay.MandateNotificationReq
 mkNotificationReq mandateNotificationReq =
@@ -314,7 +317,7 @@ mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
               mandateFrequency = justMandate.frequency,
               mandateMaxAmount = justMandate.max_amount,
               payerVpa = justOrder.payer_vpa,
-              upi = justOrder.upi
+              upi = castUpi <$> justOrder.upi
             }
         Nothing ->
           OrderStatusResp
@@ -333,7 +336,8 @@ mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
             }
     (Nothing, Just justMandate) ->
       MandateStatusResp
-        { status = justMandate.status,
+        { orderShortId = justMandate.order_id,
+          status = justMandate.status,
           mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
           mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
           mandateId = justMandate.mandate_id,
