@@ -129,8 +129,9 @@ data MandateData = MandateData
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-newtype Upi = Upi
-  { payer_app :: Text
+data Upi = Upi
+  { payer_app :: Maybe Text,
+    payer_app_name :: Maybe Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

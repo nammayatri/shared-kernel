@@ -21,7 +21,7 @@ module Kernel.External.Payment.Interface.Types
 where
 
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), TransactionStatus (..), Upi)
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), TransactionStatus (..))
 import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
 import Kernel.Types.Common
@@ -85,7 +85,8 @@ data OrderStatusResp
         upi :: Maybe Upi
       }
   | MandateStatusResp
-      { status :: MandateStatus,
+      { orderShortId :: Text,
+        status :: MandateStatus,
         mandateStartDate :: UTCTime,
         mandateEndDate :: UTCTime,
         mandateId :: Text,
@@ -93,6 +94,13 @@ data OrderStatusResp
         mandateMaxAmount :: HighPrecMoney
       }
   | BadStatusResp
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data Upi = Upi
+  { payerApp :: Maybe Text,
+    payerAppName :: Maybe Text
+  }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 

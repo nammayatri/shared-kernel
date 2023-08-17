@@ -45,7 +45,8 @@ data WebhookMandateData = WebhookMandateData
     end_date :: Text,
     mandate_id :: Text,
     frequency :: MandateFrequency,
-    max_amount :: HighPrecMoney
+    max_amount :: HighPrecMoney,
+    order_id :: Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
