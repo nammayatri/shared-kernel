@@ -112,7 +112,8 @@ data OrderData = OrderData
     currency :: Currency,
     date_created :: Maybe UTCTime,
     mandate :: Maybe MandateData,
-    payer_vpa :: Maybe Text
+    payer_vpa :: Maybe Text,
+    upi :: Maybe Upi
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -126,4 +127,10 @@ data MandateData = MandateData
     max_amount :: HighPrecMoney
   }
   deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype Upi = Upi
+  { payer_app :: Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
