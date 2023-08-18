@@ -152,9 +152,8 @@ mkRoute req route = do
 
       let totalDistance = foldr (\leg acc -> acc + fromIntegral leg.distance.value) 0 route.legs
           totalDuration = foldr (\leg acc -> acc + fromIntegral leg.duration.value) 0 route.legs
-          firstLeg = head route.legs
-          steps = firstLeg.steps
-          polylinePoints = concat $ (\step -> decode step.polyline.points) <$> steps
+          allSteps = foldr (\leg acc -> acc ++ leg.steps) [] route.legs
+          polylinePoints = concatMap (\step -> decode step.polyline.points) allSteps
       -- TODO: Fix snappedWayPoints: the waypoint passed in request which are snapped to road
       -- snappedWayPoints = (\step -> (LatLong step.start_location.lat step.start_location.lng, LatLong step.end_location.lat step.end_location.lng)) <$> steps
 
