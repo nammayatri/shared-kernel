@@ -40,7 +40,9 @@ data CreateOrderReq = CreateOrderReq
     customerLastName :: Maybe Text,
     createMandate :: Maybe MandateType,
     mandateMaxAmount :: Maybe HighPrecMoney,
-    mandateFrequency :: Maybe MandateFrequency
+    mandateFrequency :: Maybe MandateFrequency,
+    mandateStartDate :: Maybe Text,
+    mandateEndDate :: Maybe Text
   }
 
 newtype OrderStatusReq = OrderStatusReq
@@ -81,10 +83,12 @@ data OrderStatusResp
         mandateStatus :: MandateStatus,
         mandateFrequency :: MandateFrequency,
         mandateMaxAmount :: HighPrecMoney,
-        payerVpa :: Maybe Text
+        payerVpa :: Maybe Text,
+        upi :: Maybe Upi
       }
   | MandateStatusResp
-      { status :: MandateStatus,
+      { orderShortId :: Text,
+        status :: MandateStatus,
         mandateStartDate :: UTCTime,
         mandateEndDate :: UTCTime,
         mandateId :: Text,
@@ -92,6 +96,13 @@ data OrderStatusResp
         mandateMaxAmount :: HighPrecMoney
       }
   | BadStatusResp
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data Upi = Upi
+  { payerApp :: Maybe Text,
+    payerAppName :: Maybe Text
+  }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
@@ -103,6 +114,24 @@ data MandateNotificationReq = MandateNotificationReq
     notificationId :: Text
   }
   deriving (Eq, Show, Generic)
+
+data MandateNotificationRes = MandateNotificationRes
+  { id :: Text,
+    sourceInfo :: SourceInfo,
+    objectReferenceId :: Text,
+    providerName :: Text,
+    notificationType :: Text,
+    description :: Text,
+    status :: Text,
+    dateCreated :: Text,
+    lastUpdated :: Text
+  }
+
+data SourceInfo = SourceInfo
+  { sourceAmount :: Text,
+    txnDate :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 -- mandate pause | resume | revoke request --
 
@@ -116,7 +145,7 @@ newtype MandateRevokeReq = MandateRevokeReq {mandateId :: Text}
 
 type MandateRevokeRes = APISuccess
 
---- mandate Execution request ---
+--- mandate Execution request and response ---
 
 data MandateExecutionReq = MandateExecutionReq
   { notificationId :: Text,
@@ -127,6 +156,14 @@ data MandateExecutionReq = MandateExecutionReq
     mandateId :: Text,
     executionDate :: UTCTime
   }
+
+data MandateExecutionRes = MandateExecutionRes
+  { orderId :: Text,
+    txnId :: Text,
+    txnUUID :: Text,
+    status :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 -- offer list request --
 
