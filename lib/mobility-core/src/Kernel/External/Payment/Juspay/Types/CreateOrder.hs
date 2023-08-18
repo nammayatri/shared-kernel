@@ -47,9 +47,9 @@ jsonReqOptions =
     { fieldLabelModifier = \case
         "create_mandate" -> "options.create_mandate"
         "mandate_max_amount" -> "mandate.max_amount"
-        "mandate_frequency" -> "mandate.mandate_frequency"
-        "mandate_start_date" -> "mandate.mandate_start_date"
-        "mandate_end_date" -> "mandate.mandate_end_date"
+        "mandate_frequency" -> "mandate.frequency"
+        "mandate_start_date" -> "mandate.start_date"
+        "mandate_end_date" -> "mandate.end_date"
         "metadata_mandate_name" -> "metadata.AXIS_BIZ:mandate_name"
         "metadata_remarks" -> "metadata.AXIS_BIZ:remarks"
         other -> other
