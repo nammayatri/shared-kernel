@@ -40,7 +40,9 @@ data CreateOrderReq = CreateOrderReq
     customerLastName :: Maybe Text,
     createMandate :: Maybe MandateType,
     mandateMaxAmount :: Maybe HighPrecMoney,
-    mandateFrequency :: Maybe MandateFrequency
+    mandateFrequency :: Maybe MandateFrequency,
+    mandateStartDate :: Maybe Text,
+    mandateEndDate :: Maybe Text
   }
 
 newtype OrderStatusReq = OrderStatusReq
