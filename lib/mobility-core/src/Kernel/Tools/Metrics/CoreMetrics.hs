@@ -163,3 +163,64 @@ addUrlCallFailuresImplementation' cmContainers url version = do
       urlCallRetriesMetric
       (showBaseUrlText url, version.getDeploymentVersion)
       P.incCounter
+
+incrementSortedSetCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Int ->
+  m ()
+incrementSortedSetCounterImplementation context scheduledSecond = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  incrementSortedSetCounterImplementation' cmContainer context scheduledSecond version
+
+incrementSortedSetCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> Int -> DeploymentVersion -> m ()
+incrementSortedSetCounterImplementation' cmContainers context scheduledSecond version = do
+  let sortedSetMetric = cmContainers.sortedSetCounter
+  L.runIO $
+    P.withLabel
+      sortedSetMetric
+      (context, show scheduledSecond, version.getDeploymentVersion)
+      P.incCounter
+
+incrementStreamCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Int ->
+  m ()
+incrementStreamCounterImplementation context executedseconds = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  incrementStreamCounterImplementation' cmContainer context executedseconds version
+
+incrementStreamCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> Int -> DeploymentVersion -> m ()
+incrementStreamCounterImplementation' cmContainers context executedseconds version = do
+  let sortedSetMetric = cmContainers.sortedSetCounter
+  L.runIO $
+    P.withLabel
+      sortedSetMetric
+      (context, show executedseconds, version.getDeploymentVersion)
+      P.incCounter
+
+addGenericLatencyImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  NominalDiffTime ->
+  m ()
+addGenericLatencyImplementation operation latency = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  L.runIO $
+    P.withLabel
+      cmContainer.genericLatency
+      (operation, version.getDeploymentVersion)
+      (`P.observe` (fromIntegral $ div (fromEnum . nominalDiffTimeToSeconds $ latency) 1000000000000))
