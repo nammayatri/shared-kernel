@@ -108,15 +108,15 @@ mandateNotificationStatus config object_ref_id = do
         { id,
           sourceObject = source_object,
           sourceObjectId = source_object_id,
-          sourceInfo = SourceInfoRes {txnDate = posixTextToUTCTime source_info.txn_date, sourceAmount = source_info.source_amount},
+          sourceInfo = SourceInfoRes {txnDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack source_info.txn_date) :: Int), sourceAmount = source_info.source_amount},
           objectReferenceId = object_reference_id,
           providerName = provider_name,
           notificationType = notification_type,
-          providerResponse = ProviderResponse {providerRefId = provider_response.provider_ref_id, notificationDate = posixTextToUTCTime provider_response.notification_date},
+          providerResponse = ProviderResponse {providerRefId = provider_response.provider_ref_id, notificationDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack provider_response.notification_date) :: Int)},
           description,
           status,
-          dateCreated = posixTextToUTCTime date_created,
-          lastUpdated = posixTextToUTCTime last_updated
+          dateCreated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack date_created) :: Int),
+          lastUpdated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack last_updated) :: Int)
         }
 
 mandateExecution ::
@@ -531,7 +531,3 @@ mkOfferNotifyReq merchantId OfferNotifyReq {..} = do
       txn_status = transactionStatus,
       offers = offers <&> (\OfferNotifyOffer {offerId, status} -> Juspay.OfferNotifyOffer {offer_id = offerId, status})
     }
-
----- Helper function ----
-posixTextToUTCTime :: Text -> UTCTime
-posixTextToUTCTime posixDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack posixDate) :: Int)
