@@ -189,6 +189,30 @@ mandateNotification url apiKey mandateId req = do
   callAPI url (eulerClient mandateId basicAuthData req) "mandate-notification" (Proxy @MandateNotificationAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call mandate notification API: " <> show err)
 
+type NotificationStatusAPI =
+  "notifications"
+    :> Capture "object_reference_id" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> Get '[JSON] NotificationStatusResp
+
+mandateNotificationStatus ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  m NotificationStatusResp
+mandateNotificationStatus url apiKey object_reference_id = do
+  let eulerClient = Euler.client (Proxy @NotificationStatusAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient object_reference_id basicAuthData) "mandate-notification-status" (Proxy @NotificationStatusAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate notification status API: " <> show err)
+
 type MandateExecutionAPI =
   "txns"
     :> BasicAuth "username-password" BasicAuthData

@@ -133,6 +133,33 @@ data SourceInfo = SourceInfo
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
+--- Notification status response --
+data NotificationStatusResp = NotificationStatusResp
+  { id :: Text,
+    sourceObject :: Text,
+    sourceObjectId :: Text, -- mandate Id in this case --
+    objectReferenceId :: Text,
+    providerName :: Text,
+    notificationType :: Text,
+    sourceInfo :: SourceInfoRes,
+    providerResponse :: ProviderResponse,
+    description :: Text,
+    status :: Text,
+    dateCreated :: UTCTime,
+    lastUpdated :: UTCTime
+  }
+
+data ProviderResponse = ProviderResponse
+  { providerRefId :: Text,
+    notificationDate :: UTCTime
+  }
+
+data SourceInfoRes = SourceInfoRes
+  { sourceAmount :: Text,
+    txnDate :: UTCTime
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
 -- mandate pause | resume | revoke request --
 
 data MandateCommandsReq = Pause MandatePauseReq | Resume MandateResumeReq | Revoke MandateRevokeReq

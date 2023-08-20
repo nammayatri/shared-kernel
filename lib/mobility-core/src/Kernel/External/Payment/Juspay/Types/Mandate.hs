@@ -44,6 +44,30 @@ instance ToForm MandateNotificationReq where
       ("description", toQueryParam description)
     ]
 
+---- Notification status response ------
+
+data NotificationStatusResp = NotificationStatusResp
+  { id :: Text,
+    source_object :: Text,
+    source_object_id :: Text, -- mandate Id in this case --
+    object_reference_id :: Text,
+    provider_name :: Text,
+    notification_type :: Text,
+    source_info :: SourceInfo,
+    provider_response :: ProviderResponse,
+    description :: Text,
+    status :: Text,
+    date_created :: Text,
+    last_updated :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data ProviderResponse = ProviderResponse
+  { provider_ref_id :: Text,
+    notification_date :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
 --- For Mandate Execution ---
 data MandateOrder = MandateOrder
   { orderId :: Text,
