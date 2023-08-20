@@ -150,15 +150,12 @@ mkRoute req route = do
       when (length route.legs > 1) $
         logTagWarning "GoogleMapsDirections" ("More than one element in route.legs, " <> show req)
 
-      let leg = head route.legs
-          steps = leg.steps
-          polylinePoints = concat $ (\step -> decode step.polyline.points) <$> steps
-          -- TODO: Fix snappedWayPoints: the waypoint passed in request which are snapped to road
-          -- snappedWayPoints = (\step -> (LatLong step.start_location.lat step.start_location.lng, LatLong step.end_location.lat step.end_location.lng)) <$> steps
-          distanceInM = Just $ fromIntegral leg.distance.value
-          durationInS = Just $ fromIntegral leg.duration.value
+      let totalDistance = foldr (\leg acc -> acc + fromIntegral leg.distance.value) 0 route.legs
+          totalDuration = foldr (\leg acc -> acc + fromIntegral leg.duration.value) 0 route.legs
+          allSteps = foldr (\leg acc -> acc ++ leg.steps) [] route.legs
+          polylinePoints = concatMap (\step -> decode step.polyline.points) allSteps
 
-      return $ RouteInfo durationInS distanceInM bound [] polylinePoints
+      return $ RouteInfo (Just totalDuration) (Just totalDistance) bound [] polylinePoints
   where
     mkBounds :: GoogleMaps.Bounds -> BoundingBoxWithoutCRS
     mkBounds gBound =
