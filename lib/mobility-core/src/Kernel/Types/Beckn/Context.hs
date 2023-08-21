@@ -39,10 +39,11 @@ data Context = Context
     bap_uri :: BaseUrl,
     bpp_id :: Maybe Text,
     bpp_uri :: Maybe BaseUrl,
-    transaction_id :: Maybe Text,
+    transaction_id :: Text,
     message_id :: Text,
     timestamp :: UTCTimeRFC3339,
-    max_callbacks :: Maybe Int
+    max_callbacks :: Maybe Int,
+    ttl :: Maybe Text
   }
   deriving (Generic, FromJSON, Show, ToSchema, PrettyShow)
 
@@ -59,12 +60,13 @@ instance Example Context where
         bap_uri = fromJust $ parseBaseUrl "https://api.domain.com/",
         bpp_id = Just "API.DOMAIN",
         bpp_uri = parseBaseUrl "https://api.domain.com/",
-        transaction_id = Just idExample,
+        transaction_id = idExample,
         message_id = idExample,
         timestamp = UTCTimeRFC3339 example,
         country = India,
         city = Kochi,
-        max_callbacks = Just 1
+        max_callbacks = Just 1,
+        ttl = Nothing
       }
 
 data Action

@@ -33,7 +33,7 @@ import GHC.Records.Extra
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.App
-import Kernel.Types.Beckn.Ack
+import Kernel.Types.Beckn.BecknAPIResponse
 import Kernel.Types.Common
 import Kernel.Types.Error as Err
 import Kernel.Types.Error.BaseError.HTTPError
@@ -64,8 +64,8 @@ withFlowHandlerBecknAPI ::
     HasField "isShuttingDown" r (TMVar ()),
     Log (FlowR r)
   ) =>
-  FlowR r AckResponse ->
-  FlowHandlerR r AckResponse
+  FlowR r BecknAPIResponse ->
+  FlowHandlerR r BecknAPIResponse
 withFlowHandlerBecknAPI = withFlowHandler . becknApiHandler . handleIfUp
 
 handleIfUp ::

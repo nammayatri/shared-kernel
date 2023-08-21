@@ -218,6 +218,7 @@ library
       Kernel.Types.App
       Kernel.Types.Base64
       Kernel.Types.Beckn.Ack
+      Kernel.Types.Beckn.BecknAPIResponse
       Kernel.Types.Beckn.City
       Kernel.Types.Beckn.Context
       Kernel.Types.Beckn.Country

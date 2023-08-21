@@ -14,18 +14,20 @@
 
 module Kernel.Utils.Context where
 
+import Data.Time (UTCTime, diffUTCTime)
 import EulerHS.Prelude
 import Kernel.Types.App
 import qualified Kernel.Types.Beckn.Context as Cab
 import Kernel.Types.MonadGuid
 import Kernel.Types.Time
 import Kernel.Types.TimeRFC339 (UTCTimeRFC3339 (..))
+import Kernel.Utils.Time (formatTimeDifference)
 
 buildTaxiContext ::
   (MonadTime m, MonadGuid m) =>
   Cab.Action ->
   Text ->
-  Maybe Text ->
+  Text ->
   Text ->
   BaseUrl ->
   Maybe Text ->
@@ -33,10 +35,14 @@ buildTaxiContext ::
   Cab.City ->
   Cab.Country ->
   Bool ->
+  Maybe UTCTime ->
   m Cab.Context
-buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country autoAssignEnabled = do
+buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country autoAssignEnabled mbValidTill = do
   currTime <- getCurrentTime
   let max_callbacks = if autoAssignEnabled && action == Cab.SELECT then Just 1 else Nothing
+      ttl = case mbValidTill of
+        Just validTill -> Just $ formatTimeDifference (diffUTCTime validTill currTime)
+        Nothing -> Nothing
   return $
     Cab.Context
       { domain = Cab.MOBILITY,
@@ -51,5 +57,6 @@ buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country autoA
         timestamp = UTCTimeRFC3339 currTime,
         country,
         city,
-        max_callbacks
+        max_callbacks,
+        ttl
       }

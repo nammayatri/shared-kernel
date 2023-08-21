@@ -79,9 +79,9 @@ withPersonIdLogTag :: Log m => Id b -> m a -> m a
 withPersonIdLogTag personId = do
   withLogTag ("actor-" <> getId personId)
 
-withTransactionIdLogTag :: (HasField "context" b c, HasField "transaction_id" c (Maybe Text), Log m) => b -> m a -> m a
+withTransactionIdLogTag :: (HasField "context" b c, HasField "transaction_id" c Text, Log m) => b -> m a -> m a
 withTransactionIdLogTag req =
-  withTransactionIdLogTag' $ fromMaybe "Unknown" req.context.transaction_id
+  withTransactionIdLogTag' $ req.context.transaction_id
 
 withTransactionIdLogTag' :: Log m => Text -> m a -> m a
 withTransactionIdLogTag' txnId =

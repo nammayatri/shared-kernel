@@ -17,7 +17,6 @@ module Kernel.Utils.Callback (withBecknCallbackMig, WithBecknCallbackMig) where
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import Kernel.Tools.Metrics.CoreMetrics
-import Kernel.Types.Beckn.Ack
 import qualified Kernel.Types.Beckn.Context as M.Context
 import Kernel.Types.Beckn.ReqTypes
 import Kernel.Types.Common
@@ -42,14 +41,14 @@ type WithBecknCallbackMig api callback_success m =
     CoreMetrics m,
     HasClient ET.EulerClient api,
     Client ET.EulerClient api
-      ~ (BecknCallbackReq callback_success -> ET.EulerClient AckResponse)
+      ~ (BecknCallbackReq callback_success -> ET.EulerClient BecknAPIResponse)
   ) =>
   M.Context.Action ->
   Proxy api ->
   M.Context.Context ->
   BaseUrl ->
   m callback_success ->
-  m AckResponse
+  m BecknAPIResponse
 
 withBecknCallbackMig ::
   (m () -> m ()) ->
@@ -70,7 +69,7 @@ withBecknCallbackMig doWithCallback auth actionName api context cbUrl action = d
     (doWithCallback . void . callBecknAPI auth Nothing (show cbAction) api cbUrl)
     (show actionName)
     action
-  return Ack
+  return getSuccessRes
 
 forkBecknCallback ::
   (Forkable m, MonadCatch m, Log m) =>
