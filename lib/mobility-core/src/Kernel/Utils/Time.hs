@@ -24,8 +24,10 @@ where
 import qualified Data.Text as T
 import Data.Time hiding (getCurrentTime, nominalDiffTimeToSeconds, secondsToNominalDiffTime)
 import qualified Data.Time as Time hiding (secondsToNominalDiffTime)
+import Data.Time.Format.ISO8601
 import EulerHS.Prelude
 import Kernel.Types.Time
+import Kernel.Types.TimeRFC339
 import Kernel.Utils.Logging
 import System.Clock (toNanoSecs)
 
@@ -106,10 +108,32 @@ threadDelaySec sec = liftIO $ threadDelay $ sec.getSeconds * 1000000
 
 secondsFromTimeOfDay :: TimeOfDay -> Seconds
 secondsFromTimeOfDay timeOfDay =
-  Seconds . fromIntegral $ (diffTimeToPicoseconds $ timeOfDayToTime timeOfDay) `div` 1000000000000
+  Seconds . fromIntegral $ diffTimeToPicoseconds (timeOfDayToTime timeOfDay) `div` 1000000000000
 
 compareTimeWithInterval :: NominalDiffTime -> UTCTime -> UTCTime -> Ordering
 compareTimeWithInterval dt time1 time2
   | abs (diffUTCTime time1 time2) < abs dt = EQ
   | time1 < time2 = LT
   | otherwise = GT -- time1 > time2
+
+isTtlExpired :: Monad m => Text -> UTCTimeRFC3339 -> UTCTime -> m Bool
+isTtlExpired isoDuration isoTimestamp currTime =
+  case parseISO8601Duration isoDuration of
+    Just duration -> pure $ duration <= timeDiffInSeconds isoTimestamp currTime
+    Nothing -> pure False
+
+timeDiffInSeconds :: UTCTimeRFC3339 -> UTCTime -> NominalDiffTime
+timeDiffInSeconds isoTime curUtcTime = secondsToNominalDiffTime (round $ diffUTCTime curUtcTime (convertRFC3339ToUTC isoTime))
+
+-- Parse ISO8601 duration and return the number of seconds
+parseISO8601Duration :: Text -> Maybe NominalDiffTime
+parseISO8601Duration durationStr = do
+  (calenderDiffernceTime :: CalendarDiffTime) <- iso8601ParseM $ T.unpack durationStr
+  Just $ ctTime calenderDiffernceTime
+
+formatTimeDifference :: NominalDiffTime -> Text
+formatTimeDifference duration =
+  let secondsDiff = fromEnum . nominalDiffTimeToSeconds $ duration
+      (hours, remainingSeconds) = divMod secondsDiff (3600 :: Int)
+      (minutes, seconds) = divMod remainingSeconds 60
+   in "PT" <> show hours <> "H" <> show minutes <> "M" <> show seconds <> "S"
