@@ -28,7 +28,7 @@ class
   FromTType' t a
     | t -> a
   where
-  fromTType' :: (MonadThrow m, Log m, L.MonadFlow m) => t -> m (Maybe a)
+  fromTType' :: MonadFlow m => t -> m (Maybe a)
 
 class
   ToTType' t a
@@ -137,10 +137,8 @@ findOneWithKV ::
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+    MonadFlow m,
+    Show (table Identity)
   ) =>
   Where Postgres table ->
   m (Maybe a)
@@ -167,10 +165,8 @@ findAllWithKV ::
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+    MonadFlow m,
+    Show (table Identity)
   ) =>
   Where Postgres table ->
   m [a]
@@ -198,10 +194,8 @@ findAllWithOptionsKV ::
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+    MonadFlow m,
+    Show (table Identity)
   ) =>
   Where Postgres table ->
   OrderBy table ->
@@ -232,10 +226,8 @@ findOneWithDb ::
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+    MonadFlow m,
+    Show (table Identity)
   ) =>
   Where Postgres table ->
   m (Maybe a)
@@ -262,10 +254,8 @@ findAllWithDb ::
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+    MonadFlow m,
+    Show (table Identity)
   ) =>
   Where Postgres table ->
   m [a]
@@ -293,10 +283,8 @@ findAllWithOptionsDb ::
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+    MonadFlow m,
+    Show (table Identity)
   ) =>
   Where Postgres table ->
   OrderBy table ->
