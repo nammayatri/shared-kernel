@@ -23,8 +23,6 @@ module Kernel.Types.Common
   )
 where
 
--- import Kernel.Types.Beckn.Context as Context
-
 import Data.Aeson
 import qualified Data.Bifunctor as BF
 import Data.ByteString.Internal (ByteString, unpackChars)
@@ -49,13 +47,13 @@ import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
 import Kernel.External.Encryption
 import Kernel.External.Encryption as Common (EncFlow)
-import Kernel.External.Types
 import Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto.Config as Common (EsqDBFlow)
 import Kernel.Storage.Esqueleto.Types
 import Kernel.Types.App as Common
 import Kernel.Types.Centesimal as Common
 import Kernel.Types.Forkable as Common
+import Kernel.Types.FromField as Common
 import Kernel.Types.GuidLike as Common
 import Kernel.Types.Logging as Common
 import Kernel.Types.MonadGuid as Common
@@ -194,6 +192,7 @@ fromFieldCentesimal f mbValue = case mbValue of
   Nothing -> DPSF.returnError UnexpectedNull f mempty
   Just _ -> Centesimal <$> fromField f mbValue
 
+-- FIXME next functions are almost the same
 fromFieldMinutes ::
   DPSF.Field ->
   Maybe ByteString ->
@@ -336,47 +335,6 @@ instance FromBackendRow Postgres DbHash
 
 instance IsString DbHash where
   fromString = KP.show
-
-fromFieldJSON ::
-  (Typeable a, FromJSON a) =>
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion a
-fromFieldJSON f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just value' -> case decode $ fromStrict value' of
-    Just res -> pure res
-    Nothing -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be Language where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance FromField Language => FromBackendRow Postgres Language
-
-instance FromField Language where
-  fromField = fromFieldEnum
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be Language
-
-fromFieldEnum ::
-  (Typeable a, Read a) =>
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion a
-fromFieldEnum f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just value' ->
-    case readMaybe (unpackChars value') of
-      Just val -> pure val
-      _ -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
-
-fromFieldEnumDbHash ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion DbHash
-fromFieldEnumDbHash f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just value' -> pure $ DbHash value'
 
 getPoint :: (Double, Double) -> BQ.QGenExpr context Postgres s Point
 getPoint (lat, lon) = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ "ST_SetSRID (ST_Point (" <> KP.show lon <> " , " <> KP.show lat <> "),4326)"))

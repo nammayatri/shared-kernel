@@ -17,7 +17,6 @@ module Kernel.Utils.DatastoreLatencyCalculator where
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Tools.Metrics.CoreMetrics
-import Kernel.Types.Common
 import Kernel.Utils.Logging
 import Kernel.Utils.Time
 
