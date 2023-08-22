@@ -243,6 +243,7 @@ library
       Kernel.Types.Field
       Kernel.Types.Flow
       Kernel.Types.Forkable
+      Kernel.Types.FromField
       Kernel.Types.Geofencing
       Kernel.Types.GuidLike
       Kernel.Types.Id
