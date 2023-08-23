@@ -47,9 +47,9 @@ newtype FlowR r a = FlowR {unFlowR :: ReaderT r L.Flow a}
 
 instance L.MonadFlow (FlowR r) where
   {-# INLINEABLE callServantAPI #-}
-  callServantAPI mbMgrSel url cl = FlowR $ L.callServantAPI mbMgrSel url cl
+  callServantAPI mbMgrSel url apitag mbinfo cl = FlowR $ L.callServantAPI mbMgrSel url apitag mbinfo cl
   {-# INLINEABLE callAPIUsingManager #-}
-  callAPIUsingManager mgr url cl = FlowR $ L.callAPIUsingManager mgr url cl
+  callAPIUsingManager mgr url apiTag errFunc = FlowR . L.callAPIUsingManager mgr url apiTag errFunc
   {-# INLINEABLE lookupHTTPManager #-}
   lookupHTTPManager mMgrSel = FlowR $ L.lookupHTTPManager mMgrSel
   {-# INLINEABLE getHTTPManager #-}
@@ -129,9 +129,23 @@ instance L.MonadFlow (FlowR r) where
   {-# INLINEABLE setLoggerContextMap #-}
   setLoggerContextMap m = FlowR $ L.setLoggerContextMap m
   {-# INLINEABLE callHTTPUsingManager #-}
-  callHTTPUsingManager mgr url = FlowR . L.callHTTPUsingManager mgr url
+  callHTTPUsingManager mgr url apiTag errFunc mskReqRespBody = FlowR $ L.callHTTPUsingManager mgr url apiTag errFunc mskReqRespBody
   {-# INLINEABLE fork #-}
   fork (FlowR f) = FlowR $ L.fork f
+  {-# INLINEABLE getRecordingLocal #-}
+  getRecordingLocal = FlowR L.getRecordingLocal
+  {-# INLINEABLE appendRecordingLocal #-}
+  appendRecordingLocal b = FlowR $ L.appendRecordingLocal b
+  {-# INLINEABLE delRecordingLocal #-}
+  delRecordingLocal = FlowR L.delRecordingLocal
+  {-# INLINEABLE getSnowflakeID #-}
+  getSnowflakeID sId pId = FlowR . L.getSnowflakeID sId pId
+  {-# INLINEABLE forkAwaitable #-}
+  forkAwaitable = error "Not implemented"
+  {-# INLINEABLE runInDBTransaction #-}
+  runInDBTransaction conn dbAct = FlowR $ L.runInDBTransaction conn dbAct
+  {-# INLINEABLE runDBWithConn #-}
+  runDBWithConn conn dbAct = FlowR $ L.runDBWithConn conn dbAct
 
 -- {-# INLINEABLE callAPIUsingManager #-}
 -- callAPIUsingManager f flow = FlowR $ L.callAPIUsingManager f flow

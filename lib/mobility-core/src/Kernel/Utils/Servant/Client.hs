@@ -100,7 +100,7 @@ callAPI' mbManagerSelector baseUrl eulerClient desc api =
     logDebug $ "Sanitized URL is " <> buildSanitizedUrl
     res <-
       measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
-        L.callAPI' (Just (ET.ManagerSelector managerSelector)) baseUrl eulerClient
+        L.callAPI' (Just (ET.ManagerSelector managerSelector)) baseUrl ("API_TAG" :: Text) (const Nothing) eulerClient
     case res of
       Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
       Left err -> logDebug $ "Error occured during client call: " <> show err

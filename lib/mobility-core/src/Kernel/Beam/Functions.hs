@@ -12,6 +12,7 @@ import EulerHS.CachedSqlDBQuery (SqlReturning)
 import qualified EulerHS.KVConnector.Flow as KV
 import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta)
 import qualified EulerHS.Language as L
+import EulerHS.PIIEncryption
 import EulerHS.Types hiding (Log)
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
@@ -46,7 +47,9 @@ meshConfig =
       kvRedis = "KVRedis",
       redisTtl = 43200,
       kvHardKilled = True,
-      cerealEnabled = False
+      cerealEnabled = False,
+      shouldPushToETLStream = False,
+      snowFlakeEnabled = False
     }
 
 runInReplica :: (L.MonadFlow m, Log m) => m a -> m a
@@ -76,21 +79,21 @@ setMeshConfig modelName mSchema meshConfig' = do
             else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
         else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
 
-getMasterDBConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
+getMasterDBConfig :: (HasCallStack, MonadFlow m) => m (DBConfig Pg)
 getMasterDBConfig = do
   dbConf <- L.getOption KBT.PsqlDbCfg
   case dbConf of
     Just dbCnf' -> pure dbCnf'
     Nothing -> L.throwException $ InternalError "masterDb Config not found"
 
-getLocDbConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
+getLocDbConfig :: (HasCallStack, MonadFlow m) => m (DBConfig Pg)
 getLocDbConfig = do
   dbConf <- L.getOption KBT.PsqlLocDbCfg
   case dbConf of
     Just dbCnf' -> pure dbCnf'
     Nothing -> L.throwException $ InternalError "LocationDb Config not found"
 
-getMasterBeamConfig :: (HasCallStack, L.MonadFlow m) => m (SqlConn Pg)
+getMasterBeamConfig :: (HasCallStack, MonadFlow m) => m (SqlConn Pg)
 getMasterBeamConfig = do
   inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
@@ -99,7 +102,7 @@ getMasterBeamConfig = do
     Right conn' -> pure conn'
     Left _ -> L.throwException $ InternalError "MasterDb Beam Config not found"
 
-getLocationDbBeamConfig :: (HasCallStack, L.MonadFlow m) => m (SqlConn Pg)
+getLocationDbBeamConfig :: (HasCallStack, MonadFlow m) => m (SqlConn Pg)
 getLocationDbBeamConfig = do
   inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf <- maybe getLocDbConfig (\inReplica' -> if inReplica' then getReplicaLocationDbConfig else getLocDbConfig) inReplica
@@ -110,14 +113,14 @@ getLocationDbBeamConfig = do
 
 ----- replica db functions---------------
 
-getReplicaDbConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
+getReplicaDbConfig :: (HasCallStack, MonadFlow m) => m (DBConfig Pg)
 getReplicaDbConfig = do
   dbConf <- L.getOption KBT.PsqlDbCfgR1
   case dbConf of
     Just dbCnf' -> pure dbCnf'
     Nothing -> L.throwException $ InternalError "ReplicaDb Config not found"
 
-getReplicaLocationDbConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
+getReplicaLocationDbConfig :: (HasCallStack, MonadFlow m) => m (DBConfig Pg)
 getReplicaLocationDbConfig = do
   dbConf <- L.getOption KBT.PsqlLocReplicaDbCfg
   case dbConf of
@@ -131,6 +134,7 @@ findOneWithKV ::
     BeamRuntime Postgres Pg,
     B.HasQBuilder Postgres,
     BeamRunner Pg,
+    PII table,
     Model Postgres table,
     MeshMeta Postgres table,
     KVConnector (table Identity),
@@ -138,7 +142,9 @@ findOneWithKV ::
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
     MonadFlow m,
-    Show (table Identity)
+    Show (table Identity),
+    Log m,
+    MonadThrow m
   ) =>
   Where Postgres table ->
   m (Maybe a)
@@ -159,6 +165,7 @@ findAllWithKV ::
     BeamRuntime Postgres Pg,
     B.HasQBuilder Postgres,
     BeamRunner Pg,
+    PII table,
     Model Postgres table,
     MeshMeta Postgres table,
     KVConnector (table Identity),
@@ -220,6 +227,7 @@ findOneWithDb ::
     BeamRuntime Postgres Pg,
     B.HasQBuilder Postgres,
     BeamRunner Pg,
+    PII table,
     Model Postgres table,
     MeshMeta Postgres table,
     KVConnector (table Identity),
@@ -248,6 +256,7 @@ findAllWithDb ::
     BeamRuntime Postgres Pg,
     B.HasQBuilder Postgres,
     BeamRunner Pg,
+    PII table,
     Model Postgres table,
     MeshMeta Postgres table,
     KVConnector (table Identity),
@@ -309,13 +318,15 @@ updateWithKV ::
     SqlReturning Pg Postgres,
     B.HasQBuilder Postgres,
     BeamRunner Pg,
+    PII table,
+    PIIUpdate Postgres table,
     Model Postgres table,
     MeshMeta Postgres table,
     KVConnector (table Identity),
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
+    MonadFlow m,
     Show (table Identity),
     Log m,
     MonadThrow m
@@ -342,13 +353,15 @@ updateOneWithKV ::
     SqlReturning Pg Postgres,
     B.HasQBuilder Postgres,
     BeamRunner Pg,
+    PII table,
+    PIIUpdate Postgres table,
     Model Postgres table,
     MeshMeta Postgres table,
     KVConnector (table Identity),
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
+    MonadFlow m,
     Show (table Identity),
     Log m,
     MonadThrow m
@@ -372,13 +385,14 @@ createWithKV ::
     BeamRuntime Postgres Pg,
     B.HasQBuilder Postgres,
     BeamRunner Pg,
+    PII table,
     Model Postgres table,
     MeshMeta Postgres table,
     KVConnector (table Identity),
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
+    MonadFlow m,
     Show (table Identity),
     Log m,
     MonadThrow m
@@ -407,11 +421,12 @@ deleteWithKV ::
     BeamRunner beM,
     Model be table,
     MeshMeta be table,
+    PIIUpdate be table,
     KVConnector (table Identity),
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
+    MonadFlow m,
     Log m,
     Show (table Identity),
     MonadThrow m,
@@ -439,13 +454,14 @@ deleteWithDb ::
     SqlReturning beM be,
     B.HasQBuilder be,
     BeamRunner beM,
+    PIIUpdate be table,
     Model be table,
     MeshMeta be table,
     KVConnector (table Identity),
     FromJSON (table Identity),
     ToJSON (table Identity),
     Serialize.Serialize (table Identity),
-    L.MonadFlow m,
+    MonadFlow m,
     Log m,
     Show (table Identity),
     MonadThrow m,
