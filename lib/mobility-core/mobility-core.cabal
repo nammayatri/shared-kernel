@@ -171,6 +171,8 @@ library
       Kernel.ServantMultipart
       Kernel.Serviceability
       Kernel.Sms.Config
+      Kernel.Storage.Beam.BecknRequestDriver
+      Kernel.Storage.Beam.BecknRequestRider
       Kernel.Storage.Clickhouse.Config
       Kernel.Storage.Clickhouse.Operators
       Kernel.Storage.Clickhouse.Queries
@@ -191,8 +193,8 @@ library
       Kernel.Storage.Hedis.Config
       Kernel.Storage.Hedis.Error
       Kernel.Storage.Hedis.Queries
-      Kernel.Storage.Queries.BecknRequest
-      Kernel.Storage.Tabular.BecknRequest
+      Kernel.Storage.Queries.BecknRequestDriver
+      Kernel.Storage.Queries.BecknRequestRider
       Kernel.Streaming.Kafka.Commons
       Kernel.Streaming.Kafka.Consumer
       Kernel.Streaming.Kafka.Consumer.Types
