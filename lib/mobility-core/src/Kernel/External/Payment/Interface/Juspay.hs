@@ -25,6 +25,7 @@ module Kernel.External.Payment.Interface.Juspay
     mandateRevoke,
     mandatePause,
     mandateResume,
+    mandateList,
   )
 where
 
@@ -501,3 +502,42 @@ mkOfferNotifyReq merchantId OfferNotifyReq {..} = do
       txn_status = transactionStatus,
       offers = offers <&> (\OfferNotifyOffer {offerId, status} -> Juspay.OfferNotifyOffer {offer_id = offerId, status})
     }
+
+mandateList ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  MandateListReq ->
+  m MandateListResp
+mandateList config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  Juspay.mandateList url apiKey req.customerId
+
+-- mkMandateListResp :: Juspay.MandateListResp -> MandateListResp
+-- mkMandateListResp Juspay.MandateListResp {..} = do
+--   MandateListResp
+--     {
+--       list = map mkMandateList list,
+--       ..
+--     }
+
+-- mkMandateList :: Juspay.MandateList -> MandateList
+-- mkMandateList Juspay.MandateList {..} =
+--   MandateList
+--     {
+--       paymentInfo = mkPaymentInfo paymentInfo,
+--       ..
+--     }
+
+-- mkPaymentInfo :: Juspay.PaymentInfo -> PaymentInfo
+-- mkPaymentInfo Juspay.PaymentInfo {..} =
+--   PaymentInfo
+--     {
+--       upiDetails = mkUPIDetails upiDetails,
+--       ..
+--     }
+
+-- mkUPIDetails :: Juspay.UPIDetails -> UPIDetails
+-- mkUPIDetails Juspay.UPIDetails {..} = UPIDetails {..}
