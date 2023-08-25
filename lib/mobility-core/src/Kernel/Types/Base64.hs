@@ -14,6 +14,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Kernel.Types.Base64 where
 
@@ -22,13 +23,30 @@ import Data.Bifunctor (bimap)
 import Data.ByteString
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.Text as T
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField)
 import Kernel.Prelude
-import Kernel.Storage.Esqueleto
+import Kernel.Storage.Esqueleto.Queries
+  ( PersistField (..),
+    PersistFieldSql,
+    PersistValue (PersistText),
+  )
 import Kernel.Utils.Dhall
 
 newtype Base64 = Base64 ByteString
-  deriving (Show, Eq)
+  deriving (Show, Eq, Read, Ord)
   deriving newtype (PersistFieldSql)
+
+deriving newtype instance FromField Base64
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Base64 where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Base64
+
+instance FromBackendRow Postgres Base64
 
 instance PersistField Base64 where
   toPersistValue (Base64 t) = PersistText . decodeUtf8 $ Base64.encode t

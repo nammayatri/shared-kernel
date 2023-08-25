@@ -13,14 +13,19 @@
 -}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Kernel.Types.Time where
 
 import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
 import qualified Data.Time as Time
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres (Postgres)
 import Database.Persist.Class
 import Database.Persist.Sql
+import Database.PostgreSQL.Simple.FromField (FromField)
 import EulerHS.Prelude
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.GenericPretty
@@ -50,11 +55,26 @@ newtype Minutes = Minutes
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
+instance IsString Minutes where
+  fromString = show
+
 newtype Hours = Hours
   { getHours :: Int
   }
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
+
+deriving newtype instance FromField Hours
+
+instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Hours where
+  sqlValueSyntax = sqlValueSyntax . getHours
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Hours
+
+instance FromBackendRow Postgres Hours
+
+instance IsString Hours where
+  fromString = show
 
 newtype Days = Days
   { getDays :: Int

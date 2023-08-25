@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.Types.Beckn.Country (Country (..)) where
@@ -26,8 +27,11 @@ import Kernel.Utils.GenericPretty
 derivePersistField "Country"
 
 data Country = India | France | AnyCountry
-  deriving (Eq, Generic, Show, Read, ToSchema)
+  deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable Country
+
+instance IsString Country where
+  fromString = show
 
 instance FromJSON Country where
   parseJSON (String "IND") = pure India
