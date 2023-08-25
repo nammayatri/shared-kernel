@@ -1,3 +1,5 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -15,9 +17,14 @@
 
 module Kernel.External.Call.Interface.Types where
 
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import qualified Kernel.External.Call.Exotel.Config as Exotel
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Types.Common (fromFieldEnum)
 
 newtype CallServiceConfig = ExotelConfig Exotel.ExotelCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -59,6 +66,21 @@ data CallStatus
   | NOT_CONNECTED
   | MISSED
   deriving (Generic, Eq, Show, Read, ToJSON, FromJSON, ToSchema)
+
+instance FromField CallStatus where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be CallStatus where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be CallStatus
+
+instance FromBackendRow Postgres CallStatus
+
+deriving stock instance Ord CallStatus
+
+instance IsString CallStatus where
+  fromString = show
 
 derivePersistField "CallStatus"
 

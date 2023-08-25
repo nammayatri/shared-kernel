@@ -27,6 +27,10 @@ import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.Aeson.Types
 import Data.Default.Class
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField)
 import EulerHS.Prelude hiding (id)
 import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Kernel.Types.App
@@ -52,6 +56,17 @@ newtype FCMRecipientToken = FCMRecipientToken
   { getFCMRecipientToken :: Text
   }
   deriving newtype (PersistField, PersistFieldSql, Show, PrettyShow)
+
+deriving newtype instance FromField FCMRecipientToken
+
+instance HasSqlValueSyntax be Text => HasSqlValueSyntax be FCMRecipientToken where
+  sqlValueSyntax = sqlValueSyntax . getFCMRecipientToken
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be FCMRecipientToken
+
+instance FromBackendRow Postgres FCMRecipientToken
+
+deriving stock instance Read FCMRecipientToken
 
 deriveIdentifierInstances ''FCMRecipientToken
 

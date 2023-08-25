@@ -14,6 +14,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Types.Common
@@ -86,6 +87,18 @@ newtype Kilometers = Kilometers
   }
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
+
+deriving newtype instance FromField Kilometers
+
+instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Kilometers where
+  sqlValueSyntax = sqlValueSyntax . getKilometers
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Kilometers
+
+instance FromBackendRow Postgres Kilometers
+
+instance IsString Kilometers where
+  fromString = KP.show
 
 kilometersToMeters :: Kilometers -> Meters
 kilometersToMeters (Kilometers n) = Meters $ n * 1000
