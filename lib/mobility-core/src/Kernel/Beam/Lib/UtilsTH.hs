@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskellQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.Beam.Lib.UtilsTH where
 
@@ -11,9 +11,11 @@ import Data.List (init, nub, (!!))
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 import qualified Database.Beam as B
+import Database.Beam.Backend
 import Database.Beam.MySQL (MySQL)
 import Database.Beam.Postgres (Postgres)
 import qualified Database.Beam.Schema.Tables as B
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.KVConnector.Types (KVConnector (..), MeshMeta (..), PrimaryKey (..), SecondaryKey (..), TermWrap (..))
 import EulerHS.Prelude hiding (Type, words)
 import Language.Haskell.TH
@@ -228,7 +230,7 @@ utilTransform modifyMap field value = do
     A.Object o -> T.pack $ show o
     A.Null -> T.pack ""
 
-mkEmod :: Name -> String -> String -> Q [Dec]
+mkEmod :: Name -> String -> String -> Q (Dec, Dec)
 mkEmod name table schema = do
   let fnName = mkName $ (T.unpack . T.dropEnd 1 . T.pack $ camel (nameBase name)) <> "Table"
       tableTModN = mkName $ camel (nameBase name) <> "Mod"
@@ -248,10 +250,18 @@ mkEmod name table schema = do
                   )
               )
           )
-  -- return [FunD fnName [Clause [] (NormalB bodyExpr) []]]
-  return [FunD fnName [Clause [] (NormalB bodyExpr) []]]
+  let beTypeVar = VarT $ mkName "be"
+      dbTypeVar = VarT $ mkName "dn"
+      fnTypeBody =
+        ConT ''B.EntityModification
+          `AppT` (ConT ''B.DatabaseEntity `AppT` beTypeVar `AppT` dbTypeVar)
+          `AppT` beTypeVar
+          `AppT` (ConT ''B.TableEntity `AppT` ConT name)
+      fnSig = SigD fnName fnTypeBody
+      fnBody = FunD fnName [Clause [] (NormalB bodyExpr) []]
+  return (fnSig, fnBody)
 
-mkModelMetaInstances :: Name -> String -> String -> Q [Dec]
+mkModelMetaInstances :: Name -> String -> String -> Q Dec
 mkModelMetaInstances name table schema = do
   let modelFM = mkName "modelFieldModification"
       modelTable = mkName "modelTableName"
@@ -260,39 +270,60 @@ mkModelMetaInstances name table schema = do
       modelFMInstance = FunD modelFM [Clause [] (NormalB (VarE tableTModN)) []]
       modelNameInstance = FunD modelTable [Clause [] (NormalB (LitE $ StringL table)) []]
       modelSchemaInstance = FunD modelSchema [Clause [] (NormalB (AppE (ConE 'Just) (LitE $ StringL schema))) []]
-  return [InstanceD Nothing [] (AppT (ConT ''ModelMeta) (ConT name)) [modelFMInstance, modelNameInstance, modelSchemaInstance]]
+  return $ InstanceD Nothing [] (AppT (ConT ''ModelMeta) (ConT name)) [modelFMInstance, modelNameInstance, modelSchemaInstance]
 
-mkSerialInstances :: Name -> Q [Dec]
+mkSerialInstances :: Name -> Q Dec
 mkSerialInstances name = do
   let -- tName     = mkName $ (T.unpack . T.dropEnd 1 . T.pack $ camel (nameBase name))
       putFn = mkName "put"
       getFn = mkName "get"
       putInstance = FunD putFn [Clause [] (NormalB (AppE (VarE 'error) (LitE $ StringL ""))) []]
       getInstance = FunD getFn [Clause [] (NormalB (AppE (VarE 'error) (LitE $ StringL ""))) []]
-  return [InstanceD Nothing [] (AppT (ConT ''Serialize) (AppT (ConT name) (ConT $ mkName "Identity"))) [putInstance, getInstance]]
+  return $ InstanceD Nothing [] (AppT (ConT ''Serialize) (AppT (ConT name) (ConT $ mkName "Identity"))) [putInstance, getInstance]
 
-mkFromJSONInstance :: Name -> Q [Dec]
+mkFromJSONInstance :: Name -> Q Dec
 mkFromJSONInstance name = do
   let fromJSONFn = mkName "parseJSON"
       fromJSONInstance = FunD fromJSONFn [Clause [] (NormalB (AppE (VarE 'A.genericParseJSON) (VarE 'A.defaultOptions))) []]
-  return [InstanceD Nothing [] (AppT (ConT ''FromJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [fromJSONInstance]]
+  return $ InstanceD Nothing [] (AppT (ConT ''FromJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [fromJSONInstance]
 
-mkToJSONInstance :: Name -> Q [Dec]
+mkToJSONInstance :: Name -> Q Dec
 mkToJSONInstance name = do
   let toJSONFn = mkName "toJSON"
       toJSONInstance = FunD toJSONFn [Clause [] (NormalB (AppE (VarE 'A.genericToJSON) (VarE 'A.defaultOptions))) []]
-  return [InstanceD Nothing [] (AppT (ConT ''ToJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [toJSONInstance]]
+  return $ InstanceD Nothing [] (AppT (ConT ''ToJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [toJSONInstance]
 
-mkShowInstance :: Name -> Q [Dec]
+mkShowInstance :: Name -> Q Dec
 mkShowInstance name = do
-  return [StandaloneDerivD (Just StockStrategy) [] (AppT (ConT ''Show) (AppT (ConT name) (ConT $ mkName "Identity")))]
+  return $ StandaloneDerivD (Just StockStrategy) [] (AppT (ConT ''Show) (AppT (ConT name) (ConT $ mkName "Identity")))
 
 mkTableInstances :: Name -> String -> String -> Q [Dec]
 mkTableInstances name table schema = do
-  [modelMetaInstances] <- mkModelMetaInstances name table schema
-  [eModInstances] <- mkEmod name table schema
-  [serialInstances] <- mkSerialInstances name
-  [fromJSONInstances] <- mkFromJSONInstance name
-  [toJSONInstances] <- mkToJSONInstance name
-  [showInstances] <- mkShowInstance name
-  pure [modelMetaInstances, eModInstances, serialInstances, fromJSONInstances, toJSONInstances, showInstances]
+  modelMetaInstances <- mkModelMetaInstances name table schema
+  (eModSig, eModBody) <- mkEmod name table schema
+  serialInstances <- mkSerialInstances name
+  fromJSONInstances <- mkFromJSONInstance name
+  toJSONInstances <- mkToJSONInstance name
+  showInstances <- mkShowInstance name
+  pure [modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances]
+
+------------------- instances for enum --------------------
+
+-- | A set of instances required for beam table row as enum.
+mkBeamInstancesForEnum :: Name -> Q [Dec]
+mkBeamInstancesForEnum name = do
+  let tyQ = pure (ConT name)
+  [d|
+    instance FromField $tyQ where
+      fromField = fromFieldEnum
+
+    instance HasSqlValueSyntax be String => HasSqlValueSyntax be $tyQ where
+      sqlValueSyntax = autoSqlValueSyntax
+
+    instance BeamSqlBackend be => B.HasSqlEqualityCheck be $tyQ
+
+    instance FromBackendRow Postgres $tyQ
+
+    instance IsString $tyQ where
+      fromString = show
+    |]
