@@ -21,7 +21,7 @@ module Kernel.External.Payment.Interface.Types
 where
 
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateListResp (..), MandateStatus (..), MandateType (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), TransactionStatus (..))
 import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
 import Kernel.Types.Common
@@ -269,3 +269,38 @@ data OfferNotifyOffer = OfferNotifyOffer
   }
 
 type OfferNotifyResp = APISuccess
+
+--- Mandate List Request and Response---
+newtype MandateListReq = MandateListReq
+  { customerId :: Text
+  }
+
+-- data MandateListResp = MandateListResp
+--   {
+--     total :: Int,
+--     list :: [MandateList]
+--   }
+
+-- data MandateList = MandateList
+--   {
+--     status :: MandateStatus,
+--     startDate :: UTCTime,
+--     endDate :: UTCTime,
+--     paymentInfo :: PaymentInfo,
+--     maxAmount :: Money,
+--     mandateToken :: Text,
+--     mandateId :: Text,
+--     currency :: Text
+--   }
+
+-- data PaymentInfo = PaymentInfo
+--   {
+--     paymentMethodType :: Text,
+--     paymentMethod :: Text,
+--     upiDetails :: UPIDetails
+--   }
+
+-- newtype UPIDetails = UPIDetails
+--   {
+--     payerVpa :: Text
+--   }

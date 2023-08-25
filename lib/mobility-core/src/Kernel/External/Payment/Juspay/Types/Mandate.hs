@@ -7,6 +7,9 @@ import Kernel.Prelude
 import Servant (ToHttpApiData (..))
 import Web.FormUrlEncoded
 
+-- import Kernel.Types.Common
+-- import Kernel.Utils.JSON
+
 --- For Mandate Notifications ---
 data MandateNotificationReq = MandateNotificationReq
   { command :: Text,
@@ -112,3 +115,50 @@ data MandateResumeReq = MandateResumeReq
     resume_date :: Text
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema, ToForm)
+
+-- --- For Mandate List ---
+-- data MandateListResp = MandateListResp
+--   {
+--     list :: [MandateList],
+--     total :: Int
+--   }
+--   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+-- data MandateList = MandateList
+--   {
+--     paymentInfo :: PaymentInfo,
+--     status :: MandateStatus,
+--     startDate :: UTCTime,
+--     endDate :: UTCTime,
+--     maxAmount :: Money,
+--     mandateToken :: Text,
+--     mandateId :: Text,
+--     currency :: Text
+--   }
+--   deriving (Eq, Show, Generic, ToSchema)
+
+-- instance FromJSON MandateList where
+--   parseJSON = genericParseJSON constructorsWithSnakeCase
+
+-- instance ToJSON MandateList where
+--   toJSON = genericToJSON constructorsWithSnakeCase
+-- data PaymentInfo = PaymentInfo
+--   {
+--     upiDetails :: UPIDetails,
+--     paymentMethodType :: Text,
+--     paymentMethod :: Text
+--   }
+--   deriving (Eq, Show, Generic, ToSchema)
+
+-- instance FromJSON PaymentInfo where
+--   parseJSON = genericParseJSON constructorsWithSnakeCase
+-- instance ToJSON PaymentInfo where
+--   toJSON = genericToJSON constructorsWithSnakeCase
+-- newtype UPIDetails = UPIDetails
+--   {
+--     payerVpa :: Text
+--   }
+--   deriving (Eq, Show, Generic, ToSchema)
+-- instance FromJSON UPIDetails where
+--   parseJSON = genericParseJSON constructorsWithSnakeCase
+-- instance ToJSON UPIDetails where
+--   toJSON = genericToJSON constructorsWithSnakeCase

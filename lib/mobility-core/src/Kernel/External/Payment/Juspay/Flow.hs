@@ -292,3 +292,25 @@ mandateResume url apiKey mandateId req = do
           }
   callAPI url (eulerClient mandateId basicAuthData req) "mandate-resume" (Proxy @MandateResumeAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call mandate resume API: " <> show err)
+
+type MandateListAPI =
+  "customers"
+    :> Capture "customerId" Text
+    :> "mandates"
+    :> BasicAuth "username-password" BasicAuthData
+    :> Capture "version" Text
+    :> Get '[JSON] MandateListResp
+
+mandateList ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  m MandateListResp
+mandateList url apiKey customerId = do
+  let eulerClient = Euler.client (Proxy @MandateListAPI)
+  version <- getCurrentDate
+  callAPI url (eulerClient customerId (mkBasicAuthData apiKey) version) "mandate-list" (Proxy @MandateListAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate list API: " <> show err)
