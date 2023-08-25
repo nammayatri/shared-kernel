@@ -20,11 +20,29 @@ module Kernel.External.Verification.Types
 where
 
 import Data.OpenApi
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Types.Common (fromFieldEnum)
 
 data VerificationService = Idfy | InternalScripts
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+
+instance FromField VerificationService where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be VerificationService where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be VerificationService
+
+instance FromBackendRow Postgres VerificationService
+
+instance IsString VerificationService where
+  fromString = show
 
 availableVerificationServices :: [VerificationService]
 availableVerificationServices = [Idfy, InternalScripts]

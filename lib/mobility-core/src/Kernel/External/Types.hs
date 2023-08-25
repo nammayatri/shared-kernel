@@ -50,6 +50,9 @@ instance FromField Language where
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be Language
 
+instance IsString Language where
+  fromString = show
+
 instance FromHttpApiData Language where
   parseUrlPiece "en" = pure ENGLISH
   parseUrlPiece "hi" = pure HINDI

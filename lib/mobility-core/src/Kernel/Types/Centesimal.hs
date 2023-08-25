@@ -29,6 +29,9 @@ newtype Centesimal = Centesimal {getCenti :: Centi}
   deriving newtype (Num, Real, RealFrac, ToJSON, Read, Show, PersistField, PersistFieldSql)
   deriving anyclass (PrettyShow)
 
+instance IsString Centesimal where
+  fromString = show
+
 instance FromJSON Centesimal where
   parseJSON = withScientific "Centesimal" (pure . realToFrac)
 

@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.Types.Beckn.City (City (..)) where
@@ -26,8 +27,11 @@ import Kernel.Utils.GenericPretty
 derivePersistField "City"
 
 data City = Bangalore | Kolkata | Paris | Kochi | AnyCity
-  deriving (Eq, Generic, Show, Read, ToSchema)
+  deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable City
+
+instance IsString City where
+  fromString = show
 
 instance FromJSON City where
   parseJSON (String "std:080") = pure Bangalore

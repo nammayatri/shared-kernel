@@ -26,13 +26,32 @@ import Data.Geospatial
 import Data.LineString
 import Data.OpenApi
 import Data.Text
+import qualified Data.Vector as V
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Types.Common (fromFieldEnum)
 import Kernel.Utils.GenericPretty (PrettyShow)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 data MapsService = Google | OSRM | MMI
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+
+instance FromField MapsService where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be MapsService where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be MapsService
+
+instance FromBackendRow Postgres MapsService
+
+instance IsString MapsService where
+  fromString = show
 
 availableMapsServices :: [MapsService]
 availableMapsServices = [Google, OSRM, MMI]
@@ -43,7 +62,22 @@ data LatLong = LatLong
   { lat :: Double,
     lon :: Double
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema, PrettyShow)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema, PrettyShow, Ord, Read)
+
+instance FromField [LatLong] where
+  fromField f mbValue = V.toList <$> fromField f mbValue
+
+instance FromField LatLong where
+  fromField = fromFieldEnum
+
+instance (HasSqlValueSyntax be (V.Vector Text)) => HasSqlValueSyntax be [LatLong] where
+  sqlValueSyntax latlonglist =
+    let x = (show <$> latlonglist :: [Text])
+     in sqlValueSyntax (V.fromList x)
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be [LatLong]
+
+instance FromBackendRow Postgres [LatLong]
 
 instance ToParamSchema LatLong where
   toParamSchema _ =

@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.External.Whatsapp.Interface.Types
@@ -19,10 +20,15 @@ module Kernel.External.Whatsapp.Interface.Types
   )
 where
 
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import Deriving.Aeson
 import qualified Kernel.External.Whatsapp.GupShup.Config as GupShup
 import qualified Kernel.External.Whatsapp.Types as T
 import Kernel.Prelude
+import Kernel.Types.Common (fromFieldEnum)
 import Kernel.Utils.JSON
 
 newtype WhatsappServiceConfig = GupShupConfig GupShup.GupShupCfg
@@ -31,6 +37,21 @@ newtype WhatsappServiceConfig = GupShupConfig GupShup.GupShupCfg
 
 data OptApiMethods = OPT_IN | OPT_OUT
   deriving (Show, Eq, Read, Generic, ToSchema, FromJSON, ToJSON, Enum)
+
+instance FromField OptApiMethods where
+  fromField = fromFieldEnum
+
+instance IsString OptApiMethods where
+  fromString = show
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be OptApiMethods where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be OptApiMethods
+
+instance FromBackendRow Postgres OptApiMethods
+
+deriving stock instance Ord OptApiMethods
 
 data WhatsappHandler m = WhatsappHandler
   { getProvidersPriorityList :: m [T.WhatsappService],
