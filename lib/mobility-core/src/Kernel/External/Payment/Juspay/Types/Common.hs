@@ -46,7 +46,7 @@ data PaymentStatus
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data Currency = INR
-  deriving stock (Show, Read, Eq, Generic)
+  deriving stock (Show, Eq, Read, Ord, Generic)
   deriving anyclass (ToSchema)
 
 derivePersistField "Currency"
@@ -90,7 +90,7 @@ data TransactionStatus
   | STARTED
   | AUTO_REFUNDED
   | CLIENT_AUTH_TOKEN_EXPIRED -- Domain status, not part of Juspay Euler status types
-  deriving stock (Show, Read, Eq, Generic)
+  deriving stock (Show, Eq, Read, Ord, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 derivePersistField "TransactionStatus"
