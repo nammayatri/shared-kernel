@@ -12,14 +12,20 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Payment.Juspay.Types.Common where
 
 import Data.Aeson.Types
+import qualified Database.Beam as B
+import Database.Beam.Backend (BeamSqlBackend, FromBackendRow, HasSqlValueSyntax, autoSqlValueSyntax)
+import Database.Beam.Backend.SQL.SQL99 (HasSqlValueSyntax (sqlValueSyntax))
+import Database.Beam.Postgres (Postgres)
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common (HighPrecMoney)
+import Kernel.Types.Common (HighPrecMoney, fromFieldEnum)
 
 data PaymentStatus
   = ORDER_SUCCEEDED
@@ -135,3 +141,78 @@ data Upi = Upi
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+instance FromField MandateType where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be MandateType where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be MandateType
+
+instance FromBackendRow Postgres MandateType
+
+instance IsString MandateType where
+  fromString = show
+
+deriving stock instance Ord MandateType
+
+instance FromField MandateStatus where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be MandateStatus where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be MandateStatus
+
+instance FromBackendRow Postgres MandateStatus
+
+instance IsString MandateStatus where
+  fromString = show
+
+deriving stock instance Ord MandateStatus
+
+instance FromField TransactionStatus where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be TransactionStatus where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be TransactionStatus
+
+instance FromBackendRow Postgres TransactionStatus
+
+instance IsString TransactionStatus where
+  fromString = show
+
+deriving instance Ord TransactionStatus
+
+instance FromField Currency where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Currency where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Currency
+
+instance FromBackendRow Postgres Currency
+
+instance IsString Currency where
+  fromString = show
+
+deriving instance Ord Currency
+
+instance FromField MandateFrequency where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be MandateFrequency where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be MandateFrequency
+
+instance FromBackendRow Postgres MandateFrequency
+
+instance IsString MandateFrequency where
+  fromString = show
+
+deriving stock instance Ord MandateFrequency
