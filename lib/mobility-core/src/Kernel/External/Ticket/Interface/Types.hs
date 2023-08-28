@@ -54,3 +54,13 @@ data RideInfo = RideInfo
     dropLocation :: Maybe Text,
     fare :: Maybe Money
   }
+
+data UpdateTicketReq = UpdateTicketReq
+  { comment :: String,
+    ticket_id :: String,
+    callback_time :: String,
+    status :: String,
+    sub_status :: String,
+    queue :: String,
+    disposition :: String
+  }

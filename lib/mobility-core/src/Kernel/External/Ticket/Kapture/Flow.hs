@@ -14,6 +14,7 @@
 
 module Kernel.External.Ticket.Kapture.Flow
   ( createTicketAPI,
+    updateTicketAPI,
   )
 where
 
@@ -26,12 +27,17 @@ import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Utils.Common (callAPI, fromEitherM)
 import Servant hiding (throwError)
 
-type KaptureCreateTicketAPI =
+type KaptureTicketAPI =
   "add-ticket-from-other-source.html"
     :> Capture "version" Text
     :> Header "Authorization" Text
     :> ReqBody '[JSON] Kapture.CreateTicketReq
     :> Post '[JSON] Kapture.CreateTicketResp
+    :<|> "update-ticket-from-other-source.html"
+      :> Capture "version" Text
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] Kapture.CreateTicketReq
+      :> Post '[JSON] Kapture.CreateTicketResp
 
 createTicketAPI ::
   ( Metrics.CoreMetrics m,
@@ -43,6 +49,20 @@ createTicketAPI ::
   Kapture.CreateTicketReq ->
   m Kapture.CreateTicketResp
 createTicketAPI url version auth req = do
-  let eulerClient = Euler.client (Proxy @KaptureCreateTicketAPI)
-  callAPI url (eulerClient version (Just auth) req) "createTicketAPI" (Proxy @KaptureCreateTicketAPI)
+  let eulerClient = Euler.client (Proxy @KaptureTicketAPI)
+  callAPI url (eulerClient version (Just auth) req) "createTicketAPI" (Proxy @KaptureTicketAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call create ticket API: " <> show err)
+
+updateTicketAPI ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Kapture.UpdateTicketReq ->
+  m Kapture.UpdateTicketResp
+updateTicketAPI url version auth req = do
+  let eulerClient = Euler.client (Proxy @KaptureTicketAPI)
+  callAPI url (eulerClient version (Just auth) req) "updateTicketAPI" (Proxy @KaptureTicketAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call update ticket API: " <> show err)

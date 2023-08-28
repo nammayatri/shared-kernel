@@ -42,6 +42,20 @@ data CreateTicketReq = CreateTicketReq
 instance ToJSON CreateTicketReq where
   toJSON = genericToJSON constructorsWithSnakeCase
 
+data UpdateTicketReq = UpdateTicketReq
+  { comment :: String,
+    ticket_id :: String,
+    callback_time :: String,
+    status :: String,
+    sub_status :: String,
+    queue :: String,
+    disposition :: String
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON UpdateTicketReq where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
 data IssueDetails = IssueDetails
   { issueDescription :: Text,
     issueId :: Maybe Text,
@@ -92,6 +106,20 @@ instance FromJSON CreateTicketResp where
   parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON CreateTicketResp where
+  toJSON = genericToJSON jsonOptions
+
+data UpdateTicketResp = UpdateTicketResp
+  { additionalDetails :: AdditionalDetails,
+    message :: Text,
+    status :: Text,
+    ticket :: TicketDetails
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance FromJSON UpdateTicketResp where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON UpdateTicketResp where
   toJSON = genericToJSON jsonOptions
 
 newtype AdditionalDetails = AdditionalDetails
