@@ -44,7 +44,7 @@ meshConfig =
       meshDBName = "postgres",
       ecRedisDBStream = "driver-db-sync-stream",
       kvRedis = "KVRedis",
-      redisTtl = 43200,
+      redisTtl = 18000,
       kvHardKilled = True,
       cerealEnabled = False
     }
