@@ -21,6 +21,7 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.OpenApi hiding (Example)
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto
 import Kernel.Utils.GenericPretty
 
@@ -30,8 +31,7 @@ data Country = India | France | AnyCountry
   deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable Country
 
-instance IsString Country where
-  fromString = show
+$(mkBeamInstancesForEnum ''Country)
 
 instance FromJSON Country where
   parseJSON (String "IND") = pure India

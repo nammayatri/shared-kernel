@@ -17,6 +17,7 @@
 module Kernel.External.Payment.Juspay.Types.Common where
 
 import Data.Aeson.Types
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common (HighPrecMoney)
@@ -50,6 +51,8 @@ data Currency = INR
   deriving anyclass (ToSchema)
 
 derivePersistField "Currency"
+
+$(mkBeamInstancesForEnum ''Currency)
 
 -- Generic instances for type with single value will not work
 instance FromJSON Currency where
@@ -94,6 +97,8 @@ data TransactionStatus
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 derivePersistField "TransactionStatus"
+
+$(mkBeamInstancesForEnum ''TransactionStatus)
 
 type OrderStatusResp = OrderData
 
