@@ -350,11 +350,11 @@
         "sequelize": "sequelize"
       },
       "locked": {
-        "lastModified": 1690897493,
-        "narHash": "sha256-50FaBXBH5qc9LHp4en4lE/scjs2wUsl3wDk3ioJBVBY=",
+        "lastModified": 1693318405,
+        "narHash": "sha256-NnnelyScA2FWDioH39GoufSCcsWA9J7llCp8JHKSdxw=",
         "owner": "juspay",
         "repo": "euler-hs",
-        "rev": "3fb3536479b4525384d0aeac93a1ffe5c5bf47f8",
+        "rev": "cefc4305b87dbecacfac7ad9ae8bc219bac0b295",
         "type": "github"
       },
       "original": {
