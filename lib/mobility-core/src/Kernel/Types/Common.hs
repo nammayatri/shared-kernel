@@ -15,6 +15,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Types.Common
@@ -25,14 +26,11 @@ module Kernel.Types.Common
 where
 
 import Data.Aeson
-import qualified Data.Bifunctor as BF
 import Data.ByteString.Internal (ByteString)
-import Data.ByteString.Lazy (fromStrict, toStrict)
 import Data.Fixed (Centi, Fixed (MkFixed))
 import Data.Generics.Labels ()
 import Data.OpenApi
 import Data.Text as T
-import qualified Data.Text.Encoding as DT
 import qualified Data.Vector as V
 import Database.Beam
 import qualified Database.Beam as B
@@ -60,6 +58,7 @@ import Kernel.Types.MonadGuid as Common
 import Kernel.Types.Time as Common
 import Kernel.Utils.Dhall (FromDhall, Natural)
 import Kernel.Utils.GenericPretty
+import Kernel.Utils.TH (mkHttpInstancesForEnum)
 import Servant
 import Text.Show (Show (..))
 
@@ -281,12 +280,4 @@ buildRadiusWithin'' (lat, lon) rad =
 (<->.) :: Point -> Point -> BQ.QGenExpr context Postgres s Double
 (<->.) p1 p2 = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ KP.show p1 <> " <-> " <> KP.show p2))
 
-instance FromHttpApiData HighPrecMoney where
-  parseUrlPiece = parseHeader . DT.encodeUtf8
-  parseQueryParam = parseUrlPiece
-  parseHeader = BF.first T.pack . eitherDecode . fromStrict
-
-instance ToHttpApiData HighPrecMoney where
-  toUrlPiece = DT.decodeUtf8 . toHeader
-  toQueryParam = toUrlPiece
-  toHeader = toStrict . encode
+$(mkHttpInstancesForEnum ''HighPrecMoney)
