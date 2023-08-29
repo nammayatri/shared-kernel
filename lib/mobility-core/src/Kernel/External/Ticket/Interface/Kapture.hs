@@ -34,7 +34,7 @@ createTicket ::
   IT.CreateTicketReq ->
   m Kapture.CreateTicketResp
 createTicket config req = do
-  auth <- decrypt config.auth
+  auth <- decrypt config.createAuth
   KF.createTicketAPI config.url config.version auth (mkCreateTicketReq req)
 
 mkCreateTicketReq :: IT.CreateTicketReq -> Kapture.CreateTicketReq
@@ -64,7 +64,7 @@ updateTicket ::
   IT.UpdateTicketReq ->
   m Kapture.UpdateTicketResp
 updateTicket config req = do
-  auth <- decrypt config.auth
+  auth <- decrypt config.updateAuth
   KF.updateTicketAPI config.url config.version auth (mkUpdateTicketReq req)
 
 mkUpdateTicketReq :: IT.UpdateTicketReq -> Kapture.UpdateTicketReq

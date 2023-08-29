@@ -18,7 +18,8 @@ import Kernel.External.Encryption
 import Kernel.Prelude
 
 data KaptureCfg = KaptureCfg
-  { auth :: EncryptedField 'AsEncrypted Text,
+  { createAuth :: EncryptedField 'AsEncrypted Text,
+    updateAuth :: EncryptedField 'AsEncrypted Text,
     version :: Text,
     url :: BaseUrl
   }
