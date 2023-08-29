@@ -12,20 +12,17 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Types where
 
 import Data.OpenApi
 import Database.Beam
-import qualified Database.Beam as B
-import Database.Beam.Backend
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Encryption (EncFlow)
 import Kernel.Storage.Esqueleto (EsqDBFlow)
 import Kernel.Types.CacheFlow (CacheFlow)
-import Kernel.Types.FromField (fromFieldEnum)
 import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
@@ -40,18 +37,7 @@ data Language
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
   deriving (PrettyShow) via Showable Language
 
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be Language where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance FromField Language => FromBackendRow Postgres Language
-
-instance FromField Language where
-  fromField = fromFieldEnum
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be Language
-
-instance IsString Language where
-  fromString = show
+$(mkBeamInstancesForEnum ''Language)
 
 instance FromHttpApiData Language where
   parseUrlPiece "en" = pure ENGLISH

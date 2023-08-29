@@ -20,29 +20,14 @@ module Kernel.External.AadhaarVerification.Types
 where
 
 import Data.OpenApi
-import qualified Database.Beam as B
-import Database.Beam.Backend
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common (fromFieldEnum)
 
 data AadhaarVerificationService = Gridline
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-instance FromField AadhaarVerificationService where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be AadhaarVerificationService where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be AadhaarVerificationService
-
-instance FromBackendRow Postgres AadhaarVerificationService
-
-instance IsString AadhaarVerificationService where
-  fromString = show
+$(mkBeamInstancesForEnum ''AadhaarVerificationService)
 
 availableVerificationServices :: [AadhaarVerificationService]
 availableVerificationServices = [Gridline]

@@ -19,28 +19,13 @@ module Kernel.External.Call.Types
 where
 
 import Data.OpenApi
-import qualified Database.Beam as B
-import Database.Beam.Backend
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common (fromFieldEnum)
 
 data CallService = Exotel
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-instance FromField CallService where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be CallService where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be CallService
-
-instance FromBackendRow Postgres CallService
-
-instance IsString CallService where
-  fromString = show
+$(mkBeamInstancesForEnum ''CallService)
 
 derivePersistField "CallService"
