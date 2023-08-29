@@ -19,28 +19,13 @@ module Kernel.External.Ticket.Types
 where
 
 import Data.OpenApi
-import qualified Database.Beam as B
-import Database.Beam.Backend
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common (fromFieldEnum)
 
 data IssueTicketService = Kapture
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-instance FromField IssueTicketService where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be IssueTicketService where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be IssueTicketService
-
-instance FromBackendRow Postgres IssueTicketService
-
-instance IsString IssueTicketService where
-  fromString = show
+$(mkBeamInstancesForEnum ''IssueTicketService)
 
 derivePersistField "IssueTicketService"

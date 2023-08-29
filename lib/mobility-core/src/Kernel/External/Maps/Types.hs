@@ -32,6 +32,7 @@ import Database.Beam.Backend
 import Database.Beam.Postgres
 import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common (fromFieldEnum)
 import Kernel.Utils.GenericPretty (PrettyShow)
@@ -40,18 +41,7 @@ import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 data MapsService = Google | OSRM | MMI
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-instance FromField MapsService where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be MapsService where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be MapsService
-
-instance FromBackendRow Postgres MapsService
-
-instance IsString MapsService where
-  fromString = show
+$(mkBeamInstancesForEnum ''MapsService)
 
 availableMapsServices :: [MapsService]
 availableMapsServices = [Google, OSRM, MMI]

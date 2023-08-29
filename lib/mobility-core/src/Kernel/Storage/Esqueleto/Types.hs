@@ -25,7 +25,6 @@ module Kernel.Storage.Esqueleto.Types
   )
 where
 
-import qualified Data.Aeson as A
 import Data.ByteString (ByteString)
 import qualified Database.Beam as B
 import Database.Beam.Backend
@@ -36,7 +35,8 @@ import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import Kernel.Prelude
 
 data Point = Point
-  deriving (Generic, Show, Read, Eq, ToSchema)
+  deriving stock (Show, Eq, Read, Ord, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 fromFieldPoint ::
   DPSF.Field ->
@@ -55,12 +55,6 @@ instance HasSqlValueSyntax be String => HasSqlValueSyntax be Point where
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be Point
 
 instance FromBackendRow Postgres Point
-
-deriving anyclass instance A.FromJSON Point
-
-deriving stock instance Ord Point
-
-deriving anyclass instance A.ToJSON Point
 
 instance PersistField Point where
   toPersistValue _ = error "This value should not be used in queries directly."

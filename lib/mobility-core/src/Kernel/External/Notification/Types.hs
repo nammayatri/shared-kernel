@@ -15,28 +15,13 @@
 
 module Kernel.External.Notification.Types where
 
-import qualified Database.Beam as B
-import Database.Beam.Backend
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common (fromFieldEnum)
 
 data NotificationService = FCM | PayTM
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
-instance FromField NotificationService where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be NotificationService where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be NotificationService
-
-instance FromBackendRow Postgres NotificationService
-
-instance IsString NotificationService where
-  fromString = show
+$(mkBeamInstancesForEnum ''NotificationService)
 
 derivePersistField "NotificationService"

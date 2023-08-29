@@ -18,6 +18,7 @@ import qualified Database.Beam.Schema.Tables as B
 import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.KVConnector.Types (KVConnector (..), MeshMeta (..), PrimaryKey (..), SecondaryKey (..), TermWrap (..))
 import EulerHS.Prelude hiding (Type, words)
+import Kernel.Types.FromField (fromFieldEnum)
 import Language.Haskell.TH
 import Sequelize
 import qualified Sequelize as S
