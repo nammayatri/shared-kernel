@@ -26,7 +26,8 @@ class Registry m where
 
 data SimpleLookupRequest = SimpleLookupRequest
   { unique_key_id :: Text,
-    subscriber_id :: Text
+    subscriber_id :: Text,
+    merchant_id :: Text
   }
   deriving (Eq, Ord)
 
