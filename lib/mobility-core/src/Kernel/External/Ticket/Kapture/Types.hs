@@ -43,13 +43,13 @@ instance ToJSON CreateTicketReq where
   toJSON = genericToJSON constructorsWithSnakeCase
 
 data UpdateTicketReq = UpdateTicketReq
-  { comment :: String,
-    ticket_id :: String,
-    callback_time :: String,
-    status :: String,
-    sub_status :: String,
-    queue :: String,
-    disposition :: String
+  { comment :: Text,
+    ticket_id :: Text,
+    callback_time :: Text,
+    status :: Text,
+    sub_status :: Text,
+    queue :: Text,
+    disposition :: Text
   }
   deriving stock (Show, Eq, Generic)
 
