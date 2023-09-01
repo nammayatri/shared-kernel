@@ -27,6 +27,23 @@ import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 
+notifyPerson' ::
+  ( MonadFlow m,
+    EncFlow m r,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    Default a,
+    ToJSON a,
+    ToJSON b
+  ) =>
+  NotificationServiceConfig ->
+  NotificationReq a b ->
+  Bool ->
+  m ()
+notifyPerson' serviceConfig req isMutable = case serviceConfig of
+  FCMConfig cfg -> FCM.notifyPerson cfg req isMutable
+  PayTMConfig cfg -> PayTM.notifyPerson cfg req
+
 notifyPerson ::
   ( MonadFlow m,
     EncFlow m r,
@@ -39,6 +56,18 @@ notifyPerson ::
   NotificationServiceConfig ->
   NotificationReq a b ->
   m ()
-notifyPerson serviceConfig req = case serviceConfig of
-  FCMConfig cfg -> FCM.notifyPerson cfg req
-  PayTMConfig cfg -> PayTM.notifyPerson cfg req
+notifyPerson serviceConfig req = notifyPerson' serviceConfig req False
+
+notifyPersonWithMutableContent ::
+  ( MonadFlow m,
+    EncFlow m r,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    Default a,
+    ToJSON a,
+    ToJSON b
+  ) =>
+  NotificationServiceConfig ->
+  NotificationReq a b ->
+  m ()
+notifyPersonWithMutableContent serviceConfig req = notifyPerson' serviceConfig req True
