@@ -56,15 +56,15 @@ import Servant
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
 -- recipientId::FCMToken is an app's registration token
-createMessage :: (Default a) => FCMData a -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> FCMMessage a
-createMessage msgData recipientId priority =
+createMessage :: (Default a) => FCMData a -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> Bool -> FCMMessage a
+createMessage msgData recipientId priority isMutable =
   def{fcmToken = Just recipientId,
       fcmAndroid = Just androidCfg,
       fcmApns = Just apnsCfg
      }
   where
     androidCfg = createAndroidConfig msgData priority
-    apnsCfg = createApnsConfig msgData
+    apnsCfg = createApnsConfig msgData isMutable
 
 -- | Android Notification details
 createAndroidConfig :: (Default a) => FCMData a -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig a
@@ -73,8 +73,8 @@ createAndroidConfig cfgData priority =
       fcmdPriority = priority
      }
 
-createApnsConfig :: FCMData a -> FCMApnsConfig a
-createApnsConfig androidFcmData =
+createApnsConfig :: FCMData a -> Bool -> FCMApnsConfig a
+createApnsConfig androidFcmData isMutable =
   def{fcmaPayload = Just apnsPayload,
       fcmaHeaders =
         Just
@@ -83,10 +83,10 @@ createApnsConfig androidFcmData =
           )
      }
   where
-    apnsPayload = createApnsPayload androidFcmData
+    apnsPayload = createApnsPayload androidFcmData isMutable
 
-createApnsPayload :: forall a. FCMData a -> FCMApnPayload a
-createApnsPayload androidData =
+createApnsPayload :: forall a. FCMData a -> Bool -> FCMApnPayload a
+createApnsPayload androidData isMutable =
   def {fcmAps = Just fcmAps}
   where
     fcmAlert :: FCMAlert
@@ -98,7 +98,8 @@ createApnsPayload androidData =
     fcmAps =
       def{fcmAlert = Just fcmAlert,
           fcmData = Just androidData,
-          fcmCategory = Just androidData.fcmNotificationType
+          fcmCategory = Just androidData.fcmNotificationType,
+          fcmMutableContent = if isMutable then 1 else 0
          }
     title :: Maybe FCMNotificationTitle
     title = androidData.fcmNotificationJSON.fcmdTitle
@@ -140,7 +141,7 @@ notifyPerson ::
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPerson config = notifyPersonWithPriority config Nothing
+notifyPerson config msgData recipient = notifyPersonWithPriority config Nothing False msgData recipient
 
 notifyPersonWithPriority ::
   ( CoreMetrics m,
@@ -151,16 +152,17 @@ notifyPersonWithPriority ::
   ) =>
   FCMConfig ->
   Maybe FCMAndroidMessagePriority ->
+  Bool ->
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPersonWithPriority config priority msgData recipient = do
+notifyPersonWithPriority config priority isMutable msgData recipient = do
   let tokenNotFound = "device token of a person " <> recipient.id <> " not found"
   case recipient.token of
     Nothing -> do
       logTagInfo "FCM" tokenNotFound
       pure ()
-    Just token -> sendMessage config (FCMRequest (createMessage msgData token priority)) recipient.id
+    Just token -> sendMessage config (FCMRequest (createMessage msgData token priority isMutable)) recipient.id
 
 -- | Google API interface
 type FCMSendMessageAPI a =
