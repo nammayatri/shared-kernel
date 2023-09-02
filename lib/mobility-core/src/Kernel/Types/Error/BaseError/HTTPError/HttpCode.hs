@@ -24,6 +24,8 @@ data HttpCode
   | E403
   | E404
   | E412
+  | E413
+  | E415
   | E422
   | E429
   | E500
@@ -39,6 +41,8 @@ codeToHttpCode = \case
   403 -> Just E403
   404 -> Just E404
   412 -> Just E412
+  413 -> Just E413
+  415 -> Just E415
   422 -> Just E422
   429 -> Just E429
   500 -> Just E500
@@ -57,6 +61,8 @@ toServerError = \case
   E403 -> err403
   E404 -> err404
   E412 -> err412
+  E413 -> err413
+  E415 -> err415
   E422 -> err422
   E429 ->
     ServerError
@@ -77,6 +83,8 @@ isInternalError = \case
   E403 -> False
   E404 -> False
   E412 -> False
+  E413 -> False
+  E415 -> False
   E422 -> False
   E429 -> False
   E500 -> True

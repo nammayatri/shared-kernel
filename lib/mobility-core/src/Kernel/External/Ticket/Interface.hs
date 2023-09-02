@@ -14,6 +14,7 @@
 
 module Kernel.External.Ticket.Interface
   ( createTicket,
+    updateTicket,
   )
 where
 
@@ -32,3 +33,13 @@ createTicket ::
   m KT.CreateTicketResp
 createTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.createTicket cfg req
+
+updateTicket ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  IssueTicketServiceConfig ->
+  UpdateTicketReq ->
+  m KT.UpdateTicketResp
+updateTicket serviceConfig req = case serviceConfig of
+  KaptureConfig cfg -> Kapture.updateTicket cfg req
