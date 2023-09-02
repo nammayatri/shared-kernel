@@ -14,6 +14,7 @@
 
 module Kernel.External.Ticket.Interface.Kapture
   ( createTicket,
+    updateTicket,
   )
 where
 
@@ -74,4 +75,23 @@ mkRideDescriptionDriver IT.RideInfo {..} =
       dropLocationAreaCode = (.areaCode) =<< dropLocation,
       dropLocationArea = (.area) =<< dropLocation,
       ..
+    }
+
+updateTicket ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  KaptureCfg ->
+  IT.UpdateTicketReq ->
+  m Kapture.UpdateTicketResp
+updateTicket config req = do
+  auth <- decrypt config.auth
+  KF.updateTicketAPI config.url config.version auth (mkUpdateTicketReq req)
+
+mkUpdateTicketReq :: IT.UpdateTicketReq -> Kapture.UpdateTicketReq
+mkUpdateTicketReq IT.UpdateTicketReq {..} =
+  Kapture.UpdateTicketReq
+    { comment = comment,
+      ticket_id = ticketId,
+      sub_status = show subStatus
     }

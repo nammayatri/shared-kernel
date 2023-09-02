@@ -20,7 +20,7 @@ where
 
 import Deriving.Aeson
 import Kernel.External.Ticket.Kapture.Config as Kapture
-import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..))
+import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), UpdateTicketResp (..))
 import Kernel.External.Ticket.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
@@ -66,3 +66,19 @@ data Location = Location
     areaCode :: Maybe Text,
     area :: Maybe Text
   }
+
+data UpdateTicketReq = UpdateTicketReq
+  { comment :: Text,
+    ticketId :: Text,
+    subStatus :: SubStatus
+  }
+
+data SubStatus = OP | IN | RS | PE | CL
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+-- SubStatusName	  SubStatus Key
+-- OPEN	            OP
+-- PENDING INTERNAL	IN
+-- RESOLVED	        RS
+-- PENDING EXTERNAL	PE
+-- CLOSED	          CL
