@@ -254,7 +254,6 @@ library
       Kernel.Types.Registry.API
       Kernel.Types.Registry.Routes
       Kernel.Types.Registry.Subscriber
-      Kernel.Types.Schema
       Kernel.Types.Servant
       Kernel.Types.SlidingWindowCounters
       Kernel.Types.SlidingWindowLimiter
