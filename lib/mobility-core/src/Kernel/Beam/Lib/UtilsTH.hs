@@ -4,7 +4,10 @@ module Kernel.Beam.Lib.UtilsTH
   ( enableKVPG,
     mkTableInstances,
     mkTableInstancesWithTModifier,
+    mkTableInstancesGenericSchema,
+    mkTableInstancesGenericSchemaWithTModifier,
     mkBeamInstancesForEnum,
+    HasSchemaName (..),
   )
 where
 
@@ -29,6 +32,10 @@ import qualified Sequelize as S
 import Text.Casing (camel, quietSnake)
 import Prelude (head)
 import qualified Prelude as P
+
+-- | WARNING! Instances should be defined in application itself to avoid overlapping
+class HasSchemaName tn where
+  schemaName :: Proxy tn -> Text
 
 emptyTextHashMap :: HMI.HashMap Text Text
 emptyTextHashMap = HMI.empty
@@ -197,13 +204,15 @@ utilTransform modifyMap field value = do
     A.Object o -> T.pack $ show o
     A.Null -> T.pack ""
 
-mkEmod :: Name -> String -> String -> Q (Dec, Dec)
-mkEmod name table schema = do
+mkEmod :: Name -> String -> Maybe String -> Q (Dec, Dec)
+mkEmod name table mbSchema = do
+  let schemaNameExp = mkSchemaNameExp name mbSchema
+      schemaNameContext = mkSchemaNameContext name mbSchema
   let fnName = mkName $ (T.unpack . T.dropEnd 1 . T.pack $ camel (nameBase name)) <> "Table"
       tableTModN = mkName $ camel (nameBase name) <> "Mod"
       bodyExpr =
         InfixE
-          (Just (AppE (VarE 'B.setEntitySchema) (AppE (ConE 'Just) (LitE $ StringL schema))))
+          (Just (AppE (VarE 'B.setEntitySchema) (AppE (ConE 'Just) schemaNameExp)))
           (VarE '(<>))
           ( Just
               ( InfixE
@@ -220,24 +229,37 @@ mkEmod name table schema = do
   let beTypeVar = VarT $ mkName "be"
       dbTypeVar = VarT $ mkName "dn"
       fnTypeBody =
-        ConT ''B.EntityModification
-          `AppT` (ConT ''B.DatabaseEntity `AppT` beTypeVar `AppT` dbTypeVar)
-          `AppT` beTypeVar
-          `AppT` (ConT ''B.TableEntity `AppT` ConT name)
+        ForallT [] schemaNameContext $
+          ConT ''B.EntityModification
+            `AppT` (ConT ''B.DatabaseEntity `AppT` beTypeVar `AppT` dbTypeVar)
+            `AppT` beTypeVar
+            `AppT` (ConT ''B.TableEntity `AppT` ConT name)
       fnSig = SigD fnName fnTypeBody
       fnBody = FunD fnName [Clause [] (NormalB bodyExpr) []]
   return (fnSig, fnBody)
 
-mkModelMetaInstances :: Name -> String -> String -> Q Dec
-mkModelMetaInstances name table schema = do
+mkSchemaNameExp :: Name -> Maybe String -> Exp
+mkSchemaNameExp name = \case
+  Nothing -> VarE 'schemaName `AppE` (ConE 'Proxy `AppTypeE` ConT name)
+  Just schema -> LitE $ StringL schema
+
+mkSchemaNameContext :: Name -> Maybe String -> Cxt
+mkSchemaNameContext name = \case
+  Nothing -> [ConT ''HasSchemaName `AppT` ConT name]
+  Just _ -> []
+
+mkModelMetaInstances :: Name -> String -> Maybe String -> Q Dec
+mkModelMetaInstances name table mbSchema = do
   let modelFM = mkName "modelFieldModification"
       modelTable = mkName "modelTableName"
       modelSchema = mkName "modelSchemaName"
       tableTModN = mkName $ camel (nameBase name) <> "Mod"
       modelFMInstance = FunD modelFM [Clause [] (NormalB (VarE tableTModN)) []]
       modelNameInstance = FunD modelTable [Clause [] (NormalB (LitE $ StringL table)) []]
-      modelSchemaInstance = FunD modelSchema [Clause [] (NormalB (AppE (ConE 'Just) (LitE $ StringL schema))) []]
-  return $ InstanceD Nothing [] (AppT (ConT ''ModelMeta) (ConT name)) [modelFMInstance, modelNameInstance, modelSchemaInstance]
+      schemaNameExp = mkSchemaNameExp name mbSchema
+      schemaNameContext = mkSchemaNameContext name mbSchema
+      modelSchemaInstance = FunD modelSchema [Clause [] (NormalB (AppE (ConE 'Just) schemaNameExp)) []]
+  return $ InstanceD Nothing schemaNameContext (AppT (ConT ''ModelMeta) (ConT name)) [modelFMInstance, modelNameInstance, modelSchemaInstance]
 
 mkTModFunction :: [(String, String)] -> Name -> Q (Dec, Dec)
 mkTModFunction tableFieldModifier name = do
@@ -308,12 +330,21 @@ mkShowInstance name = do
   return $ StandaloneDerivD (Just StockStrategy) [] (AppT (ConT ''Show) (AppT (ConT name) (ConT $ mkName "Identity")))
 
 mkTableInstances :: Name -> String -> String -> Q [Dec]
-mkTableInstances name table schema = mkTableInstancesWithTModifier name table schema []
+mkTableInstances name table schema = mkTableInstances' name table (Just schema) []
 
 mkTableInstancesWithTModifier :: Name -> String -> String -> [(String, String)] -> Q [Dec]
-mkTableInstancesWithTModifier name table schema tableFieldModifier = do
-  modelMetaInstances <- mkModelMetaInstances name table schema
-  (eModSig, eModBody) <- mkEmod name table schema
+mkTableInstancesWithTModifier name table schema = mkTableInstances' name table (Just schema)
+
+mkTableInstancesGenericSchema :: Name -> String -> Q [Dec]
+mkTableInstancesGenericSchema name table = mkTableInstances' name table Nothing []
+
+mkTableInstancesGenericSchemaWithTModifier :: Name -> String -> [(String, String)] -> Q [Dec]
+mkTableInstancesGenericSchemaWithTModifier name table = mkTableInstances' name table Nothing
+
+mkTableInstances' :: Name -> String -> Maybe String -> [(String, String)] -> Q [Dec]
+mkTableInstances' name table mbSchema tableFieldModifier = do
+  modelMetaInstances <- mkModelMetaInstances name table mbSchema
+  (eModSig, eModBody) <- mkEmod name table mbSchema
   serialInstances <- mkSerialInstances name
   fromJSONInstances <- mkFromJSONInstance name
   toJSONInstances <- mkToJSONInstance name
