@@ -1036,3 +1036,21 @@ instance IsHTTPError TicketError where
     TicketDoesNotExist _ -> E400
 
 instance IsAPIError TicketError
+
+newtype DisabilityError
+  = DisabilityDoesNotExist Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''DisabilityError
+
+instance IsBaseError DisabilityError where
+  toMessage = \case
+    DisabilityDoesNotExist personId -> Just $ "Disability with personId \"" <> show personId <> "\"not found. "
+
+instance IsHTTPError DisabilityError where
+  toErrorCode = \case
+    DisabilityDoesNotExist _ -> "DISABILITY_DOES_NOT_EXIST"
+  toHttpCode = \case
+    DisabilityDoesNotExist _ -> E400
+
+instance IsAPIError DisabilityError
