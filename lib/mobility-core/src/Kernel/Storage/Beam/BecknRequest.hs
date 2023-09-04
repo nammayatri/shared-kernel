@@ -17,7 +17,7 @@
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Kernel.Storage.Beam.BecknRequestDriver where
+module Kernel.Storage.Beam.BecknRequest where
 
 import Data.Serialize
 import qualified Data.Time as Time
@@ -47,4 +47,14 @@ type BecknRequest = BecknRequestT Identity
 
 $(enableKVPG ''BecknRequestT ['id] [])
 
-$(mkTableInstances ''BecknRequestT "beckn_request" "atlas_driver_offer_bpp")
+$(mkTableInstancesGenericSchema ''BecknRequestT "beckn_request")
+
+-- How it works inside of template:
+-- instance HasSchemaName BecknRequestT => Sequelize.ModelMeta BecknRequestT where
+--   modelFieldModification = becknRequestTMod
+--   modelTableName = "booking"
+--   modelSchemaName = Just (schemaName (Proxy @BecknRequestT))
+
+-- How it works inside of template:
+-- becknRequestTable :: HasSchemaName BecknRequestT => B.EntityModification (B.DatabaseEntity be db) be (B.TableEntity BecknRequestT)
+-- becknRequestTable = B.setEntitySchema (Just (schemaName (Proxy @BecknRequestT))) <> (B.setEntityName "beckn_request" <> B.modifyTableFields becknRequestTMod)

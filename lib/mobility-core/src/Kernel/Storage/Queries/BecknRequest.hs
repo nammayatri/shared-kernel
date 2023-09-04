@@ -13,16 +13,17 @@
 -}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Kernel.Storage.Queries.BecknRequestRider where
+module Kernel.Storage.Queries.BecknRequest where
 
 import Kernel.Beam.Functions (FromTType' (fromTType'), ToTType' (toTType'), createWithKV)
+import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
-import qualified Kernel.Storage.Beam.BecknRequestRider as BeamBR
+import qualified Kernel.Storage.Beam.BecknRequest as BeamBR
 import qualified Kernel.Types.BecknRequest as Domain
 import Kernel.Types.Id
 import Kernel.Utils.Common
 
-logBecknRequest :: MonadFlow m => Text -> Text -> m ()
+logBecknRequest :: (HasSchemaName BeamBR.BecknRequestT, MonadFlow m) => Text -> Text -> m ()
 logBecknRequest reqJSON sign = do
   uuid <- generateGUID
   now <- getCurrentTime
