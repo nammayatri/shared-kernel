@@ -20,40 +20,14 @@ module Kernel.External.SMS.Types
 where
 
 import Data.OpenApi
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Database.Beam as B
-import Database.Beam.Backend
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple.FromField (FromField (fromField))
-import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForList)
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common (fromFieldEnum)
 
 data SmsService = MyValueFirst | ExotelSms | GupShup
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-fromFieldSmsService ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion [SmsService]
-fromFieldSmsService f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just _ -> V.toList <$> fromField f mbValue
-
-instance FromField [SmsService] where
-  fromField = fromFieldSmsService
-
-instance FromField SmsService where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be (V.Vector Text) => HasSqlValueSyntax be [SmsService] where
-  sqlValueSyntax x = sqlValueSyntax (V.fromList (T.pack . show <$> x))
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be [SmsService]
-
-instance FromBackendRow Postgres [SmsService]
+$(mkBeamInstancesForList ''SmsService)
 
 availableSmsServices :: [SmsService]
 availableSmsServices = [MyValueFirst, ExotelSms, GupShup]

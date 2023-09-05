@@ -18,11 +18,13 @@ import Data.List (init, lookup, (!!))
 import Data.List.Extra (anySame)
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
+import qualified Data.Vector as V
 import qualified Database.Beam as B
 import Database.Beam.Backend
 import Database.Beam.Postgres (Postgres)
 import qualified Database.Beam.Schema.Tables as B
-import Database.PostgreSQL.Simple.FromField (FromField (fromField))
+import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError (UnexpectedNull))
+import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import EulerHS.KVConnector.Types (KVConnector (..), MeshMeta (..), PrimaryKey (..), SecondaryKey (..), TermWrap (..))
 import EulerHS.Prelude hiding (Type, words)
 import Kernel.Types.FromField (fromFieldEnum)
@@ -368,4 +370,27 @@ mkBeamInstancesForEnum name = do
     instance BeamSqlBackend be => B.HasSqlEqualityCheck be $tyQ
 
     instance FromBackendRow Postgres $tyQ
+    |]
+
+------------------- instances for list --------------------
+
+-- | A set of instances required for beam table row as list.
+mkBeamInstancesForList :: Name -> Q [Dec]
+mkBeamInstancesForList name = do
+  let tyQ = pure (ConT name)
+  [d|
+    instance FromField [$tyQ] where
+      fromField f mbValue = case mbValue of
+        Nothing -> DPSF.returnError UnexpectedNull f mempty
+        Just _ -> V.toList <$> fromField f mbValue
+
+    instance FromField $tyQ where
+      fromField = fromFieldEnum
+
+    instance HasSqlValueSyntax be (V.Vector Text) => HasSqlValueSyntax be [$tyQ] where
+      sqlValueSyntax x = sqlValueSyntax (V.fromList (T.pack . show <$> x))
+
+    instance BeamSqlBackend be => B.HasSqlEqualityCheck be [$tyQ]
+
+    instance FromBackendRow Postgres [$tyQ]
     |]
