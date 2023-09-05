@@ -340,6 +340,12 @@ buildRadiusWithin' pnt (lat, lon) rad =
   where
     getPoint' = "(SRID=4326;POINT(" <> KP.show lon <> " " <> KP.show lat <> "))"
 
+buildRadiusWithin'' :: (Double, Double) -> Int -> BQ.QGenExpr context Postgres s BQ.SqlBool
+buildRadiusWithin'' (lat, lon) rad =
+  BQ.QExpr (\_ -> PgExpressionSyntax (emit $ "ST_DWithin(point" <> " , " <> getPoint' <> " , " <> KP.show rad <> ")"))
+  where
+    getPoint' = "(ST_SetSRID (ST_Point (" <> KP.show lon <> " , " <> KP.show lat <> "),4326))"
+
 (<->.) :: Point -> Point -> BQ.QGenExpr context Postgres s Double
 (<->.) p1 p2 = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ KP.show p1 <> " <-> " <> KP.show p2))
 

@@ -21,7 +21,6 @@ import Data.Generics.Labels ()
 import Database.Beam
 import Database.Beam.Postgres
 import qualified Database.PostgreSQL.Simple.FromField as DPSF
-import Kernel.External.Encryption
 import Kernel.Prelude as KP
 
 fromFieldJSON ::
@@ -46,11 +45,3 @@ fromFieldEnum f mbValue = case mbValue of
     case readMaybe (unpackChars value') of
       Just val -> pure val
       _ -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
-
-fromFieldEnumDbHash ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion DbHash
-fromFieldEnumDbHash f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just value' -> pure $ DbHash value'
