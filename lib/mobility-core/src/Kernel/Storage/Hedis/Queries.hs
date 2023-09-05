@@ -475,7 +475,11 @@ xInfoGroups ::
   Text -> -- Stream key
   m Bool
 xInfoGroups key = do
-  eitherMaybeBS <- withTimeRedis "RedisCluster" "xInfoGroups" $ try @_ @SomeException (runWithPrefix key Hedis.xinfoGroups)
+  migrating <- asks (.hedisMigrationStage)
+  eitherMaybeBS <-
+    if migrating
+      then withTimeRedis "RedisStandalone" "xInfoGroups" $ try @_ @SomeException (runWithPrefix' key Hedis.xinfoGroups)
+      else withTimeRedis "RedisCluster" "xInfoGroups" $ try @_ @SomeException (runWithPrefix key Hedis.xinfoGroups)
   ls <-
     case eitherMaybeBS of
       Left err -> logTagInfo "ERROR_WHILE_GET_XInfoGroups" (show err) $> []
@@ -514,7 +518,11 @@ xReadGroup groupName consumerName pairsList = do
   let mbKeyVal = listToMaybe bsPairsList
   case mbKeyVal of
     Just keyVal -> do
-      eitherMaybeBS <- withTimeRedis "RedisCluster" "XReadGroup" $ try @_ @SomeException (runWithPrefix (cs $ fst keyVal) $ \_ -> Hedis.xreadGroup (cs groupName) (cs consumerName) bsPairsList)
+      migrating <- asks (.hedisMigrationStage)
+      eitherMaybeBS <-
+        if migrating
+          then withTimeRedis "RedisStandalone" "XReadGroup" $ try @_ @SomeException (runWithPrefix' (cs $ fst keyVal) $ \_ -> Hedis.xreadGroup (cs groupName) (cs consumerName) bsPairsList)
+          else withTimeRedis "RedisCluster" "XReadGroup" $ try @_ @SomeException (runWithPrefix (cs $ fst keyVal) $ \_ -> Hedis.xreadGroup (cs groupName) (cs consumerName) bsPairsList)
       mbRes <-
         case eitherMaybeBS of
           Left err -> logTagInfo "ERROR_WHILE_GET_XReadGroup" (show err) $> Nothing
