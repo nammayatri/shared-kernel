@@ -324,7 +324,4 @@ mkBeamInstancesForEnum name = do
     instance BeamSqlBackend be => B.HasSqlEqualityCheck be $tyQ
 
     instance FromBackendRow Postgres $tyQ
-
-    instance IsString $tyQ where
-      fromString = show
     |]

@@ -54,9 +54,6 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be SlidingWindowOptions
 
 instance FromBackendRow Postgres SlidingWindowOptions
 
-instance IsString SlidingWindowOptions where
-  fromString = show
-
 data PeriodType = Minutes | Hours | Days | Months | Years deriving (Read, Generic, FromDhall, Show, Eq, FromJSON, ToJSON, ToSchema, Ord)
 
 type TimePair = (UTCTime, UTCTime) -- (startTime, endTime)

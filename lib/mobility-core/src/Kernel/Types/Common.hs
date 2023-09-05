@@ -97,9 +97,6 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be Kilometers
 
 instance FromBackendRow Postgres Kilometers
 
-instance IsString Kilometers where
-  fromString = KP.show
-
 kilometersToMeters :: Kilometers -> Meters
 kilometersToMeters (Kilometers n) = Meters $ n * 1000
 
@@ -164,9 +161,6 @@ instance FromBackendRow Postgres Money
 
 instance FromField Money where
   fromField = fromFieldJSON
-
-instance IsString Money where
-  fromString = KP.show
 
 instance FromField Centi where
   fromField = fromFieldCenti
@@ -273,9 +267,6 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be Centi
 
 instance FromBackendRow Postgres Centi
 
-instance IsString Centi where
-  fromString = KP.show
-
 instance HasSqlValueSyntax be Centi => HasSqlValueSyntax be Centesimal where
   sqlValueSyntax = sqlValueSyntax . getCenti
 
@@ -289,9 +280,6 @@ instance FromBackendRow Postgres HighPrecMeters
 instance FromField HighPrecMeters where
   fromField = fromFieldHighPrecMeters
 
-instance IsString HighPrecMeters where
-  fromString = KP.show
-
 instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Meters where
   sqlValueSyntax = sqlValueSyntax . getMeters
 
@@ -302,18 +290,12 @@ instance FromBackendRow Postgres Meters
 instance FromField Meters where
   fromField = fromFieldJSON
 
-instance IsString Meters where
-  fromString = KP.show
-
 instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Seconds where
   sqlValueSyntax = sqlValueSyntax . getSeconds
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be Seconds
 
 instance FromBackendRow Postgres Seconds
-
-instance IsString Seconds where
-  fromString = KP.show
 
 instance FromField HighPrecMoney where
   fromField = fromFieldHighPrecMoney
@@ -327,9 +309,6 @@ instance HasSqlValueSyntax be Double => HasSqlValueSyntax be Rational where
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecMoney
 
 instance FromBackendRow Postgres HighPrecMoney
-
-instance IsString HighPrecMoney where
-  fromString = KP.show
 
 instance FromField Seconds where
   fromField = fromFieldSeconds
@@ -345,9 +324,6 @@ instance HasSqlValueSyntax be ByteString => HasSqlValueSyntax be DbHash where
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be DbHash
 
 instance FromBackendRow Postgres DbHash
-
-instance IsString DbHash where
-  fromString = KP.show
 
 getPoint :: (Double, Double) -> BQ.QGenExpr context Postgres s Point
 getPoint (lat, lon) = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ "ST_SetSRID (ST_Point (" <> KP.show lon <> " , " <> KP.show lat <> "),4326)"))

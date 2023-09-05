@@ -51,9 +51,6 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be GeoRestriction
 
 instance FromBackendRow Postgres GeoRestriction
 
-instance IsString GeoRestriction where
-  fromString = show
-
 instance PrettyShow GeoRestriction where
   prettyShow = prettyShow . geoRestrictionToMaybeList
 

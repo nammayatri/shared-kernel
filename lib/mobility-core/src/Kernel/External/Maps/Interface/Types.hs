@@ -126,9 +126,6 @@ instance HasSqlValueSyntax be Text => HasSqlValueSyntax be RouteInfo where
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be RouteInfo
 
-instance IsString RouteInfo where
-  fromString = show
-
 deriving stock instance Ord BoundingBoxWithoutCRS
 
 deriving stock instance Ord PointXY
