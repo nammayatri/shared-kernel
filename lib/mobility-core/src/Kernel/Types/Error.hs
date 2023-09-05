@@ -1045,7 +1045,7 @@ instanceExceptionWithParent 'HTTPException ''DisabilityError
 
 instance IsBaseError DisabilityError where
   toMessage = \case
-    DisabilityDoesNotExist personId -> Just $ "Disability with personId \"" <> show personId <> "\"not found. "
+    DisabilityDoesNotExist personId -> Just $ "Disability with disabilityId \"" <> show personId <> "\"not found. "
 
 instance IsHTTPError DisabilityError where
   toErrorCode = \case
