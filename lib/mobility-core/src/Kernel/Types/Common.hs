@@ -26,7 +26,7 @@ where
 
 import Data.Aeson
 import qualified Data.Bifunctor as BF
-import Data.ByteString.Internal (ByteString, unpackChars)
+import Data.ByteString.Internal (ByteString)
 import Data.ByteString.Lazy (fromStrict, toStrict)
 import Data.Fixed (Centi, Fixed (MkFixed))
 import Data.Generics.Labels ()
@@ -43,7 +43,6 @@ import qualified Database.Beam.Query as BQ
 import Database.Persist.Class
 import Database.Persist.Sql
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
 import Kernel.External.Encryption
@@ -163,7 +162,7 @@ instance FromField Money where
   fromField = fromFieldJSON
 
 instance FromField Centi where
-  fromField = fromFieldCenti
+  fromField = fromFieldEnum
 
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be Minutes where
   sqlValueSyntax = autoSqlValueSyntax
@@ -172,76 +171,9 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be Minutes
 
 instance FromBackendRow Postgres Minutes
 
-fromFieldMoney ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion Money
-fromFieldMoney f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just _ -> Money <$> fromField f mbValue
-
-fromFieldCenti ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion Centi
-fromFieldCenti f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just value' ->
-    case readMaybe (unpackChars value') of
-      Just val -> pure val
-      _ -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
-
-fromFieldCentesimal ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion Centesimal
-fromFieldCentesimal f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just _ -> Centesimal <$> fromField f mbValue
-
--- FIXME next functions are almost the same
-fromFieldMinutes ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion Minutes
-fromFieldMinutes f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just _ -> Minutes <$> fromField f mbValue
-
-fromFieldMeters ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion Meters
-fromFieldMeters f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just _ -> Meters <$> fromField f mbValue
-
-fromFieldHighPrecMeters ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion HighPrecMeters
-fromFieldHighPrecMeters f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just _ -> HighPrecMeters <$> fromField f mbValue
-
-fromFieldHighPrecMoney ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion HighPrecMoney
-fromFieldHighPrecMoney f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just _ -> HighPrecMoney <$> fromField f mbValue
-
-fromFieldSeconds ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion Seconds
-fromFieldSeconds f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just _ -> Seconds <$> fromField f mbValue
-
+-- FIXME isn't it the same as deriving newtype?
 instance FromField Minutes where
-  fromField = fromFieldMinutes
+  fromField f mbValue = Minutes <$> fromFieldDefault f mbValue
 
 instance HasSqlValueSyntax be Integer => HasSqlValueSyntax be Centi where
   sqlValueSyntax (MkFixed i) = sqlValueSyntax (div i 100)
@@ -278,7 +210,7 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecMeters
 instance FromBackendRow Postgres HighPrecMeters
 
 instance FromField HighPrecMeters where
-  fromField = fromFieldHighPrecMeters
+  fromField f mbValue = HighPrecMeters <$> fromFieldDefault f mbValue
 
 instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Meters where
   sqlValueSyntax = sqlValueSyntax . getMeters
@@ -298,7 +230,7 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be Seconds
 instance FromBackendRow Postgres Seconds
 
 instance FromField HighPrecMoney where
-  fromField = fromFieldHighPrecMoney
+  fromField f mbValue = HighPrecMoney <$> fromFieldDefault f mbValue
 
 instance HasSqlValueSyntax be Rational => HasSqlValueSyntax be HighPrecMoney where
   sqlValueSyntax = sqlValueSyntax . getHighPrecMoney
@@ -311,7 +243,7 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecMoney
 instance FromBackendRow Postgres HighPrecMoney
 
 instance FromField Seconds where
-  fromField = fromFieldSeconds
+  fromField f mbValue = Seconds <$> fromFieldDefault f mbValue
 
 instance FromField ByteString => FromField DbHash where
   fromField f mb = do
