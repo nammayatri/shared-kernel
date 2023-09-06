@@ -27,7 +27,8 @@ import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError 
 import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import EulerHS.KVConnector.Types (KVConnector (..), MeshMeta (..), PrimaryKey (..), SecondaryKey (..), TermWrap (..))
 import EulerHS.Prelude hiding (Type, words)
-import Kernel.Types.FromField (fromFieldEnum)
+import Kernel.Types.FromField (fromFieldEnum, fromFieldJSON)
+import Kernel.Utils.Text (encodeToText)
 import Language.Haskell.TH
 import Sequelize
 import qualified Sequelize as S
@@ -354,7 +355,7 @@ mkTableInstances' name table mbSchema tableFieldModifier = do
   (tModSig, tModBody) <- mkTModFunction tableFieldModifier name
   pure [tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances]
 
-------------------- instances for enum --------------------
+------------------- instances for table row ---------------
 
 -- | A set of instances required for beam table row as enum.
 mkBeamInstancesForEnum :: Name -> Q [Dec]
@@ -371,8 +372,6 @@ mkBeamInstancesForEnum name = do
 
     instance FromBackendRow Postgres $tyQ
     |]
-
-------------------- instances for list --------------------
 
 -- | A set of instances required for beam table row as list.
 mkBeamInstancesForList :: Name -> Q [Dec]
@@ -393,4 +392,20 @@ mkBeamInstancesForList name = do
     instance BeamSqlBackend be => B.HasSqlEqualityCheck be [$tyQ]
 
     instance FromBackendRow Postgres [$tyQ]
+    |]
+
+-- | A set of instances required for beam table row as json.
+mkBeamInstancesForJSON :: Name -> Q [Dec]
+mkBeamInstancesForJSON name = do
+  let tyQ = pure (ConT name)
+  [d|
+    instance FromField $tyQ where
+      fromField = fromFieldJSON
+
+    instance HasSqlValueSyntax be Text => HasSqlValueSyntax be $tyQ where
+      sqlValueSyntax = sqlValueSyntax . encodeToText
+
+    instance BeamSqlBackend be => B.HasSqlEqualityCheck be $tyQ
+
+    instance FromBackendRow Postgres $tyQ
     |]
