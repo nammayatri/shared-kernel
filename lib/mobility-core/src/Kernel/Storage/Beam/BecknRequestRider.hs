@@ -45,15 +45,6 @@ instance B.Table BecknRequestT where
 
 type BecknRequest = BecknRequestT Identity
 
-becknRequestTMod :: BecknRequestT (B.FieldModification (B.TableField BecknRequestT))
-becknRequestTMod =
-  B.tableModification
-    { id = B.fieldNamed "id",
-      becknRequest = B.fieldNamed "beckn_request",
-      signatureHeader = B.fieldNamed "signature_header",
-      timeStamp = B.fieldNamed "time_stamp"
-    }
-
 $(enableKVPG ''BecknRequestT ['id] [])
 
 $(mkTableInstances ''BecknRequestT "beckn_request" "atlas_app")
