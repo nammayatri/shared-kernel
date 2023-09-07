@@ -8,6 +8,8 @@ module Kernel.Beam.Lib.UtilsTH
     mkTableInstancesGenericSchemaWithTModifier,
     mkBeamInstancesForEnum,
     HasSchemaName (..),
+    mkBeamInstancesForList,
+    mkBeamInstancesForJSON,
   )
 where
 
@@ -17,6 +19,7 @@ import qualified Data.HashMap.Strict as HM
 import Data.List (init, lookup, (!!))
 import Data.List.Extra (anySame)
 import qualified Data.Map.Strict as M
+import qualified Data.Serialize as Serialize
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Database.Beam as B
@@ -25,12 +28,11 @@ import Database.Beam.Postgres (Postgres)
 import qualified Database.Beam.Schema.Tables as B
 import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError (UnexpectedNull))
 import qualified Database.PostgreSQL.Simple.FromField as DPSF
-import EulerHS.KVConnector.Types (KVConnector (..), MeshMeta (..), PrimaryKey (..), SecondaryKey (..), TermWrap (..))
+import qualified EulerHS.KVConnector.Types as KV
 import EulerHS.Prelude hiding (Type, words)
 import Kernel.Types.FromField (fromFieldEnum, fromFieldJSON)
 import Kernel.Utils.Text (encodeToText)
 import Language.Haskell.TH
-import Sequelize
 import qualified Sequelize as S
 import Text.Casing (camel, quietSnake)
 import Prelude (head)
@@ -72,23 +74,19 @@ tableTModMeshD name = do
 --   secondaryKeys:: table -> [SecondaryKey]
 kvConnectorInstancesD :: Name -> [Name] -> [[Name]] -> Q [Dec]
 kvConnectorInstancesD name pKeyN sKeysN = do
-  let tableName' = mkName "tableName"
-      keyMap' = mkName "keyMap"
-      primaryKey' = mkName "primaryKey"
-      secondaryKeys' = mkName "secondaryKeys"
   let pKey = sortAndGetKey pKeyN
       sKeys = filter (\k -> pKey /= sortAndGetKey k) sKeysN
       pKeyPair = TupE [Just $ LitE $ StringL pKey, Just $ ConE 'True]
       sKeyPairs = map (\k -> TupE [Just $ LitE $ StringL $ sortAndGetKey k, Just $ ConE 'False]) sKeys
-  let tableNameD = FunD tableName' [Clause [] (NormalB (LitE (StringL $ init $ camel (nameBase name)))) []]
-      keyMapD = FunD keyMap' [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (pKeyPair : sKeyPairs)))) []]
-      primaryKeyD = FunD primaryKey' [Clause [] (NormalB getPrimaryKeyE) []]
-      secondaryKeysD = FunD secondaryKeys' [Clause [] (NormalB getSecondaryKeysE) []]
-  return [InstanceD Nothing [] (AppT (ConT ''KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) [tableNameD, keyMapD, primaryKeyD, secondaryKeysD]]
+  let tableNameD = FunD 'KV.tableName [Clause [] (NormalB (LitE (StringL $ init $ camel (nameBase name)))) []]
+      keyMapD = FunD 'KV.keyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (pKeyPair : sKeyPairs)))) []]
+      primaryKeyD = FunD 'KV.primaryKey [Clause [] (NormalB getPrimaryKeyE) []]
+      secondaryKeysD = FunD 'KV.secondaryKeys [Clause [] (NormalB getSecondaryKeysE) []]
+  return [InstanceD Nothing [] (AppT (ConT ''KV.KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) [tableNameD, keyMapD, primaryKeyD, secondaryKeysD]]
   where
     getPrimaryKeyE =
       let obj = mkName "obj"
-       in LamE [VarP obj] (AppE (ConE 'PKey) (ListE (map (\n -> TupE [Just $ keyNameTextE n, Just $ getRecFieldE n obj]) pKeyN)))
+       in LamE [VarP obj] (AppE (ConE 'KV.PKey) (ListE (map (\n -> TupE [Just $ keyNameTextE n, Just $ getRecFieldE n obj]) pKeyN)))
     getSecondaryKeysE =
       if null sKeysN || sKeysN == [[]]
         then LamE [WildP] (ListE [])
@@ -98,7 +96,7 @@ kvConnectorInstancesD name pKeyN sKeysN = do
             [VarP obj]
             ( ListE $
                 map
-                  (AppE (ConE 'SKey) . ListE . map (\n -> TupE [Just $ keyNameTextE n, Just $ getRecFieldE n obj]))
+                  (AppE (ConE 'KV.SKey) . ListE . map (\n -> TupE [Just $ keyNameTextE n, Just $ getRecFieldE n obj]))
                   sKeysN
             )
     getRecFieldE f obj =
@@ -119,37 +117,34 @@ splitColon s = T.unpack $ T.splitOn ":" (T.pack s) !! 1
 meshMetaInstancesDPG :: Name -> Q [Dec]
 meshMetaInstancesDPG name = do
   names <- extractRecFields . head . extractConstructors <$> reify name
-  let meshModelFieldModification' = mkName "meshModelFieldModification"
-      valueMapper' = mkName "valueMapper"
-      modelTModMesh' = mkName $ camel (nameBase name) <> "ModMesh"
-  let meshModelFieldModificationD = FunD meshModelFieldModification' [Clause [] (NormalB (VarE modelTModMesh')) []]
-      valueMapperD = FunD valueMapper' [Clause [] (NormalB (VarE 'emptyValueHashMap)) []]
+  let modelTModMesh' = mkName $ camel (nameBase name) <> "ModMesh"
+  let meshModelFieldModificationD = FunD 'KV.meshModelFieldModification [Clause [] (NormalB (VarE modelTModMesh')) []]
+      valueMapperD = FunD 'KV.valueMapper [Clause [] (NormalB (VarE 'emptyValueHashMap)) []]
   let parseFieldAndGetClauseD = getParseFieldAndGetClauseD name names
       parseSetClauseD = getParseSetClauseD name names
-  return [InstanceD Nothing [] (AppT (AppT (ConT ''MeshMeta) (ConT ''Postgres)) (ConT name)) [meshModelFieldModificationD, valueMapperD, parseFieldAndGetClauseD, parseSetClauseD]]
+  return [InstanceD Nothing [] (AppT (AppT (ConT ''KV.MeshMeta) (ConT ''Postgres)) (ConT name)) [meshModelFieldModificationD, valueMapperD, parseFieldAndGetClauseD, parseSetClauseD]]
 
 --------------- parseFieldAndGetClause instance -------------------
 getParseFieldAndGetClauseD :: Name -> [Name] -> Dec
 getParseFieldAndGetClauseD name names = do
-  let fnName = mkName "parseFieldAndGetClause"
-      obj = mkName "obj"
+  let obj = mkName "obj"
       field = mkName "fieldName"
   let patternMatches = (\n -> Match (LitP $ StringL (nameBase n)) (NormalB (parseFieldAndGetClauseE name n)) []) <$> names
       failExp = AppE (VarE 'fail) (LitE $ StringL ("Where clause decoding failed for " <> nameBase name <> " - Unexpected column " <> nameBase field))
   let matchE = AppE (AppE (AppE (VarE 'HM.findWithDefault) (VarE field)) (VarE field)) (VarE 'emptyTextHashMap)
       caseExp = CaseE matchE (patternMatches ++ [Match WildP (NormalB failExp) []])
-  FunD fnName [Clause [VarP obj, VarP field] (NormalB caseExp) []]
+  FunD 'KV.parseFieldAndGetClause [Clause [VarP obj, VarP field] (NormalB caseExp) []]
 
 parseFieldAndGetClauseE :: Name -> Name -> Exp
 parseFieldAndGetClauseE name key = do
   let v = mkName "obj"
   let parseExp = AppE (AppE (VarE 'parseField) (LitE $ StringL $ nameBase name)) (AppE (AppE (modifyFieldToHS name) (LitE $ StringL $ nameBase key)) (VarE v))
-  AppE (AppE (VarE '(<$>)) (AppE (ConE 'TermWrap) (VarE key))) parseExp
+  AppE (AppE (VarE '(<$>)) (AppE (ConE 'KV.TermWrap) (VarE key))) parseExp
 
 --------------- parseSetClause instance -------------------
 getParseSetClauseD :: Name -> [Name] -> Dec
 getParseSetClauseD name names = do
-  let fnName = mkName "parseSetClause"
+  let --fnName = mkName "parseSetClause"
       obj = mkName "obj"
       field = mkName "fieldName"
       parseKeyAndValue = mkName "parseKeyAndValue"
@@ -159,7 +154,7 @@ getParseSetClauseD name names = do
   let matchE = AppE (AppE (AppE (VarE 'HM.findWithDefault) (VarE field)) (VarE field)) (VarE 'emptyTextHashMap)
       caseExp = CaseE matchE (patternMatches ++ [Match WildP (NormalB failExp) []])
   FunD
-    fnName
+    'KV.parseSetClause
     [ Clause
         [VarP setClause]
         (NormalB (AppE (AppE (VarE 'mapM) (VarE parseKeyAndValue)) (VarE setClause)))
@@ -253,16 +248,13 @@ mkSchemaNameContext name = \case
 
 mkModelMetaInstances :: Name -> String -> Maybe String -> Q Dec
 mkModelMetaInstances name table mbSchema = do
-  let modelFM = mkName "modelFieldModification"
-      modelTable = mkName "modelTableName"
-      modelSchema = mkName "modelSchemaName"
-      tableTModN = mkName $ camel (nameBase name) <> "Mod"
-      modelFMInstance = FunD modelFM [Clause [] (NormalB (VarE tableTModN)) []]
-      modelNameInstance = FunD modelTable [Clause [] (NormalB (LitE $ StringL table)) []]
+  let tableTModN = mkName $ camel (nameBase name) <> "Mod"
+      modelFMInstance = FunD 'S.modelFieldModification [Clause [] (NormalB (VarE tableTModN)) []]
+      modelNameInstance = FunD 'S.modelTableName [Clause [] (NormalB (LitE $ StringL table)) []]
       schemaNameExp = mkSchemaNameExp name mbSchema
       schemaNameContext = mkSchemaNameContext name mbSchema
-      modelSchemaInstance = FunD modelSchema [Clause [] (NormalB (AppE (ConE 'Just) schemaNameExp)) []]
-  return $ InstanceD Nothing schemaNameContext (AppT (ConT ''ModelMeta) (ConT name)) [modelFMInstance, modelNameInstance, modelSchemaInstance]
+      modelSchemaInstance = FunD 'S.modelSchemaName [Clause [] (NormalB (AppE (ConE 'Just) schemaNameExp)) []]
+  return $ InstanceD Nothing schemaNameContext (AppT (ConT ''S.ModelMeta) (ConT name)) [modelFMInstance, modelNameInstance, modelSchemaInstance]
 
 mkTModFunction :: [(String, String)] -> Name -> Q (Dec, Dec)
 mkTModFunction tableFieldModifier name = do
@@ -309,12 +301,9 @@ checkFieldModifier modifier fields = do
 
 mkSerialInstances :: Name -> Q Dec
 mkSerialInstances name = do
-  let -- tName     = mkName $ (T.unpack . T.dropEnd 1 . T.pack $ camel (nameBase name))
-      putFn = mkName "put"
-      getFn = mkName "get"
-      putInstance = FunD putFn [Clause [] (NormalB (AppE (VarE 'error) (LitE $ StringL ""))) []]
-      getInstance = FunD getFn [Clause [] (NormalB (AppE (VarE 'error) (LitE $ StringL ""))) []]
-  return $ InstanceD Nothing [] (AppT (ConT ''Serialize) (AppT (ConT name) (ConT $ mkName "Identity"))) [putInstance, getInstance]
+  let putInstance = FunD 'Serialize.put [Clause [] (NormalB (AppE (VarE 'error) (LitE $ StringL ""))) []]
+      getInstance = FunD 'Serialize.get [Clause [] (NormalB (AppE (VarE 'error) (LitE $ StringL ""))) []]
+  return $ InstanceD Nothing [] (AppT (ConT ''Serialize.Serialize) (AppT (ConT name) (ConT $ mkName "Identity"))) [putInstance, getInstance]
 
 mkFromJSONInstance :: Name -> Q Dec
 mkFromJSONInstance name = do

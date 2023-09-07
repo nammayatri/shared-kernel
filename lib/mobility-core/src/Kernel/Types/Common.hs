@@ -257,6 +257,11 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be DbHash
 
 instance FromBackendRow Postgres DbHash
 
+-- instance HasSqlValueSyntax be String => HasSqlValueSyntax be BaseUrl where
+--   sqlValueSyntax = autoSqlValueSyntax
+
+-- instance BeamSqlBackend be => B.HasSqlEqualityCheck be BaseUrl
+
 getPoint :: (Double, Double) -> BQ.QGenExpr context Postgres s Point
 getPoint (lat, lon) = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ "ST_SetSRID (ST_Point (" <> KP.show lon <> " , " <> KP.show lat <> "),4326)"))
 

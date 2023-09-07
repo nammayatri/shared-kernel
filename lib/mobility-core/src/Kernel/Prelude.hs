@@ -35,7 +35,7 @@ import Data.Proxy as E (Proxy (..))
 import Data.String as E (IsString (..))
 import Data.Text as E (Text)
 import qualified Data.Text as T
-import Data.Time as E (TimeOfDay)
+import Data.Time as E (LocalTime, TimeOfDay)
 import Data.Time.Clock (secondsToNominalDiffTime)
 import Data.Time.Clock as E (NominalDiffTime, UTCTime)
 import Data.Traversable as E
