@@ -1,12 +1,11 @@
-{-# LANGUAGE DerivingStrategies #-}
-{-# OPTIONS_GHC -Wno-type-defaults #-}
-
 module Kernel.Beam.Functions where
 
 import qualified Data.Serialize as Serialize
 import Database.Beam
+import qualified Database.Beam as B
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
+import EulerHS.CachedSqlDBQuery (SqlReturning)
 import qualified EulerHS.KVConnector.Flow as KV
 import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta)
 import qualified EulerHS.Language as L

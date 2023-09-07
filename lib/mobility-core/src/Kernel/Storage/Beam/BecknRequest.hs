@@ -14,26 +14,18 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wno-missing-signatures #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Storage.Beam.BecknRequest where
 
-import Data.Serialize
-import qualified Data.Time as Time
 import qualified Database.Beam as B
-import Database.Beam.MySQL ()
-import EulerHS.KVConnector.Types (KVConnector (..), MeshMeta (..), primaryKey, secondaryKeys, tableName)
-import GHC.Generics (Generic)
 import Kernel.Beam.Lib.UtilsTH
-import Kernel.Prelude hiding (Generic)
-import Sequelize
+import Kernel.Prelude
 
 data BecknRequestT f = BecknRequestT
   { id :: B.C f Text,
     becknRequest :: B.C f Text,
     signatureHeader :: B.C f Text,
-    timeStamp :: B.C f Time.UTCTime
+    timeStamp :: B.C f UTCTime
   }
   deriving (Generic, B.Beamable)
 
