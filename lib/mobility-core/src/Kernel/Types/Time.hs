@@ -55,9 +55,6 @@ newtype Minutes = Minutes
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
-instance IsString Minutes where
-  fromString = show
-
 newtype Hours = Hours
   { getHours :: Int
   }
@@ -72,9 +69,6 @@ instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Hours where
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be Hours
 
 instance FromBackendRow Postgres Hours
-
-instance IsString Hours where
-  fromString = show
 
 newtype Days = Days
   { getDays :: Int
