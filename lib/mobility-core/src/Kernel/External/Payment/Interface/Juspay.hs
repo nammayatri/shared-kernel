@@ -442,7 +442,7 @@ offerApply config req = do
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferApplyReq merchantId req
-  juspayResp <- Juspay.offerApply url apiKey merchantId req.mandateId juspayReq
+  juspayResp <- Juspay.offerApply url apiKey merchantId juspayReq
   buildOfferApplyResp juspayResp
 
 mkOfferApplyReq :: Text -> OfferApplyReq -> Juspay.OfferApplyReq
@@ -459,7 +459,8 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
             payment_channel = Just "WEB"
           }
   Juspay.OfferApplyReq
-    { customer = Juspay.OfferApplyCustomer {id = customerId},
+    { txn_id = txnId,
+      customer = Juspay.OfferApplyCustomer {id = customerId},
       offers,
       order,
       payment_method_info = Nothing

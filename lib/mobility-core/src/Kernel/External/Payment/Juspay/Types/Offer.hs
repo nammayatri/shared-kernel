@@ -167,7 +167,8 @@ data OfferRulesPaymentInstrument = OfferRulesPaymentInstrument
 -- offer apply request --
 
 data OfferApplyReq = OfferApplyReq
-  { customer :: OfferApplyCustomer,
+  { txn_id :: Text,
+    customer :: OfferApplyCustomer,
     offers :: [Text],
     order :: OfferApplyOrder,
     payment_method_info :: Maybe OfferApplyPaymentMethodInfo

@@ -234,7 +234,7 @@ data OfferDescription = OfferDescription
 -- offer apply --
 
 data OfferApplyReq = OfferApplyReq
-  { mandateId :: Text,
+  { txnId :: Text,
     orderShortId :: Text,
     offers :: [Text],
     customerId :: Text,
