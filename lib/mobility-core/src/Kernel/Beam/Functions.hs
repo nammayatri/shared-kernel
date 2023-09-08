@@ -2,10 +2,8 @@ module Kernel.Beam.Functions where
 
 import qualified Data.Serialize as Serialize
 import Database.Beam
-import qualified Database.Beam as B
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
-import EulerHS.CachedSqlDBQuery (SqlReturning)
 import qualified EulerHS.KVConnector.Flow as KV
 import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta)
 import qualified EulerHS.Language as L
@@ -134,16 +132,6 @@ getReplicaLocationDbConfig = do
     Just dbCnf' -> pure dbCnf'
     Nothing -> L.throwException $ InternalError "Replica LocationDB Config not found"
 
-type FromBeamTableFlow table m a =
-  ( BeamTableFlow table m,
-    FromTType' (table Identity) a
-  )
-
-type ToBeamTableFlow table m a =
-  ( BeamTableFlow table m,
-    ToTType' (table Identity) a
-  )
-
 type BeamTableFlow table m =
   ( HasCallStack,
     BeamTable table,
@@ -162,7 +150,9 @@ type BeamTable table =
 
 findOneWithKV ::
   forall table m a.
-  FromBeamTableFlow table m a =>
+  ( BeamTableFlow table m,
+    FromTType' (table Identity) a
+  ) =>
   Where Postgres table ->
   m (Maybe a)
 findOneWithKV where' = do
@@ -177,21 +167,8 @@ findOneWithKV where' = do
 
 findOneWithKVScheduler ::
   forall table m a.
-  ( HasCallStack,
-    FromTType'' (table Identity) a,
-    BeamRuntime Postgres Pg,
-    B.HasQBuilder Postgres,
-    BeamRunner Pg,
-    Model Postgres table,
-    MeshMeta Postgres table,
-    KVConnector (table Identity),
-    FromJSON (table Identity),
-    ToJSON (table Identity),
-    Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+  ( BeamTableFlow table m,
+    FromTType'' (table Identity) a
   ) =>
   Where Postgres table ->
   m (Maybe a)
@@ -207,7 +184,9 @@ findOneWithKVScheduler where' = do
 
 findAllWithKV ::
   forall table m a.
-  FromBeamTableFlow table m a =>
+  ( BeamTableFlow table m,
+    FromTType' (table Identity) a
+  ) =>
   Where Postgres table ->
   m [a]
 findAllWithKV where' = do
@@ -223,21 +202,8 @@ findAllWithKV where' = do
 
 findAllWithKVScheduler ::
   forall table m a.
-  ( HasCallStack,
-    FromTType'' (table Identity) a,
-    BeamRuntime Postgres Pg,
-    B.HasQBuilder Postgres,
-    BeamRunner Pg,
-    Model Postgres table,
-    MeshMeta Postgres table,
-    KVConnector (table Identity),
-    FromJSON (table Identity),
-    ToJSON (table Identity),
-    Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+  ( BeamTableFlow table m,
+    FromTType'' (table Identity) a
   ) =>
   Where Postgres table ->
   m [a]
@@ -254,7 +220,9 @@ findAllWithKVScheduler where' = do
 
 findAllWithOptionsKV ::
   forall table m a.
-  FromBeamTableFlow table m a =>
+  ( BeamTableFlow table m,
+    FromTType' (table Identity) a
+  ) =>
   Where Postgres table ->
   OrderBy table ->
   Maybe Int ->
@@ -273,21 +241,8 @@ findAllWithOptionsKV where' orderBy mbLimit mbOffset = do
 
 findAllWithOptionsKVScheduler ::
   forall table m a.
-  ( HasCallStack,
-    FromTType'' (table Identity) a,
-    BeamRuntime Postgres Pg,
-    B.HasQBuilder Postgres,
-    BeamRunner Pg,
-    Model Postgres table,
-    MeshMeta Postgres table,
-    KVConnector (table Identity),
-    FromJSON (table Identity),
-    ToJSON (table Identity),
-    Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+  ( BeamTableFlow table m,
+    FromTType'' (table Identity) a
   ) =>
   Where Postgres table ->
   OrderBy table ->
@@ -307,7 +262,9 @@ findAllWithOptionsKVScheduler where' orderBy mbLimit mbOffset = do
 
 findOneWithDb ::
   forall table m a.
-  FromBeamTableFlow table m a =>
+  ( BeamTableFlow table m,
+    FromTType' (table Identity) a
+  ) =>
   Where Postgres table ->
   m (Maybe a)
 findOneWithDb where' = do
@@ -322,7 +279,9 @@ findOneWithDb where' = do
 
 findAllWithDb ::
   forall table m a.
-  FromBeamTableFlow table m a =>
+  ( BeamTableFlow table m,
+    FromTType' (table Identity) a
+  ) =>
   Where Postgres table ->
   m [a]
 findAllWithDb where' = do
@@ -338,7 +297,9 @@ findAllWithDb where' = do
 
 findAllWithOptionsDb ::
   forall table m a.
-  FromBeamTableFlow table m a =>
+  ( BeamTableFlow table m,
+    FromTType' (table Identity) a
+  ) =>
   Where Postgres table ->
   OrderBy table ->
   Maybe Int ->
@@ -375,22 +336,7 @@ updateWithKV setClause whereClause = do
 
 updateWithKVScheduler ::
   forall table m.
-  ( HasCallStack,
-    BeamRuntime Postgres Pg,
-    SqlReturning Pg Postgres,
-    B.HasQBuilder Postgres,
-    BeamRunner Pg,
-    Model Postgres table,
-    MeshMeta Postgres table,
-    KVConnector (table Identity),
-    FromJSON (table Identity),
-    ToJSON (table Identity),
-    Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
-  ) =>
+  BeamTableFlow table m =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
@@ -422,7 +368,9 @@ updateOneWithKV setClause whereClause = do
 
 createWithKV ::
   forall table m a.
-  ToBeamTableFlow table m a =>
+  ( BeamTableFlow table m,
+    ToTType' (table Identity) a
+  ) =>
   a ->
   m ()
 createWithKV a = do
@@ -440,22 +388,8 @@ createWithKV a = do
 
 createWithKVScheduler ::
   forall table m a.
-  ( HasCallStack,
-    ToTType'' (table Identity) a,
-    SqlReturning Pg Postgres,
-    BeamRuntime Postgres Pg,
-    B.HasQBuilder Postgres,
-    BeamRunner Pg,
-    Model Postgres table,
-    MeshMeta Postgres table,
-    KVConnector (table Identity),
-    FromJSON (table Identity),
-    ToJSON (table Identity),
-    Serialize.Serialize (table Identity),
-    L.MonadFlow m,
-    Show (table Identity),
-    Log m,
-    MonadThrow m
+  ( BeamTableFlow table m,
+    ToTType'' (table Identity) a
   ) =>
   a ->
   m ()
