@@ -18,6 +18,7 @@
 
 module Kernel.Types.Flow (FlowR, runFlowR) where
 
+import Control.Monad.IO.Unlift
 import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
@@ -48,9 +49,30 @@ newtype FlowR r a = FlowR {unFlowR :: ReaderT r L.Flow a}
 instance L.MonadFlow (FlowR r) where
   {-# INLINEABLE callServantAPI #-}
   callServantAPI mbMgrSel url cl = FlowR $ L.callServantAPI mbMgrSel url cl
-
-  --{-# INLINEABLE callHTTPWithCert #-}
-  --callHTTPWithCert url cert = FlowR $ L.callHTTPWithCert url cert
+  {-# INLINEABLE callAPIUsingManager #-}
+  callAPIUsingManager mgr url cl = FlowR $ L.callAPIUsingManager mgr url cl
+  {-# INLINEABLE lookupHTTPManager #-}
+  lookupHTTPManager mMgrSel = FlowR $ L.lookupHTTPManager mMgrSel
+  {-# INLINEABLE getHTTPManager #-}
+  getHTTPManager settings = FlowR $ L.getHTTPManager settings
+  {-# INLINEABLE getConfig #-}
+  getConfig k = FlowR $ L.getConfig k
+  {-# INLINEABLE setConfig #-}
+  setConfig k v = FlowR $ L.setConfig k v
+  {-# INLINEABLE trySetConfig #-}
+  trySetConfig k v = FlowR $ L.trySetConfig k v
+  {-# INLINEABLE delConfig #-}
+  delConfig k = FlowR $ L.delConfig k
+  {-# INLINEABLE acquireConfigLock #-}
+  acquireConfigLock k = FlowR $ L.acquireConfigLock k
+  {-# INLINEABLE releaseConfigLock #-}
+  releaseConfigLock k = FlowR $ L.releaseConfigLock k
+  {-# INLINEABLE modifyConfig #-}
+  modifyConfig k f = FlowR $ L.modifyConfig k f
+  {-# INLINEABLE modifyOption #-}
+  modifyOption k f = FlowR $ L.modifyOption k f
+  {-# INLINEABLE delOptionLocal #-}
+  delOptionLocal k = FlowR $ L.delOptionLocal k
   {-# INLINEABLE evalLogger' #-}
   evalLogger' logAct = FlowR $ L.evalLogger' logAct
   {-# INLINEABLE runIO' #-}
@@ -105,6 +127,12 @@ instance L.MonadFlow (FlowR r) where
   setLoggerContext k v = FlowR $ L.setLoggerContext k v
   {-# INLINEABLE getLoggerContext #-}
   getLoggerContext k = FlowR $ L.getLoggerContext k
+  {-# INLINEABLE setLoggerContextMap #-}
+  setLoggerContextMap m = FlowR $ L.setLoggerContextMap m
+  {-# INLINEABLE callHTTPUsingManager #-}
+  callHTTPUsingManager mgr url = FlowR . L.callHTTPUsingManager mgr url
+  {-# INLINEABLE fork #-}
+  fork (FlowR f) = FlowR $ L.fork f
 
 -- {-# INLINEABLE callAPIUsingManager #-}
 -- callAPIUsingManager f flow = FlowR $ L.callAPIUsingManager f flow
@@ -163,6 +191,9 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   incrementErrorCounter = Metrics.incrementErrorCounterImplementation
   addUrlCallRetries = Metrics.addUrlCallRetriesImplementation
   addUrlCallRetryFailures = Metrics.addUrlCallFailuresImplementation
+  incrementSortedSetCounter = Metrics.incrementSortedSetCounterImplementation
+  incrementStreamCounter = Metrics.incrementStreamCounterImplementation
+  addGenericLatency = Metrics.addGenericLatencyImplementation
 
 instance MonadMonitor (FlowR r) where
   doIO = liftIO

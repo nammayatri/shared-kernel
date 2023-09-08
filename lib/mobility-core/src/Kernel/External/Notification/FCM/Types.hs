@@ -27,6 +27,10 @@ import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.Aeson.Types
 import Data.Default.Class
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField)
 import EulerHS.Prelude hiding (id)
 import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Kernel.Types.App
@@ -52,6 +56,17 @@ newtype FCMRecipientToken = FCMRecipientToken
   { getFCMRecipientToken :: Text
   }
   deriving newtype (PersistField, PersistFieldSql, Show, PrettyShow)
+
+deriving newtype instance FromField FCMRecipientToken
+
+instance HasSqlValueSyntax be Text => HasSqlValueSyntax be FCMRecipientToken where
+  sqlValueSyntax = sqlValueSyntax . getFCMRecipientToken
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be FCMRecipientToken
+
+instance FromBackendRow Postgres FCMRecipientToken
+
+deriving stock instance Read FCMRecipientToken
 
 deriveIdentifierInstances ''FCMRecipientToken
 
@@ -402,7 +417,8 @@ instance Default FCMAlert where
 data FCMaps a = FCMaps
   { fcmAlert :: !(Maybe FCMAlert),
     fcmData :: !(Maybe (FCMData a)),
-    fcmCategory :: !(Maybe FCMNotificationType)
+    fcmCategory :: !(Maybe FCMNotificationType),
+    fcmMutableContent :: !Int
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
@@ -413,7 +429,8 @@ instance (ToJSON a) => ToJSON (FCMaps a) where
     object
       [ "alert" .= fcmAlert,
         "data" .= fcmData,
-        "category" .= fcmCategory
+        "category" .= fcmCategory,
+        "mutable-content" .= fcmMutableContent
       ]
 
 instance (FromJSON a) => FromJSON (FCMaps a) where
@@ -422,9 +439,10 @@ instance (FromJSON a) => FromJSON (FCMaps a) where
       <$> o .: "alert"
       <*> o .: "data"
       <*> o .: "category"
+      <*> o .: "mutable-content"
 
 instance Default (FCMaps a) where
-  def = FCMaps Nothing Nothing Nothing
+  def = FCMaps Nothing Nothing Nothing 0
 
 newtype FCMApnPayload a = FCMApnPayload
   { fcmAps :: Maybe (FCMaps a)

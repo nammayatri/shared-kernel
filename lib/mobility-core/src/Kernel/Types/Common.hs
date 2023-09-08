@@ -14,6 +14,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Types.Common
@@ -22,8 +23,6 @@ module Kernel.Types.Common
     HasField,
   )
 where
-
--- import Kernel.Types.Beckn.Context as Context
 
 import Data.Aeson
 import qualified Data.Bifunctor as BF
@@ -49,13 +48,13 @@ import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
 import Kernel.External.Encryption
 import Kernel.External.Encryption as Common (EncFlow)
-import Kernel.External.Types
 import Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto.Config as Common (EsqDBFlow)
 import Kernel.Storage.Esqueleto.Types
 import Kernel.Types.App as Common
 import Kernel.Types.Centesimal as Common
 import Kernel.Types.Forkable as Common
+import Kernel.Types.FromField as Common
 import Kernel.Types.GuidLike as Common
 import Kernel.Types.Logging as Common
 import Kernel.Types.MonadGuid as Common
@@ -88,6 +87,15 @@ newtype Kilometers = Kilometers
   }
   deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
+
+deriving newtype instance FromField Kilometers
+
+instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Kilometers where
+  sqlValueSyntax = sqlValueSyntax . getKilometers
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Kilometers
+
+instance FromBackendRow Postgres Kilometers
 
 kilometersToMeters :: Kilometers -> Meters
 kilometersToMeters (Kilometers n) = Meters $ n * 1000
@@ -154,9 +162,6 @@ instance FromBackendRow Postgres Money
 instance FromField Money where
   fromField = fromFieldJSON
 
-instance IsString Money where
-  fromString = KP.show
-
 instance FromField Centi where
   fromField = fromFieldCenti
 
@@ -194,6 +199,7 @@ fromFieldCentesimal f mbValue = case mbValue of
   Nothing -> DPSF.returnError UnexpectedNull f mempty
   Just _ -> Centesimal <$> fromField f mbValue
 
+-- FIXME next functions are almost the same
 fromFieldMinutes ::
   DPSF.Field ->
   Maybe ByteString ->
@@ -261,9 +267,6 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be Centi
 
 instance FromBackendRow Postgres Centi
 
-instance IsString Centi where
-  fromString = KP.show
-
 instance HasSqlValueSyntax be Centi => HasSqlValueSyntax be Centesimal where
   sqlValueSyntax = sqlValueSyntax . getCenti
 
@@ -277,9 +280,6 @@ instance FromBackendRow Postgres HighPrecMeters
 instance FromField HighPrecMeters where
   fromField = fromFieldHighPrecMeters
 
-instance IsString HighPrecMeters where
-  fromString = KP.show
-
 instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Meters where
   sqlValueSyntax = sqlValueSyntax . getMeters
 
@@ -290,18 +290,12 @@ instance FromBackendRow Postgres Meters
 instance FromField Meters where
   fromField = fromFieldJSON
 
-instance IsString Meters where
-  fromString = KP.show
-
 instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Seconds where
   sqlValueSyntax = sqlValueSyntax . getSeconds
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be Seconds
 
 instance FromBackendRow Postgres Seconds
-
-instance IsString Seconds where
-  fromString = KP.show
 
 instance FromField HighPrecMoney where
   fromField = fromFieldHighPrecMoney
@@ -315,9 +309,6 @@ instance HasSqlValueSyntax be Double => HasSqlValueSyntax be Rational where
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecMoney
 
 instance FromBackendRow Postgres HighPrecMoney
-
-instance IsString HighPrecMoney where
-  fromString = KP.show
 
 instance FromField Seconds where
   fromField = fromFieldSeconds
@@ -333,50 +324,6 @@ instance HasSqlValueSyntax be ByteString => HasSqlValueSyntax be DbHash where
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be DbHash
 
 instance FromBackendRow Postgres DbHash
-
-instance IsString DbHash where
-  fromString = KP.show
-
-fromFieldJSON ::
-  (Typeable a, FromJSON a) =>
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion a
-fromFieldJSON f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just value' -> case decode $ fromStrict value' of
-    Just res -> pure res
-    Nothing -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be Language where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance FromField Language => FromBackendRow Postgres Language
-
-instance FromField Language where
-  fromField = fromFieldEnum
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be Language
-
-fromFieldEnum ::
-  (Typeable a, Read a) =>
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion a
-fromFieldEnum f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just value' ->
-    case readMaybe (unpackChars value') of
-      Just val -> pure val
-      _ -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> KP.show value')
-
-fromFieldEnumDbHash ::
-  DPSF.Field ->
-  Maybe ByteString ->
-  DPSF.Conversion DbHash
-fromFieldEnumDbHash f mbValue = case mbValue of
-  Nothing -> DPSF.returnError UnexpectedNull f mempty
-  Just value' -> pure $ DbHash value'
 
 getPoint :: (Double, Double) -> BQ.QGenExpr context Postgres s Point
 getPoint (lat, lon) = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ "ST_SetSRID (ST_Point (" <> KP.show lon <> " , " <> KP.show lat <> "),4326)"))

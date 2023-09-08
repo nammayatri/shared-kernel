@@ -16,9 +16,12 @@
 module Kernel.External.Notification.Types where
 
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data NotificationService = FCM | PayTM
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
+
+$(mkBeamInstancesForEnum ''NotificationService)
 
 derivePersistField "NotificationService"

@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.Types.Beckn.Country (Country (..)) where
@@ -20,14 +21,17 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.OpenApi hiding (Example)
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto
 import Kernel.Utils.GenericPretty
 
 derivePersistField "Country"
 
 data Country = India | France | AnyCountry
-  deriving (Eq, Generic, Show, Read, ToSchema)
+  deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable Country
+
+$(mkBeamInstancesForEnum ''Country)
 
 instance FromJSON Country where
   parseJSON (String "IND") = pure India

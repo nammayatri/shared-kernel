@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.External.Maps.Interface.Types
@@ -22,11 +23,21 @@ module Kernel.External.Maps.Interface.Types
 where
 
 import Control.Lens.Operators
+import qualified Data.Aeson as A
+import Data.ByteString.Lazy as BL
+import Data.ByteString.Lazy.Char8 as BLC
 import Data.Geospatial
 import Data.LineString
 import Data.OpenApi hiding (components, description)
 import qualified Data.OpenApi as OpenApi
 import Data.Text
+import qualified Data.Text.Encoding as TE
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
+import qualified Database.PostgreSQL.Simple.FromField as DPSF
+import qualified Debug.Trace as T
 import Deriving.Aeson
 import EulerHS.Prelude
 import qualified Kernel.External.Maps.Google.Config as Google
@@ -94,7 +105,42 @@ data RouteInfo = RouteInfo
     snappedWaypoints :: [LatLong],
     points :: [LatLong]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show, Eq, Read, Ord)
+
+instance FromField RouteInfo where
+  fromField f mbValue = case mbValue of
+    Nothing -> DPSF.returnError UnexpectedNull f mempty
+    Just value' ->
+      case T.trace ("text val" <> show value') $ A.eitherDecode $ BL.fromStrict value' of
+        Right jsonVal -> case T.trace ("text val" <> show value') $ A.eitherDecode (BL.fromStrict $ TE.encodeUtf8 jsonVal) of
+          Right val -> pure val
+          _ -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> show value')
+        _ -> DPSF.returnError ConversionFailed f ("Could not 'read'" <> show value')
+
+instance FromBackendRow Postgres RouteInfo
+
+instance HasSqlValueSyntax be Text => HasSqlValueSyntax be RouteInfo where
+  sqlValueSyntax = sqlValueSyntax . (stringify . A.String . stringify . A.toJSON)
+    where
+      stringify = TE.decodeUtf8 . BLC.toStrict . A.encode
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be RouteInfo
+
+deriving stock instance Ord BoundingBoxWithoutCRS
+
+deriving stock instance Ord PointXY
+
+deriving stock instance Ord PointXYZ
+
+deriving stock instance Ord PointXYZM
+
+deriving stock instance Read BoundingBoxWithoutCRS
+
+deriving stock instance Read PointXY
+
+deriving stock instance Read PointXYZ
+
+deriving stock instance Read PointXYZM
 
 instance ToSchema BoundingBoxWithoutCRS where
   declareNamedSchema _ = do

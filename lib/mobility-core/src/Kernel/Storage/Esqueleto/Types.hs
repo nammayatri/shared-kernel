@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -11,6 +12,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Kernel.Storage.Esqueleto.Types
   ( Point (..),
@@ -23,11 +25,36 @@ module Kernel.Storage.Esqueleto.Types
   )
 where
 
+import Data.ByteString (ByteString)
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
 import Database.Esqueleto.Experimental hiding (Table)
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
+import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import Kernel.Prelude
 
 data Point = Point
-  deriving (Generic, Show, Read, Eq, ToSchema)
+  deriving stock (Show, Eq, Read, Ord, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+fromFieldPoint ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion Point
+fromFieldPoint f mbValue = case mbValue of
+  Nothing -> DPSF.returnError DPSF.UnexpectedNull f mempty
+  Just _ -> pure Point
+
+instance FromField Point where
+  fromField = fromFieldPoint
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Point where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Point
+
+instance FromBackendRow Postgres Point
 
 instance PersistField Point where
   toPersistValue _ = error "This value should not be used in queries directly."

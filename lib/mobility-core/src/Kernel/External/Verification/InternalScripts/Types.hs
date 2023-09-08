@@ -26,8 +26,9 @@ newtype FaceVerificationCfg = FaceVerificationCfg
 data FaceType = REAL_FACE | FAKE_FACE | UNKNOWN
   deriving (Generic, FromJSON, Show, ToJSON)
 
-newtype FaceValidationReq = FaceValidationReq
-  { file :: Text
+data FaceValidationReq = FaceValidationReq
+  { file :: Text,
+    brisqueFeatures :: [Double]
   }
   deriving (Generic, ToJSON)
 

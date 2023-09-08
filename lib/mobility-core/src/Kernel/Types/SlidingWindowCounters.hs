@@ -1,3 +1,5 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -15,6 +17,13 @@
 
 module Kernel.Types.SlidingWindowCounters where
 
+import qualified Data.Aeson as A
+import Data.ByteString (ByteString)
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
+import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistFieldJSON)
 import Kernel.Utils.Dhall (FromDhall)
@@ -23,9 +32,29 @@ data SlidingWindowOptions = SlidingWindowOptions
   { period :: Integer,
     periodType :: PeriodType
   }
-  deriving (Read, Generic, FromDhall, Show, FromJSON, ToJSON, ToSchema)
+  deriving (Read, Generic, FromDhall, Show, FromJSON, ToJSON, ToSchema, Ord, Eq)
 
-data PeriodType = Minutes | Hours | Days | Months | Years deriving (Read, Generic, FromDhall, Show, Eq, FromJSON, ToJSON, ToSchema)
+fromFieldSWC ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion SlidingWindowOptions
+fromFieldSWC f mbValue = do
+  value <- fromField f mbValue
+  case A.fromJSON value of
+    A.Success a -> pure a
+    _ -> DPSF.returnError DPSF.ConversionFailed f "Conversion failed"
+
+instance FromField SlidingWindowOptions where
+  fromField = fromFieldSWC
+
+instance HasSqlValueSyntax be A.Value => HasSqlValueSyntax be SlidingWindowOptions where
+  sqlValueSyntax = sqlValueSyntax . A.toJSON
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be SlidingWindowOptions
+
+instance FromBackendRow Postgres SlidingWindowOptions
+
+data PeriodType = Minutes | Hours | Days | Months | Years deriving (Read, Generic, FromDhall, Show, Eq, FromJSON, ToJSON, ToSchema, Ord)
 
 type TimePair = (UTCTime, UTCTime) -- (startTime, endTime)
 

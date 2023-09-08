@@ -1,25 +1,32 @@
-{-# LANGUAGE TemplateHaskellQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Beam.Lib.UtilsTH where
+module Kernel.Beam.Lib.UtilsTH
+  ( enableKVPG,
+    mkTableInstances,
+    mkTableInstancesWithTModifier,
+    mkBeamInstancesForEnum,
+  )
+where
 
 import qualified Data.Aeson as A
-import Data.Cereal.Instances ()
-import Data.Cereal.TH
 import qualified Data.HashMap.Internal as HMI
 import qualified Data.HashMap.Strict as HM
-import Data.List (init, nub, (!!))
+import Data.List (init, lookup, (!!))
+import Data.List.Extra (anySame)
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 import qualified Database.Beam as B
-import Database.Beam.MySQL (MySQL)
+import Database.Beam.Backend
 import Database.Beam.Postgres (Postgres)
 import qualified Database.Beam.Schema.Tables as B
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import EulerHS.KVConnector.Types (KVConnector (..), MeshMeta (..), PrimaryKey (..), SecondaryKey (..), TermWrap (..))
 import EulerHS.Prelude hiding (Type, words)
+import Kernel.Types.FromField (fromFieldEnum)
 import Language.Haskell.TH
 import Sequelize
 import qualified Sequelize as S
-import Text.Casing (camel)
+import Text.Casing (camel, quietSnake)
 import Prelude (head)
 import qualified Prelude as P
 
@@ -28,13 +35,6 @@ emptyTextHashMap = HMI.empty
 
 emptyValueHashMap :: M.Map Text (A.Value -> A.Value)
 emptyValueHashMap = M.empty
-
-enableKV :: Name -> [Name] -> [[Name]] -> Q [Dec]
-enableKV name pKeyN sKeysN = do
-  [tModeMeshSig, tModeMeshDec] <- tableTModMeshD name
-  [kvConnectorDec] <- kvConnectorInstancesD name pKeyN sKeysN
-  [meshMetaDec] <- meshMetaInstancesD name
-  pure [tModeMeshSig, tModeMeshDec, meshMetaDec, kvConnectorDec] -- ++ cerealDec
 
 enableKVPG :: Name -> [Name] -> [[Name]] -> Q [Dec]
 enableKVPG name pKeyN sKeysN = do
@@ -104,29 +104,6 @@ sortAndGetKey names = do
 --"$sel:merchantId:OrderReference" -> "merchantId"
 splitColon :: String -> String
 splitColon s = T.unpack $ T.splitOn ":" (T.pack s) !! 1
-
--------------------------------------------------------------------------------
-cerealInstancesD :: Name -> Q [Dec]
-cerealInstancesD name = do
-  tableCerealD <- makeCerealIdentity name
-  types <- filter noCerealInstance . extractRecTypes . head . extractConstructors <$> reify name
-  columnsCerealD <- concat <$> mapM makeCereal (nub types)
-  return (columnsCerealD ++ tableCerealD)
-  where
-    noCerealInstance n = nameBase n `notElem` ["Text", "LocalTime", "Int", "Double", "Bool", "Int64", "Int32", "Scientific", "Value", "UTCTime"]
-
--------------------------------------------------------------------------------
-meshMetaInstancesD :: Name -> Q [Dec]
-meshMetaInstancesD name = do
-  names <- extractRecFields . head . extractConstructors <$> reify name
-  let meshModelFieldModification' = mkName "meshModelFieldModification"
-      valueMapper' = mkName "valueMapper"
-      modelTModMesh' = mkName $ camel (nameBase name) <> "ModMesh"
-  let meshModelFieldModificationD = FunD meshModelFieldModification' [Clause [] (NormalB (VarE modelTModMesh')) []]
-      valueMapperD = FunD valueMapper' [Clause [] (NormalB (VarE 'emptyValueHashMap)) []]
-  let parseFieldAndGetClauseD = getParseFieldAndGetClauseD name names
-      parseSetClauseD = getParseSetClauseD name names
-  return [InstanceD Nothing [] (AppT (AppT (ConT ''MeshMeta) (ConT ''MySQL)) (ConT name)) [meshModelFieldModificationD, valueMapperD, parseFieldAndGetClauseD, parseSetClauseD]]
 
 -------------------------------------------------------------------------------
 meshMetaInstancesDPG :: Name -> Q [Dec]
@@ -207,14 +184,6 @@ extractRecFields :: Con -> [Name]
 extractRecFields (RecC _ bangs) = handleVarBang <$> bangs where handleVarBang (a, _, _) = a
 extractRecFields _ = []
 
-extractRecTypes :: Con -> [Name]
-extractRecTypes (RecC _ bangs) = foldl' handleVarBang [] bangs
-  where
-    handleVarBang b (_, _, AppT _ (ConT n)) = n : b
-    handleVarBang b (_, _, AppT _ (AppT _ (ConT n))) = n : b
-    handleVarBang b _ = b
-extractRecTypes _ = []
-
 utilTransform :: (ToJSON a) => Map Text (A.Value -> A.Value) -> Text -> a -> Text
 utilTransform modifyMap field value = do
   let res = case M.lookup field modifyMap of
@@ -228,7 +197,7 @@ utilTransform modifyMap field value = do
     A.Object o -> T.pack $ show o
     A.Null -> T.pack ""
 
-mkEmod :: Name -> String -> String -> Q [Dec]
+mkEmod :: Name -> String -> String -> Q (Dec, Dec)
 mkEmod name table schema = do
   let fnName = mkName $ (T.unpack . T.dropEnd 1 . T.pack $ camel (nameBase name)) <> "Table"
       tableTModN = mkName $ camel (nameBase name) <> "Mod"
@@ -248,10 +217,18 @@ mkEmod name table schema = do
                   )
               )
           )
-  -- return [FunD fnName [Clause [] (NormalB bodyExpr) []]]
-  return [FunD fnName [Clause [] (NormalB bodyExpr) []]]
+  let beTypeVar = VarT $ mkName "be"
+      dbTypeVar = VarT $ mkName "dn"
+      fnTypeBody =
+        ConT ''B.EntityModification
+          `AppT` (ConT ''B.DatabaseEntity `AppT` beTypeVar `AppT` dbTypeVar)
+          `AppT` beTypeVar
+          `AppT` (ConT ''B.TableEntity `AppT` ConT name)
+      fnSig = SigD fnName fnTypeBody
+      fnBody = FunD fnName [Clause [] (NormalB bodyExpr) []]
+  return (fnSig, fnBody)
 
-mkModelMetaInstances :: Name -> String -> String -> Q [Dec]
+mkModelMetaInstances :: Name -> String -> String -> Q Dec
 mkModelMetaInstances name table schema = do
   let modelFM = mkName "modelFieldModification"
       modelTable = mkName "modelTableName"
@@ -260,39 +237,104 @@ mkModelMetaInstances name table schema = do
       modelFMInstance = FunD modelFM [Clause [] (NormalB (VarE tableTModN)) []]
       modelNameInstance = FunD modelTable [Clause [] (NormalB (LitE $ StringL table)) []]
       modelSchemaInstance = FunD modelSchema [Clause [] (NormalB (AppE (ConE 'Just) (LitE $ StringL schema))) []]
-  return [InstanceD Nothing [] (AppT (ConT ''ModelMeta) (ConT name)) [modelFMInstance, modelNameInstance, modelSchemaInstance]]
+  return $ InstanceD Nothing [] (AppT (ConT ''ModelMeta) (ConT name)) [modelFMInstance, modelNameInstance, modelSchemaInstance]
 
-mkSerialInstances :: Name -> Q [Dec]
+mkTModFunction :: [(String, String)] -> Name -> Q (Dec, Dec)
+mkTModFunction tableFieldModifier name = do
+  let nameStr = nameBase name
+  mbTypeName <- lookupTypeName nameStr
+  typeName <- case mbTypeName of
+    Nothing -> fail $ nameStr <> " should be type name"
+    Just n -> pure n
+  tableTypeInfo <- reify typeName
+  fieldNames <- case tableTypeInfo of
+    TyConI dec -> do
+      case dec of
+        DataD _ _ _ _ [constructor] _ -> do
+          case constructor of
+            RecC _ records -> pure $ records <&> (\(fieldName, _, _) -> fieldName)
+            _ -> fail $ nameStr <> " should contain records"
+        _ -> fail $ nameStr <> " should be data type with one constructor"
+    _ -> fail $ nameStr <> " should be type name"
+  let fieldNamesStr = nameBase <$> fieldNames
+  checkFieldModifier tableFieldModifier fieldNamesStr
+  let fieldExpressions =
+        fieldNames <&> \fieldName -> do
+          let fieldNameStr = nameBase fieldName
+          let modifiedField = fromMaybe (quietSnake fieldNameStr) (lookup fieldNameStr tableFieldModifier)
+          (fieldName, VarE 'B.fieldNamed `AppE` LitE (StringL modifiedField))
+  let bodyExpr = RecUpdE (VarE 'B.tableModification) fieldExpressions
+      tableTModN = mkName $ camel (nameBase name) <> "Mod"
+      fnTypeBody =
+        ConT name
+          `AppT` (ConT ''B.FieldModification `AppT` (ConT ''B.TableField `AppT` ConT name))
+      fnSig = SigD tableTModN fnTypeBody
+      fnBody = FunD tableTModN [Clause [] (NormalB bodyExpr) []]
+  return (fnSig, fnBody)
+
+checkFieldModifier :: [(String, String)] -> [String] -> Q ()
+checkFieldModifier modifier fields = do
+  when (anySame (fst <$> modifier)) $
+    fail "Duplicated fields in modifier"
+  when (anySame (snd <$> modifier)) $
+    fail "Duplicated fields after modifying"
+  forM_ modifier $ \(fieldBefore, _fieldAfter) -> do
+    unless (fieldBefore `elem` fields) $
+      fail ("Field: " <> fieldBefore <> " does not exist")
+
+mkSerialInstances :: Name -> Q Dec
 mkSerialInstances name = do
   let -- tName     = mkName $ (T.unpack . T.dropEnd 1 . T.pack $ camel (nameBase name))
       putFn = mkName "put"
       getFn = mkName "get"
       putInstance = FunD putFn [Clause [] (NormalB (AppE (VarE 'error) (LitE $ StringL ""))) []]
       getInstance = FunD getFn [Clause [] (NormalB (AppE (VarE 'error) (LitE $ StringL ""))) []]
-  return [InstanceD Nothing [] (AppT (ConT ''Serialize) (AppT (ConT name) (ConT $ mkName "Identity"))) [putInstance, getInstance]]
+  return $ InstanceD Nothing [] (AppT (ConT ''Serialize) (AppT (ConT name) (ConT $ mkName "Identity"))) [putInstance, getInstance]
 
-mkFromJSONInstance :: Name -> Q [Dec]
+mkFromJSONInstance :: Name -> Q Dec
 mkFromJSONInstance name = do
   let fromJSONFn = mkName "parseJSON"
       fromJSONInstance = FunD fromJSONFn [Clause [] (NormalB (AppE (VarE 'A.genericParseJSON) (VarE 'A.defaultOptions))) []]
-  return [InstanceD Nothing [] (AppT (ConT ''FromJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [fromJSONInstance]]
+  return $ InstanceD Nothing [] (AppT (ConT ''FromJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [fromJSONInstance]
 
-mkToJSONInstance :: Name -> Q [Dec]
+mkToJSONInstance :: Name -> Q Dec
 mkToJSONInstance name = do
   let toJSONFn = mkName "toJSON"
       toJSONInstance = FunD toJSONFn [Clause [] (NormalB (AppE (VarE 'A.genericToJSON) (VarE 'A.defaultOptions))) []]
-  return [InstanceD Nothing [] (AppT (ConT ''ToJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [toJSONInstance]]
+  return $ InstanceD Nothing [] (AppT (ConT ''ToJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [toJSONInstance]
 
-mkShowInstance :: Name -> Q [Dec]
+mkShowInstance :: Name -> Q Dec
 mkShowInstance name = do
-  return [StandaloneDerivD (Just StockStrategy) [] (AppT (ConT ''Show) (AppT (ConT name) (ConT $ mkName "Identity")))]
+  return $ StandaloneDerivD (Just StockStrategy) [] (AppT (ConT ''Show) (AppT (ConT name) (ConT $ mkName "Identity")))
 
 mkTableInstances :: Name -> String -> String -> Q [Dec]
-mkTableInstances name table schema = do
-  [modelMetaInstances] <- mkModelMetaInstances name table schema
-  [eModInstances] <- mkEmod name table schema
-  [serialInstances] <- mkSerialInstances name
-  [fromJSONInstances] <- mkFromJSONInstance name
-  [toJSONInstances] <- mkToJSONInstance name
-  [showInstances] <- mkShowInstance name
-  pure [modelMetaInstances, eModInstances, serialInstances, fromJSONInstances, toJSONInstances, showInstances]
+mkTableInstances name table schema = mkTableInstancesWithTModifier name table schema []
+
+mkTableInstancesWithTModifier :: Name -> String -> String -> [(String, String)] -> Q [Dec]
+mkTableInstancesWithTModifier name table schema tableFieldModifier = do
+  modelMetaInstances <- mkModelMetaInstances name table schema
+  (eModSig, eModBody) <- mkEmod name table schema
+  serialInstances <- mkSerialInstances name
+  fromJSONInstances <- mkFromJSONInstance name
+  toJSONInstances <- mkToJSONInstance name
+  showInstances <- mkShowInstance name
+  (tModSig, tModBody) <- mkTModFunction tableFieldModifier name
+  pure [tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances]
+
+------------------- instances for enum --------------------
+
+-- | A set of instances required for beam table row as enum.
+mkBeamInstancesForEnum :: Name -> Q [Dec]
+mkBeamInstancesForEnum name = do
+  let tyQ = pure (ConT name)
+  [d|
+    instance FromField $tyQ where
+      fromField = fromFieldEnum
+
+    instance HasSqlValueSyntax be String => HasSqlValueSyntax be $tyQ where
+      sqlValueSyntax = autoSqlValueSyntax
+
+    instance BeamSqlBackend be => B.HasSqlEqualityCheck be $tyQ
+
+    instance FromBackendRow Postgres $tyQ
+    |]

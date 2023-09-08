@@ -12,11 +12,17 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Types where
 
 import Data.OpenApi
+import Database.Beam
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import Kernel.External.Encryption (EncFlow)
+import Kernel.Storage.Esqueleto (EsqDBFlow)
+import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
@@ -30,6 +36,8 @@ data Language
   | FRENCH
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
   deriving (PrettyShow) via Showable Language
+
+$(mkBeamInstancesForEnum ''Language)
 
 instance FromHttpApiData Language where
   parseUrlPiece "en" = pure ENGLISH
@@ -49,3 +57,5 @@ instance ToHttpApiData Language where
   toUrlPiece TAMIL = "ta"
   toUrlPiece BENGALI = "bn"
   toUrlPiece FRENCH = "fr"
+
+type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r)

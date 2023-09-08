@@ -20,9 +20,12 @@ where
 
 import Data.OpenApi
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data CallService = Exotel
+data CallService = Exotel | Knowlarity
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+
+$(mkBeamInstancesForEnum ''CallService)
 
 derivePersistField "CallService"

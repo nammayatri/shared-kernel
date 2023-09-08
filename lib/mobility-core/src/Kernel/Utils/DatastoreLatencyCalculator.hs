@@ -11,15 +11,14 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Kernel.Utils.DatastoreLatencyCalculator where
 
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Tools.Metrics.CoreMetrics
-import Kernel.Utils.Common
+import Kernel.Utils.Logging
+import Kernel.Utils.Time
 
 withTimeRedis ::
   ( MonadReader r m,

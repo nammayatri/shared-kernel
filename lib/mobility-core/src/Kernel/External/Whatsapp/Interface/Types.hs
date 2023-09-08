@@ -12,6 +12,8 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.External.Whatsapp.Interface.Types
@@ -20,6 +22,7 @@ module Kernel.External.Whatsapp.Interface.Types
 where
 
 import Deriving.Aeson
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Whatsapp.GupShup.Config as GupShup
 import qualified Kernel.External.Whatsapp.Types as T
 import Kernel.Prelude
@@ -30,7 +33,9 @@ newtype WhatsappServiceConfig = GupShupConfig GupShup.GupShupCfg
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] WhatsappServiceConfig
 
 data OptApiMethods = OPT_IN | OPT_OUT
-  deriving (Show, Eq, Read, Generic, ToSchema, FromJSON, ToJSON, Enum)
+  deriving (Show, Eq, Read, Ord, Generic, ToSchema, FromJSON, ToJSON, Enum)
+
+$(mkBeamInstancesForEnum ''OptApiMethods)
 
 data WhatsappHandler m = WhatsappHandler
   { getProvidersPriorityList :: m [T.WhatsappService],

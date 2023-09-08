@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.Types.Beckn.City (City (..)) where
@@ -20,14 +21,17 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.OpenApi hiding (Example)
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto
 import Kernel.Utils.GenericPretty
 
 derivePersistField "City"
 
 data City = Bangalore | Kolkata | Paris | Kochi | AnyCity
-  deriving (Eq, Generic, Show, Read, ToSchema)
+  deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable City
+
+$(mkBeamInstancesForEnum ''City)
 
 instance FromJSON City where
   parseJSON (String "std:080") = pure Bangalore

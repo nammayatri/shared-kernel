@@ -21,10 +21,13 @@ where
 
 import Data.OpenApi
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data AadhaarVerificationService = Gridline
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+
+$(mkBeamInstancesForEnum ''AadhaarVerificationService)
 
 availableVerificationServices :: [AadhaarVerificationService]
 availableVerificationServices = [Gridline]

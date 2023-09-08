@@ -27,6 +27,8 @@ import qualified Data.HashMap.Internal as HMap
 import Data.List (lookup)
 import qualified Data.OpenApi as DS
 --import qualified Data.Text as T
+
+import qualified Data.Text as T
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Typeable (typeRep)
 import EulerHS.Prelude
@@ -113,6 +115,8 @@ instance
       authCheck :: Wai.Request -> DelayedIO SignatureAuthResult
       authCheck req = runFlowRDelayedIO env . becknApiHandler . withLogTag "authCheck" $ do
         let headers = Wai.requestHeaders req
+            pathInfo = Wai.rawPathInfo req
+        merchantId <- getSecondLastElement (decodeUtf8 pathInfo) & fromMaybeM (InternalError $ "Beckn " <> show pathInfo <> " path doesn't have merchant id")
         logDebug $ "Incoming headers: " +|| headers ||+ ""
         bodyHash <-
           headers
@@ -123,7 +127,7 @@ instance
             & (lookup headerName >>> fromMaybeM (MissingHeader headerName))
             >>= (parseHeader >>> fromEitherM (InvalidHeader headerName))
             >>= (HttpSig.decode . fromString >>> fromEitherM CannotDecodeSignature)
-        subscriber <- verifySignature headerName signPayload bodyHash
+        subscriber <- verifySignature headerName signPayload bodyHash merchantId
         return $ SignatureAuthResult signPayload subscriber
       headerName = fromString $ symbolVal (Proxy @header)
       headerName :: IsString a => a
@@ -214,16 +218,18 @@ verifySignature ::
   Text ->
   HttpSig.SignaturePayload ->
   HttpSig.Hash ->
+  Text ->
   m Subscriber
-verifySignature headerName signPayload bodyHash = do
+verifySignature headerName signPayload bodyHash merchantId = do
   hostName <- asks (.hostName)
   logTagDebug "SignatureAuth" $ "Got Signature: " <> show signPayload
   let uniqueKeyId = signPayload.params.keyId.uniqueKeyId
-  let subscriberId = signPayload.params.keyId.subscriberId
+      subscriberId = signPayload.params.keyId.subscriberId
       lookupRequest =
         SimpleLookupRequest
           { unique_key_id = uniqueKeyId,
-            subscriber_id = subscriberId
+            subscriber_id = subscriberId,
+            merchant_id = merchantId
           }
   registryLookup lookupRequest >>= \case
     Just subscriber -> do
@@ -370,3 +376,9 @@ instance
   SanitizedUrl (SignatureAuth h :> subroute)
   where
   getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
+
+getSecondLastElement :: Text -> Maybe Text
+getSecondLastElement str =
+  case reverse (T.splitOn "/" str) of
+    (_ : secondLast : _) -> Just secondLast
+    _ -> Nothing

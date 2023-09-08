@@ -11,10 +11,13 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Call.Interface.Types where
 
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Call.Exotel.Config as Exotel
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
@@ -58,7 +61,10 @@ data CallStatus
     CONNECTED
   | NOT_CONNECTED
   | MISSED
-  deriving (Generic, Eq, Show, Read, ToJSON, FromJSON, ToSchema)
+  deriving stock (Show, Eq, Read, Ord, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+$(mkBeamInstancesForEnum ''CallStatus)
 
 derivePersistField "CallStatus"
 

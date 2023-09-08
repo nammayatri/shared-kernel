@@ -20,11 +20,40 @@ module Kernel.External.Whatsapp.Types
 where
 
 import Data.OpenApi
+import qualified Data.Text as T
+import qualified Data.Vector as V
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField (fromField))
+import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Types.Common (fromFieldEnum)
 
 data WhatsappService = GupShup
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+
+fromFieldWhatsappService ::
+  DPSF.Field ->
+  Maybe ByteString ->
+  DPSF.Conversion [WhatsappService]
+fromFieldWhatsappService f mbValue = case mbValue of
+  Nothing -> DPSF.returnError UnexpectedNull f mempty
+  Just _ -> V.toList <$> fromField f mbValue
+
+instance FromField WhatsappService where
+  fromField = fromFieldEnum
+
+instance FromField [WhatsappService] where
+  fromField = fromFieldWhatsappService
+
+instance HasSqlValueSyntax be (V.Vector Text) => HasSqlValueSyntax be [WhatsappService] where
+  sqlValueSyntax x = sqlValueSyntax (V.fromList (T.pack . show <$> x))
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be [WhatsappService]
+
+instance FromBackendRow Postgres [WhatsappService]
 
 availableWhatsappServices :: [WhatsappService]
 availableWhatsappServices = [GupShup]
