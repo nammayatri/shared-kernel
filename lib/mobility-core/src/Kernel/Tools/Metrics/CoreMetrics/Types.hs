@@ -44,6 +44,8 @@ type StreamMetric = P.Vector P.Label2 P.Counter
 
 type GenericLatencyMetric = P.Vector P.Label2 P.Histogram
 
+type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
+
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
     HasField "version" r DeploymentVersion
@@ -60,6 +62,7 @@ class CoreMetrics m where
   incrementSortedSetCounter :: Text -> m ()
   incrementStreamCounter :: Text -> m ()
   addGenericLatency :: Text -> NominalDiffTime -> m ()
+  incrementSchedulerFailureCounter :: Text -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -69,7 +72,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     urlCallRetries :: URLCallRetriesMetric,
     urlCallRetryFailures :: URLCallRetryFailuresMetric,
     sortedSetCounter :: SortedSetMetric,
-    streamCounter :: StreamMetric
+    streamCounter :: StreamMetric,
+    schedulerFailureCounter :: SchedulerFailureMetric
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -82,6 +86,7 @@ registerCoreMetricsContainer = do
   urlCallRetryFailures <- registerURLCallRetryFailuresMetric
   sortedSetCounter <- registerSortedSetMetric
   streamCounter <- registerStreamCounter
+  schedulerFailureCounter <- registerSchedulerFailureCounter
 
   return CoreMetricsContainer {..}
 
@@ -148,3 +153,11 @@ registerGenericLatencyMetrics =
       P.histogram info P.defaultBuckets
   where
     info = P.Info "producer_operation_duration" ""
+
+registerSchedulerFailureCounter :: IO SchedulerFailureMetric
+registerSchedulerFailureCounter =
+  P.register $
+    P.vector ("scheduler_type", "version") $
+      P.counter info
+  where
+    info = P.Info "scheduler_jobs_fail_counter" ""
