@@ -128,6 +128,18 @@ incrementStreamCounterImplementation context = do
   version <- asks (.version)
   incrementStreamCounterImplementation' cmContainer context version
 
+incrementSchedulerFailureCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementSchedulerFailureCounterImplementation context = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  incrementSchedulerFailureCounterImplementation' cmContainer context version
+
 addRequestLatencyImplementation' ::
   L.MonadFlow m =>
   CoreMetricsContainer ->
@@ -222,3 +234,12 @@ addGenericLatencyImplementation operation latency = do
       cmContainer.genericLatency
       (operation, version.getDeploymentVersion)
       (`P.observe` (fromIntegral $ div (fromEnum . nominalDiffTimeToSeconds $ latency) 1000000000000))
+
+incrementSchedulerFailureCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
+incrementSchedulerFailureCounterImplementation' cmContainers context version = do
+  let sortedSetMetric = cmContainers.sortedSetCounter
+  L.runIO $
+    P.withLabel
+      sortedSetMetric
+      (context, version.getDeploymentVersion)
+      P.incCounter

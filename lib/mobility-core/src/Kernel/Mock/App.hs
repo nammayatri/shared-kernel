@@ -60,6 +60,7 @@ instance CoreMetrics (MockM e) where
   incrementSortedSetCounter _ = return ()
   incrementStreamCounter _ = return ()
   addGenericLatency _ _ = return ()
+  incrementSchedulerFailureCounter _ = return ()
 
 instance MonadTime (MockM e) where
   getCurrentTime = liftIO getCurrentTime
