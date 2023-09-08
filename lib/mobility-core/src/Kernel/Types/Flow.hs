@@ -179,6 +179,11 @@ instance {-# OVERLAPPABLE #-} IOLogging.HasLog r => Log (FlowR r) where
   logOutput = IOLogging.logOutputImplementation
   withLogTag lc (FlowR flowR) = FlowR $ IOLogging.withLogTagImplementation lc flowR
 
+instance {-# OVERLAPPABLE #-} IOLogging.HasLog r => Log (ReaderT r0 (FlowR r)) where
+  logOutput = IOLogging.logOutputImplementation
+  withLogTag lc (f) = ReaderT (\r -> FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc (runReaderT f r)))
+  withLogTag lc () = ReaderT (\r -> FlowR $ IOLogging.withLogTagImplementation lc $ (unFlowR (runReaderT f r)))
+
 instance MonadTime (FlowR r) where
   getCurrentTime = liftIO getCurrentTime
 
@@ -186,6 +191,16 @@ instance MonadClock (FlowR r) where
   getClockTime = liftIO getClockTime
 
 instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
+  addRequestLatency = Metrics.addRequestLatencyImplementation
+  addDatastoreLatency = Metrics.addDatastoreLatencyImplementation
+  incrementErrorCounter = Metrics.incrementErrorCounterImplementation
+  addUrlCallRetries = Metrics.addUrlCallRetriesImplementation
+  addUrlCallRetryFailures = Metrics.addUrlCallFailuresImplementation
+  incrementSortedSetCounter = Metrics.incrementSortedSetCounterImplementation
+  incrementStreamCounter = Metrics.incrementStreamCounterImplementation
+  addGenericLatency = Metrics.addGenericLatencyImplementation
+
+instance Metrics.HasCoreMetrics r0 => Metrics.CoreMetrics (ReaderT r0 (FlowR r)) where
   addRequestLatency = Metrics.addRequestLatencyImplementation
   addDatastoreLatency = Metrics.addDatastoreLatencyImplementation
   incrementErrorCounter = Metrics.incrementErrorCounterImplementation
@@ -210,4 +225,21 @@ instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => Forkable (FlowR r) wh
       err (e :: SomeException) = do
         logError $ "Thread " <> show tag <> " died with error: " <> makeLogSomeException e
         Metrics.incrementErrorCounter "FORKED_THREAD_ERROR" e
+      refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalOptions}
+
+instance Forkable (ReaderT r0 (FlowR r)) where
+  fork tag f = do
+    newLocalOptions <- newMVar mempty
+    ReaderT (\r -> FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc (runReaderT f r)))
+    where
+      -- ReaderT $ FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc runReaderT )
+
+      handleExc = try >=> (`whenLeft` err)
+      err (e :: SomeException) = do
+        L.logError ("Thread died with error" <> show tag :: Text) (show e :: Text)
+        pure ()
+      -- err _ = do
+      -- pure ()
+      -- L.logError $ "Thread " <> show tag <> " died with error: " <> makeLogSomeException e
+      -- Metrics.incrementErrorCounter "FORKED_THREAD_ERROR" e
       refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalOptions}
