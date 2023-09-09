@@ -80,8 +80,7 @@ getCurrentDate = do
   return $ encodeToText formattedDate
 
 type OfferListAPI =
-  "v1" -- is this required?
-    :> "offers"
+  "offers"
     :> "list"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
@@ -103,9 +102,7 @@ offerList url apiKey merchantId req = do
   callJuspayAPI url eulerClient "offer-list" proxy
 
 type OfferApplyAPI =
-  "merchant"
-    :> "offers"
-    :> Capture "mandateId" Text
+  "offers"
     :> "apply"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
@@ -119,12 +116,11 @@ offerApply ::
   BaseUrl ->
   Text ->
   Text ->
-  Text ->
   Offer.OfferApplyReq ->
   m Offer.OfferApplyResp
-offerApply url apiKey merchantId mandateId req = do
+offerApply url apiKey merchantId req = do
   let proxy = Proxy @OfferApplyAPI
-      eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
   callJuspayAPI url eulerClient "offer-apply" proxy
 
 type OfferNotifyAPI =
