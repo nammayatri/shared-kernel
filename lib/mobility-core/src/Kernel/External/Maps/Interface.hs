@@ -107,11 +107,12 @@ getRoutes ::
     CoreMetrics m,
     Log m
   ) =>
+  Bool ->
   MapsServiceConfig ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getRoutes cfg req
+getRoutes isAvoidToll serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getRoutes isAvoidToll cfg req
   OSRMConfig osrmCfg -> OSRM.getRoutes osrmCfg req
   MMIConfig cfg -> MMI.getRoutes cfg req
 
