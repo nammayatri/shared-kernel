@@ -2,12 +2,12 @@
 
 module Kernel.Beam.Lib.UtilsTH
   ( enableKVPG,
+    HasSchemaName (..),
     mkTableInstances,
     mkTableInstancesWithTModifier,
     mkTableInstancesGenericSchema,
     mkTableInstancesGenericSchemaWithTModifier,
     mkBeamInstancesForEnum,
-    HasSchemaName (..),
     mkBeamInstancesForList,
     mkBeamInstancesForJSON,
   )
@@ -30,6 +30,7 @@ import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError 
 import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import qualified EulerHS.KVConnector.Types as KV
 import EulerHS.Prelude hiding (Type, words)
+import Kernel.Types.Common ()
 import Kernel.Types.FromField (fromFieldEnum, fromFieldJSON)
 import Kernel.Utils.Text (encodeToText)
 import Language.Haskell.TH
