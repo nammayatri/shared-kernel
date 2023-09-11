@@ -90,10 +90,8 @@ runInReplica m = do
   L.setOptionLocal ReplicaEnabled False
   pure res
 
-setMeshConfig :: forall table m. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> MeshConfig -> m MeshConfig
-setMeshConfig _ meshConfig' = do
-  let modelName = modelTableName @table
-      mSchema = modelSchemaName @table
+setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
+setMeshConfig modelName mSchema meshConfig' = do
   schema <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
   let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream"
   tables <- L.getOption KBT.Tables
@@ -110,6 +108,11 @@ setMeshConfig _ meshConfig' = do
               pure $ meshConfig' {meshEnabled = True, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
             else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
         else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
+
+withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
+withUpdatedMeshConfig _ mkAction = do
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
+  mkAction updatedMeshConfig
 
 getMasterDBConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
 getMasterDBConfig = do
@@ -184,8 +187,7 @@ findOneWithKV ::
   ) =>
   Where Postgres table ->
   m (Maybe a)
-findOneWithKV where' = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+findOneWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   findOneInternal updatedMeshConfig fromTType' where'
 
 findOneWithKVScheduler ::
@@ -195,8 +197,7 @@ findOneWithKVScheduler ::
   ) =>
   Where Postgres table ->
   m (Maybe a)
-findOneWithKVScheduler where' = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+findOneWithKVScheduler where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   findOneInternal updatedMeshConfig fromTType'' where'
 
 findOneWithDb ::
@@ -217,8 +218,7 @@ findAllWithKV ::
   ) =>
   Where Postgres table ->
   m [a]
-findAllWithKV where' = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+findAllWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   findAllInternal updatedMeshConfig fromTType' where'
 
 findAllWithKVScheduler ::
@@ -228,8 +228,7 @@ findAllWithKVScheduler ::
   ) =>
   Where Postgres table ->
   m [a]
-findAllWithKVScheduler where' = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+findAllWithKVScheduler where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   findAllInternal updatedMeshConfig fromTType'' where'
 
 findAllWithDb ::
@@ -253,8 +252,7 @@ findAllWithOptionsKV ::
   Maybe Int ->
   Maybe Int ->
   m [a]
-findAllWithOptionsKV where' orderBy mbLimit mbOffset = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+findAllWithOptionsKV where' orderBy mbLimit mbOffset = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   findAllWithOptionsInternal updatedMeshConfig fromTType' where' orderBy mbLimit mbOffset
 
 findAllWithOptionsKVScheduler ::
@@ -267,8 +265,7 @@ findAllWithOptionsKVScheduler ::
   Maybe Int ->
   Maybe Int ->
   m [a]
-findAllWithOptionsKVScheduler where' orderBy mbLimit mbOffset = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+findAllWithOptionsKVScheduler where' orderBy mbLimit mbOffset = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   findAllWithOptionsInternal updatedMeshConfig fromTType'' where' orderBy mbLimit mbOffset
 
 findAllWithOptionsDb ::
@@ -291,8 +288,7 @@ updateWithKV ::
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
-updateWithKV setClause whereClause = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+updateWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   updateInternal updatedMeshConfig setClause whereClause
 
 updateWithKVScheduler ::
@@ -301,8 +297,7 @@ updateWithKVScheduler ::
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
-updateWithKVScheduler setClause whereClause = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+updateWithKVScheduler setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   updateInternal updatedMeshConfig setClause whereClause
 
 -- updateOne --
@@ -313,8 +308,7 @@ updateOneWithKV ::
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
-updateOneWithKV setClause whereClause = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+updateOneWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   updateOneInternal updatedMeshConfig setClause whereClause
 
 -- create --
@@ -326,8 +320,7 @@ createWithKV ::
   ) =>
   a ->
   m ()
-createWithKV a = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+createWithKV a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   createInternal updatedMeshConfig toTType' a
 
 createWithKVScheduler ::
@@ -337,8 +330,7 @@ createWithKVScheduler ::
   ) =>
   a ->
   m ()
-createWithKVScheduler a = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+createWithKVScheduler a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   createInternal updatedMeshConfig toTType'' a
 
 -- delete --
@@ -348,8 +340,7 @@ deleteWithKV ::
   BeamTableFlow table m =>
   Where Postgres table ->
   m ()
-deleteWithKV whereClause = do
-  updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
+deleteWithKV whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   deleteInternal updatedMeshConfig whereClause
 
 deleteWithDb ::
@@ -441,7 +432,6 @@ updateOneInternal ::
   Where Postgres table ->
   m ()
 updateOneInternal updatedMeshConfig setClause whereClause = do
-  -- updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
   dbConf <- getMasterDBConfig
   res <- KV.updateWoReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
   case res of
@@ -457,7 +447,6 @@ createInternal ::
   m ()
 createInternal updatedMeshConfig toTType a = do
   let tType = toTType a
-  -- updatedMeshConfig <- setMeshConfig (Proxy @table) meshConfig
   dbConf' <- getMasterDBConfig
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
   case result of
