@@ -112,10 +112,11 @@ getRoutes ::
     CoreMetrics m,
     Log m
   ) =>
+  Bool ->
   GoogleCfg ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes cfg req = do
+getRoutes isAvoidToll cfg req = do
   let routeProxyReq = routeToRouteProxyConverter req
   let googleMapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
@@ -123,7 +124,7 @@ getRoutes cfg req = do
       destination = latLongToPlace routeProxyReq.destination
       waypoints = getWayPoints routeProxyReq.waypoints
       mode = mapToMode <$> routeProxyReq.mode
-  gRes <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints True
+  gRes <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints isAvoidToll
   if null gRes.routes
     then do
       gResp <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints False
