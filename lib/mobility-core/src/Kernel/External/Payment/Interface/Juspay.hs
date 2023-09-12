@@ -426,14 +426,15 @@ offerList config req = do
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
 mkOfferListReq OfferListReq {..} =
   Juspay.OfferListReq
-    { order = mkOfferOrder order planId registrationDate paymentMode,
+    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode,
       payment_method_info = [],
       customer = mkOfferCustomer <$> customer,
       offer_code = Nothing
     }
 
-mkOfferOrder :: OfferOrder -> Text -> UTCTime -> Text -> Juspay.OfferOrder
-mkOfferOrder OfferOrder {..} planId registrationDate _ =
+mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Juspay.OfferOrder
+---- add duty day and payment mode respectively in holes ----
+mkOfferOrder OfferOrder {..} planId _ registrationDate _ =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
@@ -441,7 +442,8 @@ mkOfferOrder OfferOrder {..} planId registrationDate _ =
       udf1 = replace "-" "_" planId,
       udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate
       --- need to be added after offers are configured ----
-      -- udf3 = paymentMode
+      -- udf3 = paymentMode,
+      -- udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate
     }
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
@@ -515,14 +517,14 @@ mkOfferApplyReq :: Text -> OfferApplyReq -> Juspay.OfferApplyReq
 mkOfferApplyReq merchantId OfferApplyReq {..} = do
   let order =
         Juspay.OfferApplyOrder
-          { order_id = orderShortId,
-            amount = show amount,
+          { amount = show amount,
             currency,
             merchant_id = Just merchantId,
             order_type = Just "ORDER_PAYMENT",
             udf1 = replace "-" "_" planId,
             udf2 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" registrationDate,
             udf3 = paymentMode,
+            udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate,
             payment_channel = Just "WEB"
           }
   Juspay.OfferApplyReq

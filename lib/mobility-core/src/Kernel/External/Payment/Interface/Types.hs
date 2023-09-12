@@ -216,6 +216,7 @@ data OfferListReq = OfferListReq
     customer :: Maybe OfferCustomer,
     planId :: Text,
     registrationDate :: UTCTime,
+    dutyDate :: UTCTime,
     paymentMode :: Text
   }
 
@@ -280,13 +281,13 @@ data OfferDescription = OfferDescription
 
 data OfferApplyReq = OfferApplyReq
   { txnId :: Text,
-    orderShortId :: Text,
     offers :: [Text],
     customerId :: Text,
     amount :: HighPrecMoney,
     currency :: Currency,
     planId :: Text,
     registrationDate :: UTCTime,
+    dutyDate :: UTCTime,
     paymentMode :: Text
   }
 
