@@ -82,3 +82,33 @@ mandateRevoke ::
   m MandateRevokeRes
 mandateRevoke serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateRevoke cfg req
+
+mandateNotification ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  PaymentServiceConfig ->
+  MandateNotificationReq ->
+  m MandateNotificationRes
+mandateNotification serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.mandateNotification cfg req
+
+mandateNotificationStatus ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  PaymentServiceConfig ->
+  NotificationStatusReq ->
+  m NotificationStatusResp
+mandateNotificationStatus serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.mandateNotificationStatus cfg req
+
+mandateExecution ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  PaymentServiceConfig ->
+  MandateExecutionReq ->
+  m MandateExecutionRes
+mandateExecution serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.mandateExecution cfg req

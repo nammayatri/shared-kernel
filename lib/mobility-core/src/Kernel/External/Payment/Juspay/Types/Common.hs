@@ -42,7 +42,7 @@ data PaymentStatus
   | ORDER_AUTHORIZED
   | TXN_CHARGED
   | TXN_FAILED
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data Currency = INR
@@ -77,6 +77,26 @@ data MandateStatus = CREATED | ACTIVE | FAILURE | PAUSED | EXPIRED | REVOKED
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 derivePersistField "MandateStatus"
+
+data NotificationStatus = NOTIFICATION_CREATED | NOTIFICATION_FAILURE | PENDING | SUCCESS
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+derivePersistField "NotificationStatus"
+
+instance FromJSON NotificationStatus where
+  parseJSON (String "CREATED") = pure NOTIFICATION_CREATED
+  parseJSON (String "FAILURE") = pure NOTIFICATION_FAILURE
+  parseJSON (String "PENDING") = pure PENDING
+  parseJSON (String "SUCCESS") = pure SUCCESS
+  parseJSON (String _) = parseFail "Expected type"
+  parseJSON e = typeMismatch "String" e
+
+instance ToJSON NotificationStatus where
+  toJSON NOTIFICATION_CREATED = "CREATED"
+  toJSON NOTIFICATION_FAILURE = "FAILURE"
+  toJSON PENDING = "PENDING"
+  toJSON SUCCESS = "SUCCESS"
 
 data TransactionStatus
   = NEW
@@ -113,6 +133,8 @@ data OrderData = OrderData
     date_created :: Maybe UTCTime,
     mandate :: Maybe MandateData,
     payer_vpa :: Maybe Text,
+    bank_error_code :: Maybe Text,
+    bank_error_message :: Maybe Text,
     upi :: Maybe Upi
   }
   deriving stock (Show, Generic)
@@ -131,7 +153,9 @@ data MandateData = MandateData
 
 data Upi = Upi
   { payer_app :: Maybe Text,
-    payer_app_name :: Maybe Text
+    payer_app_name :: Maybe Text,
+    payer_vpa :: Maybe Text,
+    txn_flow_type :: Maybe Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

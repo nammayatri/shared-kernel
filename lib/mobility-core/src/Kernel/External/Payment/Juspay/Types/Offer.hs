@@ -167,7 +167,8 @@ data OfferRulesPaymentInstrument = OfferRulesPaymentInstrument
 -- offer apply request --
 
 data OfferApplyReq = OfferApplyReq
-  { customer :: OfferApplyCustomer,
+  { txn_id :: Text,
+    customer :: OfferApplyCustomer,
     offers :: [Text],
     order :: OfferApplyOrder,
     payment_method_info :: Maybe OfferApplyPaymentMethodInfo
@@ -183,6 +184,7 @@ data OfferApplyOrder = OfferApplyOrder
     order_type :: Maybe Text,
     udf1 :: Text,
     udf2 :: Text,
+    udf3 :: Text,
     payment_channel :: Maybe Text
   }
   deriving stock (Show, Generic)

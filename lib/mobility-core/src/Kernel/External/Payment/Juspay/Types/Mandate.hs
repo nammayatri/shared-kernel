@@ -3,6 +3,7 @@
 
 module Kernel.External.Payment.Juspay.Types.Mandate where
 
+import Kernel.External.Payment.Juspay.Types.Common (NotificationStatus, TransactionStatus)
 import Kernel.Prelude
 import Servant (ToHttpApiData (..))
 import Web.FormUrlEncoded
@@ -23,7 +24,7 @@ data MandateNotificationRes = MandateNotificationRes
     provider_name :: Text,
     notification_type :: Text,
     description :: Text,
-    status :: Text,
+    status :: NotificationStatus,
     date_created :: Text,
     last_updated :: Text
   }
@@ -39,10 +40,33 @@ instance ToForm MandateNotificationReq where
   toForm MandateNotificationReq {..} =
     [ ("command", toQueryParam command),
       ("object_reference_id", toQueryParam object_reference_id),
-      ("source_info.amount", toQueryParam (source_info.source_amount)),
-      ("source_info.txn_date", toQueryParam (source_info.txn_date)),
+      ("source_info", toQueryParam ("{\"amount\" : \"" <> source_info.source_amount <> "\"" <> " \"txn_date\" : \"" <> source_info.txn_date <> "\"}")),
       ("description", toQueryParam description)
     ]
+
+---- Notification status response ------
+
+data NotificationStatusResp = NotificationStatusResp
+  { id :: Text,
+    source_object :: Text,
+    source_object_id :: Text, -- mandate Id in this case --
+    object_reference_id :: Text,
+    provider_name :: Text,
+    notification_type :: Text,
+    source_info :: SourceInfo,
+    provider_response :: ProviderResponse,
+    description :: Text,
+    status :: Text,
+    date_created :: Text,
+    last_updated :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data ProviderResponse = ProviderResponse
+  { provider_ref_id :: Text,
+    notification_date :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 --- For Mandate Execution ---
 data MandateOrder = MandateOrder
@@ -80,7 +104,7 @@ data MandateExecutionRes = MandateExecutionRes
   { order_id :: Text,
     txn_id :: Text,
     txn_uuid :: Text,
-    status :: Text
+    status :: TransactionStatus
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 

@@ -130,3 +130,10 @@ instance FromJSON SDKPayloadDetails where
 
 instance ToJSON SDKPayloadDetails where
   toJSON = genericToJSON jsonOptions
+
+data AutoRefundReq = AutoRefundReq
+  { amount :: Double,
+    unique_request_id :: Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)

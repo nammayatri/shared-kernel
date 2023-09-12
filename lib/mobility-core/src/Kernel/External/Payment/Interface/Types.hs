@@ -21,7 +21,7 @@ module Kernel.External.Payment.Interface.Types
 where
 
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), TransactionStatus (..))
 import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
 import Kernel.Types.Common
@@ -51,7 +51,8 @@ newtype OrderStatusReq = OrderStatusReq
 
 data OrderStatusResp
   = OrderStatusResp
-      { orderShortId :: Text,
+      { eventName :: Maybe PaymentStatus,
+        orderShortId :: Text,
         transactionUUID :: Maybe Text,
         transactionStatusId :: Int,
         transactionStatus :: TransactionStatus,
@@ -60,12 +61,15 @@ data OrderStatusResp
         respMessage :: Maybe Text,
         respCode :: Maybe Text,
         gatewayReferenceId :: Maybe Text,
+        bankErrorMessage :: Maybe Text,
+        bankErrorCode :: Maybe Text,
         amount :: HighPrecMoney,
         currency :: Currency,
         dateCreated :: Maybe UTCTime
       }
   | MandateOrderStatusResp
-      { orderShortId :: Text,
+      { eventName :: Maybe PaymentStatus,
+        orderShortId :: Text,
         transactionUUID :: Maybe Text,
         transactionStatusId :: Int,
         transactionStatus :: TransactionStatus,
@@ -77,6 +81,8 @@ data OrderStatusResp
         amount :: HighPrecMoney,
         currency :: Currency,
         dateCreated :: Maybe UTCTime,
+        bankErrorMessage :: Maybe Text,
+        bankErrorCode :: Maybe Text,
         mandateStartDate :: UTCTime,
         mandateEndDate :: UTCTime,
         mandateId :: Text,
@@ -87,13 +93,25 @@ data OrderStatusResp
         upi :: Maybe Upi
       }
   | MandateStatusResp
-      { orderShortId :: Text,
+      { eventName :: Maybe PaymentStatus,
+        orderShortId :: Text,
         status :: MandateStatus,
         mandateStartDate :: UTCTime,
         mandateEndDate :: UTCTime,
         mandateId :: Text,
         mandateFrequency :: MandateFrequency,
-        mandateMaxAmount :: HighPrecMoney
+        mandateMaxAmount :: HighPrecMoney,
+        upi :: Maybe Upi
+      }
+  | PDNNotificationStatusResp
+      { eventName :: Maybe PaymentStatus,
+        notificationStatus :: NotificationStatus,
+        sourceObject :: Text,
+        endDate :: Text,
+        sourceInfo :: SourceInfo,
+        notificationType :: Text,
+        juspayProviedId :: Text,
+        notificationId :: Text
       }
   | BadStatusResp
   deriving stock (Show, Read, Eq, Generic)
@@ -101,7 +119,9 @@ data OrderStatusResp
 
 data Upi = Upi
   { payerApp :: Maybe Text,
-    payerAppName :: Maybe Text
+    payerVpa :: Maybe Text,
+    payerAppName :: Maybe Text,
+    txnFlowType :: Maybe Text
   }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -111,27 +131,52 @@ data MandateNotificationReq = MandateNotificationReq
   { amount :: HighPrecMoney,
     txnDate :: UTCTime,
     mandateId :: Text,
-    notificationId :: Text
+    notificationId :: Text,
+    description :: Text
   }
   deriving (Eq, Show, Generic)
 
 data MandateNotificationRes = MandateNotificationRes
-  { id :: Text,
+  { juspayProvidedId :: Text,
     sourceInfo :: SourceInfo,
-    objectReferenceId :: Text,
+    notificationId :: Text,
     providerName :: Text,
     notificationType :: Text,
     description :: Text,
-    status :: Text,
-    dateCreated :: Text,
-    lastUpdated :: Text
+    status :: NotificationStatus,
+    dateCreated :: UTCTime,
+    lastUpdated :: UTCTime
   }
 
 data SourceInfo = SourceInfo
-  { sourceAmount :: Text,
-    txnDate :: Text
+  { sourceAmount :: HighPrecMoney,
+    txnDate :: UTCTime
   }
-  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Eq, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
+
+--- Notification status response and request --
+newtype NotificationStatusReq = NotificationStatusReq
+  {notificationId :: Text}
+
+data NotificationStatusResp = NotificationStatusResp
+  { id :: Text,
+    sourceObject :: Text,
+    sourceObjectId :: Text, -- mandate Id in this case --
+    objectReferenceId :: Text,
+    providerName :: Text,
+    notificationType :: Text,
+    sourceInfo :: SourceInfo,
+    providerResponse :: ProviderResponse,
+    description :: Text,
+    status :: Text,
+    dateCreated :: UTCTime,
+    lastUpdated :: UTCTime
+  }
+
+data ProviderResponse = ProviderResponse
+  { providerRefId :: Text,
+    notificationDate :: UTCTime
+  }
 
 -- mandate pause | resume | revoke request --
 
@@ -150,9 +195,8 @@ type MandateRevokeRes = APISuccess
 data MandateExecutionReq = MandateExecutionReq
   { notificationId :: Text,
     orderId :: Text,
-    amount :: Text,
+    amount :: HighPrecMoney,
     customerId :: Text,
-    merchantId :: Text,
     mandateId :: Text,
     executionDate :: UTCTime
   }
@@ -161,7 +205,7 @@ data MandateExecutionRes = MandateExecutionRes
   { orderId :: Text,
     txnId :: Text,
     txnUUID :: Text,
-    status :: Text
+    status :: TransactionStatus
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -171,7 +215,8 @@ data OfferListReq = OfferListReq
   { order :: OfferOrder,
     customer :: Maybe OfferCustomer,
     planId :: Text,
-    registrationDate :: UTCTime
+    registrationDate :: UTCTime,
+    paymentMode :: Text
   }
 
 data OfferOrder = OfferOrder
@@ -234,14 +279,15 @@ data OfferDescription = OfferDescription
 -- offer apply --
 
 data OfferApplyReq = OfferApplyReq
-  { mandateId :: Text,
+  { txnId :: Text,
     orderShortId :: Text,
     offers :: [Text],
     customerId :: Text,
     amount :: HighPrecMoney,
     currency :: Currency,
     planId :: Text,
-    registrationDate :: UTCTime
+    registrationDate :: UTCTime,
+    paymentMode :: Text
   }
 
 newtype OfferApplyResp = OfferApplyResp
@@ -269,3 +315,10 @@ data OfferNotifyOffer = OfferNotifyOffer
   }
 
 type OfferNotifyResp = APISuccess
+
+--- auto refund request ---
+data AutoRefundReq = AutoRefundReq
+  { orderId :: Text,
+    requestId :: Text,
+    amount :: Double
+  }
