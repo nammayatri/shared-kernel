@@ -25,6 +25,8 @@ module Kernel.External.Payment.Interface.Juspay
     mandateRevoke,
     mandatePause,
     mandateResume,
+    autoRefund,
+    mandateNotificationStatus,
   )
 where
 
@@ -78,15 +80,44 @@ mandateNotification config req = do
   where
     mkNotificationRes Juspay.MandateNotificationRes {..} =
       MandateNotificationRes
-        { id,
-          sourceInfo = SourceInfo {txnDate = source_info.txn_date, sourceAmount = source_info.source_amount},
-          objectReferenceId = object_reference_id,
+        { juspayProvidedId = id,
+          sourceInfo = castSourceInfo source_info,
+          notificationId = object_reference_id,
           providerName = provider_name,
           notificationType = notification_type,
           description,
           status,
-          dateCreated = date_created,
-          lastUpdated = last_updated
+          dateCreated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack date_created) :: Int),
+          lastUpdated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack last_updated) :: Int)
+        }
+
+mandateNotificationStatus ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  NotificationStatusReq ->
+  m NotificationStatusResp
+mandateNotificationStatus config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  notificationStatusResponse <- Juspay.mandateNotificationStatus url apiKey req.notificationId
+  return $ mkNotificationStatusRes notificationStatusResponse
+  where
+    mkNotificationStatusRes Juspay.NotificationStatusResp {..} =
+      NotificationStatusResp
+        { id,
+          sourceObject = source_object,
+          sourceObjectId = source_object_id,
+          sourceInfo = castSourceInfo source_info,
+          objectReferenceId = object_reference_id,
+          providerName = provider_name,
+          notificationType = notification_type,
+          providerResponse = ProviderResponse {providerRefId = provider_response.provider_ref_id, notificationDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack provider_response.notification_date) :: Int)},
+          description,
+          status,
+          dateCreated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack date_created) :: Int),
+          lastUpdated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack last_updated) :: Int)
         }
 
 mandateExecution ::
@@ -98,8 +129,9 @@ mandateExecution ::
   m MandateExecutionRes
 mandateExecution config req = do
   let url = config.url
+      merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  executionResponse <- Juspay.mandateExecution url apiKey (mkExecutionReq req)
+  executionResponse <- Juspay.mandateExecution url apiKey (mkExecutionReq req merchantId)
   return $ mkExecutionResponse executionResponse
   where
     mkExecutionResponse Juspay.MandateExecutionRes {..} =
@@ -168,7 +200,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
   case mandate of
     Just justMandate ->
       MandateOrderStatusResp
-        { orderShortId = order_id,
+        { eventName = Nothing,
+          orderShortId = order_id,
           transactionUUID = txn_uuid,
           transactionStatusId = status_id,
           transactionStatus = status,
@@ -180,6 +213,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
           amount = realToFrac amount,
           currency = currency,
           dateCreated = date_created,
+          bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
+          bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
           mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
           mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
           mandateId = justMandate.mandate_id,
@@ -191,7 +226,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
         }
     Nothing ->
       OrderStatusResp
-        { orderShortId = order_id,
+        { eventName = Nothing,
+          orderShortId = order_id,
           transactionUUID = txn_uuid,
           transactionStatusId = status_id,
           transactionStatus = status,
@@ -202,11 +238,13 @@ mkOrderStatusResp Juspay.OrderData {..} =
           gatewayReferenceId = gateway_reference_id,
           amount = realToFrac amount,
           currency = currency,
+          bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
+          bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
           dateCreated = date_created
         }
 
 castUpi :: Juspay.Upi -> Upi
-castUpi Juspay.Upi {..} = Upi {payerApp = payer_app, payerAppName = payer_app_name}
+castUpi Juspay.Upi {..} = Upi {payerApp = payer_app, payerAppName = payer_app_name, txnFlowType = txn_flow_type, payerVpa = payer_vpa}
 
 mkNotificationReq :: MandateNotificationReq -> Juspay.MandateNotificationReq
 mkNotificationReq mandateNotificationReq =
@@ -214,16 +252,16 @@ mkNotificationReq mandateNotificationReq =
     { command = "pre_debit_notify",
       object_reference_id = mandateNotificationReq.notificationId,
       source_info = Juspay.SourceInfo {source_amount = show mandateNotificationReq.amount, txn_date = show $ utcTimeToPOSIXSeconds mandateNotificationReq.txnDate},
-      description = ""
+      description = mandateNotificationReq.description
     }
 
-mkExecutionReq :: MandateExecutionReq -> Juspay.MandateExecutionReq
-mkExecutionReq MandateExecutionReq {..} =
+mkExecutionReq :: MandateExecutionReq -> Text -> Juspay.MandateExecutionReq
+mkExecutionReq MandateExecutionReq {..} merchantId =
   Juspay.MandateExecutionReq
-    { merchantId = merchantId,
+    { merchantId,
       mandateId = mandateId,
       mandate = Juspay.MandateInfo {notificationId = notificationId, executionDate = show $ utcTimeToPOSIXSeconds executionDate},
-      order = Juspay.MandateOrder {orderId = orderId, orderAmount = amount, orderCustomerId = customerId},
+      order = Juspay.MandateOrder {orderId = orderId, orderAmount = show amount, orderCustomerId = customerId},
       format = "json"
     }
 
@@ -285,17 +323,18 @@ orderStatusWebhook ::
   A.Value ->
   m (Maybe OrderStatusResp)
 orderStatusWebhook paymentConfig orderStatusHandler authData val = do
-  response <- Juspay.orderStatusWebhook paymentConfig (orderStatusHandler . mkWebhookOrderStatusResp . (.content)) authData val
+  response <- Juspay.orderStatusWebhook paymentConfig (orderStatusHandler . mkWebhookOrderStatusResp . (\resp -> (resp.event_name, resp.content))) authData val
   return $ mkWebhookOrderStatusResp <$> response
 
-mkWebhookOrderStatusResp :: Juspay.OrderStatusContent -> OrderStatusResp
-mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
-  case (order, mandate) of
-    (Just justOrder, Nothing) ->
+mkWebhookOrderStatusResp :: (Juspay.PaymentStatus, Juspay.OrderAndNotificationStatusContent) -> OrderStatusResp
+mkWebhookOrderStatusResp (eventName, Juspay.OrderAndNotificationStatusContent {..}) =
+  case (order, mandate, notification) of
+    (Just justOrder, Nothing, _) ->
       case justOrder.mandate of
         Just justMandate ->
           MandateOrderStatusResp
-            { orderShortId = justOrder.order_id,
+            { eventName = Just eventName,
+              orderShortId = justOrder.order_id,
               transactionUUID = justOrder.txn_uuid,
               transactionStatusId = justOrder.status_id,
               transactionStatus = justOrder.status,
@@ -305,6 +344,8 @@ mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
               respCode = justOrder.resp_code,
               gatewayReferenceId = justOrder.gateway_reference_id,
               amount = realToFrac justOrder.amount,
+              bankErrorMessage = if justOrder.bank_error_message == Just "" then Nothing else justOrder.bank_error_message,
+              bankErrorCode = if justOrder.bank_error_code == Just "" then Nothing else justOrder.bank_error_code,
               currency = justOrder.currency,
               dateCreated = justOrder.date_created,
               mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
@@ -318,7 +359,8 @@ mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
             }
         Nothing ->
           OrderStatusResp
-            { orderShortId = justOrder.order_id,
+            { eventName = Just eventName,
+              orderShortId = justOrder.order_id,
               transactionUUID = justOrder.txn_uuid,
               transactionStatusId = justOrder.status_id,
               transactionStatus = justOrder.status,
@@ -327,21 +369,43 @@ mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
               respMessage = justOrder.resp_message,
               respCode = justOrder.resp_code,
               gatewayReferenceId = justOrder.gateway_reference_id,
+              bankErrorMessage = if justOrder.bank_error_message == Just "" then Nothing else justOrder.bank_error_message,
+              bankErrorCode = if justOrder.bank_error_code == Just "" then Nothing else justOrder.bank_error_code,
               amount = realToFrac justOrder.amount,
               currency = justOrder.currency,
               dateCreated = justOrder.date_created
             }
-    (Nothing, Just justMandate) ->
+    (Nothing, Just justMandate, _) ->
       MandateStatusResp
-        { orderShortId = justMandate.order_id,
+        { eventName = Just eventName,
+          orderShortId = justMandate.order_id,
           status = justMandate.status,
           mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
           mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
           mandateId = justMandate.mandate_id,
           mandateFrequency = justMandate.frequency,
-          mandateMaxAmount = justMandate.max_amount
+          mandateMaxAmount = justMandate.max_amount,
+          upi = castUpi <$> (justMandate.payment_info <&> (.upi))
         }
-    (_, _) -> BadStatusResp
+    (_, _, Just justNotification) ->
+      PDNNotificationStatusResp
+        { eventName = Just eventName,
+          notificationStatus = justNotification.status,
+          sourceObject = justNotification.source_object,
+          endDate = justNotification.end_date,
+          sourceInfo = castSourceInfo justNotification.source_info,
+          notificationType = justNotification.notification_type,
+          juspayProviedId = justNotification.id,
+          notificationId = justNotification.object_reference_id
+        }
+    (_, _, Nothing) -> BadStatusResp
+
+castSourceInfo :: Juspay.SourceInfo -> SourceInfo
+castSourceInfo source_info =
+  SourceInfo
+    { txnDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack source_info.txn_date) :: Int),
+      sourceAmount = read (T.unpack source_info.source_amount) :: HighPrecMoney
+    }
 
 offerList ::
   ( HasCallStack,
@@ -362,20 +426,22 @@ offerList config req = do
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
 mkOfferListReq OfferListReq {..} =
   Juspay.OfferListReq
-    { order = mkOfferOrder order planId registrationDate,
+    { order = mkOfferOrder order planId registrationDate paymentMode,
       payment_method_info = [],
       customer = mkOfferCustomer <$> customer,
       offer_code = Nothing
     }
 
-mkOfferOrder :: OfferOrder -> Text -> UTCTime -> Juspay.OfferOrder
-mkOfferOrder OfferOrder {..} planId registrationDate =
+mkOfferOrder :: OfferOrder -> Text -> UTCTime -> Text -> Juspay.OfferOrder
+mkOfferOrder OfferOrder {..} planId registrationDate _ =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
       currency,
       udf1 = replace "-" "_" planId,
       udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate
+      --- need to be added after offers are configured ----
+      -- udf3 = paymentMode
     }
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
@@ -442,7 +508,7 @@ offerApply config req = do
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferApplyReq merchantId req
-  juspayResp <- Juspay.offerApply url apiKey merchantId req.mandateId juspayReq
+  juspayResp <- Juspay.offerApply url apiKey merchantId juspayReq
   buildOfferApplyResp juspayResp
 
 mkOfferApplyReq :: Text -> OfferApplyReq -> Juspay.OfferApplyReq
@@ -456,10 +522,12 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
             order_type = Just "ORDER_PAYMENT",
             udf1 = replace "-" "_" planId,
             udf2 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" registrationDate,
+            udf3 = paymentMode,
             payment_channel = Just "WEB"
           }
   Juspay.OfferApplyReq
-    { customer = Juspay.OfferApplyCustomer {id = customerId},
+    { txn_id = txnId,
+      customer = Juspay.OfferApplyCustomer {id = customerId},
       offers,
       order,
       payment_method_info = Nothing
@@ -501,3 +569,21 @@ mkOfferNotifyReq merchantId OfferNotifyReq {..} = do
       txn_status = transactionStatus,
       offers = offers <&> (\OfferNotifyOffer {offerId, status} -> Juspay.OfferNotifyOffer {offer_id = offerId, status})
     }
+
+autoRefund ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  AutoRefundReq ->
+  m () ---- to do refund -----
+autoRefund config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  Juspay.autoRefund url apiKey req.orderId (mkAutoPayRequest req)
+  where
+    mkAutoPayRequest request =
+      Juspay.AutoRefundReq
+        { unique_request_id = request.requestId,
+          amount = request.amount
+        }

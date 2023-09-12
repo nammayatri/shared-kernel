@@ -80,8 +80,7 @@ getCurrentDate = do
   return $ encodeToText formattedDate
 
 type OfferListAPI =
-  "v1" -- is this required?
-    :> "offers"
+  "offers"
     :> "list"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
@@ -103,9 +102,7 @@ offerList url apiKey merchantId req = do
   callJuspayAPI url eulerClient "offer-list" proxy
 
 type OfferApplyAPI =
-  "merchant"
-    :> "offers"
-    :> Capture "mandateId" Text
+  "offers"
     :> "apply"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
@@ -119,12 +116,11 @@ offerApply ::
   BaseUrl ->
   Text ->
   Text ->
-  Text ->
   Offer.OfferApplyReq ->
   m Offer.OfferApplyResp
-offerApply url apiKey merchantId mandateId req = do
+offerApply url apiKey merchantId req = do
   let proxy = Proxy @OfferApplyAPI
-      eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
   callJuspayAPI url eulerClient "offer-apply" proxy
 
 type OfferNotifyAPI =
@@ -189,6 +185,30 @@ mandateNotification url apiKey mandateId req = do
   callAPI url (eulerClient mandateId basicAuthData req) "mandate-notification" (Proxy @MandateNotificationAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call mandate notification API: " <> show err)
 
+type NotificationStatusAPI =
+  "notifications"
+    :> Capture "object_reference_id" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> Get '[JSON] NotificationStatusResp
+
+mandateNotificationStatus ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  m NotificationStatusResp
+mandateNotificationStatus url apiKey object_reference_id = do
+  let eulerClient = Euler.client (Proxy @NotificationStatusAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient object_reference_id basicAuthData) "mandate-notification-status" (Proxy @NotificationStatusAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate notification status API: " <> show err)
+
 type MandateExecutionAPI =
   "txns"
     :> BasicAuth "username-password" BasicAuthData
@@ -210,7 +230,7 @@ mandateExecution url apiKey req = do
           { basicAuthUsername = DT.encodeUtf8 apiKey,
             basicAuthPassword = ""
           }
-  callAPI url (eulerClient basicAuthData req) "mandate-notification" (Proxy @MandateExecutionAPI)
+  callAPI url (eulerClient basicAuthData req) "mandate-execution" (Proxy @MandateExecutionAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call mandate Execution API: " <> show err)
 
 type MandateRevokeAPI =
@@ -292,3 +312,30 @@ mandateResume url apiKey mandateId req = do
           }
   callAPI url (eulerClient mandateId basicAuthData req) "mandate-resume" (Proxy @MandateResumeAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call mandate resume API: " <> show err)
+
+type AutoRefundAPI =
+  "orders"
+    :> Capture "orderId" Text
+    :> "refunds"
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[JSON] AutoRefundReq
+    :> Post '[JSON] ()
+
+autoRefund ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  AutoRefundReq ->
+  m ()
+autoRefund url apiKey orderId req = do
+  let eulerClient = Euler.client (Proxy @AutoRefundAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient orderId basicAuthData req) "order-refund" (Proxy @AutoRefundAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call order refund API: " <> show err)
