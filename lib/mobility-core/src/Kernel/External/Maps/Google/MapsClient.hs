@@ -28,6 +28,7 @@ module Kernel.External.Maps.Google.MapsClient
   )
 where
 
+import Data.Text as T
 import EulerHS.Types (EulerClient, client)
 import Kernel.External.Maps.Google.MapsClient.Types as GoogleMaps
 import Kernel.External.Maps.Types
@@ -178,7 +179,9 @@ distanceMatrix ::
   Bool ->
   m GoogleMaps.DistanceMatrixResp
 distanceMatrix url key origins destinations mode isAvoidTolls = do
-  callAPI url (distanceMatrixClient origins destinations key mode (if isAvoidTolls then Just "tolls" else Nothing)) "distanceMatrix" (Proxy :: Proxy GoogleMapsAPI) >>= checkGoogleMapsError url
+  let avoidToll = if isAvoidTolls then Just "tolls" else Nothing
+  let avoid = T.intercalate "|" $ catMaybes [avoidToll, Just "ferries"]
+  callAPI url (distanceMatrixClient origins destinations key mode (Just avoid)) "distanceMatrix" (Proxy :: Proxy GoogleMapsAPI) >>= checkGoogleMapsError url
     >>= \resp -> do
       mapM_ (mapM validateResponseStatus . (.elements)) resp.rows
       return resp
@@ -196,7 +199,9 @@ directions ::
   Bool ->
   m GoogleMaps.DirectionsResp
 directions url key origin destination mode waypoints isAvoidTolls = do
-  callAPI url (directionsClient origin destination key (Just True) mode waypoints (if isAvoidTolls then Just "tolls" else Nothing)) "directionsAPI" (Proxy :: Proxy GoogleMapsAPI)
+  let avoidToll = if isAvoidTolls then Just "tolls" else Nothing
+  let avoid = T.intercalate "|" $ catMaybes [avoidToll, Just "ferries"]
+  callAPI url (directionsClient origin destination key (Just True) mode waypoints (Just avoid)) "directionsAPI" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
 
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
