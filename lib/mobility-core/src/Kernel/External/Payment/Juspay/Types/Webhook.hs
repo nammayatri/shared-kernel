@@ -18,6 +18,7 @@ module Kernel.External.Payment.Juspay.Types.Webhook where
 
 import Data.Aeson
 import Kernel.External.Payment.Juspay.Types.Common
+import Kernel.External.Payment.Juspay.Types.Mandate (SourceInfo)
 import Kernel.Prelude
 import Kernel.Utils.Common
 
@@ -25,16 +26,17 @@ data WebhookReq = WebhookReq
   { id :: Text,
     date_created :: UTCTime,
     event_name :: PaymentStatus,
-    content :: OrderStatusContent
+    content :: OrderAndNotificationStatusContent
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 type WebhookOrderData = OrderData
 
-data OrderStatusContent = OrderStatusContent
+data OrderAndNotificationStatusContent = OrderAndNotificationStatusContent
   { order :: Maybe WebhookOrderData,
-    mandate :: Maybe WebhookMandateData
+    mandate :: Maybe WebhookMandateData,
+    notification :: Maybe WebhookNotificationData
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -46,7 +48,24 @@ data WebhookMandateData = WebhookMandateData
     mandate_id :: Text,
     frequency :: MandateFrequency,
     max_amount :: HighPrecMoney,
-    order_id :: Text
+    order_id :: Text,
+    payment_info :: Maybe PaymentInfo
   }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data WebhookNotificationData = WebhookNotificationData
+  { status :: NotificationStatus,
+    source_object :: Text,
+    end_date :: Text,
+    source_info :: SourceInfo,
+    notification_type :: Text,
+    object_reference_id :: Text,
+    id :: Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype PaymentInfo = PaymentInfo {upi :: Upi}
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
