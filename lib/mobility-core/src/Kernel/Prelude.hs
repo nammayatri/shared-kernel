@@ -137,3 +137,8 @@ infixl 1 =<<<
 
 hoistMaybe :: Applicative m => Maybe b -> MaybeT m b
 hoistMaybe = MaybeT . pure
+
+lastMaybe :: [a] -> Maybe a
+lastMaybe [] = Nothing
+lastMaybe [x] = Just x
+lastMaybe (_ : xs) = lastMaybe xs
