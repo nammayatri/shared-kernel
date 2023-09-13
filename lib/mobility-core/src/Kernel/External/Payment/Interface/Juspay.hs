@@ -33,7 +33,7 @@ import Data.Text (pack, replace, toUpper)
 import qualified Data.Text as T
 import Data.Time (UTCTime (utctDay), addDays)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
-import Data.Time.Format
+import Data.Time.Format (defaultTimeLocale, formatTime)
 import GHC.Float (double2Int)
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Types
@@ -161,49 +161,53 @@ orderStatus config req = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  mkOrderStatusResp <$> Juspay.orderStatus url apiKey merchantId req.orderShortId
+  buildOrderStatusResp =<< Juspay.orderStatus url apiKey merchantId req.orderShortId
 
-mkOrderStatusResp :: Juspay.OrderStatusResp -> OrderStatusResp
-mkOrderStatusResp Juspay.OrderData {..} =
+buildOrderStatusResp :: (MonadThrow m, Log m) => Juspay.OrderStatusResp -> m OrderStatusResp
+buildOrderStatusResp Juspay.OrderData {..} =
   case mandate of
-    Just justMandate ->
-      MandateOrderStatusResp
-        { orderShortId = order_id,
-          transactionUUID = txn_uuid,
-          transactionStatusId = status_id,
-          transactionStatus = status,
-          paymentMethodType = payment_method_type,
-          paymentMethod = payment_method,
-          respMessage = resp_message,
-          respCode = resp_code,
-          gatewayReferenceId = gateway_reference_id,
-          amount = realToFrac amount,
-          currency = currency,
-          dateCreated = date_created,
-          mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
-          mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
-          mandateId = justMandate.mandate_id,
-          mandateStatus = justMandate.mandate_status,
-          mandateFrequency = justMandate.frequency,
-          mandateMaxAmount = justMandate.max_amount,
-          payerVpa = payer_vpa,
-          upi = castUpi <$> upi
-        }
+    Just justMandate -> do
+      mandateStartDate <- parseTime justMandate.start_date "justMandate.start_date"
+      mandateEndDate <- parseTime justMandate.end_date "justMandate.end_date"
+      pure
+        MandateOrderStatusResp
+          { orderShortId = order_id,
+            transactionUUID = txn_uuid,
+            transactionStatusId = status_id,
+            transactionStatus = status,
+            paymentMethodType = payment_method_type,
+            paymentMethod = payment_method,
+            respMessage = resp_message,
+            respCode = resp_code,
+            gatewayReferenceId = gateway_reference_id,
+            amount = realToFrac amount,
+            currency = currency,
+            dateCreated = date_created,
+            mandateStartDate,
+            mandateEndDate,
+            mandateId = justMandate.mandate_id,
+            mandateStatus = justMandate.mandate_status,
+            mandateFrequency = justMandate.frequency,
+            mandateMaxAmount = justMandate.max_amount,
+            payerVpa = payer_vpa,
+            upi = castUpi <$> upi
+          }
     Nothing ->
-      OrderStatusResp
-        { orderShortId = order_id,
-          transactionUUID = txn_uuid,
-          transactionStatusId = status_id,
-          transactionStatus = status,
-          paymentMethodType = payment_method_type,
-          paymentMethod = payment_method,
-          respMessage = resp_message,
-          respCode = resp_code,
-          gatewayReferenceId = gateway_reference_id,
-          amount = realToFrac amount,
-          currency = currency,
-          dateCreated = date_created
-        }
+      pure
+        OrderStatusResp
+          { orderShortId = order_id,
+            transactionUUID = txn_uuid,
+            transactionStatusId = status_id,
+            transactionStatus = status,
+            paymentMethodType = payment_method_type,
+            paymentMethod = payment_method,
+            respMessage = resp_message,
+            respCode = resp_code,
+            gatewayReferenceId = gateway_reference_id,
+            amount = realToFrac amount,
+            currency = currency,
+            dateCreated = date_created
+          }
 
 castUpi :: Juspay.Upi -> Upi
 castUpi Juspay.Upi {..} = Upi {payerApp = payer_app, payerAppName = payer_app_name}
@@ -278,70 +282,81 @@ addDaysUtcTime :: UTCTime -> Integer -> UTCTime
 addDaysUtcTime t x = t {utctDay = addDays x (utctDay t)}
 
 orderStatusWebhook ::
-  EncFlow m r =>
+  (EncFlow m r, MonadThrow m, Log m) =>
   PaymentServiceConfig ->
   (OrderStatusResp -> Text -> m AckResponse) ->
   BasicAuthData ->
   A.Value ->
   m (Maybe OrderStatusResp)
 orderStatusWebhook paymentConfig orderStatusHandler authData val = do
-  response <- Juspay.orderStatusWebhook paymentConfig (orderStatusHandler . mkWebhookOrderStatusResp . (.content)) authData val
-  return $ mkWebhookOrderStatusResp <$> response
+  response <- Juspay.orderStatusWebhook paymentConfig orderStatusHandler' authData val
+  buildWebhookOrderStatusResp `mapM` response
+  where
+    orderStatusHandler' webhookReq respDump = do
+      orderStatusResp <- buildWebhookOrderStatusResp webhookReq.content
+      orderStatusHandler orderStatusResp respDump
 
-mkWebhookOrderStatusResp :: Juspay.OrderStatusContent -> OrderStatusResp
-mkWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
+buildWebhookOrderStatusResp :: (MonadThrow m, Log m) => Juspay.OrderStatusContent -> m OrderStatusResp
+buildWebhookOrderStatusResp Juspay.OrderStatusContent {..} =
   case (order, mandate) of
     (Just justOrder, Nothing) ->
       case justOrder.mandate of
-        Just justMandate ->
-          MandateOrderStatusResp
-            { orderShortId = justOrder.order_id,
-              transactionUUID = justOrder.txn_uuid,
-              transactionStatusId = justOrder.status_id,
-              transactionStatus = justOrder.status,
-              paymentMethodType = justOrder.payment_method_type,
-              paymentMethod = justOrder.payment_method,
-              respMessage = justOrder.resp_message,
-              respCode = justOrder.resp_code,
-              gatewayReferenceId = justOrder.gateway_reference_id,
-              amount = realToFrac justOrder.amount,
-              currency = justOrder.currency,
-              dateCreated = justOrder.date_created,
-              mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
-              mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
-              mandateStatus = justMandate.mandate_status,
-              mandateId = justMandate.mandate_id,
-              mandateFrequency = justMandate.frequency,
-              mandateMaxAmount = justMandate.max_amount,
-              payerVpa = justOrder.payer_vpa,
-              upi = castUpi <$> justOrder.upi
-            }
+        Just justMandate -> do
+          mandateStartDate <- parseTime justMandate.start_date "justMandate.start_date"
+          mandateEndDate <- parseTime justMandate.end_date "justMandate.end_date"
+          pure
+            MandateOrderStatusResp
+              { orderShortId = justOrder.order_id,
+                transactionUUID = justOrder.txn_uuid,
+                transactionStatusId = justOrder.status_id,
+                transactionStatus = justOrder.status,
+                paymentMethodType = justOrder.payment_method_type,
+                paymentMethod = justOrder.payment_method,
+                respMessage = justOrder.resp_message,
+                respCode = justOrder.resp_code,
+                gatewayReferenceId = justOrder.gateway_reference_id,
+                amount = realToFrac justOrder.amount,
+                currency = justOrder.currency,
+                dateCreated = justOrder.date_created,
+                mandateStartDate,
+                mandateEndDate,
+                mandateStatus = justMandate.mandate_status,
+                mandateId = justMandate.mandate_id,
+                mandateFrequency = justMandate.frequency,
+                mandateMaxAmount = justMandate.max_amount,
+                payerVpa = justOrder.payer_vpa,
+                upi = castUpi <$> justOrder.upi
+              }
         Nothing ->
-          OrderStatusResp
-            { orderShortId = justOrder.order_id,
-              transactionUUID = justOrder.txn_uuid,
-              transactionStatusId = justOrder.status_id,
-              transactionStatus = justOrder.status,
-              paymentMethodType = justOrder.payment_method_type,
-              paymentMethod = justOrder.payment_method,
-              respMessage = justOrder.resp_message,
-              respCode = justOrder.resp_code,
-              gatewayReferenceId = justOrder.gateway_reference_id,
-              amount = realToFrac justOrder.amount,
-              currency = justOrder.currency,
-              dateCreated = justOrder.date_created
-            }
-    (Nothing, Just justMandate) ->
-      MandateStatusResp
-        { orderShortId = justMandate.order_id,
-          status = justMandate.status,
-          mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
-          mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
-          mandateId = justMandate.mandate_id,
-          mandateFrequency = justMandate.frequency,
-          mandateMaxAmount = justMandate.max_amount
-        }
-    (_, _) -> BadStatusResp
+          pure
+            OrderStatusResp
+              { orderShortId = justOrder.order_id,
+                transactionUUID = justOrder.txn_uuid,
+                transactionStatusId = justOrder.status_id,
+                transactionStatus = justOrder.status,
+                paymentMethodType = justOrder.payment_method_type,
+                paymentMethod = justOrder.payment_method,
+                respMessage = justOrder.resp_message,
+                respCode = justOrder.resp_code,
+                gatewayReferenceId = justOrder.gateway_reference_id,
+                amount = realToFrac justOrder.amount,
+                currency = justOrder.currency,
+                dateCreated = justOrder.date_created
+              }
+    (Nothing, Just justMandate) -> do
+      mandateStartDate <- parseTime justMandate.start_date "justMandate.start_date"
+      mandateEndDate <- parseTime justMandate.end_date "justMandate.end_date"
+      pure
+        MandateStatusResp
+          { orderShortId = justMandate.order_id,
+            status = justMandate.status,
+            mandateStartDate,
+            mandateEndDate,
+            mandateId = justMandate.mandate_id,
+            mandateFrequency = justMandate.frequency,
+            mandateMaxAmount = justMandate.max_amount
+          }
+    (_, _) -> pure BadStatusResp
 
 offerList ::
   ( HasCallStack,
@@ -384,19 +399,22 @@ mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, emai
 buildOfferListResp :: (MonadThrow m, Log m) => Juspay.OfferListResp -> m OfferListResp
 buildOfferListResp resp = do
   bestOfferCombination <- buildBestOfferCombination `mapM` (listToMaybe resp.best_offer_combinations)
-  let offerResp = filter (\offer -> offer.status == ELIGIBLE) $ mkOfferResp <$> resp.offers
+  offerResp <- filter (\offer -> offer.status == ELIGIBLE) <$> (buildOfferResp `mapM` resp.offers)
   pure OfferListResp {..}
 
-mkOfferResp :: Juspay.OfferResp -> OfferResp
-mkOfferResp Juspay.OfferResp {..} = do
-  OfferResp
-    { offerId = offer_id,
-      status,
-      offerDescription = mkOfferDescription offer_description,
-      orderAmount = read $ T.unpack order_breakup.final_order_amount,
-      finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
-      discountAmount = read $ T.unpack order_breakup.discount_amount
-    }
+buildOfferResp :: (MonadThrow m, Log m) => Juspay.OfferResp -> m OfferResp
+buildOfferResp Juspay.OfferResp {..} = do
+  orderAmount <- parseMoney order_breakup.final_order_amount "order_breakup.final_order_amount"
+  discountAmount <- parseMoney order_breakup.discount_amount "order_breakup.discount_amount"
+  pure
+    OfferResp
+      { offerId = offer_id,
+        status,
+        offerDescription = mkOfferDescription offer_description,
+        orderAmount,
+        finalOrderAmount = orderAmount,
+        discountAmount
+      }
 
 mkOfferDescription :: Juspay.OfferDescription -> OfferDescription
 mkOfferDescription Juspay.OfferDescription {..} = OfferDescription {sponsoredBy = sponsored_by, ..}
@@ -427,7 +445,12 @@ buildOrderBreakup Juspay.OrderBreakup {..} = do
 
 parseMoney :: (MonadThrow m, Log m) => Text -> Text -> m HighPrecMoney
 parseMoney field desc = do
-  readMaybe (show field) & fromMaybeM (InternalError $ "Couldn't parse " <> desc)
+  readMaybe (T.unpack field) & fromMaybeM (InternalError $ "Couldn't parse " <> desc)
+
+parseTime :: (MonadThrow m, Log m) => Text -> Text -> m UTCTime
+parseTime field desc = do
+  timeInt :: Int <- readMaybe (T.unpack field) & fromMaybeM (InternalError $ "Couldn't parse " <> desc)
+  pure . posixSecondsToUTCTime . fromIntegral $ timeInt
 
 offerApply ::
   ( HasCallStack,
