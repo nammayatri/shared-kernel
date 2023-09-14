@@ -63,13 +63,29 @@ data RideInfo = RideInfo
     vehicleNo :: Text,
     status :: Text,
     rideCreatedAt :: UTCTime,
-    pickupLocation :: Text,
-    dropLocation :: Maybe Text,
+    pickupLocation :: Location,
+    dropLocation :: Maybe Location,
     fare :: Maybe Money
   }
   deriving stock (Show, Eq, Generic)
 
+data Location = Location
+  { lat :: Double,
+    lon :: Double,
+    street :: Maybe Text,
+    city :: Maybe Text,
+    state :: Maybe Text,
+    country :: Maybe Text,
+    building :: Maybe Text,
+    areaCode :: Maybe Text,
+    area :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+
 instance ToJSON RideInfo where
+  toJSON = genericToJSON constructorsWithLowerCase
+
+instance ToJSON Location where
   toJSON = genericToJSON constructorsWithLowerCase
 
 data CreateTicketResp = CreateTicketResp

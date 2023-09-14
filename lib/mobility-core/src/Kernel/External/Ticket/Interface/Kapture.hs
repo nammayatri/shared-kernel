@@ -53,4 +53,12 @@ mkCreateTicketReq IT.CreateTicketReq {..} =
       Kapture.IssueDetails {..}
 
 mkRideDescriptionDriver :: IT.RideInfo -> Kapture.RideInfo
-mkRideDescriptionDriver IT.RideInfo {..} = Kapture.RideInfo {..}
+mkRideDescriptionDriver IT.RideInfo {..} =
+  Kapture.RideInfo
+    { pickupLocation = mkLocation pickupLocation,
+      dropLocation = mkLocation <$> dropLocation,
+      ..
+    }
+
+mkLocation :: IT.Location -> Kapture.Location
+mkLocation IT.Location {..} = Kapture.Location {..}
