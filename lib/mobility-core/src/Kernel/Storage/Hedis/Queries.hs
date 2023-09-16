@@ -372,6 +372,15 @@ withLockRedis key timeout func = do
       lockAvailable <- tryLockRedis key timeout
       unless lockAvailable getLock
 
+withLockRedisAndReturnValue :: (HedisFlow m env, MonadMask m) => Text -> ExpirationTime -> m a -> m a
+withLockRedisAndReturnValue key timeout func = do
+  getLock
+  finally func (unlockRedis key)
+  where
+    getLock = do
+      lockAvailable <- tryLockRedis key timeout
+      unless lockAvailable getLock
+
 buildLockResourceName :: (IsString a) => Text -> a
 buildLockResourceName key = fromString $ "mobility:locker:" <> Text.unpack key
 
