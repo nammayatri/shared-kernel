@@ -40,7 +40,7 @@ instance ToForm MandateNotificationReq where
   toForm MandateNotificationReq {..} =
     [ ("command", toQueryParam command),
       ("object_reference_id", toQueryParam object_reference_id),
-      ("source_info", toQueryParam ("{\"amount\" : \"" <> source_info.source_amount <> "\"" <> " \"txn_date\" : \"" <> source_info.txn_date <> "\"}")),
+      ("source_info", toQueryParam ("{\"amount\" : \"" <> source_info.source_amount <> "\"," <> " \"txn_date\" : \"" <> source_info.txn_date <> "\"}")),
       ("description", toQueryParam description)
     ]
 
