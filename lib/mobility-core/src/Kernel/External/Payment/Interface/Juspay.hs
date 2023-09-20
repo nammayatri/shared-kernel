@@ -251,7 +251,7 @@ mkNotificationReq mandateNotificationReq =
   Juspay.MandateNotificationReq
     { command = "pre_debit_notify",
       object_reference_id = mandateNotificationReq.notificationId,
-      source_info = Juspay.SourceInfo {source_amount = show mandateNotificationReq.amount, txn_date = show $ utcTimeToPOSIXSeconds mandateNotificationReq.txnDate},
+      source_info = Juspay.SourceInfo {amount = show mandateNotificationReq.amount, txn_date = show $ utcTimeToPOSIXSeconds mandateNotificationReq.txnDate},
       description = mandateNotificationReq.description
     }
 
@@ -404,7 +404,7 @@ castSourceInfo :: Juspay.SourceInfo -> SourceInfo
 castSourceInfo source_info =
   SourceInfo
     { txnDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack source_info.txn_date) :: Int),
-      sourceAmount = read (T.unpack source_info.source_amount) :: HighPrecMoney
+      sourceAmount = read (T.unpack source_info.amount) :: HighPrecMoney
     }
 
 offerList ::

@@ -168,7 +168,7 @@ data NotificationStatusResp = NotificationStatusResp
     sourceInfo :: SourceInfo,
     providerResponse :: ProviderResponse,
     description :: Text,
-    status :: Text,
+    status :: NotificationStatus,
     dateCreated :: UTCTime,
     lastUpdated :: UTCTime
   }
