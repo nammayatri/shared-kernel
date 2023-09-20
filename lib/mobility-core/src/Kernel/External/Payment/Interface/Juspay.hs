@@ -87,8 +87,8 @@ mandateNotification config req = do
           notificationType = notification_type,
           description,
           status,
-          dateCreated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack date_created) :: Int),
-          lastUpdated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack last_updated) :: Int)
+          dateCreated = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack date_created) :: Maybe Int)),
+          lastUpdated = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack last_updated) :: Maybe Int))
         }
 
 mandateNotificationStatus ::
@@ -124,8 +124,8 @@ mandateNotificationStatus config req = do
               =<< provider_response,
           description,
           status,
-          dateCreated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack date_created) :: Int),
-          lastUpdated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack last_updated) :: Int)
+          dateCreated = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack date_created) :: Maybe Int)),
+          lastUpdated = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack last_updated) :: Maybe Int))
         }
 
 mandateExecution ::
@@ -223,8 +223,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
           dateCreated = date_created,
           bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
           bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
-          mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
-          mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
+          mandateStartDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack justMandate.start_date) :: Maybe Int)),
+          mandateEndDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack justMandate.end_date) :: Maybe Int)),
           mandateId = justMandate.mandate_id,
           mandateStatus = justMandate.mandate_status,
           mandateFrequency = justMandate.frequency,
@@ -356,8 +356,8 @@ mkWebhookOrderStatusResp (eventName, Juspay.OrderAndNotificationStatusContent {.
               bankErrorCode = if justOrder.bank_error_code == Just "" then Nothing else justOrder.bank_error_code,
               currency = justOrder.currency,
               dateCreated = justOrder.date_created,
-              mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
-              mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
+              mandateStartDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack justMandate.start_date) :: Maybe Int)),
+              mandateEndDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack justMandate.end_date) :: Maybe Int)),
               mandateStatus = justMandate.mandate_status,
               mandateId = justMandate.mandate_id,
               mandateFrequency = justMandate.frequency,
@@ -388,12 +388,12 @@ mkWebhookOrderStatusResp (eventName, Juspay.OrderAndNotificationStatusContent {.
         { eventName = Just eventName,
           orderShortId = justMandate.order_id,
           status = justMandate.status,
-          mandateStartDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.start_date) :: Int),
-          mandateEndDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack justMandate.end_date) :: Int),
+          mandateStartDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack justMandate.start_date) :: Maybe Int)),
+          mandateEndDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack justMandate.end_date) :: Maybe Int)),
           mandateId = justMandate.mandate_id,
           mandateFrequency = justMandate.frequency,
           mandateMaxAmount = justMandate.max_amount,
-          upi = castUpi <$> (justMandate.payment_info <&> (.upi))
+          upi = castUpi <$> (justMandate.payment_info >>= (.upi))
         }
     (_, _, Just justNotification) ->
       PDNNotificationStatusResp
@@ -401,7 +401,7 @@ mkWebhookOrderStatusResp (eventName, Juspay.OrderAndNotificationStatusContent {.
           notificationStatus = justNotification.status,
           sourceObject = justNotification.source_object,
           endDate = justNotification.end_date,
-          sourceInfo = castSourceInfo justNotification.source_info,
+          sourceInfo = castSourceInfo <$> (justNotification.source_info),
           notificationType = justNotification.notification_type,
           juspayProviedId = justNotification.id,
           notificationId = justNotification.object_reference_id
@@ -411,8 +411,8 @@ mkWebhookOrderStatusResp (eventName, Juspay.OrderAndNotificationStatusContent {.
 castSourceInfo :: Juspay.SourceInfo -> SourceInfo
 castSourceInfo source_info =
   SourceInfo
-    { txnDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack source_info.txn_date) :: Int),
-      sourceAmount = read (T.unpack source_info.amount) :: HighPrecMoney
+    { txnDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack source_info.txn_date) :: Maybe Int)),
+      sourceAmount = readMaybe (T.unpack source_info.amount) :: Maybe HighPrecMoney
     }
 
 offerList ::
