@@ -113,7 +113,15 @@ mandateNotificationStatus config req = do
           objectReferenceId = object_reference_id,
           providerName = provider_name,
           notificationType = notification_type,
-          providerResponse = ProviderResponse {providerRefId = provider_response.provider_ref_id, notificationDate = posixSecondsToUTCTime $ fromIntegral (read (T.unpack provider_response.notification_date) :: Int)},
+          providerResponse =
+            ( \pR ->
+                Just $
+                  ProviderResponse
+                    { providerRefId = pR.provider_ref_id,
+                      notificationDate = (\date -> Just (posixSecondsToUTCTime $ fromIntegral (read (T.unpack date) :: Int))) =<< pR.notification_date
+                    }
+            )
+              =<< provider_response,
           description,
           status,
           dateCreated = posixSecondsToUTCTime $ fromIntegral (read (T.unpack date_created) :: Int),

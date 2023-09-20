@@ -106,10 +106,10 @@ data OrderStatusResp
   | PDNNotificationStatusResp
       { eventName :: Maybe PaymentStatus,
         notificationStatus :: NotificationStatus,
-        sourceObject :: Text,
+        sourceObject :: Maybe Text,
         endDate :: Text,
         sourceInfo :: SourceInfo,
-        notificationType :: Text,
+        notificationType :: Maybe Text,
         juspayProviedId :: Text,
         notificationId :: Text
       }
@@ -140,8 +140,8 @@ data MandateNotificationRes = MandateNotificationRes
   { juspayProvidedId :: Text,
     sourceInfo :: SourceInfo,
     notificationId :: Text,
-    providerName :: Text,
-    notificationType :: Text,
+    providerName :: Maybe Text,
+    notificationType :: Maybe Text,
     description :: Text,
     status :: NotificationStatus,
     dateCreated :: UTCTime,
@@ -160,13 +160,13 @@ newtype NotificationStatusReq = NotificationStatusReq
 
 data NotificationStatusResp = NotificationStatusResp
   { id :: Text,
-    sourceObject :: Text,
-    sourceObjectId :: Text, -- mandate Id in this case --
+    sourceObject :: Maybe Text,
+    sourceObjectId :: Maybe Text, -- mandate Id in this case --
     objectReferenceId :: Text,
-    providerName :: Text,
-    notificationType :: Text,
+    providerName :: Maybe Text,
+    notificationType :: Maybe Text,
     sourceInfo :: SourceInfo,
-    providerResponse :: ProviderResponse,
+    providerResponse :: Maybe ProviderResponse,
     description :: Text,
     status :: NotificationStatus,
     dateCreated :: UTCTime,
@@ -176,8 +176,8 @@ data NotificationStatusResp = NotificationStatusResp
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data ProviderResponse = ProviderResponse
-  { providerRefId :: Text,
-    notificationDate :: UTCTime
+  { providerRefId :: Maybe Text,
+    notificationDate :: Maybe UTCTime
   }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

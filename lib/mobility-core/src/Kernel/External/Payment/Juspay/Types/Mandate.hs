@@ -21,8 +21,8 @@ data MandateNotificationRes = MandateNotificationRes
   { id :: Text,
     source_info :: SourceInfo,
     object_reference_id :: Text,
-    provider_name :: Text,
-    notification_type :: Text,
+    provider_name :: Maybe Text,
+    notification_type :: Maybe Text,
     description :: Text,
     status :: NotificationStatus,
     date_created :: Text,
@@ -48,13 +48,13 @@ instance ToForm MandateNotificationReq where
 
 data NotificationStatusResp = NotificationStatusResp
   { id :: Text,
-    source_object :: Text,
-    source_object_id :: Text, -- mandate Id in this case --
+    source_object :: Maybe Text,
+    source_object_id :: Maybe Text, -- mandate Id in this case --
     object_reference_id :: Text,
-    provider_name :: Text,
-    notification_type :: Text,
+    provider_name :: Maybe Text,
+    notification_type :: Maybe Text,
     source_info :: SourceInfo,
-    provider_response :: ProviderResponse,
+    provider_response :: Maybe ProviderResponse,
     description :: Text,
     status :: NotificationStatus,
     date_created :: Text,
@@ -63,8 +63,8 @@ data NotificationStatusResp = NotificationStatusResp
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data ProviderResponse = ProviderResponse
-  { provider_ref_id :: Text,
-    notification_date :: Text
+  { provider_ref_id :: Maybe Text,
+    notification_date :: Maybe Text
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
