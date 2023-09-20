@@ -83,8 +83,8 @@ data OrderStatusResp
         dateCreated :: Maybe UTCTime,
         bankErrorMessage :: Maybe Text,
         bankErrorCode :: Maybe Text,
-        mandateStartDate :: UTCTime,
-        mandateEndDate :: UTCTime,
+        mandateStartDate :: Maybe UTCTime,
+        mandateEndDate :: Maybe UTCTime,
         mandateId :: Text,
         mandateStatus :: MandateStatus,
         mandateFrequency :: MandateFrequency,
@@ -96,8 +96,8 @@ data OrderStatusResp
       { eventName :: Maybe PaymentStatus,
         orderShortId :: Text,
         status :: MandateStatus,
-        mandateStartDate :: UTCTime,
-        mandateEndDate :: UTCTime,
+        mandateStartDate :: Maybe UTCTime,
+        mandateEndDate :: Maybe UTCTime,
         mandateId :: Text,
         mandateFrequency :: MandateFrequency,
         mandateMaxAmount :: HighPrecMoney,
@@ -108,7 +108,7 @@ data OrderStatusResp
         notificationStatus :: NotificationStatus,
         sourceObject :: Maybe Text,
         endDate :: Text,
-        sourceInfo :: SourceInfo,
+        sourceInfo :: Maybe SourceInfo,
         notificationType :: Maybe Text,
         juspayProviedId :: Text,
         notificationId :: Text
@@ -144,13 +144,13 @@ data MandateNotificationRes = MandateNotificationRes
     notificationType :: Maybe Text,
     description :: Text,
     status :: NotificationStatus,
-    dateCreated :: UTCTime,
-    lastUpdated :: UTCTime
+    dateCreated :: Maybe UTCTime,
+    lastUpdated :: Maybe UTCTime
   }
 
 data SourceInfo = SourceInfo
-  { sourceAmount :: HighPrecMoney,
-    txnDate :: UTCTime
+  { sourceAmount :: Maybe HighPrecMoney,
+    txnDate :: Maybe UTCTime
   }
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -169,8 +169,8 @@ data NotificationStatusResp = NotificationStatusResp
     providerResponse :: Maybe ProviderResponse,
     description :: Text,
     status :: NotificationStatus,
-    dateCreated :: UTCTime,
-    lastUpdated :: UTCTime
+    dateCreated :: Maybe UTCTime,
+    lastUpdated :: Maybe UTCTime
   }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

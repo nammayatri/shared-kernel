@@ -58,7 +58,7 @@ data WebhookNotificationData = WebhookNotificationData
   { status :: NotificationStatus,
     source_object :: Maybe Text,
     end_date :: Text,
-    source_info :: SourceInfo,
+    source_info :: Maybe SourceInfo,
     notification_type :: Maybe Text,
     object_reference_id :: Text,
     id :: Text
@@ -66,6 +66,6 @@ data WebhookNotificationData = WebhookNotificationData
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-newtype PaymentInfo = PaymentInfo {upi :: Upi}
+newtype PaymentInfo = PaymentInfo {upi :: Maybe Upi}
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
