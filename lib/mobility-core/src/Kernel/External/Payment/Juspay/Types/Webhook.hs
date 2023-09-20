@@ -56,10 +56,10 @@ data WebhookMandateData = WebhookMandateData
 
 data WebhookNotificationData = WebhookNotificationData
   { status :: NotificationStatus,
-    source_object :: Text,
+    source_object :: Maybe Text,
     end_date :: Text,
     source_info :: SourceInfo,
-    notification_type :: Text,
+    notification_type :: Maybe Text,
     object_reference_id :: Text,
     id :: Text
   }
