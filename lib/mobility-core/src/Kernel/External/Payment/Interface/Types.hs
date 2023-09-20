@@ -172,11 +172,15 @@ data NotificationStatusResp = NotificationStatusResp
     dateCreated :: UTCTime,
     lastUpdated :: UTCTime
   }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data ProviderResponse = ProviderResponse
   { providerRefId :: Text,
     notificationDate :: UTCTime
   }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 -- mandate pause | resume | revoke request --
 
