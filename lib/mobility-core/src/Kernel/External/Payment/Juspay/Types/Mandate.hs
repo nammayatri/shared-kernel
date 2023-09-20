@@ -31,7 +31,7 @@ data MandateNotificationRes = MandateNotificationRes
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data SourceInfo = SourceInfo
-  { source_amount :: Text,
+  { amount :: Text,
     txn_date :: Text
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
@@ -40,7 +40,7 @@ instance ToForm MandateNotificationReq where
   toForm MandateNotificationReq {..} =
     [ ("command", toQueryParam command),
       ("object_reference_id", toQueryParam object_reference_id),
-      ("source_info", toQueryParam ("{\"amount\" : \"" <> source_info.source_amount <> "\"," <> " \"txn_date\" : \"" <> source_info.txn_date <> "\"}")),
+      ("source_info", toQueryParam ("{\"amount\" : \"" <> source_info.amount <> "\"," <> " \"txn_date\" : \"" <> source_info.txn_date <> "\"}")),
       ("description", toQueryParam description)
     ]
 
@@ -56,7 +56,7 @@ data NotificationStatusResp = NotificationStatusResp
     source_info :: SourceInfo,
     provider_response :: ProviderResponse,
     description :: Text,
-    status :: Text,
+    status :: NotificationStatus,
     date_created :: Text,
     last_updated :: Text
   }
