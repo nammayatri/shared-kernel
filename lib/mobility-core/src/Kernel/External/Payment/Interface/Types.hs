@@ -107,7 +107,6 @@ data OrderStatusResp
       { eventName :: Maybe PaymentStatus,
         notificationStatus :: NotificationStatus,
         sourceObject :: Maybe Text,
-        endDate :: Text,
         sourceInfo :: SourceInfo,
         notificationType :: Maybe Text,
         juspayProviedId :: Text,

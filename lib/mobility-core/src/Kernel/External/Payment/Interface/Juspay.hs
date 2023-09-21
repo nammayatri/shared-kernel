@@ -401,7 +401,6 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
         { eventName = Just eventName,
           notificationStatus = justNotification.status,
           sourceObject = justNotification.source_object,
-          endDate = justNotification.end_date,
           sourceInfo = maybe SourceInfo {txnDate = Just now, sourceAmount = Just 0} castSourceInfo (justNotification.source_info),
           notificationType = justNotification.notification_type,
           juspayProviedId = justNotification.id,

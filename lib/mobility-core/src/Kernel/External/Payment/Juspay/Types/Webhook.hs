@@ -57,7 +57,6 @@ data WebhookMandateData = WebhookMandateData
 data WebhookNotificationData = WebhookNotificationData
   { status :: NotificationStatus,
     source_object :: Maybe Text,
-    end_date :: Text,
     source_info :: Maybe SourceInfo,
     notification_type :: Maybe Text,
     object_reference_id :: Text,
