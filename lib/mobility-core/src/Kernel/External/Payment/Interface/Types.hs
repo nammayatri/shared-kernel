@@ -108,7 +108,7 @@ data OrderStatusResp
         notificationStatus :: NotificationStatus,
         sourceObject :: Maybe Text,
         endDate :: Text,
-        sourceInfo :: Maybe SourceInfo,
+        sourceInfo :: SourceInfo,
         notificationType :: Maybe Text,
         juspayProviedId :: Text,
         notificationId :: Text

@@ -331,11 +331,12 @@ orderStatusWebhook ::
   A.Value ->
   m (Maybe OrderStatusResp)
 orderStatusWebhook paymentConfig orderStatusHandler authData val = do
-  response <- Juspay.orderStatusWebhook paymentConfig (orderStatusHandler . mkWebhookOrderStatusResp . (\resp -> (resp.event_name, resp.content))) authData val
-  return $ mkWebhookOrderStatusResp <$> response
+  now <- getCurrentTime
+  response <- Juspay.orderStatusWebhook paymentConfig (orderStatusHandler . mkWebhookOrderStatusResp now . (\resp -> (resp.event_name, resp.content))) authData val
+  return $ mkWebhookOrderStatusResp now <$> response
 
-mkWebhookOrderStatusResp :: (Juspay.PaymentStatus, Juspay.OrderAndNotificationStatusContent) -> OrderStatusResp
-mkWebhookOrderStatusResp (eventName, Juspay.OrderAndNotificationStatusContent {..}) =
+mkWebhookOrderStatusResp :: UTCTime -> (Juspay.PaymentStatus, Juspay.OrderAndNotificationStatusContent) -> OrderStatusResp
+mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusContent {..}) =
   case (order, mandate, notification) of
     (Just justOrder, Nothing, _) ->
       case justOrder.mandate of
@@ -401,7 +402,7 @@ mkWebhookOrderStatusResp (eventName, Juspay.OrderAndNotificationStatusContent {.
           notificationStatus = justNotification.status,
           sourceObject = justNotification.source_object,
           endDate = justNotification.end_date,
-          sourceInfo = castSourceInfo <$> (justNotification.source_info),
+          sourceInfo = maybe SourceInfo {txnDate = Just now, sourceAmount = Just 0} castSourceInfo (justNotification.source_info),
           notificationType = justNotification.notification_type,
           juspayProviedId = justNotification.id,
           notificationId = justNotification.object_reference_id
@@ -442,16 +443,15 @@ mkOfferListReq OfferListReq {..} =
 
 mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Juspay.OfferOrder
 ---- add duty day and payment mode respectively in holes ----
-mkOfferOrder OfferOrder {..} planId _ registrationDate _ =
+mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
       currency,
       udf1 = replace "-" "_" planId,
-      udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate
-      --- need to be added after offers are configured ----
-      -- udf3 = paymentMode,
-      -- udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate
+      udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate,
+      udf3 = paymentMode,
+      udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate
     }
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
