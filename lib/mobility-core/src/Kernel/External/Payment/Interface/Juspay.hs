@@ -450,7 +450,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode =
       udf1 = replace "-" "_" planId,
       udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate,
       udf3 = paymentMode,
-      udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate
+      udf4 = pack $ formatTime defaultTimeLocale "%d_%m_%y" dutyDate
     }
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
@@ -529,9 +529,9 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
             merchant_id = Just merchantId,
             order_type = Just "ORDER_PAYMENT",
             udf1 = replace "-" "_" planId,
-            udf2 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" registrationDate,
+            udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate,
             udf3 = paymentMode,
-            udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate,
+            udf4 = pack $ formatTime defaultTimeLocale "%d_%m_%y" dutyDate,
             payment_channel = Just "WEB"
           }
   Juspay.OfferApplyReq
