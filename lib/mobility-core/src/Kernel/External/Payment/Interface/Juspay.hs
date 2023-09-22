@@ -48,7 +48,7 @@ import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.APISuccess
 import Kernel.Types.Beckn.Ack
 import Kernel.Types.Error
-import Kernel.Utils.Common (HighPrecMoney, Log, MonadTime, encodeToText, fromMaybeM, getCurrentTime)
+import Kernel.Utils.Common (HighPrecMoney, Log, MonadTime, fromMaybeM, getCurrentTime)
 import Servant hiding (throwError)
 
 createOrder ::
