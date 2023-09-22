@@ -442,15 +442,15 @@ mkOfferListReq OfferListReq {..} =
 
 mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Juspay.OfferOrder
 ---- add duty day and payment mode respectively in holes ----
-mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode =
+mkOfferOrder OfferOrder {..} planId registrationDate _ _ =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
       currency,
       udf1 = replace "-" "_" planId,
-      udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate,
-      udf3 = paymentMode,
-      udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate
+      udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate
+      -- udf3 = paymentMode,
+      -- udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate
     }
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
@@ -530,8 +530,8 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
             order_type = Just "ORDER_PAYMENT",
             udf1 = replace "-" "_" planId,
             udf2 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" registrationDate,
-            udf3 = paymentMode,
-            udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate,
+            -- udf3 = paymentMode,
+            -- udf4 = replace "-" "_" $ encodeToText $ formatTime defaultTimeLocale "%d-%m-%y" dutyDate,
             payment_channel = Just "WEB"
           }
   Juspay.OfferApplyReq
