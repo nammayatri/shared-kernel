@@ -55,10 +55,23 @@ mkCreateTicketReq IT.CreateTicketReq {..} =
 mkRideDescriptionDriver :: IT.RideInfo -> Kapture.RideInfo
 mkRideDescriptionDriver IT.RideInfo {..} =
   Kapture.RideInfo
-    { pickupLocation = mkLocation pickupLocation,
-      dropLocation = mkLocation <$> dropLocation,
+    { pickupLocationLat = Just pickupLocation.lat,
+      pickupLocationLon = Just pickupLocation.lon,
+      pickupLocationStreet = pickupLocation.street,
+      pickupLocationCity = pickupLocation.city,
+      pickupLocationState = pickupLocation.state,
+      pickupLocationCountry = pickupLocation.country,
+      pickupLocationBuilding = pickupLocation.building,
+      pickupLocationAreaCode = pickupLocation.areaCode,
+      pickupLocationArea = pickupLocation.area,
+      dropLocationLat = (.lat) <$> dropLocation,
+      dropLocationLon = (.lon) <$> dropLocation,
+      dropLocationStreet = (.street) =<< dropLocation,
+      dropLocationCity = (.city) =<< dropLocation,
+      dropLocationState = (.state) =<< dropLocation,
+      dropLocationCountry = (.country) =<< dropLocation,
+      dropLocationBuilding = (.building) =<< dropLocation,
+      dropLocationAreaCode = (.areaCode) =<< dropLocation,
+      dropLocationArea = (.area) =<< dropLocation,
       ..
     }
-
-mkLocation :: IT.Location -> Kapture.Location
-mkLocation IT.Location {..} = Kapture.Location {..}
