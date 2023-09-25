@@ -40,7 +40,8 @@ data OfferOrder = OfferOrder
     udf2 :: Text,
     --- need to be added after offers are configured accordingly on dashboard ----
     udf3 :: Text,
-    udf4 :: Text
+    udf4 :: Text,
+    udf5 :: Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -188,6 +189,7 @@ data OfferApplyOrder = OfferApplyOrder
     udf2 :: Text,
     udf3 :: Text,
     udf4 :: Text,
+    udf5 :: Text,
     payment_channel :: Maybe Text
   }
   deriving stock (Show, Generic)
