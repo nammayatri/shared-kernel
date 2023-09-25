@@ -220,7 +220,8 @@ data OfferListReq = OfferListReq
     planId :: Text,
     registrationDate :: UTCTime,
     dutyDate :: UTCTime,
-    paymentMode :: Text
+    paymentMode :: Text,
+    numOfRides :: Int
   }
 
 data OfferOrder = OfferOrder
@@ -291,7 +292,8 @@ data OfferApplyReq = OfferApplyReq
     planId :: Text,
     registrationDate :: UTCTime,
     dutyDate :: UTCTime,
-    paymentMode :: Text
+    paymentMode :: Text,
+    numOfRides :: Int
   }
 
 newtype OfferApplyResp = OfferApplyResp

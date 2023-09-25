@@ -434,15 +434,15 @@ offerList config req = do
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
 mkOfferListReq OfferListReq {..} =
   Juspay.OfferListReq
-    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode,
+    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides,
       payment_method_info = [],
       customer = mkOfferCustomer <$> customer,
       offer_code = Nothing
     }
 
-mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Juspay.OfferOrder
+mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Juspay.OfferOrder
 ---- add duty day and payment mode respectively in holes ----
-mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode =
+mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
@@ -450,7 +450,8 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode =
       udf1 = replace "-" "_" planId,
       udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate,
       udf3 = paymentMode,
-      udf4 = pack $ formatTime defaultTimeLocale "%d_%m_%y" dutyDate
+      udf4 = pack $ formatTime defaultTimeLocale "%d_%m_%y" dutyDate,
+      udf5 = show numOfRides
     }
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
@@ -532,6 +533,7 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
             udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate,
             udf3 = paymentMode,
             udf4 = pack $ formatTime defaultTimeLocale "%d_%m_%y" dutyDate,
+            udf5 = show numOfRides,
             payment_channel = Just "WEB"
           }
   Juspay.OfferApplyReq
