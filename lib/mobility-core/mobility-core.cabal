@@ -246,6 +246,7 @@ library
       Kernel.Types.FromField
       Kernel.Types.Geofencing
       Kernel.Types.GuidLike
+      Kernel.Types.HideSecrets
       Kernel.Types.Id
       Kernel.Types.Logging
       Kernel.Types.MonadGuid
