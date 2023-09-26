@@ -136,7 +136,7 @@ data FCMNotificationType
   | PAYMENT_FAILED
   | PAYMENT_SUCCESS
   | PAYMENT_MODE_MANUAL
-  | LOW_ACCOUNT_BALANCE
+  | PAYMENT_NUDGE
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
