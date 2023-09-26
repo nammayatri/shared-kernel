@@ -955,6 +955,24 @@ instance IsHTTPError MerchantMessageError where
 
 instance IsAPIError MerchantMessageError
 
+data MerchantFCMError
+  = MerchantFCMNotFound Text Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''MerchantFCMError
+
+instance IsBaseError MerchantFCMError where
+  toMessage = \case
+    MerchantFCMNotFound merchantId fcmKey -> Just $ "MerchantFCM with merchantId \"" <> show merchantId <> " and fcm key" <> show fcmKey <> "\" not found. "
+
+instance IsHTTPError MerchantFCMError where
+  toErrorCode = \case
+    MerchantFCMNotFound _ _ -> "MERCHANT_FCM_NOT_FOUND"
+  toHttpCode = \case
+    MerchantFCMNotFound _ _ -> E500
+
+instance IsAPIError MerchantFCMError
+
 newtype SosError = SosIdDoesNotExist Text
   deriving (Eq, Show, IsBecknAPIError)
 

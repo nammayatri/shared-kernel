@@ -35,6 +35,7 @@ module Kernel.External.Notification.FCM.Flow
     FCMSendMessageAPI,
     fcmSendMessageAPI,
     parseFCMAccount,
+    createAndroidNotificationWithSubtype,
   )
 where
 
@@ -127,6 +128,20 @@ createAndroidNotification title body notificationType =
               FCMNotificationIconUrl
                 "http://localhost:8080/static/images/ride-success.png",
           fcmdTag = Just notificationType
+        }
+
+createAndroidNotificationWithSubtype :: FCMNotificationTitle -> FCMNotificationBody -> FCMNotificationType -> FCMNotificationSubType -> FCMAndroidNotification
+createAndroidNotificationWithSubtype title body notificationType notificationSubType =
+  let notification = def
+   in notification
+        { fcmdTitle = Just title,
+          fcmdBody = Just body,
+          fcmdIcon =
+            Just $
+              FCMNotificationIconUrl
+                "http://localhost:8080/static/images/ride-success.png",
+          fcmdTag = Just notificationType,
+          fcmdSubType = Just notificationSubType
         }
 
 -- | Send FCM message to a person

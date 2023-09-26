@@ -32,7 +32,8 @@ import Database.Beam.Backend
 import Database.Beam.Postgres
 import Database.PostgreSQL.Simple.FromField (FromField)
 import EulerHS.Prelude hiding (id)
-import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql, derivePersistField)
 import Kernel.Types.App
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.TH
@@ -136,9 +137,23 @@ data FCMNotificationType
   | PAYMENT_FAILED
   | PAYMENT_SUCCESS
   | PAYMENT_MODE_MANUAL
-  | LOW_ACCOUNT_BALANCE
+  | PAYMENT_NUDGE
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
+
+data FCMNotificationSubType
+  = LOW_ACCOUNT_BALANCE
+  | PAYMENT_FAILED_LOW_ACCOUNT_BALANCE
+  | SWITCH_PLAN
+  | AUTOPAY_PAYMENT_FAILED
+  | MANUAL_PAYMENT_FAILED
+  | PAYMENT_PENDING_AUTOPAY_SET
+  | PAYMENT_PENDING_AUTOPAY_NOT_SET
+  deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving (PrettyShow) via Showable FCMNotificationSubType
+
+$(mkBeamInstancesForEnum ''FCMNotificationSubType)
+derivePersistField "FCMNotificationSubType"
 
 -- | Entity types types
 data FCMEntityType = SearchRequest | Product | Merchant | Person | PaymentOrder
@@ -293,7 +308,8 @@ data FCMAndroidNotification = FCMAndroidNotification
     fcmdDefaultSound :: !(Maybe Bool),
     fcmdDefalutVibrateTimings :: !(Maybe Bool),
     fcmdDefaultLightSettings :: !(Maybe Bool),
-    fcmdVibrateTimings :: !(Maybe [Text])
+    fcmdVibrateTimings :: !(Maybe [Text]),
+    fcmdSubType :: !(Maybe FCMNotificationSubType)
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
@@ -326,7 +342,8 @@ instance Default FCMAndroidNotification where
             fcmdDefaultSound = Nothing,
             fcmdDefalutVibrateTimings = Nothing,
             fcmdDefaultLightSettings = Nothing,
-            fcmdVibrateTimings = Nothing
+            fcmdVibrateTimings = Nothing,
+            fcmdSubType = Nothing
           }
 
 -- | FCM payload

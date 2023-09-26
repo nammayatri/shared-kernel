@@ -242,11 +242,15 @@ data OfferListResp = OfferListResp
   { bestOfferCombination :: Maybe BestOfferCombination,
     offerResp :: [OfferResp]
   }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 data BestOfferCombination = BestOfferCombination
   { offers :: [BestOfferCombinationOffer],
     orderBreakup :: OrderBreakup
   }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 data BestOfferCombinationOffer = BestOfferCombinationOffer
   { offerId :: Text,
@@ -255,6 +259,8 @@ data BestOfferCombinationOffer = BestOfferCombinationOffer
     merchantDiscountAmount :: HighPrecMoney,
     totalOfferedAmount :: HighPrecMoney
   }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 data OrderBreakup = OrderBreakup
   { orderAmount :: HighPrecMoney,
@@ -264,6 +270,8 @@ data OrderBreakup = OrderBreakup
     cashbackAmount :: HighPrecMoney,
     offerAmount :: HighPrecMoney
   }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 data OfferResp = OfferResp
   { offerId :: Text,
@@ -273,6 +281,8 @@ data OfferResp = OfferResp
     finalOrderAmount :: HighPrecMoney,
     discountAmount :: HighPrecMoney
   }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 data OfferDescription = OfferDescription
   { sponsoredBy :: Maybe Text,
@@ -280,6 +290,8 @@ data OfferDescription = OfferDescription
     description :: Maybe Text,
     tnc :: Maybe Text
   }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 -- offer apply --
 
