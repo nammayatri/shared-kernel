@@ -16,30 +16,31 @@ module Kernel.Utils.Context where
 
 import EulerHS.Prelude
 import Kernel.Types.App
-import qualified Kernel.Types.Beckn.Context as Cab
+import qualified Kernel.Types.Beckn.Context as Ride
 import Kernel.Types.MonadGuid
 import Kernel.Types.Time
 import Kernel.Types.TimeRFC339 (UTCTimeRFC3339 (..))
 
-buildTaxiContext ::
+buildContext ::
   (MonadTime m, MonadGuid m) =>
-  Cab.Action ->
+  Ride.Domain ->
+  Ride.Action ->
   Text ->
   Maybe Text ->
   Text ->
   BaseUrl ->
   Maybe Text ->
   Maybe BaseUrl ->
-  Cab.City ->
-  Cab.Country ->
+  Ride.City ->
+  Ride.Country ->
   Bool ->
-  m Cab.Context
-buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country autoAssignEnabled = do
+  m Ride.Context
+buildContext domain action msgId txnId bapId bapUri bppId bppUri city country autoAssignEnabled = do
   currTime <- getCurrentTime
-  let max_callbacks = if autoAssignEnabled && action == Cab.SELECT then Just 1 else Nothing
+  let max_callbacks = if autoAssignEnabled && action == Ride.SELECT then Just 1 else Nothing
   return $
-    Cab.Context
-      { domain = Cab.MOBILITY,
+    Ride.Context
+      { domain = domain,
         action,
         core_version = "0.9.4",
         bap_id = bapId,

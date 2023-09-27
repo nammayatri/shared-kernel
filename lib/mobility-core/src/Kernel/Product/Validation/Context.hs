@@ -32,6 +32,11 @@ validateMetroContext action context = do
   validateDomain CoreContext.METRO context
   validateContextCommons action context
 
+validateBusContext :: (HasFlowEnv m r '["coreVersion" ::: Text]) => CoreContext.Action -> CoreContext.Context -> m ()
+validateBusContext action context = do
+  validateDomain CoreContext.PUBLIC_TRANSPORT context
+  validateContextCommons action context
+
 validateDomain :: (L.MonadFlow m, Log m) => CoreContext.Domain -> CoreContext.Context -> m ()
 validateDomain expectedDomain context =
   unless (context.domain == expectedDomain) $
