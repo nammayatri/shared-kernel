@@ -1019,20 +1019,24 @@ instance IsHTTPError DriverFeeError where
 
 instance IsAPIError DriverFeeError
 
-newtype TicketError
-  = TicketDoesNotExist Text
+data TicketError
+  = TicketNotFound Text
+  | TicketDoesNotExist Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''TicketError
 
 instance IsBaseError TicketError where
   toMessage = \case
-    TicketDoesNotExist ticketId -> Just $ "Ticket with ticketId \"" <> show ticketId <> "\"not found. "
+    TicketNotFound ticketId -> Just $ "Ticket with ticketId \"" <> show ticketId <> "\" not found. "
+    TicketDoesNotExist ticketId -> Just $ "Ticket with ticketId \"" <> show ticketId <> "\" does not exist. "
 
 instance IsHTTPError TicketError where
   toErrorCode = \case
+    TicketNotFound _ -> "TICKET_NOT_FOUND"
     TicketDoesNotExist _ -> "TICKET_DOES_NOT_EXIST"
   toHttpCode = \case
+    TicketNotFound _ -> E500
     TicketDoesNotExist _ -> E400
 
 instance IsAPIError TicketError

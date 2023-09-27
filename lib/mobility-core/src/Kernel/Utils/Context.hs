@@ -53,3 +53,36 @@ buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country autoA
         city,
         max_callbacks
       }
+
+buildBusContext ::
+  (MonadTime m, MonadGuid m) =>
+  Cab.Action ->
+  Text ->
+  Maybe Text ->
+  Text ->
+  BaseUrl ->
+  Maybe Text ->
+  Maybe BaseUrl ->
+  Cab.City ->
+  Cab.Country ->
+  Bool ->
+  m Cab.Context
+buildBusContext action msgId txnId bapId bapUri bppId bppUri city country _ = do
+  currTime <- getCurrentTime
+  let max_callbacks = Nothing
+  return $
+    Cab.Context
+      { domain = Cab.PUBLIC_TRANSPORT,
+        action,
+        core_version = "0.9.4",
+        bap_id = bapId,
+        bap_uri = bapUri,
+        bpp_id = bppId,
+        bpp_uri = bppUri,
+        transaction_id = txnId,
+        message_id = msgId,
+        timestamp = UTCTimeRFC3339 currTime,
+        country,
+        city,
+        max_callbacks
+      }
