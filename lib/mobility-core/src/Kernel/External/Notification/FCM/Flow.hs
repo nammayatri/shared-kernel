@@ -141,24 +141,37 @@ createAndroidNotificationWithIcon title body notificationType mIcon =
           fcmdTag = Just notificationType
         }
 
-createAndroidOverlayNotification :: Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> [Text] -> Maybe Text -> FCMOverlayNotificationJSON
-createAndroidOverlayNotification title description imageUrl okButtonText cancelButtonText actions link =
-  let overlayNotifcation = def
-   in overlayNotifcation
-        { title = title,
-          description = description,
-          imageUrl,
-          okButtonText,
-          cancelButtonText,
-          actions,
-          link,
-          titleVisibility = isJust title,
-          descriptionVisibility = isJust description,
-          buttonOkVisibility = isJust okButtonText,
-          buttonCancelVisibility = isJust cancelButtonText,
-          buttonLayoutVisibility = isJust okButtonText || isJust cancelButtonText,
-          imageVisibility = isJust imageUrl
-        }
+createAndroidOverlayNotification ::
+  Maybe Text ->
+  Maybe Text ->
+  Maybe Text ->
+  Maybe Text ->
+  Maybe Text ->
+  [Text] ->
+  Maybe Text ->
+  Maybe Text ->
+  Maybe Text ->
+  Value ->
+  FCMOverlayNotificationJSON
+createAndroidOverlayNotification title description imageUrl okButtonText cancelButtonText actions link endPoint method reqBody =
+  FCMOverlayNotificationJSON
+    { title = title,
+      description = description,
+      imageUrl,
+      okButtonText,
+      cancelButtonText,
+      actions,
+      link,
+      method,
+      reqBody,
+      endPoint,
+      titleVisibility = isJust title,
+      descriptionVisibility = isJust description,
+      buttonOkVisibility = isJust okButtonText,
+      buttonCancelVisibility = isJust cancelButtonText,
+      buttonLayoutVisibility = isJust okButtonText || isJust cancelButtonText,
+      imageVisibility = isJust imageUrl
+    }
 
 -- | Send FCM message to a person
 notifyPerson ::
