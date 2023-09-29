@@ -36,6 +36,7 @@ module Kernel.External.Notification.FCM.Flow
     fcmSendMessageAPI,
     parseFCMAccount,
     createAndroidNotificationWithIcon,
+    createAndroidOverlayNotification,
   )
 where
 
@@ -138,6 +139,25 @@ createAndroidNotificationWithIcon title body notificationType mIcon =
           fcmdBody = Just body,
           fcmdIcon = Just $ FCMNotificationIconUrl (fromMaybe "http://localhost:8080/static/images/ride-success.png" mIcon),
           fcmdTag = Just notificationType
+        }
+
+createAndroidOverlayNotification :: Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> [Text] -> Maybe Text -> FCMOverlayNotificationJSON
+createAndroidOverlayNotification title description imageUrl okButtonText cancelButtonText actions link =
+  let overlayNotifcation = def
+   in overlayNotifcation
+        { title = title,
+          description = description,
+          imageUrl,
+          okButtonText,
+          cancelButtonText,
+          actions,
+          link,
+          titleVisibility = isJust title,
+          descriptionVisibility = isJust description,
+          buttonOkVisibility = isJust okButtonText,
+          buttonCancelVisibility = isJust cancelButtonText,
+          buttonLayoutVisibility = isJust okButtonText || isJust cancelButtonText,
+          imageVisibility = isJust imageUrl
         }
 
 -- | Send FCM message to a person
