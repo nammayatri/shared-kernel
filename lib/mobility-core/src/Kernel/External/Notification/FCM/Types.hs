@@ -35,6 +35,7 @@ import EulerHS.Prelude hiding (id)
 import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Kernel.Types.App
 import Kernel.Utils.GenericPretty
+import Kernel.Utils.JSON
 import Kernel.Utils.TH
 import Kernel.Utils.Text (decodeFromText, encodeToText)
 
@@ -137,6 +138,7 @@ data FCMNotificationType
   | PAYMENT_SUCCESS
   | PAYMENT_MODE_MANUAL
   | PAYMENT_NUDGE
+  | DRIVER_NOTIFY
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
@@ -271,6 +273,50 @@ $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMNotificatio
 instance Default FCMNotification where
   def = FCMNotification Nothing Nothing Nothing
 
+-- | Notification to send to android devices for overlays
+data FCMOverlayNotificationJSON = FCMOverlayNotificationJSON
+  { title :: !(Maybe Text),
+    description :: !(Maybe Text), -- need confirmation from UI if mandatory
+    imageUrl :: !(Maybe Text),
+    okButtonText :: !(Maybe Text),
+    cancelButtonText :: !(Maybe Text),
+    actions :: !([Text]),
+    link :: !(Maybe Text),
+    titleVisibility :: !(Bool),
+    descriptionVisibility :: !(Bool),
+    buttonOkVisibility :: !(Bool),
+    buttonCancelVisibility :: !(Bool),
+    buttonLayoutVisibility :: !(Bool),
+    imageVisibility :: !(Bool)
+  }
+  deriving (Eq, Show, Generic, PrettyShow)
+
+$(makeLenses ''FCMOverlayNotificationJSON)
+
+instance ToJSON FCMOverlayNotificationJSON where
+  toJSON = genericToJSON removeNullFields
+
+instance FromJSON FCMOverlayNotificationJSON where
+  parseJSON = genericParseJSON removeNullFields
+
+instance Default FCMOverlayNotificationJSON where
+  def =
+    FCMOverlayNotificationJSON
+      { title = Nothing,
+        description = Nothing,
+        imageUrl = Nothing,
+        okButtonText = Nothing,
+        cancelButtonText = Nothing,
+        actions = [],
+        link = Nothing,
+        titleVisibility = False,
+        descriptionVisibility = False,
+        buttonOkVisibility = False,
+        buttonCancelVisibility = False,
+        buttonLayoutVisibility = False,
+        imageVisibility = False
+      }
+
 -- | Notification to send to android devices
 data FCMAndroidNotification = FCMAndroidNotification
   { fcmdTitle :: !(Maybe FCMNotificationTitle),
@@ -336,7 +382,8 @@ data FCMData a = FCMData
     fcmEntityType :: FCMEntityType,
     fcmEntityIds :: Text,
     fcmEntityData :: a,
-    fcmNotificationJSON :: FCMAndroidNotification
+    fcmNotificationJSON :: FCMAndroidNotification,
+    fcmOverlayNotificationJSON :: Maybe FCMOverlayNotificationJSON
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
@@ -350,7 +397,8 @@ instance (ToJSON a) => ToJSON (FCMData a) where
         "entity_type" .= fcmEntityType,
         "entity_ids" .= fcmEntityIds,
         "entity_data" .= encodeToText fcmEntityData,
-        "notification_json" .= encodeToText fcmNotificationJSON
+        "notification_json" .= encodeToText fcmNotificationJSON,
+        "driver_notification_payload" .= (encodeToText <$> fcmOverlayNotificationJSON)
       ]
 
 instance (FromJSON a) => FromJSON (FCMData a) where
@@ -362,6 +410,7 @@ instance (FromJSON a) => FromJSON (FCMData a) where
       <*> o .: "entity_ids"
       <*> (o .: "entity_data" >>= parseNotificationJson)
       <*> (o .: "notification_json" >>= parseNotificationJson)
+      <*> (o .:? "driver_notification_payload" >>= (maybe (pure Nothing) parseNotificationJson))
     where
       parseNotificationJson str =
         maybe (typeMismatch "Json string" (String str)) pure $ decodeFromText str
