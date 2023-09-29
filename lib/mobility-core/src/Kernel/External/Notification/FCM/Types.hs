@@ -282,6 +282,9 @@ data FCMOverlayNotificationJSON = FCMOverlayNotificationJSON
     cancelButtonText :: !(Maybe Text),
     actions :: !([Text]),
     link :: !(Maybe Text),
+    method :: Maybe Text,
+    reqBody :: Value,
+    endPoint :: Maybe Text,
     titleVisibility :: !(Bool),
     descriptionVisibility :: !(Bool),
     buttonOkVisibility :: !(Bool),
@@ -298,24 +301,6 @@ instance ToJSON FCMOverlayNotificationJSON where
 
 instance FromJSON FCMOverlayNotificationJSON where
   parseJSON = genericParseJSON removeNullFields
-
-instance Default FCMOverlayNotificationJSON where
-  def =
-    FCMOverlayNotificationJSON
-      { title = Nothing,
-        description = Nothing,
-        imageUrl = Nothing,
-        okButtonText = Nothing,
-        cancelButtonText = Nothing,
-        actions = [],
-        link = Nothing,
-        titleVisibility = False,
-        descriptionVisibility = False,
-        buttonOkVisibility = False,
-        buttonCancelVisibility = False,
-        buttonLayoutVisibility = False,
-        imageVisibility = False
-      }
 
 -- | Notification to send to android devices
 data FCMAndroidNotification = FCMAndroidNotification
