@@ -20,12 +20,6 @@ prepareDBConnectionsDriver ECT.ConnectionConfigDriver {..} = do
   preparePosgreSqlR1Connection <- L.runIO EnvVars.getPreparePosgreSqlR1Connection
   when preparePosgreSqlR1Connection (preparePsqlR1Connection esqDBReplicaCfg)
 
-  prepareLocDBConnections <- L.runIO EnvVars.getPrepareLocationDBConnection
-  when prepareLocDBConnections (prepareLocDbConn locationDbCfg)
-
-  prepareLocDBReplicaConnections <- L.runIO EnvVars.getPrepareLocationDBReplicaConnection
-  when prepareLocDBReplicaConnections (prepareLocDbReplicaConn locationDbReplicaCfg)
-
 prepareDBConnectionsRider :: L.MonadFlow m => ECT.ConnectionConfigRider -> m ()
 prepareDBConnectionsRider ECT.ConnectionConfigRider {..} = do
   preparePosgreSqlConnection <- L.runIO EnvVars.getPreparePosgreSqlConnection
