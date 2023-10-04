@@ -83,15 +83,15 @@ runInReplica (SelectSqlDB m) = do
   dbEnv <- asks (.esqDBReplicaEnv)
   runNoTransactionImpl dbEnv m
 
-runInLocationDB :: (EsqLocDBFlow m r, MonadThrow m, Log m) => SqlDB a -> m a
-runInLocationDB m = do
-  dbEnv <- asks (.esqLocationDBEnv)
-  runNoTransactionImpl dbEnv m
+-- runInLocationDB :: (EsqLocDBFlow m r, MonadThrow m, Log m) => SqlDB a -> m a
+-- runInLocationDB m = do
+--   dbEnv <- asks (.esqLocationDBEnv)
+--   runNoTransactionImpl dbEnv m
 
-runInLocReplica :: (EsqLocRepDBFlow m r, MonadThrow m, Log m) => SelectSqlDB a -> m a
-runInLocReplica (SelectSqlDB m) = do
-  dbEnv <- asks (.esqLocationDBRepEnv)
-  runNoTransactionImpl dbEnv m
+-- runInLocReplica :: (EsqLocRepDBFlow m r, MonadThrow m, Log m) => SelectSqlDB a -> m a
+-- runInLocReplica (SelectSqlDB m) = do
+--   dbEnv <- asks (.esqLocationDBRepEnv)
+--   runNoTransactionImpl dbEnv m
 
 runNoTransaction :: (EsqDBFlow m r, MonadThrow m, Log m) => SqlDB a -> m a
 runNoTransaction m = do
