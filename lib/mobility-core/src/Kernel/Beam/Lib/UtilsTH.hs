@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 
 module Kernel.Beam.Lib.UtilsTH
   ( enableKVPG,
@@ -7,15 +8,21 @@ module Kernel.Beam.Lib.UtilsTH
     mkTableInstancesWithTModifier,
     mkTableInstancesGenericSchema,
     mkTableInstancesGenericSchemaWithTModifier,
+    mkOrphanTableInstances,
     mkBeamInstancesForEnum,
     mkBeamInstancesForList,
     mkBeamInstancesForJSON,
+    IsDBModel (..),
+    IsDBTable (..),
+    TableK,
+    DrainerUsage (..),
   )
 where
 
 import qualified Data.Aeson as A
 import qualified Data.HashMap.Internal as HMI
 import qualified Data.HashMap.Strict as HM
+import qualified Data.Kind as K
 import Data.List (init, lookup, (!!))
 import Data.List.Extra (anySame)
 import qualified Data.Map.Strict as M
@@ -322,20 +329,23 @@ mkShowInstance :: Name -> Q Dec
 mkShowInstance name = do
   return $ StandaloneDerivD (Just StockStrategy) [] (AppT (ConT ''Show) (AppT (ConT name) (ConT $ mkName "Identity")))
 
-mkTableInstances :: Name -> String -> String -> Q [Dec]
-mkTableInstances name table schema = mkTableInstances' name table (Just schema) []
+-- FIXME temporary for compiling scheduler table
+mkTableInstances :: Name -> String -> DrainerUsage -> String -> Q [Dec]
+mkTableInstances name table drainerUsage schema = mkTableInstances' name table drainerUsage (Just schema) []
 
-mkTableInstancesWithTModifier :: Name -> String -> String -> [(String, String)] -> Q [Dec]
-mkTableInstancesWithTModifier name table schema = mkTableInstances' name table (Just schema)
+mkTableInstancesWithTModifier :: Name -> String -> DrainerUsage -> String -> [(String, String)] -> Q [Dec]
+mkTableInstancesWithTModifier name table drainerUsage schema = mkTableInstances' name table drainerUsage (Just schema)
 
+-- drainerUsage will be passed in mkOrphanTableInstances on app level
 mkTableInstancesGenericSchema :: Name -> String -> Q [Dec]
-mkTableInstancesGenericSchema name table = mkTableInstances' name table Nothing []
+mkTableInstancesGenericSchema name table = mkTableInstances' name table DoNotUseDrainer Nothing []
 
+-- drainerUsage will be passed in mkOrphanTableInstances on app level
 mkTableInstancesGenericSchemaWithTModifier :: Name -> String -> [(String, String)] -> Q [Dec]
-mkTableInstancesGenericSchemaWithTModifier name table = mkTableInstances' name table Nothing
+mkTableInstancesGenericSchemaWithTModifier name table = mkTableInstances' name table DoNotUseDrainer Nothing
 
-mkTableInstances' :: Name -> String -> Maybe String -> [(String, String)] -> Q [Dec]
-mkTableInstances' name table mbSchema tableFieldModifier = do
+mkTableInstances' :: Name -> String -> DrainerUsage -> Maybe String -> [(String, String)] -> Q [Dec]
+mkTableInstances' name table drainerUsage mbSchema tableFieldModifier = do
   modelMetaInstances <- mkModelMetaInstances name table mbSchema
   (eModSig, eModBody) <- mkEmod name table mbSchema
   serialInstances <- mkSerialInstances name
@@ -343,7 +353,10 @@ mkTableInstances' name table mbSchema tableFieldModifier = do
   toJSONInstances <- mkToJSONInstance name
   showInstances <- mkShowInstance name
   (tModSig, tModBody) <- mkTModFunction tableFieldModifier name
-  pure [tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances]
+  isDbTableInstance <- genIsDbTableInstance name drainerUsage
+  pure $
+    [tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances]
+      <> isDbTableInstance
 
 ------------------- instances for table row ---------------
 
@@ -399,3 +412,54 @@ mkBeamInstancesForJSON name = do
 
     instance FromBackendRow Postgres $tyQ
     |]
+
+--- DBModel ---
+
+type TableK = (K.Type -> K.Type) -> K.Type
+
+class (Show (DBModelType app)) => IsDBModel (app :: K.Type) where
+  type DBModelType app
+
+class
+  ( IsDBModel app,
+    S.Model Postgres table,
+    Show (table Identity),
+    FromJSON (table Identity),
+    ToJSON (table Identity),
+    KV.MeshMeta Postgres table,
+    Serialize.Serialize (table Identity)
+  ) =>
+  IsDBTable (app :: K.Type) (table :: TableK)
+  where
+  getDBModel :: Proxy app -> Proxy table -> DBModelType app
+
+data DrainerUsage = DoNotUseDrainer | UseDrainer Name
+
+genIsDbTableInstance :: Name -> DrainerUsage -> Q [Dec]
+genIsDbTableInstance tableT = \case
+  DoNotUseDrainer -> pure []
+  UseDrainer app -> do
+    dbModelName <- getModelName tableT
+    let className = ''IsDBTable
+    let dec = FunD 'getDBModel [Clause [WildP, WildP] (NormalB $ ConE dbModelName) []]
+    pure [InstanceD Nothing [] (ConT className `AppT` ConT app `AppT` ConT tableT) [dec]]
+
+getModelName :: Name -> Q Name
+getModelName name = do
+  let name' = nameBase name
+  case P.last name' of
+    'T' -> pure . mkName $ "TH." <> take (length name' - 1) name'
+    _ -> fail $ "Table type should have suffix T: " <> name'
+
+-- | Make required orphan instances for tables, reused between apps
+mkOrphanTableInstances :: Name -> DrainerUsage -> String -> Q [Dec]
+mkOrphanTableInstances name drainerUsage schema = do
+  isDbTableInstance <- genIsDbTableInstance name drainerUsage
+  hasSchemaNameInstance <- genHasSchemaNameInstance name schema
+  pure $ hasSchemaNameInstance : isDbTableInstance
+
+genHasSchemaNameInstance :: Name -> String -> Q Dec
+genHasSchemaNameInstance tableT schema = do
+  let className = ''HasSchemaName
+  let dec = FunD 'schemaName [Clause [WildP] (NormalB $ LitE (StringL schema)) []]
+  pure $ InstanceD Nothing [] (ConT className `AppT` ConT tableT) [dec]
