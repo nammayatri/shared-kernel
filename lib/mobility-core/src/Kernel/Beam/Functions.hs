@@ -26,14 +26,20 @@ module Kernel.Beam.Functions
   )
 where
 
+import Data.Aeson
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Serialize as Serialize
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Database.Beam
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
 import qualified EulerHS.KVConnector.Flow as KV
 import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta)
+import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log)
+import qualified Kafka.Producer as KafkaProd
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
@@ -42,7 +48,9 @@ import Kernel.Types.Error
 import Kernel.Utils.Common (logDebug)
 import Kernel.Utils.Error (throwError)
 import Sequelize (Model, ModelMeta (modelSchemaName, modelTableName), OrderBy, Set, Where)
+import qualified System.Environment as SE
 import System.Random
+import Text.Casing
 
 -- classes for converting from beam types to ttypes and vice versa
 class
@@ -289,7 +297,7 @@ updateWithKV ::
   Where Postgres table ->
   m ()
 updateWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateInternal updatedMeshConfig setClause whereClause
+  updateInternal updatedMeshConfig setClause whereClause True
 
 updateWithKVScheduler ::
   forall table m.
@@ -298,7 +306,7 @@ updateWithKVScheduler ::
   Where Postgres table ->
   m ()
 updateWithKVScheduler setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateInternal updatedMeshConfig setClause whereClause
+  updateInternal updatedMeshConfig setClause whereClause False
 
 -- updateOne --
 
@@ -309,7 +317,7 @@ updateOneWithKV ::
   Where Postgres table ->
   m ()
 updateOneWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateOneInternal updatedMeshConfig setClause whereClause
+  updateOneInternal updatedMeshConfig setClause whereClause True
 
 -- create --
 
@@ -321,7 +329,7 @@ createWithKV ::
   a ->
   m ()
 createWithKV a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  createInternal updatedMeshConfig toTType' a
+  createInternal updatedMeshConfig toTType' a True
 
 createWithKVScheduler ::
   forall table m a.
@@ -331,7 +339,7 @@ createWithKVScheduler ::
   a ->
   m ()
 createWithKVScheduler a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  createInternal updatedMeshConfig toTType'' a
+  createInternal updatedMeshConfig toTType'' a False
 
 -- delete --
 
@@ -413,15 +421,20 @@ updateInternal ::
   MeshConfig ->
   [Set Postgres table] ->
   Where Postgres table ->
+  Bool ->
   m ()
-updateInternal updatedMeshConfig setClause whereClause = do
+updateInternal updatedMeshConfig setClause whereClause notScheduler = do
   dbConf <- getMasterDBConfig
-  res <- KV.updateAllWithKVConnector dbConf updatedMeshConfig setClause whereClause
+  res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
   case res of
     Right res' -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Updated rows KV: " <> show res'
-        else logDebug $ "Updated rows DB: " <> show res'
+        else do
+          when notScheduler $ do
+            topicName <- getKafkaTopic (modelSchemaName @table)
+            mapM_ (\object' -> void $ pushToKafkaForUpdate (modelTableName @table) object' topicName (getKeyForKafka $ getLookupKeyByPKey object')) res'
+          logDebug $ "Updated rows DB: " <> show res'
     Left err -> throwError $ InternalError $ show err
 
 updateOneInternal ::
@@ -430,12 +443,21 @@ updateOneInternal ::
   MeshConfig ->
   [Set Postgres table] ->
   Where Postgres table ->
+  Bool ->
   m ()
-updateOneInternal updatedMeshConfig setClause whereClause = do
+updateOneInternal updatedMeshConfig setClause whereClause notScheduler = do
   dbConf <- getMasterDBConfig
-  res <- KV.updateWoReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
+  res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
   case res of
-    Right _ -> pure ()
+    Right obj -> do
+      if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
+        then logDebug $ "Updated row KV: " <> show obj
+        else do
+          when notScheduler do
+            whenJust obj $ \object' -> do
+              topicName <- getKafkaTopic (modelSchemaName @table)
+              void $ pushToKafkaForUpdate (modelTableName @table) object' topicName (getKeyForKafka $ getLookupKeyByPKey object')
+          logDebug $ "Updated row DB: " <> show obj
     Left err -> throwError $ InternalError $ show err
 
 createInternal ::
@@ -444,8 +466,9 @@ createInternal ::
   MeshConfig ->
   (a -> table Identity) ->
   a ->
+  Bool ->
   m ()
-createInternal updatedMeshConfig toTType a = do
+createInternal updatedMeshConfig toTType a notScheduler = do
   let tType = toTType a
   dbConf' <- getMasterDBConfig
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
@@ -453,7 +476,11 @@ createInternal updatedMeshConfig toTType a = do
     Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Created row in KV: " <> show tType
-        else logDebug $ "Created row in DB: " <> show tType
+        else do
+          when notScheduler $ do
+            topicName <- getKafkaTopic (modelSchemaName @table)
+            void $ pushToKafkaForCreate (modelTableName @table) tType topicName (getKeyForKafka $ getLookupKeyByPKey tType)
+          logDebug $ "Created row in DB: " <> show tType
     Left err -> throwError $ InternalError $ show err
 
 deleteInternal ::
@@ -471,3 +498,65 @@ deleteInternal updatedMeshConfig whereClause = do
         then logDebug $ "Deleted rows in KV: " <> show res
         else logDebug $ "Deleted rows in DB: " <> show res
     Left err -> throwError $ InternalError $ show err
+
+pushToKafkaForCreate :: (MonadFlow m, ToJSON (table Identity)) => Text -> table Identity -> Text -> Text -> m ()
+pushToKafkaForCreate modelName messageRecord topic key = do
+  isPushToKafka' <- L.runIO isPushToKafka
+  when isPushToKafka' $ do
+    let dbObject = getCreateObjectForKafka modelName messageRecord
+    kafkaProducerTools <- L.getOption KafkaConn
+    case kafkaProducerTools of
+      Nothing -> throwError $ InternalError "Kafka producer tools not found"
+      Just kafkaProducerTools' -> do
+        mbErr <- KafkaProd.produceMessage kafkaProducerTools'.producer (kafkaMessage topic dbObject key)
+        whenJust mbErr (throwError . KafkaUnableToProduceMessage)
+
+pushToKafkaForUpdate :: (MonadFlow m, ToJSON (table Identity)) => Text -> table Identity -> Text -> Text -> m ()
+pushToKafkaForUpdate modelName setClause topic key = do
+  isPushToKafka' <- L.runIO isPushToKafka
+  when isPushToKafka' $ do
+    let dbObject = getUpdateObjectForKafka modelName setClause
+    kafkaProducerTools <- L.getOption KafkaConn
+    case kafkaProducerTools of
+      Nothing -> throwError $ InternalError "Kafka producer tools not found"
+      Just kafkaProducerTools' -> do
+        mbErr <- KafkaProd.produceMessage kafkaProducerTools'.producer (kafkaMessage topic dbObject key)
+        whenJust mbErr (throwError . KafkaUnableToProduceMessage)
+
+kafkaMessage :: ToJSON a => Text -> a -> Text -> KafkaProd.ProducerRecord
+kafkaMessage topicName event key =
+  KafkaProd.ProducerRecord
+    { prTopic = KafkaProd.TopicName topicName,
+      prPartition = KafkaProd.UnassignedPartition,
+      prKey = Just $ TE.encodeUtf8 key,
+      prValue = Just . LBS.toStrict $ encode event
+    }
+
+getKafkaTopic :: (MonadFlow m) => Maybe Text -> m Text
+getKafkaTopic mSchema = do
+  modelName <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
+  if modelName == "atlas_driver_offer_bpp" then pure "driver-drainer" else pure "rider-drainer"
+
+getCreateObjectForKafka :: ToJSON a => Text -> a -> Value
+getCreateObjectForKafka modelName dbObject =
+  object
+    [ "contents" .= dbObject,
+      "tag" .= ((T.pack . pascal . T.unpack) modelName <> "Object")
+    ]
+
+getUpdateObjectForKafka :: ToJSON (table Identity) => Text -> table Identity -> Value
+getUpdateObjectForKafka modelName object' =
+  object
+    [ "contents"
+        .= toJSON object',
+      "tag" .= T.pack (pascal (T.unpack modelName) <> "Object"),
+      "type" .= ("UPDATE" :: Text)
+    ]
+
+isPushToKafka :: IO Bool
+isPushToKafka = fromMaybe False . (>>= readMaybe) <$> SE.lookupEnv "PUSH_TO_KAFKA"
+
+getKeyForKafka :: Text -> Text
+getKeyForKafka pKeyText = do
+  let shard = getShardedHashTag pKeyText
+  pKeyText <> shard

@@ -8,6 +8,7 @@ module Kernel.Beam.Types where
 import qualified Database.Beam.Postgres as BP
 import EulerHS.Prelude hiding (getOption)
 import EulerHS.Types (DBConfig, OptionEntity)
+import Kernel.Streaming.Kafka.Producer.Types
 import qualified Kernel.Types.Common as KTC
 
 data PsqlDbCfg = PsqlDbCfg
@@ -59,3 +60,9 @@ data ReplicaEnabled = ReplicaEnabled
   deriving anyclass (ToJSON, FromJSON)
 
 instance OptionEntity ReplicaEnabled Bool
+
+data KafkaConn = KafkaConn
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity KafkaConn KafkaProducerTools
