@@ -243,8 +243,21 @@ fromFieldSeconds f mbValue = case mbValue of
 instance FromField Minutes where
   fromField = fromFieldMinutes
 
-instance HasSqlValueSyntax be Integer => HasSqlValueSyntax be Centi where
-  sqlValueSyntax (MkFixed i) = sqlValueSyntax (div i 100)
+newtype CentiDouble = CentiDouble Double
+
+-- Conversion functions
+centiToDouble :: Centi -> CentiDouble
+centiToDouble (MkFixed n) = CentiDouble (fromIntegral n / 100)
+
+doubleToCenti :: CentiDouble -> Centi
+doubleToCenti (CentiDouble d) = MkFixed (round (d * 100))
+
+-- Define HasSqlValueSyntax instances
+instance HasSqlValueSyntax be Double => HasSqlValueSyntax be CentiDouble where
+  sqlValueSyntax (CentiDouble d) = sqlValueSyntax d
+
+instance HasSqlValueSyntax be Double => HasSqlValueSyntax be Centi where
+  sqlValueSyntax = sqlValueSyntax . centiToDouble
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be Centesimal
 
