@@ -127,7 +127,8 @@ data KVTable = KVTable
 
 data Tables = Tables
   { enableKVForWriteAlso :: [KVTable],
-    enableKVForRead :: [Text]
+    enableKVForRead :: [Text],
+    kafkaNonKVTables :: [Text]
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 

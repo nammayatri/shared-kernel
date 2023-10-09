@@ -297,7 +297,7 @@ updateWithKV ::
   Where Postgres table ->
   m ()
 updateWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateInternal updatedMeshConfig setClause whereClause True
+  updateInternal updatedMeshConfig setClause whereClause
 
 updateWithKVScheduler ::
   forall table m.
@@ -306,7 +306,7 @@ updateWithKVScheduler ::
   Where Postgres table ->
   m ()
 updateWithKVScheduler setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateInternal updatedMeshConfig setClause whereClause False
+  updateInternal updatedMeshConfig setClause whereClause
 
 -- updateOne --
 
@@ -317,7 +317,7 @@ updateOneWithKV ::
   Where Postgres table ->
   m ()
 updateOneWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateOneInternal updatedMeshConfig setClause whereClause True
+  updateOneInternal updatedMeshConfig setClause whereClause
 
 -- create --
 
@@ -329,7 +329,7 @@ createWithKV ::
   a ->
   m ()
 createWithKV a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  createInternal updatedMeshConfig toTType' a True
+  createInternal updatedMeshConfig toTType' a
 
 createWithKVScheduler ::
   forall table m a.
@@ -339,7 +339,7 @@ createWithKVScheduler ::
   a ->
   m ()
 createWithKVScheduler a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  createInternal updatedMeshConfig toTType'' a False
+  createInternal updatedMeshConfig toTType'' a
 
 -- delete --
 
@@ -421,9 +421,8 @@ updateInternal ::
   MeshConfig ->
   [Set Postgres table] ->
   Where Postgres table ->
-  Bool ->
   m ()
-updateInternal updatedMeshConfig setClause whereClause notScheduler = do
+updateInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
   case res of
@@ -431,7 +430,8 @@ updateInternal updatedMeshConfig setClause whereClause notScheduler = do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Updated rows KV: " <> show res'
         else do
-          when notScheduler $ do
+          shouldPushToKafka <- tableInKafka (modelTableName @table)
+          when shouldPushToKafka $ do
             topicName <- getKafkaTopic (modelSchemaName @table)
             mapM_ (\object' -> void $ pushToKafkaForUpdate (modelTableName @table) object' topicName (getKeyForKafka $ getLookupKeyByPKey object')) res'
           logDebug $ "Updated rows DB: " <> show res'
@@ -443,9 +443,8 @@ updateOneInternal ::
   MeshConfig ->
   [Set Postgres table] ->
   Where Postgres table ->
-  Bool ->
   m ()
-updateOneInternal updatedMeshConfig setClause whereClause notScheduler = do
+updateOneInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
   case res of
@@ -453,7 +452,8 @@ updateOneInternal updatedMeshConfig setClause whereClause notScheduler = do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Updated row KV: " <> show obj
         else do
-          when notScheduler do
+          shouldPushToKafka <- tableInKafka (modelTableName @table)
+          when shouldPushToKafka $ do
             whenJust obj $ \object' -> do
               topicName <- getKafkaTopic (modelSchemaName @table)
               void $ pushToKafkaForUpdate (modelTableName @table) object' topicName (getKeyForKafka $ getLookupKeyByPKey object')
@@ -466,9 +466,8 @@ createInternal ::
   MeshConfig ->
   (a -> table Identity) ->
   a ->
-  Bool ->
   m ()
-createInternal updatedMeshConfig toTType a notScheduler = do
+createInternal updatedMeshConfig toTType a = do
   let tType = toTType a
   dbConf' <- getMasterDBConfig
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
@@ -477,7 +476,8 @@ createInternal updatedMeshConfig toTType a notScheduler = do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Created row in KV: " <> show tType
         else do
-          when notScheduler $ do
+          shouldPushToKafka <- tableInKafka (modelTableName @table)
+          when shouldPushToKafka $ do
             topicName <- getKafkaTopic (modelSchemaName @table)
             void $ pushToKafkaForCreate (modelTableName @table) tType topicName (getKeyForKafka $ getLookupKeyByPKey tType)
           logDebug $ "Created row in DB: " <> show tType
@@ -560,3 +560,10 @@ getKeyForKafka :: Text -> Text
 getKeyForKafka pKeyText = do
   let shard = getShardedHashTag pKeyText
   pKeyText <> shard
+
+tableInKafka :: L.MonadFlow m => Text -> m Bool
+tableInKafka modelName = do
+  tables <- L.getOption KBT.Tables
+  case tables of
+    Nothing -> pure False
+    Just tables' -> pure $ modelName `elem` (tables'.kafkaNonKVTables)
