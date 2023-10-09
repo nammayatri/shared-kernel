@@ -142,11 +142,12 @@ data FCMNotificationType
   | DRIVER_NOTIFY
   | SAFETY_ALERT
   | DRIVER_BIRTHDAY
+  | EDIT_LOCATION
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
 -- | Entity types types
-data FCMEntityType = SearchRequest | Product | Merchant | Person | PaymentOrder
+data FCMEntityType = SearchRequest | Product | Merchant | Person | PaymentOrder | EditLocation
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMEntityType
 

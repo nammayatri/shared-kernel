@@ -1064,3 +1064,34 @@ instance IsHTTPError OsrmError where
     FailedToCallOsrmMatchAPI _ -> E400
 
 instance IsAPIError OsrmError
+
+data EditLocationError
+  = PickupOrDropLocationNotFound
+  | EditPickupLocationNotServiceable
+  | DriverAboutToReachAtInitialPickup Text
+  | EditLocationAttemptsExhausted
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''EditLocationError
+
+instance IsBaseError EditLocationError where
+  toMessage = \case
+    PickupOrDropLocationNotFound -> Just "Both pickup and/or drop location not found. Any one of them must be passed"
+    EditPickupLocationNotServiceable -> Just "Editing Pickup Locaton is not serviceable due as the requested location in not within the allowed pickup location distance threshold"
+    DriverAboutToReachAtInitialPickup x -> Just $ "Driver is \"" <> show x <> "\" meters away from your initial pickup location so editing pickup location is not possible"
+    EditLocationAttemptsExhausted -> Just "Number of attempts for editing location have exhausted"
+
+instance IsHTTPError EditLocationError where
+  toErrorCode = \case
+    PickupOrDropLocationNotFound -> "PICKUP_OR_DROP_LOCATION_NOT_FOUND"
+    EditPickupLocationNotServiceable -> "EDIT_PICKUP_LOCATION_NOT_SERVICEABLE"
+    DriverAboutToReachAtInitialPickup _ -> "DRIVER_ABOUT_TO_REACH_AT_INITIAL_PICKUP"
+    EditLocationAttemptsExhausted -> "EDIT_LOCATION_ATTEMPTS_EXHAUSTED"
+
+  toHttpCode = \case
+    PickupOrDropLocationNotFound -> E400
+    EditPickupLocationNotServiceable -> E400
+    DriverAboutToReachAtInitialPickup _ -> E400
+    EditLocationAttemptsExhausted -> E400
+
+instance IsAPIError EditLocationError

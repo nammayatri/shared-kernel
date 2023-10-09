@@ -49,6 +49,7 @@ data Category
   | CHAT_MESSAGE
   | SAFETY_ALERT
   | DRIVER_BIRTHDAY
+  | EDIT_LOCATION
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
 data SubCategory
@@ -62,7 +63,7 @@ data SubCategory
 data ShowNotification = SHOW | DO_NOT_SHOW
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
-data EntityType = SearchRequest | Product | Merchant | Person
+data EntityType = SearchRequest | Product | Merchant | Person | EditLocation
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
 data Auth = Auth
