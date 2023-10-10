@@ -179,38 +179,6 @@ instance L.MonadFlow (FlowR r) where
 --       `L.delConfig', `L.acquireConfigLock',
 --       `L.releaseConfigLock', and `L.fork'
 
-  -- New methods available & now needed to be provided with upgraded Euler-hs
-
-  {-# INLINEABLE callAPIUsingManager #-}
-  callAPIUsingManager mgr url cl = FlowR $ L.callAPIUsingManager mgr url cl
-
-  {-# INLINEABLE lookupHTTPManager #-}
-  lookupHTTPManager mMgrSel = FlowR $ L.lookupHTTPManager mMgrSel
-
-  {-# INLINEABLE getHTTPManager #-}
-  getHTTPManager settings = FlowR $ L.getHTTPManager settings
-
-  {-# INLINEABLE callHTTPUsingManager #-}
-  callHTTPUsingManager mgr url = FlowR $ L.callHTTPUsingManager mgr url
-
-  {-# INLINEABLE getConfig #-}
-  getConfig k = FlowR $ L.getConfig k
-
-  {-# INLINEABLE setConfig #-}
-  setConfig k v = FlowR $ L.setConfig k v
-
-  {-# INLINEABLE trySetConfig #-}
-  trySetConfig k v = FlowR $ L.trySetConfig k v
-
-  {-# INLINEABLE delConfig #-}
-  delConfig k = FlowR $ L.delConfig k
-
-  {-# INLINEABLE acquireConfigLock #-}
-  acquireConfigLock k = FlowR $ L.acquireConfigLock k
-
-  {-# INLINEABLE releaseConfigLock #-}
-  releaseConfigLock k = FlowR $ L.releaseConfigLock k
-
 instance MonadIO (FlowR r) where
   liftIO = FlowR . L.runIO
 
