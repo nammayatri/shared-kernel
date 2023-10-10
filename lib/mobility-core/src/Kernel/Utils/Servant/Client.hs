@@ -92,11 +92,11 @@ callAPI' ::
   CallAPI' m api res (Either ClientError res)
 callAPI' mbManagerSelector baseUrl eulerClient desc api =
   withLogTag "callAPI" $ do
-    let managerSelector = maybe defaultHttpManager (\(ET.ManagerSelector ms) -> ms) mbManagerSelector
+    let managerSelector = fromMaybe defaultHttpManager mbManagerSelector
     logDebug $ "Sanitized URL is " <> buildSanitizedUrl
     res <-
       measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
-        L.callAPI' (Just (ET.ManagerSelector managerSelector)) baseUrl eulerClient
+        L.callAPI' (Just managerSelector) baseUrl eulerClient
     case res of
       Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
       Left err -> logDebug $ "Error occured during client call: " <> show err
@@ -173,9 +173,9 @@ managersFromManagersSettings timeout =
   mapM Http.newManager
     . fmap (setResponseTimeout timeout)
     . HMS.insert defaultHttpManagerString Http.tlsManagerSettings
-    where
-      extractDefaultManagerString (ET.ManagerSelector x) = x
-      defaultHttpManagerString = extractDefaultManagerString defaultHttpManager
+  where
+    extractDefaultManagerString (ET.ManagerSelector x) = x
+    defaultHttpManagerString = extractDefaultManagerString defaultHttpManager
 
 catchConnectionErrors :: (MonadCatch m, Log m) => m a -> (ExternalAPICallError -> m a) -> m a
 catchConnectionErrors action errorHandler =
