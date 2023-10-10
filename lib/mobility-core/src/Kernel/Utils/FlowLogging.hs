@@ -22,6 +22,7 @@ module Kernel.Utils.FlowLogging
 where
 
 import Data.Aeson as A
+import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Strict as HM
@@ -34,11 +35,10 @@ import EulerHS.Prelude
 import EulerHS.Runtime
 import EulerHS.Types (LogContext)
 import qualified EulerHS.Types as T
+import qualified Formatting.Buildable as FB (build)
 import Kernel.Types.Logging
 import System.Logger (DateFormat, Renderer, renderDefault)
 import qualified Prelude as P
-import qualified Data.Aeson.KeyMap as AKM
-import qualified Formatting.Buildable as FB (build)
 
 logOutputImplementation :: L.MonadFlow m => LogLevel -> T.Message -> m ()
 logOutputImplementation logLevel message =
@@ -47,12 +47,12 @@ logOutputImplementation logLevel message =
     INFO -> L.logInfo EmtpyTag msg
     WARNING -> L.logWarning EmtpyTag msg
     ERROR -> L.logError EmtpyTag msg
-    where
-      -- the T.Message type from an older version of Euler-hs
-      -- previously used to be a type-synonym to "Text"
-      -- It is now a record, with a "Buildable" instance
-      -- While the logging functions still expect a Text
-      msg = LT.toStrict . LTB.toLazyText $ FB.build message
+  where
+    -- the T.Message type from an older version of Euler-hs
+    -- previously used to be a type-synonym to "Text"
+    -- It is now a record, with a "Buildable" instance
+    -- While the logging functions still expect a Text
+    msg = LT.toStrict . LTB.toLazyText $ FB.build message
 
 withLogTagImplementation ::
   L.MonadFlow m =>
@@ -151,7 +151,7 @@ logFormatterText
       res =
         T.SimpleLBS . A.encode $
           A.Object $
-            HM.fromList
+            AKM.fromList
               [ ("timestamp", A.String $ show timestamp),
                 ("lvl", A.String $ show lvl),
                 ("msgNum", A.String $ show msgNum),
@@ -175,7 +175,7 @@ logFormatterText
       res =
         T.SimpleLBS . A.encode $
           A.Object $
-            HM.fromList
+            AKM.fromList
               [ ("timestamp", A.String $ show timestamp),
                 ("lvl", A.String $ show lvl),
                 ("msgNum", A.String $ show msgNum),
