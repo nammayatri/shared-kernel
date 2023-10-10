@@ -31,13 +31,12 @@ import Data.Aeson.TH
 import Data.Aeson.Types
 import qualified Data.Text as T
 import Kernel.External.Encryption (DbHashable)
-import Kernel.Mock.Utils (decodeJSONText)
 import Kernel.Prelude hiding (showBaseUrl)
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Beckn.Ack (AckResponse)
 import Kernel.Utils.JSON
-import Kernel.Utils.Text (decodeFromText)
 import Kernel.Utils.TH
+import Kernel.Utils.Text (decodeFromText)
 import Servant.Client
 import Web.FormUrlEncoded (ToForm, toForm)
 import Web.Internal.HttpApiData

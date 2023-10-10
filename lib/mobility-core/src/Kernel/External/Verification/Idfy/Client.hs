@@ -27,9 +27,6 @@ module Kernel.External.Verification.Idfy.Client
   )
 where
 
--- import qualified Data.Text as T
-
-import qualified Data.Text as DT
 import EulerHS.Prelude
 import qualified EulerHS.Types as T
 import Kernel.External.Verification.Idfy.Auth

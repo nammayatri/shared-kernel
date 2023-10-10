@@ -19,7 +19,6 @@
 module APIExceptions (httpExceptionTests) where
 
 import Control.Arrow (left)
-import Data.Maybe (fromJust)
 import qualified Data.Aeson as A
 import Data.Maybe (fromJust)
 import EulerHS.Prelude
