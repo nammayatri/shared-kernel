@@ -16,12 +16,12 @@
 
 module Kernel.Prelude.OrphanInstances where
 
-import EulerHS.Language ()
-import GHC.Generics
+import Control.Lens (At, Index, IxValue, Ixed, Lens', at, coerced, ix)
 import qualified Data.OpenApi as DS
-import Control.Lens (at, ix, Index, IxValue, At, Ixed, coerced, Lens')
 import Data.Text (Text)
+import EulerHS.Language ()
 import EulerHS.Prelude ((.))
+import GHC.Generics ()
 
 -- deriving instance Generic (a,b,c,d,e,f,g,h) -- uncomment this when remove EulerHS
 -- deriving instance Generic (a, b, c, d, e, f, g, h, i)
@@ -66,8 +66,10 @@ deriving instance Generic (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r,
 
 -- Index and IxValue Type Family instances for SecurityDefinitions
 type instance Index DS.SecurityDefinitions = Text
+
 type instance IxValue DS.SecurityDefinitions = DS.SecurityScheme
 
 -- Ixed and At Type-Class instances for SecurityDefinitions
-instance Ixed DS.SecurityDefinitions where ix n = (coerced :: Lens' DS.SecurityDefinitions (DS.Definitions DS.SecurityScheme)). ix n
-instance At   DS.SecurityDefinitions where at n = (coerced :: Lens' DS.SecurityDefinitions (DS.Definitions DS.SecurityScheme)). at n
+instance Ixed DS.SecurityDefinitions where ix n = (coerced :: Lens' DS.SecurityDefinitions (DS.Definitions DS.SecurityScheme)) . ix n
+
+instance At DS.SecurityDefinitions where at n = (coerced :: Lens' DS.SecurityDefinitions (DS.Definitions DS.SecurityScheme)) . at n
