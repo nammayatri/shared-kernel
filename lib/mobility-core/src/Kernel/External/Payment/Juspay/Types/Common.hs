@@ -64,20 +64,26 @@ instance ToJSON Currency where
   toJSON = String . show
 
 data MandateType = OPTIONAL | REQUIRED
-  deriving stock (Show, Read, Eq, Generic)
+  deriving stock (Show, Read, Eq, Generic, Ord)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 derivePersistField "MandateType"
 
+$(mkBeamInstancesForEnum ''MandateType)
+
 data MandateFrequency = ONETIME | DAILY | WEEKLY | FORTNIGHTLY | MONTHLY | BIMONTHLY | QUARTERLY | HALFYEARLY | YEARLY | ASPRESENTED
-  deriving stock (Show, Read, Eq, Generic)
+  deriving stock (Show, Read, Eq, Generic, Ord)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+$(mkBeamInstancesForEnum ''MandateFrequency)
 
 derivePersistField "MandateFrequency"
 
 data MandateStatus = CREATED | ACTIVE | FAILURE | PAUSED | EXPIRED | REVOKED
-  deriving stock (Show, Read, Eq, Generic)
+  deriving stock (Show, Read, Eq, Generic, Ord)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+$(mkBeamInstancesForEnum ''MandateStatus)
 
 derivePersistField "MandateStatus"
 
