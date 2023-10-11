@@ -197,6 +197,7 @@ library
       Kernel.Streaming.Kafka.Consumer
       Kernel.Streaming.Kafka.Consumer.Types
       Kernel.Streaming.Kafka.HasKafkaTopics
+      Kernel.Streaming.Kafka.KafkaTable
       Kernel.Streaming.Kafka.Producer
       Kernel.Streaming.Kafka.Producer.Types
       Kernel.Streaming.Kafka.Topic.BusinessEvent

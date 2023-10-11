@@ -17,8 +17,6 @@
 
 module Kernel.Storage.Beam.BecknRequest where
 
-import qualified Data.Aeson as A
-import qualified Data.Time as Time
 import qualified Database.Beam as B
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
@@ -52,25 +50,3 @@ $(mkTableInstancesGenericSchema ''BecknRequestT "beckn_request")
 -- How it works inside of template:
 -- becknRequestTable :: HasSchemaName BecknRequestT => B.EntityModification (B.DatabaseEntity be db) be (B.TableEntity BecknRequestT)
 -- becknRequestTable = B.setEntitySchema (Just (schemaName (Proxy @BecknRequestT))) <> (B.setEntityName "beckn_request" <> B.modifyTableFields becknRequestTMod)
-
---- KAFKA ---
-
--- BecknRequestKafka type should not be changed because kafka consumer will not work
--- Any field of BecknRequestT type can be safely changed
-data BecknRequestKafka = BecknRequestKafka
-  { timestamp :: UTCTime,
-    becknRequest :: A.Value -- encoded BecknRequest
-  }
-  deriving (ToJSON, FromJSON, Generic)
-
-mkBecknRequestKafka :: BecknRequest -> BecknRequestKafka
-mkBecknRequestKafka becknRequestT = do
-  let timestamp = timeStamp becknRequestT
-  let becknRequest = toJSON becknRequestT
-  BecknRequestKafka {..}
-
--- FIXME use 24 partitions instead of 24 topics
-countTopicNumber :: UTCTime -> Int
-countTopicNumber timeStamp = do
-  let timeOfDay = Time.timeToTimeOfDay . Time.utctDayTime $ timeStamp
-  Time.todHour timeOfDay
