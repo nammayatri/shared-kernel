@@ -16,6 +16,7 @@ module Kernel.External.Whatsapp.Interface
   ( module Reexport,
     whatsAppOptApi,
     whatsAppOtpApi,
+    whatsAppSendMessageWithTemplateIdAPI,
   )
 where
 
@@ -76,3 +77,27 @@ whatsAppOtpApi' ::
   m SendOtpApiResp
 whatsAppOtpApi' serviceConfig req = case serviceConfig of
   GupShupConfig cfg -> GupShup.whatsAppOTPApi cfg req
+
+whatsAppSendMessageWithTemplateIdAPI :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendWhatsAppMessageWithTemplateIdApIReq -> m SendOtpApiResp
+whatsAppSendMessageWithTemplateIdAPI WhatsappHandler {..} req = do
+  prividersPriorityList <- getProvidersPriorityList
+  when (null prividersPriorityList) $ throwError $ InternalError "No whatsapp serive provider configured"
+  callWithFallback prividersPriorityList
+  where
+    callWithFallback [] = throwError $ InternalError "Not able to opt whatsapp with all the configured providers"
+    callWithFallback (preferredProvider : restProviders) = do
+      whatsappConfig <- getProviderConfig preferredProvider
+      result <- try @_ @SomeException $ whatsAppSendMessageWithTemplateIdAPI' whatsappConfig req
+      case result of
+        Left _ -> callWithFallback restProviders
+        Right res -> pure res
+
+whatsAppSendMessageWithTemplateIdAPI' ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  WhatsappServiceConfig ->
+  SendWhatsAppMessageWithTemplateIdApIReq ->
+  m SendOtpApiResp
+whatsAppSendMessageWithTemplateIdAPI' serviceConfig req = case serviceConfig of
+  GupShupConfig cfg -> GupShup.whatsAppSendMessageWithTemplateIdAPI cfg req

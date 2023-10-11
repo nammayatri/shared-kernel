@@ -68,6 +68,24 @@ instance ToJSON SendOtpApiReq where
 
 type SendOtpApiResp = OptApiResp
 
+type SendWhatsAppMessageApiResp = OptApiResp
+
+data SendWhatsAppMessageWithTemplateIdApIReq = SendWhatsAppMessageWithTemplateIdApIReq
+  { sendTo :: Text,
+    templateId :: Text,
+    var1 :: Maybe Text,
+    var2 :: Maybe Text,
+    var3 :: Maybe Text,
+    containsUrlButton :: Maybe Bool
+  }
+  deriving (Generic, Eq, Show, ToSchema)
+
+instance FromJSON SendWhatsAppMessageWithTemplateIdApIReq where
+  parseJSON = genericParseJSON constructorsWithSnakeCase
+
+instance ToJSON SendWhatsAppMessageWithTemplateIdApIReq where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
 data OptApiResp = OptApiResp
   { _response :: OptApiResponse,
     _data :: Maybe OptApiRespData
