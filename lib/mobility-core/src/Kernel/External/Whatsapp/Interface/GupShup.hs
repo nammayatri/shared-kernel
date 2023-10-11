@@ -16,6 +16,7 @@ module Kernel.External.Whatsapp.Interface.GupShup
   ( module Reexport,
     whatsAppOptApi,
     whatsAppOTPApi,
+    whatsAppSendMessageWithTemplateIdAPI,
   )
 where
 
@@ -58,3 +59,18 @@ whatsAppOTPApi GupShupCfg {..} SendOtpApiReq {..} = do
   password' <- decrypt password
   gupShupUrl <- parseBaseUrl url
   Ex.whatsAppSendOtpAPI gupShupUrl userId password' sendTo otpCfg.method authScheme v otpCfg.msgType format var1 otpCfg.templateId
+
+whatsAppSendMessageWithTemplateIdAPI ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    EncFlow m r,
+    Log m
+  ) =>
+  GupShupCfg ->
+  IT.SendWhatsAppMessageWithTemplateIdApIReq ->
+  m IT.SendWhatsAppMessageApiResp
+whatsAppSendMessageWithTemplateIdAPI GupShupCfg {..} SendWhatsAppMessageWithTemplateIdApIReq {..} = do
+  userId <- decrypt userid
+  password' <- decrypt password
+  gupShupUrl <- parseBaseUrl url
+  Ex.whatsAppSendMessageWithTemplateIdAPI gupShupUrl userId password' sendTo otpCfg.method authScheme v otpCfg.msgType format var1 var2 var3 containsUrlButton templateId

@@ -28,6 +28,7 @@ import Servant.Client.Core (ClientError)
 type GupShupAPI =
   GupShupOptAPI
     :<|> GupShupSendOtpAPI
+    :<|> GupShupSendMessageWithTemplateIdAPI
 
 type GupShupOptAPI =
   MandatoryQueryParam "userid" Text
@@ -40,7 +41,21 @@ type GupShupOptAPI =
     :> MandatoryQueryParam "format" Text
     :> Get '[JSON] Whatsapp.OptApiResp
 
-type GupShupSendMessageWithTemplateIdAPI = GupShupSendOtpAPI
+type GupShupSendMessageWithTemplateIdAPI =
+  MandatoryQueryParam "userid" Text
+    :> MandatoryQueryParam "password" Text
+    :> MandatoryQueryParam "send_to" Text
+    :> MandatoryQueryParam "method" Text
+    :> MandatoryQueryParam "auth_scheme" Text
+    :> MandatoryQueryParam "v" Text
+    :> MandatoryQueryParam "msg_type" Text
+    :> MandatoryQueryParam "format" Text
+    :> QueryParam "var1" Text
+    :> QueryParam "var2" Text
+    :> QueryParam "var3" Text
+    :> QueryParam "isTemplate" Bool
+    :> MandatoryQueryParam "template_id" Text
+    :> Get '[JSON] Whatsapp.SendOtpApiResp
 
 type GupShupSendOtpAPI =
   MandatoryQueryParam "userid" Text
@@ -57,7 +72,8 @@ type GupShupSendOtpAPI =
 
 gupShupOptAPIClient :: Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> EulerClient Whatsapp.OptApiResp
 gupShupSendOtpAPIClient :: Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> EulerClient Whatsapp.SendOtpApiResp
-gupShupOptAPIClient :<|> gupShupSendOtpAPIClient = client (Proxy :: Proxy GupShupAPI)
+gupShupSendMessageWithTemplateIdAPIClient :: Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Bool -> Text -> EulerClient Whatsapp.SendOtpApiResp
+gupShupOptAPIClient :<|> gupShupSendOtpAPIClient :<|> gupShupSendMessageWithTemplateIdAPIClient = client (Proxy :: Proxy GupShupAPI)
 
 whatsAppOptAPI ::
   ( CoreMetrics m,
@@ -119,4 +135,27 @@ whatsAppSendOtpAPI ::
   m Whatsapp.SendOtpApiResp
 whatsAppSendOtpAPI url userid password sendTo method auth_scheme v msgType format var1 templateId = do
   callAPI url (gupShupSendOtpAPIClient userid password sendTo method auth_scheme v msgType format var1 templateId) "GupShup Otp api" (Proxy :: Proxy GupShupAPI)
+    >>= checkGupShupOptError url
+
+whatsAppSendMessageWithTemplateIdAPI ::
+  ( CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Text ->
+  Text ->
+  Text ->
+  Text ->
+  Text ->
+  Text ->
+  Maybe Text ->
+  Maybe Text ->
+  Maybe Text ->
+  Maybe Bool ->
+  Text ->
+  m Whatsapp.SendWhatsAppMessageApiResp
+whatsAppSendMessageWithTemplateIdAPI url userid password sendTo method auth_scheme v msgType format var1 var2 var3 containsUrlButton templateId = do
+  callAPI url (gupShupSendMessageWithTemplateIdAPIClient userid password sendTo method auth_scheme v msgType format var1 var2 var3 containsUrlButton templateId) "GupShup WhatsApp Message with TemplateId API" (Proxy :: Proxy GupShupAPI)
     >>= checkGupShupOptError url
