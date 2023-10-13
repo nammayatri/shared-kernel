@@ -541,7 +541,7 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
       customer = Juspay.OfferApplyCustomer {id = customerId},
       offers,
       order,
-      payment_method_info = Nothing
+      payment_method_info = Just $ Juspay.OfferApplyPaymentMethodInfo Juspay.UPI Nothing Nothing Nothing Nothing Nothing Nothing
     }
 
 buildOfferApplyResp :: (MonadThrow m, Log m) => Juspay.OfferApplyResp -> m OfferApplyResp
