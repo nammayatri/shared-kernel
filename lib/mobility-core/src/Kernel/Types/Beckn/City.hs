@@ -19,11 +19,14 @@ module Kernel.Types.Beckn.City (City (..)) where
 
 import Data.Aeson
 import Data.Aeson.Types
+import Data.Char (toLower)
 import Data.OpenApi hiding (Example)
+import qualified Data.Text as T
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto
 import Kernel.Utils.GenericPretty
+import Servant.API (FromHttpApiData (..))
 
 derivePersistField "City"
 
@@ -32,6 +35,20 @@ data City = Bangalore | Kolkata | Paris | Kochi | AnyCity
   deriving (PrettyShow) via Showable City
 
 $(mkBeamInstancesForEnum ''City)
+
+instance ToParamSchema City
+
+instance FromHttpApiData City where
+  parseUrlPiece a =
+    let lower = map toLower $ T.unpack a
+     in parseLowerCaseCity lower
+    where
+      parseLowerCaseCity "bangalore" = Right Bangalore
+      parseLowerCaseCity "kolkata" = Right Kolkata
+      parseLowerCaseCity "paris" = Right Paris
+      parseLowerCaseCity "kochi" = Right Kochi
+      parseLowerCaseCity "*" = Right AnyCity
+      parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
 instance FromJSON City where
   parseJSON (String "std:080") = pure Bangalore
