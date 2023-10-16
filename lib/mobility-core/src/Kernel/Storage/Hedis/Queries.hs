@@ -541,6 +541,34 @@ xReadGroup groupName consumerName pairsList = do
         Nothing -> pure Nothing
     Nothing -> pure Nothing
 
+xReadGroupOpts ::
+  (HedisFlow m env) =>
+  Text -> -- group name
+  Text -> -- consumer name
+  [(Text, Text)] -> -- (stream, id) pairs
+  Maybe Integer ->
+  Maybe Integer ->
+  m (Maybe [XReadResponse])
+xReadGroupOpts groupName consumerName pairsList block_ recordCount_ = do
+  let opts = Hedis.XReadOpts {block = block_, recordCount = recordCount_, noack = False}
+  let bsPairsList = map (\(stream, id) -> (cs stream, cs id)) pairsList
+  let mbKeyVal = listToMaybe bsPairsList
+  case mbKeyVal of
+    Just keyVal -> do
+      migrating <- asks (.hedisMigrationStage)
+      eitherMaybeBS <-
+        if migrating
+          then withTimeRedis "RedisStandalone" "xReadGroupOpts" $ try @_ @SomeException (runWithPrefix' (cs $ fst keyVal) $ \_ -> Hedis.xreadGroupOpts (cs groupName) (cs consumerName) bsPairsList opts)
+          else withTimeRedis "RedisCluster" "xReadGroupOpts" $ try @_ @SomeException (runWithPrefix (cs $ fst keyVal) $ \_ -> Hedis.xreadGroupOpts (cs groupName) (cs consumerName) bsPairsList opts)
+      mbRes <-
+        case eitherMaybeBS of
+          Left err -> logTagInfo "ERROR_WHILE_GET_XReadGroupOpts" (show err) $> Nothing
+          Right maybeBS -> pure maybeBS
+      case mbRes of
+        Just res -> return $ Just (map convertFromHedisResponse res)
+        Nothing -> pure Nothing
+    Nothing -> pure Nothing
+
 xAdd :: (HedisFlow m env) => Text -> Text -> [(BS.ByteString, BS.ByteString)] -> m BS.ByteString
 xAdd key entryId fieldValues = withLogTag "Redis" $ do
   migrating <- asks (.hedisMigrationStage)
