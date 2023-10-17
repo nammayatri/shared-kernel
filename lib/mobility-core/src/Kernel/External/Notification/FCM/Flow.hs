@@ -152,25 +152,21 @@ createAndroidOverlayNotification ::
   Maybe Text ->
   Maybe Text ->
   Value ->
+  Maybe Int ->
+  Maybe Text ->
+  Maybe Text ->
+  Maybe [Text] ->
+  Maybe [FCMMediaLink] ->
   FCMOverlayNotificationJSON
-createAndroidOverlayNotification title description imageUrl okButtonText cancelButtonText actions link endPoint method reqBody =
+createAndroidOverlayNotification title description imageUrl okButtonText cancelButtonText actions link endPoint method reqBody delay contactSupportNumber toastMessage secondaryActions socialMediaLinks =
   FCMOverlayNotificationJSON
-    { title = title,
-      description = description,
-      imageUrl,
-      okButtonText,
-      cancelButtonText,
-      actions,
-      link,
-      method,
-      reqBody,
-      endPoint,
-      titleVisibility = isJust title,
+    { titleVisibility = isJust title,
       descriptionVisibility = isJust description,
       buttonOkVisibility = isJust okButtonText,
       buttonCancelVisibility = isJust cancelButtonText,
       buttonLayoutVisibility = isJust okButtonText || isJust cancelButtonText,
-      imageVisibility = isJust imageUrl
+      imageVisibility = isJust imageUrl,
+      ..
     }
 
 -- | Send FCM message to a person
@@ -185,7 +181,7 @@ notifyPerson ::
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPerson config msgData recipient = notifyPersonWithPriority config Nothing False msgData recipient
+notifyPerson config = notifyPersonWithPriority config Nothing False
 
 notifyPersonWithPriority ::
   ( CoreMetrics m,

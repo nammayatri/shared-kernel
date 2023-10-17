@@ -27,6 +27,7 @@ import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.Aeson.Types
 import Data.Default.Class
+import Data.OpenApi (ToSchema)
 import qualified Database.Beam as B
 import Database.Beam.Backend
 import Database.Beam.Postgres
@@ -273,6 +274,21 @@ $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMNotificatio
 instance Default FCMNotification where
   def = FCMNotification Nothing Nothing Nothing
 
+data FCMMediaLink = FCMMediaLink
+  { prefixImage :: Maybe Text,
+    suffixImage :: Maybe Text,
+    link :: Text,
+    linkText :: Maybe Text,
+    height :: Maybe Text,
+    width :: Maybe Text
+  }
+  deriving (Eq, Show, Generic, PrettyShow, ToSchema, FromJSON)
+
+$(makeLenses ''FCMMediaLink)
+
+instance ToJSON FCMMediaLink where
+  toJSON = genericToJSON removeNullFields
+
 -- | Notification to send to android devices for overlays
 data FCMOverlayNotificationJSON = FCMOverlayNotificationJSON
   { title :: !(Maybe Text),
@@ -280,17 +296,22 @@ data FCMOverlayNotificationJSON = FCMOverlayNotificationJSON
     imageUrl :: !(Maybe Text),
     okButtonText :: !(Maybe Text),
     cancelButtonText :: !(Maybe Text),
-    actions :: !([Text]),
+    actions :: ![Text],
     link :: !(Maybe Text),
     method :: Maybe Text,
     reqBody :: Value,
     endPoint :: Maybe Text,
-    titleVisibility :: !(Bool),
-    descriptionVisibility :: !(Bool),
-    buttonOkVisibility :: !(Bool),
-    buttonCancelVisibility :: !(Bool),
-    buttonLayoutVisibility :: !(Bool),
-    imageVisibility :: !(Bool)
+    titleVisibility :: !Bool,
+    descriptionVisibility :: !Bool,
+    buttonOkVisibility :: !Bool,
+    buttonCancelVisibility :: !Bool,
+    buttonLayoutVisibility :: !Bool,
+    imageVisibility :: !Bool,
+    delay :: !(Maybe Int),
+    contactSupportNumber :: !(Maybe Text),
+    toastMessage :: !(Maybe Text),
+    secondaryActions :: !(Maybe [Text]),
+    socialMediaLinks :: !(Maybe [FCMMediaLink])
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
