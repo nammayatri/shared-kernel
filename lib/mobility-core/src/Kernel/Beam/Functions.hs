@@ -24,6 +24,7 @@ module Kernel.Beam.Functions
     createWithKVScheduler,
     deleteWithKV,
     deleteWithDb, -- not used
+    findAllWithKVAndConditionalDB,
   )
 where
 
@@ -248,6 +249,24 @@ findAllWithDb ::
   Where Postgres table ->
   m [a]
 findAllWithDb = findAllInternal meshConfig fromTType'
+
+findAllWithKVAndConditionalDB ::
+  forall table m a.
+  ( BeamTableFlow table m,
+    FromTType' (table Identity) a
+  ) =>
+  Where Postgres table ->
+  m [a]
+findAllWithKVAndConditionalDB where' = do
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
+  inReplica <- L.getOptionLocal ReplicaEnabled
+  dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
+  result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where'
+  case result of
+    Right res -> do
+      res' <- mapM fromTType' res
+      pure $ catMaybes res'
+    Left err -> throwError $ InternalError $ show err
 
 -- findAllWithOptions --
 
