@@ -162,6 +162,8 @@ data PersonError
   | PersonFieldNotPresent Text
   | PersonWithPhoneNotFound Text
   | PersonEmailExists
+  | PersonCityInformationDoesNotExist Text
+  | PersonCityInformationNotFound Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''PersonError
@@ -173,6 +175,8 @@ instance IsBaseError PersonError where
     PersonFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this person."
     PersonWithPhoneNotFound phone -> Just $ "Person with mobile number \"" <> show phone <> "\" not found."
     PersonEmailExists -> Just "Email is already registered."
+    PersonCityInformationDoesNotExist searchKey -> Just $ "No person city information matches passed data " <> show searchKey <> "."
+    PersonCityInformationNotFound searchKey -> Just $ "Person city information with personId \"" <> show searchKey <> "\" not found."
 
 instance IsHTTPError PersonError where
   toErrorCode = \case
@@ -181,12 +185,16 @@ instance IsHTTPError PersonError where
     PersonFieldNotPresent _ -> "PERSON_FIELD_NOT_PRESENT"
     PersonWithPhoneNotFound _ -> "PERSON_NOT_FOUND"
     PersonEmailExists -> "PERSON_EMAIL_ALREADY_EXISTS"
+    PersonCityInformationDoesNotExist _ -> "PERSON_CITY_INFORMATION_DOES_NOT_EXIST"
+    PersonCityInformationNotFound _ -> "PERSON_CITY_INFORMATION_NOT_FOUND"
   toHttpCode = \case
     PersonNotFound _ -> E500
     PersonDoesNotExist _ -> E400
     PersonFieldNotPresent _ -> E500
     PersonWithPhoneNotFound _ -> E422
     PersonEmailExists -> E400
+    PersonCityInformationDoesNotExist _ -> E400
+    PersonCityInformationNotFound _ -> E500
 
 instance IsAPIError PersonError
 
@@ -217,6 +225,7 @@ data MerchantError
   | MerchantServiceUsageConfigNotFound Text
   | MerchantServiceConfigNotFound Text Text Text
   | MerchantOperatingCityNotFound Text
+  | MerchantOperatingCityDoesNotExist Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''MerchantError
@@ -227,6 +236,7 @@ instance IsBaseError MerchantError where
   toMessage (MerchantServiceUsageConfigNotFound merchantId) = Just $ "MerchantServiceUsageConfig with merchantId \"" <> show merchantId <> "\" not found."
   toMessage (MerchantServiceConfigNotFound merchantId serviceType service) = Just $ "MerchantServiceConfig for " <> serviceType <> " service " <> service <> " with merchantId \"" <> merchantId <> "\" not found."
   toMessage (MerchantOperatingCityNotFound merchantId) = Just $ "MerchantOperatingCity with merchantId \"" <> show merchantId <> "\" not found."
+  toMessage (MerchantOperatingCityDoesNotExist searchKey) = Just $ "No merchant operating city matches passed data " <> show searchKey <> "."
 
 instance IsHTTPError MerchantError where
   toErrorCode = \case
@@ -235,6 +245,7 @@ instance IsHTTPError MerchantError where
     MerchantServiceUsageConfigNotFound _ -> "MERCHANT_SERVICE_USAGE_CONFIG_NOT_FOUND"
     MerchantServiceConfigNotFound {} -> "MERCHANT_SERVICE_CONFIG_NOT_FOUND"
     MerchantOperatingCityNotFound _ -> "MERCHANT_OPERATING_CITY_NOT_FOUND"
+    MerchantOperatingCityDoesNotExist _ -> "MERCHANT_OPERATING_CITY_DOES_NOT_EXIST"
 
   toHttpCode = \case
     MerchantNotFound _ -> E500
@@ -242,6 +253,7 @@ instance IsHTTPError MerchantError where
     MerchantServiceUsageConfigNotFound _ -> E500
     MerchantServiceConfigNotFound {} -> E500
     MerchantOperatingCityNotFound _ -> E500
+    MerchantOperatingCityDoesNotExist _ -> E400
 
 instance IsAPIError MerchantError
 

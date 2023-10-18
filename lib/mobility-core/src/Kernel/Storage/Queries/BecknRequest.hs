@@ -23,7 +23,7 @@ import qualified Kernel.Types.BecknRequest as Domain
 import Kernel.Types.Id
 import Kernel.Utils.Common
 
-logBecknRequest :: (HasSchemaName BeamBR.BecknRequestT, MonadFlow m) => Text -> Text -> m ()
+logBecknRequest :: (HasSchemaName BeamBR.BecknRequestT, MonadFlow m, CacheFlow m r, EsqDBFlow m r) => Text -> Text -> m ()
 logBecknRequest reqJSON sign = do
   uuid <- generateGUID
   now <- getCurrentTime

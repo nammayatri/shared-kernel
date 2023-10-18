@@ -19,16 +19,19 @@ module Kernel.Types.Beckn.City (City (..)) where
 
 import Data.Aeson
 import Data.Aeson.Types
+import Data.Char (toLower)
 import Data.OpenApi hiding (Example)
+import qualified Data.Text as T
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Storage.Esqueleto
 import Kernel.Utils.GenericPretty
+import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 derivePersistField "City"
 
-data City = Bangalore | Kolkata | Paris | Kochi | AnyCity
-  deriving (Eq, Generic, Show, Read, ToSchema, Ord)
+data City = Bangalore | Kolkata | Paris | Kochi | Delhi | Hyderabad | Mumbai | Chennai | AnyCity
+  deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
 
 $(mkBeamInstancesForEnum ''City)
@@ -42,6 +45,14 @@ instance FromJSON City where
   parseJSON (String "Paris") = pure Paris
   parseJSON (String "std:484") = pure Kochi
   parseJSON (String "Kochi") = pure Kochi
+  parseJSON (String "std:011") = pure Delhi
+  parseJSON (String "Delhi") = pure Delhi
+  parseJSON (String "std:040") = pure Hyderabad
+  parseJSON (String "Hyderabad") = pure Hyderabad
+  parseJSON (String "std:022") = pure Mumbai
+  parseJSON (String "Mumbai") = pure Mumbai
+  parseJSON (String "std:044") = pure Chennai
+  parseJSON (String "Chennai") = pure Chennai
   parseJSON (String "*") = pure AnyCity
   parseJSON (String _) = parseFail "Invalid City"
   parseJSON e = typeMismatch "String" e
@@ -51,4 +62,43 @@ instance ToJSON City where
   toJSON Kolkata = String "std:033"
   toJSON Paris = String "std:001"
   toJSON Kochi = String "std:484"
+  toJSON Delhi = String "std:011"
+  toJSON Hyderabad = String "std:040"
+  toJSON Mumbai = String "std:022"
+  toJSON Chennai = String "std:044"
   toJSON AnyCity = String "*"
+
+instance FromHttpApiData City where
+  parseUrlPiece a =
+    let lower = map toLower $ T.unpack a
+     in parseLowerCaseCity lower
+    where
+      parseLowerCaseCity "std:080" = Right Bangalore
+      parseLowerCaseCity "bangalore" = Right Bangalore
+      parseLowerCaseCity "std:033" = Right Kolkata
+      parseLowerCaseCity "kolkata" = Right Kolkata
+      parseLowerCaseCity "std:001" = Right Paris
+      parseLowerCaseCity "paris" = Right Paris
+      parseLowerCaseCity "std:484" = Right Kochi
+      parseLowerCaseCity "kochi" = Right Kochi
+      parseLowerCaseCity "std:011" = Right Delhi
+      parseLowerCaseCity "delhi" = Right Delhi
+      parseLowerCaseCity "std:040" = Right Hyderabad
+      parseLowerCaseCity "hyderabad" = Right Hyderabad
+      parseLowerCaseCity "std:022" = Right Mumbai
+      parseLowerCaseCity "mumbai" = Right Mumbai
+      parseLowerCaseCity "std:044" = Right Chennai
+      parseLowerCaseCity "chennai" = Right Chennai
+      parseLowerCaseCity "*" = Right AnyCity
+      parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
+
+instance ToHttpApiData City where
+  toUrlPiece Bangalore = "std:080"
+  toUrlPiece Kolkata = "std:033"
+  toUrlPiece Paris = "std:001"
+  toUrlPiece Kochi = "std:484"
+  toUrlPiece Delhi = "std:011"
+  toUrlPiece Hyderabad = "std:040"
+  toUrlPiece Mumbai = "std:022"
+  toUrlPiece Chennai = "std:044"
+  toUrlPiece AnyCity = "*"

@@ -47,7 +47,7 @@ import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
 import Kernel.Types.Common
 import Kernel.Types.Error
-import Kernel.Utils.Common (logDebug)
+import Kernel.Utils.Common (CacheFlow, logDebug)
 import Kernel.Utils.Error (throwError)
 import Sequelize (Model, ModelMeta (modelSchemaName, modelTableName), OrderBy, Set, Where)
 import qualified System.Environment as SE
@@ -59,7 +59,7 @@ class
   FromTType' t a
     | t -> a
   where
-  fromTType' :: MonadFlow m => t -> m (Maybe a)
+  fromTType' :: (MonadFlow m, CacheFlow m r, EsqDBFlow m r) => t -> m (Maybe a)
 
 class
   ToTType' t a
@@ -191,8 +191,10 @@ type BeamTable table =
 -- findOne --
 
 findOneWithKV ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -211,8 +213,10 @@ findOneWithKVScheduler where' = withUpdatedMeshConfig (Proxy @table) $ \updatedM
   findOneInternal updatedMeshConfig fromTType'' where'
 
 findOneWithDb ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -222,8 +226,10 @@ findOneWithDb = findOneInternal meshConfig fromTType'
 -- findAll --
 
 findAllWithKV ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -242,8 +248,10 @@ findAllWithKVScheduler where' = withUpdatedMeshConfig (Proxy @table) $ \updatedM
   findAllInternal updatedMeshConfig fromTType'' where'
 
 findAllWithDb ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -251,8 +259,10 @@ findAllWithDb ::
 findAllWithDb = findAllInternal meshConfig fromTType'
 
 findAllWithKVAndConditionalDB ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -271,8 +281,10 @@ findAllWithKVAndConditionalDB where' = do
 -- findAllWithOptions --
 
 findAllWithOptionsKV ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -284,8 +296,10 @@ findAllWithOptionsKV where' orderBy mbLimit mbOffset = withUpdatedMeshConfig (Pr
   findAllWithOptionsInternal updatedMeshConfig fromTType' where' orderBy mbLimit mbOffset
 
 findAllWithOptionsKV' ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -317,8 +331,10 @@ findAllWithOptionsKVScheduler where' orderBy mbLimit mbOffset = withUpdatedMeshC
   findAllWithOptionsInternal updatedMeshConfig fromTType'' where' orderBy mbLimit mbOffset
 
 findAllWithOptionsDb ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
