@@ -350,16 +350,16 @@
         "sequelize": "sequelize"
       },
       "locked": {
-        "lastModified": 1697525861,
-        "narHash": "sha256-FDnmkTRc29RxOPbtLnCyHtKoUAKAXO5pEujkmIWjBs8=",
-        "owner": "juspay",
+        "lastModified": 1699934475,
+        "narHash": "sha256-tK/oosYLTaWXGKZS7vMl60PU/yyBjEk5ruU9+NIjFxs=",
+        "owner": "vijaygupta18",
         "repo": "euler-hs",
-        "rev": "a3ea4d2223dd10348821388219f0afdb076ee4d8",
+        "rev": "481591c19a47ca5529362fe925f8a9cb427aa9fd",
         "type": "github"
       },
       "original": {
-        "owner": "juspay",
-        "ref": "ag/open-source",
+        "owner": "vijaygupta18",
+        "ref": "backend/adding-class-for-column-mapping",
         "repo": "euler-hs",
         "type": "github"
       }

@@ -10,6 +10,7 @@ module Kernel.Beam.Lib.UtilsTH
     mkBeamInstancesForEnum,
     mkBeamInstancesForList,
     mkBeamInstancesForJSON,
+    mkCustomMappings,
   )
 where
 
@@ -341,11 +342,17 @@ mkTableInstances' name table mbSchema tableFieldModifier = do
   serialInstances <- mkSerialInstances name
   fromJSONInstances <- mkFromJSONInstance name
   toJSONInstances <- mkToJSONInstance name
+  customMappings <- mkCustomMappings name tableFieldModifier
   showInstances <- mkShowInstance name
   (tModSig, tModBody) <- mkTModFunction tableFieldModifier name
-  pure [tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances]
+  pure ([tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances] <> customMappings)
 
 ------------------- instances for table row ---------------
+
+mkCustomMappings :: Name -> [(String, String)] -> Q [Dec]
+mkCustomMappings name valuePairs = do
+  let toJSONInstance = ValD (VarP 'KV.getTableMappings) (NormalB (ListE (map (\(key, value) -> TupE [Just (LitE (StringL key)), Just (LitE (StringL value))]) valuePairs))) []
+  return [InstanceD Nothing [] (AppT (ConT ''KV.TableMappings) (AppT (ConT name) (ConT $ mkName "Identity"))) [toJSONInstance]]
 
 -- | A set of instances required for beam table row as enum.
 mkBeamInstancesForEnum :: Name -> Q [Dec]
