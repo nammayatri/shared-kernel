@@ -337,8 +337,8 @@ orderStatusWebhook paymentConfig orderStatusHandler authData val = do
 
 mkWebhookOrderStatusResp :: UTCTime -> (Juspay.PaymentStatus, Juspay.OrderAndNotificationStatusContent) -> OrderStatusResp
 mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusContent {..}) =
-  case (order, mandate, notification) of
-    (Just justOrder, Nothing, _) ->
+  case (order, mandate, notification, txn) of
+    (Just justOrder, Nothing, _, _) ->
       case justOrder.mandate of
         Just justMandate ->
           MandateOrderStatusResp
@@ -384,7 +384,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               currency = justOrder.currency,
               dateCreated = justOrder.date_created
             }
-    (Nothing, Just justMandate, _) ->
+    (Nothing, Just justMandate, _, _) ->
       MandateStatusResp
         { eventName = Just eventName,
           orderShortId = justMandate.order_id,
@@ -396,7 +396,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           mandateMaxAmount = justMandate.max_amount,
           upi = castUpi <$> (justMandate.payment_info >>= (.upi))
         }
-    (_, _, Just justNotification) ->
+    (_, _, Just justNotification, _) ->
       PDNNotificationStatusResp
         { eventName = Just eventName,
           notificationStatus = justNotification.status,
@@ -406,7 +406,25 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           juspayProviedId = justNotification.id,
           notificationId = justNotification.object_reference_id
         }
-    (_, _, Nothing) -> BadStatusResp
+    (_, _, _, Just justTransaction) ->
+      OrderStatusResp
+        { eventName = Just eventName,
+          orderShortId = justTransaction.order_id,
+          transactionUUID = justTransaction.txn_uuid,
+          transactionStatusId = justTransaction.status_id,
+          transactionStatus = justTransaction.status,
+          paymentMethodType = Nothing,
+          paymentMethod = Nothing,
+          respMessage = Nothing,
+          respCode = Nothing,
+          gatewayReferenceId = Nothing,
+          bankErrorMessage = if justTransaction.error_message == Just "" then Nothing else justTransaction.error_message,
+          bankErrorCode = if justTransaction.error_code == Just "" then Nothing else justTransaction.error_code,
+          amount = realToFrac justTransaction.txn_amount,
+          currency = justTransaction.currency,
+          dateCreated = Nothing
+        }
+    (_, _, Nothing, _) -> BadStatusResp
 
 castSourceInfo :: Juspay.SourceInfo -> SourceInfo
 castSourceInfo source_info =

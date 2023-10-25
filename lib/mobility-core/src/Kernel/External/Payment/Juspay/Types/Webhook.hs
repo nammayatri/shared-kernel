@@ -36,7 +36,8 @@ type WebhookOrderData = OrderData
 data OrderAndNotificationStatusContent = OrderAndNotificationStatusContent
   { order :: Maybe WebhookOrderData,
     mandate :: Maybe WebhookMandateData,
-    notification :: Maybe WebhookNotificationData
+    notification :: Maybe WebhookNotificationData,
+    txn :: Maybe WebhookTxnData
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -66,5 +67,19 @@ data WebhookNotificationData = WebhookNotificationData
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 newtype PaymentInfo = PaymentInfo {upi :: Maybe Upi}
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data WebhookTxnData = WebhookTxnData
+  { txn_id :: Text,
+    txn_uuid :: Maybe Text,
+    status :: TransactionStatus,
+    order_id :: Text,
+    error_code :: Maybe Text,
+    error_message :: Maybe Text,
+    txn_amount :: Double,
+    status_id :: Int,
+    currency :: Currency
+  }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
