@@ -146,7 +146,9 @@ data OrderData = OrderData
     payer_vpa :: Maybe Text,
     bank_error_code :: Maybe Text,
     bank_error_message :: Maybe Text,
-    upi :: Maybe Upi
+    upi :: Maybe Upi,
+    metadata :: Maybe MetaData,
+    links :: Maybe LinkData
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -167,6 +169,27 @@ data Upi = Upi
     payer_app_name :: Maybe Text,
     payer_vpa :: Maybe Text,
     txn_flow_type :: Maybe Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data MetaData = MetaData
+  { is_retried_order :: Maybe Text,
+    juspay_internal_retarget_configs :: Maybe RetargetConfigs
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RetargetConfigs = RetargetConfigs
+  { retarget_payment_link_expiry :: Maybe Text,
+    is_retargeted_order :: Maybe Text,
+    retarget_payment_link :: Maybe Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype LinkData = LinkData
+  { retarget_payment_links :: Maybe RetargetConfigs
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

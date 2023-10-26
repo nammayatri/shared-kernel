@@ -65,7 +65,11 @@ data OrderStatusResp
         bankErrorCode :: Maybe Text,
         amount :: HighPrecMoney,
         currency :: Currency,
-        dateCreated :: Maybe UTCTime
+        dateCreated :: Maybe UTCTime,
+        isRetriedOrder :: Maybe Bool,
+        isRetargetedOrder :: Maybe Bool,
+        retargetPaymentLink :: Maybe Text,
+        retargetPaymentLinkExpiry :: Maybe UTCTime
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,

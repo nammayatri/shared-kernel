@@ -232,7 +232,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
           payerVpa = payer_vpa,
           upi = castUpi <$> upi
         }
-    Nothing ->
+    Nothing -> do
+      let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData metadata links
       OrderStatusResp
         { eventName = Nothing,
           orderShortId = order_id,
@@ -248,7 +249,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
           currency = currency,
           bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
           bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
-          dateCreated = date_created
+          dateCreated = date_created,
+          ..
         }
 
 castUpi :: Juspay.Upi -> Upi
@@ -366,7 +368,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               payerVpa = justOrder.payer_vpa,
               upi = castUpi <$> justOrder.upi
             }
-        Nothing ->
+        Nothing -> do
+          let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justOrder.metadata justOrder.links
           OrderStatusResp
             { eventName = Just eventName,
               orderShortId = justOrder.order_id,
@@ -382,7 +385,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               bankErrorCode = if justOrder.bank_error_code == Just "" then Nothing else justOrder.bank_error_code,
               amount = realToFrac justOrder.amount,
               currency = justOrder.currency,
-              dateCreated = justOrder.date_created
+              dateCreated = justOrder.date_created,
+              ..
             }
     (Nothing, Just justMandate, _, _) ->
       MandateStatusResp
@@ -406,7 +410,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           juspayProviedId = justNotification.id,
           notificationId = justNotification.object_reference_id
         }
-    (_, _, _, Just justTransaction) ->
+    (_, _, _, Just justTransaction) -> do
+      let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justTransaction.metadata justTransaction.links
       OrderStatusResp
         { eventName = Just eventName,
           orderShortId = justTransaction.order_id,
@@ -422,7 +427,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           bankErrorCode = if justTransaction.error_code == Just "" then Nothing else justTransaction.error_code,
           amount = realToFrac justTransaction.txn_amount,
           currency = justTransaction.currency,
-          dateCreated = Nothing
+          dateCreated = Nothing,
+          ..
         }
     (_, _, Nothing, _) -> BadStatusResp
 
@@ -616,3 +622,16 @@ autoRefund config req = do
         { unique_request_id = request.requestId,
           amount = request.amount
         }
+
+parseRetargetAndRetryData :: Maybe Juspay.MetaData -> Maybe Juspay.LinkData -> (Maybe Bool, Maybe Text, Maybe UTCTime, Maybe Bool)
+parseRetargetAndRetryData metaData linkData = do
+  let retargetInfoFromMetaData = metaData >>= (.juspay_internal_retarget_configs)
+      retargetInfoFromLinkData = linkData >>= (.retarget_payment_links)
+      functionsToCalls = [Juspay.retarget_payment_link, Juspay.is_retargeted_order, Juspay.retarget_payment_link_expiry]
+      [retargetLink, isRetargetedOrder, retargetPaymentLinkExpiry] = map (\val -> getFieldData val retargetInfoFromMetaData retargetInfoFromLinkData) functionsToCalls
+      retargetPaymentLinkExpiryTime = (\val -> readMaybe val :: Maybe UTCTime) . T.unpack =<< retargetPaymentLinkExpiry
+      isRetriedOrder = metaData >>= (.is_retried_order)
+  (getBoolValue =<< isRetriedOrder, retargetLink, retargetPaymentLinkExpiryTime, getBoolValue =<< isRetargetedOrder)
+  where
+    getFieldData func retargetInfoFromMetaData retargetInfoFromLinkData = listToMaybe $ catMaybes [retargetInfoFromMetaData >>= func, retargetInfoFromLinkData >>= func]
+    getBoolValue = (\val -> readMaybe val :: Maybe Bool) . T.unpack
