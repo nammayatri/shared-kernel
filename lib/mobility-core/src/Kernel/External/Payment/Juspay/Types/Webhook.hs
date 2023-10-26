@@ -79,7 +79,9 @@ data WebhookTxnData = WebhookTxnData
     error_message :: Maybe Text,
     txn_amount :: Double,
     status_id :: Int,
-    currency :: Currency
+    currency :: Currency,
+    metadata :: Maybe MetaData,
+    links :: Maybe LinkData
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
