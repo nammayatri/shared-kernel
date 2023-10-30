@@ -184,6 +184,7 @@ type BeamTable table =
     KVConnector (table Identity),
     FromJSON (table Identity),
     ToJSON (table Identity),
+    TableMappings (table Identity),
     Serialize.Serialize (table Identity),
     Show (table Identity)
   )

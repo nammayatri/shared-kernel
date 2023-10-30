@@ -1,7 +1,7 @@
+{-# HLINT ignore "Use newtype instead of data" #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Kernel.Beam.Types where
 
@@ -10,6 +10,9 @@ import EulerHS.Prelude
 import EulerHS.Types (DBConfig, OptionEntity)
 import Kernel.Streaming.Kafka.Producer.Types
 import qualified Kernel.Types.Common as KTC
+
+class TableMappings a where
+  getTableMappings :: [(String, String)]
 
 data PsqlDbCfg = PsqlDbCfg
   deriving stock (Generic, Typeable, Show, Eq)
