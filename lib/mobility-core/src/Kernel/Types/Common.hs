@@ -125,10 +125,17 @@ data KVTable = KVTable
   }
   deriving (Generic, Eq, Show, ToJSON, FromJSON, FromDhall)
 
+--  drainer pseudocode:
+--  when enableKVForWriteAlso $ do
+--    if kafkaS3Tables
+--        then <push to kafka and then to s3>
+--        else <push to kafka as usually>
+
 data Tables = Tables
   { enableKVForWriteAlso :: [KVTable],
     enableKVForRead :: [Text],
-    kafkaNonKVTables :: [Text]
+    kafkaNonKVTables :: [Text],
+    kafkaS3Tables :: [Text] -- FIXME should work for non KV also
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
@@ -137,8 +144,8 @@ instance Show HighPrecMoney where
 
 instance Read HighPrecMoney where
   readsPrec d s = do
-    (dobuleVal, s1) :: (Double, String) <- readsPrec d s
-    return (realToFrac dobuleVal, s1)
+    (doubleVal, s1) :: (Double, String) <- readsPrec d s
+    return (realToFrac doubleVal, s1)
 
 instance ToJSON HighPrecMoney where
   toJSON = toJSON @Double . realToFrac
