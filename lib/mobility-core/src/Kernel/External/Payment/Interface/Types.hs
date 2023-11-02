@@ -114,7 +114,9 @@ data OrderStatusResp
         sourceInfo :: SourceInfo,
         notificationType :: Maybe Text,
         juspayProviedId :: Text,
-        notificationId :: Text
+        notificationId :: Text,
+        responseCode :: Maybe Text,
+        responseMessage :: Maybe Text
       }
   | BadStatusResp
   deriving stock (Show, Read, Eq, Generic)
@@ -180,7 +182,9 @@ data NotificationStatusResp = NotificationStatusResp
 
 data ProviderResponse = ProviderResponse
   { providerRefId :: Maybe Text,
-    notificationDate :: Maybe UTCTime
+    notificationDate :: Maybe UTCTime,
+    responseCode :: Maybe Text,
+    responseMessage :: Maybe Text
   }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

@@ -61,6 +61,8 @@ data WebhookNotificationData = WebhookNotificationData
     source_info :: Maybe SourceInfo,
     notification_type :: Maybe Text,
     object_reference_id :: Text,
+    response_code :: Maybe Text,
+    response_message :: Maybe Text,
     id :: Text
   }
   deriving stock (Show, Generic)
