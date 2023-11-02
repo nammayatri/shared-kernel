@@ -64,7 +64,9 @@ data NotificationStatusResp = NotificationStatusResp
 
 data ProviderResponse = ProviderResponse
   { provider_ref_id :: Maybe Text,
-    notification_date :: Maybe Text
+    notification_date :: Maybe Text,
+    provider_response_code :: Maybe Text,
+    provider_response_message :: Maybe Text
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 

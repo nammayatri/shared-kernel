@@ -118,7 +118,9 @@ mandateNotificationStatus config req = do
                 Just $
                   ProviderResponse
                     { providerRefId = pR.provider_ref_id,
-                      notificationDate = (\date -> Just (posixSecondsToUTCTime $ fromIntegral (read (T.unpack date) :: Int))) =<< pR.notification_date
+                      notificationDate = (\date -> posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack date) :: Maybe Int))) =<< pR.notification_date,
+                      responseCode = pR.provider_response_code,
+                      responseMessage = pR.provider_response_message
                     }
             )
               =<< provider_response,
@@ -408,6 +410,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           sourceInfo = maybe SourceInfo {txnDate = Just now, sourceAmount = Just 0} castSourceInfo (justNotification.source_info),
           notificationType = justNotification.notification_type,
           juspayProviedId = justNotification.id,
+          responseCode = justNotification.response_code,
+          responseMessage = justNotification.response_message,
           notificationId = justNotification.object_reference_id
         }
     (_, _, _, Just justTransaction) -> do
