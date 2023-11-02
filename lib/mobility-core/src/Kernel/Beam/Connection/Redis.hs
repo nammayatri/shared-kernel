@@ -23,7 +23,7 @@ kvRedis = "KVRedis"
 prepareRedisClusterConnection :: (HasCallStack, L.MonadFlow m) => KSHC.HedisCfg -> m ()
 prepareRedisClusterConnection KSHC.HedisCfg {..} = do
   L.logDebug @Text "prepareDBConnections" ("kvdbConfig:" <> show hedisClusterConf)
-  kvRedisCon <- L.initKVDBConnection (ET.mkKVDBClusterConfig kvRedis hedisClusterConf)
+  kvRedisCon <- L.initKVDBConnection (ET.mkKVDBConfig kvRedis hedisClusterConf)
   L.throwOnFailedWithLog kvRedisCon L.KVDBConnectionFailedException "Failed to connect to Redis Cluster DB."
   where
     hedisClusterConf =
