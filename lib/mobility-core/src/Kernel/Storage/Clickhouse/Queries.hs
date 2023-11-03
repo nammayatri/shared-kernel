@@ -7,7 +7,7 @@ module Kernel.Storage.Clickhouse.Queries
   )
 where
 
-import Data.Text as T
+import Data.Text as T hiding (null)
 import Data.Typeable (typeRep)
 import Database.ClickHouseDriver.HTTP
 import qualified EulerHS.Language as L
@@ -25,10 +25,18 @@ appendExpr expr prefix =
       then " WHERE " <> toClickhouseQuery expr
       else ""
 
-__select :: forall a. Typeable a => Proxy a -> ClickhouseExpr -> String
-__select proxyTableType expr = do
+appendGroupBy :: Maybe String -> String -> String
+appendGroupBy maybeGroupBy query = do
+  let groupBy_ = case maybeGroupBy of
+        Just gb -> " GROUP BY " <> gb
+        Nothing -> ""
+  query <> groupBy_
+
+__select :: forall a. Typeable a => Proxy a -> [Text] -> Maybe String -> ClickhouseExpr -> String
+__select proxyTableType cols maybeGroupBy expr = do
   let tableName = dropBeforeDot $ camelToSnakeCase . show $ typeRep proxyTableType
-  appendExpr expr ("SELECT * FROM " <> tableName)
+  let selectClause = if null cols then "SELECT *" else T.unpack $ "SELECT " <> intercalate ", " cols
+  appendGroupBy maybeGroupBy $ appendExpr expr $ selectClause <> " FROM " <> tableName
 
 addClause :: ToClickhouseQuery a => String -> a -> String
 addClause query clause = query <> toClickhouseQuery clause
@@ -42,37 +50,39 @@ __orderBy = addClause
 __offset :: String -> Offset -> String
 __offset = addClause
 
-runClickhouse :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => (HttpConnection -> IO (Either String a)) -> m (Either String a)
-runClickhouse action = do
-  con <- asks (.clickhouseEnv.connection)
+runClickhouse :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => (HttpConnection -> IO (Either String a)) -> ClickhouseDb -> m (Either String a)
+runClickhouse action db = do
+  con <- case db of
+    ATLAS_DRIVER_OFFER_BPP -> asks (.driverClickhouseEnv.connection)
+    ATLAS_KAFKA -> asks (.kafkaClickhouseEnv.connection)
   L.runIO $ action con
 
-runRawQuery :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => String -> m (Either String a)
+runRawQuery :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => String -> ClickhouseDb -> m (Either String a)
 runRawQuery query = runClickhouse (`runQuery` getJSON query)
 
-runRawQuery' :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => ClickhouseExpr -> m (Either String a)
-runRawQuery' (ExprStr query) = runRawQuery query
-runRawQuery' _ = throwError $ InternalError "can't call this function with unresolved clickhouseExpr"
+runRawQuery' :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => ClickhouseExpr -> ClickhouseDb -> m (Either String a)
+runRawQuery' (ExprStr query) db = runRawQuery query db
+runRawQuery' _ _ = throwError $ InternalError "can't call this function with unresolved clickhouseExpr"
 
-constructQuery :: Typeable a => Proxy a -> ClickhouseExpr -> Maybe Limit -> Maybe Offset -> Maybe Order -> String
-constructQuery proxyTable expr mbLimit mbOffset mbOrder = do
-  addOffset . addLimit . addOrder $ __select proxyTable expr
+constructQuery :: Typeable a => Proxy a -> [Text] -> Maybe String -> ClickhouseExpr -> Maybe Limit -> Maybe Offset -> Maybe Order -> String
+constructQuery proxyTable columns maybeGroupBy expr mbLimit mbOffset mbOrder = do
+  addOffset . addLimit . addOrder $ __select proxyTable columns maybeGroupBy expr
   where
     addLimit q = maybe q (__limit q) mbLimit
     addOrder q = maybe q (__orderBy q) mbOrder
     addOffset q = maybe q (__offset q) mbOffset
 
-findAll :: (MonadFlow m, ClickhouseFlow m env, Typeable a, FromJSON a) => Proxy a -> ClickhouseExpr -> Maybe Limit -> Maybe Offset -> Maybe Order -> m (Either String [a])
-findAll proxyTable expr mbLimit mbOffset mbOrder = runRawQuery $ constructQuery proxyTable expr mbLimit mbOffset mbOrder
+findAll :: (MonadFlow m, ClickhouseFlow m env, Typeable a, FromJSON a) => ClickhouseDb -> Proxy a -> [Text] -> Maybe String -> ClickhouseExpr -> Maybe Limit -> Maybe Offset -> Maybe Order -> m (Either String [a])
+findAll db proxyTable columns maybeGroupBy expr mbLimit mbOffset mbOrder = runRawQuery (constructQuery proxyTable columns maybeGroupBy expr mbLimit mbOffset mbOrder) db
 
-findOne' :: (MonadFlow m, ClickhouseFlow m env, Typeable a, FromJSON a) => Proxy a -> ClickhouseExpr -> Maybe Offset -> Maybe Order -> m (Maybe a)
-findOne' proxyTable expr mbOffset mbOrder = either (\err -> logInfo (T.pack err) $> Nothing) (pure . listToMaybe) =<< runRawQuery (constructQuery proxyTable expr (Just $ Limit 1) mbOffset mbOrder)
+findOne' :: (MonadFlow m, ClickhouseFlow m env, Typeable a, FromJSON a) => ClickhouseDb -> Proxy a -> [Text] -> Maybe String -> ClickhouseExpr -> Maybe Offset -> Maybe Order -> m (Maybe a)
+findOne' db proxyTable columns maybeGroupBy expr mbOffset mbOrder = either (\err -> logInfo (T.pack err) $> Nothing) (pure . listToMaybe) =<< runRawQuery (constructQuery proxyTable columns maybeGroupBy expr (Just $ Limit 1) mbOffset mbOrder) db
 
-findOne :: (MonadFlow m, ClickhouseFlow m env, Typeable a, FromJSON a) => Proxy a -> ClickhouseExpr -> m (Maybe a)
-findOne proxyTable expr = findOne' proxyTable expr Nothing Nothing
+findOne :: (MonadFlow m, ClickhouseFlow m env, Typeable a, FromJSON a) => ClickhouseDb -> Proxy a -> [Text] -> Maybe String -> ClickhouseExpr -> m (Maybe a)
+findOne db proxyTable columns maybeGroupBy expr = findOne' db proxyTable columns maybeGroupBy expr Nothing Nothing
 
-findOneWithOrder :: (MonadFlow m, ClickhouseFlow m env, Typeable a, FromJSON a) => Proxy a -> ClickhouseExpr -> Order -> m (Maybe a)
-findOneWithOrder proxyTable expr order = findOne' proxyTable expr Nothing (Just order)
+findOneWithOrder :: (MonadFlow m, ClickhouseFlow m env, Typeable a, FromJSON a) => ClickhouseDb -> Proxy a -> [Text] -> Maybe String -> ClickhouseExpr -> Order -> m (Maybe a)
+findOneWithOrder db proxyTable columns maybeGroupBy expr order = findOne' db proxyTable columns maybeGroupBy expr Nothing (Just order)
 
 -- USAGE EXAPLE
 -- res1 :: Either String [Test] <- CH.runRawQuery' $ CH.ExprStr "SELECT * FROM test"
