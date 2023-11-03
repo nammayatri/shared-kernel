@@ -12,8 +12,10 @@ type ValueToExprStr = String -> String -> ClickhouseExpr
 (=!=) :: ValueToExprStr -- not equal to operator :: usage ("columnName" =!= "unexpectedValue")
 (<<.) :: ValueToExprStr -- less than operator :: usage ("columnName" <<. "highestValue")
 (>>.) :: ValueToExprStr -- greater than operator :: usage ("columnName" >>. "lowestValue")
+(>>==.) :: ValueToExprStr -- greater than equal to operator :: usage ("columnName" >>==. "lowestValue")
+(<<==.) :: ValueToExprStr -- less than equal to operator :: usage ("columnName" <<==. "highestValue")
 
-infixl 6 <<., >>., =.=, =!=
+infixl 6 <<., >>., =.=, =!=, >>==., <<==.
 
 (=.=) col val = ExprStr (col <> "=" <> "'" <> val <> "'")
 
@@ -22,6 +24,10 @@ infixl 6 <<., >>., =.=, =!=
 (<<.) col val = ExprStr (col <> "<" <> val)
 
 (>>.) col val = ExprStr (col <> ">" <> val)
+
+(>>==.) col val = ExprStr (col <> ">=" <> "'" <> val <> "'")
+
+(<<==.) col val = ExprStr (col <> "<=" <> "'" <> val <> "'")
 
 __like :: ValueToExprStr
 __like col val = ExprStr (col <> " LIKE " <> val)
