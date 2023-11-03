@@ -206,8 +206,8 @@ data TransporterError
 instanceExceptionWithParent 'HTTPException ''TransporterError
 
 instance IsBaseError TransporterError where
-  toMessage (TransporterConfigNotFound merchantId) = Just $ "Transporter with merchantId \"" <> show merchantId <> "\" not found."
-  toMessage (TransporterConfigDoesNotExist merchantId) = Just $ "Transporter with merchantId \"" <> show merchantId <> "\" does not exist."
+  toMessage (TransporterConfigNotFound merchantOperatingCityId) = Just $ "Transporter with merchantOperatingCityId \"" <> show merchantOperatingCityId <> "\" not found."
+  toMessage (TransporterConfigDoesNotExist merchantOperatingCityId) = Just $ "Transporter with merchantOperatingCityId \"" <> show merchantOperatingCityId <> "\" does not exist."
 
 instance IsHTTPError TransporterError where
   toErrorCode = \case
@@ -233,7 +233,7 @@ instanceExceptionWithParent 'HTTPException ''MerchantError
 instance IsBaseError MerchantError where
   toMessage (MerchantNotFound merchantId) = Just $ "Merchant with merchantId \"" <> show merchantId <> "\" not found."
   toMessage (MerchantDoesNotExist merchantId) = Just $ "No merchant matches passed data " <> show merchantId <> "."
-  toMessage (MerchantServiceUsageConfigNotFound merchantId) = Just $ "MerchantServiceUsageConfig with merchantId \"" <> show merchantId <> "\" not found."
+  toMessage (MerchantServiceUsageConfigNotFound merchantOperatingCityId) = Just $ "MerchantServiceUsageConfig with merchantOperatingCityId \"" <> show merchantOperatingCityId <> "\" not found."
   toMessage (MerchantServiceConfigNotFound merchantId serviceType service) = Just $ "MerchantServiceConfig for " <> serviceType <> " service " <> service <> " with merchantId \"" <> merchantId <> "\" not found."
   toMessage (MerchantOperatingCityNotFound merchantId) = Just $ "MerchantOperatingCity with merchantId \"" <> show merchantId <> "\" not found."
   toMessage (MerchantOperatingCityDoesNotExist searchKey) = Just $ "No merchant operating city matches passed data " <> show searchKey <> "."
@@ -265,7 +265,7 @@ data ExophoneError
 instanceExceptionWithParent 'HTTPException ''ExophoneError
 
 instance IsBaseError ExophoneError where
-  toMessage (ExophoneNotFound merchantId) = Just $ "Exophone for merchantId \"" <> show merchantId <> "\" not found."
+  toMessage (ExophoneNotFound merchantOperatingCityId) = Just $ "Exophone for merchantOperatingCityId \"" <> show merchantOperatingCityId <> "\" not found."
   toMessage (ExophoneDoesNotExist phoneNumber) = Just $ "No exophone matches passed data " <> show phoneNumber <> "."
 
 instance IsHTTPError ExophoneError where
@@ -957,7 +957,7 @@ instanceExceptionWithParent 'HTTPException ''MerchantMessageError
 
 instance IsBaseError MerchantMessageError where
   toMessage = \case
-    MerchantMessageNotFound merchantId messageKey -> Just $ "MerchantMessage with merchantId \"" <> show merchantId <> " and message key" <> show messageKey <> "\" not found. "
+    MerchantMessageNotFound merchantOperatingCityId messageKey -> Just $ "MerchantMessage with merchantOperatingCityId \"" <> show merchantOperatingCityId <> " and message key" <> show messageKey <> "\" not found. "
 
 instance IsHTTPError MerchantMessageError where
   toErrorCode = \case
