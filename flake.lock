@@ -169,15 +169,16 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1685470074,
-        "narHash": "sha256-0vdewKY4Vmx476Qg5qd2voyuL7ZssqOUlQeNJCuvs3Q=",
+        "lastModified": 1699122529,
+        "narHash": "sha256-xuk1nhGgf0uKWEHcjhzFUJFLMM/pyTE04yCGIfDTXg0=",
         "owner": "nammayatri",
         "repo": "common",
-        "rev": "9b0393630068e688795bedd46c49df1a0bbc7c0a",
+        "rev": "d16da72232ae4bbdd985b5cd536b2f667757c391",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
+        "ref": "commitizen",
         "repo": "common",
         "type": "github"
       }
@@ -1583,11 +1584,11 @@
     },
     "process-compose-flake": {
       "locked": {
-        "lastModified": 1680797953,
-        "narHash": "sha256-lFYbfId1IX6jh/wUf+gt3LyvE9HblS4hcBQcougSzX0=",
+        "lastModified": 1687298948,
+        "narHash": "sha256-7Lu4/odCkkwrzR8Mo+3D+URv4oLap8WWLESzi/75eb0=",
         "owner": "Platonic-Systems",
         "repo": "process-compose-flake",
-        "rev": "aee1b8d126a5efe5945513eb2fb343f3d68dca4b",
+        "rev": "5bdb90b85642901cf9a5dccfe8c907091c261604",
         "type": "github"
       },
       "original": {
