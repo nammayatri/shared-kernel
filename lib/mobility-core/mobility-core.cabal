@@ -444,6 +444,8 @@ library
     , wai-middleware-prometheus
     , warp
   default-language: Haskell2010
+  if os(darwin)
+    ghc-options: -fwhole-archive-hs-libs
 
 test-suite mobility-core-tests
   type: exitcode-stdio-1.0
@@ -594,3 +596,5 @@ test-suite mobility-core-tests
     , wai-middleware-prometheus
     , warp
   default-language: Haskell2010
+  if os(darwin)
+    ghc-options: -fwhole-archive-hs-libs
