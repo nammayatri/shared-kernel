@@ -608,6 +608,7 @@ instance IsAPIError SMSError
 data SpecialZoneError
   = OtpNotFoundForSpecialZoneBooking Text
   | BookingNotFoundForSpecialZoneOtp Text
+  | SpecialZoneOtpValidTillNotYetExpired
   | SpecialZoneNotFound
   | PointNotFound
   deriving (Eq, Show, IsBecknAPIError)
@@ -618,6 +619,7 @@ instance IsBaseError SpecialZoneError where
   toMessage = \case
     OtpNotFoundForSpecialZoneBooking bookingId -> Just $ "No otp found for special zone booking with \"" <> bookingId <> "\"bookingId"
     BookingNotFoundForSpecialZoneOtp otp -> Just $ "No booking found for special zone otp with \"" <> otp <> "\"otp"
+    SpecialZoneOtpValidTillNotYetExpired -> Just "Special Zone Valid Till Not Yet Expired"
     SpecialZoneNotFound -> Just "Special Zone not found."
     PointNotFound -> Just "Point not found."
 
@@ -625,12 +627,14 @@ instance IsHTTPError SpecialZoneError where
   toErrorCode = \case
     OtpNotFoundForSpecialZoneBooking _ -> "OTP_NOT_FOUND_FOR_SPECIAL_ZONE_BOOKING"
     BookingNotFoundForSpecialZoneOtp _ -> "BOOKING_NOT_FOUND_FOR_SPECIAL_ZONE_OTP"
+    SpecialZoneOtpValidTillNotYetExpired -> "SPECIAL_ZONE_OTP_VALID_TILL_NOT_YET_EXPIRED"
     SpecialZoneNotFound -> "SPECIAL_ZONE_NOT_FOUND"
     PointNotFound -> "POINT_NOT_FOUND"
 
   toHttpCode = \case
     OtpNotFoundForSpecialZoneBooking _ -> E400
     BookingNotFoundForSpecialZoneOtp _ -> E400
+    SpecialZoneOtpValidTillNotYetExpired -> E400
     SpecialZoneNotFound -> E400
     PointNotFound -> E400
 
