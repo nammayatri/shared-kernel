@@ -9,8 +9,7 @@
 
     clickhouse-haskell.url = "github:nammayatri/clickhouse-haskell";
     clickhouse-haskell.inputs.common.follows = "common";
-    prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
-    prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
+    prometheus-haskell.url = "github:vsaimanohar/prometheus-haskell/added-new-label-to-metrics";
 
     euler-hs = {
       url = "github:juspay/euler-hs/ag/open-source";

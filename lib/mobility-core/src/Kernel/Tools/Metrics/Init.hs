@@ -29,6 +29,9 @@ import Data.Text.Encoding (decodeUtf8)
 import EulerHS.Prelude as E hiding (decodeUtf8)
 import Kernel.Prelude (lookup, (!!))
 import Kernel.Tools.Metrics.CoreMetrics.Types hiding (requestLatency)
+import Data.Text as DT hiding (filter)
+import EulerHS.Prelude as E
+import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import qualified Network.HTTP.Types as HTTP
 import Network.Wai (Application, Request (..))
@@ -43,28 +46,17 @@ import System.Clock (Clock (..), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
 
 {-# NOINLINE requestLatency #-}
 requestLatency :: Prom.Vector Prom.Label3 Prom.Histogram
-requestLatency =
-  Prom.unsafeRegister $
-    Prom.vector ("handler", "method", "status_code") $
-      Prom.histogram info Prom.defaultBuckets
-  where
-    info =
-      Prom.Info
-        "http_request_duration_seconds"
-        "The HTTP request latencies in seconds."
+requestLatency = Prom.unsafeRegister $ Prom.vector ("handler", "method", "status_code")
+                                     $ Prom.histogram info Prom.defaultBuckets
+    where info = Prom.Info "http_request_duration_seconds"
+                           "The HTTP request latencies in seconds."
 
-{-# NOINLINE requestLatencyWithVersionLabel #-}
-requestLatencyWithVersionLabel :: Prom.Vector Prom.Label6 Prom.Histogram
-requestLatencyWithVersionLabel =
-  Prom.unsafeRegister $
-    Prom.vector ("handler", "method", "status_code", "version", "x_client_version", "x_bundle_version") $
-      Prom.histogram info Prom.defaultBuckets
-  where
-    info =
-      Prom.Info
-        "http_request_duration_seconds"
-        "The HTTP request latencies in seconds."
-
+{-# NOINLINE requestLatencyWithLabels #-}
+requestLatencyWithLabels :: Prom.Vector Prom.Label5 Prom.Histogram
+requestLatencyWithLabels = Prom.unsafeRegister $ Prom.vector ("handler", "method", "status_code", "version", "priority")
+                                                     $ Prom.histogram info Prom.defaultBuckets
+    where info = Prom.Info "http_request_duration_seconds"
+                           "The HTTP request latencies in seconds."
 serve :: Int -> IO ()
 serve port = do
   _ <- register ghcMetrics
@@ -84,31 +76,24 @@ addServantInfo version proxy app request respond =
       fullpath = DT.intercalate "/" (pathInfo request)
    in instrumentHandlerValueWithVersionLabel version.getDeploymentVersion (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
 
-instrumentHandlerValueWithVersionLabel ::
-  -- | version label
-  Text ->
-  -- | The function used to derive the "handler" value in Prometheus
-  (Wai.Request -> Text) ->
-  -- | The app to instrument
-  Wai.Application ->
-  -- | The instrumented app
-  Wai.Application
-instrumentHandlerValueWithVersionLabel versionLabel = instrumentHandlerValueWithFilter (Just versionLabel) Just
+instrumentHandlerValueWithLabels ::
+     Text -- ^ version label
+  -> Text
+  -> (Wai.Request -> Text) -- ^ The function used to derive the "handler" value in Prometheus
+  -> Wai.Application -- ^ The app to instrument
+  -> Wai.Application -- ^ The instrumented app
+instrumentHandlerValueWithLabels versionLabel priority = instrumentHandlerValueWithFilter (Just versionLabel) (Just priority) Just
 
 -- | A more flexible variant of 'instrumentHandlerValue'.  The filter can change some
 -- responses, or drop others entirely.
 instrumentHandlerValueWithFilter ::
-  -- | version label
-  Maybe Text ->
-  -- | Response filter
-  (Wai.Response -> Maybe Wai.Response) ->
-  -- | The function used to derive the "handler" value in Prometheus
-  (Wai.Request -> Text) ->
-  -- | The app to instrument
-  Wai.Application ->
-  -- | The instrumented app
-  Wai.Application
-instrumentHandlerValueWithFilter mbVersionLabel resFilter f app req respond = do
+     Maybe Text -- ^ version label
+  -> Maybe Text -- ^ priority label
+  -> (Wai.Response -> Maybe Wai.Response) -- ^ Response filter
+  -> (Wai.Request -> Text) -- ^ The function used to derive the "handler" value in Prometheus
+  -> Wai.Application -- ^ The app to instrument
+  -> Wai.Application -- ^ The instrumented app
+instrumentHandlerValueWithFilter mbVersionLabel mbPriority resFilter f app req respond = do
   start <- getTime Monotonic
   app req $ \res -> do
     case resFilter res of
@@ -117,40 +102,30 @@ instrumentHandlerValueWithFilter mbVersionLabel resFilter f app req respond = do
         end <- getTime Monotonic
         let method = Just $ decodeUtf8 (Wai.requestMethod req)
         let status = Just $ T.pack (show (HTTP.statusCode (Wai.responseStatus res')))
-        let requiredHeaders = map (T.pack . show <$>) (flip lookup (Wai.requestHeaders req) . stringToCI <$> ["x-client-version", "x-bundle-version"])
-        observeSeconds mbVersionLabel (f req) method status start end requiredHeaders
+        observeSeconds mbVersionLabel mbPriority (f req) method status start end
     respond res
 
 stringToCI :: String -> CI ByteString
 stringToCI = CI.mk . fromString
 
-observeSeconds ::
-  -- | version label
-  Maybe Text ->
-  -- | handler label
-  Text ->
-  -- | method
-  Maybe Text ->
-  -- | status
-  Maybe Text ->
-  -- | start time
-  TimeSpec ->
-  -- | end time
-  TimeSpec ->
-  -- | required headers
-  [Maybe Text] ->
-  IO ()
-observeSeconds mbVersionLabel handler method status start end requiredHeaders = do
-  let latency :: Double
-      latency = fromRational $ toRational (toNanoSecs (end `diffTimeSpec` start) % 1000000000)
-  case mbVersionLabel of
-    Nothing -> do
-      Prom.withLabel
-        requestLatency
-        (handler, fromMaybe "" method, fromMaybe "" status)
-        (flip Prom.observe latency)
-    Just versionLabel -> do
-      Prom.withLabel
-        requestLatencyWithVersionLabel
-        (handler, fromMaybe "" method, fromMaybe "" status, versionLabel, fromMaybe "" (requiredHeaders !! 0), fromMaybe "" (requiredHeaders !! 1))
-        (flip Prom.observe latency)
+observeSeconds :: Maybe Text   -- ^ version label
+               -> Maybe Text   -- ^ priority label 
+               -> Text         -- ^ handler label
+               -> Maybe Text   -- ^ method
+               -> Maybe Text   -- ^ status
+               -> TimeSpec     -- ^ start time
+               -> TimeSpec     -- ^ end time
+               -> IO ()
+observeSeconds mbVersionLabel mbPriority handler method status start end = do
+    let latency :: Double
+        latency = fromRational $ toRational (toNanoSecs (end `diffTimeSpec` start) % 1000000000)
+    case (mbVersionLabel, mbPriority) of
+      (Just versionLabel, Just priorityLabel)  -> do
+        Prom.withLabel requestLatencyWithLabels
+                       (handler, fromMaybe "" method, fromMaybe "" status, versionLabel, priorityLabel)
+                       (flip Prom.observe latency)  
+      _ -> do
+        Prom.withLabel requestLatency
+                       (handler, fromMaybe "" method, fromMaybe "" status)
+                       (flip Prom.observe latency)                          
+

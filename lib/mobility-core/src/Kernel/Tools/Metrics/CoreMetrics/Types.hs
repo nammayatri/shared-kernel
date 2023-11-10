@@ -17,6 +17,7 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
     CoreMetrics (..),
     CoreMetricsContainer (..),
     DeploymentVersion (..),
+    PriorityLabel (..),
     registerCoreMetricsContainer,
   )
 where
@@ -48,10 +49,13 @@ type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
 
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
-    HasField "version" r DeploymentVersion
+    HasField "version" r DeploymentVersion,
+    HasField "priorityLabel" r PriorityLabel
   )
 
 newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}
+
+data PriorityLabel = PriorityLabel {getCriticalPriorityLabelUrls :: [Text], getNonCriticalPriorityLabelUrls :: [Text]}
 
 class CoreMetrics m where
   addRequestLatency :: Text -> Text -> Milliseconds -> Either ClientError a -> m ()
