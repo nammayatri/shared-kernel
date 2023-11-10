@@ -169,11 +169,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1685470074,
-        "narHash": "sha256-0vdewKY4Vmx476Qg5qd2voyuL7ZssqOUlQeNJCuvs3Q=",
+        "lastModified": 1693957602,
+        "narHash": "sha256-7adH/1lMUBEzSQsOoffxRqprWkM3beZ2enmy9Gzb6ec=",
         "owner": "nammayatri",
         "repo": "common",
-        "rev": "9b0393630068e688795bedd46c49df1a0bbc7c0a",
+        "rev": "ac4b0421da7088877deba240e0b19bf1f8616a86",
         "type": "github"
       },
       "original": {
@@ -744,6 +744,21 @@
         "owner": "srid",
         "repo": "haskell-flake",
         "rev": "996f5c2cdc67285c4990df378976f9dbf26f8401",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "haskell-flake",
+        "type": "github"
+      }
+    },
+    "haskell-flake_3": {
+      "locked": {
+        "lastModified": 1683641774,
+        "narHash": "sha256-6clCN5n/qd5/hk/f+M+4sr1VVs/sEgwH+sgE7PkKQOc=",
+        "owner": "srid",
+        "repo": "haskell-flake",
+        "rev": "ebfe70269fce376a7c95d6e9f011e16cbfd29b8d",
         "type": "github"
       },
       "original": {
@@ -1583,11 +1598,11 @@
     },
     "process-compose-flake": {
       "locked": {
-        "lastModified": 1680797953,
-        "narHash": "sha256-lFYbfId1IX6jh/wUf+gt3LyvE9HblS4hcBQcougSzX0=",
+        "lastModified": 1687298948,
+        "narHash": "sha256-7Lu4/odCkkwrzR8Mo+3D+URv4oLap8WWLESzi/75eb0=",
         "owner": "Platonic-Systems",
         "repo": "process-compose-flake",
-        "rev": "aee1b8d126a5efe5945513eb2fb343f3d68dca4b",
+        "rev": "5bdb90b85642901cf9a5dccfe8c907091c261604",
         "type": "github"
       },
       "original": {
@@ -1639,23 +1654,20 @@
     "prometheus-haskell_2": {
       "inputs": {
         "flake-parts": "flake-parts_6",
-        "haskell-flake": [
-          "common",
-          "haskell-flake"
-        ],
+        "haskell-flake": "haskell-flake_3",
         "nixpkgs": "nixpkgs_14"
       },
       "locked": {
-        "lastModified": 1687373886,
-        "narHash": "sha256-KWxG4SyXo39yG+7b1H0ULKzVu8Z1Hj8KCqS0rQKw3qU=",
-        "owner": "juspay",
+        "lastModified": 1699769868,
+        "narHash": "sha256-9UsJM2N9ey5FTI8Fyusy2GOWUbX+G6btEamhZ7GbvtY=",
+        "owner": "vsaimanohar",
         "repo": "prometheus-haskell",
-        "rev": "f1d996bb317d0a50450ace2b4ae08b5afdf22955",
+        "rev": "7120470ca732a9dc721de14cd8c5ffa605ddc366",
         "type": "github"
       },
       "original": {
-        "owner": "juspay",
-        "ref": "more-proc-metrics",
+        "owner": "vsaimanohar",
+        "ref": "added-new-label-to-metrics",
         "repo": "prometheus-haskell",
         "type": "github"
       }

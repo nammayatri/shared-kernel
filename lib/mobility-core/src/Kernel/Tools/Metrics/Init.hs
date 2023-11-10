@@ -16,7 +16,7 @@
 
 module Kernel.Tools.Metrics.Init where
 
-import Data.Text as DT
+import Data.Text as DT hiding (filter)
 import EulerHS.Prelude as E
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Utils.Monitoring.Prometheus.Servant
@@ -26,6 +26,8 @@ import Network.Wai.Middleware.Prometheus
 import Prometheus as P
 import Prometheus.Metric.GHC (ghcMetrics)
 import Prometheus.Metric.Proc
+
+-- import Kernel.Utils.Logging (logDebug)
 
 serve :: Int -> IO ()
 serve port = do
@@ -38,10 +40,16 @@ serve port = do
 addServantInfo ::
   SanitizedUrl a =>
   DeploymentVersion ->
+  PriorityLabel ->
   Proxy a ->
   Application ->
   Application
-addServantInfo version proxy app request respond =
+addServantInfo version priority proxy app request respond =
   let mpath = getSanitizedUrl proxy request
       fullpath = DT.intercalate "/" (pathInfo request)
-   in instrumentHandlerValueWithVersionLabel version.getDeploymentVersion (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
+      validateIsTheUrlPriorityOrNonPriority = fullpath `elem` priority.getCriticalPriorityLabelUrls
+      prioirtyField =
+        if validateIsTheUrlPriorityOrNonPriority
+          then "Priority"
+          else "NonPrioirty"
+   in instrumentHandlerValueWithLabels version.getDeploymentVersion prioirtyField (\_ -> "/" <> fromMaybe fullpath mpath) app request respond

@@ -136,7 +136,7 @@ runServer appEnv serverAPI serverHandler waiMiddleware waiSettings servantCtx se
   let server = withModifiedEnv $ \modifiedEnv ->
         run serverAPI serverHandler servantCtx modifiedEnv
           & logRequestAndResponse modifiedEnv
-          & Metrics.addServantInfo appEnv.version serverAPI
+          & Metrics.addServantInfo appEnv.version appEnv.priority.getCriticalPriorityLabelUrls serverAPI
           & waiMiddleware
   E.withFlowRuntime (Just loggerRt) $ \flowRt -> do
     flowRt' <-
@@ -179,7 +179,7 @@ runServerGeneric appEnv serverAPI serverHandler waiMiddleware waiSettings servan
         let loggerFunc = \tag info -> logOutputIO (appendLogTag tag $ modifiedEnv.loggerEnv) INFO info
          in runGeneric serverAPI serverHandler servantCtx modifiedEnv runMonad
               & logRequestAndResponseGeneric loggerFunc
-              & Metrics.addServantInfo appEnv.version serverAPI
+              & Metrics.addServantInfo appEnv.version appEnv.priority.getCriticalPriorityLabelUrls serverAPI
               & waiMiddleware
   serverStartAction appEnv $ runSettings settings $ server appEnv
 
