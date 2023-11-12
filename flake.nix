@@ -7,9 +7,15 @@
 
     clickhouse-haskell.url = "github:nammayatri/clickhouse-haskell";
     clickhouse-haskell.inputs.common.follows = "common";
-    prometheus-haskell.url = "github:vsaimanohar/prometheus-haskell/added-new-label-to-metrics";
 
+    # Transitively override prometheus-haskell dependency (euler-hs->euler-events-hs->prometheus-haskell)
+    prometheus-haskell.url = "github:vsaimanohar/prometheus-haskell/added-new-label-to-metrics";
+    prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
+    euler-events-hs.url = "github:juspay/euler-events-hs/main";
+    euler-events-hs.inputs.haskell-flake.follows = "common/haskell-flake";
+    euler-events-hs.inputs.prometheus-haskell.follows = "prometheus-haskell";
     euler-hs.url = "github:juspay/euler-hs/ag/open-source";
+    euler-hs.inputs.euler-events-hs.follows = "euler-events-hs";
   };
   outputs = inputs:
     inputs.common.lib.mkFlake { inherit inputs; } {
@@ -63,4 +69,3 @@
       };
     };
 }
-
