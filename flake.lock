@@ -610,24 +610,6 @@
         "type": "github"
       }
     },
-    "flake-parts_9": {
-      "inputs": {
-        "nixpkgs-lib": "nixpkgs-lib_9"
-      },
-      "locked": {
-        "lastModified": 1683560683,
-        "narHash": "sha256-XAygPMN5Xnk/W2c1aW0jyEa6lfMDZWlQgiNtmHXytPc=",
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "rev": "006c75898cf814ef9497252b022e91c946ba8e17",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "type": "github"
-      }
-    },
     "flake-root": {
       "locked": {
         "lastModified": 1680210152,
@@ -836,21 +818,6 @@
         "owner": "srid",
         "repo": "haskell-flake",
         "rev": "996f5c2cdc67285c4990df378976f9dbf26f8401",
-        "type": "github"
-      },
-      "original": {
-        "owner": "srid",
-        "repo": "haskell-flake",
-        "type": "github"
-      }
-    },
-    "haskell-flake_3": {
-      "locked": {
-        "lastModified": 1700580977,
-        "narHash": "sha256-gNWKEYvyaHZjK41UGzQR0QYN/eplvWl6JDS3vHMJM9I=",
-        "owner": "srid",
-        "repo": "haskell-flake",
-        "rev": "91c98bb0af0847f8d442ca474cd56ef5243ffbbc",
         "type": "github"
       },
       "original": {
@@ -1303,24 +1270,6 @@
         "type": "github"
       }
     },
-    "nixpkgs-lib_9": {
-      "locked": {
-        "dir": "lib",
-        "lastModified": 1682879489,
-        "narHash": "sha256-sASwo8gBt7JDnOOstnps90K1wxmVfyhsTPPNTGBPjjg=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "da45bf6ec7bbcc5d1e14d3795c025199f28e0de0",
-        "type": "github"
-      },
-      "original": {
-        "dir": "lib",
-        "owner": "NixOS",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "nixpkgs-regression": {
       "locked": {
         "lastModified": 1643052045,
@@ -1472,22 +1421,6 @@
         "owner": "nixos",
         "repo": "nixpkgs",
         "rev": "e6e049b7a24decd1f0caee8b035913795697c699",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixpkgs-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_14": {
-      "locked": {
-        "lastModified": 1683657389,
-        "narHash": "sha256-jx91UqqoBneE8QPAKJA29GANrU/Z7ULghoa/JE0+Edw=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "9524f57dd5b3944c819dd594aed8ed941932ef56",
         "type": "github"
       },
       "original": {
@@ -1811,27 +1744,6 @@
         "type": "github"
       }
     },
-    "prometheus-haskell_2": {
-      "inputs": {
-        "flake-parts": "flake-parts_9",
-        "haskell-flake": "haskell-flake_3",
-        "nixpkgs": "nixpkgs_14"
-      },
-      "locked": {
-        "lastModified": 1699769868,
-        "narHash": "sha256-9UsJM2N9ey5FTI8Fyusy2GOWUbX+G6btEamhZ7GbvtY=",
-        "owner": "vsaimanohar",
-        "repo": "prometheus-haskell",
-        "rev": "7120470ca732a9dc721de14cd8c5ffa605ddc366",
-        "type": "github"
-      },
-      "original": {
-        "owner": "vsaimanohar",
-        "ref": "added-new-label-to-metrics",
-        "repo": "prometheus-haskell",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "clickhouse-haskell": "clickhouse-haskell",
@@ -1845,8 +1757,7 @@
           "common",
           "nixpkgs"
         ],
-        "passetto-hs": "passetto-hs",
-        "prometheus-haskell": "prometheus-haskell_2"
+        "passetto-hs": "passetto-hs"
       }
     },
     "sequelize": {

@@ -17,12 +17,13 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
     CoreMetrics (..),
     CoreMetricsContainer (..),
     DeploymentVersion (..),
-    PriorityLabel (..),
+    ApiPriorityList (..),
     registerCoreMetricsContainer,
   )
 where
 
 import Data.Time (NominalDiffTime)
+import Dhall (FromDhall)
 import EulerHS.Prelude as E
 import GHC.Records.Extra
 import Kernel.Types.Time (Milliseconds)
@@ -49,13 +50,15 @@ type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
 
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
-    HasField "version" r DeploymentVersion,
-    HasField "priorityLabel" r PriorityLabel
+    HasField "version" r DeploymentVersion
   )
 
 newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}
 
-data PriorityLabel = PriorityLabel {getCriticalPriorityLabelUrls :: [Text], getNonCriticalPriorityLabelUrls :: [Text]}
+data ApiPriorityList = ApiPriorityList
+  { criticalAPIList :: [Text]
+  }
+  deriving (Generic, Eq, Show, ToJSON, FromJSON, FromDhall)
 
 class CoreMetrics m where
   addRequestLatency :: Text -> Text -> Milliseconds -> Either ClientError a -> m ()
