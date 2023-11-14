@@ -34,6 +34,7 @@ data Language
   | MALAYALAM
   | BENGALI
   | FRENCH
+  | TELEGU
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
   deriving (PrettyShow) via Showable Language
 
@@ -47,6 +48,7 @@ instance FromHttpApiData Language where
   parseUrlPiece "ta" = pure TAMIL
   parseUrlPiece "bn" = pure BENGALI
   parseUrlPiece "fr" = pure FRENCH
+  parseUrlPiece "te" = pure TELEGU
   parseUrlPiece _ = Left "Unable to parse Language"
 
 instance ToHttpApiData Language where
@@ -57,5 +59,6 @@ instance ToHttpApiData Language where
   toUrlPiece TAMIL = "ta"
   toUrlPiece BENGALI = "bn"
   toUrlPiece FRENCH = "fr"
+  toUrlPiece TELEGU = "te"
 
 type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r)
