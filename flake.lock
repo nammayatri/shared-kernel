@@ -184,16 +184,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1686306664,
-        "narHash": "sha256-qTQKX5tUUo6FCnhsDiW1QbWJkFaNnPpLX9ztgY4vjWk=",
-        "owner": "arjunkathuria",
+        "lastModified": 1699959073,
+        "narHash": "sha256-0Ovbd1CzgI4tSCTBe6z/7p8DpbajKyFlyS39hu4xpNY=",
+        "owner": "nammayatri",
         "repo": "clickhouse-haskell",
-        "rev": "f64d861934dcba0928a907605ab2c60d0a91aa4b",
+        "rev": "5314118b2635724b87f7993da9dc8446602bcd65",
         "type": "github"
       },
       "original": {
-        "owner": "arjunkathuria",
-        "ref": "Mobility/GHC-927-rebased",
+        "owner": "nammayatri",
         "repo": "clickhouse-haskell",
         "type": "github"
       }
@@ -214,16 +213,15 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1698621849,
-        "narHash": "sha256-/pd2eJNUUcEP6iKXyyrBJaqhQ79D4a+D98HJ3mNqjQ8=",
-        "owner": "arjunkathuria",
+        "lastModified": 1699950488,
+        "narHash": "sha256-llyrSKHNFL1FptFykCelRjitl3x0b4JsSkQQyCKVZhU=",
+        "owner": "nammayatri",
         "repo": "common",
-        "rev": "20580e2aa81b9adc45e6006472a8d73d062d8ff6",
+        "rev": "0ae95ce0df4a0c6be221fdbd946f35e54e97ccf5",
         "type": "github"
       },
       "original": {
-        "owner": "arjunkathuria",
-        "ref": "Mobility-GHC927-rebased-04",
+        "owner": "nammayatri",
         "repo": "common",
         "type": "github"
       }
@@ -244,16 +242,15 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1696580690,
-        "narHash": "sha256-6NsQIqnyYcOL1UVnNbptgssiQkU5ASVR4M0M4+MO7Jo=",
-        "owner": "arjunkathuria",
+        "lastModified": 1699950488,
+        "narHash": "sha256-llyrSKHNFL1FptFykCelRjitl3x0b4JsSkQQyCKVZhU=",
+        "owner": "nammayatri",
         "repo": "common",
-        "rev": "fb68c68fcbc6d87c346786befc203b4b71521f64",
+        "rev": "0ae95ce0df4a0c6be221fdbd946f35e54e97ccf5",
         "type": "github"
       },
       "original": {
-        "owner": "arjunkathuria",
-        "ref": "Mobility-GHC927-rebased-03",
+        "owner": "nammayatri",
         "repo": "common",
         "type": "github"
       }
@@ -391,16 +388,16 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1699260708,
-        "narHash": "sha256-Rs434MZgNDQ+NPjty+bhv/yqCKu0AbRGZmw77uE1hIo=",
-        "owner": "arjunkathuria",
+        "lastModified": 1699954198,
+        "narHash": "sha256-o7t0pQtXBo+pEXk7lJ7J2Z07HEWFvlTwy7ZPoPn4Ptw=",
+        "owner": "juspay",
         "repo": "euler-hs",
-        "rev": "1835e721b2bbaf866e218375f88991d0dd232536",
+        "rev": "9492f18e5a36e163c3c55965254fe97f4524f7ac",
         "type": "github"
       },
       "original": {
-        "owner": "arjunkathuria",
-        "ref": "Mobility-GHC927-rebased-04",
+        "owner": "juspay",
+        "ref": "ag/open-source",
         "repo": "euler-hs",
         "type": "github"
       }

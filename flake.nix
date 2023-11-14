@@ -1,25 +1,19 @@
 {
   inputs = {
-    # Replace the url with upstream when 9.2 changes merge there.
-    # common.url = "github:nammayatri/common";
-    common.url = "github:arjunkathuria/common/Mobility-GHC927-rebased-04";
+    common.url = "github:nammayatri/common";
     nixpkgs.follows = "common/nixpkgs";
     haskell-flake.follows = "common/haskell-flake";
 
     passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
     passetto-hs.flake = false;
 
-    # Replace the url with upstream when 9.2 changes merge there.
-    # clickhouse-haskell.url = "github:nammayatri/clickhouse-haskell";
-    clickhouse-haskell.url = "github:arjunkathuria/clickhouse-haskell/Mobility\/GHC-927-rebased";
+    clickhouse-haskell.url = "github:nammayatri/clickhouse-haskell";
     clickhouse-haskell.inputs.common.follows = "common";
     prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
-    # Replace the url with upstream when 9.2 changes merge there.
-    # euler-hs.url = "github:juspay/euler-hs/ag/open-source";
     euler-hs = {
-      url = "github:arjunkathuria/euler-hs/Mobility-GHC927-rebased-04";
+      url = "github:juspay/euler-hs/ag/open-source";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.haskell-flake.follows = "haskell-flake";
     };
