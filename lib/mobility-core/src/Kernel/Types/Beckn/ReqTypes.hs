@@ -18,7 +18,7 @@ import qualified Control.Lens as L
 import Data.Aeson
 import Data.OpenApi
 import Data.Typeable
-import EulerHS.Prelude hiding ((.~), fromList)
+import EulerHS.Prelude hiding (fromList, (.~))
 import GHC.Exts (IsList (fromList))
 import Kernel.Types.Beckn.Context (Context)
 import Kernel.Types.Beckn.Error (Error)

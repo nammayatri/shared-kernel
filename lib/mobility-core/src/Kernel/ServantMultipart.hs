@@ -16,7 +16,7 @@
 module Kernel.ServantMultipart
   ( module Servant.Multipart,
     module Servant.Multipart.API,
-    module Servant.Multipart.Client
+    module Servant.Multipart.Client,
   )
 where
 

@@ -15,8 +15,8 @@
 module Kernel.Types.Beckn.Ack where
 
 import Data.Aeson
-import Data.Aeson.Types (unexpected)
 import qualified Data.Aeson.Key as AesonKey (Key)
+import Data.Aeson.Types (unexpected)
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
 

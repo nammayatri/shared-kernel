@@ -25,9 +25,9 @@ where
 
 import Data.Aeson (encode)
 import qualified Data.Aeson as A
-import qualified Data.Aeson.Types as A
 import qualified Data.Aeson.Key as AesonKey
 import qualified Data.Aeson.KeyMap as AKM
+import qualified Data.Aeson.Types as A
 import qualified Data.ByteString.Lazy as LBS
 import EulerHS.Prelude
 import Kafka.Producer as KafkaProd

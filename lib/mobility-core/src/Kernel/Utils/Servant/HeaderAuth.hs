@@ -17,7 +17,7 @@
 module Kernel.Utils.Servant.HeaderAuth where
 
 import Control.Arrow
-import Control.Lens ((?=), at, (.=), (.~))
+import Control.Lens (at, (.=), (.~), (?=))
 import Data.List (lookup)
 import qualified Data.OpenApi as DS
 import Data.Typeable (typeRep)

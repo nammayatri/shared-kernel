@@ -29,13 +29,13 @@ where
 
 import qualified Control.Monad.Catch as C
 import Data.Aeson as A
+import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.Text as T
 import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import System.Log.FastLogger
-import qualified Data.Aeson.KeyMap as AKM
 
 type HasLog r = HasField "loggerEnv" r LoggerEnv
 
