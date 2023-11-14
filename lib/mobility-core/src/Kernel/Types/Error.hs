@@ -1048,3 +1048,29 @@ instance IsHTTPError TicketError where
     TicketDoesNotExist _ -> E400
 
 instance IsAPIError TicketError
+
+data OsrmError
+  = FailedToCallOsrmRouteAPI Text
+  | FailedToCallOsrmTableAPI Text
+  | FailedToCallOsrmMatchAPI Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''OsrmError
+
+instance IsBaseError OsrmError where
+  toMessage = \case
+    FailedToCallOsrmRouteAPI err -> Just $ "Failed to call osrm route API: " <> err
+    FailedToCallOsrmTableAPI err -> Just $ "Failed to call osrm table API: " <> err
+    FailedToCallOsrmMatchAPI err -> Just $ "Failed to call orsm match API: " <> err
+
+instance IsHTTPError OsrmError where
+  toErrorCode = \case
+    FailedToCallOsrmRouteAPI _ -> "FAILED_TO_CALL_OSRM_ROUTE_API"
+    FailedToCallOsrmTableAPI _ -> "FAILED_TO_CALL_OSRM_TABLE_API"
+    FailedToCallOsrmMatchAPI _ -> "FAILED_TO_CALL_OSRM_MATCH_API"
+  toHttpCode = \case
+    FailedToCallOsrmRouteAPI _ -> E400
+    FailedToCallOsrmTableAPI _ -> E400
+    FailedToCallOsrmMatchAPI _ -> E400
+
+instance IsAPIError OsrmError

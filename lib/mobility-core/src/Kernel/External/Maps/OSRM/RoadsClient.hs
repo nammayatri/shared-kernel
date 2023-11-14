@@ -212,7 +212,7 @@ callOsrmMatchAPI osrmUrl mbRadius pointsList = do
       radiuses = flip fmap mbRadius $ \r -> RadiusesList $ replicate pointsNum r
   let eulerClient = Euler.client (Proxy @MatchAPI)
   callAPI osrmUrl (eulerClient pointsList AlwaysTrue radiuses GeoJson) "osrm-match" (Proxy @MatchAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call osrm match API: " <> show err)
+    >>= fromEitherM (FailedToCallOsrmMatchAPI . show)
 
 getResultOneRouteExpected :: (Log m, MonadThrow m) => MatchResp -> m (HighPrecMeters, [Maps.LatLong])
 getResultOneRouteExpected resp = do
@@ -237,7 +237,7 @@ callOsrmGetDistancesAPI osrmUrl pointsList sourcesList destinationsList =
   do
     let eulerClient = Euler.client (Proxy @TableAPI)
     callAPI osrmUrl (eulerClient pointsList "distance,duration" sourcesList destinationsList) "osrm-table" (Proxy @TableAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call osrm table API: " <> show err)
+    >>= fromEitherM (FailedToCallOsrmTableAPI . show)
 
 callOsrmRouteAPI ::
   ( HasCallStack,
@@ -250,4 +250,4 @@ callOsrmRouteAPI ::
 callOsrmRouteAPI osrmUrl pointsList = do
   let eulerClient = Euler.client (Proxy @RouteAPI)
   callAPI osrmUrl (eulerClient pointsList GeoJson True True) "osrm-route" (Proxy @RouteAPI)
-    >>= fromEitherM (\err -> InternalError $ "Failed to call osrm route API: " <> show err)
+    >>= fromEitherM (FailedToCallOsrmRouteAPI . show)
