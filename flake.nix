@@ -57,6 +57,7 @@
           };
           autoWire = [ "packages" "checks" ];
         };
+        process-compose = { };
         packages.default = self'.packages.mobility-core;
         devShells.default = pkgs.mkShell {
           # cf. https://haskell.flake.page/devshell#composing-devshells
