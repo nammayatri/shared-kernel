@@ -19,6 +19,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.String.Conversions
 import Data.Text hiding (concatMap, map, null)
+import qualified Data.Text as T
 import qualified Data.Text as Text
 import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
@@ -30,6 +31,7 @@ import Kernel.Storage.Hedis.Error
 import Kernel.Utils.DatastoreLatencyCalculator
 import qualified Kernel.Utils.Error.Throwing as Error
 import Kernel.Utils.Logging
+import qualified Test.RandomStrings as RS
 
 type ExpirationTime = Int
 
@@ -380,6 +382,31 @@ withLockRedisAndReturnValue key timeout func = do
     getLock = do
       lockAvailable <- tryLockRedis key timeout
       unless lockAvailable getLock
+
+withWaitOnLockRedisWithExpiry :: (HedisFlow m env, MonadMask m) => Text -> ExpirationTime -> ExpirationTime -> m () -> m ()
+withWaitOnLockRedisWithExpiry key timeout recursionTimeOut func = do
+  uuid <- T.pack <$> liftIO (RS.randomString (RS.onlyAlphaNum RS.randomASCII) 10)
+  let keyE = "recursion timeout for:" <> uuid
+  setExp keyE True recursionTimeOut
+  withWaitOnLockRedisWithExpiry' keyE key timeout func
+
+withWaitOnLockRedisWithExpiry' :: (HedisFlow m env, MonadMask m) => Text -> Text -> ExpirationTime -> m () -> m ()
+withWaitOnLockRedisWithExpiry' recursionTimedOutKey key timeout func = do
+  toExecute <- getLock recursionTimedOutKey
+  when toExecute $ do
+    finally func $ do
+      unlockRedis key
+      del recursionTimedOutKey
+  where
+    getLock recurrsionTimedOutKey' = do
+      get recurrsionTimedOutKey' >>= \case
+        Just a -> do
+          lockAvailable <- tryLockRedis key timeout
+          if not lockAvailable && a
+            then getLock recurrsionTimedOutKey'
+            else return True
+        Nothing -> do
+          tryLockRedis key timeout
 
 buildLockResourceName :: (IsString a) => Text -> a
 buildLockResourceName key = fromString $ "mobility:locker:" <> Text.unpack key
