@@ -213,16 +213,15 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1700111337,
+        "lastModified": 1700137322,
         "narHash": "sha256-QHWoOy48nH/V3uqPhIjQnCWqiIQVWuDOQlAe1KSjR84=",
         "owner": "nammayatri",
         "repo": "common",
-        "rev": "295b96a1cda479fbc28039df772efe1755d0340c",
+        "rev": "d5e3ed3f389cc5f5d3272912aa5207afba9436a0",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
-        "ref": "Mobility-GHC927-disable-hls-fourmolu",
         "repo": "common",
         "type": "github"
       }
