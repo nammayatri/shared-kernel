@@ -9,6 +9,7 @@ module Kernel.Beam.Lib.UtilsTH
     mkTableInstancesGenericSchemaWithTModifier,
     mkBeamInstancesForEnum,
     mkBeamInstancesForList,
+    mkBeamInstancesForEnumAndList,
     mkBeamInstancesForJSON,
   )
 where
@@ -375,6 +376,33 @@ mkBeamInstancesForList name = do
 
     instance FromField $tyQ where
       fromField = fromFieldEnum
+
+    instance HasSqlValueSyntax be (V.Vector Text) => HasSqlValueSyntax be [$tyQ] where
+      sqlValueSyntax x = sqlValueSyntax (V.fromList (T.pack . show <$> x))
+
+    instance BeamSqlBackend be => B.HasSqlEqualityCheck be [$tyQ]
+
+    instance FromBackendRow Postgres [$tyQ]
+    |]
+
+mkBeamInstancesForEnumAndList :: Name -> Q [Dec]
+mkBeamInstancesForEnumAndList name = do
+  let tyQ = pure (ConT name)
+  [d|
+    instance FromField $tyQ where
+      fromField = fromFieldEnum
+
+    instance HasSqlValueSyntax be String => HasSqlValueSyntax be $tyQ where
+      sqlValueSyntax = autoSqlValueSyntax
+
+    instance BeamSqlBackend be => B.HasSqlEqualityCheck be $tyQ
+
+    instance FromBackendRow Postgres $tyQ
+
+    instance FromField [$tyQ] where
+      fromField f mbValue = case mbValue of
+        Nothing -> DPSF.returnError UnexpectedNull f mempty
+        Just _ -> V.toList <$> fromField f mbValue
 
     instance HasSqlValueSyntax be (V.Vector Text) => HasSqlValueSyntax be [$tyQ] where
       sqlValueSyntax x = sqlValueSyntax (V.fromList (T.pack . show <$> x))

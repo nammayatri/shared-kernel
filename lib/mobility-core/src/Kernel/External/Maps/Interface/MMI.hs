@@ -238,6 +238,7 @@ snapToRoad mmiCfg req = do
   pure
     SnapToRoadResp
       { distance = dist,
+        confidence = 1.0, -- Considering MMI's default confidence as 1.0
         snappedPoints = listOfPoints
       }
   where
