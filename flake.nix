@@ -1,6 +1,6 @@
 {
   inputs = {
-    common.url = "github:nammayatri/common";
+    common.url = "github:nammayatri/common/Mobility-GHC927-disable-hls-fourmolu";
     nixpkgs.follows = "common/nixpkgs";
     haskell-flake.follows = "common/haskell-flake";
 
