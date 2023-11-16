@@ -21,6 +21,7 @@ module Kernel.External.Maps.Interface
     getRoutes,
     snapToRoadProvided,
     snapToRoad,
+    snapToRoadWithFallback,
     autoCompleteProvided,
     autoComplete,
     getPlaceDetailsProvided,
@@ -121,6 +122,32 @@ snapToRoadProvided = \case
   Google -> True
   OSRM -> True
   MMI -> True
+
+snapToRoadWithFallback ::
+  ( EncFlow m r,
+    EsqDBFlow m r,
+    CoreMetrics m,
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+  ) =>
+  SnapToRaodHandler m ->
+  SnapToRoadReq ->
+  m (MapsService, SnapToRoadResp)
+snapToRoadWithFallback SnapToRaodHandler {..} req = do
+  prividersList <- getProvidersList
+  when (null prividersList) $ throwError $ InternalError "No maps serive provider configured"
+  callSnapToRoadWithFallback prividersList
+  where
+    callSnapToRoadWithFallback [] = throwError $ InternalError "Not able to call snap to road with all the configured providers"
+    callSnapToRoadWithFallback (preferredProvider : restProviders) = do
+      mapsConfig <- getProviderConfig preferredProvider
+      result <- try @_ @SomeException $ snapToRoad mapsConfig req
+      case result of
+        Left _ -> callSnapToRoadWithFallback restProviders
+        Right res -> do
+          confidencethreshold <- getConfidenceThreshold
+          if res.confidence < confidencethreshold
+            then callSnapToRoadWithFallback restProviders
+            else return (preferredProvider, res)
 
 snapToRoad ::
   ( EncFlow m r,

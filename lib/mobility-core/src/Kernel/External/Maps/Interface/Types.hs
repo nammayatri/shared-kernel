@@ -48,6 +48,12 @@ import Kernel.External.Types (Language)
 import Kernel.Types.Common
 import Kernel.Utils.GenericPretty (PrettyShow)
 
+data SnapToRaodHandler m = SnapToRaodHandler
+  { getProvidersList :: m [MapsService],
+    getConfidenceThreshold :: m Double,
+    getProviderConfig :: MapsService -> m MapsServiceConfig
+  }
+
 data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MapsServiceConfig
@@ -168,6 +174,7 @@ newtype SnapToRoadReq = SnapToRoadReq
 
 data SnapToRoadResp = SnapToRoadResp
   { distance :: HighPrecMeters,
+    confidence :: Double,
     snappedPoints :: [LatLong]
   }
   deriving stock (Generic)

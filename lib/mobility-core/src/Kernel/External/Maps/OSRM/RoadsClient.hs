@@ -35,9 +35,10 @@ import Servant hiding (throwError)
 type MatchAPI =
   "match"
     :> "v1"
-    :> "car"
+    :> "driving"
     :> Capture "coordinates" PointsList
-    :> MandatoryQueryParam "tidy" AlwaysTrue
+    :> MandatoryQueryParam "overview" Text
+    :> MandatoryQueryParam "steps" AlwaysTrue
     :> QueryParam "radiuses" RadiusesList
     :> MandatoryQueryParam "geometries" GeometryRespType
     :> Get '[JSON] MatchResp
@@ -211,17 +212,17 @@ callOsrmMatchAPI osrmUrl mbRadius pointsList = do
   let pointsNum = length pointsList.getPointsList
       radiuses = flip fmap mbRadius $ \r -> RadiusesList $ replicate pointsNum r
   let eulerClient = Euler.client (Proxy @MatchAPI)
-  callAPI osrmUrl (eulerClient pointsList AlwaysTrue radiuses GeoJson) "osrm-match" (Proxy @MatchAPI)
+  callAPI osrmUrl (eulerClient pointsList "full" AlwaysTrue radiuses GeoJson) "osrm-match" (Proxy @MatchAPI)
     >>= fromEitherM (FailedToCallOsrmMatchAPI . show)
 
-getResultOneRouteExpected :: (Log m, MonadThrow m) => MatchResp -> m (HighPrecMeters, [Maps.LatLong])
+getResultOneRouteExpected :: (Log m, MonadThrow m) => MatchResp -> m (HighPrecMeters, Double, [Maps.LatLong])
 getResultOneRouteExpected resp = do
   logDebug $ T.pack $ defaultPretty resp
   route_ <- case NE.tail resp.matchings of
     [] -> pure $ NE.head resp.matchings
     (_ : _) -> throwError $ InternalError "OSRM failed to consider waypoints as part of one route, th result contains splitted routes"
   let points = map (.getLatLong) $ route_.geometry.coordinates
-  pure (realToFrac route_.distance, points)
+  pure (realToFrac route_.distance, route_.confidence, points)
 
 callOsrmGetDistancesAPI ::
   ( HasCallStack,

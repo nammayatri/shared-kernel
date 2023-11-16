@@ -27,7 +27,7 @@ import Data.LineString
 import Data.OpenApi
 import Data.Text
 import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum, mkBeamInstancesForList)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList, mkBeamInstancesForList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.GenericPretty (PrettyShow)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
@@ -35,7 +35,7 @@ import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 data MapsService = Google | OSRM | MMI
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-$(mkBeamInstancesForEnum ''MapsService)
+$(mkBeamInstancesForEnumAndList ''MapsService)
 
 availableMapsServices :: [MapsService]
 availableMapsServices = [Google, OSRM, MMI]

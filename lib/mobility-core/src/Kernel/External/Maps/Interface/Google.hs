@@ -236,6 +236,7 @@ snapToRoad cfg SnapToRoadReq {..} = do
   pure
     SnapToRoadResp
       { distance = dist,
+        confidence = 1.0, -- Considering Google's default confidence as 1.0
         snappedPoints = pts
       }
 
