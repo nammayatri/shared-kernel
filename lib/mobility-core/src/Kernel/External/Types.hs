@@ -19,7 +19,7 @@ module Kernel.External.Types where
 import Data.OpenApi
 import Database.Beam
 import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.External.Encryption (EncFlow)
 import Kernel.Storage.Esqueleto (EsqDBFlow)
 import Kernel.Types.CacheFlow (CacheFlow)
@@ -38,7 +38,7 @@ data Language
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
   deriving (PrettyShow) via Showable Language
 
-$(mkBeamInstancesForEnum ''Language)
+$(mkBeamInstancesForEnumAndList ''Language)
 
 instance FromHttpApiData Language where
   parseUrlPiece "en" = pure ENGLISH
