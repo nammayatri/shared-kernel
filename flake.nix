@@ -54,6 +54,7 @@
               jailbreak = true;
             };
             clickhouse-haskell.jailbreak = true;
+            generic-deriving.check = false;
           };
           autoWire = [ "packages" "checks" ];
         };
