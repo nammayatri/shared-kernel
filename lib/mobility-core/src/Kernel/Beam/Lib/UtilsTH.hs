@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Beam.Lib.UtilsTH
   ( enableKVPG,
@@ -11,6 +12,7 @@ module Kernel.Beam.Lib.UtilsTH
     mkBeamInstancesForList,
     mkBeamInstancesForJSON,
     mkCustomMappings,
+    -- ToSQLObject (..),
   )
 where
 
@@ -25,6 +27,7 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Database.Beam as B
 import Database.Beam.Backend
+import qualified Database.Beam.Backend.SQL.AST as B
 import Database.Beam.Postgres (Postgres)
 import qualified Database.Beam.Schema.Tables as B
 import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError (UnexpectedNull))
@@ -43,6 +46,33 @@ import qualified Prelude as P
 -- | WARNING! Instances should be defined in application itself to avoid overlapping
 class HasSchemaName tn where
   schemaName :: Proxy tn -> Text
+
+--- SQLObject ---
+
+-- TODO test this
+instance HasSqlValueSyntax B.Value A.Value where
+  sqlValueSyntax = autoSqlValueSyntax
+
+data SQLObject a = SQLObjectValue Text | SQLObjectList [Text]
+
+instance ToJSON (SQLObject a) where
+  toJSON (SQLObjectValue a) = A.String a
+  toJSON (SQLObjectList as) = A.Array (V.fromList $ A.String <$> as)
+
+class ToSQLObject a where
+  convertToSQLObject :: a -> SQLObject a
+
+instance HasSqlValueSyntax B.Value a => ToSQLObject a where
+  convertToSQLObject = SQLObjectValue . valueToText . sqlValueSyntax @B.Value
+
+-- FIXME remove overlapping if possible
+instance {-# OVERLAPPING #-} HasSqlValueSyntax B.Value a => ToSQLObject [a] where
+  convertToSQLObject v = SQLObjectList (valueToText . sqlValueSyntax @B.Value <$> v)
+
+valueToText :: B.Value -> Text
+valueToText (B.Value v) = show v
+
+--- templates ---
 
 emptyTextHashMap :: HMI.HashMap Text Text
 emptyTextHashMap = HMI.empty
@@ -84,7 +114,8 @@ kvConnectorInstancesD name pKeyN sKeysN = do
       keyMapD = FunD 'KV.keyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (pKeyPair : sKeyPairs)))) []]
       primaryKeyD = FunD 'KV.primaryKey [Clause [] (NormalB getPrimaryKeyE) []]
       secondaryKeysD = FunD 'KV.secondaryKeys [Clause [] (NormalB getSecondaryKeysE) []]
-  return [InstanceD Nothing [] (AppT (ConT ''KV.KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) [tableNameD, keyMapD, primaryKeyD, secondaryKeysD]]
+  mkSQLObjectD <- genMkSQLObjectD name
+  return [InstanceD Nothing [] (AppT (ConT ''KV.KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) [tableNameD, keyMapD, primaryKeyD, secondaryKeysD, mkSQLObjectD]]
   where
     getPrimaryKeyE =
       let obj = mkName "obj"
@@ -105,6 +136,13 @@ kvConnectorInstancesD name pKeyN sKeysN = do
       let fieldName = (splitColon $ nameBase f)
        in AppE (AppE (AppE (VarE 'utilTransform) (VarE 'emptyValueHashMap)) (LitE . StringL $ fieldName)) (AppE (VarE $ mkName fieldName) (VarE obj))
     keyNameTextE n = AppE (VarE 'T.pack) (LitE $ StringL (splitColon $ nameBase n))
+
+genMkSQLObjectD :: Name -> Q Dec
+genMkSQLObjectD name = do
+  fieldNames <- extractRecFields . head . extractConstructors <$> reify name
+  let tName = mkName "table"
+  let fieldExps = fieldNames <&> (\fieldName -> (fieldName, VarE 'convertToSQLObject `AppE` (VarE fieldName `AppE` VarE tName)))
+  pure $ FunD 'KV.mkSQLObject [Clause [VarP tName] (NormalB (VarE 'toJSON `AppTypeE` (ConT name `AppT` ConT ''SQLObject) `AppE` RecConE (mkName $ nameBase name) fieldExps)) []]
 
 sortAndGetKey :: [Name] -> String
 sortAndGetKey names = do
@@ -319,6 +357,12 @@ mkToJSONInstance name = do
       toJSONInstance = FunD toJSONFn [Clause [] (NormalB (AppE (VarE 'A.genericToJSON) (VarE 'A.defaultOptions))) []]
   return $ InstanceD Nothing [] (AppT (ConT ''ToJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [toJSONInstance]
 
+mkSQLObjectToJSONInstance :: Name -> Q Dec
+mkSQLObjectToJSONInstance name = do
+  let toJSONFn = mkName "toJSON"
+      toJSONInstance = FunD toJSONFn [Clause [] (NormalB (AppE (VarE 'A.genericToJSON) (VarE 'A.defaultOptions))) []]
+  return $ InstanceD Nothing [] (AppT (ConT ''ToJSON) (AppT (ConT name) (ConT ''SQLObject))) [toJSONInstance]
+
 mkShowInstance :: Name -> Q Dec
 mkShowInstance name = do
   return $ StandaloneDerivD (Just StockStrategy) [] (AppT (ConT ''Show) (AppT (ConT name) (ConT $ mkName "Identity")))
@@ -342,10 +386,11 @@ mkTableInstances' name table mbSchema tableFieldModifier = do
   serialInstances <- mkSerialInstances name
   fromJSONInstances <- mkFromJSONInstance name
   toJSONInstances <- mkToJSONInstance name
+  sqlObjectToJSONInstance <- mkSQLObjectToJSONInstance name
   customMappings <- mkCustomMappings name tableFieldModifier
   showInstances <- mkShowInstance name
   (tModSig, tModBody) <- mkTModFunction tableFieldModifier name
-  pure ([tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances] <> customMappings)
+  pure ([tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances, sqlObjectToJSONInstance] <> customMappings)
 
 ------------------- instances for table row ---------------
 

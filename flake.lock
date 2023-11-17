@@ -350,16 +350,16 @@
         "sequelize": "sequelize"
       },
       "locked": {
-        "lastModified": 1699934475,
-        "narHash": "sha256-tK/oosYLTaWXGKZS7vMl60PU/yyBjEk5ruU9+NIjFxs=",
-        "owner": "vijaygupta18",
+        "lastModified": 1700223005,
+        "narHash": "sha256-D7EWBRQXlho39s6R3HAb49Lrr8qkV4nvxFn+VGYG9K8=",
+        "owner": "roman-bodavskiy",
         "repo": "euler-hs",
-        "rev": "481591c19a47ca5529362fe925f8a9cb427aa9fd",
+        "rev": "55b202e1c8c4eed9013b39338b1acac97cebcf70",
         "type": "github"
       },
       "original": {
-        "owner": "vijaygupta18",
-        "ref": "backend/adding-class-for-column-mapping",
+        "owner": "roman-bodavskiy",
+        "ref": "backend/db-object-contents-v2",
         "repo": "euler-hs",
         "type": "github"
       }
