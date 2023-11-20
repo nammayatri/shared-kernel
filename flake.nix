@@ -1,6 +1,6 @@
 {
   inputs = {
-    common.url = "github:nammayatri/common";
+    common.url = "github:nammayatri/common/commitizen";
 
     passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
     passetto-hs.flake = false;
