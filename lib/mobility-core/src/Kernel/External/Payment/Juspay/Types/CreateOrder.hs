@@ -143,3 +143,14 @@ data AutoRefundReq = AutoRefundReq
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data AutoRefundResp = AutoRefundResp
+  { order_id :: Text,
+    merchant_id :: Text,
+    customer_id :: Text,
+    currency :: Currency,
+    amount_refunded :: Double,
+    refunds :: Maybe [RefundsData]
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
