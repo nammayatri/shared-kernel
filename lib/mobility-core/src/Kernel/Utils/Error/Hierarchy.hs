@@ -30,5 +30,5 @@ instanceExceptionWithParent parent child =
   where
     unPat =
       let x = mkName "x"
-       in LamE [ConP parent [VarP x]] $
+       in LamE [ConP parent [] [VarP x]] $
             AppE (VarE 'cast) (VarE x)

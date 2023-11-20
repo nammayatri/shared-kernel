@@ -31,10 +31,12 @@ module Kernel.Utils.GenericPretty
 where
 
 import Data.Aeson
+import qualified Data.Aeson.Key as AesonKey
+import qualified Data.Aeson.KeyMap as AKM
+import qualified Data.Bifunctor as BFunc
 import qualified Data.ByteString as BS (ByteString)
 import qualified Data.ByteString.Lazy as BSL
 import Data.Fixed
-import qualified Data.HashMap.Strict as HMS
 import qualified Data.List.NonEmpty as NE
 import Data.Scientific
 import qualified Data.Text as Text (Text, pack, unpack)
@@ -235,7 +237,7 @@ instance PrettyShow Value where
   prettyShow Null = LEmpty
 
 instance PrettyShow Object where
-  prettyShow = LLay "" . Layout . map f . HMS.toList
+  prettyShow = LLay "" . Layout . map f . map (BFunc.first AesonKey.toText) . AKM.toList
     where
       f (fieldName, value) = LayoutUnit (Text.unpack fieldName) (prettyShow value)
 

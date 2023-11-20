@@ -1,6 +1,8 @@
 {
   inputs = {
     common.url = "github:nammayatri/common";
+    nixpkgs.follows = "common/nixpkgs";
+    haskell-flake.follows = "common/haskell-flake";
 
     passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
     passetto-hs.flake = false;
@@ -10,7 +12,11 @@
     prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
-    euler-hs.url = "github:juspay/euler-hs/ag/open-source";
+    euler-hs = {
+      url = "github:juspay/euler-hs/ag/open-source";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.haskell-flake.follows = "haskell-flake";
+    };
   };
   outputs = inputs:
     inputs.common.lib.mkFlake { inherit inputs; } {
@@ -48,9 +54,11 @@
               jailbreak = true;
             };
             clickhouse-haskell.jailbreak = true;
+            generic-deriving.check = false;
           };
           autoWire = [ "packages" "checks" ];
         };
+        process-compose = { };
         packages.default = self'.packages.mobility-core;
         devShells.default = pkgs.mkShell {
           # cf. https://haskell.flake.page/devshell#composing-devshells
@@ -63,4 +71,3 @@
       };
     };
 }
-

@@ -14,8 +14,9 @@
 
 module Kernel.Product.Validation.Context where
 
+import Control.Lens (view)
 import qualified EulerHS.Language as L
-import EulerHS.Prelude
+import EulerHS.Prelude hiding (view)
 import qualified Kernel.Types.Beckn.Context as CoreContext
 import Kernel.Types.Common
 import Kernel.Types.Error

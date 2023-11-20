@@ -1,6 +1,7 @@
 module Kernel.External.Notification.Interface.PayTM where
 
 import Data.Aeson
+import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T hiding (map)
 import qualified Kernel.External.Notification.Interface.Types as Interface
@@ -42,5 +43,5 @@ notifyPerson config req = do
   where
     toHashMap :: (ToJSON a) => a -> HM.HashMap Text Value
     toHashMap val = case toJSON val of
-      Object obj -> obj
+      Object obj -> AKM.toHashMapText obj
       _ -> HM.empty

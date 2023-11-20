@@ -6,7 +6,7 @@
 module Kernel.Beam.Types where
 
 import qualified Database.Beam.Postgres as BP
-import EulerHS.Prelude hiding (getOption)
+import EulerHS.Prelude
 import EulerHS.Types (DBConfig, OptionEntity)
 import Kernel.Streaming.Kafka.Producer.Types
 import qualified Kernel.Types.Common as KTC

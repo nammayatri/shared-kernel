@@ -79,7 +79,6 @@ import Database.Esqueleto.Experimental as EsqExport hiding
   )
 import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Esqueleto.Internal.Internal as Esq
-import Database.Persist.Class (OnlyOneUniqueKey, onlyUniqueP)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Class
 import Kernel.Storage.Esqueleto.DTypeBuilder
@@ -135,6 +134,7 @@ findAllInternal q = liftToBuilder . runTransaction . SelectSqlDB . SqlDB $ lift 
 create ::
   ( PersistEntity t,
     PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t,
     ToTType t a
   ) =>
   a ->
@@ -145,7 +145,8 @@ create q = do
 
 create' ::
   ( PersistEntity t,
-    PersistEntityBackend t ~ SqlBackend
+    PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t
   ) =>
   t ->
   FullEntitySqlDB ()
@@ -155,6 +156,7 @@ create' q = do
 createMany ::
   ( PersistEntity t,
     PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t,
     ToTType t a
   ) =>
   [a] ->
@@ -165,7 +167,8 @@ createMany q = do
 
 createMany' ::
   ( PersistEntity t,
-    PersistEntityBackend t ~ SqlBackend
+    PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t
   ) =>
   [t] ->
   FullEntitySqlDB ()
@@ -175,6 +178,7 @@ createMany' q = do
 createUnique ::
   ( PersistEntity t,
     PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t,
     ToTType t a
   ) =>
   a ->
@@ -185,7 +189,8 @@ createUnique q = do
 
 createUnique' ::
   ( PersistEntity t,
-    PersistEntityBackend t ~ SqlBackend
+    PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t
   ) =>
   t ->
   FullEntitySqlDB (Maybe (Key t))
@@ -285,6 +290,7 @@ repsert' k v = do
 upsert ::
   ( OnlyOneUniqueKey t,
     PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t,
     ToTType t a
   ) =>
   a ->
@@ -296,7 +302,8 @@ upsert r u = do
 
 upsert' ::
   ( OnlyOneUniqueKey t,
-    PersistEntityBackend t ~ SqlBackend
+    PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t
   ) =>
   t ->
   [SqlExpr (Entity t) -> SqlExpr Esq.Update] ->
@@ -308,6 +315,7 @@ upsert' r u = do
 upsertBy ::
   ( PersistEntity t,
     PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t,
     ToTType t a
   ) =>
   Unique t ->
@@ -326,7 +334,8 @@ upsertBy k r u = do
 
 upsertBy' ::
   ( PersistEntity t,
-    PersistEntityBackend t ~ SqlBackend
+    PersistEntityBackend t ~ SqlBackend,
+    SafeToInsert t
   ) =>
   Unique t ->
   t ->
