@@ -107,6 +107,28 @@ instance ToJSON NotificationStatus where
   toJSON PENDING = "PENDING"
   toJSON SUCCESS = "SUCCESS"
 
+data RefundStatus = REFUND_PENDING | REFUND_FAILURE | REFUND_SUCCESS | MANUAL_REVIEW
+  deriving stock (Show, Eq, Read, Ord, Generic)
+  deriving anyclass (ToSchema)
+
+derivePersistField "RefundStatus"
+
+$(mkBeamInstancesForEnum ''RefundStatus)
+
+instance FromJSON RefundStatus where
+  parseJSON (String "FAILURE") = pure REFUND_FAILURE
+  parseJSON (String "PENDING") = pure REFUND_PENDING
+  parseJSON (String "SUCCESS") = pure REFUND_SUCCESS
+  parseJSON (String "MANUAL_REVIEW") = pure MANUAL_REVIEW
+  parseJSON (String _) = parseFail "Expected type"
+  parseJSON e = typeMismatch "String" e
+
+instance ToJSON RefundStatus where
+  toJSON REFUND_FAILURE = "FAILURE"
+  toJSON REFUND_PENDING = "PENDING"
+  toJSON REFUND_SUCCESS = "SUCCESS"
+  toJSON MANUAL_REVIEW = "MANUAL_REVIEW"
+
 data TransactionStatus
   = NEW
   | PENDING_VBV
@@ -150,7 +172,9 @@ data OrderData = OrderData
     upi :: Maybe Upi,
     metadata :: Maybe MetaData,
     additional_info :: Maybe AdditionalInfo,
-    links :: Maybe LinkData
+    links :: Maybe LinkData,
+    amount_refunded :: Maybe Double,
+    refunds :: Maybe [RefundsData]
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -213,6 +237,18 @@ data MandateRetryInfo = MandateRetryInfo
     is_technical_retried :: Maybe Text,
     allowed_retry :: Maybe Text,
     is_business_retried :: Maybe Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RefundsData = RefundsData
+  { id :: Text,
+    amount :: Double,
+    status :: RefundStatus,
+    error_message :: Maybe Text,
+    error_code :: Maybe Text,
+    initiated_by :: Maybe Text,
+    unique_request_id :: Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

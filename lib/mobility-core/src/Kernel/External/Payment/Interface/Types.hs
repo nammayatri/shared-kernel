@@ -22,7 +22,7 @@ module Kernel.External.Payment.Interface.Types
 where
 
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
 import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
 import Kernel.Types.Common hiding (Currency)
@@ -74,7 +74,9 @@ data OrderStatusResp
         isRetriedOrder :: Maybe Bool,
         isRetargetedOrder :: Maybe Bool,
         retargetPaymentLink :: Maybe Text,
-        retargetPaymentLinkExpiry :: Maybe UTCTime
+        retargetPaymentLinkExpiry :: Maybe UTCTime,
+        amountRefunded :: Maybe HighPrecMoney,
+        refunds :: [RefundsData]
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -100,7 +102,9 @@ data OrderStatusResp
         mandateFrequency :: MandateFrequency,
         mandateMaxAmount :: HighPrecMoney,
         payerVpa :: Maybe Text,
-        upi :: Maybe Upi
+        upi :: Maybe Upi,
+        amountRefunded :: Maybe HighPrecMoney,
+        refunds :: [RefundsData]
       }
   | MandateStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -350,5 +354,28 @@ type OfferNotifyResp = APISuccess
 data AutoRefundReq = AutoRefundReq
   { orderId :: Text,
     requestId :: Text,
-    amount :: Double
+    amount :: HighPrecMoney
   }
+
+data AutoRefundResp = AutoRefundResp
+  { orderId :: Text,
+    merchantId :: Text,
+    customerId :: Text,
+    currency :: Currency,
+    amountRefunded :: Double,
+    refunds :: [RefundsData]
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RefundsData = RefundsData
+  { idAssignedByServiceProvider :: Text,
+    amount :: HighPrecMoney,
+    status :: RefundStatus,
+    errorMessage :: Maybe Text,
+    errorCode :: Maybe Text,
+    initiatedBy :: Maybe Text,
+    requestId :: Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)

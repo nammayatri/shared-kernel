@@ -238,7 +238,9 @@ mkOrderStatusResp Juspay.OrderData {..} =
           mandateFrequency = justMandate.frequency,
           mandateMaxAmount = justMandate.max_amount,
           payerVpa = payer_vpa,
-          upi = castUpi <$> upi
+          upi = castUpi <$> upi,
+          refunds = maybe [] mkRefundsData refunds,
+          amountRefunded = realToFrac <$> amount_refunded
         }
     Nothing -> do
       let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData metadata links additional_info
@@ -259,6 +261,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
           bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
           bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
           dateCreated = date_created,
+          refunds = maybe [] mkRefundsData refunds,
+          amountRefunded = realToFrac <$> amount_refunded,
           ..
         }
 
@@ -376,7 +380,9 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               mandateFrequency = justMandate.frequency,
               mandateMaxAmount = justMandate.max_amount,
               payerVpa = justOrder.payer_vpa,
-              upi = castUpi <$> justOrder.upi
+              upi = castUpi <$> justOrder.upi,
+              refunds = maybe [] mkRefundsData justOrder.refunds,
+              amountRefunded = realToFrac <$> justOrder.amount_refunded
             }
         Nothing -> do
           let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justOrder.metadata justOrder.links justOrder.additional_info
@@ -397,6 +403,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               amount = realToFrac justOrder.amount,
               currency = justOrder.currency,
               dateCreated = justOrder.date_created,
+              refunds = maybe [] mkRefundsData justOrder.refunds,
+              amountRefunded = realToFrac <$> justOrder.amount_refunded,
               ..
             }
     (Nothing, Just justMandate, _, _) ->
@@ -442,6 +450,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           amount = realToFrac justTransaction.txn_amount,
           currency = justTransaction.currency,
           dateCreated = Nothing,
+          refunds = [],
+          amountRefunded = Nothing,
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp
@@ -633,17 +643,43 @@ autoRefund ::
   ) =>
   JuspayCfg ->
   AutoRefundReq ->
-  m () ---- to do refund -----
+  m AutoRefundResp
 autoRefund config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  Juspay.autoRefund url apiKey req.orderId (mkAutoPayRequest req)
+  mkRefundResp <$> Juspay.autoRefund url apiKey req.orderId (mkAutoPayRequest req)
   where
     mkAutoPayRequest request =
       Juspay.AutoRefundReq
         { unique_request_id = request.requestId,
-          amount = request.amount
+          amount = realToFrac request.amount
         }
+
+mkRefundResp :: Juspay.AutoRefundResp -> AutoRefundResp
+mkRefundResp Juspay.AutoRefundResp {..} = do
+  AutoRefundResp
+    { orderId = order_id,
+      merchantId = merchant_id,
+      customerId = customer_id,
+      currency,
+      amountRefunded = amount_refunded,
+      refunds = maybe [] mkRefundsData refunds
+    }
+
+mkRefundsData :: [Juspay.RefundsData] -> [RefundsData]
+mkRefundsData =
+  map
+    ( \Juspay.RefundsData {..} ->
+        RefundsData
+          { idAssignedByServiceProvider = id,
+            amount = realToFrac amount,
+            status = status,
+            errorMessage = error_message,
+            errorCode = error_code,
+            initiatedBy = initiated_by,
+            requestId = unique_request_id
+          }
+    )
 
 parseRetargetAndRetryData ::
   Maybe Juspay.MetaData ->
