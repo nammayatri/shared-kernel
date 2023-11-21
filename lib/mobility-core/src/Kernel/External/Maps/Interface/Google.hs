@@ -39,7 +39,7 @@ import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
-import Kernel.Utils.CalculateDistance (everySnippetIs, getRouteLinearLength)
+import Kernel.Utils.CalculateDistance (getRouteLinearLength)
 import Kernel.Utils.Common hiding (id)
 
 getDistancesWrapper ::
@@ -220,7 +220,7 @@ snapToRoad ::
   ( HasCallStack,
     EncFlow m r,
     CoreMetrics m,
-    HasField "snapToRoadSnippetThreshold" r HighPrecMeters
+    MonadFlow m
   ) =>
   GoogleCfg ->
   SnapToRoadReq ->
@@ -230,8 +230,6 @@ snapToRoad cfg SnapToRoadReq {..} = do
   key <- decrypt cfg.googleKey
   res <- GoogleRoads.snapToRoad roadsUrl key points
   let pts = map (.location) res.snappedPoints
-  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
-  unless (everySnippetIs (< snippetThreshold) pts) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
   let dist = getRouteLinearLength pts
   pure
     SnapToRoadResp

@@ -46,6 +46,7 @@ import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
+import Kernel.Utils.CalculateDistance (everySnippetIs)
 import Kernel.Utils.Common hiding (id)
 
 getDistance ::
@@ -157,10 +158,13 @@ snapToRoad ::
   MapsServiceConfig ->
   SnapToRoadReq ->
   m SnapToRoadResp
-snapToRoad serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.snapToRoad cfg req
-  OSRMConfig osrmCfg -> OSRM.callOsrmMatch osrmCfg req
-  MMIConfig mmiCfg -> MMI.snapToRoad mmiCfg req
+snapToRoad serviceConfig req = do
+  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+  unless (everySnippetIs (< snippetThreshold) req.points) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
+  case serviceConfig of
+    GoogleConfig cfg -> Google.snapToRoad cfg req
+    OSRMConfig osrmCfg -> OSRM.callOsrmMatch osrmCfg req
+    MMIConfig mmiCfg -> MMI.snapToRoad mmiCfg req
 
 autoCompleteProvided :: MapsService -> Bool
 autoCompleteProvided = \case
