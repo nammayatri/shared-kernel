@@ -39,7 +39,7 @@ import Kernel.Utils.Common
 callOsrmMatch ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+    MonadFlow m
   ) =>
   OSRMCfg ->
   SnapToRoadReq ->

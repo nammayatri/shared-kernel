@@ -50,7 +50,7 @@ import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
-import Kernel.Utils.CalculateDistance (everySnippetIs, getRouteLinearLength)
+import Kernel.Utils.CalculateDistance (getRouteLinearLength)
 import Kernel.Utils.Common (logTagWarning)
 import Kernel.Utils.Error.Throwing
 
@@ -218,8 +218,7 @@ data Acc = Acc {minLat :: Double, maxLat :: Double, minLon :: Double, maxLon :: 
 snapToRoad ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m,
-    HasField "snapToRoadSnippetThreshold" r HighPrecMeters
+    Log m
   ) =>
   MMICfg ->
   IT.SnapToRoadReq ->
@@ -232,8 +231,6 @@ snapToRoad mmiCfg req = do
 
   let listOfSnappedPoints = sortOn (.waypoint_index) $ catMaybes $ resp.results.snappedPoints
   let listOfPoints = getPoints listOfSnappedPoints
-  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
-  unless (everySnippetIs (< snippetThreshold) listOfPoints) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
   let dist = getRouteLinearLength listOfPoints
   pure
     SnapToRoadResp
