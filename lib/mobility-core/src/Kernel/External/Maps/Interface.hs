@@ -142,7 +142,9 @@ snapToRoadWithFallback SnapToRaodHandler {..} req = do
       mapsConfig <- getProviderConfig preferredProvider
       result <- try @_ @SomeException $ snapToRoad mapsConfig req
       case result of
-        Left _ -> callSnapToRoadWithFallback restProviders
+        Left err -> do
+          logError $ "Failed to call snap to road provider: " <> show preferredProvider <> " error: " <> show err
+          callSnapToRoadWithFallback restProviders
         Right res -> do
           confidencethreshold <- getConfidenceThreshold
           if res.confidence < confidencethreshold
