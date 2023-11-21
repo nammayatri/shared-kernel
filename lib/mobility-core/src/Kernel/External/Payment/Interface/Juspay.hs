@@ -411,8 +411,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           sourceInfo = maybe SourceInfo {txnDate = Just now, sourceAmount = Just 0} castSourceInfo (justNotification.source_info),
           notificationType = justNotification.notification_type,
           juspayProviedId = justNotification.id,
-          responseCode = justNotification.response_code,
-          responseMessage = justNotification.response_message,
+          responseCode = listToMaybe $ catMaybes [justNotification.response_code, justNotification.provider_response >>= (.provider_response_code)],
+          responseMessage = listToMaybe $ catMaybes [justNotification.response_message, justNotification.provider_response >>= (.provider_response_message)],
           notificationId = justNotification.object_reference_id
         }
     (_, _, _, Just justTransaction) -> do

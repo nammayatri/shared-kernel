@@ -18,7 +18,7 @@ module Kernel.External.Payment.Juspay.Types.Webhook where
 
 import Data.Aeson
 import Kernel.External.Payment.Juspay.Types.Common
-import Kernel.External.Payment.Juspay.Types.Mandate (SourceInfo)
+import Kernel.External.Payment.Juspay.Types.Mandate (ProviderResponse, SourceInfo)
 import Kernel.Prelude
 import Kernel.Utils.Common
 
@@ -63,6 +63,7 @@ data WebhookNotificationData = WebhookNotificationData
     object_reference_id :: Text,
     response_code :: Maybe Text,
     response_message :: Maybe Text,
+    provider_response :: Maybe ProviderResponse,
     id :: Text
   }
   deriving stock (Show, Generic)
