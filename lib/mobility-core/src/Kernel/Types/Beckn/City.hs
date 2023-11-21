@@ -44,6 +44,7 @@ data City
   | Pondicherry
   | Goa
   | Pune
+  | Nashik
   | AnyCity
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
@@ -71,6 +72,8 @@ instance FromJSON City where
   parseJSON (String "Coimbatore") = pure Coimbatore
   parseJSON (String "std:020") = pure Pune
   parseJSON (String "Pune") = pure Pune
+  parseJSON (String "std:0253") = pure Nashik
+  parseJSON (String "Nashik") = pure Nashik
   parseJSON (String "std:0413") = pure Pondicherry
   parseJSON (String "Pondicherry") = pure Pondicherry
   parseJSON (String "std:08342") = pure Goa
@@ -94,6 +97,7 @@ instance ToJSON City where
   toJSON Pondicherry = String "std:0413"
   toJSON Goa = String "std:08342"
   toJSON Pune = String "std:020"
+  toJSON Nashik = String "std:0253"
   toJSON Mysore = String "std:0821"
   toJSON AnyCity = String "*"
 
@@ -122,6 +126,8 @@ instance FromHttpApiData City where
       parseLowerCaseCity "coimbatore" = Right Coimbatore
       parseLowerCaseCity "std:020" = Right Pune
       parseLowerCaseCity "pune" = Right Pune
+      parseLowerCaseCity "std:0253" = Right Nashik
+      parseLowerCaseCity "nashik" = Right Nashik
       parseLowerCaseCity "std:0413" = Right Pondicherry
       parseLowerCaseCity "pondicherry" = Right Pondicherry
       parseLowerCaseCity "std:08342" = Right Goa
@@ -144,5 +150,6 @@ instance ToHttpApiData City where
   toUrlPiece Pondicherry = "std:0413"
   toUrlPiece Goa = "std:08342"
   toUrlPiece Pune = "std:020"
+  toUrlPiece Nashik = "std:0253"
   toUrlPiece Mysore = "std:0821"
   toUrlPiece AnyCity = "*"
