@@ -15,9 +15,11 @@
 module Kernel.Beam.Lib.Utils where
 
 import Data.Aeson as A
+import qualified Data.Aeson.Key as AesonKey
+import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Strict as HM
-import Data.Text as T hiding (map)
+import Data.Text as T hiding (elem, map)
 import qualified Data.Text.Encoding as TE
 import EulerHS.KVConnector.Utils (getShardedHashTag)
 import qualified EulerHS.Language as L
@@ -35,9 +37,9 @@ textToSnakeCaseText = T.pack . quietSnake . T.unpack
 replaceMappings :: A.Value -> HM.HashMap Text Text -> A.Value
 replaceMappings (A.Object obj) mapp =
   A.Object $
-    HM.fromList $
-      map (\(key, val) -> (textToSnakeCaseText $ fromMaybe key (HM.lookup key mapp), val)) $
-        HM.toList obj
+    AKM.fromList $
+      map (\(key, val) -> (AesonKey.fromText (textToSnakeCaseText $ fromMaybe (AesonKey.toText key) (HM.lookup (AesonKey.toText key) mapp)), val)) $
+        AKM.toList obj
 replaceMappings x _ = x
 
 getMappings ::
