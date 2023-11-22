@@ -29,10 +29,7 @@ module Kernel.Beam.Functions
 where
 
 import Data.Aeson
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Serialize as Serialize
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
 import Database.Beam
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
@@ -41,7 +38,7 @@ import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta)
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log)
-import qualified Kafka.Producer as KafkaProd
+import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
@@ -50,9 +47,7 @@ import Kernel.Types.Error
 import Kernel.Utils.Common (CacheFlow, logDebug)
 import Kernel.Utils.Error (throwError)
 import Sequelize (Model, ModelMeta (modelSchemaName, modelTableName), OrderBy, Set, Where)
-import qualified System.Environment as SE
 import System.Random
-import Text.Casing
 
 -- classes for converting from beam types to ttypes and vice versa
 class
@@ -184,6 +179,7 @@ type BeamTable table =
     KVConnector (table Identity),
     FromJSON (table Identity),
     ToJSON (table Identity),
+    TableMappings (table Identity),
     Serialize.Serialize (table Identity),
     Show (table Identity)
   )
@@ -488,8 +484,9 @@ updateInternal updatedMeshConfig setClause whereClause = do
         else do
           shouldPushToKafka <- tableInKafka (modelTableName @table)
           when shouldPushToKafka $ do
-            topicName <- getKafkaTopic (modelSchemaName @table)
-            mapM_ (\object' -> void $ pushToKafkaForUpdate (modelTableName @table) object' topicName (getKeyForKafka $ getLookupKeyByPKey object')) res'
+            topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
+            let mappings = getMappings res'
+            mapM_ (\object' -> void $ pushToKafka (replaceMappings (toJSON object') mappings) topicName (getKeyForKafka $ getLookupKeyByPKey object')) res'
           logDebug $ "Updated rows DB: " <> show res'
     Left err -> throwError $ InternalError $ show err
 
@@ -509,10 +506,11 @@ updateOneInternal updatedMeshConfig setClause whereClause = do
         then logDebug $ "Updated row KV: " <> show obj
         else do
           shouldPushToKafka <- tableInKafka (modelTableName @table)
-          when shouldPushToKafka $ do
+          when shouldPushToKafka $
             whenJust obj $ \object' -> do
-              topicName <- getKafkaTopic (modelSchemaName @table)
-              void $ pushToKafkaForUpdate (modelTableName @table) object' topicName (getKeyForKafka $ getLookupKeyByPKey object')
+              topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
+              let newObject = replaceMappings (toJSON object') (getMappings [object'])
+              void $ pushToKafka newObject topicName (getKeyForKafka $ getLookupKeyByPKey object')
           logDebug $ "Updated row DB: " <> show obj
     Left err -> throwError $ InternalError $ show err
 
@@ -534,8 +532,9 @@ createInternal updatedMeshConfig toTType a = do
         else do
           shouldPushToKafka <- tableInKafka (modelTableName @table)
           when shouldPushToKafka $ do
-            topicName <- getKafkaTopic (modelSchemaName @table)
-            void $ pushToKafkaForCreate (modelTableName @table) tType topicName (getKeyForKafka $ getLookupKeyByPKey tType)
+            topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
+            let newObject = replaceMappings (toJSON tType) (getMappings [tType])
+            void $ pushToKafka newObject topicName (getKeyForKafka $ getLookupKeyByPKey tType)
           logDebug $ "Created row in DB: " <> show tType
     Left err -> throwError $ InternalError $ show err
 
@@ -554,72 +553,3 @@ deleteInternal updatedMeshConfig whereClause = do
         then logDebug $ "Deleted rows in KV: " <> show res
         else logDebug $ "Deleted rows in DB: " <> show res
     Left err -> throwError $ InternalError $ show err
-
-pushToKafkaForCreate :: (MonadFlow m, ToJSON (table Identity)) => Text -> table Identity -> Text -> Text -> m ()
-pushToKafkaForCreate modelName messageRecord topic key = do
-  isPushToKafka' <- L.runIO isPushToKafka
-  when isPushToKafka' $ do
-    let dbObject = getCreateObjectForKafka modelName messageRecord
-    kafkaProducerTools <- L.getOption KafkaConn
-    case kafkaProducerTools of
-      Nothing -> throwError $ InternalError "Kafka producer tools not found"
-      Just kafkaProducerTools' -> do
-        mbErr <- KafkaProd.produceMessage kafkaProducerTools'.producer (kafkaMessage topic dbObject key)
-        whenJust mbErr (throwError . KafkaUnableToProduceMessage)
-
-pushToKafkaForUpdate :: (MonadFlow m, ToJSON (table Identity)) => Text -> table Identity -> Text -> Text -> m ()
-pushToKafkaForUpdate modelName setClause topic key = do
-  isPushToKafka' <- L.runIO isPushToKafka
-  when isPushToKafka' $ do
-    let dbObject = getUpdateObjectForKafka modelName setClause
-    kafkaProducerTools <- L.getOption KafkaConn
-    case kafkaProducerTools of
-      Nothing -> throwError $ InternalError "Kafka producer tools not found"
-      Just kafkaProducerTools' -> do
-        mbErr <- KafkaProd.produceMessage kafkaProducerTools'.producer (kafkaMessage topic dbObject key)
-        whenJust mbErr (throwError . KafkaUnableToProduceMessage)
-
-kafkaMessage :: ToJSON a => Text -> a -> Text -> KafkaProd.ProducerRecord
-kafkaMessage topicName event key =
-  KafkaProd.ProducerRecord
-    { prTopic = KafkaProd.TopicName topicName,
-      prPartition = KafkaProd.UnassignedPartition,
-      prKey = Just $ TE.encodeUtf8 key,
-      prValue = Just . LBS.toStrict $ encode event
-    }
-
-getKafkaTopic :: (MonadFlow m) => Maybe Text -> m Text
-getKafkaTopic mSchema = do
-  modelName <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
-  if modelName == "atlas_driver_offer_bpp" then pure "driver-drainer" else pure "rider-drainer"
-
-getCreateObjectForKafka :: ToJSON a => Text -> a -> Value
-getCreateObjectForKafka modelName dbObject =
-  object
-    [ "contents" .= dbObject,
-      "tag" .= ((T.pack . pascal . T.unpack) modelName <> "Object")
-    ]
-
-getUpdateObjectForKafka :: ToJSON (table Identity) => Text -> table Identity -> Value
-getUpdateObjectForKafka modelName object' =
-  object
-    [ "contents"
-        .= toJSON object',
-      "tag" .= T.pack (pascal (T.unpack modelName) <> "Object"),
-      "type" .= ("UPDATE" :: Text)
-    ]
-
-isPushToKafka :: IO Bool
-isPushToKafka = fromMaybe False . (>>= readMaybe) <$> SE.lookupEnv "PUSH_TO_KAFKA"
-
-getKeyForKafka :: Text -> Text
-getKeyForKafka pKeyText = do
-  let shard = getShardedHashTag pKeyText
-  pKeyText <> shard
-
-tableInKafka :: L.MonadFlow m => Text -> m Bool
-tableInKafka modelName = do
-  tables <- L.getOption KBT.Tables
-  case tables of
-    Nothing -> pure False
-    Just tables' -> pure $ modelName `elem` (tables'.kafkaNonKVTables)
