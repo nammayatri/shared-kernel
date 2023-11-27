@@ -379,6 +379,7 @@ library
     , formatting
     , generic-lens
     , geojson
+    , hashmap
     , hedis
     , hex-text
     , hspec
@@ -531,6 +532,7 @@ test-suite mobility-core-tests
     , formatting
     , generic-lens
     , geojson
+    , hashmap
     , hedis
     , hex-text
     , hspec
