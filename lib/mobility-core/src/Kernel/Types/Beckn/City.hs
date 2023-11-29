@@ -80,8 +80,7 @@ instance FromJSON City where
   parseJSON (String "Mysore") = pure Mysore
   parseJSON (String "std:0816") = pure Tumakuru
   parseJSON (String "Tumakuru") = pure Tumakuru
-  parseJSON (String "*") = pure AnyCity
-  parseJSON (String _) = parseFail "Invalid City"
+  parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
 instance ToJSON City where
