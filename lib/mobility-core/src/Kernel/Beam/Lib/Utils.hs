@@ -21,6 +21,8 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Strict as HM
 import Data.Text as T hiding (elem, map)
 import qualified Data.Text.Encoding as TE
+import Data.Time
+import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import EulerHS.KVConnector.Utils (getShardedHashTag)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
@@ -38,9 +40,17 @@ replaceMappings :: A.Value -> HM.HashMap Text Text -> A.Value
 replaceMappings (A.Object obj) mapp =
   A.Object $
     AKM.fromList $
-      map (\(key, val) -> (AesonKey.fromText (textToSnakeCaseText $ fromMaybe (AesonKey.toText key) (HM.lookup (AesonKey.toText key) mapp)), val)) $
+      map (\(key, val) -> (AesonKey.fromText (textToSnakeCaseText $ fromMaybe (AesonKey.toText key) (HM.lookup (AesonKey.toText key) mapp)), convertIntoValidValForCkh val)) $
         AKM.toList obj
 replaceMappings x _ = x
+
+convertIntoValidValForCkh :: A.Value -> A.Value
+convertIntoValidValForCkh text = case text of
+  A.String text' -> case parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ" (T.unpack text') of
+    Nothing -> A.String text'
+    Just x -> A.Number $ fromInteger $ round (realToFrac (utcTimeToPOSIXSeconds x) :: Double)
+  A.Bool val -> if val then A.String "True" else A.String "False"
+  _ -> text
 
 getMappings ::
   forall table.
