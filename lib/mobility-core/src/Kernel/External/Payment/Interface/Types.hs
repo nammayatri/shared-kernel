@@ -230,12 +230,8 @@ data OfferListReq = OfferListReq
     registrationDate :: UTCTime,
     dutyDate :: UTCTime,
     paymentMode :: Text,
-    numOfRides :: Int,
-    offerListingMetric :: UDF6
+    numOfRides :: Int
   }
-
-data UDF6 = IS_VISIBLE | IS_APPLICABLE | LIST_BASED_ON_DATE UTCTime
-  deriving stock (Show, Eq, Generic, Read)
 
 data OfferOrder = OfferOrder
   { orderId :: Maybe Text,

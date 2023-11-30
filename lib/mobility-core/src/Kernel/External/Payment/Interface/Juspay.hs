@@ -463,15 +463,15 @@ offerList config req = do
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
 mkOfferListReq OfferListReq {..} =
   Juspay.OfferListReq
-    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides offerListingMetric,
+    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides,
       payment_method_info = [],
       customer = mkOfferCustomer <$> customer,
       offer_code = Nothing
     }
 
-mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> UDF6 -> Juspay.OfferOrder
+mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Juspay.OfferOrder
 ---- add duty day and payment mode respectively in holes ----
-mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides offerListingMetric =
+mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
@@ -480,13 +480,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
       udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate,
       udf3 = paymentMode,
       udf4 = pack $ formatTime defaultTimeLocale "%d_%m_%y" dutyDate,
-      udf5 = do
-        let strNumRides = show numOfRides
-        if strNumRides == "-1" then "DEFAULT" else strNumRides,
-      udf6 =
-        case offerListingMetric of
-          LIST_BASED_ON_DATE listingDates -> pack $ formatTime defaultTimeLocale "%d_%m_%y" listingDates
-          _ -> show offerListingMetric
+      udf5 = show numOfRides
     }
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
