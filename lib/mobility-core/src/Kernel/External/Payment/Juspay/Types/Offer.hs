@@ -41,8 +41,7 @@ data OfferOrder = OfferOrder
     --- need to be added after offers are configured accordingly on dashboard ----
     udf3 :: Text,
     udf4 :: Text,
-    udf5 :: Text,
-    udf6 :: Text
+    udf5 :: Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
