@@ -486,7 +486,8 @@ updateInternal updatedMeshConfig setClause whereClause = do
           when shouldPushToKafka $ do
             topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
             let mappings = getMappings res'
-            mapM_ (\object' -> void $ pushToKafka (replaceMappings (toJSON object') mappings) topicName (getKeyForKafka $ getLookupKeyByPKey object')) res'
+            handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update:  " <> show e <> "in topic" <> topicName) $
+              mapM_ (\object' -> void $ pushToKafka (replaceMappings (toJSON object') mappings) topicName (getKeyForKafka $ getLookupKeyByPKey object')) res'
           logDebug $ "Updated rows DB: " <> show res'
     Left err -> throwError $ InternalError $ show err
 
@@ -510,7 +511,8 @@ updateOneInternal updatedMeshConfig setClause whereClause = do
             whenJust obj $ \object' -> do
               topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
               let newObject = replaceMappings (toJSON object') (getMappings [object'])
-              void $ pushToKafka newObject topicName (getKeyForKafka $ getLookupKeyByPKey object')
+              handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update: " <> show e <> "in topic" <> topicName) $
+                void $ pushToKafka newObject topicName (getKeyForKafka $ getLookupKeyByPKey object')
           logDebug $ "Updated row DB: " <> show obj
     Left err -> throwError $ InternalError $ show err
 
@@ -534,7 +536,8 @@ createInternal updatedMeshConfig toTType a = do
           when shouldPushToKafka $ do
             topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
             let newObject = replaceMappings (toJSON tType) (getMappings [tType])
-            void $ pushToKafka newObject topicName (getKeyForKafka $ getLookupKeyByPKey tType)
+            handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while create: " <> show e <> "in topic" <> topicName) $
+              void $ pushToKafka newObject topicName (getKeyForKafka $ getLookupKeyByPKey tType)
           logDebug $ "Created row in DB: " <> show tType
     Left err -> throwError $ InternalError $ show err
 
