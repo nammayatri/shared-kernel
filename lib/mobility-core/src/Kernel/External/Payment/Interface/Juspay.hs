@@ -489,7 +489,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
     parseUDF6 offerListingMetric' = do
       case offerListingMetric' of
         LIST_BASED_ON_DATE listingDates -> pack $ formatTime defaultTimeLocale "%d_%m_%y" listingDates
-        _ -> show offerListingMetric
+        _ -> show offerListingMetric'
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
 mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile}
