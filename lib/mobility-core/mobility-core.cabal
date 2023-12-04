@@ -216,6 +216,9 @@ library
       Kernel.Tools.Metrics.CoreMetrics
       Kernel.Tools.Metrics.CoreMetrics.Types
       Kernel.Tools.Metrics.Init
+      Kernel.Tools.Slack
+      Kernel.Tools.Slack.Internal
+      Kernel.Tools.Slack.Middleware
       Kernel.Types.APISuccess
       Kernel.Types.App
       Kernel.Types.Base64
@@ -426,6 +429,7 @@ library
     , servant-multipart-client
     , servant-openapi3
     , servant-server
+    , slack-web
     , stm
     , string-conversions
     , tasty
@@ -579,6 +583,7 @@ test-suite mobility-core-tests
     , servant-multipart-client
     , servant-openapi3
     , servant-server
+    , slack-web
     , stm
     , string-conversions
     , tasty
