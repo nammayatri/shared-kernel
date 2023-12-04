@@ -74,3 +74,4 @@ callExotelAPI =
     (identity @ExotelError)
     Nothing
     (Just "EXOTEL_NOT_AVAILABLE")
+    Nothing

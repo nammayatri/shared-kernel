@@ -67,3 +67,4 @@ callMMIAutoSuggestAPI =
     (identity @MMIError)
     Nothing
     (Just "MMI_AUTO_SUGGEST_ERROR")
+    Nothing
