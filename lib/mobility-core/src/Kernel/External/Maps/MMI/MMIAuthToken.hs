@@ -71,6 +71,7 @@ callMMIAPI =
     (identity @MMIError)
     Nothing
     (Just "MMI_AUTH_ERROR")
+    Nothing
 
 redisMMIKey :: Text
 redisMMIKey = "Core:mmi_token"

@@ -62,3 +62,4 @@ callMMIGeocodeAPI =
     (identity @MMIError)
     Nothing
     (Just "MMI_GEOCODE_ERROR")
+    Nothing

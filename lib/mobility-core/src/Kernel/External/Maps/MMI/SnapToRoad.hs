@@ -48,6 +48,7 @@ callMMIAPI =
     (identity @MMIError)
     Nothing
     (Just "MMI_NOT_AVAILABLE")
+    Nothing
 
 mmiSnapToRoad ::
   ( EncFlow m r,

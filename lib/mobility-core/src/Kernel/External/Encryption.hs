@@ -34,6 +34,7 @@ module Kernel.External.Encryption
     EncryptedItem' (..),
     ShortHash (..),
     ShortHashable,
+    Hashable,
     encrypt,
     encrypt',
     decrypt,
@@ -57,6 +58,7 @@ import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Kernel.Types.App
 import Kernel.Types.Field
 import Kernel.Utils.Dhall (FromDhall)
+import Kernel.Utils.Servant.BaseUrl
 import Passetto.Client (EncryptedBase64 (..), EncryptedItem (..), PassettoContext, cliDecrypt, cliEncrypt, genericDecryptItem, genericEncryptItem, mkDefPassettoContext, throwLeft)
 import Passetto.Client.EncryptedItem (Encrypted (..))
 import Text.Hex (decodeHex, encodeHex)
@@ -247,3 +249,6 @@ getHash :: (EncFlow m r, ShortHashable a) => a -> m Text
 getHash a = do
   salt <- asks (.encTools.hashSalt)
   return $ encodeHex $ unShortHash $ evalShortHash (a, salt)
+
+instance Hashable BaseUrl where
+  hashWithSalt salt url = hashWithSalt salt (showBaseUrlText url)
