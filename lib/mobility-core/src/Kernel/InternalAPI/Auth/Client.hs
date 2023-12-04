@@ -37,7 +37,7 @@ auth ::
   m PersonId
 auth token = do
   url <- asks (.authServiceUrl)
-  callOwnAPI Nothing (Just "AUTH_FAILED") url (authAPI token) "auth" (Proxy @API)
+  callOwnAPI Nothing (Just "AUTH_FAILED") Nothing url (authAPI token) "auth" (Proxy @API)
     `catchOwnAPI` throwError . \case
       "INVALID_TOKEN" -> InvalidToken token
       "TOKEN_IS_NOT_VERIFIED" -> TokenIsNotVerified
