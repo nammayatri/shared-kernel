@@ -50,4 +50,4 @@ internalScriptsManagerKey :: String
 internalScriptsManagerKey = "internal-scripts-http-manager"
 
 callFaceVerificationApi :: CallAPI env api res
-callFaceVerificationApi = callApiUnwrappingApiError (identity @FaceVerificationError) (Just $ ET.ManagerSelector $ DT.pack internalScriptsManagerKey) (Just "FACE_VERIFICATION_ERROR")
+callFaceVerificationApi = callApiUnwrappingApiError (identity @FaceVerificationError) (Just $ ET.ManagerSelector $ DT.pack internalScriptsManagerKey) (Just "FACE_VERIFICATION_ERROR") Nothing

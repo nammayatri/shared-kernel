@@ -15,6 +15,7 @@
 module Kernel.Utils.Callback (withBecknCallbackMig, WithBecknCallbackMig) where
 
 import Control.Lens ((.~))
+import qualified Data.HashMap as HM
 import EulerHS.Prelude hiding ((.~))
 import qualified EulerHS.Types as ET
 import Kernel.Tools.Metrics.CoreMetrics
@@ -49,6 +50,7 @@ type WithBecknCallbackMig api callback_success m =
   Proxy api ->
   M.Context.Context ->
   BaseUrl ->
+  HM.Map Text Text ->
   m callback_success ->
   m AckResponse
 
@@ -56,7 +58,7 @@ withBecknCallbackMig ::
   (m () -> m ()) ->
   Maybe ET.ManagerSelector ->
   WithBecknCallbackMig api callback_success m
-withBecknCallbackMig doWithCallback auth actionName api context cbUrl action = do
+withBecknCallbackMig doWithCallback auth actionName api context cbUrl aclEndPointHashMap action = do
   now <- getCurrentTime
   cbAction <-
     M.Context.mapToCbAction actionName
@@ -68,7 +70,7 @@ withBecknCallbackMig doWithCallback auth actionName api context cbUrl action = d
   forkBecknCallback
     (someExceptionToCallbackReqMig cbContext)
     (BecknCallbackReq cbContext . Right)
-    (doWithCallback . void . callBecknAPI auth Nothing (show cbAction) api cbUrl)
+    (doWithCallback . void . callBecknAPI auth Nothing (show cbAction) api cbUrl aclEndPointHashMap)
     (show actionName)
     action
   return Ack

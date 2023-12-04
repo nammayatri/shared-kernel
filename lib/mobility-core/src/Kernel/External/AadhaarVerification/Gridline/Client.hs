@@ -55,7 +55,7 @@ verifyAadhaarOtp url apiKey authType transactionId req = do
     >>= validateVerifyResponseStatus
 
 callGridlineAPI :: CallAPI env api res
-callGridlineAPI = callApiUnwrappingApiError (identity @GridlineError) (Just $ ET.ManagerSelector $ T.pack gridlineHttpManagerKey) (Just "GRIDLINE_ERROR")
+callGridlineAPI = callApiUnwrappingApiError (identity @GridlineError) (Just $ ET.ManagerSelector $ T.pack gridlineHttpManagerKey) (Just "GRIDLINE_ERROR") Nothing
 
 validateGenerateResponseStatus :: (MonadThrow m, Log m) => Gridline.GridlineVerifyAadhaarResp -> m Gridline.GridlineVerifyAadhaarResp
 validateGenerateResponseStatus response = do

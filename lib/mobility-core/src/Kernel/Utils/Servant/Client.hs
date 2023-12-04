@@ -15,13 +15,14 @@
 module Kernel.Utils.Servant.Client where
 
 import qualified Data.Aeson as A
+import qualified Data.HashMap as HM
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id, notElem)
 import qualified EulerHS.Types as ET
 import GHC.Records.Extra (HasField)
-import Kernel.Prelude
+import Kernel.Prelude as KP
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error (ExternalAPICallError (..))
@@ -129,10 +130,18 @@ callApiUnwrappingApiError ::
   (err -> exc) ->
   Maybe ET.ManagerSelector ->
   Maybe Text ->
+  Maybe (HM.Map Text Text) ->
   CallAPI m api a
-callApiUnwrappingApiError toAPIException mbManagerSelector errorCodeMb baseUrl eulerClient desc api =
-  callApiExtractingApiError mbManagerSelector baseUrl eulerClient desc api
-    >>= unwrapEitherCallAPIError errorCodeMb baseUrl toAPIException
+callApiUnwrappingApiError toAPIException mbManagerSelector errorCodeMb aclEndPointHashMap baseUrl eulerClient desc api = do
+  case aclEndPointHashMap of
+    Nothing ->
+      do
+        callApiExtractingApiError mbManagerSelector baseUrl eulerClient desc api
+        >>= unwrapEitherCallAPIError errorCodeMb baseUrl toAPIException
+    Just aclEndPointMap -> do
+      newBaseUrl <- KP.parseBaseUrl $ fromMaybe (KP.showBaseUrl baseUrl) $ HM.lookup (KP.showBaseUrl baseUrl) aclEndPointMap
+      callApiExtractingApiError mbManagerSelector newBaseUrl eulerClient desc api
+        >>= unwrapEitherCallAPIError errorCodeMb newBaseUrl toAPIException
 
 -- Note on change:-
 -- As "ManagerSelector" is now a newtype wrapper around "Text" in new Euler-hs
