@@ -148,6 +148,7 @@ dependencies:
   - sequelize
   - concurrency
   - casing
+  - slack-web
 
 ghc-options:
   - -fwrite-ide-info

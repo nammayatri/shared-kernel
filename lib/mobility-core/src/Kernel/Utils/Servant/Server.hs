@@ -21,6 +21,8 @@ import GHC.Records.Extra (HasField)
 import Kernel.Prelude (identity)
 import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Metrics
 import qualified Kernel.Tools.Metrics.Init as Metrics
+import Kernel.Tools.Slack.Internal
+import Kernel.Tools.Slack.Middleware
 import Kernel.Types.App (EnvR (..), FlowHandlerR, FlowServerR)
 import Kernel.Types.Flow
 import Kernel.Types.Time
@@ -236,3 +238,32 @@ runServerWithHealthCheck ::
   IO ()
 runServerWithHealthCheck appEnv _ serverHandler waiMiddleware waiSettings servantCtx =
   runServer appEnv (Proxy @(HealthCheckAPI :<|> api)) (healthCheck :<|> serverHandler) waiMiddleware waiSettings servantCtx (const identity)
+
+runServerWithHealthCheckAndSlackNotification ::
+  forall env (api :: Type) ctx.
+  ( HasField "graceTerminationPeriod" env Seconds,
+    HasField "isShuttingDown" env Shutdown,
+    HasField "loggerConfig" env L.LoggerConfig,
+    HasField "loggerEnv" env LoggerEnv,
+    HasSlackEnv env,
+    HasField "port" env Port,
+    HasField "version" env Metrics.DeploymentVersion,
+    Metrics.SanitizedUrl api,
+    HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
+    HasServer api (EnvR env ': ctx)
+  ) =>
+  env ->
+  Proxy api ->
+  FlowServerR env api ->
+  (Application -> Application) ->
+  (Settings -> Settings) ->
+  Context ctx ->
+  (env -> IO ()) ->
+  (E.FlowRuntime -> FlowR env E.FlowRuntime) ->
+  IO ()
+runServerWithHealthCheckAndSlackNotification appEnv _ serverHandler waiMiddleware waiSettings servantCtx =
+  runServer appEnv (Proxy @(HealthCheckAPI :<|> api)) (healthCheck :<|> serverHandler) moreMiddleware waiSettings servantCtx (const identity)
+  where
+    moreMiddleware app =
+      waiMiddleware app
+        & notifyOnSlackMiddleware appEnv
