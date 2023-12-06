@@ -132,7 +132,7 @@ instance FromHttpApiData City where
       parseLowerCaseCity "std:0821" = Right Mysore
       parseLowerCaseCity "mysore" = Right Mysore
       parseLowerCaseCity "std:0816" = Right Tumakuru
-      parseLowerCaseCity "Tumakuru" = Right Tumakuru
+      parseLowerCaseCity "tumakuru" = Right Tumakuru
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
