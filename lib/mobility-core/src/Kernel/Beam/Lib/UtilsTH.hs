@@ -17,6 +17,7 @@ module Kernel.Beam.Lib.UtilsTH
 where
 
 import qualified Data.Aeson as A
+import Data.Coerce (coerce)
 import qualified Data.HashMap.Internal as HMI
 import qualified Data.HashMap.Strict as HM
 import Data.List (init, lookup, (!!))
@@ -34,6 +35,7 @@ import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError 
 import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import qualified EulerHS.KVConnector.Types as KV
 import EulerHS.Prelude hiding (Type, words)
+import Kernel.External.Encryption (DbHash (..))
 import Kernel.Types.Common ()
 import Kernel.Types.FromField (fromFieldEnum, fromFieldJSON)
 import Kernel.Utils.Text (encodeToText)
@@ -53,6 +55,7 @@ class HasSchemaName tn where
 instance HasSqlValueSyntax B.Value A.Value where
   sqlValueSyntax = autoSqlValueSyntax
 
+-- FIXME data SQLObject a = SQLObjectValue Text | SQLObjectList [SQLObject a]
 data SQLObject a = SQLObjectValue Text | SQLObjectList [Text]
 
 instance ToJSON (SQLObject a) where
@@ -66,8 +69,17 @@ instance HasSqlValueSyntax B.Value a => ToSQLObject a where
   convertToSQLObject = SQLObjectValue . valueToText . sqlValueSyntax @B.Value
 
 -- FIXME remove overlapping if possible
+-- FIXME should use ToSQLObject constraint, not HasSqlValueSyntax
 instance {-# OVERLAPPING #-} HasSqlValueSyntax B.Value a => ToSQLObject [a] where
   convertToSQLObject v = SQLObjectList (valueToText . sqlValueSyntax @B.Value <$> v)
+
+instance {-# OVERLAPPING #-} ToSQLObject a => ToSQLObject (Maybe a) where
+  convertToSQLObject mbA = case mbA of
+    Just a -> coerce @(SQLObject a) @(SQLObject (Maybe a)) $ convertToSQLObject a
+    Nothing -> coerce @(SQLObject SqlNull) @(SQLObject (Maybe a)) $ convertToSQLObject SqlNull
+
+instance {-# OVERLAPPING #-} ToSQLObject DbHash where
+  convertToSQLObject = SQLObjectValue . ("DbHash-" <>) . encodeToText
 
 valueToText :: B.Value -> Text
 valueToText (B.Value v) = show v
