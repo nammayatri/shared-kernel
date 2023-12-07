@@ -388,11 +388,11 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1699954198,
-        "narHash": "sha256-o7t0pQtXBo+pEXk7lJ7J2Z07HEWFvlTwy7ZPoPn4Ptw=",
+        "lastModified": 1701939462,
+        "narHash": "sha256-ZVrFeWGmj0zVpEn/iZncsDcDO4K4yzDz3h2K64aelLM=",
         "owner": "juspay",
         "repo": "euler-hs",
-        "rev": "9492f18e5a36e163c3c55965254fe97f4524f7ac",
+        "rev": "61ef36ab8bab51c59f5a62129ec2fb857db3d0c9",
         "type": "github"
       },
       "original": {
