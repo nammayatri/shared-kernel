@@ -21,16 +21,39 @@ import Data.OpenApi.Lens as L
 import Data.Text as T
 import Kernel.Prelude as Prelude
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
+import Text.Regex
 
 data Version = Version
   { major :: Int,
     minor :: Int,
-    maintenance :: Int
+    maintenance :: Int,
+    preRelease :: Maybe Text,
+    build :: Maybe Text
   }
   deriving (Show, Eq, Ord, Generic, FromJSON, ToJSON, ToSchema)
 
 versionToText :: Version -> Text
-versionToText Version {..} = show major <> "." <> show minor <> "." <> show maintenance
+versionToText Version {..} =
+  pack (show major) <> "." <> pack (show minor) <> "." <> pack (show maintenance)
+    <> maybe "" ("-" <>) preRelease
+    <> maybe "" ("+" <>) build
+
+textToVersion :: Text -> Either Text Version
+textToVersion versionText =
+  let versionStr = unpack versionText
+      regex = mkRegex "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(-[^+]+)?(\\+.+)?$"
+      matchResult = matchRegex regex versionStr
+   in case matchResult of
+        Just [majorStr, minorStr, maintenanceStr, preReleaseStr, buildStr] -> do
+          let mbMajor = readMaybe majorStr
+          let mbMinor = readMaybe minorStr
+          let mbMaintenance = readMaybe maintenanceStr
+          let preRelease = if preReleaseStr /= "" then Just (T.tail $ pack preReleaseStr) else Nothing -- Tail to remove the leading '-'
+          let build = if buildStr /= "" then Just (T.tail $ pack buildStr) else Nothing -- Tail to remove the leading '+'
+          case (mbMajor, mbMinor, mbMaintenance) of
+            (Just major, Just minor, Just maintenance) -> Right Version {..}
+            _ -> Left "Invalid version number"
+        _ -> Left "Version does not match expected format"
 
 instance ToParamSchema Version where
   toParamSchema _ =
@@ -42,13 +65,4 @@ instance ToHttpApiData Version where
   toUrlPiece = versionToText
 
 instance FromHttpApiData Version where
-  parseUrlPiece versionText = do
-    let listOfVersionParts = splitOn "." versionText
-    when (Prelude.length listOfVersionParts /= 3) (Left "bad version")
-    let [majorString, minorString, maintenanceString] = unpack <$> listOfVersionParts
-    let mbMajor = readMaybe majorString
-    let mbMinor = readMaybe minorString
-    let mbMaintenance = readMaybe maintenanceString
-    case (mbMajor, mbMinor, mbMaintenance) of
-      (Just major, Just minor, Just maintenance) -> return $ Version major minor maintenance
-      (_, _, _) -> Left "bad version"
+  parseUrlPiece = textToVersion
