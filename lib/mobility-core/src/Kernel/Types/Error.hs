@@ -164,6 +164,7 @@ data PersonError
   | PersonEmailExists
   | PersonCityInformationDoesNotExist Text
   | PersonCityInformationNotFound Text
+  | PersonMobileNumberIsNULL Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''PersonError
@@ -177,6 +178,7 @@ instance IsBaseError PersonError where
     PersonEmailExists -> Just "Email is already registered."
     PersonCityInformationDoesNotExist searchKey -> Just $ "No person city information matches passed data " <> show searchKey <> "."
     PersonCityInformationNotFound searchKey -> Just $ "Person city information with personId \"" <> show searchKey <> "\" not found."
+    PersonMobileNumberIsNULL personId -> Just $ "Mobile Number is NULL for personId \"" <> personId
 
 instance IsHTTPError PersonError where
   toErrorCode = \case
@@ -187,6 +189,7 @@ instance IsHTTPError PersonError where
     PersonEmailExists -> "PERSON_EMAIL_ALREADY_EXISTS"
     PersonCityInformationDoesNotExist _ -> "PERSON_CITY_INFORMATION_DOES_NOT_EXIST"
     PersonCityInformationNotFound _ -> "PERSON_CITY_INFORMATION_NOT_FOUND"
+    PersonMobileNumberIsNULL _ -> "PERSON_MOBILE_NUMBER_IS_NULL"
   toHttpCode = \case
     PersonNotFound _ -> E500
     PersonDoesNotExist _ -> E400
@@ -195,6 +198,7 @@ instance IsHTTPError PersonError where
     PersonEmailExists -> E400
     PersonCityInformationDoesNotExist _ -> E400
     PersonCityInformationNotFound _ -> E500
+    PersonMobileNumberIsNULL _ -> E400
 
 instance IsAPIError PersonError
 
@@ -450,20 +454,6 @@ instance IsHTTPError RideError where
     DriverNotAtPickupLocation _ -> E400
 
 instance IsAPIError RideError
-
-newtype RiderDetailsError = RiderDetailsNotFound Text
-  deriving (Eq, Show, IsBecknAPIError)
-
-instanceExceptionWithParent 'HTTPException ''RiderDetailsError
-
-instance IsBaseError RiderDetailsError where
-  toMessage (RiderDetailsNotFound rideDetailId) = Just $ "RideDetails with rideDetailsId \"" <> show rideDetailId <> "\" not found. "
-
-instance IsHTTPError RiderDetailsError where
-  toErrorCode _ = "RIDER_DETAILS_NOT_FOUND"
-  toHttpCode _ = E500
-
-instance IsAPIError RiderDetailsError
 
 data DatabaseError
   = SQLRequestError Text Text
