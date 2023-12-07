@@ -48,11 +48,11 @@ notifyOnSlackMiddleware appEnv app req respF = do
                 then B.empty
                 else BL.toStrict body
       slackThread <- notifyApiCallOnSlack appEnv (BL.toStrict body) (path <> queryStrings) slackChannel
-      app (req {Wai.requestBody = returnBody}) (updateResponseOnThread slackThread)
+      app (req {Wai.requestBody = returnBody}) (updateResponseOnThread slackChannel slackThread)
     Nothing -> app req respF
   where
-    updateResponseOnThread (Right slackThread) resp = notifyApiCallResponseOnSlack appEnv resp (Just slackThread) *> respF resp
-    updateResponseOnThread (Left err) resp = print ("Slack SendMessageError: " <> show err :: Text) *> respF resp
+    updateResponseOnThread slackChannel (Right slackThread) resp = notifyApiCallResponseOnSlack slackChannel appEnv resp (Just slackThread) *> respF resp
+    updateResponseOnThread slackChannel (Left err) resp = print ("Slack SendMessageError: " <> (show err :: Text) <> " for channel -" <> slackChannel) *> respF resp
 
 notifyApiCallOnSlack :: (HasField "slackEnv" env SI.SlackEnv) => env -> ByteString -> ByteString -> Text -> IO (Slack.Response Chat.PostMsgRsp)
 notifyApiCallOnSlack appEnv body path sc = do
@@ -61,12 +61,13 @@ notifyApiCallOnSlack appEnv body path sc = do
       slackEnv = bool (appEnv.slackEnv {SI.channel = sc}) appEnv.slackEnv (sc == "default")
   Slack.notifyOnSlackIO slackEnv title body' Nothing Nothing
 
-notifyApiCallResponseOnSlack :: (HasField "slackEnv" env SI.SlackEnv) => env -> Wai.Response -> Maybe Chat.PostMsgRsp -> IO (Slack.Response Chat.PostMsgRsp)
-notifyApiCallResponseOnSlack appEnv resp st = do
+notifyApiCallResponseOnSlack :: (HasField "slackEnv" env SI.SlackEnv) => Text -> env -> Wai.Response -> Maybe Chat.PostMsgRsp -> IO (Slack.Response Chat.PostMsgRsp)
+notifyApiCallResponseOnSlack sc appEnv resp st = do
   let (status, _, _) = Wai.responseToStream resp
       code = HTTP.statusCode status
+      slackEnv = bool (appEnv.slackEnv {SI.channel = sc}) appEnv.slackEnv (sc == "default")
       respInfo :: Text = "statusCode: `" <> show code <> "` and message: `" <> cs (HTTP.statusMessage status) <> "`"
-  Slack.notifyOnSlackIO appEnv.slackEnv "" "" (Chat.postMsgRspTs <$> st) (attachment code respInfo)
+  Slack.notifyOnSlackIO slackEnv "" "" (Chat.postMsgRspTs <$> st) (attachment code respInfo)
   where
     createColoredAttachement color text = cs $ A.encode ([M.insert "author" "Response" . M.insert "text" text $ M.singleton "color" color] :: [M.Map Text Text])
 
