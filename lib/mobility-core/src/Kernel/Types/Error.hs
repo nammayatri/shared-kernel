@@ -892,17 +892,17 @@ instance IsHTTPError IdfyCallError where
 
 instance IsAPIError IdfyCallError
 
-data VersionError = VersionUnexpectedVersion
+data VersionError = VersionUnexpectedVersion Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''VersionError
 
 instance IsBaseError VersionError where
-  toMessage VersionUnexpectedVersion = Just "Version can't be read."
+  toMessage (VersionUnexpectedVersion err) = Just $ "Version can't be read. " <> err
 
 instance IsHTTPError VersionError where
-  toErrorCode VersionUnexpectedVersion = "UNEXPECTED_VERSION"
-  toHttpCode VersionUnexpectedVersion = E400
+  toErrorCode (VersionUnexpectedVersion _) = "UNEXPECTED_VERSION"
+  toHttpCode (VersionUnexpectedVersion _) = E400
 
 instance IsAPIError VersionError
 
