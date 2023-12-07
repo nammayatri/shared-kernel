@@ -45,12 +45,13 @@ replaceMappings (A.Object obj) mapp =
 replaceMappings x _ = x
 
 convertIntoValidValForCkh :: A.Value -> A.Value
-convertIntoValidValForCkh text = case text of
-  A.String text' -> case parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ" (T.unpack text') of
+convertIntoValidValForCkh dbValue = case dbValue of
+  A.String text' -> case parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ" (T.unpack text')
+    <|> parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q" (T.unpack text') of
     Nothing -> A.String text'
     Just x -> A.Number $ fromInteger $ round (realToFrac (utcTimeToPOSIXSeconds x) :: Double)
   A.Bool val -> if val then A.String "True" else A.String "False"
-  _ -> text
+  _ -> dbValue
 
 getMappings ::
   forall table.
