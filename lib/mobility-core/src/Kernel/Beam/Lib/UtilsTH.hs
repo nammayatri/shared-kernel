@@ -12,7 +12,8 @@ module Kernel.Beam.Lib.UtilsTH
     mkBeamInstancesForList,
     mkBeamInstancesForJSON,
     mkCustomMappings,
-    -- ToSQLObject (..),
+    ToSQLObject (..),
+    SQLObject (..),
   )
 where
 
@@ -55,12 +56,11 @@ class HasSchemaName tn where
 instance HasSqlValueSyntax B.Value A.Value where
   sqlValueSyntax = autoSqlValueSyntax
 
--- FIXME data SQLObject a = SQLObjectValue Text | SQLObjectList [SQLObject a]
-data SQLObject a = SQLObjectValue Text | SQLObjectList [Text]
+data SQLObject a = SQLObjectValue Text | SQLObjectList [SQLObject a]
 
 instance ToJSON (SQLObject a) where
   toJSON (SQLObjectValue a) = A.String a
-  toJSON (SQLObjectList as) = A.Array (V.fromList $ A.String <$> as)
+  toJSON (SQLObjectList as) = A.Array (V.fromList $ toJSON <$> as)
 
 class ToSQLObject a where
   convertToSQLObject :: a -> SQLObject a
@@ -69,9 +69,10 @@ instance HasSqlValueSyntax B.Value a => ToSQLObject a where
   convertToSQLObject = SQLObjectValue . valueToText . sqlValueSyntax @B.Value
 
 -- FIXME remove overlapping if possible
--- FIXME should use ToSQLObject constraint, not HasSqlValueSyntax
-instance {-# OVERLAPPING #-} HasSqlValueSyntax B.Value a => ToSQLObject [a] where
-  convertToSQLObject v = SQLObjectList (valueToText . sqlValueSyntax @B.Value <$> v)
+instance {-# OVERLAPPING #-} ToSQLObject a => ToSQLObject [a] where
+  convertToSQLObject v = do
+    let sqlObjectsList = convertToSQLObject <$> v
+    SQLObjectList $ coerce @(SQLObject a) @(SQLObject [a]) <$> sqlObjectsList
 
 instance {-# OVERLAPPING #-} ToSQLObject a => ToSQLObject (Maybe a) where
   convertToSQLObject mbA = case mbA of
@@ -79,7 +80,7 @@ instance {-# OVERLAPPING #-} ToSQLObject a => ToSQLObject (Maybe a) where
     Nothing -> coerce @(SQLObject SqlNull) @(SQLObject (Maybe a)) $ convertToSQLObject SqlNull
 
 instance {-# OVERLAPPING #-} ToSQLObject DbHash where
-  convertToSQLObject = SQLObjectValue . ("DbHash-" <>) . encodeToText
+  convertToSQLObject = SQLObjectValue . encodeToText
 
 valueToText :: B.Value -> Text
 valueToText (B.Value v) = show v
