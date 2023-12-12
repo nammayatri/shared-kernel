@@ -350,11 +350,11 @@
         "sequelize": "sequelize"
       },
       "locked": {
-        "lastModified": 1700223005,
-        "narHash": "sha256-D7EWBRQXlho39s6R3HAb49Lrr8qkV4nvxFn+VGYG9K8=",
+        "lastModified": 1702483744,
+        "narHash": "sha256-Rcykxqu08WX4KqH1SWRAYq6C266CChi+2gwehOr1rrQ=",
         "owner": "roman-bodavskiy",
         "repo": "euler-hs",
-        "rev": "55b202e1c8c4eed9013b39338b1acac97cebcf70",
+        "rev": "0a4bfd5e03f5f01502243cbd818b4d4ad1cca454",
         "type": "github"
       },
       "original": {
@@ -1672,17 +1672,17 @@
     "sequelize": {
       "flake": false,
       "locked": {
-        "lastModified": 1688647938,
-        "narHash": "sha256-F7nixhDpXNRrpgxRH3xtnN+FkB2HS44VMrnoq1VfBnI=",
-        "owner": "juspay",
+        "lastModified": 1702367514,
+        "narHash": "sha256-M7aiRz5GVYf5LbRy/v7icDs+6RhD3hFaSfD/8s0zX3w=",
+        "owner": "roman-bodavskiy",
         "repo": "haskell-sequelize",
-        "rev": "dc01b0f9e6ba5a51dd8f9d0744a549dc9c0ba244",
+        "rev": "3b76d42e7f474a778ef251320de814995949038f",
         "type": "github"
       },
       "original": {
-        "owner": "juspay",
+        "owner": "roman-bodavskiy",
+        "ref": "decouple-drainer-from-app",
         "repo": "haskell-sequelize",
-        "rev": "dc01b0f9e6ba5a51dd8f9d0744a549dc9c0ba244",
         "type": "github"
       }
     },

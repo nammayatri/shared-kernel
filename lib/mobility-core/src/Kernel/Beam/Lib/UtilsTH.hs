@@ -12,13 +12,10 @@ module Kernel.Beam.Lib.UtilsTH
     mkBeamInstancesForList,
     mkBeamInstancesForJSON,
     mkCustomMappings,
-    ToSQLObject (..),
-    SQLObject (..),
   )
 where
 
 import qualified Data.Aeson as A
-import Data.Coerce (coerce)
 import qualified Data.HashMap.Internal as HMI
 import qualified Data.HashMap.Strict as HM
 import Data.List (init, lookup, (!!))
@@ -29,7 +26,6 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Database.Beam as B
 import Database.Beam.Backend
-import qualified Database.Beam.Backend.SQL.AST as B
 import Database.Beam.Postgres (Postgres)
 import qualified Database.Beam.Schema.Tables as B
 import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError (UnexpectedNull))
@@ -42,6 +38,7 @@ import Kernel.Types.FromField (fromFieldEnum, fromFieldJSON)
 import Kernel.Utils.Text (encodeToText)
 import Language.Haskell.TH
 import qualified Sequelize as S
+import Sequelize.SQLObject (SQLObject (..), ToSQLObject (convertToSQLObject))
 import Text.Casing (camel, quietSnake)
 import Prelude (head)
 import qualified Prelude as P
@@ -52,38 +49,8 @@ class HasSchemaName tn where
 
 --- SQLObject ---
 
--- TODO test this
-instance HasSqlValueSyntax B.Value A.Value where
-  sqlValueSyntax = autoSqlValueSyntax
-
-data SQLObject a = SQLObjectValue Text | SQLObjectList [SQLObject a]
-
-instance ToJSON (SQLObject a) where
-  toJSON (SQLObjectValue a) = A.String a
-  toJSON (SQLObjectList as) = A.Array (V.fromList $ toJSON <$> as)
-
-class ToSQLObject a where
-  convertToSQLObject :: a -> SQLObject a
-
-instance HasSqlValueSyntax B.Value a => ToSQLObject a where
-  convertToSQLObject = SQLObjectValue . valueToText . sqlValueSyntax @B.Value
-
--- FIXME remove overlapping if possible
-instance {-# OVERLAPPING #-} ToSQLObject a => ToSQLObject [a] where
-  convertToSQLObject v = do
-    let sqlObjectsList = convertToSQLObject <$> v
-    SQLObjectList $ coerce @(SQLObject a) @(SQLObject [a]) <$> sqlObjectsList
-
-instance {-# OVERLAPPING #-} ToSQLObject a => ToSQLObject (Maybe a) where
-  convertToSQLObject mbA = case mbA of
-    Just a -> coerce @(SQLObject a) @(SQLObject (Maybe a)) $ convertToSQLObject a
-    Nothing -> coerce @(SQLObject SqlNull) @(SQLObject (Maybe a)) $ convertToSQLObject SqlNull
-
 instance {-# OVERLAPPING #-} ToSQLObject DbHash where
   convertToSQLObject = SQLObjectValue . encodeToText
-
-valueToText :: B.Value -> Text
-valueToText (B.Value v) = show v
 
 --- templates ---
 
