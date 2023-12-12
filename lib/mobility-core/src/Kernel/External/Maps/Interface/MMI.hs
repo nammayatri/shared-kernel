@@ -218,14 +218,15 @@ snapToRoad ::
   ( EncFlow m r,
     CoreMetrics m,
     Log m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
   ) =>
   MMICfg ->
   IT.SnapToRoadReq ->
   m IT.SnapToRoadResp
 snapToRoad mmiCfg req = do
-  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
-  unless (everySnippetIs (< snippetThreshold) req.points) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
+  droppedPointsThreshold <- asks (.droppedPointsThreshold)
+  unless (everySnippetIs (< droppedPointsThreshold) req.points) $ throwError (InternalError "Some snippets' length is above dropped points threshold for MMI")
   key <- decrypt mmiCfg.mmiApiKey
   let points = T.intercalate ";" $ latLongToMmiText <$> req.points
       mapsUrl = mmiCfg.mmiKeyUrl
@@ -233,6 +234,8 @@ snapToRoad mmiCfg req = do
 
   let listOfSnappedPoints = sortOn (.waypoint_index) $ catMaybes $ resp.results.snappedPoints
   let listOfPoints = getPoints listOfSnappedPoints
+  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+  unless (everySnippetIs (< snippetThreshold) listOfPoints) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
   let dist = getRouteLinearLength listOfPoints
   pure
     SnapToRoadResp
