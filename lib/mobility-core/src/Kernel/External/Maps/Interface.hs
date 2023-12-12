@@ -127,7 +127,8 @@ snapToRoadWithFallback ::
   ( EncFlow m r,
     EsqDBFlow m r,
     CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
   ) =>
   SnapToRaodHandler m ->
   SnapToRoadReq ->
@@ -152,7 +153,8 @@ snapToRoadWithFallback SnapToRaodHandler {..} req = do
 snapToRoad ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
   ) =>
   MapsServiceConfig ->
   SnapToRoadReq ->

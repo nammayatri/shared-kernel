@@ -220,12 +220,15 @@ snapToRoad ::
   ( HasCallStack,
     EncFlow m r,
     CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
   ) =>
   GoogleCfg ->
   SnapToRoadReq ->
   m SnapToRoadResp
 snapToRoad cfg SnapToRoadReq {..} = do
+  droppedPointsThreshold <- asks (.droppedPointsThreshold)
+  unless (everySnippetIs (< droppedPointsThreshold) points) $ throwError (InternalError "Some snippets' length is above dropped points threshold")
   let roadsUrl = cfg.googleRoadsUrl
   key <- decrypt cfg.googleKey
   res <- GoogleRoads.snapToRoad roadsUrl key points
