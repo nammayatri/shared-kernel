@@ -131,23 +131,29 @@ snapToRoadWithFallback ::
   ) =>
   SnapToRaodHandler m ->
   SnapToRoadReq ->
-  m (MapsService, SnapToRoadResp)
+  m ([MapsService], Maybe SnapToRoadResp, Bool)
 snapToRoadWithFallback SnapToRaodHandler {..} req = do
   prividersList <- getProvidersList
   when (null prividersList) $ throwError $ InternalError "No maps serive provider configured"
   callSnapToRoadWithFallback prividersList
   where
-    callSnapToRoadWithFallback [] = throwError $ InternalError "Not able to call snap to road with all the configured providers"
+    callSnapToRoadWithFallback [] = do
+      logWarning $ "Snap to raod failed with all the configured providers"
+      return ([], Nothing, True)
     callSnapToRoadWithFallback (preferredProvider : restProviders) = do
       mapsConfig <- getProviderConfig preferredProvider
       result <- try @_ @SomeException $ snapToRoad mapsConfig req
       case result of
-        Left _ -> callSnapToRoadWithFallback restProviders
+        Left _ -> do
+          (servicesUsed, snapResponse, snapToRoadCallFailed) <- callSnapToRoadWithFallback restProviders
+          return (preferredProvider : servicesUsed, snapResponse, snapToRoadCallFailed)
         Right res -> do
           confidencethreshold <- getConfidenceThreshold
           if res.confidence < confidencethreshold
-            then callSnapToRoadWithFallback restProviders
-            else return (preferredProvider, res)
+            then do
+              (servicesUsed, snapResponse, snapToRoadCallFailed) <- callSnapToRoadWithFallback restProviders
+              return (preferredProvider : servicesUsed, snapResponse, snapToRoadCallFailed)
+            else return ([preferredProvider], Just res, False)
 
 snapToRoad ::
   ( EncFlow m r,
