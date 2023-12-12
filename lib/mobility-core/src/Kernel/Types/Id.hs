@@ -50,7 +50,7 @@ instance (MonadGuid m) => GuidLike m (Id a) where
 newtype ShortId domain = ShortId
   { getShortId :: Text
   }
-  deriving stock (Generic, Show, Eq)
+  deriving stock (Generic, Show, Eq, Ord)
   deriving newtype (ToJSON, FromJSON, ToHttpApiData, ToSchema, ToParamSchema, PrettyShow)
 
 instance FromDhall (ShortId a) where
