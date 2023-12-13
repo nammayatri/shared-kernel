@@ -13,7 +13,7 @@
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
     euler-hs = {
-      url = "github:juspay/euler-hs/ag/open-source";
+      url = "github:enigma-commits/euler-hs/Backend/feat/redis-cluster-pipelining";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.haskell-flake.follows = "haskell-flake";
     };
