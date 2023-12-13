@@ -142,23 +142,9 @@ createAndroidNotificationWithIcon title body notificationType mIcon =
         }
 
 createAndroidOverlayNotification ::
-  Maybe Text ->
-  Maybe Text ->
-  Maybe Text ->
-  Maybe Text ->
-  Maybe Text ->
-  [Text] ->
-  Maybe Text ->
-  Maybe Text ->
-  Maybe Text ->
-  Value ->
-  Maybe Int ->
-  Maybe Text ->
-  Maybe Text ->
-  Maybe [Text] ->
-  Maybe [FCMMediaLink] ->
+  FCMOverlayReq ->
   FCMOverlayNotificationJSON
-createAndroidOverlayNotification title description imageUrl okButtonText cancelButtonText actions link endPoint method reqBody delay contactSupportNumber toastMessage secondaryActions socialMediaLinks =
+createAndroidOverlayNotification _req@FCMOverlayReq {..} =
   FCMOverlayNotificationJSON
     { titleVisibility = isJust title,
       descriptionVisibility = isJust description,
