@@ -124,7 +124,17 @@ data KVTable = KVTable
   { nameOfTable :: Text,
     percentEnable :: Natural
   }
-  deriving (Generic, Eq, Show, ToJSON, FromJSON, FromDhall)
+  deriving (Generic, Eq, Show, ToJSON, FromJSON, FromDhall, Ord)
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be KVTable where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be KVTable
+
+instance FromBackendRow Postgres KVTable
+
+instance FromField KVTable where
+  fromField = fromFieldJSON
 
 data Tables = Tables
   { enableKVForWriteAlso :: [KVTable],
@@ -132,6 +142,16 @@ data Tables = Tables
     kafkaNonKVTables :: [Text]
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Tables where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Tables
+
+instance FromBackendRow Postgres Tables
+
+instance FromField Tables where
+  fromField = fromFieldJSON
 
 instance Show HighPrecMoney where
   show = Text.Show.show @Double . realToFrac

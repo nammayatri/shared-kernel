@@ -42,10 +42,11 @@ import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
+import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Types.Common
 import Kernel.Types.Error
-import Kernel.Utils.Common (CacheFlow, logDebug)
-import Kernel.Utils.Error (throwError)
+import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Logging (logDebug)
 import Sequelize (Model, ModelMeta (modelSchemaName, modelTableName), OrderBy, Set, Where)
 import System.Random
 

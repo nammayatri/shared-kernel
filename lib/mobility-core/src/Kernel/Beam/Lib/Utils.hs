@@ -29,8 +29,9 @@ import EulerHS.Prelude
 import qualified Kafka.Producer as KafkaProd
 import Kernel.Beam.Types (KafkaConn (..), TableMappings (getTableMappings))
 import qualified Kernel.Beam.Types as KBT
+import Kernel.Types.App
 import Kernel.Types.Error
-import Kernel.Utils.Common
+import Kernel.Utils.Error.Throwing (throwError)
 import Text.Casing (camel, quietSnake)
 
 textToSnakeCaseText :: Text -> Text
