@@ -277,6 +277,26 @@ $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMNotificatio
 instance Default FCMNotification where
   def = FCMNotification Nothing Nothing Nothing
 
+data FCMOverlayReq = FCMOverlayReq
+  { title :: Maybe Text,
+    description :: Maybe Text,
+    imageUrl :: Maybe Text,
+    okButtonText :: Maybe Text,
+    cancelButtonText :: Maybe Text,
+    actions :: [Text],
+    link :: Maybe Text,
+    endPoint :: Maybe Text,
+    method :: Maybe Text,
+    reqBody :: Value,
+    delay :: Maybe Int,
+    contactSupportNumber :: Maybe Text,
+    toastMessage :: Maybe Text,
+    secondaryActions :: Maybe [Text],
+    socialMediaLinks :: Maybe [FCMMediaLink],
+    showPushNotification :: Maybe Bool
+  }
+  deriving (Eq, Show, Generic, PrettyShow, ToSchema, FromJSON)
+
 data FCMMediaLink = FCMMediaLink
   { prefixImage :: Maybe Text,
     suffixImage :: Maybe Text,
@@ -314,7 +334,8 @@ data FCMOverlayNotificationJSON = FCMOverlayNotificationJSON
     contactSupportNumber :: !(Maybe Text),
     toastMessage :: !(Maybe Text),
     secondaryActions :: !(Maybe [Text]),
-    socialMediaLinks :: !(Maybe [FCMMediaLink])
+    socialMediaLinks :: !(Maybe [FCMMediaLink]),
+    showPushNotification :: !(Maybe Bool)
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
