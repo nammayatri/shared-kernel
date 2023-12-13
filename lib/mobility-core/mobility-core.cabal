@@ -173,6 +173,7 @@ library
       Kernel.Serviceability
       Kernel.Sms.Config
       Kernel.Storage.Beam.BecknRequest
+      Kernel.Storage.Beam.SystemConfigs
       Kernel.Storage.Clickhouse.Config
       Kernel.Storage.Clickhouse.Operators
       Kernel.Storage.Clickhouse.Queries
@@ -194,6 +195,7 @@ library
       Kernel.Storage.Hedis.Error
       Kernel.Storage.Hedis.Queries
       Kernel.Storage.Queries.BecknRequest
+      Kernel.Storage.Queries.SystemConfigs
       Kernel.Streaming.Kafka.Commons
       Kernel.Streaming.Kafka.Consumer
       Kernel.Streaming.Kafka.Consumer.Types
@@ -263,6 +265,7 @@ library
       Kernel.Types.Servant
       Kernel.Types.SlidingWindowCounters
       Kernel.Types.SlidingWindowLimiter
+      Kernel.Types.SystemConfigs
       Kernel.Types.Time
       Kernel.Types.TimeRFC339
       Kernel.Types.Validation
