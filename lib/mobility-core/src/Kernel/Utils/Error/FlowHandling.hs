@@ -30,39 +30,79 @@ import qualified Data.Aeson as A
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import GHC.Records.Extra
-import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
+-- import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
+
+import Kernel.Beam.Lib.UtilsTH
+import qualified Kernel.Beam.Types as KBT
+import Kernel.Storage.Beam.SystemConfigs
+import Kernel.Storage.Esqueleto.Config
+import Kernel.Storage.Hedis.Config
+import Kernel.Storage.Queries.SystemConfigs
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App
 import Kernel.Types.Beckn.Ack
+import Kernel.Types.CacheFlow
 import Kernel.Types.Common
 import Kernel.Types.Error as Err
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Flow
 import Kernel.Utils.Error.BaseError.HTTPError.APIError (toAPIError)
 import Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError (toBecknAPIError)
+import Kernel.Utils.Error.Throwing (fromMaybeM)
+import Kernel.Utils.IOLogging
 import Kernel.Utils.Logging
+import Kernel.Utils.Text
 import Network.HTTP.Types (Header, hContentType)
 import Network.HTTP.Types.Header (HeaderName)
 import Servant (ServerError (..))
 
-withFlowHandler :: FlowR r a -> FlowHandlerR r a
+withFlowHandler ::
+  ( HasField "cacheConfig" (EnvR r) CacheConfig,
+    HasField "esqDBEnv" (EnvR r) EsqDBEnv,
+    HasField "loggerEnv" (EnvR r) LoggerEnv,
+    HasField "isShuttingDown" r (TMVar ()),
+    Log (FlowR r),
+    CoreMetrics (FlowHandlerR r),
+    HedisFlow (FlowHandlerR r) (EnvR r),
+    HasSchemaName SystemConfigsT,
+    MonadFlow (FlowHandlerR r)
+  ) =>
+  FlowR r a ->
+  FlowHandlerR r a
 withFlowHandler flow = do
   (EnvR flowRt appEnv) <- ask
+  kvTables <- findById "kv_configs" >>= pure . decodeFromText @Tables >>= fromMaybeM (InternalError "Decoding failed")
+  L.setOptionLocal KBT.Tables kvTables
   liftIO . runFlowR flowRt appEnv $ flow
 
 withFlowHandlerAPI ::
   ( Metrics.CoreMetrics (FlowR r),
+    HasField "cacheConfig" (EnvR r) CacheConfig,
+    HasField "esqDBEnv" (EnvR r) EsqDBEnv,
     HasField "isShuttingDown" r (TMVar ()),
-    Log (FlowR r)
+    HasField "loggerEnv" (EnvR r) LoggerEnv,
+    Log (FlowR r),
+    CoreMetrics (FlowHandlerR r),
+    MonadFlow (FlowHandlerR r),
+    HasSchemaName SystemConfigsT,
+    HedisFlow (FlowHandlerR r) (EnvR r)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
 withFlowHandlerAPI = withFlowHandler . apiHandler . handleIfUp
 
 withFlowHandlerBecknAPI ::
-  ( HasCoreMetrics r,
+  ( Metrics.CoreMetrics (FlowR r),
+    HasField "esqDBEnv" (EnvR r) EsqDBEnv,
     HasField "isShuttingDown" r (TMVar ()),
-    Log (FlowR r)
+    HasField "loggerEnv" (EnvR r) LoggerEnv,
+    MonadFlow (FlowHandlerR r),
+    CoreMetrics (FlowHandlerR r),
+    HedisFlow (FlowHandlerR r) (EnvR r),
+    HasSchemaName SystemConfigsT,
+    Log (FlowR r),
+    (HasField "cacheConfig" (EnvR r) CacheConfig)
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
