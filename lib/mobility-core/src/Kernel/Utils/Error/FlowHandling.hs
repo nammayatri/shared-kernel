@@ -58,51 +58,75 @@ import Network.HTTP.Types.Header (HeaderName)
 import Servant (ServerError (..))
 
 withFlowHandler ::
-  ( HasField "cacheConfig" (EnvR r) CacheConfig,
-    HasField "esqDBEnv" (EnvR r) EsqDBEnv,
-    HasField "loggerEnv" (EnvR r) LoggerEnv,
-    HasField "isShuttingDown" r (TMVar ()),
-    Log (FlowR r),
-    CoreMetrics (FlowHandlerR r),
-    HedisFlow (FlowHandlerR r) (EnvR r),
-    HasSchemaName SystemConfigsT,
-    MonadFlow (FlowHandlerR r)
+  ( -- CacheFlow (FlowHandlerR r) (r),
+    HasField "cacheConfig" r CacheConfig,
+    HasField "enablePrometheusMetricLogging" r Bool,
+    HasField "enableRedisLatencyLogging" r Bool,
+    HasField "coreMetrics" r CoreMetricsContainer,
+    HasField "hedisClusterEnv" r HedisEnv,
+    HasField "hedisEnv" r HedisEnv,
+    HasField "hedisNonCriticalClusterEnv" r HedisEnv,
+    HasField "hedisNonCriticalEnv" r HedisEnv,
+    HasField "hedisMigrationStage" r Bool,
+    HasField "esqDBEnv" r EsqDBEnv,
+    HasField "loggerEnv" r LoggerEnv,
+    HasField "version" r DeploymentVersion,
+    HasSchemaName SystemConfigsT
   ) =>
   FlowR r a ->
   FlowHandlerR r a
 withFlowHandler flow = do
   (EnvR flowRt appEnv) <- ask
-  kvTables <- findById "kv_configs" >>= pure . decodeFromText @Tables >>= fromMaybeM (InternalError "Decoding failed")
-  L.setOptionLocal KBT.Tables kvTables
-  liftIO . runFlowR flowRt appEnv $ flow
+  liftIO . runFlowR flowRt appEnv $
+    findById "kv_configs"
+      >>= pure . decodeFromText @Tables
+      >>= fromMaybeM (InternalError "Decoding failed")
+      >>= L.setOptionLocal KBT.Tables
+      >> flow
 
 withFlowHandlerAPI ::
-  ( Metrics.CoreMetrics (FlowR r),
-    HasField "cacheConfig" (EnvR r) CacheConfig,
-    HasField "esqDBEnv" (EnvR r) EsqDBEnv,
-    HasField "isShuttingDown" r (TMVar ()),
-    HasField "loggerEnv" (EnvR r) LoggerEnv,
-    Log (FlowR r),
-    CoreMetrics (FlowHandlerR r),
-    MonadFlow (FlowHandlerR r),
+  ( -- CacheFlow (FlowHandlerR r) r,
+    HasField "cacheConfig" r CacheConfig,
+    HasField "enablePrometheusMetricLogging" r Bool,
+    HasField "enableRedisLatencyLogging" r Bool,
+    HasField "coreMetrics" r CoreMetricsContainer,
+    HasField "hedisClusterEnv" r HedisEnv,
+    HasField "hedisEnv" r HedisEnv,
+    HasField "hedisNonCriticalClusterEnv" r HedisEnv,
+    HasField "hedisNonCriticalEnv" r HedisEnv,
+    HasField "hedisMigrationStage" r Bool,
+    HasField "esqDBEnv" r EsqDBEnv,
+    HasField "loggerEnv" r LoggerEnv,
+    HasField "version" r DeploymentVersion,
+    -- EsqDBFlow (FlowHandlerR r) (EnvR r),
     HasSchemaName SystemConfigsT,
-    HedisFlow (FlowHandlerR r) (EnvR r)
+    Metrics.CoreMetrics (FlowR r),
+    HasField "isShuttingDown" r (TMVar ()),
+    Log (FlowR r)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
 withFlowHandlerAPI = withFlowHandler . apiHandler . handleIfUp
 
 withFlowHandlerBecknAPI ::
-  ( Metrics.CoreMetrics (FlowR r),
-    HasField "esqDBEnv" (EnvR r) EsqDBEnv,
+  ( -- CacheFlow (FlowHandlerR r) r,
+    -- EsqDBFlow (FlowHandlerR r) (EnvR r),
+    HasField "cacheConfig" r CacheConfig,
+    HasField "enablePrometheusMetricLogging" r Bool,
+    HasField "enableRedisLatencyLogging" r Bool,
+    HasField "coreMetrics" r CoreMetricsContainer,
+    HasField "hedisClusterEnv" r HedisEnv,
+    HasField "hedisEnv" r HedisEnv,
+    HasField "hedisNonCriticalClusterEnv" r HedisEnv,
+    HasField "hedisNonCriticalEnv" r HedisEnv,
+    HasField "hedisMigrationStage" r Bool,
+    HasField "esqDBEnv" r EsqDBEnv,
+    HasField "loggerEnv" r LoggerEnv,
+    HasField "version" r DeploymentVersion,
+    HasCoreMetrics r,
     HasField "isShuttingDown" r (TMVar ()),
-    HasField "loggerEnv" (EnvR r) LoggerEnv,
-    MonadFlow (FlowHandlerR r),
-    CoreMetrics (FlowHandlerR r),
-    HedisFlow (FlowHandlerR r) (EnvR r),
-    HasSchemaName SystemConfigsT,
     Log (FlowR r),
-    (HasField "cacheConfig" (EnvR r) CacheConfig)
+    HasSchemaName SystemConfigsT
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
