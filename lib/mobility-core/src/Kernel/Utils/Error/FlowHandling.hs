@@ -30,6 +30,7 @@ where
 import Control.Concurrent.STM (isEmptyTMVar)
 import Control.Monad.Reader
 import qualified Data.Aeson as A
+import Data.Time.Clock hiding (getCurrentTime)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import GHC.Records.Extra
@@ -59,12 +60,18 @@ withFlowHandler ::
   FlowHandlerR r a
 withFlowHandler flow = do
   (EnvR flowRt appEnv) <- ask
-  liftIO . runFlowR flowRt appEnv $
-    findById "kv_configs"
-      >>= pure . decodeFromText @Tables
-      >>= fromMaybeM (InternalError "Decoding failed")
-      >>= L.setOptionLocal KBT.Tables
-      >> flow
+  liftIO . runFlowR flowRt appEnv $ getAndSetKvConfigs >> flow
+  where
+    getAndSetKvConfigs = do
+      now <- getCurrentTime
+      kvConfigLastUpdatedTime <- L.getOption KBT.KvConfigLastUpdatedTime >>= maybe (L.setOption KBT.KvConfigLastUpdatedTime now >> pure now) pure
+      kvConfigUpdateFrequency <- L.getOption KBT.KvConfigUpdateFrequency >>= maybe (pure 10) pure
+      when (round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency) $ do
+        findById "kv_configs"
+          >>= pure . decodeFromText @Tables
+          >>= fromMaybeM (InternalError "Decoding failed")
+          >>= L.setOption KBT.Tables
+          >> L.setOption KBT.KvConfigLastUpdatedTime now
 
 -- in case of normal flow use withFlowHandler' as it does not have any extra constraints
 withFlowHandler' ::

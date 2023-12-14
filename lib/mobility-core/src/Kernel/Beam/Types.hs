@@ -5,6 +5,7 @@
 
 module Kernel.Beam.Types where
 
+import Data.Time.Clock
 import qualified Database.Beam.Postgres as BP
 import EulerHS.Prelude
 import EulerHS.Types (DBConfig, OptionEntity)
@@ -22,6 +23,18 @@ data Tables = Tables
   deriving anyclass (ToJSON, FromJSON)
 
 instance OptionEntity Tables KTC.Tables
+
+data KvConfigLastUpdatedTime = KvConfigLastUpdatedTime
+  deriving stock (Generic, Typeable, Show, Eq, Ord)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity KvConfigLastUpdatedTime UTCTime
+
+data KvConfigUpdateFrequency = KvConfigUpdateFrequency
+  deriving stock (Generic, Typeable, Show, Eq, Ord)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity KvConfigUpdateFrequency Int
 
 data PsqlDbCfgR1 = PsqlDbCfgR1
   deriving stock (Generic, Typeable, Show, Eq)
