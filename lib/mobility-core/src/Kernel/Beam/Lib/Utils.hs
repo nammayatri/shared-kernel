@@ -91,9 +91,10 @@ getKeyForKafka pKeyText = do
   let shard = getShardedHashTag pKeyText
   pKeyText <> shard
 
-tableInKafka :: L.MonadFlow m => Text -> m Bool
-tableInKafka modelName = do
-  tables <- L.getOption KBT.Tables
-  case tables of
-    Nothing -> pure False
-    Just tables' -> pure $ modelName `elem` (tables'.kafkaNonKVTables)
+-- commenting in case we need it in future
+-- tableInKafka :: L.MonadFlow m => Text -> m Bool
+-- tableInKafka modelName = do
+--   tables <- L.getOption KBT.Tables
+--   case tables of
+--     Nothing -> pure False
+--     Just tables' -> pure $ modelName `elem` (tables'.kafkaNonKVTables)
