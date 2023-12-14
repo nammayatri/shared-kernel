@@ -14,8 +14,11 @@
 
 module Kernel.Utils.Error.FlowHandling
   ( withFlowHandler,
+    withFlowHandler',
     withFlowHandlerAPI,
+    withFlowHandlerAPI',
     withFlowHandlerBecknAPI,
+    withFlowHandlerBecknAPI',
     apiHandler,
     becknApiHandler,
     someExceptionToBecknApiError,
@@ -30,19 +33,11 @@ import qualified Data.Aeson as A
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import GHC.Records.Extra
--- import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
-
-import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.Beam.Types as KBT
-import Kernel.Storage.Beam.SystemConfigs
-import Kernel.Storage.Esqueleto.Config
-import Kernel.Storage.Hedis.Config
 import Kernel.Storage.Queries.SystemConfigs
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
-import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App
 import Kernel.Types.Beckn.Ack
-import Kernel.Types.CacheFlow
 import Kernel.Types.Common
 import Kernel.Types.Error as Err
 import Kernel.Types.Error.BaseError.HTTPError
@@ -50,29 +45,16 @@ import Kernel.Types.Flow
 import Kernel.Utils.Error.BaseError.HTTPError.APIError (toAPIError)
 import Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError (toBecknAPIError)
 import Kernel.Utils.Error.Throwing (fromMaybeM)
-import Kernel.Utils.IOLogging
 import Kernel.Utils.Logging
 import Kernel.Utils.Text
 import Network.HTTP.Types (Header, hContentType)
 import Network.HTTP.Types.Header (HeaderName)
 import Servant (ServerError (..))
 
+-- we are using find query and setoption here which requires the constraint HasFlowHandlerR  has
+-- we will be withFlowHandler only in case db or redis call is required as it has the constraint for db and redis env in HasFlowHandlerR
 withFlowHandler ::
-  ( -- CacheFlow (FlowHandlerR r) (r),
-    HasField "cacheConfig" r CacheConfig,
-    HasField "enablePrometheusMetricLogging" r Bool,
-    HasField "enableRedisLatencyLogging" r Bool,
-    HasField "coreMetrics" r CoreMetricsContainer,
-    HasField "hedisClusterEnv" r HedisEnv,
-    HasField "hedisEnv" r HedisEnv,
-    HasField "hedisNonCriticalClusterEnv" r HedisEnv,
-    HasField "hedisNonCriticalEnv" r HedisEnv,
-    HasField "hedisMigrationStage" r Bool,
-    HasField "esqDBEnv" r EsqDBEnv,
-    HasField "loggerEnv" r LoggerEnv,
-    HasField "version" r DeploymentVersion,
-    HasSchemaName SystemConfigsT
-  ) =>
+  HasFlowHandlerR (FlowR r) r =>
   FlowR r a ->
   FlowHandlerR r a
 withFlowHandler flow = do
@@ -84,53 +66,51 @@ withFlowHandler flow = do
       >>= L.setOptionLocal KBT.Tables
       >> flow
 
+-- in case of normal flow use withFlowHandler' as it does not have any extra constraints
+withFlowHandler' ::
+  FlowR r a ->
+  FlowHandlerR r a
+withFlowHandler' flow = do
+  (EnvR flowRt appEnv) <- ask
+  liftIO . runFlowR flowRt appEnv $ flow
+
 withFlowHandlerAPI ::
-  ( -- CacheFlow (FlowHandlerR r) r,
-    HasField "cacheConfig" r CacheConfig,
-    HasField "enablePrometheusMetricLogging" r Bool,
-    HasField "enableRedisLatencyLogging" r Bool,
-    HasField "coreMetrics" r CoreMetricsContainer,
-    HasField "hedisClusterEnv" r HedisEnv,
-    HasField "hedisEnv" r HedisEnv,
-    HasField "hedisNonCriticalClusterEnv" r HedisEnv,
-    HasField "hedisNonCriticalEnv" r HedisEnv,
-    HasField "hedisMigrationStage" r Bool,
-    HasField "esqDBEnv" r EsqDBEnv,
-    HasField "loggerEnv" r LoggerEnv,
-    HasField "version" r DeploymentVersion,
-    -- EsqDBFlow (FlowHandlerR r) (EnvR r),
-    HasSchemaName SystemConfigsT,
+  ( HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
-    HasField "isShuttingDown" r (TMVar ()),
-    Log (FlowR r)
+    HasField "isShuttingDown" r (TMVar ())
   ) =>
   FlowR r a ->
   FlowHandlerR r a
 withFlowHandlerAPI = withFlowHandler . apiHandler . handleIfUp
 
-withFlowHandlerBecknAPI ::
-  ( -- CacheFlow (FlowHandlerR r) r,
-    -- EsqDBFlow (FlowHandlerR r) (EnvR r),
-    HasField "cacheConfig" r CacheConfig,
-    HasField "enablePrometheusMetricLogging" r Bool,
-    HasField "enableRedisLatencyLogging" r Bool,
-    HasField "coreMetrics" r CoreMetricsContainer,
-    HasField "hedisClusterEnv" r HedisEnv,
-    HasField "hedisEnv" r HedisEnv,
-    HasField "hedisNonCriticalClusterEnv" r HedisEnv,
-    HasField "hedisNonCriticalEnv" r HedisEnv,
-    HasField "hedisMigrationStage" r Bool,
-    HasField "esqDBEnv" r EsqDBEnv,
-    HasField "loggerEnv" r LoggerEnv,
-    HasField "version" r DeploymentVersion,
-    HasCoreMetrics r,
+-- created this for using it in mock-registry as it does not require any extra constraints
+withFlowHandlerAPI' ::
+  ( Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
-    Log (FlowR r),
-    HasSchemaName SystemConfigsT
+    Log (FlowR r)
+  ) =>
+  FlowR r a ->
+  FlowHandlerR r a
+withFlowHandlerAPI' = withFlowHandler' . apiHandler . handleIfUp
+
+withFlowHandlerBecknAPI ::
+  ( HasFlowHandlerR (FlowR r) r,
+    Metrics.CoreMetrics (FlowR r),
+    HasField "isShuttingDown" r (TMVar ())
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
 withFlowHandlerBecknAPI = withFlowHandler . becknApiHandler . handleIfUp
+
+-- created this for using it in beckn-gateway as it does not require any extra constraints
+withFlowHandlerBecknAPI' ::
+  ( Metrics.CoreMetrics (FlowR r),
+    HasField "isShuttingDown" r (TMVar ()),
+    Log (FlowR r)
+  ) =>
+  FlowR r AckResponse ->
+  FlowHandlerR r AckResponse
+withFlowHandlerBecknAPI' = withFlowHandler' . becknApiHandler . handleIfUp
 
 handleIfUp ::
   ( L.MonadFlow m,
