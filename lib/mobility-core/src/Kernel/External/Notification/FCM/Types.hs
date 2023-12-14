@@ -141,6 +141,7 @@ data FCMNotificationType
   | PAYMENT_NUDGE
   | DRIVER_NOTIFY
   | SAFETY_ALERT
+  | DRIVER_BIRTHDAY
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 

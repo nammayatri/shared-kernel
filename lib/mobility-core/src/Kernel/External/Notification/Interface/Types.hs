@@ -48,6 +48,7 @@ data Category
   | REFERRAL_ACTIVATED
   | CHAT_MESSAGE
   | SAFETY_ALERT
+  | DRIVER_BIRTHDAY
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
 data SubCategory
