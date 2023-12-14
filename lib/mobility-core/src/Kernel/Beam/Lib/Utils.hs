@@ -28,7 +28,6 @@ import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified Kafka.Producer as KafkaProd
 import Kernel.Beam.Types (KafkaConn (..), TableMappings (getTableMappings))
-import qualified Kernel.Beam.Types as KBT
 import Kernel.Types.App
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
@@ -90,9 +89,10 @@ getKeyForKafka pKeyText = do
   let shard = getShardedHashTag pKeyText
   pKeyText <> shard
 
-tableInKafka :: L.MonadFlow m => Text -> m Bool
-tableInKafka modelName = do
-  tables <- L.getOption KBT.Tables
-  case tables of
-    Nothing -> pure False
-    Just tables' -> pure $ modelName `elem` (tables'.kafkaNonKVTables)
+-- commenting in case we need it in future
+-- tableInKafka :: L.MonadFlow m => Text -> m Bool
+-- tableInKafka modelName = do
+--   tables <- L.getOption KBT.Tables
+--   case tables of
+--     Nothing -> pure False
+--     Just tables' -> pure $ modelName `elem` (tables'.kafkaNonKVTables)
