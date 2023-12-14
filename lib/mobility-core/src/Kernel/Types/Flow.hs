@@ -16,14 +16,20 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wwarn=missing-methods #-}
 
-module Kernel.Types.Flow (FlowR, runFlowR) where
+module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR) where
 
 import Control.Monad.IO.Unlift
 import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
+import Kernel.Beam.Lib.UtilsTH
+import Kernel.Storage.Beam.SystemConfigs
+import Kernel.Storage.Esqueleto.Config
+import Kernel.Storage.Hedis.Config
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Tools.Metrics.CoreMetrics.Types
+import Kernel.Types.CacheFlow
 import Kernel.Types.Forkable
 import Kernel.Types.Logging
 import Kernel.Types.MonadGuid
@@ -45,6 +51,15 @@ newtype FlowR r a = FlowR {unFlowR :: ReaderT r L.Flow a}
       MonadCatch,
       MonadMask
     )
+
+type HasFlowHandlerR m r =
+  ( HasCacheConfig r,
+    HasCoreMetrics r,
+    HedisFlow m r,
+    EsqDBFlow m r,
+    IOLogging.HasLog r,
+    HasSchemaName SystemConfigsT
+  )
 
 instance L.MonadFlow (FlowR r) where
   {-# INLINEABLE callServantAPI #-}
