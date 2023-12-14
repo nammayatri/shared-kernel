@@ -80,6 +80,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.REFERRAL_ACTIVATED -> FCM.REFERRAL_ACTIVATED
   Interface.CHAT_MESSAGE -> FCM.CHAT_MESSAGE
   Interface.SAFETY_ALERT -> FCM.SAFETY_ALERT
+  Interface.DRIVER_BIRTHDAY -> FCM.DRIVER_BIRTHDAY
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
