@@ -17,12 +17,9 @@
 
 module Kernel.Storage.Beam.SystemConfigs where
 
--- import qualified Data.Aeson as A
 import qualified Database.Beam as B
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
-
--- import qualified Data.Text as T
 
 data SystemConfigsT f = SystemConfigsT
   { id :: B.C f Text,
@@ -37,9 +34,6 @@ instance B.Table SystemConfigsT where
   primaryKey = Id . id
 
 type SystemConfigs = SystemConfigsT Identity
-
--- instance HasSchemaName SystemConfigsT where
---   schemaName _ = T.pack "dynamic_driver_offer_db"
 
 $(enableKVPG ''SystemConfigsT ['id] [])
 

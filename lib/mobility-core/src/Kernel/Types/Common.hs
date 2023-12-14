@@ -142,6 +142,12 @@ data Tables = Tables
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
+data KvConfigLastUpdatedTime = KvConfigLastUpdatedTime UTCTime
+  deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
+
+data KvConfigUpdateFrequency = KvConfigUpdateFrequency Int
+  deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
+
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be Tables where
   sqlValueSyntax = autoSqlValueSyntax
 
