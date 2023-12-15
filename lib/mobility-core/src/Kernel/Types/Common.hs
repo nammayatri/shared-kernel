@@ -17,7 +17,10 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wwarn=identities #-}
+
+{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Kernel.Types.Common
   ( module Kernel.Types.Common,
