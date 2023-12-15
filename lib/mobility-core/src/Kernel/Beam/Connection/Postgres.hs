@@ -10,6 +10,7 @@ import qualified Kernel.Beam.Connection.Types as ECT
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import qualified Kernel.Storage.Esqueleto.Config as KSEC
+import Kernel.Tools.Metrics.KvConfigMetrics as KTMK
 import qualified Kernel.Types.Common as KTC
 
 prepareDBConnectionsDriver :: L.MonadFlow m => ECT.ConnectionConfigDriver -> m ()
@@ -32,6 +33,15 @@ prepareTables :: L.MonadFlow m => KTC.Tables -> m ()
 prepareTables tables' = do
   L.setOption KBT.Tables tables'
   L.setOptionLocal ReplicaEnabled False
+
+setKvConfigUpdateFrequency :: L.MonadFlow m => Int -> m ()
+setKvConfigUpdateFrequency kvConfigUpdateFrequency = do
+  L.setOption KBT.KvConfigUpdateFrequency kvConfigUpdateFrequency
+  L.setOptionLocal ReplicaEnabled False
+
+setKvConfigMetrics :: L.MonadFlow m => m ()
+setKvConfigMetrics = do
+  L.setOption KTMK.KvConfigsCounterHandler' =<< L.runIO KTMK.makeKvConfigMetrics
 
 --   when EnvVars.getPrepareRedisClusterConnection prepareRedisClusterConnection
 

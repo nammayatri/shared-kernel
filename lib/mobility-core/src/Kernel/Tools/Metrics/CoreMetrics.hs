@@ -24,7 +24,6 @@ import Data.Text as DT
 import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude as E
-import GHC.Records.Extra
 import Kernel.Tools.Metrics.CoreMetrics.Types as Reexport
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Types.Error.BaseError.HTTPError (BaseException (..), HTTPException (..), IsBaseError (toMessage), IsHTTPError (toErrorCode, toHttpCode), IsHTTPException)

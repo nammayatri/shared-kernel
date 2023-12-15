@@ -218,6 +218,7 @@ library
       Kernel.Tools.Metrics.CoreMetrics
       Kernel.Tools.Metrics.CoreMetrics.Types
       Kernel.Tools.Metrics.Init
+      Kernel.Tools.Metrics.KvConfigMetrics
       Kernel.Tools.Slack
       Kernel.Tools.Slack.Internal
       Kernel.Tools.Slack.Middleware
@@ -378,6 +379,7 @@ library
     , double-conversion
     , either
     , esqueleto
+    , euler-events-hs >=2.0.0 && <2.1
     , euler-hs
     , exceptions
     , extra
@@ -531,6 +533,7 @@ test-suite mobility-core-tests
     , double-conversion
     , either
     , esqueleto
+    , euler-events-hs >=2.0.0 && <2.1
     , euler-hs
     , exceptions
     , extra

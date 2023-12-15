@@ -37,6 +37,7 @@ import GHC.Records.Extra
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Storage.Queries.SystemConfigs
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Tools.Metrics.KvConfigMetrics as KTMK
 import Kernel.Types.App
 import Kernel.Types.Beckn.Ack
 import Kernel.Types.Common
@@ -45,7 +46,6 @@ import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Flow
 import Kernel.Utils.Error.BaseError.HTTPError.APIError (toAPIError)
 import Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError (toBecknAPIError)
-import Kernel.Utils.Error.Throwing (fromMaybeM)
 import Kernel.Utils.Logging
 import Kernel.Utils.Text
 import Network.HTTP.Types (Header, hContentType)
@@ -66,12 +66,9 @@ withFlowHandler flow = do
       now <- getCurrentTime
       kvConfigLastUpdatedTime <- L.getOption KBT.KvConfigLastUpdatedTime >>= maybe (L.setOption KBT.KvConfigLastUpdatedTime now >> pure now) pure
       kvConfigUpdateFrequency <- L.getOption KBT.KvConfigUpdateFrequency >>= maybe (pure 10) pure
-      when (round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency) $ do
-        findById "kv_configs"
-          >>= pure . decodeFromText @Tables
-          >>= fromMaybeM (InternalError "Decoding failed")
-          >>= L.setOption KBT.Tables
-          >> L.setOption KBT.KvConfigLastUpdatedTime now
+      when (round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency) $
+        findById "kv_configs" >>= pure . decodeFromText' @Tables
+          >>= maybe (KTMK.publishKvConfigMetric KTMK.KvConfigDecodeFailure) (\result' -> L.setOption KBT.Tables result' >> L.setOption KBT.KvConfigLastUpdatedTime now)
 
 -- in case of normal flow use withFlowHandler' as it does not have any extra constraints
 withFlowHandler' ::
