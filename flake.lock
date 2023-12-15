@@ -376,15 +376,11 @@
           "flake-parts"
         ],
         "haskell-flake": [
-          "euler-hs",
-          "common",
           "haskell-flake"
         ],
         "hedis": "hedis",
         "juspay-extra": "juspay-extra",
         "nixpkgs": [
-          "euler-hs",
-          "common",
           "nixpkgs"
         ],
         "sequelize": "sequelize",
@@ -392,16 +388,16 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1702989746,
-        "narHash": "sha256-ZVy/rPeSHaoCP6UiqOfxWeuQllvDVVE5jtaSMaEvR44=",
-        "owner": "enigma-commits",
+        "lastModified": 1703150135,
+        "narHash": "sha256-VJVVXPuWSPcQmDrOatUot450vYqbBHHI9rG5VfHURyA=",
+        "owner": "vijaygupta18",
         "repo": "euler-hs",
-        "rev": "78f63d5648fa463cc78af909d9a9509d34a0b59c",
+        "rev": "ac64a725152982c74193c915df9424368449758a",
         "type": "github"
       },
       "original": {
         "owner": "vijaygupta18",
-        "ref": "backend/adding-class-for-column-mapping",
+        "ref": "backend/decouple-drainer-and-redis-pipelining",
         "repo": "euler-hs",
         "type": "github"
       }
@@ -1860,14 +1856,14 @@
       "locked": {
         "lastModified": 1702897959,
         "narHash": "sha256-uhv/uKOwu1IfFnYyFFB4k5dMrYcorjs1DCd6ehm9ReA=",
-        "owner": "roman-bodavskiy",
+        "owner": "vijaygupta18",
         "repo": "haskell-sequelize",
         "rev": "b109d29f46b611cd5ff7e0d09aead48076871210",
         "type": "github"
       },
       "original": {
-        "owner": "juspay",
-        "ref": "beckn-compatible",
+        "owner": "vijaygupta18",
+        "ref": "decouple-drainer-from-app",
         "repo": "haskell-sequelize",
         "type": "github"
       }

@@ -48,7 +48,7 @@ import Kernel.External.Types (Language)
 import Kernel.Types.Common
 import Kernel.Utils.GenericPretty (PrettyShow)
 
-data SnapToRaodHandler m = SnapToRaodHandler
+data SnapToRoadHandler m = SnapToRoadHandler
   { getProvidersList :: m [MapsService],
     getConfidenceThreshold :: m Double,
     getProviderConfig :: MapsService -> m MapsServiceConfig

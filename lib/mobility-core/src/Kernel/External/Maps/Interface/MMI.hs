@@ -50,7 +50,7 @@ import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
-import Kernel.Utils.CalculateDistance (everySnippetIs, getRouteLinearLength)
+import Kernel.Utils.CalculateDistance (getRouteLinearLength)
 import Kernel.Utils.Common hiding (id)
 
 autoSuggest ::
@@ -217,16 +217,12 @@ data Acc = Acc {minLat :: Double, maxLat :: Double, minLon :: Double, maxLon :: 
 snapToRoad ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
+    Log m
   ) =>
   MMICfg ->
   IT.SnapToRoadReq ->
   m IT.SnapToRoadResp
 snapToRoad mmiCfg req = do
-  droppedPointsThreshold <- asks (.droppedPointsThreshold)
-  unless (everySnippetIs (< droppedPointsThreshold) req.points) $ throwError (InternalError "Some snippets' length is above dropped points threshold for MMI")
   key <- decrypt mmiCfg.mmiApiKey
   let points = T.intercalate ";" $ latLongToMmiText <$> req.points
       mapsUrl = mmiCfg.mmiKeyUrl
@@ -234,8 +230,6 @@ snapToRoad mmiCfg req = do
 
   let listOfSnappedPoints = sortOn (.waypoint_index) $ catMaybes $ resp.results.snappedPoints
   let listOfPoints = getPoints listOfSnappedPoints
-  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
-  unless (everySnippetIs (< snippetThreshold) listOfPoints) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
   let dist = getRouteLinearLength listOfPoints
   pure
     SnapToRoadResp

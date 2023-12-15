@@ -46,6 +46,7 @@ import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
+import Kernel.Utils.CalculateDistance (everySnippetIs)
 import Kernel.Utils.Common hiding (id)
 
 getDistance ::
@@ -123,6 +124,65 @@ snapToRoadProvided = \case
   OSRM -> True
   MMI -> True
 
+runPreCheck ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
+  ) =>
+  MapsService ->
+  SnapToRoadReq ->
+  m Bool
+runPreCheck mapsService req = do
+  case mapsService of
+    Google -> do
+      droppedPointsThreshold <- asks (.droppedPointsThreshold)
+      if (everySnippetIs (< droppedPointsThreshold) req.points)
+        then do
+          logError "Some snippets' length is above dropped points threshold in pre check for Google"
+          return False
+        else return True
+    MMI -> do
+      droppedPointsThreshold <- asks (.droppedPointsThreshold)
+      if (everySnippetIs (< droppedPointsThreshold) req.points)
+        then do
+          logError "Some snippets' length is above dropped points threshold in pre check for MMI"
+          return False
+        else return True
+    OSRM -> do
+      snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+      if (everySnippetIs (< snippetThreshold) req.points)
+        then do
+          logError "Some snippets' length is above snippet threshold in pre check for OSRM"
+          return False
+        else return True
+
+runPostCheck ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+  ) =>
+  MapsService ->
+  SnapToRoadResp ->
+  m Bool
+runPostCheck mapsService res = do
+  case mapsService of
+    Google -> do
+      snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+      if (everySnippetIs (< snippetThreshold) res.snappedPoints)
+        then do
+          logError "Some snippets' length is above snippet threshold in post check for Google"
+          return False
+        else return True
+    MMI -> do
+      snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+      if (everySnippetIs (< snippetThreshold) res.snappedPoints)
+        then do
+          logError "Some snippets' length is above snippet threshold in post check for MMI"
+          return False
+        else return True
+    _ -> return True
+
 snapToRoadWithFallback ::
   ( EncFlow m r,
     EsqDBFlow m r,
@@ -130,25 +190,38 @@ snapToRoadWithFallback ::
     HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
     HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
   ) =>
-  SnapToRaodHandler m ->
+  SnapToRoadHandler m ->
   SnapToRoadReq ->
-  m (MapsService, SnapToRoadResp)
-snapToRoadWithFallback SnapToRaodHandler {..} req = do
+  m ([MapsService], Either String SnapToRoadResp)
+snapToRoadWithFallback SnapToRoadHandler {..} req = do
   prividersList <- getProvidersList
   when (null prividersList) $ throwError $ InternalError "No maps serive provider configured"
   callSnapToRoadWithFallback prividersList
   where
-    callSnapToRoadWithFallback [] = throwError $ InternalError "Not able to call snap to road with all the configured providers"
+    callSnapToRoadWithFallback [] = do
+      logError $ "Snap to road failed with all the configured providers"
+      return ([], Left "Snap to road failed with all the configured providers")
     callSnapToRoadWithFallback (preferredProvider : restProviders) = do
       mapsConfig <- getProviderConfig preferredProvider
-      result <- try @_ @SomeException $ snapToRoad mapsConfig req
-      case result of
-        Left _ -> callSnapToRoadWithFallback restProviders
-        Right res -> do
-          confidencethreshold <- getConfidenceThreshold
-          if res.confidence < confidencethreshold
-            then callSnapToRoadWithFallback restProviders
-            else return (preferredProvider, res)
+      preCheckPassed <- runPreCheck preferredProvider req
+      if not preCheckPassed
+        then do
+          logWarning $ "Pre check failed for provider " <> show preferredProvider
+          callSnapToRoadWithFallback restProviders
+        else do
+          result <- try @_ @SomeException $ snapToRoad mapsConfig req
+          case result of
+            Left _ -> do
+              (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
+              return (preferredProvider : servicesUsed, snapResponse)
+            Right res -> do
+              confidencethreshold <- getConfidenceThreshold
+              postCheckPassed <- runPostCheck preferredProvider res
+              if res.confidence < confidencethreshold || not postCheckPassed
+                then do
+                  (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
+                  return (preferredProvider : servicesUsed, snapResponse)
+                else return ([preferredProvider], Right res)
 
 snapToRoad ::
   ( EncFlow m r,

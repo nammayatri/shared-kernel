@@ -29,7 +29,6 @@ import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified Kafka.Producer as KafkaProd
 import Kernel.Beam.Types (KafkaConn (..))
-import qualified Kernel.Beam.Types as KBT
 import Kernel.Types.App
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
