@@ -34,20 +34,17 @@ import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error
-import Kernel.Utils.CalculateDistance (everySnippetIs)
 import Kernel.Utils.Common
 
 callOsrmMatch ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+    MonadFlow m
   ) =>
   OSRMCfg ->
   SnapToRoadReq ->
   m SnapToRoadResp
 callOsrmMatch osrmCfg (SnapToRoadReq wps) = do
-  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
-  unless (everySnippetIs (< snippetThreshold) wps) $ throwError (InternalError "Some snippets' length is above threshold after snapToRoad")
   let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
   res <- OSRM.callOsrmMatchAPI osrmCfg.osrmUrl mbRadius (OSRM.PointsList wps)
   (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
