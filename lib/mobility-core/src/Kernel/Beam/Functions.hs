@@ -96,7 +96,7 @@ runInReplica m = do
   L.setOptionLocal ReplicaEnabled False
   pure res
 
-setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
+setMeshConfig :: (L.MonadFlow m, HasCallStack, Log m) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfig modelName mSchema meshConfig' = do
   schema <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
   let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream"
@@ -105,6 +105,7 @@ setMeshConfig modelName mSchema meshConfig' = do
   case tables of
     Nothing -> L.throwException $ InternalError "Tables not found"
     Just tables' -> do
+      logDebug $ "kv_configs " <> show tables'
       let enableKVForWriteAlso = tables'.enableKVForWriteAlso
       let enableKVForRead = tables'.enableKVForRead
       updMeshConfig <-
@@ -118,7 +119,7 @@ setMeshConfig modelName mSchema meshConfig' = do
       L.logDebug ("setMeshConfig" :: Text) $ "meshConfig for table: " <> modelName <> " : " <> show updMeshConfig
       pure updMeshConfig
 
-withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
+withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table, Log m) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   mkAction updatedMeshConfig

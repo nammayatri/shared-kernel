@@ -4,16 +4,18 @@ import qualified EulerHS.Language as L
 import qualified Kernel.Beam.Connection.Postgres as PGC
 import qualified Kernel.Beam.Connection.Redis as RC
 import qualified Kernel.Beam.Connection.Types as ECT
-import qualified Kernel.Types.Common as KTC
+import Kernel.Prelude
 
-prepareConnectionDriver :: L.MonadFlow m => ECT.ConnectionConfigDriver -> KTC.Tables -> m ()
-prepareConnectionDriver conf tables' = do
+prepareConnectionDriver :: L.MonadFlow m => ECT.ConnectionConfigDriver -> Int -> m ()
+prepareConnectionDriver conf kvConfigUpdateFrequency = do
   PGC.prepareDBConnectionsDriver conf
   RC.prepareRedisConnectionsDriver conf
-  PGC.prepareTables tables'
+  PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
+  PGC.setKvConfigMetrics
 
-prepareConnectionRider :: L.MonadFlow m => ECT.ConnectionConfigRider -> KTC.Tables -> m ()
-prepareConnectionRider conf tables' = do
+prepareConnectionRider :: L.MonadFlow m => ECT.ConnectionConfigRider -> Int -> m ()
+prepareConnectionRider conf kvConfigUpdateFrequency = do
   PGC.prepareDBConnectionsRider conf
   RC.prepareRedisConnectionsRider conf
-  PGC.prepareTables tables'
+  PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
+  PGC.setKvConfigMetrics
