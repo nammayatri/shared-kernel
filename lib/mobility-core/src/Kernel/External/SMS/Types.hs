@@ -20,12 +20,16 @@ module Kernel.External.SMS.Types
 where
 
 import Data.OpenApi
+import Database.Beam.Backend
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data SmsService = MyValueFirst | ExotelSms | GupShup
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be SmsService where
+  sqlValueSyntax = autoSqlValueSyntax
 
 $(mkBeamInstancesForList ''SmsService)
 
