@@ -39,6 +39,7 @@ import qualified Data.Vector as V
 import Database.Beam
 import qualified Database.Beam as B
 import Database.Beam.Backend
+import qualified Database.Beam.Backend.SQL.AST as B
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
 import qualified Database.Beam.Query as BQ
@@ -226,6 +227,9 @@ instance FromBackendRow Postgres Centesimal
 
 instance FromField Centesimal where
   fromField = fromFieldEnum
+
+instance HasSqlValueSyntax B.Value (V.Vector Text) where
+  sqlValueSyntax = autoSqlValueSyntax
 
 instance (HasSqlValueSyntax be (V.Vector Text)) => HasSqlValueSyntax be [Text] where
   sqlValueSyntax x = sqlValueSyntax (V.fromList x)
