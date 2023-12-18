@@ -211,7 +211,7 @@ incrementSortedSetCounterImplementation' cmContainers context version = do
 
 incrementStreamCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
 incrementStreamCounterImplementation' cmContainers context version = do
-  let sortedSetMetric = cmContainers.sortedSetCounter
+  let sortedSetMetric = cmContainers.streamCounter
   L.runIO $
     P.withLabel
       sortedSetMetric
@@ -237,7 +237,7 @@ addGenericLatencyImplementation operation latency = do
 
 incrementSchedulerFailureCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
 incrementSchedulerFailureCounterImplementation' cmContainers context version = do
-  let sortedSetMetric = cmContainers.sortedSetCounter
+  let sortedSetMetric = cmContainers.schedulerFailureCounter
   L.runIO $
     P.withLabel
       sortedSetMetric
