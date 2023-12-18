@@ -46,6 +46,8 @@ type GenericLatencyMetric = P.Vector P.Label2 P.Histogram
 
 type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
 
+type GenericCounter = P.Vector P.Label1 P.Counter
+
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
     HasField "version" r DeploymentVersion
@@ -63,6 +65,7 @@ class CoreMetrics m where
   incrementStreamCounter :: Text -> m ()
   addGenericLatency :: Text -> NominalDiffTime -> m ()
   incrementSchedulerFailureCounter :: Text -> m ()
+  incrementGenericMetrics :: Text -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -73,7 +76,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     urlCallRetryFailures :: URLCallRetryFailuresMetric,
     sortedSetCounter :: SortedSetMetric,
     streamCounter :: StreamMetric,
-    schedulerFailureCounter :: SchedulerFailureMetric
+    schedulerFailureCounter :: SchedulerFailureMetric,
+    genericCounter :: GenericCounter
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -87,6 +91,7 @@ registerCoreMetricsContainer = do
   sortedSetCounter <- registerSortedSetMetric
   streamCounter <- registerStreamCounter
   schedulerFailureCounter <- registerSchedulerFailureCounter
+  genericCounter <- registerGenericCounter
 
   return CoreMetricsContainer {..}
 
@@ -161,3 +166,11 @@ registerSchedulerFailureCounter =
       P.counter info
   where
     info = P.Info "scheduler_jobs_fail_counter" ""
+
+registerGenericCounter :: IO GenericCounter
+registerGenericCounter =
+  P.register $
+    P.vector "event" $
+      P.counter info
+  where
+    info = P.Info "generic_counter" ""
