@@ -23,11 +23,12 @@ import Data.Text as T hiding (elem, map)
 import qualified Data.Text.Encoding as TE
 import Data.Time
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+import qualified EulerHS.KVConnector.Types as KV
 import EulerHS.KVConnector.Utils (getShardedHashTag)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified Kafka.Producer as KafkaProd
-import Kernel.Beam.Types (KafkaConn (..), TableMappings (getTableMappings))
+import Kernel.Beam.Types (KafkaConn (..))
 import Kernel.Types.App
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
@@ -55,10 +56,10 @@ convertIntoValidValForCkh dbValue = case dbValue of
 
 getMappings ::
   forall table.
-  TableMappings (table Identity) =>
+  KV.TableMappings (table Identity) =>
   [table Identity] ->
   HashMap Text Text
-getMappings _ = HM.fromList (map (bimap T.pack T.pack) (getTableMappings @(table Identity)))
+getMappings _ = HM.fromList (map (bimap T.pack T.pack) (KV.getTableMappings @(table Identity)))
 
 pushToKafka :: (MonadFlow m, ToJSON a) => a -> Text -> Text -> m ()
 pushToKafka messageRecord topic key = do

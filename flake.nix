@@ -12,7 +12,11 @@
     prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
-    euler-hs.url = "github:vijaygupta18/euler-hs/backend/adding-class-for-column-mapping";
+    euler-hs = {
+      url = "github:vijaygupta18/euler-hs/backend/decouple-drainer-and-redis-pipelining";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.haskell-flake.follows = "haskell-flake";
+    };
   };
   outputs = inputs:
     inputs.common.lib.mkFlake { inherit inputs; } {

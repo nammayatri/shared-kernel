@@ -107,13 +107,16 @@ setMeshConfig modelName mSchema meshConfig' = do
     Just tables' -> do
       let enableKVForWriteAlso = tables'.enableKVForWriteAlso
       let enableKVForRead = tables'.enableKVForRead
-      if modelName `elem` (nameOfTable <$> enableKVForWriteAlso)
-        then do
-          if fromIntegral (percentEnable (fromJust (find (\table -> nameOfTable table == modelName) enableKVForWriteAlso))) >= randomIntV
-            then do
-              pure $ meshConfig' {meshEnabled = True, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
-            else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
-        else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
+      updMeshConfig <-
+        if modelName `elem` (nameOfTable <$> enableKVForWriteAlso)
+          then do
+            if fromIntegral (percentEnable (fromJust (find (\table -> nameOfTable table == modelName) enableKVForWriteAlso))) >= randomIntV
+              then do
+                pure $ meshConfig' {meshEnabled = True, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
+              else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
+          else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
+      L.logDebug ("setMeshConfig" :: Text) $ "meshConfig for table: " <> modelName <> " : " <> show updMeshConfig
+      pure updMeshConfig
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do

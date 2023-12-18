@@ -12,9 +12,6 @@ import EulerHS.Types (DBConfig, OptionEntity)
 import Kernel.Streaming.Kafka.Producer.Types
 import qualified Kernel.Types.Common as KTC
 
-class TableMappings a where
-  getTableMappings :: [(String, String)]
-
 data PsqlDbCfg = PsqlDbCfg
   deriving stock (Generic, Typeable, Show, Eq)
   deriving anyclass (ToJSON, FromJSON)
