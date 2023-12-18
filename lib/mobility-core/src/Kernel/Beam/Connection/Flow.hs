@@ -11,11 +11,9 @@ prepareConnectionDriver conf kvConfigUpdateFrequency = do
   PGC.prepareDBConnectionsDriver conf
   RC.prepareRedisConnectionsDriver conf
   PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
-  PGC.setKvConfigMetrics
 
 prepareConnectionRider :: L.MonadFlow m => ECT.ConnectionConfigRider -> Int -> m ()
 prepareConnectionRider conf kvConfigUpdateFrequency = do
   PGC.prepareDBConnectionsRider conf
   RC.prepareRedisConnectionsRider conf
   PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
-  PGC.setKvConfigMetrics

@@ -61,6 +61,7 @@ instance CoreMetrics (MockM e) where
   incrementStreamCounter _ = return ()
   addGenericLatency _ _ = return ()
   incrementSchedulerFailureCounter _ = return ()
+  incrementGenericMetrics _ = return ()
 
 instance MonadTime (MockM e) where
   getCurrentTime = liftIO getCurrentTime
