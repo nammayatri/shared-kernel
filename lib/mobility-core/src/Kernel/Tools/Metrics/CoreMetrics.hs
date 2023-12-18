@@ -242,3 +242,18 @@ incrementSchedulerFailureCounterImplementation' cmContainers context version = d
       sortedSetMetric
       (context, version.getDeploymentVersion)
       P.incCounter
+
+incrementGenericMetrics' ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementGenericMetrics' operation = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $
+    P.withLabel
+      cmContainer.genericCounter
+      operation
+      P.incCounter

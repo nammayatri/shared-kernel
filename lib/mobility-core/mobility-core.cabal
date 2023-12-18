@@ -218,7 +218,6 @@ library
       Kernel.Tools.Metrics.CoreMetrics
       Kernel.Tools.Metrics.CoreMetrics.Types
       Kernel.Tools.Metrics.Init
-      Kernel.Tools.Metrics.KvConfigMetrics
       Kernel.Tools.Slack
       Kernel.Tools.Slack.Internal
       Kernel.Tools.Slack.Middleware
