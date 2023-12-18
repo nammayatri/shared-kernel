@@ -392,16 +392,16 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1702483744,
-        "narHash": "sha256-Rcykxqu08WX4KqH1SWRAYq6C266CChi+2gwehOr1rrQ=",
-        "owner": "roman-bodavskiy",
+        "lastModified": 1702987207,
+        "narHash": "sha256-UxxR+mJlrEIPKRG6u6bfj0d5ISTZKYuSBU0zMw6Reh8=",
+        "owner": "vijaygupta18",
         "repo": "euler-hs",
-        "rev": "0a4bfd5e03f5f01502243cbd818b4d4ad1cca454",
+        "rev": "8b443d40c334fd40ad1aee43201eeebd1a4d8524",
         "type": "github"
       },
       "original": {
-        "owner": "roman-bodavskiy",
-        "ref": "backend/db-object-contents-v2",
+        "owner": "vijaygupta18",
+        "ref": "backend/adding-class-for-column-mapping",
         "repo": "euler-hs",
         "type": "github"
       }
@@ -1858,12 +1858,11 @@
         ]
       },
       "locked": {
-<<<<<<< HEAD
-        "lastModified": 1696055637,
-        "narHash": "sha256-RVlpKevWjt9pB9Ia61+ILFcbjB8omiRA6zehmPb6FHg=",
-        "owner": "juspay",
+        "lastModified": 1702897959,
+        "narHash": "sha256-uhv/uKOwu1IfFnYyFFB4k5dMrYcorjs1DCd6ehm9ReA=",
+        "owner": "roman-bodavskiy",
         "repo": "haskell-sequelize",
-        "rev": "991064c0b9b5f5cf691b19d53ac6b0c9109a2dff",
+        "rev": "b109d29f46b611cd5ff7e0d09aead48076871210",
         "type": "github"
       },
       "original": {
@@ -1887,19 +1886,6 @@
         "owner": "arjunkathuria",
         "repo": "servant-mock",
         "rev": "17e90cb831820a30b3215d4f164cf8268607891e",
-=======
-        "lastModified": 1702367514,
-        "narHash": "sha256-M7aiRz5GVYf5LbRy/v7icDs+6RhD3hFaSfD/8s0zX3w=",
-        "owner": "roman-bodavskiy",
-        "repo": "haskell-sequelize",
-        "rev": "3b76d42e7f474a778ef251320de814995949038f",
-        "type": "github"
-      },
-      "original": {
-        "owner": "roman-bodavskiy",
-        "ref": "decouple-drainer-from-app",
-        "repo": "haskell-sequelize",
->>>>>>> [WIP] Backend/decouple drainer contents v2 (#313)
         "type": "github"
       }
     },

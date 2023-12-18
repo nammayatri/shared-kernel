@@ -33,11 +33,7 @@ import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError 
 import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import qualified EulerHS.KVConnector.Types as KV
 import EulerHS.Prelude hiding (Type, words)
-<<<<<<< HEAD
-import qualified Kernel.Beam.Types as KV
-=======
 import Kernel.External.Encryption (DbHash (..))
->>>>>>> [WIP] Backend/decouple drainer contents v2 (#313)
 import Kernel.Types.Common ()
 import Kernel.Types.FromField (fromFieldEnum, fromFieldJSON)
 import Kernel.Utils.Text (encodeToText)
@@ -70,7 +66,8 @@ enableKVPG name pKeyN sKeysN = do
   [tModeMeshSig, tModeMeshDec] <- tableTModMeshD name
   [kvConnectorDec] <- kvConnectorInstancesD name pKeyN sKeysN
   [meshMetaDec] <- meshMetaInstancesDPG name
-  pure [tModeMeshSig, tModeMeshDec, meshMetaDec, kvConnectorDec] -- ++ cerealDec
+  sqlObjectToJSONInstance <- mkSQLObjectToJSONInstance name
+  pure [tModeMeshSig, tModeMeshDec, meshMetaDec, kvConnectorDec, sqlObjectToJSONInstance] -- ++ cerealDec
   -- DB.OrderReferenceT (B.FieldModification (B.TableField DB.OrderReferenceT)) add signature
 
 tableTModMeshD :: Name -> Q [Dec]
@@ -371,11 +368,10 @@ mkTableInstances' name table mbSchema tableFieldModifier = do
   serialInstances <- mkSerialInstances name
   fromJSONInstances <- mkFromJSONInstance name
   toJSONInstances <- mkToJSONInstance name
-  sqlObjectToJSONInstance <- mkSQLObjectToJSONInstance name
   customMappings <- mkCustomMappings name tableFieldModifier
   showInstances <- mkShowInstance name
   (tModSig, tModBody) <- mkTModFunction tableFieldModifier name
-  pure ([tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances, sqlObjectToJSONInstance] <> customMappings)
+  pure ([tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances] <> customMappings)
 
 ------------------- instances for table row ---------------
 
