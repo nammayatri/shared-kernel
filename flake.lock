@@ -392,16 +392,16 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1702878193,
-        "narHash": "sha256-Ea9JKP0qOwV/F0l9cjwTSB+fW8D6t4ZewJG48l9uwSM=",
-        "owner": "vijaygupta18",
+        "lastModified": 1702483744,
+        "narHash": "sha256-Rcykxqu08WX4KqH1SWRAYq6C266CChi+2gwehOr1rrQ=",
+        "owner": "roman-bodavskiy",
         "repo": "euler-hs",
-        "rev": "f1ca2ad896cf8bb009c0bb3759ee6d08ae7fc864",
+        "rev": "0a4bfd5e03f5f01502243cbd818b4d4ad1cca454",
         "type": "github"
       },
       "original": {
-        "owner": "vijaygupta18",
-        "ref": "backend/adding-class-for-column-mapping",
+        "owner": "roman-bodavskiy",
+        "ref": "backend/db-object-contents-v2",
         "repo": "euler-hs",
         "type": "github"
       }
@@ -1858,6 +1858,7 @@
         ]
       },
       "locked": {
+<<<<<<< HEAD
         "lastModified": 1696055637,
         "narHash": "sha256-RVlpKevWjt9pB9Ia61+ILFcbjB8omiRA6zehmPb6FHg=",
         "owner": "juspay",
@@ -1886,6 +1887,19 @@
         "owner": "arjunkathuria",
         "repo": "servant-mock",
         "rev": "17e90cb831820a30b3215d4f164cf8268607891e",
+=======
+        "lastModified": 1702367514,
+        "narHash": "sha256-M7aiRz5GVYf5LbRy/v7icDs+6RhD3hFaSfD/8s0zX3w=",
+        "owner": "roman-bodavskiy",
+        "repo": "haskell-sequelize",
+        "rev": "3b76d42e7f474a778ef251320de814995949038f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "roman-bodavskiy",
+        "ref": "decouple-drainer-from-app",
+        "repo": "haskell-sequelize",
+>>>>>>> [WIP] Backend/decouple drainer contents v2 (#313)
         "type": "github"
       }
     },
