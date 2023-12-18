@@ -388,16 +388,16 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1702989746,
-        "narHash": "sha256-ZVy/rPeSHaoCP6UiqOfxWeuQllvDVVE5jtaSMaEvR44=",
+        "lastModified": 1703068793,
+        "narHash": "sha256-U56cnv//5UyRZPUSBWMDYvPp3DGIaqu/JegyChzM7QM=",
         "owner": "enigma-commits",
         "repo": "euler-hs",
-        "rev": "78f63d5648fa463cc78af909d9a9509d34a0b59c",
+        "rev": "82628723f3079fa2291150d47b44f7967532faed",
         "type": "github"
       },
       "original": {
         "owner": "enigma-commits",
-        "ref": "Backend/feat/redis-cluster-pipelining",
+        "ref": "Backend/feat/redis-cluster-pipelining-and-decoupling-changes",
         "repo": "euler-hs",
         "type": "github"
       }
@@ -1854,16 +1854,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1696055637,
-        "narHash": "sha256-RVlpKevWjt9pB9Ia61+ILFcbjB8omiRA6zehmPb6FHg=",
-        "owner": "juspay",
+        "lastModified": 1702897959,
+        "narHash": "sha256-uhv/uKOwu1IfFnYyFFB4k5dMrYcorjs1DCd6ehm9ReA=",
+        "owner": "vijaygupta18",
         "repo": "haskell-sequelize",
-        "rev": "991064c0b9b5f5cf691b19d53ac6b0c9109a2dff",
+        "rev": "b109d29f46b611cd5ff7e0d09aead48076871210",
         "type": "github"
       },
       "original": {
-        "owner": "juspay",
-        "ref": "beckn-compatible",
+        "owner": "vijaygupta18",
+        "ref": "decouple-drainer-from-app",
         "repo": "haskell-sequelize",
         "type": "github"
       }
