@@ -376,11 +376,15 @@
           "flake-parts"
         ],
         "haskell-flake": [
+          "euler-hs",
+          "common",
           "haskell-flake"
         ],
         "hedis": "hedis",
         "juspay-extra": "juspay-extra",
         "nixpkgs": [
+          "euler-hs",
+          "common",
           "nixpkgs"
         ],
         "sequelize": "sequelize",
@@ -388,16 +392,16 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1702549068,
-        "narHash": "sha256-th4rnWCZYXlHPbUrcwd9F977xrqmocn9YfrA+JYvr6s=",
-        "owner": "enigma-commits",
+        "lastModified": 1702987207,
+        "narHash": "sha256-UxxR+mJlrEIPKRG6u6bfj0d5ISTZKYuSBU0zMw6Reh8=",
+        "owner": "vijaygupta18",
         "repo": "euler-hs",
-        "rev": "2d9664bc472bacccd8a005da802ab82530e1e86d",
+        "rev": "8b443d40c334fd40ad1aee43201eeebd1a4d8524",
         "type": "github"
       },
       "original": {
-        "owner": "enigma-commits",
-        "ref": "Backend/feat/redis-cluster-pipelining",
+        "owner": "vijaygupta18",
+        "ref": "backend/adding-class-for-column-mapping",
         "repo": "euler-hs",
         "type": "github"
       }
@@ -1854,11 +1858,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1696055637,
-        "narHash": "sha256-RVlpKevWjt9pB9Ia61+ILFcbjB8omiRA6zehmPb6FHg=",
-        "owner": "juspay",
+        "lastModified": 1702897959,
+        "narHash": "sha256-uhv/uKOwu1IfFnYyFFB4k5dMrYcorjs1DCd6ehm9ReA=",
+        "owner": "roman-bodavskiy",
         "repo": "haskell-sequelize",
-        "rev": "991064c0b9b5f5cf691b19d53ac6b0c9109a2dff",
+        "rev": "b109d29f46b611cd5ff7e0d09aead48076871210",
         "type": "github"
       },
       "original": {

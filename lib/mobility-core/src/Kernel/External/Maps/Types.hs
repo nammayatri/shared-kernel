@@ -26,6 +26,8 @@ import Data.Geospatial
 import Data.LineString
 import Data.OpenApi
 import Data.Text
+import Database.Beam.Backend
+import qualified Database.Beam.Backend.SQL.AST as B
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList, mkBeamInstancesForList)
 import Kernel.Storage.Esqueleto (derivePersistField)
@@ -47,6 +49,9 @@ data LatLong = LatLong
     lon :: Double
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema, PrettyShow, Ord, Read)
+
+instance HasSqlValueSyntax B.Value LatLong where
+  sqlValueSyntax = autoSqlValueSyntax
 
 $(mkBeamInstancesForList ''LatLong)
 

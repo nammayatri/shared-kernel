@@ -20,12 +20,17 @@ module Kernel.External.Whatsapp.Types
 where
 
 import Data.OpenApi
+import Database.Beam.Backend
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data WhatsappService = GupShup
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+
+-- TODO test this
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be WhatsappService where
+  sqlValueSyntax = autoSqlValueSyntax
 
 availableWhatsappServices :: [WhatsappService]
 availableWhatsappServices = [GupShup]
