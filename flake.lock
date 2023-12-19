@@ -388,11 +388,11 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1702549068,
-        "narHash": "sha256-th4rnWCZYXlHPbUrcwd9F977xrqmocn9YfrA+JYvr6s=",
+        "lastModified": 1702989746,
+        "narHash": "sha256-ZVy/rPeSHaoCP6UiqOfxWeuQllvDVVE5jtaSMaEvR44=",
         "owner": "enigma-commits",
         "repo": "euler-hs",
-        "rev": "2d9664bc472bacccd8a005da802ab82530e1e86d",
+        "rev": "78f63d5648fa463cc78af909d9a9509d34a0b59c",
         "type": "github"
       },
       "original": {
