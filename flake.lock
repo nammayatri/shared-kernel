@@ -392,11 +392,11 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1702987207,
-        "narHash": "sha256-UxxR+mJlrEIPKRG6u6bfj0d5ISTZKYuSBU0zMw6Reh8=",
-        "owner": "vijaygupta18",
+        "lastModified": 1702989746,
+        "narHash": "sha256-ZVy/rPeSHaoCP6UiqOfxWeuQllvDVVE5jtaSMaEvR44=",
+        "owner": "enigma-commits",
         "repo": "euler-hs",
-        "rev": "8b443d40c334fd40ad1aee43201eeebd1a4d8524",
+        "rev": "78f63d5648fa463cc78af909d9a9509d34a0b59c",
         "type": "github"
       },
       "original": {
