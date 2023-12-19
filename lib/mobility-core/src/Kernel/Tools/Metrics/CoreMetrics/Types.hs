@@ -48,6 +48,8 @@ type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
 
 type GenericCounter = P.Vector P.Label1 P.Counter
 
+type KvConfigFailedCounter = P.Vector P.Label1 P.Counter
+
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
     HasField "version" r DeploymentVersion
@@ -66,6 +68,7 @@ class CoreMetrics m where
   addGenericLatency :: Text -> NominalDiffTime -> m ()
   incrementSchedulerFailureCounter :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
+  incrementKvConfigFailedCounter :: Text -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -77,7 +80,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     sortedSetCounter :: SortedSetMetric,
     streamCounter :: StreamMetric,
     schedulerFailureCounter :: SchedulerFailureMetric,
-    genericCounter :: GenericCounter
+    genericCounter :: GenericCounter,
+    kvConfigFailedCounter :: KvConfigFailedCounter
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -92,6 +96,7 @@ registerCoreMetricsContainer = do
   streamCounter <- registerStreamCounter
   schedulerFailureCounter <- registerSchedulerFailureCounter
   genericCounter <- registerGenericCounter
+  kvConfigFailedCounter <- registerKvConfigFailedCounter
 
   return CoreMetricsContainer {..}
 
@@ -174,3 +179,11 @@ registerGenericCounter =
       P.counter info
   where
     info = P.Info "generic_counter" ""
+
+registerKvConfigFailedCounter :: IO KvConfigFailedCounter
+registerKvConfigFailedCounter =
+  P.register $
+    P.vector "event" $
+      P.counter info
+  where
+    info = P.Info "kv_config_failed_counter" ""

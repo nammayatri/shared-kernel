@@ -36,7 +36,6 @@ prepareTables tables' = do
 setKvConfigUpdateFrequency :: L.MonadFlow m => Int -> m ()
 setKvConfigUpdateFrequency kvConfigUpdateFrequency = do
   L.setOption KBT.KvConfigUpdateFrequency kvConfigUpdateFrequency
-  L.setOptionLocal ReplicaEnabled False
 
 --   when EnvVars.getPrepareRedisClusterConnection prepareRedisClusterConnection
 
