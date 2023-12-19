@@ -15,7 +15,7 @@ import Sequelize as Se
 findById :: (CacheFlow m r, EsqDBFlow m r, HasSchemaName BeamSC.SystemConfigsT) => Text -> m (Maybe Text)
 findById cfgId = do
   findOneWithDb [Se.Is BeamSC.id $ Se.Eq cfgId] <&> (<&> Domain.configValue)
-    >>= maybe (incrementGenericMetrics "kv_config_find_failed" >> pure Nothing) (pure . Just)
+    >>= maybe (incrementKvConfigFailedCounter ("kv_config_find_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT)) >> pure Nothing) (pure . Just)
 
 instance FromTType' BeamSC.SystemConfigs Domain.SystemConfigs where
   fromTType' BeamSC.SystemConfigsT {..} = do
