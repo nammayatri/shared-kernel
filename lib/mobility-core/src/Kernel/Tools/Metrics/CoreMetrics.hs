@@ -257,3 +257,18 @@ incrementGenericMetrics' operation = do
       cmContainer.genericCounter
       operation
       P.incCounter
+
+incrementKvConfigFailedCounter' ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementKvConfigFailedCounter' operation = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $
+    P.withLabel
+      cmContainer.kvConfigFailedCounter
+      operation
+      P.incCounter
