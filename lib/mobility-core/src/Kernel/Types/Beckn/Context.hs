@@ -34,7 +34,7 @@ data ContextV2 = ContextV2
   { domain :: Domain,
     location :: Location,
     action :: Action,
-    version :: Text,
+    _version :: Text,
     bap_id :: Text,
     bap_uri :: BaseUrl,
     bpp_id :: Maybe Text,
@@ -43,10 +43,13 @@ data ContextV2 = ContextV2
     message_id :: Text,
     timestamp :: UTCTimeRFC3339
   }
-  deriving (Generic, FromJSON, Show, ToSchema, PrettyShow)
+  deriving (Generic, Show, ToSchema, PrettyShow)
+
+instance FromJSON ContextV2 where
+  parseJSON = genericParseJSON $ stripPrefixUnderscoreIfAny {omitNothingFields = True}
 
 instance ToJSON ContextV2 where
-  toJSON = genericToJSON $ defaultOptions {omitNothingFields = True}
+  toJSON = genericToJSON $ stripPrefixUnderscoreIfAny {omitNothingFields = True}
 
 data Context = Context
   { domain :: Domain,
