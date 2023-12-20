@@ -232,6 +232,7 @@ library
       Kernel.Types.Beckn.Domain
       Kernel.Types.Beckn.Error
       Kernel.Types.Beckn.Gps
+      Kernel.Types.Beckn.Location
       Kernel.Types.Beckn.ReqTypes
       Kernel.Types.BecknRequest
       Kernel.Types.Cache

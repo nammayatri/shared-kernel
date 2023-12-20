@@ -20,9 +20,61 @@ import Data.OpenApi
 import Data.Typeable
 import EulerHS.Prelude hiding (fromList, (.~))
 import GHC.Exts (IsList (fromList))
-import Kernel.Types.Beckn.Context (Context)
+import Kernel.Types.Beckn.Context (Context, ContextV2)
 import Kernel.Types.Beckn.Error (Error)
 import Kernel.Utils.GenericPretty
+
+data BecknReqV2 a = BecknReqV2
+  { context :: ContextV2,
+    message :: a
+  }
+  deriving (Generic, Show, FromJSON, ToJSON, PrettyShow)
+
+instance ToSchema a => ToSchema (BecknReqV2 a)
+
+data BecknCallbackReqV2 a = BecknCallbackReqV2
+  { context :: ContextV2,
+    contents :: Either Error a
+  }
+  deriving (Generic, Show, PrettyShow)
+
+instance (ToSchema a) => ToSchema (BecknCallbackReqV2 a) where
+  declareNamedSchema _ = do
+    context <- declareSchemaRef (Proxy :: Proxy ContextV2)
+    err <- declareSchemaRef (Proxy :: Proxy Error)
+    let messageTypeName = show $ typeRep (Proxy :: Proxy a)
+    message <- declareSchemaRef (Proxy :: Proxy a)
+    let errVariant =
+          Inline $
+            mempty
+              & type_ L.?~ OpenApiObject
+              & properties L..~ fromList [("context", context), ("error", err)]
+              & required L..~ ["context", "error"]
+        messageVariant =
+          Inline $
+            mempty
+              & type_ L.?~ OpenApiObject
+              & properties L..~ fromList [("context", context), ("message", message)]
+              & required L..~ ["context", "message"]
+    return $
+      NamedSchema (Just $ "BecknCallbackReqV2_" <> messageTypeName) $
+        mempty
+          & type_ L.?~ OpenApiObject
+          & oneOf L.?~ [messageVariant, errVariant]
+
+instance ToJSON a => ToJSON (BecknCallbackReqV2 a) where
+  toJSON (BecknCallbackReqV2 context contents) = object $ contextField : errorOrMessage
+    where
+      contextField = "context" .= context
+      errorOrMessage = case contents of
+        Left err -> ["error" .= err]
+        Right message -> ["message" .= message]
+
+instance FromJSON a => FromJSON (BecknCallbackReqV2 a) where
+  parseJSON = withObject "BecknCallbackReqV2" $ \o ->
+    BecknCallbackReqV2
+      <$> o .: "context"
+      <*> (Left <$> o .: "error" <|> Right <$> o .: "message")
 
 data BecknReq a = BecknReq
   { context :: Context,
