@@ -28,7 +28,6 @@ import Kernel.Storage.Esqueleto (derivePersistField)
 data WhatsappService = GupShup
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
--- TODO test this
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be WhatsappService where
   sqlValueSyntax = autoSqlValueSyntax
 

@@ -228,7 +228,6 @@ instance FromBackendRow Postgres Centesimal
 instance FromField Centesimal where
   fromField = fromFieldEnum
 
--- TODO test this in person.languagesSpoken
 instance HasSqlValueSyntax B.Value (V.Vector Text) where
   sqlValueSyntax = autoSqlValueSyntax
 
