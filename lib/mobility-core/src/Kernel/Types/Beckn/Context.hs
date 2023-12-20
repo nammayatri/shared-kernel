@@ -23,11 +23,33 @@ import Kernel.Types.App
 import Kernel.Types.Beckn.City as Reexport
 import Kernel.Types.Beckn.Country as Reexport
 import Kernel.Types.Beckn.Domain as Reexport
+import Kernel.Types.Beckn.Location as Reexport
 import Kernel.Types.TimeRFC339 (UTCTimeRFC3339 (..))
 import Kernel.Utils.Example
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON
 import Servant.Client (parseBaseUrl)
+
+data ContextV2 = ContextV2
+  { domain :: Domain,
+    location :: Location,
+    action :: Action,
+    _version :: Text,
+    bap_id :: Text,
+    bap_uri :: BaseUrl,
+    bpp_id :: Maybe Text,
+    bpp_uri :: Maybe BaseUrl,
+    transaction_id :: Maybe Text,
+    message_id :: Text,
+    timestamp :: UTCTimeRFC3339
+  }
+  deriving (Generic, Show, ToSchema, PrettyShow)
+
+instance FromJSON ContextV2 where
+  parseJSON = genericParseJSON $ stripPrefixUnderscoreIfAny {omitNothingFields = True}
+
+instance ToJSON ContextV2 where
+  toJSON = genericToJSON $ stripPrefixUnderscoreIfAny {omitNothingFields = True}
 
 data Context = Context
   { domain :: Domain,
@@ -42,7 +64,7 @@ data Context = Context
     transaction_id :: Maybe Text,
     message_id :: Text,
     timestamp :: UTCTimeRFC3339,
-    max_callbacks :: Maybe Int
+    max_callbacks :: Maybe Int -- removed in V2
   }
   deriving (Generic, FromJSON, Show, ToSchema, PrettyShow)
 

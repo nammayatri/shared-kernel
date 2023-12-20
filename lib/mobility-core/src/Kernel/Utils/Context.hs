@@ -53,3 +53,47 @@ buildTaxiContext action msgId txnId bapId bapUri bppId bppUri city country autoA
         city,
         max_callbacks
       }
+
+buildTaxiContextV2 ::
+  (MonadTime m, MonadGuid m) =>
+  Cab.Action ->
+  Text ->
+  Maybe Text ->
+  Text ->
+  BaseUrl ->
+  Maybe Text ->
+  Maybe BaseUrl ->
+  Cab.City ->
+  Cab.Country ->
+  m Cab.ContextV2
+buildTaxiContextV2 action msgId txnId bapId bapUri bppId bppUri city country = do
+  currTime <- getCurrentTime
+  location <- mkLocation city country
+  return $
+    Cab.ContextV2
+      { domain = Cab.MOBILITY,
+        action,
+        _version = "2.0.0",
+        bap_id = bapId,
+        bap_uri = bapUri,
+        bpp_id = bppId,
+        bpp_uri = bppUri,
+        transaction_id = txnId,
+        message_id = msgId,
+        timestamp = UTCTimeRFC3339 currTime,
+        location
+      }
+
+mkLocation :: MonadGuid m => Cab.City -> Cab.Country -> m Cab.Location
+mkLocation city country =
+  return $
+    Cab.Location
+      { Cab.country =
+          Cab.CountryV2
+            { Cab.code = country
+            },
+        Cab.city =
+          Cab.CityV2
+            { Cab.code = city
+            }
+      }

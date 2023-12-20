@@ -28,6 +28,11 @@ validateContext action context = do
   validateDomain CoreContext.MOBILITY context
   validateContextCommons action context
 
+validateContextV2 :: (HasFlowEnv m r '["_version" ::: Text]) => CoreContext.Action -> CoreContext.ContextV2 -> m ()
+validateContextV2 action context = do
+  validateDomainV2 CoreContext.MOBILITY context
+  validateContextCommonsV2 action context
+
 validateMetroContext :: (HasFlowEnv m r '["coreVersion" ::: Text]) => CoreContext.Action -> CoreContext.Context -> m ()
 validateMetroContext action context = do
   validateDomain CoreContext.METRO context
@@ -38,8 +43,18 @@ validateDomain expectedDomain context =
   unless (context.domain == expectedDomain) $
     throwError InvalidDomain
 
+validateDomainV2 :: (L.MonadFlow m, Log m) => CoreContext.Domain -> CoreContext.ContextV2 -> m ()
+validateDomainV2 expectedDomain context =
+  unless (context.domain == expectedDomain) $
+    throwError InvalidDomain
+
 validateAction :: (L.MonadFlow m, Log m) => CoreContext.Action -> CoreContext.Context -> m ()
 validateAction expectedAction context =
+  unless (context.action == expectedAction) $
+    throwError InvalidAction
+
+validateActionV2 :: (L.MonadFlow m, Log m) => CoreContext.Action -> CoreContext.ContextV2 -> m ()
+validateActionV2 expectedAction context =
   unless (context.action == expectedAction) $
     throwError InvalidAction
 
@@ -54,6 +69,17 @@ validateCoreVersion context = do
   unless (context.core_version == supportedVersion) $
     throwError UnsupportedCoreVer
 
+validateCoreVersionV2 ::
+  ( HasFlowEnv m r '["_version" ::: Text],
+    Log m
+  ) =>
+  CoreContext.ContextV2 ->
+  m ()
+validateCoreVersionV2 context = do
+  supportedVersion <- view #_version
+  unless (context._version == supportedVersion) $
+    throwError UnsupportedCoreVer
+
 validateContextCommons ::
   ( HasFlowEnv m r '["coreVersion" ::: Text],
     Log m
@@ -65,3 +91,15 @@ validateContextCommons expectedAction context = do
   -- TODO: City validation
   validateAction expectedAction context
   validateCoreVersion context
+
+validateContextCommonsV2 ::
+  ( HasFlowEnv m r '["_version" ::: Text],
+    Log m
+  ) =>
+  CoreContext.Action ->
+  CoreContext.ContextV2 ->
+  m ()
+validateContextCommonsV2 expectedAction context = do
+  -- TODO: City validation
+  validateActionV2 expectedAction context
+  validateCoreVersionV2 context
