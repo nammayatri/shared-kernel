@@ -263,12 +263,13 @@ findAllWithKVAndConditionalDB ::
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
+  Maybe (OrderBy table) ->
   m [a]
-findAllWithKVAndConditionalDB where' = do
+findAllWithKVAndConditionalDB where' orderBy = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   inReplica <- L.getOptionLocal ReplicaEnabled
   dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
-  result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where'
+  result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
   case result of
     Right res -> do
       res' <- mapM fromTType' res
