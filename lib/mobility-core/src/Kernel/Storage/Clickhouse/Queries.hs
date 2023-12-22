@@ -58,7 +58,9 @@ runClickhouse action db = do
   L.runIO $ action con
 
 runRawQuery :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => String -> ClickhouseDb -> m (Either String a)
-runRawQuery query = runClickhouse (`runQuery` getJSON query)
+runRawQuery query db = do
+  logDebug $ "clickhouse raw query v1: " <> T.pack query
+  runClickhouse (`runQuery` getJSON query) db
 
 runRawQuery' :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => ClickhouseExpr -> ClickhouseDb -> m (Either String a)
 runRawQuery' (ExprStr query) db = runRawQuery query db
