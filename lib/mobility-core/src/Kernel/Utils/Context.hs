@@ -12,7 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.Utils.Context where
+module Kernel.Utils.Context (buildTaxiContext, buildTaxiContextV2) where
 
 import EulerHS.Prelude
 import Kernel.Types.App
