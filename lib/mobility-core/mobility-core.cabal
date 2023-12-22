@@ -178,6 +178,15 @@ library
       Kernel.Storage.Clickhouse.Operators
       Kernel.Storage.Clickhouse.Queries
       Kernel.Storage.Clickhouse.Types
+      Kernel.Storage.ClickhouseV2
+      Kernel.Storage.ClickhouseV2.ClickhouseDb
+      Kernel.Storage.ClickhouseV2.ClickhouseTable
+      Kernel.Storage.ClickhouseV2.ClickhouseValue
+      Kernel.Storage.ClickhouseV2.Internal.ClickhouseQuery
+      Kernel.Storage.ClickhouseV2.Internal.Types
+      Kernel.Storage.ClickhouseV2.Operators
+      Kernel.Storage.ClickhouseV2.Queries
+      Kernel.Storage.ClickhouseV2.UtilsTH
       Kernel.Storage.Esqueleto
       Kernel.Storage.Esqueleto.Class
       Kernel.Storage.Esqueleto.Config

@@ -14,6 +14,7 @@ data ClickhouseExpr = Nil | ExprStr String deriving (Eq)
 class ToClickhouseQuery a where
   toClickhouseQuery :: a -> String
 
+-- why extra brackets?
 instance ToClickhouseQuery ClickhouseExpr where
   toClickhouseQuery expr = "(" <> go expr
     where
