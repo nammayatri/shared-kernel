@@ -73,7 +73,7 @@ buildTaxiContextV2 action msgId txnId bapId bapUri bppId bppUri city country = d
     Cab.ContextV2
       { domain = Cab.MOBILITY,
         action,
-        version = "2.0.0",
+        _version = "2.0.0",
         bap_id = bapId,
         bap_uri = bapUri,
         bpp_id = bppId,

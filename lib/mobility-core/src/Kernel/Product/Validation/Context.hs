@@ -28,7 +28,7 @@ validateContext action context = do
   validateDomain CoreContext.MOBILITY context
   validateContextCommons action context
 
-validateContextV2 :: (HasFlowEnv m r '["version" ::: Text]) => CoreContext.Action -> CoreContext.ContextV2 -> m ()
+validateContextV2 :: (HasFlowEnv m r '["_version" ::: Text]) => CoreContext.Action -> CoreContext.ContextV2 -> m ()
 validateContextV2 action context = do
   validateDomainV2 CoreContext.MOBILITY context
   validateContextCommonsV2 action context
@@ -70,14 +70,14 @@ validateCoreVersion context = do
     throwError UnsupportedCoreVer
 
 validateCoreVersionV2 ::
-  ( HasFlowEnv m r '["version" ::: Text],
+  ( HasFlowEnv m r '["_version" ::: Text],
     Log m
   ) =>
   CoreContext.ContextV2 ->
   m ()
 validateCoreVersionV2 context = do
-  -- supportedVersion <- view #coreVersion
-  unless (context.version == "2.0.0") $ -- shrey00 TODO : Change this to check for supportedVersion
+  supportedVersion <- view #_version
+  unless (context._version == supportedVersion) $
     throwError UnsupportedCoreVer
 
 validateContextCommons ::
@@ -93,7 +93,7 @@ validateContextCommons expectedAction context = do
   validateCoreVersion context
 
 validateContextCommonsV2 ::
-  ( HasFlowEnv m r '["version" ::: Text],
+  ( HasFlowEnv m r '["_version" ::: Text],
     Log m
   ) =>
   CoreContext.Action ->
