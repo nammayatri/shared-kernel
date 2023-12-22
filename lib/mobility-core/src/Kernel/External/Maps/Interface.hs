@@ -134,28 +134,12 @@ runPreCheck ::
   SnapToRoadReq ->
   m Bool
 runPreCheck mapsService req = do
+  droppedPointsThreshold <- asks (.droppedPointsThreshold)
+  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
   case mapsService of
-    Google -> do
-      droppedPointsThreshold <- asks (.droppedPointsThreshold)
-      if (everySnippetIs (< droppedPointsThreshold) req.points)
-        then do
-          logError "Some snippets' length is above dropped points threshold in pre check for Google"
-          return False
-        else return True
-    MMI -> do
-      droppedPointsThreshold <- asks (.droppedPointsThreshold)
-      if (everySnippetIs (< droppedPointsThreshold) req.points)
-        then do
-          logError "Some snippets' length is above dropped points threshold in pre check for MMI"
-          return False
-        else return True
-    OSRM -> do
-      snippetThreshold <- asks (.snapToRoadSnippetThreshold)
-      if (everySnippetIs (< snippetThreshold) req.points)
-        then do
-          logError "Some snippets' length is above snippet threshold in pre check for OSRM"
-          return False
-        else return True
+    Google -> return (everySnippetIs (< droppedPointsThreshold) req.points)
+    MMI -> return (everySnippetIs (< droppedPointsThreshold) req.points)
+    OSRM -> return (everySnippetIs (< snippetThreshold) req.points)
 
 runPostCheck ::
   ( EncFlow m r,
@@ -166,21 +150,10 @@ runPostCheck ::
   SnapToRoadResp ->
   m Bool
 runPostCheck mapsService res = do
+  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
   case mapsService of
-    Google -> do
-      snippetThreshold <- asks (.snapToRoadSnippetThreshold)
-      if (everySnippetIs (< snippetThreshold) res.snappedPoints)
-        then do
-          logError "Some snippets' length is above snippet threshold in post check for Google"
-          return False
-        else return True
-    MMI -> do
-      snippetThreshold <- asks (.snapToRoadSnippetThreshold)
-      if (everySnippetIs (< snippetThreshold) res.snappedPoints)
-        then do
-          logError "Some snippets' length is above snippet threshold in post check for MMI"
-          return False
-        else return True
+    Google -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
+    MMI -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
     _ -> return True
 
 snapToRoadWithFallback ::
@@ -206,7 +179,7 @@ snapToRoadWithFallback SnapToRoadHandler {..} req = do
       preCheckPassed <- runPreCheck preferredProvider req
       if not preCheckPassed
         then do
-          logWarning $ "Pre check failed for provider " <> show preferredProvider
+          logError $ "Pre check failed for provider " <> show preferredProvider
           callSnapToRoadWithFallback restProviders
         else do
           result <- try @_ @SomeException $ snapToRoad mapsConfig req
@@ -217,6 +190,7 @@ snapToRoadWithFallback SnapToRoadHandler {..} req = do
             Right res -> do
               confidencethreshold <- getConfidenceThreshold
               postCheckPassed <- runPostCheck preferredProvider res
+              when (not postCheckPassed) $ logError $ "Post check failed for provider " <> show preferredProvider
               if res.confidence < confidencethreshold || not postCheckPassed
                 then do
                   (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
