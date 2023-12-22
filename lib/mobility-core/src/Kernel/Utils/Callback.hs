@@ -12,7 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.Utils.Callback (withBecknCallbackMig, WithBecknCallbackMig, withBecknCallbackMigV2, WithBecknCallbackMigV2) where
+module Kernel.Utils.Callback (withBecknCallbackMig, WithBecknCallbackMig) where
 
 import Control.Lens ((.~))
 import qualified Data.HashMap as HM
@@ -37,51 +37,6 @@ someExceptionToCallbackReqMig context exc =
         { contents = Left err,
           context
         }
-
-someExceptionToCallbackReqMigV2 :: M.Context.ContextV2 -> SomeException -> BecknCallbackReqV2 a
-someExceptionToCallbackReqMigV2 context exc =
-  let BecknAPIError err = someExceptionToBecknApiError exc
-   in BecknCallbackReqV2
-        { contents = Left err,
-          context
-        }
-
-type WithBecknCallbackMigV2 api callback_success m =
-  ( MonadFlow m,
-    SanitizedUrl api,
-    CoreMetrics m,
-    HasClient ET.EulerClient api,
-    Client ET.EulerClient api
-      ~ (BecknCallbackReqV2 callback_success -> ET.EulerClient AckResponse)
-  ) =>
-  M.Context.Action ->
-  Proxy api ->
-  M.Context.ContextV2 ->
-  BaseUrl ->
-  HM.Map BaseUrl BaseUrl ->
-  m callback_success ->
-  m AckResponse
-
-withBecknCallbackMigV2 ::
-  (m () -> m ()) ->
-  Maybe ET.ManagerSelector ->
-  WithBecknCallbackMigV2 api callback_success m
-withBecknCallbackMigV2 doWithCallback auth actionName api context cbUrl internalEndPointHashMap action = do
-  now <- getCurrentTime
-  cbAction <-
-    M.Context.mapToCbAction actionName
-      & fromMaybeM (InternalError $ "Beckn " <> show actionName <> " action doesn't have callback")
-  let (cbContext :: M.Context.ContextV2) =
-        context
-          & #action .~ cbAction
-          & #timestamp .~ UTCTimeRFC3339 now
-  forkBecknCallback
-    (someExceptionToCallbackReqMigV2 cbContext)
-    (BecknCallbackReqV2 cbContext . Right)
-    (doWithCallback . void . callBecknAPI auth Nothing (show cbAction) api cbUrl internalEndPointHashMap)
-    (show actionName)
-    action
-  return Ack
 
 type WithBecknCallbackMig api callback_success m =
   ( MonadFlow m,
