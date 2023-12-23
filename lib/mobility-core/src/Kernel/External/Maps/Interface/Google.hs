@@ -23,6 +23,7 @@ module Kernel.External.Maps.Interface.Google
   )
 where
 
+import Control.Applicative ((<|>))
 import Control.Monad.Extra (concatForM)
 import qualified Data.List.Extra as List
 import qualified Data.List.NonEmpty as NE
@@ -287,7 +288,7 @@ getPlaceName cfg GetPlaceNameReq {..} = do
       PlaceName
         { formattedAddress = placeName.formatted_address,
           addressComponents = map reformateAddressResp placeName.address_components,
-          plusCode = placeName.plus_code <&> (.compound_code),
+          plusCode = (placeName.plus_code >>= (.compound_code)) <|> (placeName.plus_code >>= (.global_code)),
           location = let loc = placeName.geometry.location in LatLong loc.lat loc.lng,
           placeId = placeName.place_id
         }

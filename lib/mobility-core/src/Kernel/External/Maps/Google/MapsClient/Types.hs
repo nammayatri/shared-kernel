@@ -101,8 +101,9 @@ data AddressResp = AddressResp
   deriving stock (Generic, Show, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
-newtype PlusCodeResp = PlusCodeResp
-  { compound_code :: Text
+data PlusCodeResp = PlusCodeResp
+  { compound_code :: Maybe Text,
+    global_code :: Maybe Text
   }
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
