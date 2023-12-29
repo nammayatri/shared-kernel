@@ -16,8 +16,10 @@
 module Kernel.External.Verification.Idfy.Types.Response where
 
 import Data.Aeson hiding (Error)
+import qualified Data.Aeson as A
 import Data.OpenApi hiding (name)
 import EulerHS.Prelude hiding (state)
+import Kernel.Types.App ()
 import Kernel.Utils.JSON
 import Kernel.Utils.Time
 
@@ -109,7 +111,7 @@ data RCVerificationOutput = RCVerificationOutput
     vehicle_class :: Maybe Text,
     vehicle_financier :: Maybe Text,
     noc_valid_upto :: Maybe Text,
-    seating_capacity :: Maybe Text,
+    seating_capacity :: Maybe A.Value,
     variant :: Maybe Text,
     npermit_upto :: Maybe Text,
     manufacturer_model :: Maybe Text,
