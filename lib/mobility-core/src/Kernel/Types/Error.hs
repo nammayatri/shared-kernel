@@ -1096,3 +1096,21 @@ instance IsHTTPError EditLocationError where
     EditLocationAttemptsExhausted -> E400
 
 instance IsAPIError EditLocationError
+
+data NextBillionError
+  = FailedToCallNextBillionRouteAPI Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''NextBillionError
+
+instance IsBaseError NextBillionError where
+  toMessage = \case
+    FailedToCallNextBillionRouteAPI err -> Just $ "Failed to call next billion route API: " <> err
+
+instance IsHTTPError NextBillionError where
+  toErrorCode = \case
+    FailedToCallNextBillionRouteAPI _ -> "FAILED_TO_CALL_NEXT_BILLION_ROUTE_API"
+  toHttpCode = \case
+    FailedToCallNextBillionRouteAPI _ -> E400
+
+instance IsAPIError NextBillionError
