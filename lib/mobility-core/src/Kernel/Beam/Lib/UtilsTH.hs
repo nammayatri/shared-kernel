@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Beam.Lib.UtilsTH
   ( enableKVPG,
@@ -32,12 +33,13 @@ import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError 
 import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import qualified EulerHS.KVConnector.Types as KV
 import EulerHS.Prelude hiding (Type, words)
-import qualified Kernel.Beam.Types as KV
+import Kernel.External.Encryption (DbHash (..))
 import Kernel.Types.Common ()
 import Kernel.Types.FromField (fromFieldEnum, fromFieldJSON)
 import Kernel.Utils.Text (encodeToText)
 import Language.Haskell.TH
 import qualified Sequelize as S
+import Sequelize.SQLObject (SQLObject (..), ToSQLObject (convertToSQLObject))
 import Text.Casing (camel, quietSnake)
 import Prelude (head)
 import qualified Prelude as P
@@ -45,6 +47,13 @@ import qualified Prelude as P
 -- | WARNING! Instances should be defined in application itself to avoid overlapping
 class HasSchemaName tn where
   schemaName :: Proxy tn -> Text
+
+--- SQLObject ---
+
+instance {-# OVERLAPPING #-} ToSQLObject DbHash where
+  convertToSQLObject = SQLObjectValue . encodeToText
+
+--- templates ---
 
 emptyTextHashMap :: HMI.HashMap Text Text
 emptyTextHashMap = HMI.empty
@@ -57,7 +66,8 @@ enableKVPG name pKeyN sKeysN = do
   [tModeMeshSig, tModeMeshDec] <- tableTModMeshD name
   [kvConnectorDec] <- kvConnectorInstancesD name pKeyN sKeysN
   [meshMetaDec] <- meshMetaInstancesDPG name
-  pure [tModeMeshSig, tModeMeshDec, meshMetaDec, kvConnectorDec] -- ++ cerealDec
+  sqlObjectToJSONInstance <- mkSQLObjectToJSONInstance name
+  pure [tModeMeshSig, tModeMeshDec, meshMetaDec, kvConnectorDec, sqlObjectToJSONInstance] -- ++ cerealDec
   -- DB.OrderReferenceT (B.FieldModification (B.TableField DB.OrderReferenceT)) add signature
 
 tableTModMeshD :: Name -> Q [Dec]
@@ -86,7 +96,8 @@ kvConnectorInstancesD name pKeyN sKeysN = do
       keyMapD = FunD 'KV.keyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (pKeyPair : sKeyPairs)))) []]
       primaryKeyD = FunD 'KV.primaryKey [Clause [] (NormalB getPrimaryKeyE) []]
       secondaryKeysD = FunD 'KV.secondaryKeys [Clause [] (NormalB getSecondaryKeysE) []]
-  return [InstanceD Nothing [] (AppT (ConT ''KV.KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) [tableNameD, keyMapD, primaryKeyD, secondaryKeysD]]
+  mkSQLObjectD <- genMkSQLObjectD name
+  return [InstanceD Nothing [] (AppT (ConT ''KV.KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) [tableNameD, keyMapD, primaryKeyD, secondaryKeysD, mkSQLObjectD]]
   where
     getPrimaryKeyE =
       let obj = mkName "obj"
@@ -107,6 +118,13 @@ kvConnectorInstancesD name pKeyN sKeysN = do
       let fieldName = (splitColon $ nameBase f)
        in AppE (AppE (AppE (VarE 'utilTransform) (VarE 'emptyValueHashMap)) (LitE . StringL $ fieldName)) (AppE (VarE $ mkName fieldName) (VarE obj))
     keyNameTextE n = AppE (VarE 'T.pack) (LitE $ StringL (splitColon $ nameBase n))
+
+genMkSQLObjectD :: Name -> Q Dec
+genMkSQLObjectD name = do
+  fieldNames <- extractRecFields . head . extractConstructors <$> reify name
+  let tName = mkName "table"
+  let fieldExps = fieldNames <&> (\fieldName -> (fieldName, VarE 'convertToSQLObject `AppE` (VarE fieldName `AppE` VarE tName)))
+  pure $ FunD 'KV.mkSQLObject [Clause [VarP tName] (NormalB (VarE 'toJSON `AppTypeE` (ConT name `AppT` ConT ''SQLObject) `AppE` RecConE (mkName $ nameBase name) fieldExps)) []]
 
 sortAndGetKey :: [Name] -> String
 sortAndGetKey names = do
@@ -320,6 +338,12 @@ mkToJSONInstance name = do
   let toJSONFn = mkName "toJSON"
       toJSONInstance = FunD toJSONFn [Clause [] (NormalB (AppE (VarE 'A.genericToJSON) (VarE 'A.defaultOptions))) []]
   return $ InstanceD Nothing [] (AppT (ConT ''ToJSON) (AppT (ConT name) (ConT $ mkName "Identity"))) [toJSONInstance]
+
+mkSQLObjectToJSONInstance :: Name -> Q Dec
+mkSQLObjectToJSONInstance name = do
+  let toJSONFn = mkName "toJSON"
+      toJSONInstance = FunD toJSONFn [Clause [] (NormalB (AppE (VarE 'A.genericToJSON) (VarE 'A.defaultOptions))) []]
+  return $ InstanceD Nothing [] (AppT (ConT ''ToJSON) (AppT (ConT name) (ConT ''SQLObject))) [toJSONInstance]
 
 mkShowInstance :: Name -> Q Dec
 mkShowInstance name = do

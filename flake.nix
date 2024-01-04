@@ -13,7 +13,7 @@
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
     euler-hs = {
-      url = "github:enigma-commits/euler-hs/Backend/feat/redis-cluster-pipelining";
+      url = "github:nammayatri/euler-hs/backend/custom-mapping-and-sqlObject-for-decoupling-drainers";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.haskell-flake.follows = "haskell-flake";
     };
