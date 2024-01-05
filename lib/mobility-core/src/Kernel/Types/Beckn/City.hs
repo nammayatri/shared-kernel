@@ -15,7 +15,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Beckn.City (City (..)) where
+module Kernel.Types.Beckn.City (City (..), ListCity (..)) where
 
 import Data.Aeson
 import Data.Aeson.Types
@@ -51,6 +51,30 @@ data City
 
 $(mkBeamInstancesForEnum ''City)
 
+data ListCity = ListCity [City]
+  deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
+  deriving (PrettyShow) via Showable ListCity
+
+$(mkBeamInstancesForEnum ''ListCity)
+
+instance FromJSON ListCity where
+  parseJSON (String citiesStr) = do
+    let cities :: Result [City] = sequence . filter isSuccess $ map (fromJSON . String . T.strip) (T.splitOn "," citiesStr)
+    case cities of
+      Success cities' -> pure $ ListCity cities'
+      Error _ -> error "failed"
+    where
+      isSuccess a = case a of
+        Success _ -> True
+        Error _ -> False
+  parseJSON e = typeMismatch "String" e
+
+instance ToJSON ListCity where
+  toJSON (ListCity cities) = String . (T.intercalate ",") $ map (toStringMe . toJSON) cities
+    where
+      toStringMe (String a) = a
+      toStringMe e = error "Unexpected value type, expected String for City " <> show e
+
 instance FromJSON City where
   parseJSON (String "std:080") = pure Bangalore
   parseJSON (String "Bangalore") = pure Bangalore
@@ -80,7 +104,7 @@ instance FromJSON City where
   parseJSON (String "Mysore") = pure Mysore
   parseJSON (String "std:0816") = pure Tumakuru
   parseJSON (String "Tumakuru") = pure Tumakuru
-  parseJSON (String _) = pure AnyCity
+  parseJSON (String "*") = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
 instance ToJSON City where
