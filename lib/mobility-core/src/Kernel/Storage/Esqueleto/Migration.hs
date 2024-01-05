@@ -18,7 +18,7 @@ module Kernel.Storage.Esqueleto.Migration
   )
 where
 
-import Data.ByteString
+import Data.ByteString hiding (map)
 import qualified Data.Text as T
 import qualified Database.PostgreSQL.Simple as PS
 import Database.PostgreSQL.Simple.Migration
@@ -37,24 +37,22 @@ fromEsqDBConfig EsqDBConfig {..} =
       connectDatabase = T.unpack connectDatabase
     }
 
-migrateIfNeeded :: (MonadMask m, MonadIO m, Log m) => Maybe FilePath -> Bool -> EsqDBConfig -> m (Either String ())
-migrateIfNeeded mPath autoMigrate esqDbConfig =
-  migrateIfNeeded' mPath autoMigrate schemaName connectInfo
+migrateIfNeeded :: (MonadMask m, MonadIO m, Log m) => [FilePath] -> Bool -> EsqDBConfig -> m (Either String ())
+migrateIfNeeded mPaths autoMigrate esqDbConfig =
+  migrateIfNeeded' mPaths autoMigrate schemaName connectInfo
   where
     schemaName = encodeUtf8 esqDbConfig.connectSchemaName
     connectInfo = fromEsqDBConfig esqDbConfig
 
-migrateIfNeeded' :: (MonadMask m, MonadIO m, Log m) => Maybe FilePath -> Bool -> ByteString -> PS.ConnectInfo -> m (Either String ())
-migrateIfNeeded' mPath autoMigrate schemaName connectInfo =
-  case mPath of
-    Just path
-      | autoMigrate ->
-        bracket
-          (liftIO (PS.connect connectInfo))
-          (liftIO . PS.close)
-          (migrate path)
-    _ ->
-      pure $ Right ()
+migrateIfNeeded' :: (MonadMask m, MonadIO m, Log m) => [FilePath] -> Bool -> ByteString -> PS.ConnectInfo -> m (Either String ())
+migrateIfNeeded' mPaths autoMigrate schemaName connectInfo =
+  if autoMigrate
+    then
+      bracket
+        (liftIO (PS.connect connectInfo))
+        (liftIO . PS.close)
+        (migrate mPaths)
+    else pure $ Right ()
   where
     options =
       defaultOptions
@@ -63,13 +61,11 @@ migrateIfNeeded' mPath autoMigrate schemaName connectInfo =
         }
     resultToEither MigrationSuccess = Right ()
     resultToEither (MigrationError a) = Left a
-    migrate path conn =
+    migrate paths conn =
       fmap resultToEither $ do
-        logInfo $ "Running migrations (" <> show path <> ") ..."
+        logInfo $ "Running migrations (" <> show paths <> ") ..."
         liftIO $
           runMigrations
             conn
             options
-            [ MigrationInitialization,
-              MigrationDirectory path
-            ]
+            ([MigrationInitialization] <> map MigrationDirectory paths)
