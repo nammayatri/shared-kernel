@@ -73,7 +73,7 @@ data UpdateTicketReq = UpdateTicketReq
     subStatus :: SubStatus
   }
 
-data SubStatus = OP | IN | RS | PE | CL
+data SubStatus = OP | IN | RS | PE | CL | CRS
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 -- SubStatusName	  SubStatus Key

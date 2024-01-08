@@ -34,10 +34,12 @@ type KaptureCreateTicketAPI =
     :> ReqBody '[JSON] Kapture.CreateTicketReq
     :> Post '[JSON] Kapture.CreateTicketResp
 
-type KaputreUpdateTicketAPI =
+type KaptureUpdateTicketAPI =
   "update-ticket-from-other-source.html"
     :> Capture "version" Text
     :> Header "Authorization" Text
+    :> Header "x-api-key" Text
+    :> Header "x-api-type" Text
     :> ReqBody '[JSON] Kapture.UpdateTicketReq
     :> Post '[JSON] Kapture.UpdateTicketResp
 
@@ -65,6 +67,6 @@ updateTicketAPI ::
   Kapture.UpdateTicketReq ->
   m Kapture.UpdateTicketResp
 updateTicketAPI url version auth req = do
-  let eulerClient = Euler.client (Proxy @KaputreUpdateTicketAPI)
-  callAPI url (eulerClient version (Just auth) req) "updateTicketAPI" (Proxy @KaputreUpdateTicketAPI)
+  let eulerClient = Euler.client (Proxy @KaptureUpdateTicketAPI)
+  callAPI url (eulerClient version (Just auth) (Just auth) (Just "TICKET") req) "updateTicketAPI" (Proxy @KaptureUpdateTicketAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call update ticket API: " <> show err)
