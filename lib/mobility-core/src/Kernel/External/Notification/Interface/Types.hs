@@ -53,6 +53,8 @@ data Category
   | DRIVER_BIRTHDAY
   | EDIT_LOCATION
   | COINS_SUCCESS
+  | FOLLOW_RIDE
+  | SHARE_RIDE
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
 data SubCategory
