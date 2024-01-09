@@ -35,7 +35,14 @@ class (Show a, Read a) => ClickhouseValue a where
 
 instance ClickhouseValue Double
 
-instance ClickhouseValue Bool
+instance ClickhouseValue Bool where
+  fromClickhouseValue (Value "1") = Just True
+  fromClickhouseValue (Value "0") = Just False
+  fromClickhouseValue (Value "True") = Just True
+  fromClickhouseValue (Value "False") = Just False
+  fromClickhouseValue (Value "true") = Just True
+  fromClickhouseValue (Value "false") = Just False
+  fromClickhouseValue _ = Nothing
 
 instance ClickhouseValue Time.Day
 
