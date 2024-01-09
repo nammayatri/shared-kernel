@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DerivingStrategies #-}
 
 module Kernel.Streaming.Kafka.Producer.Types
   ( KafkaProducerCfg (..),
@@ -29,6 +30,7 @@ import EulerHS.Prelude
 import GHC.Records.Extra (HasField)
 import Kafka.Producer as Producer
 import Kernel.Streaming.Kafka.Commons as Reexport
+import qualified Kernel.Types.Common as KTC
 import Kernel.Types.Error
 import Kernel.Utils.Dhall (FromDhall)
 
@@ -53,9 +55,10 @@ producerProps kafkaProducerCfg =
   where
     castBrokers = BrokerAddress <$> kafkaProducerCfg.brokers
 
-addMaxMessages :: ProducerProperties -> Text -> Text -> ProducerProperties
-addMaxMessages props key value =
-  let updatedKafkaProps = Map.insert key value (ppKafkaProps props)
+addMaxMessages :: ProducerProperties -> [KTC.KafkaProperties] -> ProducerProperties
+addMaxMessages props kafkaProperties =
+  let propertyList = map (\kv -> (KTC.propName kv, KTC.propValue kv)) kafkaProperties
+      updatedKafkaProps = foldl (\acc (k, v) -> Map.insert k v acc) (ppKafkaProps props) propertyList
    in props {ppKafkaProps = updatedKafkaProps}
 
 castCompression :: KafkaCompression -> KafkaCompressionCodec
@@ -66,9 +69,9 @@ castCompression kafkaCompression =
     SNAPPY -> Snappy
     LZ4 -> Lz4
 
-buildKafkaProducerTools' :: KafkaProducerCfg -> Text -> IO KafkaProducerTools
-buildKafkaProducerTools' kafkaProducerCfg maxMessages = do
-  producer <- newProducer (addMaxMessages (producerProps kafkaProducerCfg) "queue.buffering.max.messages" maxMessages) >>= either (throwM . KafkaUnableToBuildTools) return
+buildKafkaProducerTools' :: KafkaProducerCfg -> [KTC.KafkaProperties] -> IO KafkaProducerTools
+buildKafkaProducerTools' kafkaProducerCfg kafkaProperties = do
+  producer <- newProducer (addMaxMessages (producerProps kafkaProducerCfg) kafkaProperties) >>= either (throwM . KafkaUnableToBuildTools) return
   return $ KafkaProducerTools {..}
 
 buildKafkaProducerTools :: KafkaProducerCfg -> IO KafkaProducerTools
