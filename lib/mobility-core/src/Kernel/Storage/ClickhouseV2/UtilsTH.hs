@@ -122,7 +122,7 @@ mkFromJSON name fieldNames = do
 
 parseField :: (MonadFail m, CH.ClickhouseValue a) => String -> String -> CH.Value a -> m a
 parseField tableName fieldName val = do
-  either (\err -> fail $ "Could not parse clickhouse field " <> tableName <> "." <> fieldName <> ": " <> err) pure $ CH.fromClickhouseValue val
+  either (\err -> fail $ "Could not parse clickhouse field " <> tableName <> "." <> fieldName <> ": " <> err) pure $ CH.getExcept (CH.fromClickhouseValue val)
 
 -- SPLICE
 -- instance FromJSON (FooT Identity) where

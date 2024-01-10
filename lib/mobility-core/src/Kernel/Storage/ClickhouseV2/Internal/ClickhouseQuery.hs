@@ -80,7 +80,11 @@ instance ClickhouseValue value => ClickhouseQuery (Term value) where
 
 -- do we need quotes for each datatype?
 valToClickhouseQuery :: forall value. ClickhouseValue value => value -> RawQuery
-valToClickhouseQuery = addQuotes . RawQuery . getValue . toClickhouseValue
+valToClickhouseQuery = toClickhouseQuery @(Value value) . toClickhouseValue @value
+
+instance ClickhouseValue value => ClickhouseQuery (Value value) where
+  toClickhouseQuery (String str) = addQuotes . RawQuery $ str
+  toClickhouseQuery Null = "null"
 
 intercalate :: RawQuery -> [RawQuery] -> RawQuery
 intercalate x = RawQuery . List.intercalate (getRawQuery x) . (getRawQuery <$>)

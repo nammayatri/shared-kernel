@@ -16,12 +16,9 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.Storage.ClickhouseV2.ClickhouseValue
-  ( Value (getValue),
-    ClickhouseValue (..),
-  )
-where
+module Kernel.Storage.ClickhouseV2.ClickhouseValue where
 
+import qualified Data.Aeson as A
 import Data.Coerce (coerce)
 import qualified Data.Text as T
 import qualified Data.Time as Time
@@ -29,31 +26,38 @@ import Kernel.Prelude
 import Kernel.Types.Id
 import qualified Text.Read as T
 
-newtype Value a = Value {getValue :: String}
-  deriving newtype (FromJSON)
+data Value a = Null | String String
+
+instance FromJSON (Value a) where
+  parseJSON val@(A.String _) = String <$> parseJSON @String val
+  parseJSON A.Null = pure Null
+  parseJSON _ = fail "Expected String or Null for clickhouse value"
 
 class (Show a, Read a) => ClickhouseValue a where
   toClickhouseValue :: a -> Value a
-  fromClickhouseValue :: Value a -> Either String a
-  toClickhouseValue = Value . show
-  fromClickhouseValue = T.readEither . getValue
+  fromClickhouseValue :: Value a -> Except a
+  toClickhouseValue = String . show
+  fromClickhouseValue (String str) = Except $ T.readEither str
+  fromClickhouseValue Null = fail "Unexpected Null"
 
 instance ClickhouseValue Double
 
 instance ClickhouseValue Bool where
-  fromClickhouseValue (Value "1") = Right True
-  fromClickhouseValue (Value "0") = Right False
-  fromClickhouseValue (Value "True") = Right True
-  fromClickhouseValue (Value "False") = Right False
-  fromClickhouseValue (Value "true") = Right True
-  fromClickhouseValue (Value "false") = Right False
-  fromClickhouseValue _ = Left "Supported format for Bool: 0, 1, false, true, False, True"
+  fromClickhouseValue (String "1") = pure True
+  fromClickhouseValue (String "0") = pure False
+  fromClickhouseValue (String "True") = pure True
+  fromClickhouseValue (String "False") = pure False
+  fromClickhouseValue (String "true") = pure True
+  fromClickhouseValue (String "false") = pure False
+  fromClickhouseValue (String _) = fail "Supported format for Bool: 0, 1, false, true, False, True"
+  fromClickhouseValue _ = fail "Unexpected Null"
 
 instance ClickhouseValue Time.Day
 
 instance ClickhouseValue UTCTime where
-  toClickhouseValue = Value . Time.formatTime Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S%Q"
-  fromClickhouseValue = getExcept . Time.parseTimeM @Except True Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S%Q" . getValue
+  toClickhouseValue = String . Time.formatTime Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S%Q"
+  fromClickhouseValue (String str) = Time.parseTimeM @Except True Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S%Q" str
+  fromClickhouseValue Null = fail "Unexpected Null"
 
 -- No instance for (MonadFail (Either String))
 newtype Except a = Except {getExcept :: Either String a}
@@ -63,12 +67,13 @@ instance MonadFail Except where
   fail = Except . Left
 
 instance ClickhouseValue (Id a) where
-  toClickhouseValue = Value . T.unpack . getId
-  fromClickhouseValue = Right . Id . T.pack . getValue
+  toClickhouseValue = String . T.unpack . getId
+  fromClickhouseValue (String str) = pure . Id . T.pack $ str
+  fromClickhouseValue Null = fail "Unexpected Null"
 
 instance ClickhouseValue a => ClickhouseValue (Maybe a) where
   toClickhouseValue (Just a) = coerce @(Value a) @(Value (Maybe a)) (toClickhouseValue a)
-  toClickhouseValue Nothing = Value "null"
-  fromClickhouseValue :: ClickhouseValue a => Value (Maybe a) -> Either String (Maybe a)
-  fromClickhouseValue (Value "null") = Right Nothing
+  toClickhouseValue Nothing = Null
+  fromClickhouseValue :: ClickhouseValue a => Value (Maybe a) -> Except (Maybe a)
+  fromClickhouseValue Null = pure Nothing
   fromClickhouseValue str = Just <$> fromClickhouseValue @a (coerce @(Value (Maybe a)) @(Value a) str)
