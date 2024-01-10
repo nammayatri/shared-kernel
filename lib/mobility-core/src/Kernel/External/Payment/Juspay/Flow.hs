@@ -339,3 +339,26 @@ autoRefund url apiKey orderId req = do
           }
   callAPI url (eulerClient orderId basicAuthData req) "order-refund" (Proxy @AutoRefundAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call order refund API: " <> show err)
+
+type GetCustomerAPI =
+  "customers"
+    :> Capture "customerId" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> MandatoryQueryParam "options.get_client_auth_token" Bool
+    :> Get '[JSON] CustomerRes
+
+getCustomer ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Text ->
+  m CustomerRes
+getCustomer url apiKey merchantId customerId = do
+  let options = True
+  let proxy = Proxy @GetCustomerAPI
+      eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) (Just merchantId) options
+  callJuspayAPI url eulerClient "get-customer" proxy

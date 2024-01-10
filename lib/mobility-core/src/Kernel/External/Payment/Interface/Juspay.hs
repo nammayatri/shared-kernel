@@ -28,6 +28,7 @@ module Kernel.External.Payment.Interface.Juspay
     mandateResume,
     autoRefund,
     mandateNotificationStatus,
+    getCustomer,
   )
 where
 
@@ -648,3 +649,36 @@ parseRetargetAndRetryData metaData linkData = do
   where
     getFieldData func retargetInfoFromMetaData retargetInfoFromLinkData = listToMaybe $ catMaybes [retargetInfoFromMetaData >>= func, retargetInfoFromLinkData >>= func]
     getBoolValue = (\val -> readMaybe val :: Maybe Bool) . T.unpack
+
+getCustomer ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  GetCustomerReq ->
+  m GetCustomerResp
+getCustomer config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  mkGetCustomerResp <$> Juspay.getCustomer url apiKey merchantId req.customerId
+  where
+    mkGetCustomerResp resp = do
+      GetCustomerResp
+        { id = resp.id,
+          object = resp.object,
+          objectReferenceId = resp.object_reference_id,
+          mobileNumber = resp.mobile_number,
+          dateCreated = resp.date_created,
+          lastUpdated = resp.last_updated,
+          emailAddress = resp.email_address,
+          firstName = resp.first_name,
+          lastName = resp.last_name,
+          mobileCountryCode = resp.mobile_country_code,
+          juspay =
+            JuspayObject
+              { clientAuthTokenExpiry = resp.juspay.client_auth_token_expiry,
+                clientAuthToken = resp.juspay.client_auth_token
+              }
+        }

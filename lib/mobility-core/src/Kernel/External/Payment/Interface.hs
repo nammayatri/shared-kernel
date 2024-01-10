@@ -112,3 +112,13 @@ mandateExecution ::
   m MandateExecutionRes
 mandateExecution serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateExecution cfg req
+
+getCustomer ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  PaymentServiceConfig ->
+  GetCustomerReq ->
+  m GetCustomerResp
+getCustomer serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.getCustomer cfg req
