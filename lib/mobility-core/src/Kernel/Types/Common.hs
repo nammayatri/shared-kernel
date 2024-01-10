@@ -146,6 +146,12 @@ data Tables = Tables
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
+data KafkaProperties = KafkaProperties
+  { propName :: Text,
+    propValue :: Text
+  }
+  deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
+
 data KvConfigLastUpdatedTime = KvConfigLastUpdatedTime UTCTime
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
