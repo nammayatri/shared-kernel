@@ -16,7 +16,7 @@
 
 module Kernel.External.Payment.Juspay.Types.Common where
 
-import Data.Aeson.Types
+import qualified Data.Aeson.Types as A
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
@@ -56,12 +56,12 @@ $(mkBeamInstancesForEnum ''Currency)
 
 -- Generic instances for type with single value will not work
 instance FromJSON Currency where
-  parseJSON (String "INR") = pure INR
-  parseJSON (String _) = parseFail "Expected \"INR\""
-  parseJSON e = typeMismatch "String" e
+  parseJSON (A.String "INR") = pure INR
+  parseJSON (A.String _) = A.parseFail "Expected \"INR\""
+  parseJSON e = A.typeMismatch "String" e
 
 instance ToJSON Currency where
-  toJSON = String . show
+  toJSON = A.String . show
 
 data MandateType = OPTIONAL | REQUIRED
   deriving stock (Show, Read, Eq, Generic, Ord)
@@ -94,12 +94,12 @@ data NotificationStatus = NOTIFICATION_CREATED | NOTIFICATION_FAILURE | PENDING 
 derivePersistField "NotificationStatus"
 
 instance FromJSON NotificationStatus where
-  parseJSON (String "CREATED") = pure NOTIFICATION_CREATED
-  parseJSON (String "FAILURE") = pure NOTIFICATION_FAILURE
-  parseJSON (String "PENDING") = pure PENDING
-  parseJSON (String "SUCCESS") = pure SUCCESS
-  parseJSON (String _) = parseFail "Expected type"
-  parseJSON e = typeMismatch "String" e
+  parseJSON (A.String "CREATED") = pure NOTIFICATION_CREATED
+  parseJSON (A.String "FAILURE") = pure NOTIFICATION_FAILURE
+  parseJSON (A.String "PENDING") = pure PENDING
+  parseJSON (A.String "SUCCESS") = pure SUCCESS
+  parseJSON (A.String _) = A.parseFail "Expected type"
+  parseJSON e = A.typeMismatch "String" e
 
 instance ToJSON NotificationStatus where
   toJSON NOTIFICATION_CREATED = "CREATED"
@@ -190,6 +190,29 @@ data RetargetConfigs = RetargetConfigs
 
 newtype LinkData = LinkData
   { retarget_payment_links :: Maybe RetargetConfigs
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CustomerRes = CustomerRes
+  { id :: Text,
+    object :: Text,
+    object_reference_id :: Text,
+    mobile_number :: Text,
+    date_created :: Maybe Text,
+    last_updated :: Maybe Text,
+    email_address :: Maybe Text,
+    first_name :: Maybe Text,
+    last_name :: Maybe Text,
+    mobile_country_code :: Text,
+    juspay :: JuspayObject
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data JuspayObject = JuspayObject
+  { client_auth_token_expiry :: Maybe Text,
+    client_auth_token :: Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

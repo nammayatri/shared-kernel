@@ -347,3 +347,28 @@ data AutoRefundReq = AutoRefundReq
     requestId :: Text,
     amount :: Double
   }
+
+newtype GetCustomerReq = GetCustomerReq
+  { customerId :: Text
+  }
+
+data GetCustomerResp = GetCustomerResp
+  { id :: Text,
+    object :: Text,
+    objectReferenceId :: Text,
+    mobileNumber :: Text,
+    dateCreated :: Maybe Text,
+    lastUpdated :: Maybe Text,
+    emailAddress :: Maybe Text,
+    firstName :: Maybe Text,
+    lastName :: Maybe Text,
+    mobileCountryCode :: Text,
+    juspay :: JuspayObject
+  }
+  deriving (Generic, Show, FromJSON, ToJSON, ToSchema)
+
+data JuspayObject = JuspayObject
+  { clientAuthTokenExpiry :: Maybe Text,
+    clientAuthToken :: Text
+  }
+  deriving (Generic, Show, FromJSON, ToJSON, ToSchema)
