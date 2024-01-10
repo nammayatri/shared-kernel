@@ -66,11 +66,14 @@ instance ClickhouseTable t => ClickhouseQuery (Where t) where
 instance (ClickhouseTable t) => ClickhouseQuery (Clause t) where
   toClickhouseQuery (And clause1 clause2) = addBrackets (toClickhouseQuery @(Clause t) clause1) <> " AND " <> addBrackets (toClickhouseQuery @(Clause t) clause2)
   toClickhouseQuery (Or clause1 clause2) = addBrackets (toClickhouseQuery @(Clause t) clause1) <> " OR " <> addBrackets (toClickhouseQuery @(Clause t) clause2)
+  toClickhouseQuery (Not clause) = "NOT " <> addBrackets (toClickhouseQuery @(Clause t) clause)
   toClickhouseQuery (Is column term) = toClickhouseQuery @(Column t _) column <> toClickhouseQuery @(Term _) term
 
 instance ClickhouseValue value => ClickhouseQuery (Term value) where
   toClickhouseQuery (In valList) = " IN " <> (addBrackets . intercalate "," . (valToClickhouseQuery @value <$>) $ valList)
   toClickhouseQuery (Eq term) = "=" <> valToClickhouseQuery @value term
+  toClickhouseQuery NullTerm = " IS NULL"
+  toClickhouseQuery NotNullTerm = " IS NOT NULL"
   toClickhouseQuery (NotEq term) = "!=" <> valToClickhouseQuery @value term
   toClickhouseQuery (GreaterThan term) = ">" <> valToClickhouseQuery @value term
   toClickhouseQuery (GreaterOrEqualThan term) = ">=" <> valToClickhouseQuery @value term
