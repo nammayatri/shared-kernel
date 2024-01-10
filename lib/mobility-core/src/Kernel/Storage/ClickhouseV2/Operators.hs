@@ -35,6 +35,15 @@ infixr 3 &&.
 
 infixr 2 ||.
 
+not_ :: forall table. ClickhouseTable table => Clause table -> Clause table
+not_ = Not
+
+isNull :: forall table value. (ClickhouseTable table, ClickhouseValue value) => Column table (Maybe value) -> Clause table
+isNull column = Is column NullTerm
+
+isNotNull :: forall table value. (ClickhouseTable table, ClickhouseValue value) => Column table (Maybe value) -> Clause table
+isNotNull column = Is column NotNullTerm
+
 select :: forall db table. Q db table -> Select db table
 select = Select
 

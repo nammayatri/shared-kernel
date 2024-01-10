@@ -29,10 +29,13 @@ type Columns table = table (Column table)
 data Clause table where
   And :: ClickhouseTable table => Clause table -> Clause table -> Clause table
   Or :: ClickhouseTable table => Clause table -> Clause table -> Clause table
+  Not :: ClickhouseTable table => Clause table -> Clause table
   Is :: (ClickhouseTable table, ClickhouseValue value) => Column table value -> Term value -> Clause table
 
 data Term value where
   In :: ClickhouseValue value => [value] -> Term value
+  NullTerm :: ClickhouseValue value => Term (Maybe value)
+  NotNullTerm :: ClickhouseValue value => Term (Maybe value)
   Eq :: ClickhouseValue value => value -> Term value
   NotEq :: ClickhouseValue value => value -> Term value
   GreaterThan :: ClickhouseValue value => value -> Term value
