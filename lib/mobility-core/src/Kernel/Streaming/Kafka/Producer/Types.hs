@@ -29,6 +29,7 @@ import EulerHS.Prelude
 import GHC.Records.Extra (HasField)
 import Kafka.Producer as Producer
 import Kernel.Streaming.Kafka.Commons as Reexport
+import qualified Kernel.Types.Common as KTC
 import Kernel.Types.Error
 import Kernel.Utils.Dhall (FromDhall)
 
@@ -53,9 +54,9 @@ producerProps kafkaProducerCfg =
   where
     castBrokers = BrokerAddress <$> kafkaProducerCfg.brokers
 
-addMaxMessages :: ProducerProperties -> Text -> Text -> ProducerProperties
-addMaxMessages props key value =
-  let updatedKafkaProps = Map.insert key value (ppKafkaProps props)
+addProperties :: ProducerProperties -> [KTC.KafkaProperties] -> ProducerProperties
+addProperties props kafkaProperties =
+  let updatedKafkaProps = foldl (\acc kv -> Map.insert (KTC.propName kv) (KTC.propValue kv) acc) (ppKafkaProps props) kafkaProperties
    in props {ppKafkaProps = updatedKafkaProps}
 
 castCompression :: KafkaCompression -> KafkaCompressionCodec
@@ -66,9 +67,9 @@ castCompression kafkaCompression =
     SNAPPY -> Snappy
     LZ4 -> Lz4
 
-buildKafkaProducerTools' :: KafkaProducerCfg -> Text -> IO KafkaProducerTools
-buildKafkaProducerTools' kafkaProducerCfg maxMessages = do
-  producer <- newProducer (addMaxMessages (producerProps kafkaProducerCfg) "queue.buffering.max.messages" maxMessages) >>= either (throwM . KafkaUnableToBuildTools) return
+buildKafkaProducerTools' :: KafkaProducerCfg -> [KTC.KafkaProperties] -> IO KafkaProducerTools
+buildKafkaProducerTools' kafkaProducerCfg kafkaProperties = do
+  producer <- newProducer (addProperties (producerProps kafkaProducerCfg) kafkaProperties) >>= either (throwM . KafkaUnableToBuildTools) return
   return $ KafkaProducerTools {..}
 
 buildKafkaProducerTools :: KafkaProducerCfg -> IO KafkaProducerTools
