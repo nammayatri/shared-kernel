@@ -133,14 +133,20 @@ callApiUnwrappingApiError ::
   Maybe (HM.Map BaseUrl BaseUrl) ->
   CallAPI m api a
 callApiUnwrappingApiError toAPIException mbManagerSelector errorCodeMb internalEndPointHashMap baseUrl eulerClient desc api = do
-  url <- case internalEndPointHashMap of
-    Nothing -> return baseUrl
-    Just aclEndPointMap -> do
-      case HM.lookup baseUrl aclEndPointMap of
-        Nothing -> return baseUrl
-        Just foundBaseUrl -> return foundBaseUrl
-  callApiExtractingApiError mbManagerSelector url eulerClient desc api
-    >>= unwrapEitherCallAPIError errorCodeMb url toAPIException
+  newBaseUrl <-
+    HM.foldWithKey
+      ( \k v acc ->
+          if T.isInfixOf (showBaseUrlText k) (showBaseUrlText baseUrl)
+            then do
+              KP.parseBaseUrl (T.replace (showBaseUrlText k) (showBaseUrlText v) (showBaseUrlText baseUrl))
+            else acc
+      )
+      (return baseUrl)
+      (fromMaybe HM.empty internalEndPointHashMap)
+  logDebug $ "newBaseUrl " <> showBaseUrlText newBaseUrl
+
+  callApiExtractingApiError mbManagerSelector newBaseUrl eulerClient desc api
+    >>= unwrapEitherCallAPIError errorCodeMb newBaseUrl toAPIException
 
 -- Note on change:-
 -- As "ManagerSelector" is now a newtype wrapper around "Text" in new Euler-hs
