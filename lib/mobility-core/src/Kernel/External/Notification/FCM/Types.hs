@@ -143,6 +143,7 @@ data FCMNotificationType
   | SAFETY_ALERT
   | DRIVER_BIRTHDAY
   | EDIT_LOCATION
+  | COINS_SUCCESS
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
