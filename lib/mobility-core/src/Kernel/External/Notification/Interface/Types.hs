@@ -50,6 +50,7 @@ data Category
   | SAFETY_ALERT
   | DRIVER_BIRTHDAY
   | EDIT_LOCATION
+  | COINS_SUCCESS
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
 data SubCategory
