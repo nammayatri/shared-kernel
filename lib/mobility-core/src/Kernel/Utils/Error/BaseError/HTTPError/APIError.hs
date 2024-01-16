@@ -16,7 +16,7 @@
 
 module Kernel.Utils.Error.BaseError.HTTPError.APIError where
 
-import qualified Data.HashMap as HM
+import qualified Data.HashMap.Strict as HM
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import Kernel.Types.Error.BaseError.HTTPError
@@ -44,7 +44,7 @@ instance IsAPIError APICallError
 callOwnAPI ::
   Maybe ET.ManagerSelector ->
   Maybe Text ->
-  Maybe (HM.Map BaseUrl BaseUrl) ->
+  Maybe (HM.HashMap BaseUrl BaseUrl) ->
   CallAPI env api a
 callOwnAPI = callApiUnwrappingApiError APICallError
 

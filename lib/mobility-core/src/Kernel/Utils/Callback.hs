@@ -15,7 +15,7 @@
 module Kernel.Utils.Callback (withBecknCallbackMig, WithBecknCallbackMig) where
 
 import Control.Lens ((.~))
-import qualified Data.HashMap as HM
+import qualified Data.HashMap.Strict as HM
 import EulerHS.Prelude hiding ((.~))
 import qualified EulerHS.Types as ET
 import Kernel.Tools.Metrics.CoreMetrics
@@ -50,7 +50,7 @@ type WithBecknCallbackMig api callback_success m =
   Proxy api ->
   M.Context.Context ->
   BaseUrl ->
-  HM.Map BaseUrl BaseUrl ->
+  HM.HashMap BaseUrl BaseUrl ->
   m callback_success ->
   m AckResponse
 
