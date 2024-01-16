@@ -46,7 +46,7 @@ import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
-import Kernel.Utils.CalculateDistance (everySnippetIs)
+import Kernel.Utils.CalculateDistance (everySnippetIs, getRouteLinearLength)
 import Kernel.Utils.Common hiding (id)
 
 getDistance ::
@@ -127,7 +127,6 @@ snapToRoadProvided = \case
 runPreCheck ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
     HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
   ) =>
   MapsService ->
@@ -135,33 +134,36 @@ runPreCheck ::
   m Bool
 runPreCheck mapsService req = do
   droppedPointsThreshold <- asks (.droppedPointsThreshold)
-  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
   case mapsService of
     Google -> return (everySnippetIs (< droppedPointsThreshold) req.points)
     MMI -> return (everySnippetIs (< droppedPointsThreshold) req.points)
-    OSRM -> return (everySnippetIs (< snippetThreshold) req.points)
+    _ -> return True
 
 runPostCheck ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["snapToRoadPostCheckThreshold" ::: HighPrecMeters]
   ) =>
   MapsService ->
+  SnapToRoadReq ->
   SnapToRoadResp ->
   m Bool
-runPostCheck mapsService res = do
+runPostCheck mapsService req res = do
   snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+  postCheckThreshold <- asks (.snapToRoadPostCheckThreshold)
   case mapsService of
     Google -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
     MMI -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
-    _ -> return True
+    OSRM -> return $ (< postCheckThreshold) $ (getRouteLinearLength req.points) - (getRouteLinearLength res.snappedPoints)
 
 snapToRoadWithFallback ::
   ( EncFlow m r,
     EsqDBFlow m r,
     CoreMetrics m,
     HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["snapToRoadPostCheckThreshold" ::: HighPrecMeters]
   ) =>
   SnapToRoadHandler m ->
   SnapToRoadReq ->
@@ -189,7 +191,7 @@ snapToRoadWithFallback SnapToRoadHandler {..} req = do
               return (preferredProvider : servicesUsed, snapResponse)
             Right res -> do
               confidencethreshold <- getConfidenceThreshold
-              postCheckPassed <- runPostCheck preferredProvider res
+              postCheckPassed <- runPostCheck preferredProvider req res
               when (not postCheckPassed) $ logError $ "Post check failed for provider " <> show preferredProvider
               if res.confidence < confidencethreshold || not postCheckPassed
                 then do
@@ -199,9 +201,7 @@ snapToRoadWithFallback SnapToRoadHandler {..} req = do
 
 snapToRoad ::
   ( EncFlow m r,
-    CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
+    CoreMetrics m
   ) =>
   MapsServiceConfig ->
   SnapToRoadReq ->
