@@ -15,7 +15,7 @@
 module Kernel.Utils.Servant.Client where
 
 import qualified Data.Aeson as A
-import qualified Data.HashMap as HM
+import qualified Data.HashMap.Strict as HM
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
 import qualified EulerHS.Language as L
@@ -130,11 +130,11 @@ callApiUnwrappingApiError ::
   (err -> exc) ->
   Maybe ET.ManagerSelector ->
   Maybe Text ->
-  Maybe (HM.Map BaseUrl BaseUrl) ->
+  Maybe (HM.HashMap BaseUrl BaseUrl) ->
   CallAPI m api a
 callApiUnwrappingApiError toAPIException mbManagerSelector errorCodeMb internalEndPointHashMap baseUrl eulerClient desc api = do
   newBaseUrl <-
-    HM.foldWithKey
+    HM.foldrWithKey
       ( \k v acc ->
           if T.isInfixOf (showBaseUrlText k) (showBaseUrlText baseUrl)
             then do

@@ -16,7 +16,7 @@
 
 module Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError where
 
-import qualified Data.HashMap as HM
+import qualified Data.HashMap.Strict as HM
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -57,7 +57,7 @@ callBecknAPI ::
   Text ->
   Proxy api ->
   BaseUrl ->
-  HM.Map BaseUrl BaseUrl ->
+  HM.HashMap BaseUrl BaseUrl ->
   req ->
   m res
 callBecknAPI mbManagerSelector errorCodeMb action api baseUrl internalEndPointHashMap req = do
@@ -67,7 +67,7 @@ callBecknAPI' ::
   MonadFlow m =>
   Maybe ET.ManagerSelector ->
   Maybe Text ->
-  Maybe (HM.Map BaseUrl BaseUrl) ->
+  Maybe (HM.HashMap BaseUrl BaseUrl) ->
   CallAPI m api res
 callBecknAPI' mbManagerSelector errorCodeMb internalEndPointHashMap baseUrl eulerClient name api = do
   callApiUnwrappingApiError
@@ -83,7 +83,7 @@ callBecknAPI' mbManagerSelector errorCodeMb internalEndPointHashMap baseUrl eule
 callPseudoBecknAPI ::
   Maybe ET.ManagerSelector ->
   Maybe Text ->
-  HM.Map BaseUrl BaseUrl ->
+  HM.HashMap BaseUrl BaseUrl ->
   CallAPI env api a
 callPseudoBecknAPI mbManagerSelector errorCodeMb internalEndPointHashMap baseUrl eulerClient name api =
   callApiUnwrappingApiError

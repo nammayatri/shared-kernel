@@ -94,7 +94,6 @@ dependencies:
   - servant-openapi3
   - text
   - wai
-  - hashmap
   - warp
   - time
   - template-haskell
