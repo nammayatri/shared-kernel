@@ -37,7 +37,9 @@ data CreateOrderReq = CreateOrderReq
     metadata_mandate_name :: Maybe Text,
     metadata_remarks :: Text,
     mandate_start_date :: Maybe Text,
-    mandate_end_date :: Maybe Text
+    mandate_end_date :: Maybe Text,
+    options_get_upi_deep_links :: Maybe Bool,
+    metadata_expiry_in_mins :: Maybe Int
   }
   deriving stock (Show, Eq, Generic)
 
@@ -52,6 +54,7 @@ jsonReqOptions =
         "mandate_end_date" -> "mandate.end_date"
         "metadata_mandate_name" -> "metadata.AXIS_BIZ:mandate_name"
         "metadata_remarks" -> "metadata.AXIS_BIZ:remarks"
+        "metadata_expiry_in_mins" -> "metadata.expiryInMins"
         other -> other
     }
 
@@ -74,7 +77,8 @@ data CreateOrderResp = CreateOrderResp
 data PaymentLinks = PaymentLinks
   { web :: Maybe BaseUrl,
     iframe :: Maybe BaseUrl,
-    mobile :: Maybe BaseUrl
+    mobile :: Maybe BaseUrl,
+    deep_link :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

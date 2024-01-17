@@ -148,6 +148,7 @@ data OrderData = OrderData
     bank_error_message :: Maybe Text,
     upi :: Maybe Upi,
     metadata :: Maybe MetaData,
+    additional_info :: Maybe AdditionalInfo,
     links :: Maybe LinkData
   }
   deriving stock (Show, Generic)
@@ -183,6 +184,8 @@ data MetaData = MetaData
 data RetargetConfigs = RetargetConfigs
   { retarget_payment_link_expiry :: Maybe Text,
     is_retargeted_order :: Maybe Text,
+    retarget_done_count :: Maybe Text,
+    max_retarget_limit :: Maybe Text,
     retarget_payment_link :: Maybe Text
   }
   deriving stock (Show, Generic, Read, Eq)
@@ -190,6 +193,25 @@ data RetargetConfigs = RetargetConfigs
 
 newtype LinkData = LinkData
   { retarget_payment_links :: Maybe RetargetConfigs
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data AdditionalInfo = AdditionalInfo
+  { retarget_payment_info :: Maybe RetargetConfigs,
+    mandate_retry_info :: Maybe MandateRetryInfo,
+    is_business_retried :: Maybe Text,
+    is_technical_retried :: Maybe Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data MandateRetryInfo = MandateRetryInfo
+  { is_retried_order :: Maybe Text,
+    retries_done_count :: Maybe Text,
+    is_technical_retried :: Maybe Text,
+    allowed_retry :: Maybe Text,
+    is_business_retried :: Maybe Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

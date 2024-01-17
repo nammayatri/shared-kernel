@@ -84,6 +84,7 @@ data WebhookTxnData = WebhookTxnData
     status_id :: Int,
     currency :: Currency,
     metadata :: Maybe MetaData,
+    additional_info :: Maybe AdditionalInfo,
     links :: Maybe LinkData
   }
   deriving stock (Show, Generic)

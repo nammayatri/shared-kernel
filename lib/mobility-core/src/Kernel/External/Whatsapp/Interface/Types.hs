@@ -76,6 +76,7 @@ data SendWhatsAppMessageWithTemplateIdApIReq = SendWhatsAppMessageWithTemplateId
     var1 :: Maybe Text,
     var2 :: Maybe Text,
     var3 :: Maybe Text,
+    ctaButtonUrl :: Maybe Text,
     containsUrlButton :: Maybe Bool
   }
   deriving (Generic, Eq, Show, ToSchema)

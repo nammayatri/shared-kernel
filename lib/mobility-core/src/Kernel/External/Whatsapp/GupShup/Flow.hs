@@ -53,6 +53,7 @@ type GupShupSendMessageWithTemplateIdAPI =
     :> QueryParam "var1" Text
     :> QueryParam "var2" Text
     :> QueryParam "var3" Text
+    :> QueryParam "cta_button_url" Text
     :> QueryParam "isTemplate" Bool
     :> MandatoryQueryParam "template_id" Text
     :> Get '[JSON] Whatsapp.SendOtpApiResp
@@ -72,7 +73,7 @@ type GupShupSendOtpAPI =
 
 gupShupOptAPIClient :: Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> EulerClient Whatsapp.OptApiResp
 gupShupSendOtpAPIClient :: Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> EulerClient Whatsapp.SendOtpApiResp
-gupShupSendMessageWithTemplateIdAPIClient :: Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Bool -> Text -> EulerClient Whatsapp.SendOtpApiResp
+gupShupSendMessageWithTemplateIdAPIClient :: Text -> Text -> Text -> Text -> Text -> Text -> Text -> Text -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Bool -> Text -> EulerClient Whatsapp.SendOtpApiResp
 gupShupOptAPIClient :<|> gupShupSendOtpAPIClient :<|> gupShupSendMessageWithTemplateIdAPIClient = client (Proxy :: Proxy GupShupAPI)
 
 whatsAppOptAPI ::
@@ -153,9 +154,10 @@ whatsAppSendMessageWithTemplateIdAPI ::
   Maybe Text ->
   Maybe Text ->
   Maybe Text ->
+  Maybe Text ->
   Maybe Bool ->
   Text ->
   m Whatsapp.SendWhatsAppMessageApiResp
-whatsAppSendMessageWithTemplateIdAPI url userid password sendTo method auth_scheme v msgType format var1 var2 var3 containsUrlButton templateId = do
-  callAPI url (gupShupSendMessageWithTemplateIdAPIClient userid password sendTo method auth_scheme v msgType format var1 var2 var3 containsUrlButton templateId) "GupShup WhatsApp Message with TemplateId API" (Proxy :: Proxy GupShupAPI)
+whatsAppSendMessageWithTemplateIdAPI url userid password sendTo method auth_scheme v msgType format var1 var2 var3 ctaButtonUrl containsUrlButton templateId = do
+  callAPI url (gupShupSendMessageWithTemplateIdAPIClient userid password sendTo method auth_scheme v msgType format var1 var2 var3 ctaButtonUrl containsUrlButton templateId) "GupShup WhatsApp Message with TemplateId API" (Proxy :: Proxy GupShupAPI)
     >>= checkGupShupOptError url
