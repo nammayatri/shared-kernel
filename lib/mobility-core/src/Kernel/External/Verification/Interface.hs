@@ -15,7 +15,7 @@
 module Kernel.External.Verification.Interface
   ( module Reexport,
     verifyDLAsync,
-    verifyRCAsync,
+    verifyRC,
     validateImage,
     extractRCImage,
     extractDLImage,
@@ -24,7 +24,10 @@ module Kernel.External.Verification.Interface
 where
 
 import EulerHS.Prelude
-import Kernel.External.Encryption (EncFlow)
+import Kernel.Beam.Lib.UtilsTH
+import qualified Kernel.External.Verification.GovtData.Client as GovtData
+import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
+import Kernel.External.Verification.GovtData.Types as Reexport
 import Kernel.External.Verification.Idfy.Config as Reexport
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
@@ -32,9 +35,9 @@ import Kernel.External.Verification.Interface.Types as Reexport
 import Kernel.External.Verification.InternalScripts.Types
 import Kernel.External.Verification.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics.Types
-import Kernel.Types.App (MonadFlow)
+import Kernel.Types.Common
 import Kernel.Types.Error
-import Kernel.Utils.Error.Throwing
+import Kernel.Utils.Common
 
 verifyDLAsync ::
   ( EncFlow m r,
@@ -45,17 +48,50 @@ verifyDLAsync ::
   m VerifyDLAsyncResp
 verifyDLAsync serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyDLAsync cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
-verifyRCAsync ::
+verifyRC ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasSchemaName BeamGRC.GovtDataRCT,
+    MonadFlow m,
+    EsqDBFlow m r,
+    CacheFlow m r
+  ) =>
+  [VerificationService] ->
+  VerificationServiceConfig ->
+  VerifyRCReq ->
+  m VerifyRCResp
+verifyRC verificationProvidersPriorityList idfyServiceConfig req = do
+  when (null verificationProvidersPriorityList) $ throwError $ InternalError "No verification service provider configured"
+  verifyRCWithFallback verificationProvidersPriorityList
+  where
+    verifyRCWithFallback [] = throwError $ InternalError "Not able to verify the RC with all the configured providers"
+    verifyRCWithFallback (preferredProvider : restProviders) = do
+      cfg <- case preferredProvider of
+        Idfy -> pure idfyServiceConfig
+        GovtData -> pure GovtDataConfig {}
+        _ -> throwError $ InternalError "Not Implemented!"
+      result <- try @_ @SomeException $ verifyRC' cfg req
+      case result of
+        Left _ -> verifyRCWithFallback restProviders
+        Right res -> pure res
+
+verifyRC' ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasSchemaName BeamGRC.GovtDataRCT,
+    MonadFlow m,
+    EsqDBFlow m r,
+    CacheFlow m r
   ) =>
   VerificationServiceConfig ->
-  VerifyRCAsyncReq ->
-  m VerifyRCAsyncResp
-verifyRCAsync serviceConfig req = case serviceConfig of
+  VerifyRCReq ->
+  m VerifyRCResp
+verifyRC' serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyRCAsync cfg req
+  GovtDataConfig -> GovtData.verifyRC req
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateImage ::
@@ -67,6 +103,7 @@ validateImage ::
   m ValidateImageResp
 validateImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.validateImage cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateFaceImage ::
@@ -78,6 +115,7 @@ validateFaceImage ::
   m FaceValidationRes
 validateFaceImage serviceConfig req = case serviceConfig of
   IdfyConfig _ -> throwError $ InternalError "Not Implemented!"
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig cfg -> IS.validateFace cfg req
 
 extractRCImage ::
@@ -89,6 +127,7 @@ extractRCImage ::
   m ExtractRCImageResp
 extractRCImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractRCImage cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
@@ -100,4 +139,5 @@ extractDLImage ::
   m ExtractDLImageResp
 extractDLImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractDLImage cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"

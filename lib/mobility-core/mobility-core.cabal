@@ -143,6 +143,10 @@ library
       Kernel.External.Ticket.Types
       Kernel.External.Types
       Kernel.External.Verification
+      Kernel.External.Verification.GovtData.Client
+      Kernel.External.Verification.GovtData.Storage.Beam
+      Kernel.External.Verification.GovtData.Storage.Query
+      Kernel.External.Verification.GovtData.Types
       Kernel.External.Verification.Idfy.Auth
       Kernel.External.Verification.Idfy.Client
       Kernel.External.Verification.Idfy.Config

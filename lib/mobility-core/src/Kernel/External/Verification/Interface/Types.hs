@@ -19,12 +19,14 @@ module Kernel.External.Verification.Interface.Types
 where
 
 import Deriving.Aeson
+import EulerHS.Prelude
 import qualified Kernel.External.Verification.Idfy.Config as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import qualified Kernel.External.Verification.InternalScripts.Types as FV
+import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -37,18 +39,27 @@ data VerifyDLAsyncReq = VerifyDLAsyncReq
 
 type VerifyDLAsyncResp = VerifyAsyncResp
 
-data VerifyRCAsyncReq = VerifyRCAsyncReq
+data VerifyRCReq = VerifyRCReq
   { rcNumber :: Text,
     driverId :: Text
   }
   deriving stock (Show, Generic)
 
-type VerifyRCAsyncResp = VerifyAsyncResp
+data VerifyRCResp = AsyncResp VerifyAsyncResp | SyncResp VT.RCVerificationResponse
+  deriving (Show, Generic)
+
+instance ToJSON VerifyRCResp where
+  toJSON (AsyncResp a) = toJSON a
+  toJSON (SyncResp s) = toJSON s
+
+instance FromJSON VerifyRCResp where
+  parseJSON v = (AsyncResp <$> parseJSON v) <|> (SyncResp <$> parseJSON v)
 
 newtype VerifyAsyncResp = VerifyAsyncResp
   { requestId :: Text
   }
   deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data ValidateImageReq = ValidateImageReq
   { image :: Text,
