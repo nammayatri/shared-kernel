@@ -23,7 +23,7 @@ import Data.Char (toLower)
 import Data.OpenApi hiding (Example)
 import qualified Data.Text as T
 import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto
 import Kernel.Utils.GenericPretty
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
@@ -49,7 +49,7 @@ data City
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
 
-$(mkBeamInstancesForEnum ''City)
+$(mkBeamInstancesForEnumAndList ''City)
 
 instance FromJSON City where
   parseJSON (String "std:080") = pure Bangalore
