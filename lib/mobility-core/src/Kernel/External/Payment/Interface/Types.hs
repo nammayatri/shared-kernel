@@ -43,7 +43,9 @@ data CreateOrderReq = CreateOrderReq
     mandateMaxAmount :: Maybe HighPrecMoney,
     mandateFrequency :: Maybe MandateFrequency,
     mandateStartDate :: Maybe Text,
-    mandateEndDate :: Maybe Text
+    mandateEndDate :: Maybe Text,
+    optionsGetUpiDeepLinks :: Maybe Bool,
+    metadataExpiryInMins :: Maybe Int
   }
 
 newtype OrderStatusReq = OrderStatusReq

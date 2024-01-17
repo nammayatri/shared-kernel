@@ -80,6 +80,7 @@ whatsAppOtpApi' serviceConfig req = case serviceConfig of
 
 whatsAppSendMessageWithTemplateIdAPI :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendWhatsAppMessageWithTemplateIdApIReq -> m SendOtpApiResp
 whatsAppSendMessageWithTemplateIdAPI WhatsappHandler {..} req = do
+  logDebug $ "whatsAppSendMessageWithTemplateIdAPI: " <> show req
   prividersPriorityList <- getProvidersPriorityList
   when (null prividersPriorityList) $ throwError $ InternalError "No whatsapp serive provider configured"
   callWithFallback prividersPriorityList
@@ -89,7 +90,9 @@ whatsAppSendMessageWithTemplateIdAPI WhatsappHandler {..} req = do
       whatsappConfig <- getProviderConfig preferredProvider
       result <- try @_ @SomeException $ whatsAppSendMessageWithTemplateIdAPI' whatsappConfig req
       case result of
-        Left _ -> callWithFallback restProviders
+        Left err -> do
+          logError $ "Error while sending whatsapp message with template id: " <> show err
+          callWithFallback restProviders
         Right res -> pure res
 
 whatsAppSendMessageWithTemplateIdAPI' ::

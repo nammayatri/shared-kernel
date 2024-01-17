@@ -37,6 +37,7 @@ import qualified Data.Text as T
 import Data.Time (UTCTime (utctDay), addDays)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 import Data.Time.Format
+import qualified EulerHS.Prelude as E
 import GHC.Float (double2Int)
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Types
@@ -189,7 +190,9 @@ mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
           metadata_mandate_name = if isJust createMandate then Just (toUpper clientId) else Nothing,
           metadata_remarks = ("Amount to be paid now is Rs " <>) . show . double2Int . realToFrac $ amount,
           mandate_start_date = mandateStartDate,
-          mandate_end_date = mandateEndDate
+          mandate_end_date = mandateEndDate,
+          options_get_upi_deep_links = optionsGetUpiDeepLinks,
+          metadata_expiry_in_mins = metadataExpiryInMins
         }
 
 orderStatus ::
@@ -236,7 +239,7 @@ mkOrderStatusResp Juspay.OrderData {..} =
           upi = castUpi <$> upi
         }
     Nothing -> do
-      let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData metadata links
+      let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData metadata links additional_info
       OrderStatusResp
         { eventName = Nothing,
           orderShortId = order_id,
@@ -372,7 +375,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               upi = castUpi <$> justOrder.upi
             }
         Nothing -> do
-          let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justOrder.metadata justOrder.links
+          let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justOrder.metadata justOrder.links justOrder.additional_info
           OrderStatusResp
             { eventName = Just eventName,
               orderShortId = justOrder.order_id,
@@ -416,7 +419,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           notificationId = justNotification.object_reference_id
         }
     (_, _, _, Just justTransaction) -> do
-      let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justTransaction.metadata justTransaction.links
+      let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justTransaction.metadata justTransaction.links justTransaction.additional_info
       OrderStatusResp
         { eventName = Just eventName,
           orderShortId = justTransaction.order_id,
@@ -636,15 +639,21 @@ autoRefund config req = do
           amount = request.amount
         }
 
-parseRetargetAndRetryData :: Maybe Juspay.MetaData -> Maybe Juspay.LinkData -> (Maybe Bool, Maybe Text, Maybe UTCTime, Maybe Bool)
-parseRetargetAndRetryData metaData linkData = do
+parseRetargetAndRetryData ::
+  Maybe Juspay.MetaData ->
+  Maybe Juspay.LinkData ->
+  Maybe Juspay.AdditionalInfo ->
+  (Maybe Bool, Maybe Text, Maybe UTCTime, Maybe Bool)
+parseRetargetAndRetryData metaData linkData additionalInfo = do
   let retargetInfoFromMetaData = metaData >>= (.juspay_internal_retarget_configs)
+      retargetInfoFromAdditionalInfo = additionalInfo >>= (.retarget_payment_info)
       retargetInfoFromLinkData = linkData >>= (.retarget_payment_links)
-      functionsToCalls = [Juspay.retarget_payment_link, Juspay.is_retargeted_order, Juspay.retarget_payment_link_expiry]
-      [retargetLink, isRetargetedOrder, retargetPaymentLinkExpiry] = map (\val -> getFieldData val retargetInfoFromMetaData retargetInfoFromLinkData) functionsToCalls
+      functionsToCalls = [Juspay.retarget_payment_link, Juspay.is_retargeted_order, Juspay.retarget_payment_link_expiry, Juspay.retarget_done_count, Juspay.max_retarget_limit]
+      [retargetLink, isRetargetedOrder, retargetPaymentLinkExpiry, _, _] = map (getFieldData retargetInfoFromMetaData retargetInfoFromLinkData retargetInfoFromAdditionalInfo) functionsToCalls
       retargetPaymentLinkExpiryTime = (\val -> readMaybe val :: Maybe UTCTime) . T.unpack =<< retargetPaymentLinkExpiry
-      isRetriedOrder = metaData >>= (.is_retried_order)
+      isRetriedOrder = (metaData >>= (.is_retried_order)) E.<|> (additionalInfo >>= (.mandate_retry_info) >>= (.is_retried_order))
   (getBoolValue =<< isRetriedOrder, retargetLink, retargetPaymentLinkExpiryTime, getBoolValue =<< isRetargetedOrder)
   where
-    getFieldData func retargetInfoFromMetaData retargetInfoFromLinkData = listToMaybe $ catMaybes [retargetInfoFromMetaData >>= func, retargetInfoFromLinkData >>= func]
+    getFieldData retargetInfoFromMetaData retargetInfoFromLinkData retargetInfoFromAdditionalInfo func = do
+      listToMaybe $ mapMaybe (>>= func) [retargetInfoFromMetaData, retargetInfoFromLinkData, retargetInfoFromAdditionalInfo]
     getBoolValue = (\val -> readMaybe val :: Maybe Bool) . T.unpack
