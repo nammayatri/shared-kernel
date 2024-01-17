@@ -19,17 +19,40 @@ module Kernel.External.Verification.Types
   )
 where
 
+import Data.Aeson as A
 import Data.OpenApi
 import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data VerificationService = Idfy | InternalScripts
+data VerificationService = Idfy | InternalScripts | GovtData
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-$(mkBeamInstancesForEnum ''VerificationService)
+$(mkBeamInstancesForEnumAndList ''VerificationService)
 
 availableVerificationServices :: [VerificationService]
 availableVerificationServices = [Idfy, InternalScripts]
 
 derivePersistField "VerificationService"
+
+data RCVerificationResponse = RCVerificationResponse
+  { registrationDate :: Maybe Text,
+    registrationNumber :: Maybe Text,
+    fitnessUpto :: Maybe Text,
+    insuranceValidity :: Maybe Text,
+    vehicleClass :: Maybe Text,
+    vehicleCategory :: Maybe Text,
+    seatingCapacity :: Maybe A.Value,
+    manufacturer :: Maybe Text,
+    permitValidityFrom :: Maybe Text,
+    permitValidityUpto :: Maybe Text,
+    pucValidityUpto :: Maybe Text,
+    manufacturerModel :: Maybe Text,
+    mYManufacturing :: Maybe Text,
+    colour :: Maybe Text,
+    color :: Maybe Text,
+    fuelType :: Maybe Text,
+    bodyType :: Maybe Text,
+    status :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)

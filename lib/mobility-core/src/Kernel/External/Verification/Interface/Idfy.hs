@@ -74,8 +74,8 @@ verifyRCAsync ::
     CoreMetrics m
   ) =>
   IdfyCfg ->
-  VerifyRCAsyncReq ->
-  m VerifyRCAsyncResp
+  VerifyRCReq ->
+  m VerifyRCResp
 verifyRCAsync cfg req = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
@@ -87,7 +87,7 @@ verifyRCAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyRCAsync apiKey accountId url idfyReq
-  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id}
+  pure $ AsyncResp VerifyAsyncResp {requestId = idfySuccess.request_id}
 
 validateImage ::
   ( EncFlow m r,
