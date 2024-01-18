@@ -31,6 +31,7 @@ newtype IssueTicketServiceConfig = KaptureConfig Kapture.KaptureCfg
 data CreateTicketReq = CreateTicketReq
   { category :: Text,
     subCategory :: Maybe Text,
+    disposition :: Text,
     issueId :: Maybe Text,
     issueDescription :: Text,
     mediaFiles :: Maybe [Text],

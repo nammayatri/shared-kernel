@@ -145,7 +145,6 @@ runPreCheck mapsService req = do
     Google -> return (everySnippetIs (< droppedPointsThreshold) req.points)
     MMI -> return (everySnippetIs (< droppedPointsThreshold) req.points)
     OSRM -> return $ osrmprecheck req.points osrmThreshold
-    _ -> return True
 
 runPostCheck ::
   ( EncFlow m r,

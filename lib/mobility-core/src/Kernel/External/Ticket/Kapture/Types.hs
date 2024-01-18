@@ -30,6 +30,7 @@ data Classification = DRIVER | CUSTOMER
 data CreateTicketReq = CreateTicketReq
   { title :: Text,
     ticketDetails :: Text,
+    disposition :: Text,
     customerId :: Text,
     customerName :: Maybe Text,
     phone :: Maybe Text,
