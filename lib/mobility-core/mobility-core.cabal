@@ -85,8 +85,11 @@ library
       Kernel.External.Notification
       Kernel.External.Notification.FCM.Flow
       Kernel.External.Notification.FCM.Types
+      Kernel.External.Notification.GRPC.Flow
+      Kernel.External.Notification.GRPC.Types
       Kernel.External.Notification.Interface
       Kernel.External.Notification.Interface.FCM
+      Kernel.External.Notification.Interface.GRPC
       Kernel.External.Notification.Interface.PayTM
       Kernel.External.Notification.Interface.Types
       Kernel.External.Notification.PayTM.API

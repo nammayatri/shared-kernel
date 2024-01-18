@@ -1,6 +1,5 @@
 module Kernel.External.Notification.Interface.FCM where
 
-import Data.Default.Class
 import qualified Kernel.External.Notification.FCM.Flow as FCM
 import qualified Kernel.External.Notification.FCM.Types as FCM
 import qualified Kernel.External.Notification.Interface.Types as Interface
@@ -13,15 +12,15 @@ notifyPerson ::
   ( CoreMetrics m,
     MonadFlow m,
     Redis.HedisFlow m r,
-    Default a,
     ToJSON a,
     ToJSON b
   ) =>
   FCM.FCMConfig ->
   Interface.NotificationReq a b ->
   Bool ->
+  Maybe Text ->
   m ()
-notifyPerson config req isMutable = do
+notifyPerson config req isMutable mbNotificationId = do
   let title = FCM.FCMNotificationTitle req.title
       body = FCM.FCMNotificationBody req.body
       notificationType = interfaceCategoryToFCMNotificationType req.category
@@ -33,7 +32,8 @@ notifyPerson config req isMutable = do
             fcmEntityIds = req.entity.entityIds,
             fcmEntityData = req.entity.entityData,
             fcmNotificationJSON = FCM.createAndroidNotification title body notificationType,
-            fcmOverlayNotificationJSON = Nothing
+            fcmOverlayNotificationJSON = Nothing,
+            fcmNotificationId = mbNotificationId
           }
   FCM.notifyPersonWithPriority
     config

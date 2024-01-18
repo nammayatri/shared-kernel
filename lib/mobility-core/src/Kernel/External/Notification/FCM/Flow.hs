@@ -58,7 +58,7 @@ import Servant
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
 -- recipientId::FCMToken is an app's registration token
-createMessage :: (Default a) => FCMData a -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> Bool -> FCMMessage a
+createMessage :: FCMData a -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> Bool -> FCMMessage a
 createMessage msgData recipientId priority isMutable =
   def{fcmToken = Just recipientId,
       fcmAndroid = Just androidCfg,
@@ -69,7 +69,7 @@ createMessage msgData recipientId priority isMutable =
     apnsCfg = createApnsConfig msgData isMutable
 
 -- | Android Notification details
-createAndroidConfig :: (Default a) => FCMData a -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig a
+createAndroidConfig :: FCMData a -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig a
 createAndroidConfig cfgData priority =
   def{fcmdData = Just cfgData,
       fcmdPriority = priority
@@ -158,7 +158,6 @@ createAndroidOverlayNotification _req@FCMOverlayReq {..} =
 -- | Send FCM message to a person
 notifyPerson ::
   ( CoreMetrics m,
-    Default a,
     ToJSON a,
     Redis.HedisFlow m r,
     MonadFlow m
@@ -171,7 +170,6 @@ notifyPerson config = notifyPersonWithPriority config Nothing False
 
 notifyPersonWithPriority ::
   ( CoreMetrics m,
-    Default a,
     ToJSON a,
     Redis.HedisFlow m r,
     MonadFlow m

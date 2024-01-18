@@ -17,10 +17,12 @@
 module Kernel.External.Notification.Interface.Types where
 
 import qualified Kernel.External.Notification.FCM.Types as FCM
+import qualified Kernel.External.Notification.GRPC.Types as GRPC
 import qualified Kernel.External.Notification.PayTM.Types as PayTM
+import qualified Kernel.External.Notification.Types as Interface
 import Kernel.Prelude
 
-data NotificationServiceConfig = FCMConfig FCM.FCMConfig | PayTMConfig PayTM.PayTMConfig
+data NotificationServiceConfig = FCMConfig FCM.FCMConfig | PayTMConfig PayTM.PayTMConfig | GRPCConfig GRPC.GRPCConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data Category
@@ -93,6 +95,12 @@ data NotificationReq a b = NotificationReq
     entity :: Entity a,
     dynamicParams :: b,
     body :: Text,
-    title :: Text
+    title :: Text,
+    ttl :: Maybe UTCTime
   }
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+
+data NotficationServiceHandler m = NotficationServiceHandler
+  { getNotificationServiceList :: m [Interface.NotificationService],
+    getServiceConfig :: Interface.NotificationService -> m NotificationServiceConfig
+  }

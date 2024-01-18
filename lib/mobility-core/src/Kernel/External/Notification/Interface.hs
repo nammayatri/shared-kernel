@@ -17,9 +17,9 @@ module Kernel.External.Notification.Interface
   )
 where
 
-import Data.Default.Class
 import EulerHS.Prelude
 import qualified Kernel.External.Notification.Interface.FCM as FCM
+import qualified Kernel.External.Notification.Interface.GRPC as GRPC
 import qualified Kernel.External.Notification.Interface.PayTM as PayTM
 import Kernel.External.Notification.Interface.Types as Reexport
 import Kernel.External.Notification.Types as Reexport
@@ -32,7 +32,6 @@ notifyPerson' ::
     EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    Default a,
     ToJSON a,
     ToJSON b
   ) =>
@@ -40,16 +39,46 @@ notifyPerson' ::
   NotificationReq a b ->
   Bool ->
   m ()
-notifyPerson' serviceConfig req isMutable = case serviceConfig of
-  FCMConfig cfg -> FCM.notifyPerson cfg req isMutable
-  PayTMConfig cfg -> PayTM.notifyPerson cfg req
+notifyPerson' serviceConfig req isMutable = do
+  notificationId <- generateGUID
+  case serviceConfig of
+    FCMConfig cfg -> FCM.notifyPerson cfg req isMutable (Just notificationId)
+    PayTMConfig cfg -> PayTM.notifyPerson cfg req
+    GRPCConfig cfg -> GRPC.notifyPerson cfg req notificationId
+
+notifyPersonWithAllProviders ::
+  ( EsqDBFlow m r,
+    MonadFlow m,
+    EncFlow m r,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    ToJSON a,
+    ToJSON b
+  ) =>
+  NotficationServiceHandler m ->
+  NotificationReq a b ->
+  Bool ->
+  m ()
+notifyPersonWithAllProviders NotficationServiceHandler {..} req isMutable = do
+  serviceList <- getNotificationServiceList
+  notificationId <- generateGUID
+  callNotifPerson serviceList notificationId
+  where
+    callNotifPerson [] _notificationId = return ()
+    callNotifPerson (serviceProvider : remaining) notificationId = do
+      fork ("notifying person with following service " <> show serviceProvider <> "for following notification id : " <> notificationId) $ do
+        serviceProviderConfig <- getServiceConfig serviceProvider
+        case serviceProviderConfig of
+          FCMConfig cfg -> FCM.notifyPerson cfg req isMutable (Just notificationId)
+          PayTMConfig cfg -> PayTM.notifyPerson cfg req
+          GRPCConfig cfg -> GRPC.notifyPerson cfg req notificationId
+      callNotifPerson remaining notificationId
 
 notifyPerson ::
   ( MonadFlow m,
     EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    Default a,
     ToJSON a,
     ToJSON b
   ) =>
@@ -63,7 +92,6 @@ notifyPersonWithMutableContent ::
     EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    Default a,
     ToJSON a,
     ToJSON b
   ) =>
