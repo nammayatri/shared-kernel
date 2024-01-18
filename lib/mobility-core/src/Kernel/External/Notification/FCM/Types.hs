@@ -414,6 +414,7 @@ data FCMData a = FCMData
     fcmEntityIds :: Text,
     fcmEntityData :: a,
     fcmNotificationJSON :: FCMAndroidNotification,
+    fcmNotificationId :: Maybe Text,
     fcmOverlayNotificationJSON :: Maybe FCMOverlayNotificationJSON
   }
   deriving (Eq, Show, Generic, PrettyShow)
@@ -429,6 +430,7 @@ instance (ToJSON a) => ToJSON (FCMData a) where
         "entity_ids" .= fcmEntityIds,
         "entity_data" .= encodeToText fcmEntityData,
         "notification_json" .= encodeToText fcmNotificationJSON,
+        "notification_id" .= (encodeToText <$> fcmNotificationId),
         "driver_notification_payload" .= (encodeToText <$> fcmOverlayNotificationJSON)
       ]
 
@@ -441,7 +443,8 @@ instance (FromJSON a) => FromJSON (FCMData a) where
       <*> o .: "entity_ids"
       <*> (o .: "entity_data" >>= parseNotificationJson)
       <*> (o .: "notification_json" >>= parseNotificationJson)
-      <*> (o .:? "driver_notification_payload" >>= (maybe (pure Nothing) parseNotificationJson))
+      <*> o .:? "notification_id"
+      <*> (o .:? "driver_notification_payload" >>= maybe (pure Nothing) parseNotificationJson)
     where
       parseNotificationJson str =
         maybe (typeMismatch "Json string" (String str)) pure $ decodeFromText str
@@ -462,7 +465,7 @@ $(makeLenses ''FCMAndroidConfig)
 
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMAndroidConfig)
 
-instance (Default a) => Default (FCMAndroidConfig a) where
+instance Default (FCMAndroidConfig a) where
   def =
     let z = Nothing
      in FCMAndroidConfig z z z z z z z
