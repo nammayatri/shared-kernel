@@ -31,10 +31,10 @@ notifyPerson ::
   GrpcNotificationData a ->
   m ()
 notifyPerson _cfg notificationData = do
-  _ <- Hedis.xAdd ("notification:client-" <> notificationData.streamName) "*" (buildFieldValue notificationData)
-  pure ()
+  now <- getCurrentTime
+  void $ Hedis.withCrossAppRedis $ Hedis.xAdd ("notification:client-" <> notificationData.streamName) "*" (buildFieldValue notificationData now)
   where
-    buildFieldValue notifData =
+    buildFieldValue notifData createdAt =
       [ ("entity.id", TE.encodeUtf8 notifData.entityId),
         ("entity.type", TE.encodeUtf8 $ notifData.entityType),
         ("entity.data", TE.encodeUtf8 $ encodeToText notifData.entityData),
@@ -43,5 +43,6 @@ notifyPerson _cfg notificationData = do
         ("body", TE.encodeUtf8 notifData.body.getGRPCNotificationBody),
         ("show", TE.encodeUtf8 $ notifData.showNotification),
         ("ttl", TE.encodeUtf8 $ show notifData.ttl),
+        ("created_at", TE.encodeUtf8 $ show createdAt),
         ("id", TE.encodeUtf8 $ notificationData.notificationId)
       ]
