@@ -42,6 +42,7 @@ mkCreateTicketReq IT.CreateTicketReq {..} =
   Kapture.CreateTicketReq
     { title = category,
       ticketDetails = issueDescription,
+      disposition,
       customerId = personId,
       customerName = name,
       phone = phoneNo,
