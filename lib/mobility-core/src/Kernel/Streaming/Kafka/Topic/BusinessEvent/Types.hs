@@ -14,10 +14,11 @@
 
 module Kernel.Streaming.Kafka.Topic.BusinessEvent.Types where
 
+import Control.Lens ((^.))
 import Data.Aeson (Value)
+import Data.Generics.Product (HasField' (..))
 import Data.Time (UTCTime)
-import EulerHS.Prelude
-import GHC.Records.Extra (HasField)
+import EulerHS.Prelude hiding ((^.))
 import Kernel.Streaming.Kafka.HasKafkaTopics (HasKafkaTopics (..))
 import qualified Kernel.Streaming.Kafka.Producer as Prod
 import Kernel.Streaming.Kafka.Producer.Types
@@ -45,7 +46,7 @@ data BusinessEvent = BusinessEvent
 
 buildBusinessEvent :: (Log m, MonadTime m, MonadReader r m, HasKafkaBE r kafkaEnvs, ToJSON a, ToJSON b) => KafkaBEName -> a -> b -> m BusinessEvent
 buildBusinessEvent eventName metadata payload = do
-  kafkaBEEnv <- asks (.kafkaEnvs.businessEventEnv)
+  kafkaBEEnv <- asks (^. field' @"kafkaEnvs" . field' @"businessEventEnv")
   currTime <- getCurrentTime
   return $
     BusinessEvent

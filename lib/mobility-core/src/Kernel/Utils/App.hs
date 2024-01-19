@@ -30,11 +30,13 @@ module Kernel.Utils.App
   )
 where
 
+import Control.Lens (lens)
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString as B
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.CaseInsensitive as CI
+import Data.Generics.Product (HasField' (..))
 import Data.List (lookup)
 import qualified Data.Text as T (pack)
 import Data.UUID.V4 (nextRandom)
@@ -161,19 +163,26 @@ withModifiedEnv f env = \req resp -> do
   app req resp
   where
     modifyEnvR requestId = do
-      let appEnv = env.appEnv
-          updLogEnv = appendLogTag requestId appEnv.loggerEnv
-      newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
+      let appEnv = env ^. #appEnv
+          updLogEnv = appendLogTag requestId (appEnv ^. #loggerEnv)
+      newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ env ^. #flowRuntime
       newOptionsLocal <- newMVar mempty
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv},
-            flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
-           }
+        env
+          & #appEnv . field' @"loggerEnv" .~ updLogEnv
+          & #flowRuntime .~ (newFlowRt & optionsLocalLens .~ newOptionsLocal)
+
     getRequestId headers = do
       let value = lookup "x-request-id" headers
       case value of
         Just val -> pure ("requestId-" <> decodeUtf8 val)
         Nothing -> pure "randomRequestId-" <> show <$> nextRandom
+
+optionsLocalLens :: Lens' R.FlowRuntime (MVar (Map Text Any))
+optionsLocalLens = lens getter setter
+  where
+    getter = R._optionsLocal
+    setter fr newVal = fr {R._optionsLocal = newVal}
 
 withModifiedEnvGeneric :: HasLog env => (env -> Application) -> env -> Application
 withModifiedEnvGeneric f env = \req resp -> do
@@ -184,9 +193,8 @@ withModifiedEnvGeneric f env = \req resp -> do
   where
     modifyEnv requestId = do
       let appEnv = env
-          updLogEnv = appendLogTag requestId appEnv.loggerEnv
-      env{loggerEnv = updLogEnv
-         }
+          updLogEnv = appendLogTag requestId (appEnv ^. #loggerEnv)
+      env & field' @"loggerEnv" .~ updLogEnv
     getRequestId headers = do
       let value = lookup "x-request-id" headers
       case value of

@@ -14,14 +14,16 @@
 
 module Kernel.Utils.Servant.Client where
 
+import Control.Lens ((^.))
 import qualified Data.Aeson as A
+import Data.Generics.Labels ()
+import Data.Generics.Product (HasField' (field'))
 import qualified Data.HashMap as HM
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
 import qualified EulerHS.Language as L
-import EulerHS.Prelude hiding (id, notElem)
+import EulerHS.Prelude hiding (id, notElem, (^.))
 import qualified EulerHS.Types as ET
-import GHC.Records.Extra (HasField)
 import Kernel.Prelude as KP
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
@@ -58,13 +60,13 @@ data RetryCfg = RetryCfg
   }
   deriving (Generic, FromDhall)
 
-type HasHttpClientOptions r c = HasField "httpClientOptions" r HttpClientOptions
+type HasHttpClientOptions r c = HasField' "httpClientOptions" r HttpClientOptions
 
 type HasRetryCfg r c = HasField "retryCfg" r RetryCfg
 
-type HasShortDurationRetryCfg r c = HasField "shortDurationRetryCfg" r RetryCfg
+type HasShortDurationRetryCfg r c = HasField' "shortDurationRetryCfg" r RetryCfg
 
-type HasLongDurationRetryCfg r c = HasField "longDurationRetryCfg" r RetryCfg
+type HasLongDurationRetryCfg r c = HasField' "longDurationRetryCfg" r RetryCfg
 
 data RetryType = ShortDurationRetry | LongDurationRetry
 
@@ -159,7 +161,7 @@ createManagers ::
   HashMap Text Http.ManagerSettings ->
   m (HashMap Text Http.Manager)
 createManagers managerSettings = do
-  timeout <- asks (.httpClientOptions.timeoutMs)
+  timeout <- asks (^. field' @"httpClientOptions" . field' @"timeoutMs")
   liftIO $ managersFromManagersSettings timeout managerSettings
 
 createManagersWithTimeout ::
@@ -250,7 +252,7 @@ withShortRetry ::
   m a ->
   m a
 withShortRetry action = do
-  retryConfig <- asks (.shortDurationRetryCfg)
+  retryConfig <- asks (^. #shortDurationRetryCfg)
   withRetryConfig retryConfig action
 
 withLongRetry ::
@@ -264,7 +266,7 @@ withLongRetry ::
   m a ->
   m a
 withLongRetry action = do
-  retryConfig <- asks (.longDurationRetryCfg)
+  retryConfig <- asks (^. #longDurationRetryCfg)
   withRetryConfig retryConfig action
 
 serveDirectoryWebApp :: FilePath -> Servant.ServerT Servant.Raw m

@@ -24,15 +24,15 @@ module Kernel.Streaming.Kafka.Producer.Types
   )
 where
 
+import Data.Generics.Product (HasField')
 import qualified Data.Map as Map
 import EulerHS.Prelude
-import GHC.Records.Extra (HasField)
 import Kafka.Producer as Producer
 import Kernel.Streaming.Kafka.Commons as Reexport
 import Kernel.Types.Error
 import Kernel.Utils.Dhall (FromDhall)
 
-type HasKafkaProducer r = HasField "kafkaProducerTools" r KafkaProducerTools
+type HasKafkaProducer r = HasField' "kafkaProducerTools" r KafkaProducerTools
 
 data KafkaProducerCfg = KafkaProducerCfg
   { brokers :: KafkaBrokersList,

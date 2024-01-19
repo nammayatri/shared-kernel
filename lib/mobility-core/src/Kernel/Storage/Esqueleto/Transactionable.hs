@@ -14,6 +14,8 @@
 
 module Kernel.Storage.Esqueleto.Transactionable where
 
+import Control.Lens ((^.))
+import Data.Generics.Labels ()
 import Database.Esqueleto.Experimental (runSqlPool)
 import Database.Persist.Postgresql (runSqlPoolNoTransaction)
 import Kernel.Prelude
@@ -41,7 +43,7 @@ instance {-# OVERLAPPING #-} Transactionable' SelectSqlDB SelectSqlDB where
 
 instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m) => Transactionable' SelectSqlDB m where
   runTransaction (SelectSqlDB m) = do
-    dbEnv <- asks (.esqDBEnv)
+    dbEnv <- asks (^. #esqDBEnv)
     runNoTransactionImpl dbEnv m
 
 instance {-# OVERLAPPING #-} Transactionable' SqlDB m => Transactionable' SqlDB (DTypeBuilder m) where
@@ -57,7 +59,7 @@ instance {-# OVERLAPPING #-} Transactionable' SqlDB m => Transactionable' SqlDB 
 -- which have proper Transactionable' instance.
 instance {-# INCOHERENT #-} (HasEsqEnv m r, MonadThrow m, Log m) => Transactionable' SqlDB m where
   runTransaction m = do
-    dbEnv <- asks (.esqDBEnv)
+    dbEnv <- asks (^. #esqDBEnv)
     runTransactionImpl dbEnv m
 
 runTransactionImpl ::
@@ -66,7 +68,7 @@ runTransactionImpl ::
   SqlDB a ->
   m a
 runTransactionImpl dbEnv run = do
-  logEnv <- asks (.loggerEnv)
+  logEnv <- asks (^. #loggerEnv)
   liftIO $ runTransactionIO logEnv dbEnv run
 
 runTransactionIO :: LoggerEnv -> EsqDBEnv -> SqlDB a -> IO a
@@ -80,12 +82,12 @@ runTransactionIO logEnv dbEnv (SqlDB run) = do
 
 runInReplica :: (EsqDBReplicaFlow m r, MonadThrow m, Log m) => SelectSqlDB a -> m a
 runInReplica (SelectSqlDB m) = do
-  dbEnv <- asks (.esqDBReplicaEnv)
+  dbEnv <- asks (^. #esqDBReplicaEnv)
   runNoTransactionImpl dbEnv m
 
 runNoTransaction :: (EsqDBFlow m r, MonadThrow m, Log m) => SqlDB a -> m a
 runNoTransaction m = do
-  dbEnv <- asks (.esqDBEnv)
+  dbEnv <- asks (^. #esqDBEnv)
   runNoTransactionImpl dbEnv m
 
 runNoTransactionImpl ::
@@ -94,7 +96,7 @@ runNoTransactionImpl ::
   SqlDB a ->
   m a
 runNoTransactionImpl dbEnv run = do
-  logEnv <- asks (.loggerEnv)
+  logEnv <- asks (^. #loggerEnv)
   liftIO $ runNoTransactionIO logEnv dbEnv run
 
 runNoTransactionIO :: LoggerEnv -> EsqDBEnv -> SqlDB a -> IO a

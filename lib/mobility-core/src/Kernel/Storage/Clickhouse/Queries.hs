@@ -7,6 +7,8 @@ module Kernel.Storage.Clickhouse.Queries
   )
 where
 
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField' (field'))
 import Data.Text as T hiding (null)
 import Data.Typeable (typeRep)
 import Database.ClickHouseDriver.HTTP
@@ -53,8 +55,8 @@ __offset = addClause
 runClickhouse :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => (HttpConnection -> IO (Either String a)) -> ClickhouseDb -> m (Either String a)
 runClickhouse action db = do
   con <- case db of
-    ATLAS_DRIVER_OFFER_BPP -> asks (.driverClickhouseEnv.connection)
-    ATLAS_KAFKA -> asks (.kafkaClickhouseEnv.connection)
+    ATLAS_DRIVER_OFFER_BPP -> asks (^. field' @"driverClickhouseEnv" . field' @"connection")
+    ATLAS_KAFKA -> asks (^. field' @"kafkaClickhouseEnv" . field' @"connection")
   L.runIO $ action con
 
 runRawQuery :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => String -> ClickhouseDb -> m (Either String a)

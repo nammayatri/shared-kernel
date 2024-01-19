@@ -20,10 +20,12 @@ module Kernel.Tools.Metrics.CoreMetrics
   )
 where
 
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField' (..))
 import Data.Text as DT
 import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 import qualified EulerHS.Language as L
-import EulerHS.Prelude as E
+import EulerHS.Prelude as E hiding ((^.))
 import Kernel.Tools.Metrics.CoreMetrics.Types as Reexport
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Types.Error.BaseError.HTTPError (BaseException (..), HTTPException (..), IsBaseError (toMessage), IsHTTPError (toErrorCode, toHttpCode), IsHTTPException)
@@ -41,8 +43,8 @@ incrementErrorCounterImplementation ::
   SomeException ->
   m ()
 incrementErrorCounterImplementation errorContext err = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer <- asks (^. field' @"coreMetrics")
+  version <- asks (^. field' @"version")
   incrementErrorCounterImplementation' cmContainer errorContext err version
 
 addUrlCallRetriesImplementation ::
@@ -54,8 +56,8 @@ addUrlCallRetriesImplementation ::
   Int ->
   m ()
 addUrlCallRetriesImplementation url retryCount = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer <- asks (^. field' @"coreMetrics")
+  version <- asks (^. field' @"version")
   addUrlCallRetriesImplementation' cmContainer url retryCount version
 
 addUrlCallFailuresImplementation ::
@@ -66,8 +68,8 @@ addUrlCallFailuresImplementation ::
   BaseUrl ->
   m ()
 addUrlCallFailuresImplementation url = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer <- asks (^. field' @"coreMetrics")
+  version <- asks (^. field' @"version")
   addUrlCallFailuresImplementation' cmContainer url version
 
 addRequestLatencyImplementation ::
@@ -81,8 +83,8 @@ addRequestLatencyImplementation ::
   Either ClientError a ->
   m ()
 addRequestLatencyImplementation host serviceName dur status = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer <- asks (^. field' @"coreMetrics")
+  version <- asks (^. field' @"version")
   addRequestLatencyImplementation' cmContainer host serviceName dur status version
 
 addDatastoreLatencyImplementation ::
@@ -95,8 +97,8 @@ addDatastoreLatencyImplementation ::
   NominalDiffTime ->
   m ()
 addDatastoreLatencyImplementation storeType operation latency = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer <- asks (^. field' @"coreMetrics")
+  version <- asks (^. field' @"version")
   L.runIO $
     P.withLabel
       cmContainer.datastoresLatency
@@ -111,8 +113,8 @@ incrementSortedSetCounterImplementation ::
   Text ->
   m ()
 incrementSortedSetCounterImplementation context = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer <- asks (^. field' @"coreMetrics")
+  version <- asks (^. field' @"version")
   incrementSortedSetCounterImplementation' cmContainer context version
 
 incrementStreamCounterImplementation ::
@@ -123,8 +125,8 @@ incrementStreamCounterImplementation ::
   Text ->
   m ()
 incrementStreamCounterImplementation context = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer <- asks (^. field' @"coreMetrics")
+  version <- asks (^. field' @"version")
   incrementStreamCounterImplementation' cmContainer context version
 
 incrementSchedulerFailureCounterImplementation ::
@@ -135,8 +137,8 @@ incrementSchedulerFailureCounterImplementation ::
   Text ->
   m ()
 incrementSchedulerFailureCounterImplementation context = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer <- asks (^. field' @"coreMetrics")
+  version <- asks (^. field' @"version")
   incrementSchedulerFailureCounterImplementation' cmContainer context version
 
 addRequestLatencyImplementation' ::
@@ -226,8 +228,8 @@ addGenericLatencyImplementation ::
   NominalDiffTime ->
   m ()
 addGenericLatencyImplementation operation latency = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer <- asks (^. field' @"coreMetrics")
+  version <- asks (^. field' @"version")
   L.runIO $
     P.withLabel
       cmContainer.genericLatency
@@ -251,7 +253,7 @@ incrementGenericMetrics' ::
   Text ->
   m ()
 incrementGenericMetrics' operation = do
-  cmContainer <- asks (.coreMetrics)
+  cmContainer <- asks (^. field' @"coreMetrics")
   L.runIO $
     P.withLabel
       cmContainer.genericCounter
@@ -266,7 +268,7 @@ incrementKvConfigFailedCounter' ::
   Text ->
   m ()
 incrementKvConfigFailedCounter' operation = do
-  cmContainer <- asks (.coreMetrics)
+  cmContainer <- asks (^. field' @"coreMetrics")
   L.runIO $
     P.withLabel
       cmContainer.kvConfigFailedCounter

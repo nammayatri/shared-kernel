@@ -14,6 +14,9 @@
 
 module Kernel.Streaming.Kafka.Topic.PublicTransportSearch.Types where
 
+import Control.Lens ((^.))
+import Data.Generics.Labels ()
+import Data.Generics.Product (HasField' (..))
 import Kernel.External.Maps.Types (LatLong)
 import Kernel.Prelude
 import qualified Kernel.Streaming.Kafka.Consumer as Cons
@@ -28,7 +31,7 @@ import Kernel.Types.Logging
 
 type HasKafkaPublicTransportSearchConsumer env r =
   ( HasKafkaConsumer env r,
-    HasField "publicTransportSearch" env (KafkaConsumerTools PublicTransportSearch)
+    HasField' "publicTransportSearch" env (KafkaConsumerTools PublicTransportSearch)
   )
 
 type SearchId = Text
@@ -51,4 +54,4 @@ instance (Log (FlowR r), HasKafkaProducer r) => MonadProducer PublicTransportSea
   produceMessage () value = mapM_ ($ value) (Prod.produceMessage <$> map (,Nothing) (getTopics @PublicTransportSearch))
 
 instance (Log (FlowR r), HasKafkaPublicTransportSearchConsumer env r) => MonadConsumer PublicTransportSearch (FlowR r) where
-  receiveMessage = asks (.kafkaConsumerEnv.publicTransportSearch) >>= Cons.receiveMessage
+  receiveMessage = asks (^. field' @"kafkaConsumerEnv" . #publicTransportSearch) >>= Cons.receiveMessage

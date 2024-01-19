@@ -1,6 +1,7 @@
 module Kernel.Storage.Clickhouse.Config where
 
 import qualified Control.Monad.Catch as C
+import Data.Generics.Product (HasField')
 import Data.String.Conversions
 import Data.Text as T
 import Data.Word (Word16)
@@ -10,7 +11,7 @@ import Kernel.Types.Common
 import Kernel.Utils.Dhall (FromDhall)
 
 type ClickhouseFlow m env =
-  (MonadReader env m, HasField "kafkaClickhouseEnv" env ClickhouseEnv, HasField "driverClickhouseEnv" env ClickhouseEnv, MonadIO m, C.MonadThrow m, Log m)
+  (MonadReader env m, HasField' "kafkaClickhouseEnv" env ClickhouseEnv, HasField' "driverClickhouseEnv" env ClickhouseEnv, MonadIO m, C.MonadThrow m, Log m)
 
 data ClickhouseCfg = ClickhouseCfg
   { username :: Text,
@@ -27,6 +28,7 @@ data ClickhouseDb = ATLAS_DRIVER_OFFER_BPP | ATLAS_KAFKA
 newtype ClickhouseEnv = ClickhouseEnv
   { connection :: CH.HttpConnection
   }
+  deriving (Generic)
 
 createConn :: ClickhouseCfg -> IO ClickhouseEnv
 createConn ClickhouseCfg {..} =

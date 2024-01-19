@@ -40,14 +40,16 @@ module Kernel.External.Notification.FCM.Flow
   )
 where
 
+import Control.Lens ((.~), (^.))
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
+import Data.Generics.Product (HasField' (..))
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Base64 as B64
-import EulerHS.Prelude hiding ((^.))
+import EulerHS.Prelude hiding ((.~), (^.))
 import qualified EulerHS.Types as ET
-import Kernel.External.Notification.FCM.Types
+import Kernel.External.Notification.FCM.Types as FCM
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
@@ -69,11 +71,10 @@ createMessage msgData recipientId priority isMutable =
     apnsCfg = createApnsConfig msgData isMutable
 
 -- | Android Notification details
-createAndroidConfig :: (Default a) => FCMData a -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig a
+createAndroidConfig :: Default a => FCMData a -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig a
 createAndroidConfig cfgData priority =
-  def{fcmdData = Just cfgData,
-      fcmdPriority = priority
-     }
+  def & field' @"fcmdData" .~ Just cfgData
+    & field' @"fcmdPriority" .~ priority
 
 createApnsConfig :: FCMData a -> Bool -> FCMApnsConfig a
 createApnsConfig androidFcmData isMutable =
@@ -93,9 +94,8 @@ createApnsPayload androidData isMutable =
   where
     fcmAlert :: FCMAlert
     fcmAlert =
-      def{fcmBody = (.getFCMNotificationBody) <$> body,
-          fcmTitle = (.getFCMNotificationTitle) <$> title
-         }
+      def & field' @"fcmBody" .~ ((^. field' @"getFCMNotificationBody") <$> body)
+        & field' @"fcmTitle" .~ ((^. field' @"getFCMNotificationTitle") <$> title)
     fcmAps :: FCMaps a
     fcmAps =
       def{fcmAlert = Just fcmAlert,

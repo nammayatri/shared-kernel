@@ -34,8 +34,10 @@ module Kernel.Utils.Logging
   )
 where
 
-import EulerHS.Prelude hiding (id)
-import GHC.Records.Extra
+import Control.Lens ((^.))
+import Data.Generics.Labels ()
+import Data.Generics.Product (HasField' (..))
+import EulerHS.Prelude hiding (id, (^.))
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.GuidLike (generateGUID)
 import Kernel.Types.Id
@@ -79,9 +81,9 @@ withPersonIdLogTag :: Log m => Id b -> m a -> m a
 withPersonIdLogTag personId = do
   withLogTag ("actor-" <> getId personId)
 
-withTransactionIdLogTag :: (HasField "context" b c, HasField "transaction_id" c (Maybe Text), Log m) => b -> m a -> m a
+withTransactionIdLogTag :: (HasField' "context" b c, HasField' "transaction_id" c (Maybe Text), Log m) => b -> m a -> m a
 withTransactionIdLogTag req =
-  withTransactionIdLogTag' $ fromMaybe "Unknown" req.context.transaction_id
+  withTransactionIdLogTag' $ fromMaybe "Unknown" (req ^. field' @"context" . #transaction_id)
 
 withTransactionIdLogTag' :: Log m => Text -> m a -> m a
 withTransactionIdLogTag' txnId =
@@ -109,7 +111,7 @@ renderViaPrettyShow description val = description <> "\n" <> textPretty val
 type HasPrettyLogger m env =
   ( Log m,
     MonadReader env m,
-    HasField "loggerConfig" env LoggerConfig
+    HasField' "loggerConfig" env LoggerConfig
   )
 
 logPretty ::
@@ -122,7 +124,7 @@ logPretty ::
   a ->
   m ()
 logPretty logLevel description val = do
-  pretty <- asks (.loggerConfig.prettyPrinting)
+  pretty <- asks (^. field' @"loggerConfig" . #prettyPrinting)
   let render =
         if pretty
           then renderViaPrettyShow

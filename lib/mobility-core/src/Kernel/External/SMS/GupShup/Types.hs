@@ -18,7 +18,7 @@
 module Kernel.External.SMS.GupShup.Types where
 
 import Data.Text (Text)
-import Kernel.Prelude (Eq, FromJSON, Generic, HasField (hasField), ToJSON)
+import Kernel.Prelude (Eq, FromJSON, Generic, ToJSON)
 
 newtype SubmitSmsRes = SubmitSmsRes
   { response :: SmsResponse

@@ -14,7 +14,8 @@
 
 module Kernel.External.SMS.MyValueFirst.Flow where
 
-import EulerHS.Prelude
+import Control.Lens ((^.))
+import EulerHS.Prelude hiding ((^.))
 import qualified Kernel.External.SMS.MyValueFirst.API as API
 import Kernel.External.SMS.MyValueFirst.Types (SubmitSms (..), SubmitSmsRes (..))
 import Kernel.Sms.Config (SmsConfig)
@@ -71,14 +72,14 @@ sendSms ::
   Text ->
   m SubmitSmsRes
 sendSms smsCfg smsTemplate phoneNumber = do
-  let smsCred = smsCfg.credConfig
-      url = smsCfg.url
+  let smsCred = smsCfg ^. #credConfig
+      url = smsCfg ^. #url
   submitSms
     url
     SubmitSms
-      { username = smsCred.username,
-        password = smsCred.password,
-        from = smsCfg.sender,
+      { username = smsCred ^. #username,
+        password = smsCred ^. #password,
+        from = smsCfg ^. #sender,
         to = phoneNumber,
         text = smsTemplate
       }

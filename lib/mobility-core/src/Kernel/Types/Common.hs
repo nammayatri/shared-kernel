@@ -47,7 +47,6 @@ import Database.Persist.Class
 import Database.Persist.Sql
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Float (double2Int, int2Double)
-import GHC.Records.Extra (HasField)
 import Kernel.External.Encryption
 import Kernel.External.Encryption as Common (EncFlow)
 import Kernel.Prelude as KP

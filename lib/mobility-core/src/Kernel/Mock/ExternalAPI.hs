@@ -16,13 +16,14 @@
 
 module Kernel.Mock.ExternalAPI where
 
+import Control.Lens ((^.))
 import Control.Monad
 import qualified Control.Monad.Catch as C
 import qualified Data.CaseInsensitive as CI
+import Data.Generics.Product (HasField')
 import Data.String.Conversions
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Fmt
-import GHC.Records.Extra
 import Kernel.Mock.App
 import Kernel.Prelude (lookup)
 import Kernel.Types.Beckn.ReqTypes
@@ -35,34 +36,34 @@ import Network.HTTP.Client hiding (Proxy)
 import qualified Network.HTTP.Client as Http
 import qualified Network.HTTP.Client.TLS as Http
 import Servant.Client
-import Universum
+import Universum hiding ((^.))
 
 callBapAPI ::
   forall api a b e.
   ( Show a,
-    HasField "selfId" e Text,
-    HasField "uniqueKeyId" e Text,
+    HasField' "selfId" e Text,
+    HasField' "uniqueKeyId" e Text,
     HasClient ClientM api,
     Client ClientM api ~ (BecknCallbackReq a -> ClientM b),
     HasLog e,
-    HasField "authManager" e Manager
+    HasField' "authManager" e Manager
   ) =>
   BecknCallbackReq a ->
   MockM e ()
 callBapAPI req = do
-  let bapUrl = req.context.bap_uri
+  let bapUrl = req ^. #context . #bap_uri
   logOutput INFO "calling BAP"
   callAPI @api bapUrl req
 
 callAPI ::
   forall api a b e.
   ( Show a,
-    HasField "selfId" e Text,
-    HasField "uniqueKeyId" e Text,
+    HasField' "selfId" e Text,
+    HasField' "uniqueKeyId" e Text,
     HasClient ClientM api,
     Client ClientM api ~ (BecknCallbackReq a -> ClientM b),
     HasLog e,
-    HasField "authManager" e Manager
+    HasField' "authManager" e Manager
   ) =>
   BaseUrl ->
   BecknCallbackReq a ->
@@ -70,21 +71,21 @@ callAPI ::
 callAPI url req = do
   let clientFunc = client @api Proxy
       clientAction = clientFunc req
-  logOutput INFO $ mconcat ["calling ", show req.context.action, "; url=", show url]
+  logOutput INFO $ mconcat ["calling ", show (req ^. #context . #action), "; url=", show url]
   logOutput DEBUG $ show req
   _ <- callClientM url clientAction
   pure ()
 
 callClientM ::
-  ( HasField "selfId" e Text,
-    HasField "uniqueKeyId" e Text,
-    HasField "authManager" e Manager
+  ( HasField' "selfId" e Text,
+    HasField' "uniqueKeyId" e Text,
+    HasField' "authManager" e Manager
   ) =>
   BaseUrl ->
   ClientM a ->
   MockM e a
 callClientM url clientAction = do
-  manager <- asks (.authManager)
+  manager <- asks (^. #authManager)
   res <- liftIO $ runClientM clientAction $ mkClientEnv manager url
   either C.throwM pure res
 

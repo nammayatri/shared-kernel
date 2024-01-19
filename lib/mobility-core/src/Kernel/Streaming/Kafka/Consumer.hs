@@ -18,8 +18,10 @@ module Kernel.Streaming.Kafka.Consumer
   )
 where
 
+import Control.Lens ((^.))
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as LBS
+import Data.Generics.Labels ()
 import Kafka.Consumer as KafkaCons
 import Kernel.Prelude
 import Kernel.Streaming.Kafka.Consumer.Types as ConsTypes
@@ -30,12 +32,12 @@ import Kernel.Utils.Logging
 
 receiveMessage :: (MonadIO m, Log m, MonadThrow m, FromJSON a) => KafkaConsumerTools a -> m (Maybe a)
 receiveMessage kafkaConsumerTools = withLogTag "KafkaConsumer" $ do
-  let timeout = kafkaConsumerTools.kafkaConsumerCfg.timeoutMilliseconds
-  etrMsg <- pollMessage kafkaConsumerTools.consumer (Timeout timeout)
+  let timeout = kafkaConsumerTools ^. #kafkaConsumerCfg . #timeoutMilliseconds
+  etrMsg <- pollMessage (kafkaConsumerTools ^. #consumer) (Timeout timeout)
   case etrMsg of
     Left err -> handleResponseError err
     Right res -> do
-      mbErr <- commitAllOffsets OffsetCommit kafkaConsumerTools.consumer
+      mbErr <- commitAllOffsets OffsetCommit (kafkaConsumerTools ^. #consumer)
       whenJust mbErr $ \err -> logError $ "Unable to commit offsets: " <> show err
       crValue res >>= A.decode . LBS.fromStrict
         & fromMaybeM KafkaUnableToParseValue

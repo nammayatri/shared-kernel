@@ -14,10 +14,10 @@
 
 module Kernel.Utils.SlidingWindowLimiter where
 
+import Control.Lens ((^.))
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
-import EulerHS.Prelude hiding (id)
-import GHC.Records.Extra
+import EulerHS.Prelude hiding (id, (^.))
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Types.Common as Common
 import Kernel.Types.Error
@@ -31,7 +31,7 @@ checkSlidingWindowLimit ::
   Text ->
   m ()
 checkSlidingWindowLimit key = do
-  limitOptions <- asks (.apiRateLimitOptions)
+  limitOptions <- asks (^. #apiRateLimitOptions)
   checkSlidingWindowLimitWithOptions key limitOptions
 
 checkSlidingWindowLimitWithOptions ::

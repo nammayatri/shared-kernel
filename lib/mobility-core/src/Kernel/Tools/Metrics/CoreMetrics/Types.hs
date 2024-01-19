@@ -21,9 +21,9 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
   )
 where
 
+import Data.Generics.Product (HasField')
 import Data.Time (NominalDiffTime)
 import EulerHS.Prelude as E
-import GHC.Records.Extra
 import Kernel.Types.Time (Milliseconds)
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError)
@@ -51,11 +51,11 @@ type GenericCounter = P.Vector P.Label1 P.Counter
 type KvConfigFailedCounter = P.Vector P.Label1 P.Counter
 
 type HasCoreMetrics r =
-  ( HasField "coreMetrics" r CoreMetricsContainer,
-    HasField "version" r DeploymentVersion
+  ( HasField' "coreMetrics" r CoreMetricsContainer,
+    HasField' "version" r DeploymentVersion
   )
 
-newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}
+newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text} deriving (Generic)
 
 class CoreMetrics m where
   addRequestLatency :: Text -> Text -> Milliseconds -> Either ClientError a -> m ()
@@ -83,6 +83,7 @@ data CoreMetricsContainer = CoreMetricsContainer
     genericCounter :: GenericCounter,
     kvConfigFailedCounter :: KvConfigFailedCounter
   }
+  deriving (Generic)
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
 registerCoreMetricsContainer = do

@@ -33,6 +33,7 @@ data SlackEnv = SlackEnv
   { channel :: Text,
     slackConfig :: Slack.SlackConfig
   }
+  deriving (Generic)
 
 data FileUploadResp = FileUploadResp
   { ok :: Bool,

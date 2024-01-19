@@ -200,7 +200,7 @@ instance ToHttpApiData Mode where
   toUrlPiece = T.toLower . show
 
 instance FromHttpApiData Mode where
-  parseUrlPiece = left T.pack . eitherDecode .(\str -> "\"" <> str <> "\"") . BSL.fromStrict . DT.encodeUtf8 . T.toUpper
+  parseUrlPiece = left T.pack . eitherDecode . (\str -> "\"" <> str <> "\"") . BSL.fromStrict . DT.encodeUtf8 . T.toUpper
 
 data DepartureTime = Now | FutureTime UTCTime
 

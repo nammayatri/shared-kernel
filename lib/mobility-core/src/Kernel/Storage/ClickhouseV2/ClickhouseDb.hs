@@ -18,8 +18,12 @@ module Kernel.Storage.ClickhouseV2.ClickhouseDb (module Kernel.Storage.Clickhous
 -- import Data.Text as T
 -- import Data.Word (Word16)
 -- import qualified Database.ClickHouseDriver.HTTP as CH
-import Kernel.Prelude
+
 -- import Kernel.Utils.Dhall (FromDhall)
+
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField')
+import Kernel.Prelude
 import Kernel.Storage.Clickhouse.Config as Reexport (ClickhouseCfg (..), ClickhouseEnv (..), createConn)
 import Kernel.Types.Common
 
@@ -32,15 +36,15 @@ data ATLAS_DRIVER_OFFER_BPP
 
 instance ClickhouseDb ATLAS_DRIVER_OFFER_BPP
 
-instance (MonadFlow m, MonadReader r m, HasField "driverClickhouseEnv" r ClickhouseEnv) => HasClickhouseEnv ATLAS_DRIVER_OFFER_BPP m where
-  getClickhouseEnv _ = asks (.driverClickhouseEnv)
+instance (MonadFlow m, MonadReader r m, HasField' "driverClickhouseEnv" r ClickhouseEnv) => HasClickhouseEnv ATLAS_DRIVER_OFFER_BPP m where
+  getClickhouseEnv _ = asks (^. #driverClickhouseEnv)
 
 data ATLAS_KAFKA
 
 instance ClickhouseDb ATLAS_KAFKA
 
-instance (MonadFlow m, MonadReader r m, HasField "kafkaClickhouseEnv" r ClickhouseEnv) => HasClickhouseEnv ATLAS_KAFKA m where
-  getClickhouseEnv _ = asks (.kafkaClickhouseEnv)
+instance (MonadFlow m, MonadReader r m, HasField' "kafkaClickhouseEnv" r ClickhouseEnv) => HasClickhouseEnv ATLAS_KAFKA m where
+  getClickhouseEnv _ = asks (^. #kafkaClickhouseEnv)
 
 -- data ClickhouseCfg = ClickhouseCfg
 --   { username :: Text,

@@ -14,6 +14,8 @@
 
 module Kernel.Utils.DatastoreLatencyCalculator where
 
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField')
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Tools.Metrics.CoreMetrics
@@ -33,8 +35,8 @@ withTimeRedis ::
   m a ->
   m a
 withTimeRedis storeType operationName operation = do
-  enableRedisLatencyLogging <- asks (.enableRedisLatencyLogging)
-  enablePrometheusMetricLogging <- asks (.enablePrometheusMetricLogging)
+  enableRedisLatencyLogging <- asks (^. #enableRedisLatencyLogging)
+  enablePrometheusMetricLogging <- asks (^. #enablePrometheusMetricLogging)
   withTime storeType operationName enableRedisLatencyLogging enablePrometheusMetricLogging operation
 
 withTime ::
@@ -61,8 +63,8 @@ withTime storeType operationName enableKibanaLatencyLogging enablePrometheusMetr
 
 withTimeAPI ::
   ( MonadReader r m,
-    HasField "enableAPILatencyLogging" r Bool,
-    HasField "enableAPIPrometheusMetricLogging" r Bool,
+    HasField' "enableAPILatencyLogging" r Bool,
+    HasField' "enableAPIPrometheusMetricLogging" r Bool,
     Log m,
     Monad m,
     MonadTime m,
@@ -73,6 +75,6 @@ withTimeAPI ::
   m a ->
   m a
 withTimeAPI storeType operationName operation = do
-  enableAPILatencyLogging <- asks (.enableAPILatencyLogging)
-  enableAPIPrometheusMetricLogging <- asks (.enableAPIPrometheusMetricLogging)
+  enableAPILatencyLogging <- asks (^. #enableAPILatencyLogging)
+  enableAPIPrometheusMetricLogging <- asks (^. #enableAPIPrometheusMetricLogging)
   withTime storeType operationName enableAPILatencyLogging enableAPIPrometheusMetricLogging operation

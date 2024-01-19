@@ -23,13 +23,15 @@ module Kernel.Streaming.Kafka.Producer
   )
 where
 
+import Control.Lens ((^.))
 import Data.Aeson (encode)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Key as AesonKey
 import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.Aeson.Types as A
 import qualified Data.ByteString.Lazy as LBS
-import EulerHS.Prelude
+import Data.Generics.Labels ()
+import EulerHS.Prelude hiding ((^.))
 import Kafka.Producer as KafkaProd
 import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Types.Error
@@ -47,8 +49,8 @@ produceMessageInPartition (topic, key) event partitionId = produceMessageImpl (t
 produceMessageImpl :: (Log m, MonadThrow m, MonadIO m, MonadReader r m, HasKafkaProducer r, ToJSON a) => (KafkaTopic, Maybe KafkaKey) -> a -> Maybe KPartitionId -> m ()
 produceMessageImpl (topic, key) event mbPartitionId = do
   when (null topic) $ throwM KafkaTopicIsEmptyString
-  kafkaProducerTools <- asks (.kafkaProducerTools)
-  mbErr <- KafkaProd.produceMessage kafkaProducerTools.producer message
+  kafkaProducerTools <- asks (^. #kafkaProducerTools)
+  mbErr <- KafkaProd.produceMessage (kafkaProducerTools ^. #producer) message
   whenJust mbErr (throwError . KafkaUnableToProduceMessage)
   where
     message =

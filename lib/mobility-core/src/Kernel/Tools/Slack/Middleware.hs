@@ -21,7 +21,7 @@ import qualified Data.ByteString.Lazy as BL
 import Data.Map as M
 import Data.String.Conversions
 import EulerHS.Prelude
-import GHC.Records.Extra (HasField)
+import GHC.Records.Extra (HasField, getField)
 import qualified Kernel.Tools.Slack as Slack
 import qualified Kernel.Tools.Slack.Internal as SI
 import qualified Network.HTTP.Types as HTTP
@@ -29,6 +29,10 @@ import qualified Network.Wai as Wai
 import Servant
 import qualified Web.Slack as Slack
 import qualified Web.Slack.Chat as Chat
+
+-- import Data.Generics.Product (HasField' (field'))
+-- import Control.Lens
+-- import GHC.Records.Extra (HasField)
 
 notifyOnSlackMiddleware :: (SI.HasSlackEnv f) => f -> Application -> Application
 notifyOnSlackMiddleware appEnv app req respF = do
@@ -58,14 +62,15 @@ notifyApiCallOnSlack :: (HasField "slackEnv" env SI.SlackEnv) => env -> ByteStri
 notifyApiCallOnSlack appEnv body path sc = do
   let title = "*API TRIGGERED: *" <> cs path
       body' = "```" <> cs body <> "```"
-      slackEnv = bool (appEnv.slackEnv {SI.channel = sc}) appEnv.slackEnv (sc == "default")
+      updatedSlackEnv = (getField @"slackEnv" appEnv) {SI.channel = sc}
+      slackEnv = bool (getField @"slackEnv" appEnv) updatedSlackEnv (sc == "default")
   Slack.notifyOnSlackIO slackEnv title body' Nothing Nothing
 
 notifyApiCallResponseOnSlack :: (HasField "slackEnv" env SI.SlackEnv) => Text -> env -> Wai.Response -> Maybe Chat.PostMsgRsp -> IO (Slack.Response Chat.PostMsgRsp)
 notifyApiCallResponseOnSlack sc appEnv resp st = do
   let (status, _, _) = Wai.responseToStream resp
       code = HTTP.statusCode status
-      slackEnv = bool (appEnv.slackEnv {SI.channel = sc}) appEnv.slackEnv (sc == "default")
+      slackEnv = bool ((getField @"slackEnv" appEnv) {SI.channel = sc}) (getField @"slackEnv" appEnv) (sc == "default")
       respInfo :: Text = "statusCode: `" <> show code <> "` and message: `" <> cs (HTTP.statusMessage status) <> "`"
   Slack.notifyOnSlackIO slackEnv "" "" (Chat.postMsgRspTs <$> st) (attachment code respInfo)
   where

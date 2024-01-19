@@ -17,6 +17,7 @@ module Kernel.Utils.Service
   )
 where
 
+import Data.Generics.Product (HasField')
 import Kernel.Prelude
 import Kernel.Utils.Common as CoreCommon
 import Kernel.Utils.Shutdown
@@ -25,7 +26,7 @@ startService ::
   ( Forkable m,
     MonadIO m,
     MonadReader r m,
-    HasField "isShuttingDown" r Shutdown,
+    HasField' "isShuttingDown" r Shutdown,
     MonadCatch m,
     Log m
   ) =>

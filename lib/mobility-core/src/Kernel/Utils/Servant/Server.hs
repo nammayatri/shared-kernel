@@ -15,9 +15,10 @@
 
 module Kernel.Utils.Servant.Server where
 
-import EulerHS.Prelude
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField' (..))
+import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Runtime as E
-import GHC.Records.Extra (HasField)
 import Kernel.Prelude (identity)
 import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Metrics
 import qualified Kernel.Tools.Metrics.Init as Metrics
@@ -105,12 +106,12 @@ runFlowRDelayedIO env f =
 
 runServer ::
   forall env (api :: Type) ctx.
-  ( HasField "graceTerminationPeriod" env Seconds,
-    HasField "isShuttingDown" env Shutdown,
-    HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
-    HasField "port" env Port,
-    HasField "version" env Metrics.DeploymentVersion,
+  ( HasField' "graceTerminationPeriod" env Seconds,
+    HasField' "isShuttingDown" env Shutdown,
+    HasField' "loggerConfig" env L.LoggerConfig,
+    HasField' "loggerEnv" env LoggerEnv,
+    HasField' "port" env Port,
+    HasField' "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
@@ -126,19 +127,19 @@ runServer ::
   (E.FlowRuntime -> FlowR env E.FlowRuntime) ->
   IO ()
 runServer appEnv serverAPI serverHandler waiMiddleware waiSettings servantCtx serverStartAction shutdownAction initialize = do
-  let port = appEnv.port
+  let port = appEnv ^. field' @"port"
   hostname <- getPodName
-  let loggerRt = L.getEulerLoggerRuntime hostname $ appEnv.loggerConfig
+  let loggerRt = L.getEulerLoggerRuntime hostname $ appEnv ^. field' @"loggerConfig"
   let settings =
         defaultSettings
-          & setGracefulShutdownTimeout (Just $ getSeconds appEnv.graceTerminationPeriod)
-          & setInstallShutdownHandler (handleShutdown appEnv.isShuttingDown (shutdownAction appEnv))
+          & setGracefulShutdownTimeout (Just $ getSeconds (appEnv ^. field' @"graceTerminationPeriod"))
+          & setInstallShutdownHandler (handleShutdown (appEnv ^. field' @"isShuttingDown") (shutdownAction appEnv))
           & setPort port
           & waiSettings
   let server = withModifiedEnv $ \modifiedEnv ->
         run serverAPI serverHandler servantCtx modifiedEnv
           & logRequestAndResponse modifiedEnv
-          & Metrics.addServantInfo appEnv.version serverAPI
+          & Metrics.addServantInfo (appEnv ^. field' @"version") serverAPI
           & waiMiddleware
   E.withFlowRuntime (Just loggerRt) $ \flowRt -> do
     flowRt' <-
@@ -149,12 +150,12 @@ runServer appEnv serverAPI serverHandler waiMiddleware waiSettings servantCtx se
 runServerGeneric ::
   forall m env (api :: Type) ctx.
   ( MonadReader env m,
-    HasField "graceTerminationPeriod" env Seconds,
-    HasField "isShuttingDown" env Shutdown,
-    HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
-    HasField "port" env Port,
-    HasField "version" env Metrics.DeploymentVersion,
+    HasField' "graceTerminationPeriod" env Seconds,
+    HasField' "isShuttingDown" env Shutdown,
+    HasField' "loggerConfig" env L.LoggerConfig,
+    HasField' "loggerEnv" env LoggerEnv,
+    HasField' "port" env Port,
+    HasField' "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
     HasContextEntry (env ': (ctx .++ '[ErrorFormatters])) ErrorFormatters,
     HasServer api (env ': ctx)
@@ -170,18 +171,18 @@ runServerGeneric ::
   (forall q. env -> m q -> IO q) ->
   IO ()
 runServerGeneric appEnv serverAPI serverHandler waiMiddleware waiSettings servantCtx serverStartAction shutdownAction runMonad = do
-  let port = appEnv.port
+  let port = appEnv ^. field' @"port"
   let settings =
         defaultSettings
-          & setGracefulShutdownTimeout (Just $ getSeconds appEnv.graceTerminationPeriod)
-          & setInstallShutdownHandler (handleShutdown appEnv.isShuttingDown (shutdownAction appEnv))
+          & setGracefulShutdownTimeout (Just $ getSeconds (appEnv ^. field' @"graceTerminationPeriod"))
+          & setInstallShutdownHandler (handleShutdown (appEnv ^. field' @"isShuttingDown") (shutdownAction appEnv))
           & setPort port
           & waiSettings
   let server = withModifiedEnvGeneric $ \modifiedEnv ->
-        let loggerFunc = \tag info -> logOutputIO (appendLogTag tag $ modifiedEnv.loggerEnv) INFO info
+        let loggerFunc = \tag info -> logOutputIO (appendLogTag tag $ modifiedEnv ^. field' @"loggerEnv") INFO info
          in runGeneric serverAPI serverHandler servantCtx modifiedEnv runMonad
               & logRequestAndResponseGeneric loggerFunc
-              & Metrics.addServantInfo appEnv.version serverAPI
+              & Metrics.addServantInfo (appEnv ^. field' @"version") serverAPI
               & waiMiddleware
   serverStartAction appEnv $ runSettings settings $ server appEnv
 
@@ -192,12 +193,12 @@ healthCheck = pure "App is UP"
 
 runHealthCheckServerWithService ::
   forall env ctx.
-  ( HasField "graceTerminationPeriod" env Seconds,
-    HasField "isShuttingDown" env Shutdown,
-    HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
-    HasField "port" env Port,
-    HasField "version" env Metrics.DeploymentVersion,
+  ( HasField' "graceTerminationPeriod" env Seconds,
+    HasField' "isShuttingDown" env Shutdown,
+    HasField' "loggerConfig" env L.LoggerConfig,
+    HasField' "loggerEnv" env LoggerEnv,
+    HasField' "port" env Port,
+    HasField' "version" env Metrics.DeploymentVersion,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters
   ) =>
   env ->
@@ -217,12 +218,12 @@ runHealthCheckServerWithService appEnv waiMiddleware waiSettings servantCtx serv
 
 runServerWithHealthCheck ::
   forall env (api :: Type) ctx.
-  ( HasField "graceTerminationPeriod" env Seconds,
-    HasField "isShuttingDown" env Shutdown,
-    HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
-    HasField "port" env Port,
-    HasField "version" env Metrics.DeploymentVersion,
+  ( HasField' "graceTerminationPeriod" env Seconds,
+    HasField' "isShuttingDown" env Shutdown,
+    HasField' "loggerConfig" env L.LoggerConfig,
+    HasField' "loggerEnv" env LoggerEnv,
+    HasField' "port" env Port,
+    HasField' "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
@@ -241,13 +242,13 @@ runServerWithHealthCheck appEnv _ serverHandler waiMiddleware waiSettings servan
 
 runServerWithHealthCheckAndSlackNotification ::
   forall env (api :: Type) ctx.
-  ( HasField "graceTerminationPeriod" env Seconds,
-    HasField "isShuttingDown" env Shutdown,
-    HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
+  ( HasField' "graceTerminationPeriod" env Seconds,
+    HasField' "isShuttingDown" env Shutdown,
+    HasField' "loggerConfig" env L.LoggerConfig,
+    HasField' "loggerEnv" env LoggerEnv,
     HasSlackEnv env,
-    HasField "port" env Port,
-    HasField "version" env Metrics.DeploymentVersion,
+    HasField' "port" env Port,
+    HasField' "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)

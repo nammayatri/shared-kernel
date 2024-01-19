@@ -15,6 +15,8 @@
 
 module Kernel.InternalAPI.Auth.Client where
 
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField')
 import qualified EulerHS.Types as E
 import Kernel.InternalAPI.Auth.API
 import Kernel.Prelude
@@ -28,7 +30,7 @@ authAPI :: Text -> E.EulerClient PersonId
 authAPI = E.client (Proxy @API)
 
 auth ::
-  ( HasField "authServiceUrl" r BaseUrl,
+  ( HasField' "authServiceUrl" r BaseUrl,
     CoreMetrics m,
     MonadFlow m,
     MonadReader r m
@@ -36,7 +38,7 @@ auth ::
   Text ->
   m PersonId
 auth token = do
-  url <- asks (.authServiceUrl)
+  url <- asks (^. #authServiceUrl)
   callOwnAPI Nothing (Just "AUTH_FAILED") Nothing url (authAPI token) "auth" (Proxy @API)
     `catchOwnAPI` throwError . \case
       "INVALID_TOKEN" -> InvalidToken token

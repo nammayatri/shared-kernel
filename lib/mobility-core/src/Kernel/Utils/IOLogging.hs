@@ -1,3 +1,9 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE RankNTypes #-}
+
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -27,17 +33,20 @@ module Kernel.Utils.IOLogging
   )
 where
 
+import Control.Lens ((%~), (^.))
 import qualified Control.Monad.Catch as C
 import Data.Aeson as A
 import qualified Data.Aeson.KeyMap as AKM
+import Data.Generics.Labels ()
+import Data.Generics.Product (HasField')
 import qualified Data.Text as T
 import qualified Data.Time as Time
-import Kernel.Prelude
+import Kernel.Prelude hiding (HasField, getField, setField)
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import System.Log.FastLogger
 
-type HasLog r = HasField "loggerEnv" r LoggerEnv
+type HasLog r = HasField' "loggerEnv" r LoggerEnv
 
 data Logger = Logger
   { printLogFunc :: FastLogger,
@@ -87,7 +96,7 @@ releaseLoggerEnv LoggerEnv {..} = do
 
 logOutputImplementation :: (HasLog r, MonadReader r m, MonadIO m, MonadTime m) => LogLevel -> Text -> m ()
 logOutputImplementation logLevel message = do
-  logEnv <- asks (.loggerEnv)
+  logEnv <- asks (^. #loggerEnv)
   logOutputIO logEnv logLevel message
 
 logOutputIO :: (MonadIO m, MonadTime m) => LoggerEnv -> LogLevel -> Text -> m ()
@@ -105,12 +114,7 @@ withLogTagImplementation ::
   Text ->
   m a ->
   m a
-withLogTagImplementation tag = local modifyEnv
-  where
-    modifyEnv env = do
-      let logEnv = env.loggerEnv
-          updLogEnv = appendLogTag tag logEnv
-      env{loggerEnv = updLogEnv}
+withLogTagImplementation tag = local (#loggerEnv %~ appendLogTag tag)
 
 appendLogTag :: Text -> LoggerEnv -> LoggerEnv
 appendLogTag tag logEnv = do

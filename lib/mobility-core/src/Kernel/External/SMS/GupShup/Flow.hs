@@ -14,8 +14,9 @@
 
 module Kernel.External.SMS.GupShup.Flow where
 
+import Control.Lens ((^.))
 import Data.Text as T
-import EulerHS.Prelude
+import EulerHS.Prelude hiding ((^.))
 import EulerHS.Types as ET
 import Kernel.External.Encryption
 import qualified Kernel.External.SMS.GupShup.API as API
@@ -63,11 +64,11 @@ checkGupShupOptError url res =
 
 validateResponseStatus :: (MonadThrow m, B.Log m) => SubmitSmsRes -> m SubmitSmsRes
 validateResponseStatus response = do
-  let resp = response.response
-  case resp.status of
+  let resp = response ^. #response
+  case resp ^. #status of
     "success" -> pure response
     _ -> do
-      case resp.id of
+      case resp ^. #id of
         "100" -> throwError GupShupUnknownServerError
         "101" -> throwError GupShupInvalidRequest
         "102" -> throwError GupShupUnauthorized

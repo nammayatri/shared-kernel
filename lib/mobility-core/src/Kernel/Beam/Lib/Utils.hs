@@ -14,6 +14,7 @@
 
 module Kernel.Beam.Lib.Utils where
 
+import Control.Lens ((^.))
 import Data.Aeson as A
 import qualified Data.Aeson.Key as AesonKey
 import qualified Data.Aeson.KeyMap as AKM
@@ -26,7 +27,7 @@ import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import qualified EulerHS.KVConnector.Types as KV
 import EulerHS.KVConnector.Utils (getShardedHashTag)
 import qualified EulerHS.Language as L
-import EulerHS.Prelude
+import EulerHS.Prelude hiding ((^.))
 import qualified Kafka.Producer as KafkaProd
 import Kernel.Beam.Types (KafkaConn (..))
 import Kernel.Types.App
@@ -67,7 +68,7 @@ pushToKafka messageRecord topic key = do
   case kafkaProducerTools of
     Nothing -> throwError $ InternalError "Kafka producer tools not found"
     Just kafkaProducerTools' -> do
-      mbErr <- KafkaProd.produceMessage kafkaProducerTools'.producer (kafkaMessage topic messageRecord key)
+      mbErr <- KafkaProd.produceMessage (kafkaProducerTools' ^. #producer) (kafkaMessage topic messageRecord key)
       whenJust mbErr (throwError . KafkaUnableToProduceMessage)
 
 kafkaMessage :: ToJSON a => Text -> a -> Text -> KafkaProd.ProducerRecord

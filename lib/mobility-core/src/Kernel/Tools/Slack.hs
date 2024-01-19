@@ -18,9 +18,11 @@ module Kernel.Tools.Slack
   )
 where
 
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField')
 import Data.String.Conversions
 import qualified EulerHS.Language as L
-import EulerHS.Prelude
+import EulerHS.Prelude hiding ((^.))
 import qualified Kernel.Tools.Slack.Internal as SI
 import Kernel.Utils.Common
 import qualified Web.Slack as Slack
@@ -36,7 +38,7 @@ notifyOnSlackIO slackEnv title body threadId attachments = do
       let fTitle = title
       fTitle <> nl <> body
 
-notifyOnSlack :: (HasField "slackEnv" r SI.SlackEnv, Log m, L.MonadFlow m, MonadReader r m) => Text -> Text -> Maybe Text -> m (Slack.Response Chat.PostMsgRsp)
+notifyOnSlack :: (HasField' "slackEnv" r SI.SlackEnv, Log m, L.MonadFlow m, MonadReader r m) => Text -> Text -> Maybe Text -> m (Slack.Response Chat.PostMsgRsp)
 notifyOnSlack title body threadId = do
-  slackEnv <- asks (.slackEnv)
+  slackEnv <- asks (^. #slackEnv)
   L.runIO $ notifyOnSlackIO slackEnv title body threadId Nothing

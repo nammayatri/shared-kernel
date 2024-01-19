@@ -18,7 +18,8 @@ module Kernel.External.SMS.Interface.GupShup
   )
 where
 
-import EulerHS.Prelude
+import Control.Lens ((^.))
+import EulerHS.Prelude hiding ((^.))
 import Kernel.External.Encryption
 import Kernel.External.SMS.GupShup.Config
 import qualified Kernel.External.SMS.GupShup.Flow as GF
@@ -43,7 +44,7 @@ sendOTP gupShupCfg SendSMSReq {..} = do
   gupShupPassword <- decrypt gupShupCfg.password
   gupShupTemplateId <- decrypt gupShupCfg.templateId
   res <- GF.sendOTPApi gupShupOtpSmsTemplate gupShupPhoneNumber gupShupUserId gupShupPassword gupShupTemplateId gupShupCfg
-  return $ returnSmsResultGupShup res.response.status
+  return $ returnSmsResultGupShup (res ^. #response . #status)
 
 returnSmsResultGupShup :: Text -> IT.SendSMSRes
 returnSmsResultGupShup txt = case txt of

@@ -14,7 +14,8 @@
 
 module Kernel.External.Call.Interface.Exotel where
 
-import EulerHS.Prelude
+import Control.Lens ((^.))
+import EulerHS.Prelude hiding ((^.))
 import qualified Kernel.External.Call.Exotel.Client as Exotel
 import Kernel.External.Call.Exotel.Config (ExotelCfg)
 import Kernel.External.Call.Exotel.Types as Exotel
@@ -37,8 +38,8 @@ initiateCall config InitiateCallReq {..} = do
       ExotelInitiateCallReq
         { from = fromPhoneNum,
           to = toPhoneNum,
-          callerId = config.callerId,
-          statusCallbackUrl = config.callbackUrl,
+          callerId = config ^. #callerId,
+          statusCallbackUrl = config ^. #callbackUrl,
           customField = getAttachments attachments
         }
   return $

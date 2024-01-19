@@ -14,6 +14,8 @@
 
 module Kernel.Streaming.Kafka.Topic.PublicTransportQuoteList.Types where
 
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField' (..))
 import Kernel.Prelude
 import qualified Kernel.Streaming.Kafka.Consumer as Cons
 import Kernel.Streaming.Kafka.Consumer.Types (HasKafkaConsumer, KafkaConsumerTools)
@@ -27,7 +29,7 @@ import Kernel.Types.Flow (FlowR)
 
 type HasKafkaPublicTransportQuotesConsumer env r =
   ( HasKafkaConsumer env r,
-    HasField "publicTransportQuotes" env (KafkaConsumerTools PublicTransportQuoteList)
+    HasField' "publicTransportQuotes" env (KafkaConsumerTools PublicTransportQuoteList)
   )
 
 type TransactionId = Text
@@ -66,4 +68,4 @@ instance (Log (FlowR r), HasKafkaProducer r) => MonadProducer PublicTransportQuo
   produceMessage () value = mapM_ ($ value) (Prod.produceMessage <$> map (,Nothing) (getTopics @PublicTransportQuoteList))
 
 instance (Log (FlowR r), HasKafkaPublicTransportQuotesConsumer env r) => MonadConsumer PublicTransportQuoteList (FlowR r) where
-  receiveMessage = asks (.kafkaConsumerEnv.publicTransportQuotes) >>= Cons.receiveMessage
+  receiveMessage = asks (^. field' @"kafkaConsumerEnv" . #publicTransportQuotes) >>= Cons.receiveMessage

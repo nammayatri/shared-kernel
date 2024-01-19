@@ -31,6 +31,7 @@ module Kernel.External.Payment.Interface.Juspay
   )
 where
 
+import Control.Lens ((^.))
 import qualified Data.Aeson as A
 import Data.Text (pack, replace, toUpper)
 import qualified Data.Text as T
@@ -394,44 +395,44 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
     (Nothing, Just justMandate, _, _) ->
       MandateStatusResp
         { eventName = Just eventName,
-          orderShortId = justMandate.order_id,
-          status = justMandate.status,
-          mandateStartDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack justMandate.start_date) :: Maybe Int)),
-          mandateEndDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack justMandate.end_date) :: Maybe Int)),
-          mandateId = justMandate.mandate_id,
-          mandateFrequency = justMandate.frequency,
-          mandateMaxAmount = justMandate.max_amount,
-          upi = castUpi <$> (justMandate.payment_info >>= (.upi))
+          orderShortId = justMandate ^. #order_id,
+          status = justMandate ^. #status,
+          mandateStartDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack (justMandate ^. #start_date)) :: Maybe Int)),
+          mandateEndDate = posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack (justMandate ^. #end_date)) :: Maybe Int)),
+          mandateId = justMandate ^. #mandate_id,
+          mandateFrequency = justMandate ^. #frequency,
+          mandateMaxAmount = justMandate ^. #max_amount,
+          upi = castUpi <$> (justMandate ^. #payment_info >>= (^. #upi))
         }
     (_, _, Just justNotification, _) ->
       PDNNotificationStatusResp
         { eventName = Just eventName,
-          notificationStatus = justNotification.status,
-          sourceObject = justNotification.source_object,
-          sourceInfo = maybe SourceInfo {txnDate = Just now, sourceAmount = Just 0} castSourceInfo (justNotification.source_info),
-          notificationType = justNotification.notification_type,
-          juspayProviedId = justNotification.id,
-          responseCode = listToMaybe $ catMaybes [justNotification.response_code, justNotification.provider_response >>= (.provider_response_code)],
-          responseMessage = listToMaybe $ catMaybes [justNotification.response_message, justNotification.provider_response >>= (.provider_response_message)],
-          notificationId = justNotification.object_reference_id
+          notificationStatus = justNotification ^. #status,
+          sourceObject = justNotification ^. #source_object,
+          sourceInfo = maybe SourceInfo {txnDate = Just now, sourceAmount = Just 0} castSourceInfo (justNotification ^. #source_info),
+          notificationType = justNotification ^. #notification_type,
+          juspayProviedId = justNotification ^. #id,
+          responseCode = listToMaybe $ catMaybes [justNotification ^. #response_code, justNotification ^. #provider_response >>= (.provider_response_code)],
+          responseMessage = listToMaybe $ catMaybes [justNotification ^. #response_message, justNotification ^. #provider_response >>= (.provider_response_message)],
+          notificationId = justNotification ^. #object_reference_id
         }
     (_, _, _, Just justTransaction) -> do
-      let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justTransaction.metadata justTransaction.links
+      let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData (justTransaction ^. #metadata) (justTransaction ^. #links)
       OrderStatusResp
         { eventName = Just eventName,
-          orderShortId = justTransaction.order_id,
-          transactionUUID = justTransaction.txn_uuid,
-          transactionStatusId = justTransaction.status_id,
-          transactionStatus = justTransaction.status,
+          orderShortId = justTransaction ^. #order_id,
+          transactionUUID = justTransaction ^. #txn_uuid,
+          transactionStatusId = justTransaction ^. #status_id,
+          transactionStatus = justTransaction ^. #status,
           paymentMethodType = Nothing,
           paymentMethod = Nothing,
           respMessage = Nothing,
           respCode = Nothing,
           gatewayReferenceId = Nothing,
-          bankErrorMessage = if justTransaction.error_message == Just "" then Nothing else justTransaction.error_message,
-          bankErrorCode = if justTransaction.error_code == Just "" then Nothing else justTransaction.error_code,
-          amount = realToFrac justTransaction.txn_amount,
-          currency = justTransaction.currency,
+          bankErrorMessage = if justTransaction ^. #error_message == Just "" then Nothing else justTransaction ^. #error_message,
+          bankErrorCode = if justTransaction ^. #error_code == Just "" then Nothing else justTransaction ^. #error_code,
+          amount = realToFrac (justTransaction ^. #txn_amount),
+          currency = justTransaction ^. #currency,
           dateCreated = Nothing,
           ..
         }

@@ -28,12 +28,13 @@ module Kernel.Utils.Error.FlowHandling
 where
 
 import Control.Concurrent.STM (isEmptyTMVar)
+import Control.Lens ((^.))
 import Control.Monad.Reader
 import qualified Data.Aeson as A
+import Data.Generics.Product (HasField')
 import Data.Time.Clock hiding (getCurrentTime)
 import qualified EulerHS.Language as L
-import EulerHS.Prelude
-import GHC.Records.Extra
+import EulerHS.Prelude hiding ((^.))
 import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Storage.Beam.SystemConfigs as BeamSC
@@ -83,7 +84,7 @@ withFlowHandler' flow = do
 withFlowHandlerAPI ::
   ( HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
-    HasField "isShuttingDown" r (TMVar ())
+    HasField' "isShuttingDown" r (TMVar ())
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -92,7 +93,7 @@ withFlowHandlerAPI = withFlowHandler . apiHandler . handleIfUp
 -- created this for using it in mock-registry as it does not require any extra constraints
 withFlowHandlerAPI' ::
   ( Metrics.CoreMetrics (FlowR r),
-    HasField "isShuttingDown" r (TMVar ()),
+    HasField' "isShuttingDown" r (TMVar ()),
     Log (FlowR r)
   ) =>
   FlowR r a ->
@@ -102,7 +103,7 @@ withFlowHandlerAPI' = withFlowHandler' . apiHandler . handleIfUp
 withFlowHandlerBecknAPI ::
   ( HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
-    HasField "isShuttingDown" r (TMVar ())
+    HasField' "isShuttingDown" r (TMVar ())
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
@@ -111,7 +112,7 @@ withFlowHandlerBecknAPI = withFlowHandler . becknApiHandler . handleIfUp
 -- created this for using it in beckn-gateway as it does not require any extra constraints
 withFlowHandlerBecknAPI' ::
   ( Metrics.CoreMetrics (FlowR r),
-    HasField "isShuttingDown" r (TMVar ()),
+    HasField' "isShuttingDown" r (TMVar ()),
     Log (FlowR r)
   ) =>
   FlowR r AckResponse ->
@@ -122,13 +123,13 @@ handleIfUp ::
   ( L.MonadFlow m,
     Log m,
     MonadReader r m,
-    HasField "isShuttingDown" r (TMVar ()),
+    HasField' "isShuttingDown" r (TMVar ()),
     Metrics.CoreMetrics m
   ) =>
   m a ->
   m a
 handleIfUp flow = do
-  shutdown <- asks (.isShuttingDown)
+  shutdown <- asks (^. #isShuttingDown)
   shouldRun <- L.runIO $ atomically $ isEmptyTMVar shutdown
   if shouldRun
     then flow

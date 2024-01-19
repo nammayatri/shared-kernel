@@ -18,19 +18,20 @@
 module Kernel.Utils.Servant.SignatureAuth where
 
 import Control.Arrow
-import Control.Lens (at, (.=), (.~), (?=))
+--import qualified Data.Text as T
+
+import Control.Lens (at, (.=), (.~), (?=), (^.))
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.CaseInsensitive as CI
+import Data.Generics.Product (HasField')
 import qualified Data.HashMap.Strict as HMS
 import Data.List (lookup)
 import qualified Data.OpenApi as DS
---import qualified Data.Text as T
-
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Typeable (typeRep)
-import EulerHS.Prelude hiding (fromList, (.~))
+import EulerHS.Prelude hiding (fromList, (.~), (^.))
 import qualified EulerHS.Runtime as R
 import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
@@ -96,8 +97,8 @@ instance
     HasEnvEntry r ctx,
     KnownSymbol header,
     HasLog r,
-    HasField "hostName" r Text,
-    HasField "disableSignatureAuth" r Bool,
+    HasField' "hostName" r Text,
+    HasField' "disableSignatureAuth" r Bool,
     Registry (FlowR r),
     HasCoreMetrics r
   ) =>
@@ -209,8 +210,8 @@ verifySignature ::
   ( MonadFlow m,
     MonadReader r m,
     Metrics.CoreMetrics m,
-    HasField "hostName" r Text,
-    HasField "disableSignatureAuth" r Bool,
+    HasField' "hostName" r Text,
+    HasField' "disableSignatureAuth" r Bool,
     Registry m,
     HasLog r
   ) =>
@@ -220,7 +221,7 @@ verifySignature ::
   Text ->
   m Subscriber
 verifySignature headerName signPayload bodyHash merchantId = do
-  hostName <- asks (.hostName)
+  hostName <- asks (^. #hostName)
   logTagDebug "SignatureAuth" $ "Got Signature: " <> show signPayload
   let uniqueKeyId = signPayload.params.keyId.uniqueKeyId
       subscriberId = signPayload.params.keyId.subscriberId
@@ -232,7 +233,7 @@ verifySignature headerName signPayload bodyHash merchantId = do
           }
   registryLookup lookupRequest >>= \case
     Just subscriber -> do
-      disableSignatureAuth <- asks (.disableSignatureAuth)
+      disableSignatureAuth <- asks (^. #disableSignatureAuth)
       unless disableSignatureAuth do
         let publicKey = subscriber.signing_public_key
         isVerified <- performVerification publicKey hostName

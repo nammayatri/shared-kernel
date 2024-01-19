@@ -31,6 +31,7 @@ module Kernel.External.Maps.Interface
   )
 where
 
+import Control.Lens ((^.))
 import EulerHS.Prelude ((...))
 import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
@@ -134,8 +135,8 @@ runPreCheck ::
   SnapToRoadReq ->
   m Bool
 runPreCheck mapsService req = do
-  droppedPointsThreshold <- asks (.droppedPointsThreshold)
-  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+  droppedPointsThreshold <- asks (^. #droppedPointsThreshold)
+  snippetThreshold <- asks (^. #snapToRoadSnippetThreshold)
   case mapsService of
     Google -> return (everySnippetIs (< droppedPointsThreshold) req.points)
     MMI -> return (everySnippetIs (< droppedPointsThreshold) req.points)
@@ -150,7 +151,7 @@ runPostCheck ::
   SnapToRoadResp ->
   m Bool
 runPostCheck mapsService res = do
-  snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+  snippetThreshold <- asks (^. #snapToRoadSnippetThreshold)
   case mapsService of
     Google -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
     MMI -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)

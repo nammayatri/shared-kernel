@@ -28,6 +28,8 @@ module Kernel.External.Maps.Google.MapsClient
   )
 where
 
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField')
 import Data.Text as T
 import EulerHS.Types (EulerClient, client)
 import Kernel.External.Maps.Google.MapsClient.Types as GoogleMaps
@@ -204,17 +206,17 @@ directions url key origin destination mode waypoints isAvoidTolls = do
   callAPI url (directionsClient origin destination key (Just True) mode waypoints (Just avoid)) "directionsAPI" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
 
-checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
+checkGoogleMapsError :: (MonadThrow m, Log m, HasField' "status" a Text) => BaseUrl -> Either ClientError a -> m a
 checkGoogleMapsError url res =
   fromEitherM (googleMapsError url) res >>= validateResponseStatus
 
 googleMapsError :: BaseUrl -> ClientError -> ExternalAPICallError
 googleMapsError = ExternalAPICallError (Just "GOOGLE_MAPS_API_ERROR")
 
-validateResponseStatus :: (MonadThrow m, Log m, HasField "status" a Text) => a -> m a
+validateResponseStatus :: (MonadThrow m, Log m, HasField' "status" a Text) => a -> m a
 validateResponseStatus response =
-  case response.status of
+  case response ^. #status of
     "OK" -> pure response
     "ZERO_RESULTS" -> pure response
     "INVALID_REQUEST" -> throwError GoogleMapsInvalidRequest
-    _ -> throwError $ GoogleMapsCallError response.status
+    _ -> throwError $ GoogleMapsCallError (response ^. #status)

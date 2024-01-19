@@ -22,8 +22,8 @@ module Kernel.Streaming.Kafka.Consumer.Types
   )
 where
 
+import Data.Generics.Product (HasField')
 import EulerHS.Prelude
-import GHC.Records.Extra (HasField)
 import Kafka.Consumer hiding (ConsumerGroupId, groupId)
 import qualified Kafka.Consumer as Consumer
 import Kernel.Streaming.Kafka.Commons as Reexport
@@ -31,7 +31,7 @@ import Kernel.Streaming.Kafka.HasKafkaTopics
 import Kernel.Types.Error
 import Kernel.Utils.Dhall (FromDhall)
 
-type HasKafkaConsumer env r = HasField "kafkaConsumerEnv" r env
+type HasKafkaConsumer env r = HasField' "kafkaConsumerEnv" r env
 
 type ConsumerGroupId = Text
 

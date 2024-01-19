@@ -15,9 +15,10 @@
 module Kernel.Storage.Hedis.Config where
 
 import qualified Control.Monad.Catch as C
+import Data.Generics.Product (HasField')
 import Data.Word (Word16)
 import Database.Redis
-import GHC.Records.Extra
+import Database.Redis as Redis
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Logging
@@ -26,7 +27,7 @@ import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
 type HedisFlow m env =
-  (MonadTime m, CoreMetrics m, MonadCatch m, MonadReader env m, HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, MonadIO m, C.MonadThrow m, Log m)
+  (MonadTime m, CoreMetrics m, MonadCatch m, MonadReader env m, HasField' "hedisMigrationStage" env Bool, HasField' "hedisClusterEnv" env HedisEnv, HasField' "hedisNonCriticalClusterEnv" env HedisEnv, HasField' "hedisEnv" env HedisEnv, HasField' "hedisNonCriticalEnv" env HedisEnv, HasField' "enablePrometheusMetricLogging" env Bool, HasField' "enableRedisLatencyLogging" env Bool, MonadIO m, C.MonadThrow m, Log m)
 
 type KeyModifierFunc = (Text -> Text)
 
@@ -74,7 +75,7 @@ connectHedisCluster cfg keyModifier = do
     connectInfo :: ConnectInfo
     connectInfo =
       defaultConnectInfo
-        { connectHost = cfg.connectHost,
+        { Redis.connectHost = cfg.connectHost,
           connectPort = PortNumber $ toEnum $ fromEnum cfg.connectPort,
           connectAuth = encodeUtf8 <$> cfg.connectAuth,
           connectDatabase = cfg.connectDatabase,
@@ -95,7 +96,7 @@ connectHedis cfg keyModifier = do
     connectInfo :: ConnectInfo
     connectInfo =
       defaultConnectInfo
-        { connectHost = cfg.connectHost,
+        { Redis.connectHost = cfg.connectHost,
           connectPort = PortNumber $ toEnum $ fromEnum cfg.connectPort,
           connectAuth = encodeUtf8 <$> cfg.connectAuth,
           connectDatabase = cfg.connectDatabase,

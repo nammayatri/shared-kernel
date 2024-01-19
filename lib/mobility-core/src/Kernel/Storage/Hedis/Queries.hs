@@ -14,9 +14,12 @@
 
 module Kernel.Storage.Hedis.Queries where
 
+import Control.Lens ((.~), (^.))
 import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
+import Data.Generics.Labels ()
+import Data.Generics.Product (HasField' (..))
 import Data.String.Conversions
 import Data.Text hiding (concatMap, map, null)
 import qualified Data.Text as T
@@ -24,9 +27,8 @@ import qualified Data.Text as Text
 import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
 import EulerHS.Prelude (whenLeft)
-import GHC.Records.Extra
 import Kernel.Prelude
-import Kernel.Storage.Hedis.Config
+import Kernel.Storage.Hedis.Config as HC
 import Kernel.Storage.Hedis.Error
 import Kernel.Utils.DatastoreLatencyCalculator
 import qualified Kernel.Utils.Error.Throwing as Error
@@ -70,13 +72,13 @@ runHedis action = do
 runHedisEither ::
   HedisFlow m env => Redis (Either Reply a) -> m (Either Reply a)
 runHedisEither action = do
-  con <- asks (.hedisClusterEnv.hedisConnection)
+  con <- asks (^. field' @"hedisClusterEnv" . field' @"hedisConnection")
   liftIO $ Hedis.runRedis con action
 
 runHedisTransaction ::
   HedisFlow m env => RedisTx (Queued a) -> m a
 runHedisTransaction action = do
-  con <- asks (.hedisClusterEnv.hedisConnection)
+  con <- asks (^. field' @"hedisClusterEnv" . field' @"hedisConnection")
   res <- liftIO . Hedis.runRedis con $ Hedis.multiExec action
   case res of
     TxError err -> Error.throwError $ HedisReplyError err
@@ -89,21 +91,36 @@ runHedisTransaction action = do
 withCrossAppRedis ::
   (HedisFlow m env) => m f -> m f
 withCrossAppRedis f = do
-  local (\env -> env{hedisEnv = env.hedisEnv{keyModifier = identity}, hedisClusterEnv = env.hedisClusterEnv{keyModifier = identity}}) f
+  local
+    ( \env ->
+        env & field' @"hedisEnv" . field' @"keyModifier" .~ identity
+          & field' @"hedisClusterEnv" . field' @"keyModifier" .~ identity
+    )
+    f
 
 withNonCriticalCrossAppRedis ::
   (HedisFlow m env) => m f -> m f
 withNonCriticalCrossAppRedis f = do
-  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv{keyModifier = identity}, hedisClusterEnv = env.hedisNonCriticalClusterEnv{keyModifier = identity}}) f
+  local
+    ( \env ->
+        env & field' @"hedisEnv" . field' @"keyModifier" .~ identity
+          & field' @"hedisClusterEnv" . field' @"keyModifier" .~ identity
+    )
+    f
 
 withNonCriticalRedis ::
   (HedisFlow m env) => m f -> m f
 withNonCriticalRedis f = do
-  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv, hedisClusterEnv = env.hedisNonCriticalClusterEnv}) f
+  local
+    ( \env ->
+        env & field' @"hedisEnv" .~ env ^. field' @"hedisNonCriticalEnv"
+          & field' @"hedisClusterEnv" .~ env ^. field' @"hedisNonCriticalClusterEnv"
+    )
+    f
 
 buildKey :: HedisFlow m env => Text -> m BS.ByteString
 buildKey key = do
-  keyModifier <- asks (.hedisEnv.keyModifier)
+  keyModifier <- asks (^. field' @"hedisEnv" . field' @"keyModifier")
   return . cs $ keyModifier key
 
 runWithPrefixEither :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Reply a)) -> m (Either Reply a)
@@ -133,7 +150,7 @@ runWithPrefix' key action = do
 runHedisTransaction' ::
   HedisFlow m env => RedisTx (Queued a) -> m a
 runHedisTransaction' action = do
-  con <- asks (.hedisEnv.hedisConnection)
+  con <- asks (^. field' @"hedisEnv" . field' @"hedisConnection")
   res <- liftIO . Hedis.runRedis con $ Hedis.multiExec action
   case res of
     TxError err -> Error.throwError $ HedisReplyError err
@@ -149,7 +166,7 @@ runHedis' action = do
 runHedisEither' ::
   HedisFlow m env => Redis (Either Reply a) -> m (Either Reply a)
 runHedisEither' action = do
-  con <- asks (.hedisEnv.hedisConnection)
+  con <- asks (^. field' @"hedisEnv" . field' @"hedisConnection")
   liftIO $ Hedis.runRedis con action
 
 tryGetFromStandalone :: HedisFlow m env => Text -> m (Maybe BS.ByteString)
@@ -171,7 +188,7 @@ getImpl decodeResult key = withLogTag "Redis" $ do
   res <- tryGetFromCluster key
   case res of
     Nothing -> do
-      migrating <- asks (.hedisMigrationStage)
+      migrating <- asks (^. #hedisMigrationStage)
       if migrating
         then do
           res' <- tryGetFromStandalone key
@@ -202,7 +219,7 @@ safeGet key = get' key (del key)
 set ::
   (ToJSON a, HedisFlow m env) => Text -> a -> m ()
 set key val = withLogTag "Redis" $ do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   if migrating
     then do
       res <- withTimeRedis "RedisStandalone" "set" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.set prefKey $ BSL.toStrict $ Ae.encode val)
@@ -215,7 +232,7 @@ setExp ::
   (ToJSON a, HedisFlow m env) => Text -> a -> ExpirationTime -> m ()
 setExp key val expirationTime = withTimeRedis "Redis" "setExp" . withLogTag "Redis" $ do
   prefKey <- buildKey key
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   if migrating
     then do
       standaloneRes <-
@@ -237,7 +254,7 @@ setExp key val expirationTime = withTimeRedis "Redis" "setExp" . withLogTag "Red
 setNx ::
   (ToJSON a, HedisFlow m env) => Text -> a -> m Bool
 setNx key val = withLogTag "Redis" $ do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   writtenInStandalone <-
     if migrating
       then do
@@ -253,7 +270,7 @@ setNx key val = withLogTag "Redis" $ do
 
 del :: (HedisFlow m env) => Text -> m ()
 del key = withLogTag "Redis" do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   if migrating
     then do
       res <- withTimeRedis "RedisStandalone" "del" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.del [prefKey])
@@ -267,7 +284,7 @@ rPushExp key list ex = withLogTag "Redis" $ do
   prefKey <- buildKey key
   logDebug $ "working with key : " <> cs prefKey
   unless (null list) $ do
-    migrating <- asks (.hedisMigrationStage)
+    migrating <- asks (^. #hedisMigrationStage)
     if migrating
       then do
         standaloneRes <-
@@ -336,7 +353,7 @@ incrByFloat key toAdd = withTimeRedis "RedisCluster" "incrByFloat" . runWithPref
 
 expire :: (HedisFlow m env) => Text -> ExpirationTime -> m ()
 expire key expirationTime = do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   when migrating . withTimeRedis "RedisStandalone" "expire" . runWithPrefix'_ key $ \prefKey -> Hedis.expire prefKey (toInteger expirationTime)
   withTimeRedis "RedisCluster" "expire" . runWithPrefix_ key $ \prefKey -> Hedis.expire prefKey (toInteger expirationTime)
 
@@ -414,7 +431,7 @@ buildLockResourceName key = fromString $ "mobility:locker:" <> Text.unpack key
 hSetExp :: (ToJSON a, HedisFlow m env) => Text -> Text -> a -> ExpirationTime -> m ()
 hSetExp key field value expirationTime = withLogTag "Redis" $ do
   prefKey <- buildKey key
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   if migrating
     then do
       standaloneRes <-
@@ -452,7 +469,7 @@ hGetAll key = withTimeRedis "RedisCluster" "hGetAll" $ do
 zAddExp :: (ToJSON Integer, HedisFlow m env) => Text -> Text -> Integer -> ExpirationTime -> m ()
 zAddExp key field value expirationTime = withLogTag "Redis" $ do
   prefKey <- buildKey key
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   if migrating
     then do
       standaloneRes <-
@@ -497,7 +514,7 @@ zAdd ::
   [(Double, member)] ->
   m ()
 zAdd key members = withLogTag "Redis" $ do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   if migrating
     then do
       res <- withTimeRedis "RedisStandalone" "zAdd" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zadd prefKey $ map (\(score, member) -> (score, BSL.toStrict $ Ae.encode member)) members)
@@ -511,7 +528,7 @@ xInfoGroups ::
   Text -> -- Stream key
   m Bool
 xInfoGroups key = do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   eitherMaybeBS <-
     if migrating
       then withTimeRedis "RedisStandalone" "xInfoGroups" $ try @_ @SomeException (runWithPrefix' key Hedis.xinfoGroups)
@@ -530,7 +547,7 @@ xGroupCreate ::
   Text -> -- Start ID
   m ()
 xGroupCreate key groupName startId = withLogTag "Redis" $ do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   when migrating $ do
     res <- withTimeRedis "RedisStandalone" "xGroupCreate" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.xgroupCreate prefKey (cs groupName) (cs startId))
     whenLeft res (withLogTag "STANDALONE" . logTagInfo "FAILED_TO_xGroupCreate" . show)
@@ -554,7 +571,7 @@ xReadGroup groupName consumerName pairsList = do
   let mbKeyVal = listToMaybe bsPairsList
   case mbKeyVal of
     Just keyVal -> do
-      migrating <- asks (.hedisMigrationStage)
+      migrating <- asks (^. #hedisMigrationStage)
       eitherMaybeBS <-
         if migrating
           then withTimeRedis "RedisStandalone" "XReadGroup" $ try @_ @SomeException (runWithPrefix' (cs $ fst keyVal) $ \_ -> Hedis.xreadGroup (cs groupName) (cs consumerName) bsPairsList)
@@ -582,7 +599,7 @@ xReadGroupOpts groupName consumerName pairsList block_ recordCount_ = do
   let mbKeyVal = listToMaybe bsPairsList
   case mbKeyVal of
     Just keyVal -> do
-      migrating <- asks (.hedisMigrationStage)
+      migrating <- asks (^. #hedisMigrationStage)
       eitherMaybeBS <-
         if migrating
           then withTimeRedis "RedisStandalone" "xReadGroupOpts" $ try @_ @SomeException (runWithPrefix' (cs $ fst keyVal) $ \_ -> Hedis.xreadGroupOpts (cs groupName) (cs consumerName) bsPairsList opts)
@@ -598,7 +615,7 @@ xReadGroupOpts groupName consumerName pairsList block_ recordCount_ = do
 
 xAdd :: (HedisFlow m env) => Text -> Text -> [(BS.ByteString, BS.ByteString)] -> m BS.ByteString
 xAdd key entryId fieldValues = withLogTag "Redis" $ do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   when migrating $ do
     res <- withTimeRedis "RedisStandalone" "xadd" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.xadd prefKey (cs entryId) fieldValues)
     whenLeft res (withLogTag "STANDALONE" . logTagInfo "FAILED_TO_xadd" . show)
@@ -611,7 +628,7 @@ xAdd key entryId fieldValues = withLogTag "Redis" $ do
 
 zRangeByScore :: (HedisFlow m env) => Text -> Double -> Double -> m [BS.ByteString]
 zRangeByScore key start end = withLogTag "Redis" $ do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   when migrating $ do
     res <- withTimeRedis "RedisStandalone" "zRangeByScore" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zrangebyscore prefKey start end)
     whenLeft res (withLogTag "STANDALONE" . logTagInfo "FAILED_TO_ZRANGEBYSCORE" . show)
@@ -624,7 +641,7 @@ zRangeByScore key start end = withLogTag "Redis" $ do
 
 zRemRangeByScore :: (HedisFlow m env) => Text -> Double -> Double -> m Integer
 zRemRangeByScore key start end = withLogTag "Redis" $ do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   when migrating $ do
     res <- withTimeRedis "RedisStandalone" "zRemRangeByScore" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zremrangebyscore prefKey start end)
     case res of
@@ -639,7 +656,7 @@ zRemRangeByScore key start end = withLogTag "Redis" $ do
 
 xDel :: (HedisFlow m env) => Text -> [BS.ByteString] -> m Integer
 xDel key entryId = withLogTag "Redis" $ do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   when migrating $ do
     res <- withTimeRedis "RedisStandalone" "xDel" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.xdel prefKey entryId)
     case res of
@@ -654,7 +671,7 @@ xDel key entryId = withLogTag "Redis" $ do
 
 xAck :: (HedisFlow m env) => Text -> Text -> [BS.ByteString] -> m Integer
 xAck key groupName entryId = withLogTag "Redis" $ do
-  migrating <- asks (.hedisMigrationStage)
+  migrating <- asks (^. #hedisMigrationStage)
   when migrating $ do
     res <- withTimeRedis "RedisStandalone" "xAck" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.xack prefKey (cs groupName) entryId)
     case res of

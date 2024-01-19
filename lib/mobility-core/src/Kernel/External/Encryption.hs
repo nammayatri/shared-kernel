@@ -48,12 +48,13 @@ module Kernel.External.Encryption
   )
 where
 
+import Control.Lens.Operators ((^.))
 import qualified Crypto.Hash as Hash
 import Crypto.Hash.Algorithms (SHA256)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString.Lazy as LBS
-import EulerHS.Prelude
+import EulerHS.Prelude hiding ((^.))
 import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Kernel.Types.App
 import Kernel.Types.Field
@@ -187,7 +188,7 @@ encrypt ::
   UnencryptedItem e ->
   m e
 encrypt payload = do
-  encTools <- asks (.encTools)
+  encTools <- asks (^. #encTools)
   encrypt' encTools payload
 
 -- | Encrypt given value using provided tools.
@@ -212,7 +213,7 @@ decrypt ::
   e ->
   m (UnencryptedItem e)
 decrypt encrypted = do
-  encTools <- asks (.encTools)
+  encTools <- asks (^. #encTools)
   item <- withPassettoCtx encTools.service $ throwLeft =<< cliDecrypt encrypted
   return $ fromUnencrypted @e item
 
@@ -221,7 +222,7 @@ getDbHash ::
   a ->
   m DbHash
 getDbHash a = do
-  salt <- asks (.encTools.hashSalt)
+  salt <- asks (^. #encTools . #hashSalt)
   return $ evalDbHash (a, salt)
 
 -----------------------------
@@ -247,7 +248,7 @@ instance ShortHashable Text where
 
 getHash :: (EncFlow m r, ShortHashable a) => a -> m Text
 getHash a = do
-  salt <- asks (.encTools.hashSalt)
+  salt <- asks (^. #encTools . #hashSalt)
   return $ encodeHex $ unShortHash $ evalShortHash (a, salt)
 
 instance Hashable BaseUrl where

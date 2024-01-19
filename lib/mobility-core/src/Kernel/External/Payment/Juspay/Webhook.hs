@@ -14,9 +14,10 @@
 
 module Kernel.External.Payment.Juspay.Webhook where
 
+import Control.Lens ((^.))
 import Data.Aeson.Types as DAT
 import qualified Data.Text.Encoding as DT
-import EulerHS.Prelude
+import EulerHS.Prelude hiding ((^.))
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Types
 import qualified Kernel.External.Payment.Juspay.Types as Juspay
@@ -57,7 +58,7 @@ verifyAuth ::
   m ()
 verifyAuth config authData = do
   let (username, password) = case config of
-        JuspayConfig cfg -> (cfg.username, cfg.password)
+        JuspayConfig cfg -> (cfg ^. #username, cfg ^. #password)
 
   cfgPassword <- decrypt password
   unless (basicAuthUsername authData == DT.encodeUtf8 username && basicAuthPassword authData == DT.encodeUtf8 cfgPassword) $

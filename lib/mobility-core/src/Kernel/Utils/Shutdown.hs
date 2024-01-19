@@ -15,8 +15,10 @@
 module Kernel.Utils.Shutdown where
 
 import Control.Concurrent.STM.TMVar
+import Control.Lens ((^.))
+import Data.Generics.Product.Fields
 import GHC.Conc
-import Kernel.Prelude
+import Kernel.Prelude hiding (getField)
 import System.Posix.Signals (Handler (Catch), installHandler, sigINT, sigTERM)
 
 type Shutdown = TMVar ()
@@ -47,7 +49,7 @@ mkShutdown = newEmptyTMVarIO
 untilShutdown ::
   ( MonadIO m,
     MonadReader r m,
-    HasField "isShuttingDown" r Shutdown
+    HasField' "isShuttingDown" r Shutdown
   ) =>
   m () ->
   m ()
@@ -57,7 +59,7 @@ untilShutdown =
 isRunning ::
   ( MonadIO m,
     MonadReader r m,
-    HasField "isShuttingDown" r Shutdown
+    HasField' "isShuttingDown" r Shutdown
   ) =>
   m Bool
-isRunning = liftIO . atomically . isEmptyTMVar =<< asks (.isShuttingDown)
+isRunning = liftIO . atomically . isEmptyTMVar =<< asks (^. field' @"isShuttingDown")

@@ -85,7 +85,7 @@ deriveIdentifierInstances ''FCMAuthToken
 newtype FCMNotificationTitle = FCMNotificationTitle
   { getFCMNotificationTitle :: Text
   }
-  deriving (Show)
+  deriving (Generic, Show)
   deriving newtype (PrettyShow)
 
 deriveIdentifierInstances ''FCMNotificationTitle
@@ -94,7 +94,7 @@ deriveIdentifierInstances ''FCMNotificationTitle
 newtype FCMNotificationBody = FCMNotificationBody
   { getFCMNotificationBody :: Text
   }
-  deriving (Show)
+  deriving (Generic, Show)
   deriving newtype (PrettyShow)
 
 deriveIdentifierInstances ''FCMNotificationBody

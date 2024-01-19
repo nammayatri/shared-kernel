@@ -14,6 +14,8 @@
 
 module Kernel.External.Whatsapp.GupShup.Flow where
 
+import Control.Lens ((^.))
+import Data.Generics.Product (HasField')
 import qualified Data.Text as T
 import EulerHS.Types (EulerClient, client)
 import qualified Kernel.External.Whatsapp.Interface.Types as Whatsapp
@@ -93,16 +95,16 @@ whatsAppOptAPI url userid password phone_number method auth_scheme v channel for
   callAPI url (gupShupOptAPIClient userid password phone_number method auth_scheme v channel format) "GupShup Opt api" (Proxy :: Proxy GupShupAPI)
     >>= checkGupShupOptError url
 
-checkGupShupOptError :: (MonadThrow m, Log m, HasField "_response" a Whatsapp.OptApiResponse) => BaseUrl -> Either ClientError a -> m a
+checkGupShupOptError :: (MonadThrow m, Log m, HasField' "_response" a Whatsapp.OptApiResponse) => BaseUrl -> Either ClientError a -> m a
 checkGupShupOptError url res =
   fromEitherM (gupShupOptError url) res >>= validateResponseStatus
 
 gupShupOptError :: BaseUrl -> ClientError -> ExternalAPICallError
 gupShupOptError = ExternalAPICallError (Just "GUPSHUP_OPT_API_ERROR")
 
-validateResponseStatus :: (MonadThrow m, Log m, HasField "_response" a Whatsapp.OptApiResponse) => a -> m a
+validateResponseStatus :: (MonadThrow m, Log m, HasField' "_response" a Whatsapp.OptApiResponse) => a -> m a
 validateResponseStatus response = do
-  let resp = response._response
+  let resp = response ^. #_response
   case T.toLower resp.status of
     "success" -> pure response
     _ -> do

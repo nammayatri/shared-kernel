@@ -14,12 +14,12 @@
 
 module Kernel.Storage.Esqueleto.Config where
 
+import Data.Generics.Product (HasField')
 import Data.Pool (Pool)
 import Database.Persist.Postgresql
 import Database.PostgreSQL.Simple (execute_)
 import Database.PostgreSQL.Simple.Types (Query (Query))
 import EulerHS.Prelude
-import GHC.Records.Extra
 import Kernel.Storage.Esqueleto.Logger (runLoggerIO)
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.Time (MonadTime)
@@ -69,9 +69,9 @@ prepareEsqDBEnv cfg logEnv = do
 
 type HasEsq m r = (MonadReader r m, HasLog r, MonadTime m, MonadIO m)
 
-type HasEsqEnv m r = (HasEsq m r, HasField "esqDBEnv" r EsqDBEnv)
+type HasEsqEnv m r = (HasEsq m r, HasField' "esqDBEnv" r EsqDBEnv)
 
-type HasEsqReplica m r = (HasEsq m r, HasField "esqDBReplicaEnv" r EsqDBEnv)
+type HasEsqReplica m r = (HasEsq m r, HasField' "esqDBReplicaEnv" r EsqDBEnv)
 
 type EsqDBFlow m r = (HasEsqEnv m r, MonadFlow m)
 

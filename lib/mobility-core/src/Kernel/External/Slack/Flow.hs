@@ -14,9 +14,10 @@
 
 module Kernel.External.Slack.Flow where
 
+import Control.Lens ((^.))
 import Data.Maybe
 import qualified Data.Text as T
-import EulerHS.Prelude
+import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
 import Kernel.External.Slack.Types
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -51,7 +52,7 @@ postMessage ::
   m SlackResponse
 postMessage message = do
   withLogTag "Slack" $ do
-    SlackConfig {..} <- asks (.slackCfg)
+    SlackConfig {..} <- asks (^. #slackCfg)
     let slackRequest =
           SlackRequest
             { channel = channelName,
