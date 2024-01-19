@@ -67,6 +67,7 @@ library
       Kernel.External.Maps.Interface
       Kernel.External.Maps.Interface.Google
       Kernel.External.Maps.Interface.MMI
+      Kernel.External.Maps.Interface.NextBillion
       Kernel.External.Maps.Interface.OSRM
       Kernel.External.Maps.Interface.Types
       Kernel.External.Maps.MMI.AutoSuggest
@@ -79,6 +80,9 @@ library
       Kernel.External.Maps.MMI.Routes
       Kernel.External.Maps.MMI.SnapToRoad
       Kernel.External.Maps.MMI.Types
+      Kernel.External.Maps.NextBillion.Config
+      Kernel.External.Maps.NextBillion.Route
+      Kernel.External.Maps.NextBillion.Types
       Kernel.External.Maps.OSRM.Config
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
