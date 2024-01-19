@@ -20,3 +20,10 @@ prepareConnectionRider conf kvConfigUpdateFrequency = do
   RC.prepareRedisConnectionsRider conf
   PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
   L.setOptionLocal ReplicaEnabled False
+
+prepareConnectionDashboard :: L.MonadFlow m => ECT.ConnectionConfigDashboard -> Int -> m ()
+prepareConnectionDashboard conf kvConfigUpdateFrequency = do
+  PGC.prepareDBConnectionsDashboard conf
+  RC.prepareRedisConnectionsDashboard conf
+  PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
+  L.setOptionLocal ReplicaEnabled False
