@@ -36,6 +36,7 @@ import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
 import qualified Kernel.External.Maps.Interface.Google as Google
 import qualified Kernel.External.Maps.Interface.MMI as MMI
+import qualified Kernel.External.Maps.Interface.NextBillion as NextBillion
 import qualified Kernel.External.Maps.Interface.OSRM as OSRM
 import Kernel.External.Maps.Interface.Types as Reexport
 import Kernel.External.Maps.MMI.Config as Reexport
@@ -82,6 +83,7 @@ getDistancesProvided = \case
   Google -> True
   OSRM -> False
   MMI -> True
+  NextBillion -> False
 
 -- FIXME this logic is redundant, because we throw error always when getDistancesProvided service = False
 getDistances ::
@@ -97,12 +99,14 @@ getDistances serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getDistances cfg req
   OSRMConfig cfg -> OSRM.getDistances cfg req
   MMIConfig cfg -> MMI.getDistanceMatrix cfg req
+  NextBillionConfig _ -> throwNotProvidedError "getDistances" NextBillion
 
 getRoutesProvided :: MapsService -> Bool
 getRoutesProvided = \case
   Google -> True
   OSRM -> False
   MMI -> False
+  NextBillion -> True
 
 getRoutes ::
   ( EncFlow m r,
@@ -117,12 +121,14 @@ getRoutes isAvoidToll serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getRoutes isAvoidToll cfg req
   OSRMConfig osrmCfg -> OSRM.getRoutes osrmCfg req
   MMIConfig cfg -> MMI.getRoutes cfg req
+  NextBillionConfig cfg -> NextBillion.getRoutes cfg req
 
 snapToRoadProvided :: MapsService -> Bool
 snapToRoadProvided = \case
   Google -> True
   OSRM -> True
   MMI -> True
+  NextBillion -> False
 
 runPreCheck ::
   ( EncFlow m r,
@@ -156,6 +162,7 @@ runPostCheck mapsService req res = do
     Google -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
     MMI -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
     OSRM -> return $ (< postCheckThreshold) $ (getRouteLinearLength req.points) - (getRouteLinearLength res.snappedPoints)
+    _ -> return True
 
 snapToRoadWithFallback ::
   ( EncFlow m r,
@@ -211,12 +218,14 @@ snapToRoad serviceConfig req =
     GoogleConfig cfg -> Google.snapToRoad cfg req
     OSRMConfig osrmCfg -> OSRM.callOsrmMatch osrmCfg req
     MMIConfig mmiCfg -> MMI.snapToRoad mmiCfg req
+    NextBillionConfig _ -> throwNotProvidedError "snapToRoad" NextBillion
 
 autoCompleteProvided :: MapsService -> Bool
 autoCompleteProvided = \case
   Google -> True
   OSRM -> False
   MMI -> True
+  NextBillion -> False
 
 autoComplete ::
   ( EncFlow m r,
@@ -230,12 +239,14 @@ autoComplete serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.autoComplete cfg req
   OSRMConfig _ -> throwNotProvidedError "autoComplete" OSRM
   MMIConfig cfg -> MMI.autoSuggest cfg req
+  NextBillionConfig _ -> throwNotProvidedError "autoComplete" NextBillion
 
 getPlaceDetailsProvided :: MapsService -> Bool
 getPlaceDetailsProvided = \case
   Google -> True
   OSRM -> False
   MMI -> True
+  NextBillion -> False
 
 getPlaceDetails ::
   ( EncFlow m r,
@@ -248,12 +259,14 @@ getPlaceDetails serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceDetails cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
   MMIConfig cfg -> MMI.getPlaceDetails cfg req
+  NextBillionConfig _ -> throwNotProvidedError "getPlaceDetails" NextBillion
 
 getPlaceNameProvided :: MapsService -> Bool
 getPlaceNameProvided = \case
   Google -> True
   OSRM -> False
   MMI -> True
+  NextBillion -> False
 
 getPlaceName ::
   ( EncFlow m r,
@@ -267,3 +280,4 @@ getPlaceName serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceName cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
   MMIConfig cfg -> MMI.geocode cfg req
+  NextBillionConfig _ -> throwNotProvidedError "getPlaceName" NextBillion
