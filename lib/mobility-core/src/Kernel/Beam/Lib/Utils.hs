@@ -83,7 +83,12 @@ getKafkaTopic :: (MonadFlow m) => Maybe Text -> Text -> m Text
 getKafkaTopic mSchema model = do
   let topicName = T.toLower $ T.pack (camel (T.unpack model))
   modelName <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
-  if modelName == "atlas_driver_offer_bpp" then pure ("adob-sessionizer-" <> topicName) else pure ("aap-sessionizer-" <> topicName)
+  case modelName of
+    "atlas_driver_offer_bpp" -> pure ("adob-sessionizer-" <> topicName)
+    "atlas_app" -> pure ("aap-sessionizer-" <> topicName)
+    "atlas_bpp_dashboard" -> pure ("abd-sessionizer-" <> topicName)
+    "atlas_bap_dashboard" -> pure ("aad-sessionizer-" <> topicName)
+    r -> pure (r <> "-sessionizer-" <> topicName)
 
 getKeyForKafka :: Text -> Text
 getKeyForKafka pKeyText = do
