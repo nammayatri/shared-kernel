@@ -14,3 +14,9 @@ data ConnectionConfigRider = ConnectionConfigRider
     esqDBReplicaCfg :: EsqDBConfig,
     hedisClusterCfg :: HedisCfg
   }
+
+data ConnectionConfigDashboard = ConnectionConfigDashboard
+  { esqDBCfg :: EsqDBConfig,
+    esqDBReplicaCfg :: EsqDBConfig,
+    hedisClusterCfg :: HedisCfg
+  }

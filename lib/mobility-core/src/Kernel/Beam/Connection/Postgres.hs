@@ -28,6 +28,14 @@ prepareDBConnectionsRider ECT.ConnectionConfigRider {..} = do
   preparePosgreSqlR1Connection <- L.runIO EnvVars.getPreparePosgreSqlR1Connection
   when preparePosgreSqlR1Connection (preparePsqlR1Connection esqDBReplicaCfg)
 
+prepareDBConnectionsDashboard :: L.MonadFlow m => ECT.ConnectionConfigDashboard -> m ()
+prepareDBConnectionsDashboard ECT.ConnectionConfigDashboard {..} = do
+  preparePosgreSqlConnection <- L.runIO EnvVars.getPreparePosgreSqlConnection
+  when preparePosgreSqlConnection (preparePsqlMasterConnection esqDBCfg)
+
+  preparePosgreSqlR1Connection <- L.runIO EnvVars.getPreparePosgreSqlR1Connection
+  when preparePosgreSqlR1Connection (preparePsqlR1Connection esqDBReplicaCfg)
+
 prepareTables :: L.MonadFlow m => KTC.Tables -> m ()
 prepareTables tables' = do
   L.setOption KBT.Tables tables'

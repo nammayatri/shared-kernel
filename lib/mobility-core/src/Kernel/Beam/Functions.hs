@@ -99,7 +99,7 @@ runInReplica m = do
 setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfig modelName mSchema meshConfig' = do
   schema <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
-  let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream"
+  let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
   tables <- L.getOption KBT.Tables
   randomIntV <- L.runIO (randomRIO (1, 100) :: IO Int)
   case tables of

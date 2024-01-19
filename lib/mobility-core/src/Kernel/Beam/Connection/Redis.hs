@@ -17,6 +17,11 @@ prepareRedisConnectionsRider ECT.ConnectionConfigRider {..} = do
   preparePosgreSqlConnection <- L.runIO EnvVars.getPreparePosgreSqlConnection
   when preparePosgreSqlConnection (prepareRedisClusterConnection hedisClusterCfg)
 
+prepareRedisConnectionsDashboard :: L.MonadFlow m => ECT.ConnectionConfigDashboard -> m ()
+prepareRedisConnectionsDashboard ECT.ConnectionConfigDashboard {..} = do
+  preparePosgreSqlConnection <- L.runIO EnvVars.getPreparePosgreSqlConnection
+  when preparePosgreSqlConnection (prepareRedisClusterConnection hedisClusterCfg)
+
 kvRedis :: Text
 kvRedis = "KVRedis"
 
