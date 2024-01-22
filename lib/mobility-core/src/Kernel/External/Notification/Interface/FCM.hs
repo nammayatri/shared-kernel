@@ -86,6 +86,10 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.COINS_SUCCESS -> FCM.COINS_SUCCESS
   Interface.FOLLOW_RIDE -> FCM.FOLLOW_RIDE
   Interface.SHARE_RIDE -> FCM.SHARE_RIDE
+  Interface.SOS_TRIGGERED -> FCM.SOS_TRIGGERED
+  Interface.SOS_MOCK_DRILL -> FCM.SOS_MOCK_DRILL
+  Interface.SOS_RESOLVED -> FCM.SOS_RESOLVED
+  Interface.EMERGENCY_CONTACT_ADDED -> FCM.EMERGENCY_CONTACT_ADDED
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
