@@ -55,6 +55,10 @@ data Category
   | COINS_SUCCESS
   | FOLLOW_RIDE
   | SHARE_RIDE
+  | SOS_TRIGGERED
+  | SOS_MOCK_DRILL
+  | SOS_RESOLVED
+  | EMERGENCY_CONTACT_ADDED
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
 data SubCategory
