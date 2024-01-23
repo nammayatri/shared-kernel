@@ -32,6 +32,7 @@ data CreateTicketReq = CreateTicketReq
   { category :: Text,
     subCategory :: Maybe Text,
     disposition :: Text,
+    queue :: Text,
     issueId :: Maybe Text,
     issueDescription :: Text,
     mediaFiles :: Maybe [Text],
@@ -44,6 +45,9 @@ data CreateTicketReq = CreateTicketReq
 
 data RideInfo = RideInfo
   { rideShortId :: Text,
+    rideCity :: Text,
+    vehicleCategory :: Maybe Text,
+    vehicleServiceTier :: Maybe Text,
     customerName :: Maybe Text,
     customerPhoneNo :: Maybe Text,
     driverName :: Maybe Text,
@@ -83,3 +87,4 @@ data SubStatus = OP | IN | RS | PE | CL | CRS
 -- RESOLVED	        RS
 -- PENDING EXTERNAL	PE
 -- CLOSED	          CL
+-- REOPENED         CRS

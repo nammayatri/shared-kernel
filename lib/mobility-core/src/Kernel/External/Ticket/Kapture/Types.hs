@@ -31,6 +31,7 @@ data CreateTicketReq = CreateTicketReq
   { title :: Text,
     ticketDetails :: Text,
     disposition :: Text,
+    queue :: Text,
     customerId :: Text,
     customerName :: Maybe Text,
     phone :: Maybe Text,
@@ -67,6 +68,7 @@ instance ToJSON IssueDetails where
 
 data RideInfo = RideInfo
   { rideShortId :: Text,
+    rideCity :: Text,
     customerName :: Maybe Text,
     customerPhoneNo :: Maybe Text,
     driverName :: Maybe Text,
@@ -74,6 +76,8 @@ data RideInfo = RideInfo
     vehicleNo :: Text,
     status :: Text,
     rideCreatedAt :: UTCTime,
+    vehicleCategory :: Maybe Text,
+    vehicleServiceTier :: Maybe Text,
     pickupLocationLat :: Maybe Double,
     pickupLocationLon :: Maybe Double,
     pickupLocationStreet :: Maybe Text,
@@ -81,7 +85,6 @@ data RideInfo = RideInfo
     pickupLocationState :: Maybe Text,
     pickupLocationCountry :: Maybe Text,
     pickupLocationBuilding :: Maybe Text,
-    pickupLocationAreaCode :: Maybe Text,
     pickupLocationArea :: Maybe Text,
     dropLocationLat :: Maybe Double,
     dropLocationLon :: Maybe Double,
@@ -90,7 +93,6 @@ data RideInfo = RideInfo
     dropLocationState :: Maybe Text,
     dropLocationCountry :: Maybe Text,
     dropLocationBuilding :: Maybe Text,
-    dropLocationAreaCode :: Maybe Text,
     dropLocationArea :: Maybe Text,
     fare :: Maybe Money
   }
