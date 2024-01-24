@@ -58,7 +58,7 @@ data GrpcNotificationData a = GrpcNotificationData
     body :: GRPCNotificationBody,
     showNotification :: Text,
     ttl :: UTCTime,
-    streamName :: Text,
+    streamId :: Text,
     notificationId :: Text
   }
   deriving stock (Show, Eq, Generic)

@@ -20,13 +20,15 @@ import qualified Kernel.External.Notification.GRPC.Types as GRPC
 import qualified Kernel.External.Notification.Interface.Types as Interface
 import Kernel.Storage.Hedis as Redis
 import Kernel.Types.Common
+import Kernel.Types.Field
 import Kernel.Utils.Time
 
 notifyPerson ::
   ( MonadFlow m,
     ToJSON a,
     ToJSON b,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    HasFlowEnv m r '["maxNotificationShards" ::: Int]
   ) =>
   GRPC.GRPCConfig ->
   Interface.NotificationReq a b ->
@@ -45,7 +47,7 @@ notifyPerson config req notificationId = do
             category = notificationType,
             showNotification = show req.showNotification,
             ttl = fromMaybe defaultTtlTime req.ttl,
-            streamName = req.auth.recipientId,
+            streamId = req.auth.recipientId,
             ..
           }
   GRPC.notifyPerson config notificationData
