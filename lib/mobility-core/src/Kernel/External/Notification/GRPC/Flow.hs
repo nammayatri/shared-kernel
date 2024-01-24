@@ -14,7 +14,9 @@
 
 module Kernel.External.Notification.GRPC.Flow where
 
+import Data.Maybe
 import qualified Data.Text.Encoding as TE
+import qualified Data.UUID as UU
 import EulerHS.Prelude
 import Kernel.External.Notification.GRPC.Types
 import Kernel.Storage.Hedis as Redis
@@ -25,14 +27,18 @@ import Kernel.Utils.Common hiding (Error)
 notifyPerson ::
   ( MonadFlow m,
     Redis.HedisFlow m r,
-    ToJSON a
+    ToJSON a,
+    HasFlowEnv m r '["maxNotificationShards" ::: Int]
   ) =>
   GRPCConfig ->
   GrpcNotificationData a ->
   m ()
 notifyPerson _cfg notificationData = do
   now <- getCurrentTime
-  void $ Hedis.withCrossAppRedis $ Hedis.xAdd ("notification:client-" <> notificationData.streamName) "*" (buildFieldValue notificationData now)
+  maxShards <- asks (.maxNotificationShards)
+  let idToShardNumber uuidTxt = fromIntegral ((\(a, b) -> a + b) (UU.toWords64 uuidTxt)) `mod` maxShards
+      shardId :: Int = idToShardNumber . fromJust $ UU.fromText notificationData.streamId
+  void $ Hedis.withCrossAppRedis $ Hedis.xAdd ("notification:client-" <> notificationData.streamId <> ":{" <> (show shardId) <> "}") "*" (buildFieldValue notificationData now)
   where
     buildFieldValue notifData createdAt =
       [ ("entity.id", TE.encodeUtf8 notifData.entityId),

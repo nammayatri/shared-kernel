@@ -26,6 +26,9 @@ import Kernel.External.Notification.Types as Reexport
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Types.Error
+import Kernel.Types.Field
+import Kernel.Utils.Error.Throwing (throwError)
 
 notifyPerson' ::
   ( MonadFlow m,
@@ -44,7 +47,7 @@ notifyPerson' serviceConfig req isMutable = do
   case serviceConfig of
     FCMConfig cfg -> FCM.notifyPerson cfg req isMutable (Just notificationId)
     PayTMConfig cfg -> PayTM.notifyPerson cfg req
-    GRPCConfig cfg -> GRPC.notifyPerson cfg req notificationId
+    GRPCConfig _ -> throwError $ InternalError "GRPC notification type not supported."
 
 notifyPersonWithAllProviders ::
   ( EsqDBFlow m r,
@@ -53,7 +56,8 @@ notifyPersonWithAllProviders ::
     CoreMetrics m,
     Redis.HedisFlow m r,
     ToJSON a,
-    ToJSON b
+    ToJSON b,
+    HasFlowEnv m r '["maxNotificationShards" ::: Int]
   ) =>
   NotficationServiceHandler m ->
   NotificationReq a b ->
