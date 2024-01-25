@@ -35,7 +35,7 @@ import Data.Proxy as E (Proxy (..))
 import Data.String as E (IsString (..))
 import Data.Text as E (Text)
 import qualified Data.Text as T
-import Data.Time as E (LocalTime, TimeOfDay)
+import Data.Time as E (DiffTime, LocalTime, TimeOfDay (..), secondsToDiffTime)
 import Data.Time.Clock (secondsToNominalDiffTime)
 import Data.Time.Clock as E (NominalDiffTime, UTCTime)
 import Data.Traversable as E
@@ -90,6 +90,9 @@ rightToMaybe = either (const Nothing) Just
 
 intToNominalDiffTime :: Int -> NominalDiffTime
 intToNominalDiffTime = secondsToNominalDiffTime . MkFixed . (* 1000000000000) . toInteger
+
+timeOfDayToDiffTime :: TimeOfDay -> DiffTime
+timeOfDayToDiffTime (TimeOfDay h m s) = secondsToDiffTime $ fromIntegral (h * 3600 + m * 60 + floor s)
 
 -- fixme: test this function
 roundToPowerOfTen :: RealFrac a => Int -> a -> a
