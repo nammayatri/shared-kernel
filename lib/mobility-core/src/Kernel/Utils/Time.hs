@@ -123,3 +123,19 @@ utcToMilliseconds utcTime = fromIntegral $ div (systemSeconds systemTime * 10000
 getCurrentTimestamp :: (Monad m, MonadTime m) => m Double
 getCurrentTimestamp = do
   utcToMilliseconds <$> getCurrentTime
+
+secondsToTimeOfDay :: Seconds -> TimeOfDay
+secondsToTimeOfDay (Seconds s) =
+  TimeOfDay hours minutes seconds
+  where
+    (hours, remainingSeconds) = s `divMod` 3600
+    (minutes, seconds') = remainingSeconds `divMod` 60
+    seconds = fromIntegral seconds'
+
+isTimeWithinBounds :: Time.TimeOfDay -> Time.TimeOfDay -> Time.TimeOfDay -> Bool
+isTimeWithinBounds startTime endTime time =
+  if startTime >= endTime
+    then do
+      let midnightBeforeTimeleap = TimeOfDay 23 59 60
+      (startTime < time && time < midnightBeforeTimeleap) || (midnight <= time && time < endTime)
+    else startTime < time && time < endTime
