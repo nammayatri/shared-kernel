@@ -92,6 +92,7 @@ dependencies:
   - servant-client-core
   - servant-server
   - servant-openapi3
+  - singletons
   - text
   - wai
   - warp

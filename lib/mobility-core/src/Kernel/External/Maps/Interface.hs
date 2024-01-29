@@ -14,23 +14,20 @@
 
 module Kernel.External.Maps.Interface
   ( module Reexport,
+    mapsMethodProvided,
     getDistance,
-    getDistancesProvided,
     getDistances,
-    getRoutesProvided,
     getRoutes,
-    snapToRoadProvided,
     snapToRoad,
     snapToRoadWithFallback,
     autoCompleteProvided,
     autoComplete,
-    getPlaceDetailsProvided,
     getPlaceDetails,
-    getPlaceNameProvided,
     getPlaceName,
   )
 where
 
+import Data.Singletons.TH
 import EulerHS.Prelude ((...))
 import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
@@ -49,6 +46,25 @@ import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
 import Kernel.Utils.CalculateDistance
 import Kernel.Utils.Common hiding (id)
+
+mapsMethodProvided ::
+  forall (msum :: MapsServiceUsageMethod).
+  (SingI msum) =>
+  SMapsService msum ->
+  Bool
+mapsMethodProvided (SMapsService mapsService) = do
+  let mapsServiceUsageMethod = fromSing (sing @msum)
+  case mapsServiceUsageMethod of
+    GetDistances -> getDistancesProvided mapsService
+    GetEstimatedPickupDistances -> getDistancesProvided mapsService
+    GetRoutes -> getRoutesProvided mapsService
+    GetPickupRoutes -> getRoutesProvided mapsService
+    GetTripRoutes -> getRoutesProvided mapsService
+    SnapToRoad -> snapToRoadProvided mapsService
+    GetPlaceName -> getPlaceNameProvided mapsService
+    GetPlaceDetails -> getPlaceDetailsProvided mapsService
+    AutoComplete -> autoCompleteProvided mapsService
+    GetDistancesForCancelRide -> getDistancesProvided mapsService
 
 getDistance ::
   ( EncFlow m r,
@@ -81,7 +97,7 @@ throwNotProvidedError =
 getDistancesProvided :: MapsService -> Bool
 getDistancesProvided = \case
   Google -> True
-  OSRM -> False
+  OSRM -> True
   MMI -> True
   NextBillion -> False
 
@@ -104,8 +120,8 @@ getDistances serviceConfig req = case serviceConfig of
 getRoutesProvided :: MapsService -> Bool
 getRoutesProvided = \case
   Google -> True
-  OSRM -> False
-  MMI -> False
+  OSRM -> True
+  MMI -> True
   NextBillion -> True
 
 getRoutes ::

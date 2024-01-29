@@ -18,6 +18,7 @@ import APIExceptions
 import Centesimal
 import DistanceCalculation
 import EulerHS.Prelude
+import Randomizer
 import SignatureAuth
 import SlidingWindowLimiter
 import SnippetsCheck (snippetsCheckTests)
@@ -39,5 +40,6 @@ specs = return $ testGroup "Tests" [unitTests]
           slidingWindowLimiterTests,
           distanceCalculation,
           readVersionTests,
-          snippetsCheckTests
+          snippetsCheckTests,
+          randomizerTests
         ]
