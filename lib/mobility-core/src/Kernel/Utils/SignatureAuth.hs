@@ -213,7 +213,7 @@ encode SignaturePayload {..} =
     <> Base64.encode signature
     <> "\""
   where
-    maybeTime h (Just v) = fromString $ h <> "=" <> formatTime defaultTimeLocale "%s" v <> ","
+    maybeTime h (Just v) = fromString $ h <> "=\"" <> formatTime defaultTimeLocale "%s" v <> "\","
     maybeTime _ Nothing = ""
 
 makeSignatureString :: SignatureParams -> Hash -> [Header] -> ByteString
