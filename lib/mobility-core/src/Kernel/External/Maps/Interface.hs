@@ -130,42 +130,39 @@ snapToRoadProvided = \case
   MMI -> True
   NextBillion -> False
 
-osrmprecheck :: [LatLong] -> HighPrecMeters -> Bool
-osrmprecheck [] _ = False
-osrmprecheck [_] _ = False
-osrmprecheck xs threshold = (< threshold) $ distanceBetweenInMeters (last xs) (head (tail (reverse xs)))
-
 runPreCheck ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["osrmMatchPreCheckThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters]
   ) =>
   MapsService ->
   SnapToRoadReq ->
   m Bool
 runPreCheck mapsService req = do
   droppedPointsThreshold <- asks (.droppedPointsThreshold)
-  osrmThreshold <- asks (.osrmMatchPreCheckThreshold)
   case mapsService of
     Google -> return (everySnippetIs (< droppedPointsThreshold) req.points)
     MMI -> return (everySnippetIs (< droppedPointsThreshold) req.points)
-    OSRM -> return $ osrmprecheck req.points osrmThreshold
+    OSRM -> return True
     _ -> return True
 
 runPostCheck ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters]
   ) =>
   MapsService ->
+  SnapToRoadReq ->
   SnapToRoadResp ->
   m Bool
-runPostCheck mapsService res = do
+runPostCheck mapsService req res = do
   snippetThreshold <- asks (.snapToRoadSnippetThreshold)
+  osrmThreshold <- asks (.osrmMatchThreshold)
   case mapsService of
     Google -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
     MMI -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
+    OSRM -> return $ (< osrmThreshold) $ distanceBetweenInMeters (last req.points) (last res.snappedPoints)
     _ -> return True
 
 snapToRoadWithFallback ::
@@ -174,7 +171,7 @@ snapToRoadWithFallback ::
     CoreMetrics m,
     HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
     HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["osrmMatchPreCheckThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters]
   ) =>
   SnapToRoadHandler m ->
   SnapToRoadReq ->
@@ -202,7 +199,7 @@ snapToRoadWithFallback SnapToRoadHandler {..} req = do
               return (preferredProvider : servicesUsed, snapResponse)
             Right res -> do
               confidencethreshold <- getConfidenceThreshold
-              postCheckPassed <- runPostCheck preferredProvider res
+              postCheckPassed <- runPostCheck preferredProvider req res
               when (not postCheckPassed) $ logError $ "Post check failed for provider " <> show preferredProvider
               if res.confidence < confidencethreshold || not postCheckPassed
                 then do
