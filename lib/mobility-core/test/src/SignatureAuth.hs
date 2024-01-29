@@ -88,11 +88,11 @@ exampleSignatureMessage =
 exampleSignatureHeader :: ByteString
 exampleSignatureHeader =
   "Signature keyId=\"" <> exampleKeyId <> "\",algorithm=\"ed25519\",\n"
-    <> "created="
+    <> "created=\""
     <> show exampleCreated
-    <> ",expires="
+    <> "\",expires=\""
     <> show exampleExpires
-    <> ",\n"
+    <> "\",\n"
     <> "headers=\""
     <> (encodeUtf8 . T.intercalate " " $ fst <$> exampleHeaders)
     <> "\",\n"
