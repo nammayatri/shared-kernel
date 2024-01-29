@@ -11,8 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -31,35 +29,15 @@ import Data.Text
 import Database.Beam.Backend
 import qualified Database.Beam.Backend.SQL.AST as B
 import EulerHS.Prelude
+import qualified GHC.Show as Show
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList, mkBeamInstancesForList)
+import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.GenericPretty (PrettyShow)
-import Data.Singletons.TH
-import Data.Text hiding (toLower)
-import qualified Database.Beam as B
-import Database.Beam.Backend (BeamSqlBackend, FromBackendRow, HasSqlValueSyntax (sqlValueSyntax), autoSqlValueSyntax)
-import Database.Beam.Postgres (Postgres)
-import Database.PostgreSQL.Simple.FromField (FromField (fromField))
-import qualified GHC.Show as Show
-import Kernel.Prelude
-import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql, derivePersistField)
-import Kernel.Types.Common (fromFieldEnum)
-import Kernel.Utils.GenericPretty (PrettyShow, Showable (..))
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 data MapsService = Google | OSRM | MMI | NextBillion
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
-  deriving (PrettyShow) via Showable MapsService
-
-instance FromField MapsService where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be MapsService where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be MapsService
-
-instance FromBackendRow Postgres MapsService
 
 $(mkBeamInstancesForEnumAndList ''MapsService)
 
@@ -98,42 +76,30 @@ instance ToHttpApiData LatLong where
   toQueryParam LatLong {..} = show lat <> "," <> show lon
 
 -- sum should be always 100
-data MapsServiceUsage (msum :: MapsServiceUsageMethod) = MapsServiceUsage
-  { mapsService :: SMapsService msum,
+data MapsServiceUsage = MapsServiceUsage
+  { mapsService :: MapsService,
     usePercentage :: Bool, -- False by default
     googlePercentage :: Maybe Int,
     osrmPercentage :: Maybe Int,
-    mmiPercentage :: Maybe Int
+    mmiPercentage :: Maybe Int,
+    nextBillionPercentage :: Maybe Int
   }
   deriving (Generic, Show, FromJSON, ToJSON, ToSchema)
 
-data MapsServiceUsagePercentage (msum :: MapsServiceUsageMethod) = MapsServiceUsagePercentage
+data MapsServiceUsagePercentage = MapsServiceUsagePercentage
   { usePercentage :: Bool, -- False by default
     googlePercentage :: Maybe Int,
     osrmPercentage :: Maybe Int,
-    mmiPercentage :: Maybe Int
+    mmiPercentage :: Maybe Int,
+    nextBillionPercentage :: Maybe Int
   }
   deriving (Generic, FromJSON, ToJSON)
 
-mkMapsServiceUsage :: SMapsService msum -> MapsServiceUsagePercentage msum -> MapsServiceUsage msum
+mkMapsServiceUsage :: MapsService -> MapsServiceUsagePercentage -> MapsServiceUsage
 mkMapsServiceUsage mapsService MapsServiceUsagePercentage {..} = MapsServiceUsage {..}
 
-mkMapsServiceUsagePercentage :: MapsServiceUsage msum -> MapsServiceUsagePercentage msum
+mkMapsServiceUsagePercentage :: MapsServiceUsage -> MapsServiceUsagePercentage
 mkMapsServiceUsagePercentage MapsServiceUsage {..} = MapsServiceUsagePercentage {..}
-
--- strict maps service for more type safety
-
-newtype SMapsService (msum :: MapsServiceUsageMethod) = SMapsService
-  { getStrictMapsService :: MapsService
-  }
-  deriving newtype (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema, PrettyShow, PersistField, PersistFieldSql, FromField)
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be (SMapsService msum) where
-  sqlValueSyntax = sqlValueSyntax . getStrictMapsService
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be (SMapsService msum)
-
-instance Typeable msum => FromBackendRow Postgres (SMapsService msum)
 
 data MapsServiceUsageMethod
   = GetDistances
@@ -146,8 +112,6 @@ data MapsServiceUsageMethod
   | GetPlaceDetails
   | AutoComplete
   | GetDistancesForCancelRide
-
-genSingletons [''MapsServiceUsageMethod]
 
 -- TODO add some generic instance
 instance Show MapsServiceUsageMethod where

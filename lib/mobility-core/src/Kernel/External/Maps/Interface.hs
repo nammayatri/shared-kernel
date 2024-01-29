@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DerivingStrategies #-}
 
 module Kernel.External.Maps.Interface
   ( module Reexport,
@@ -27,7 +28,6 @@ module Kernel.External.Maps.Interface
   )
 where
 
-import Data.Singletons.TH
 import EulerHS.Prelude ((...))
 import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
@@ -48,23 +48,20 @@ import Kernel.Utils.CalculateDistance
 import Kernel.Utils.Common hiding (id)
 
 mapsMethodProvided ::
-  forall (msum :: MapsServiceUsageMethod).
-  (SingI msum) =>
-  SMapsService msum ->
+  MapsServiceUsageMethod ->
+  MapsService ->
   Bool
-mapsMethodProvided (SMapsService mapsService) = do
-  let mapsServiceUsageMethod = fromSing (sing @msum)
-  case mapsServiceUsageMethod of
-    GetDistances -> getDistancesProvided mapsService
-    GetEstimatedPickupDistances -> getDistancesProvided mapsService
-    GetRoutes -> getRoutesProvided mapsService
-    GetPickupRoutes -> getRoutesProvided mapsService
-    GetTripRoutes -> getRoutesProvided mapsService
-    SnapToRoad -> snapToRoadProvided mapsService
-    GetPlaceName -> getPlaceNameProvided mapsService
-    GetPlaceDetails -> getPlaceDetailsProvided mapsService
-    AutoComplete -> autoCompleteProvided mapsService
-    GetDistancesForCancelRide -> getDistancesProvided mapsService
+mapsMethodProvided = \case
+  GetDistances -> getDistancesProvided
+  GetEstimatedPickupDistances -> getDistancesProvided
+  GetRoutes -> getRoutesProvided
+  GetPickupRoutes -> getRoutesProvided
+  GetTripRoutes -> getRoutesProvided
+  SnapToRoad -> snapToRoadProvided
+  GetPlaceName -> getPlaceNameProvided
+  GetPlaceDetails -> getPlaceDetailsProvided
+  AutoComplete -> autoCompleteProvided
+  GetDistancesForCancelRide -> getDistancesProvided
 
 getDistance ::
   ( EncFlow m r,

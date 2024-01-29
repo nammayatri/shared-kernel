@@ -15,6 +15,7 @@
 
 module Kernel.Randomizer where
 
+import Kernel.Prelude (listToMaybe)
 import Safe (at)
 import System.Random hiding (random)
 import qualified Text.Show

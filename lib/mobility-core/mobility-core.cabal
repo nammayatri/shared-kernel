@@ -449,7 +449,6 @@ library
     , servant-openapi3
     , servant-server
     , slack-web
-    , singletons
     , stm
     , string-conversions
     , tasty
@@ -605,7 +604,6 @@ test-suite mobility-core-tests
     , servant-openapi3
     , servant-server
     , slack-web
-    , singletons
     , stm
     , string-conversions
     , tasty
