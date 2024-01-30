@@ -45,6 +45,8 @@ data City
   | Goa
   | Pune
   | Tumakuru
+  | Noida
+  | Gurugram
   | AnyCity
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
@@ -80,6 +82,10 @@ instance FromJSON City where
   parseJSON (String "Mysore") = pure Mysore
   parseJSON (String "std:0816") = pure Tumakuru
   parseJSON (String "Tumakuru") = pure Tumakuru
+  parseJSON (String "std:01189") = pure Noida
+  parseJSON (String "Noida") = pure Noida
+  parseJSON (String "std:0124") = pure Gurugram
+  parseJSON (String "Gurugram") = pure Gurugram
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
@@ -98,6 +104,8 @@ instance ToJSON City where
   toJSON Pune = String "std:020"
   toJSON Mysore = String "std:0821"
   toJSON Tumakuru = String "std:0816"
+  toJSON Noida = String "std:01189"
+  toJSON Gurugram = String "std:0124"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -133,6 +141,10 @@ instance FromHttpApiData City where
       parseLowerCaseCity "mysore" = Right Mysore
       parseLowerCaseCity "std:0816" = Right Tumakuru
       parseLowerCaseCity "tumakuru" = Right Tumakuru
+      parseLowerCaseCity "std:01189" = Right Noida
+      parseLowerCaseCity "noida" = Right Noida
+      parseLowerCaseCity "std:0124" = Right Gurugram
+      parseLowerCaseCity "gurugram" = Right Gurugram
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
@@ -151,4 +163,6 @@ instance ToHttpApiData City where
   toUrlPiece Pune = "std:020"
   toUrlPiece Mysore = "std:0821"
   toUrlPiece Tumakuru = "std:0816"
+  toUrlPiece Noida = "std:01189"
+  toUrlPiece Gurugram = "std:0124"
   toUrlPiece AnyCity = "*"
