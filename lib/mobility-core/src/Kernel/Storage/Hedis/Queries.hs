@@ -679,3 +679,18 @@ xAck key groupName entryId = withLogTag "Redis" $ do
       withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_xAck" $ show err
       pure (-1) -- Return -1 if there was an error
     Right items -> pure items
+
+zRem :: (HedisFlow m env) => Text -> [BS.ByteString] -> m Integer
+zRem key member = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "zRem" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zrem prefKey member)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_ZREM" $ show err
+      Right items -> pure items
+  res <- withTimeRedis "RedisCluster" "zRem" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.zrem prefKey member)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZREM" $ show err
+      pure (-1) -- Return -1 if there was an error
+    Right items -> pure items
