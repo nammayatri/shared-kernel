@@ -16,6 +16,7 @@
 module Kernel.External.Maps.Interface
   ( module Reexport,
     mapsMethodProvided,
+    pickService,
     getDistance,
     getDistances,
     getRoutes,
@@ -40,10 +41,12 @@ import Kernel.External.Maps.MMI.Config as Reexport
 import Kernel.External.Maps.OSRM.Config as Reexport
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
+import qualified Kernel.Randomizer as Random
 import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
+import Kernel.Types.Id
 import Kernel.Utils.CalculateDistance
 import Kernel.Utils.Common hiding (id)
 
@@ -62,6 +65,27 @@ mapsMethodProvided = \case
   GetPlaceDetails -> getPlaceDetailsProvided
   AutoComplete -> autoCompleteProvided
   GetDistancesForCancelRide -> getDistancesProvided
+
+pickService ::
+  (Log m, MonadIO m) =>
+  Id merchantOperatingCity ->
+  MapsServiceUsage ->
+  MapsServiceUsageMethod ->
+  m MapsService
+pickService merchantOpCityId MapsServiceUsage {..} mapsMethod = do
+  let percentages =
+        [(Google, googlePercentage), (OSRM, osrmPercentage), (MMI, mmiPercentage), (NextBillion, nextBillionPercentage)] <&> \(element, percentage) -> do
+          Random.Percentage {element, percentage = fromMaybe 0 percentage}
+  if usePercentage
+    then do
+      result <- Random.getRandomElementUsingPercentages percentages
+      logDebug $ "Pick maps service: " <> show mapsMethod <> "; merchantOperationCityId: " <> merchantOpCityId.getId <> "; result: " <> show result
+      case result.pickedElement of
+        Left err -> do
+          logWarning $ "Fail to pick random service: " <> show err <> "; use configured service instead: " <> show mapsService
+          pure mapsService
+        Right pickedService -> pure pickedService
+    else pure mapsService
 
 getDistance ::
   ( EncFlow m r,
