@@ -44,10 +44,10 @@ instance ToJSON UTCTimeRFC3339 where
   toJSON (UTCTimeRFC3339 time) = toJSON (convertRFCStringToUTC (convertTimeToRFC time))
 
 convertTimeToRFC :: UTCTime -> String
-convertTimeToRFC = formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ"
+convertTimeToRFC = formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S%3QZ"
 
 convertRFCStringToUTC :: String -> UTCTime
-convertRFCStringToUTC = parseTimeOrError True defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ"
+convertRFCStringToUTC = parseTimeOrError True defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ"
 
 convertRFC3339ToUTC :: UTCTimeRFC3339 -> UTCTime
 convertRFC3339ToUTC (UTCTimeRFC3339 time) = time
