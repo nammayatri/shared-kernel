@@ -15,19 +15,19 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Beckn.State (State (..)) where
+module Kernel.Types.Beckn.IndianState (IndianState (..)) where
 
 import Data.Aeson
 import Data.Aeson.Types
 import Data.OpenApi hiding (Example)
-import EulerHS.Prelude hiding (State)
+import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto
 import Kernel.Utils.GenericPretty
 
-derivePersistField "State"
+derivePersistField "IndianState"
 
-data State
+data IndianState
   = AndhraPradesh
   | ArunachalPradesh
   | Assam
@@ -60,16 +60,16 @@ data State
   | Chandigarh
   | DadraAndNagarHaveli
   | DamanAndDiu
-  | DelhiTerritory
+  | NationalCapitalTerritory
   | Lakshadweep
   | Puducherry
   | AnyState
   deriving (Eq, Generic, Show, Read, ToSchema, Ord)
-  deriving (PrettyShow) via Showable State
+  deriving (PrettyShow) via Showable IndianState
 
-$(mkBeamInstancesForEnumAndList ''State)
+$(mkBeamInstancesForEnumAndList ''IndianState)
 
-instance FromJSON State where
+instance FromJSON IndianState where
   parseJSON (String "AndhraPradesh") = pure AndhraPradesh
   parseJSON (String "ArunachalPradesh") = pure ArunachalPradesh
   parseJSON (String "Assam") = pure Assam
@@ -102,14 +102,14 @@ instance FromJSON State where
   parseJSON (String "Chandigarh") = pure Chandigarh
   parseJSON (String "DadraAndNagarHaveli") = pure DadraAndNagarHaveli
   parseJSON (String "DamanAndDiu") = pure DamanAndDiu
-  parseJSON (String "DelhiTerritory") = pure DelhiTerritory
+  parseJSON (String "NationalCapitalTerritory") = pure NationalCapitalTerritory
   parseJSON (String "Lakshadweep") = pure Lakshadweep
   parseJSON (String "Puducherry") = pure Puducherry
   parseJSON (String "*") = pure AnyState
-  parseJSON (String _) = parseFail "Invalid State"
+  parseJSON (String _) = parseFail "Invalid IndianState"
   parseJSON e = typeMismatch "String" e
 
-instance ToJSON State where
+instance ToJSON IndianState where
   toJSON ArunachalPradesh = String "ArunachalPradesh"
   toJSON AndhraPradesh = String "AndhraPradesh"
   toJSON Assam = String "Assam"
@@ -142,7 +142,7 @@ instance ToJSON State where
   toJSON Chandigarh = String "Chandigarh"
   toJSON DadraAndNagarHaveli = String "DadraAndNagarHaveli"
   toJSON DamanAndDiu = String "DamanAndDiu"
-  toJSON DelhiTerritory = String "DelhiTerritory"
+  toJSON NationalCapitalTerritory = String "NationalCapitalTerritory"
   toJSON Lakshadweep = String "Lakshadweep"
   toJSON Puducherry = String "Puducherry"
   toJSON AnyState = String "*"
