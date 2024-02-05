@@ -249,6 +249,7 @@ library
       Kernel.Types.Beckn.Error
       Kernel.Types.Beckn.Gps
       Kernel.Types.Beckn.ReqTypes
+      Kernel.Types.Beckn.State
       Kernel.Types.BecknRequest
       Kernel.Types.Cache
       Kernel.Types.CacheFlow

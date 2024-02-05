@@ -23,6 +23,7 @@ import Kernel.Types.App
 import Kernel.Types.Beckn.City as Reexport
 import Kernel.Types.Beckn.Country as Reexport
 import Kernel.Types.Beckn.Domain as Reexport
+import Kernel.Types.Beckn.State as Reexport
 import Kernel.Types.TimeRFC339 (UTCTimeRFC3339 (..))
 import Kernel.Utils.Example
 import Kernel.Utils.GenericPretty
