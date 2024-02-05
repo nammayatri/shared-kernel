@@ -20,16 +20,25 @@ module Kernel.Storage.ClickhouseV2.ClickhouseValue where
 
 import qualified Data.Aeson as A
 import Data.Coerce (coerce)
+import qualified Data.Scientific as Sci
 import qualified Data.Text as T
 import qualified Data.Time as Time
 import Kernel.Prelude
+import Kernel.Types.Common (Centesimal)
 import Kernel.Types.Id
 import qualified Text.Read as T
 
-data Value a = Null | String String
+data Value a = Null | String String | Number Sci.Scientific
+
+-- FIXME
+-- data Value a where
+--   Null :: Value a
+--   String :: constraint => a -> Value a
+--   Number :: constraint => a -> Value a
 
 instance FromJSON (Value a) where
   parseJSON val@(A.String _) = String <$> parseJSON @String val
+  parseJSON val@(A.Number _) = Number <$> parseJSON @Sci.Scientific val
   parseJSON A.Null = pure Null
   parseJSON _ = fail "Expected String or Null for clickhouse value"
 
@@ -37,10 +46,30 @@ class (Show a, Read a) => ClickhouseValue a where
   toClickhouseValue :: a -> Value a
   fromClickhouseValue :: Value a -> Except a
   toClickhouseValue = String . show
-  fromClickhouseValue (String str) = Except $ T.readEither str
+  fromClickhouseValue (String str) = parseAsString @a str
+  fromClickhouseValue (Number _) = fail "Unexpected Number"
   fromClickhouseValue Null = fail "Unexpected Null"
 
-instance ClickhouseValue Double
+-- For ATLAS_KAFKA env we store numbers as String, for ATLAS_DRIVER_OFFER_BPP env we store as Number. So we should be able to parse both
+instance ClickhouseValue Double where
+  fromClickhouseValue = parseAsStringOrNumber @Double
+
+instance ClickhouseValue Centesimal where
+  fromClickhouseValue = parseAsStringOrNumber @Centesimal
+
+instance ClickhouseValue Int where
+  fromClickhouseValue = parseAsStringOrNumber @Int
+
+parseAsStringOrNumber :: forall a. (Read a, Num a, FromJSON a) => Value a -> Except a
+parseAsStringOrNumber (String str) = parseAsString @a str
+parseAsStringOrNumber (Number num) = parseAsNumber @a num
+parseAsStringOrNumber Null = fail "Unexpected Null"
+
+parseAsString :: forall a. Read a => String -> Except a
+parseAsString = Except . T.readEither @a
+
+parseAsNumber :: forall a. (Num a, FromJSON a) => Sci.Scientific -> Except a
+parseAsNumber = Except . eitherResult . A.fromJSON @a . A.Number
 
 instance ClickhouseValue Bool where
   fromClickhouseValue (String "1") = pure True
@@ -57,6 +86,16 @@ instance ClickhouseValue Time.Day
 instance ClickhouseValue UTCTime where
   toClickhouseValue = String . Time.formatTime Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S%Q"
   fromClickhouseValue (String str) = Time.parseTimeM @Except True Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S%Q" str
+  fromClickhouseValue (Number _) = fail "Unexpected Number"
+  fromClickhouseValue Null = fail "Unexpected Null"
+
+newtype DateTime = DateTime {getDateTime :: UTCTime}
+  deriving newtype (Show, Read)
+
+instance ClickhouseValue DateTime where
+  toClickhouseValue = String . Time.formatTime Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S" . getDateTime
+  fromClickhouseValue (String str) = DateTime <$> Time.parseTimeM @Except True Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S" str
+  fromClickhouseValue (Number _) = fail "Unexpected Number"
   fromClickhouseValue Null = fail "Unexpected Null"
 
 -- No instance for (MonadFail (Either String))
@@ -69,6 +108,7 @@ instance MonadFail Except where
 instance ClickhouseValue (Id a) where
   toClickhouseValue = String . T.unpack . getId
   fromClickhouseValue (String str) = pure . Id . T.pack $ str
+  fromClickhouseValue (Number _) = fail "Unexpected Number"
   fromClickhouseValue Null = fail "Unexpected Null"
 
 instance ClickhouseValue a => ClickhouseValue (Maybe a) where
@@ -77,3 +117,15 @@ instance ClickhouseValue a => ClickhouseValue (Maybe a) where
   fromClickhouseValue :: ClickhouseValue a => Value (Maybe a) -> Except (Maybe a)
   fromClickhouseValue Null = pure Nothing
   fromClickhouseValue str = Just <$> fromClickhouseValue @a (coerce @(Value (Maybe a)) @(Value a) str)
+
+eitherResult :: A.Result a -> Either String a
+eitherResult (A.Error err) = Left err
+eitherResult (A.Success a) = Right a
+
+valToString :: Value value -> String
+valToString (String str) = addQuotes $ str
+valToString (Number num) = addQuotes $ show num -- working both with quotes and without quotes
+valToString Null = "null"
+
+addQuotes :: String -> String
+addQuotes rq = "'" <> rq <> "'"

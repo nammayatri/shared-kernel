@@ -193,6 +193,7 @@ library
       Kernel.Storage.ClickhouseV2.ClickhouseDb
       Kernel.Storage.ClickhouseV2.ClickhouseTable
       Kernel.Storage.ClickhouseV2.ClickhouseValue
+      Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns
       Kernel.Storage.ClickhouseV2.Internal.ClickhouseQuery
       Kernel.Storage.ClickhouseV2.Internal.Types
       Kernel.Storage.ClickhouseV2.Operators

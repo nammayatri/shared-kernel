@@ -22,33 +22,42 @@ where
 
 import qualified Data.Aeson as A
 import qualified Data.Text as T
+import qualified Data.Vector as V
 import Database.ClickHouseDriver.HTTP
 import qualified EulerHS.Language as L
 import Kernel.Prelude
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
 import Kernel.Storage.ClickhouseV2.ClickhouseTable
+import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns
 import Kernel.Storage.ClickhouseV2.Internal.ClickhouseQuery
-import Kernel.Storage.ClickhouseV2.Internal.Types
+-- import Kernel.Storage.ClickhouseV2.Internal.Types
 import Kernel.Utils.Common hiding (Limit, Offset)
 
 -- should we throw error if query fails?
-findAll :: forall db t m. (HasClickhouseEnv db m, ClickhouseTable t) => Select db t -> m [t Identity]
-findAll selectClause = do
-  let rawQuery = toClickhouseQuery @(Select db t) selectClause
+findAll ::
+  forall a db t m cols gr ord.
+  (HasClickhouseEnv db m, ClickhouseTable t, ClickhouseColumns a cols, ClickhouseQuery gr, ClickhouseQuery ord) =>
+  Select a db t cols gr ord ->
+  m [ColumnsType a cols]
+findAll selectClause@(Select cols _ _) = do
+  let rawQuery = toClickhouseQuery @(Select a db t cols gr ord) selectClause
   logDebug $ "clickhouse raw query v2: " <> T.pack rawQuery.getRawQuery
-  -- res <- runRawQuery @db @[t Identity] @m (Proxy @db) rawQuery
   resJSON <- runRawQuery @db @A.Value @m (Proxy @db) rawQuery
   case resJSON of
     Left err -> do
-      logError $ "Clickhouse error: " <> show err
+      logError $ "Clickhouse error: " <> T.pack err
       pure []
+    Right val@(A.Array xs) -> do
+      logDebug $ "clickhouse raw query v2 json result: " <> show val
+      case mapM (parseColumns @a @cols (Proxy @a) cols) xs of
+        Left err -> do
+          logError $ "Clickhouse parsing result error: " <> T.pack err
+          pure []
+        Right ys -> pure (V.toList ys)
     Right val -> do
       logDebug $ "clickhouse raw query v2 json result: " <> show val
-      case A.fromJSON @[t Identity] val of
-        A.Error err -> do
-          logError $ "Clickhouse parsing result error: " <> show err
-          pure []
-        A.Success ys -> pure ys
+      logError "Expected Array"
+      pure []
 
 runRawQuery :: forall db a m. (HasClickhouseEnv db m, FromJSON a) => Proxy db -> RawQuery -> m (Either String a)
 runRawQuery db query = runClickhouse @db @a @m db (`runQuery` getJSON query.getRawQuery)
