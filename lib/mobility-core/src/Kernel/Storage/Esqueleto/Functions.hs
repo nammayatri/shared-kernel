@@ -18,6 +18,7 @@ module Kernel.Storage.Esqueleto.Functions
     getPoint,
     containsPoint,
     getGeomGeoJSON,
+    mbGetGeomGeoJSON,
     IntervalVal (..),
     interval,
     rand,
@@ -28,6 +29,7 @@ module Kernel.Storage.Esqueleto.Functions
     getTextFromGeoJSON,
     geojsonToBin,
     containsPointGeom,
+    pointCloseByOrWithin,
   )
 where
 
@@ -52,6 +54,11 @@ getGeomGeoJSON = unsafeSqlFunction "ST_AsGeoJSON" args
   where
     args = unsafeSqlValue "geom"
 
+mbGetGeomGeoJSON :: SqlExpr (Value (Maybe Text))
+mbGetGeomGeoJSON = unsafeSqlFunction "ST_AsGeoJSON" args
+  where
+    args = unsafeSqlValue "geom"
+
 getTextFromGeoJSON :: SqlExpr (Value Text) -> SqlExpr (Value Text)
 getTextFromGeoJSON geoJson = unsafeSqlFunction "ST_SetSRID" args
   where
@@ -65,6 +72,14 @@ buildRadiusWithin pnt (lat, lon) radius = unsafeSqlFunction "ST_DWithin" args
   where
     args = (pnt, getPoint', radius)
     getPoint' = val ("SRID=4326;POINT(" <> show lon <> " " <> show lat <> ")") :: SqlExpr (Value Text)
+
+pointCloseByOrWithin :: (Double, Double) -> SqlExpr (Value Int) -> SqlExpr (Value b)
+pointCloseByOrWithin (lon, lat) radius = unsafeSqlFunction "st_Dwithin" args
+  where
+    args = (transform (setSrid (unsafeSqlValue "geom", val (4326 :: Int)), val (3557 :: Int)), transform2 (val ("SRID=4326;POINT(" <> show lon <> " " <> show lat <> ")" :: Text), val (3557 :: Int)), radius)
+    setSrid setSridArgs = unsafeSqlFunction "ST_SetSRID" setSridArgs
+    transform argsTransform = unsafeSqlFunction "ST_Transform" argsTransform
+    transform2 argsTransform = unsafeSqlFunction "ST_Transform" argsTransform
 
 containsPoint :: (Double, Double) -> SqlExpr (Value b)
 containsPoint (lon, lat) = unsafeSqlFunction "st_contains" args
