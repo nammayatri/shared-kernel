@@ -14,16 +14,33 @@
 
 module Kernel.Storage.ClickhouseV2.Operators where
 
+import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
 import Kernel.Storage.ClickhouseV2.ClickhouseTable
 import Kernel.Storage.ClickhouseV2.ClickhouseValue
+import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns
 import Kernel.Storage.ClickhouseV2.Internal.Types
 
-(==.) :: forall table value. (ClickhouseTable table, ClickhouseValue value) => Column table value -> value -> Clause table
+(==.) :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table value -> value -> Clause table
 (==.) column value = column `Is` Eq value
 
-infix 4 ==.
+(!=.) :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table value -> value -> Clause table
+(!=.) column value = column `Is` NotEq value
+
+(>.) :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table value -> value -> Clause table
+(>.) column value = column `Is` GreaterThan value
+
+(<.) :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table value -> value -> Clause table
+(<.) column value = column `Is` LessThan value
+
+(>=.) :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table value -> value -> Clause table
+(>=.) column value = column `Is` GreaterOrEqualThan value
+
+(<=.) :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table value -> value -> Clause table
+(<=.) column value = column `Is` LessOrEqualThan value
+
+infix 4 ==., >., <., >=., <=.
 
 (&&.) :: forall table. ClickhouseTable table => Clause table -> Clause table -> Clause table
 (&&.) = And
@@ -38,36 +55,50 @@ infixr 2 ||.
 not_ :: forall table. ClickhouseTable table => Clause table -> Clause table
 not_ = Not
 
-isNull :: forall table value. (ClickhouseTable table, ClickhouseValue value) => Column table (Maybe value) -> Clause table
+val_ :: forall table. (ClickhouseTable table, ClickhouseValue Bool) => Bool -> Clause table
+val_ = Val
+
+valColumn :: forall a t v. (ClickhouseTable t, ClickhouseValue v) => v -> Column a t v
+valColumn = ValColumn
+
+in_ :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table value -> [value] -> Clause table
+in_ column values = column `Is` In values
+
+isNull :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table (Maybe value) -> Clause table
 isNull column = Is column NullTerm
 
-isNotNull :: forall table value. (ClickhouseTable table, ClickhouseValue value) => Column table (Maybe value) -> Clause table
+isNotNull :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table (Maybe value) -> Clause table
 isNotNull column = Is column NotNullTerm
 
-select :: forall db table. Q db table -> Select db table
-select = Select
+select :: forall db table ord. ClickhouseTable table => Q db table (Columns 'NOT_AGG table) ord -> Select 'NOT_AGG db table (Columns 'NOT_AGG table) NotGrouped ord
+select q = Select q.tableQ NotGrouped q
+
+select_ :: forall a db table cols gr ord. (ClickhouseTable table, ClickhouseColumns a cols) => (Columns 'NOT_AGG table -> (cols, GroupBy a gr)) -> Q db table cols ord -> Select a db table cols gr ord
+select_ colsClause q = do
+  let (cols, gr) = colsClause q.tableQ
+  Select cols gr q
 
 -- FIXME Integer
-limit_ :: Int -> Q db table -> Q db table
+limit_ :: Int -> Q db table cols ord -> Q db table cols ord
 limit_ limitVal q = q {limitQ = Just $ Limit limitVal}
 
-offset_ :: Int -> Q db table -> Q db table
+offset_ :: Int -> Q db table cols ord -> Q db table cols ord
 offset_ offsetVal q = q {offsetQ = Just $ Offset offsetVal}
 
-orderBy_ :: forall db table. ClickhouseTable table => (Columns table -> OrderBy table) -> Q db table -> Q db table
+orderBy_ :: forall db table cols ord. ClickhouseTable table => (Columns 'NOT_AGG table -> cols -> OrderBy ord) -> Q db table cols NotOrdered -> Q db table cols ord
 orderBy_ orderByClause q = q {orderByQ = Just $ orderByClause (tableQ q)}
 
-asc :: forall table value. (ClickhouseTable table, ClickhouseValue value) => Column table value -> OrderBy table
+asc :: forall ord. IsOrderColumns ord => ord -> OrderBy ord
 asc = OrderBy Asc
 
-desc :: forall table value. (ClickhouseTable table, ClickhouseValue value) => Column table value -> OrderBy table
+desc :: forall ord. IsOrderColumns ord => ord -> OrderBy ord
 desc = OrderBy Desc
 
-aggregate_ :: forall db table. (Columns table -> Aggregate table) -> Q db table -> Q db table
-aggregate_ aggregateClause q = q {aggregateQ = Just $ aggregateClause (tableQ q)}
+groupBy :: forall cols gr. IsGroupColumns gr => gr -> (GroupColumnsType gr -> cols) -> (cols, GroupBy 'AGG gr)
+groupBy gr mkCols = (mkCols (groupColumns gr), GroupBy gr)
 
-group :: forall table value. (ClickhouseTable table, ClickhouseValue value) => Column table value -> Aggregate table
-group = GroupByAggregate . GroupBy
+notGrouped :: cols -> (cols, GroupBy 'NOT_AGG NotGrouped)
+notGrouped cols = (cols, NotGrouped)
 
 all_ ::
   forall db table.
@@ -76,13 +107,40 @@ all_ ::
   AllColumns db table
 all_ tableMod = AllColumns (mkTableColumns @table tableMod)
 
-filter_ :: (Columns table -> Clause table) -> AllColumns db table -> Q db table
-filter_ filterClause (AllColumns columns) =
+filter_ :: (Columns 'NOT_AGG table -> cols -> Clause table) -> AllColumns db table -> Q db table cols NotOrdered
+filter_ filterClause (AllColumns table) =
   Q
-    { tableQ = columns,
-      whereQ = Where $ filterClause columns,
-      aggregateQ = Nothing,
+    { tableQ = table,
+      whereQ = Where . filterClause table,
       limitQ = Nothing,
       offsetQ = Nothing,
       orderByQ = Nothing
     }
+
+sum_ :: (ClickhouseTable table, ClickhouseNum value) => Column 'NOT_AGG table value -> Column 'AGG table value
+sum_ = Sum
+
+count_ :: (ClickhouseTable table, ClickhouseValue value, ClickhouseValue Int) => Column 'NOT_AGG table value -> Column 'AGG table Int
+count_ = Count
+
+distinct :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v
+distinct = Distinct
+
+(+.) :: (ClickhouseTable t, ClickhouseNum v) => Column a t v -> Column a t v -> Column a t v
+(+.) = Add
+
+infixl 6 +.
+
+-- for example we can use for columns sum with different types
+unsafeCoerceNum :: forall v1 v2 a t. (ClickhouseTable t, ClickhouseNum v1, ClickhouseNum v2) => Column a t v1 -> Column a t v2
+unsafeCoerceNum = CoerceNum
+
+whenJust_ :: ClickhouseTable t => Maybe a -> (a -> Clause t) -> Clause t
+whenJust_ (Just a) mkClause = mkClause a
+whenJust_ Nothing _ = val_ True
+
+toDate :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Time.Day) => Column a t DateTime -> Column a t Time.Day
+toDate = ToDate
+
+toHour :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Int) => Column a t DateTime -> Column a t Int
+toHour = ToHour

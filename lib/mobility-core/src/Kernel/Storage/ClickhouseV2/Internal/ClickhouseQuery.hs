@@ -20,12 +20,14 @@ module Kernel.Storage.ClickhouseV2.Internal.ClickhouseQuery
   )
 where
 
+import qualified Data.Char as C
 import qualified Data.List as List
 import Data.Typeable (typeRep)
 import Kernel.Prelude
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
 import Kernel.Storage.ClickhouseV2.ClickhouseTable
 import Kernel.Storage.ClickhouseV2.ClickhouseValue
+import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns
 import Kernel.Storage.ClickhouseV2.Internal.Types
 import Kernel.Utils.JSON (camelToSnakeCase)
 
@@ -35,18 +37,17 @@ newtype RawQuery = RawQuery {getRawQuery :: String}
 class ClickhouseQuery expr where
   toClickhouseQuery :: expr -> RawQuery
 
-instance (ClickhouseDb db, ClickhouseTable t) => ClickhouseQuery (Select db t) where
-  toClickhouseQuery (Select q) = do
+instance (ClickhouseDb db, ClickhouseTable t, ClickhouseColumns a cols, ClickhouseQuery gr, ClickhouseQuery ord) => ClickhouseQuery (Select a db t cols gr ord) where
+  toClickhouseQuery (Select cols groupBy q) = do
     -- should we add table name modifier?
     let tableName = dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)
-    -- FIXME cols not supported in Select expression
-    -- let selectClause = if null cols then "SELECT *" else T.unpack $ "SELECT " <> intercalate ", " cols
-    "SELECT *"
+    "SELECT "
+      <> RawQuery (showClickhouseColumns @a @cols (Proxy @a) cols)
       <> " FROM "
       <> fromString tableName
-      <> toClickhouseQuery @(Where t) q.whereQ
-      <> mkMaybeClause @(Aggregate t) q.aggregateQ
-      <> mkMaybeClause @(OrderBy t) q.orderByQ
+      <> toClickhouseQuery @(Where t) (q.whereQ cols)
+      <> toClickhouseQuery @(GroupBy a gr) groupBy
+      <> mkMaybeClause @(OrderBy ord) (q.orderByQ <&> ($ cols))
       <> mkMaybeClause @Limit q.limitQ
       <> mkMaybeClause @Offset q.offsetQ
     where
@@ -67,7 +68,8 @@ instance (ClickhouseTable t) => ClickhouseQuery (Clause t) where
   toClickhouseQuery (And clause1 clause2) = addBrackets (toClickhouseQuery @(Clause t) clause1) <> " AND " <> addBrackets (toClickhouseQuery @(Clause t) clause2)
   toClickhouseQuery (Or clause1 clause2) = addBrackets (toClickhouseQuery @(Clause t) clause1) <> " OR " <> addBrackets (toClickhouseQuery @(Clause t) clause2)
   toClickhouseQuery (Not clause) = "NOT " <> addBrackets (toClickhouseQuery @(Clause t) clause)
-  toClickhouseQuery (Is column term) = toClickhouseQuery @(Column t _) column <> toClickhouseQuery @(Term _) term
+  toClickhouseQuery (Is column term) = toClickhouseQuery @(Column _ t _) column <> toClickhouseQuery @(Term _) term
+  toClickhouseQuery (Val b) = RawQuery $ C.toLower <$> show @String @Bool b
 
 instance ClickhouseValue value => ClickhouseQuery (Term value) where
   toClickhouseQuery (In valList) = " IN " <> (addBrackets . intercalate "," . (valToClickhouseQuery @value <$>) $ valList)
@@ -86,8 +88,7 @@ valToClickhouseQuery :: forall value. ClickhouseValue value => value -> RawQuery
 valToClickhouseQuery = toClickhouseQuery @(Value value) . toClickhouseValue @value
 
 instance ClickhouseValue value => ClickhouseQuery (Value value) where
-  toClickhouseQuery (String str) = addQuotes . RawQuery $ str
-  toClickhouseQuery Null = "null"
+  toClickhouseQuery = RawQuery . valToString
 
 intercalate :: RawQuery -> [RawQuery] -> RawQuery
 intercalate x = RawQuery . List.intercalate (getRawQuery x) . (getRawQuery <$>)
@@ -95,25 +96,37 @@ intercalate x = RawQuery . List.intercalate (getRawQuery x) . (getRawQuery <$>)
 addBrackets :: RawQuery -> RawQuery
 addBrackets rq = "(" <> rq <> ")"
 
-addQuotes :: RawQuery -> RawQuery
-addQuotes rq = "'" <> rq <> "'"
-
 instance ClickhouseQuery Limit where
   toClickhouseQuery (Limit val) = " LIMIT " <> show val
 
 instance ClickhouseQuery Offset where
   toClickhouseQuery (Offset val) = " OFFSET " <> show val
 
--- FIXME Separate module ClickhouseTable
-instance ClickhouseTable t => ClickhouseQuery (OrderBy t) where
-  toClickhouseQuery (OrderBy Asc column) = " ORDER BY " <> toClickhouseQuery @(Column t _) column <> " ASC"
-  toClickhouseQuery (OrderBy Desc column) = " ORDER BY " <> toClickhouseQuery @(Column t _) column <> " DESC"
+instance ClickhouseQuery NotOrdered where
+  toClickhouseQuery _ = mempty
 
-instance ClickhouseTable t => ClickhouseQuery (Aggregate t) where
-  toClickhouseQuery (GroupByAggregate groupBy) = toClickhouseQuery @(GroupBy t) groupBy
+instance ClickhouseQuery ord => ClickhouseQuery (OrderBy ord) where
+  toClickhouseQuery (OrderBy Asc column) = " ORDER BY " <> toClickhouseQuery @ord column <> " ASC"
+  toClickhouseQuery (OrderBy Desc column) = " ORDER BY " <> toClickhouseQuery @ord column <> " DESC"
 
-instance ClickhouseTable t => ClickhouseQuery (GroupBy t) where
-  toClickhouseQuery (GroupBy column) = " GROUP BY " <> toClickhouseQuery @(Column t _) column
+instance ClickhouseQuery NotGrouped where
+  toClickhouseQuery _ = mempty
 
-instance ClickhouseTable t => ClickhouseQuery (Column t value) where
-  toClickhouseQuery column = fromString $ getFieldModification column.getColumn
+instance ClickhouseQuery gr => ClickhouseQuery (GroupBy a gr) where
+  toClickhouseQuery (GroupBy gr) = " GROUP BY " <> toClickhouseQuery gr
+  toClickhouseQuery NotGrouped = mempty
+
+instance ClickhouseTable t => ClickhouseQuery (Column a t value) where
+  toClickhouseQuery = fromString . showColumn
+
+instance ClickhouseTable t => ClickhouseQuery (T2 (Column a t) v1 v2) where
+  toClickhouseQuery (c1, c2) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2]
+
+instance ClickhouseTable t => ClickhouseQuery (T3 (Column a t) v1 v2 v3) where
+  toClickhouseQuery (c1, c2, c3) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3]
+
+instance ClickhouseTable t => ClickhouseQuery (T4 (Column a t) v1 v2 v3 v4) where
+  toClickhouseQuery (c1, c2, c3, c4) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4]
+
+instance ClickhouseTable t => ClickhouseQuery (T5 (Column a t) v1 v2 v3 v4 v5) where
+  toClickhouseQuery (c1, c2, c3, c4, c5) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5]
