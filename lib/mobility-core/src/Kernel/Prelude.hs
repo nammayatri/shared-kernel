@@ -137,3 +137,10 @@ infixl 1 =<<<
 
 hoistMaybe :: Applicative m => Maybe b -> MaybeT m b
 hoistMaybe = MaybeT . pure
+
+(|<|>|) :: Monad m => m (Maybe a) -> m (Maybe a) -> m (Maybe a)
+(|<|>|) funcA funcB = do
+  maybeA <- funcA
+  case maybeA of
+    Just _ -> return maybeA
+    Nothing -> funcB

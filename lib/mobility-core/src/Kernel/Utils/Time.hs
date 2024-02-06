@@ -139,3 +139,6 @@ isTimeWithinBounds startTime endTime time =
       let midnightBeforeTimeleap = TimeOfDay 23 59 60
       (startTime < time && time < midnightBeforeTimeleap) || (midnight <= time && time < endTime)
     else startTime < time && time < endTime
+
+utcTimeToDiffTime :: UTCTime -> DiffTime
+utcTimeToDiffTime = timeOfDayToTime . localTimeOfDay . zonedTimeToLocalTime . utcToZonedTime utc
