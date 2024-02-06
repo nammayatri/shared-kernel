@@ -480,6 +480,7 @@ test-suite mobility-core-tests
       APIExceptions
       Centesimal
       DistanceCalculation
+      Randomizer
       SignatureAuth
       SlidingWindowLimiter
       SnippetsCheck
