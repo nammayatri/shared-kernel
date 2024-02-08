@@ -15,8 +15,9 @@
 module Kernel.Utils.Registry
   ( registryFetch,
     Kernel.Utils.Registry.registryLookup,
-    whitelisting,
+    checkBlacklisted,
     withSubscriberCache,
+    checkWhitelisted,
   )
 where
 
@@ -73,14 +74,24 @@ registryFetch registryUrl request = do
   callAPI registryUrl (T.client Registry.lookupAPI request) "lookup" (Registry.lookupAPI)
     >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
 
-whitelisting ::
+checkBlacklisted ::
   (MonadThrow m, Log m) =>
-  (Text -> m Bool) ->
+  (Text -> Domain -> m Bool) ->
   Maybe Subscriber ->
   m (Maybe Subscriber)
-whitelisting p = maybe (pure Nothing) \sub -> do
-  unlessM (p sub.subscriber_id) . throwError . InvalidRequest $
-    "Not whitelisted subscriber " <> sub.subscriber_id
+checkBlacklisted isBlackListed = maybe (pure Nothing) \sub -> do
+  whenM (isBlackListed sub.subscriber_id sub.domain) . throwError . InvalidRequest $
+    "It is a Blacklisted subscriber " <> sub.subscriber_id
+  pure (Just sub)
+
+checkWhitelisted ::
+  (MonadThrow m, Log m) =>
+  (Text -> Domain -> m Bool) ->
+  Maybe Subscriber ->
+  m (Maybe Subscriber)
+checkWhitelisted isNotWhiteListed = maybe (pure Nothing) \sub -> do
+  whenM (isNotWhiteListed sub.subscriber_id sub.domain) . throwError . InvalidRequest $
+    "Not Whitelisted subscriber " <> sub.subscriber_id
   pure (Just sub)
 
 withSubscriberCache ::
