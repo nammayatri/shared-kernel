@@ -142,7 +142,8 @@ instance FromField KVTable where
 
 data Tables = Tables
   { enableKVForWriteAlso :: [KVTable],
-    enableKVForRead :: [Text]
+    enableKVForRead :: [Text],
+    useCAC :: Bool
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
