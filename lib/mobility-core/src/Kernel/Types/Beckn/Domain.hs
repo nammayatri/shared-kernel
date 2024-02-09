@@ -37,7 +37,7 @@ data Domain
   | PARKING
   | PUBLIC_TRANSPORT
   | LOGISTICS
-  deriving (Eq, Generic, Show, Read, FromDhall, ToSchema)
+  deriving (Eq, Generic, Show, Read, FromDhall, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable Domain
 
 $(mkBeamInstancesForEnumAndList ''Domain)
