@@ -20,6 +20,7 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.OpenApi hiding (Example)
 import EulerHS.Prelude
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.Example
@@ -38,6 +39,8 @@ data Domain
   | LOGISTICS
   deriving (Eq, Generic, Show, Read, FromDhall, ToSchema)
   deriving (PrettyShow) via Showable Domain
+
+$(mkBeamInstancesForEnumAndList ''Domain)
 
 instance Example Domain where
   example = MOBILITY
