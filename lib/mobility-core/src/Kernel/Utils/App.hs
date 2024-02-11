@@ -27,6 +27,7 @@ module Kernel.Utils.App
     supportProxyAuthorization,
     logRequestAndResponseGeneric,
     withModifiedEnvGeneric,
+    withModifiedEnv',
   )
 where
 
@@ -35,18 +36,26 @@ import qualified Data.ByteString as B
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.CaseInsensitive as CI
+import qualified Data.HashMap.Internal as HM
 import Data.List (lookup)
+import Data.String.Conversions
 import qualified Data.Text as T (pack)
 import Data.UUID.V4 (nextRandom)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
 import qualified EulerHS.Runtime as R
+import Kernel.Beam.Lib.UtilsTH (HasSchemaName)
+import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
+import Kernel.Storage.Esqueleto.Config (EsqDBEnv)
+import Kernel.Storage.Hedis
+import Kernel.Tools.Logging
 import Kernel.Tools.Metrics.CoreMetrics (DeploymentVersion (..))
+import Kernel.Tools.Metrics.CoreMetrics.Types (HasCoreMetrics)
 import Kernel.Types.App
 import Kernel.Types.Flow
 import Kernel.Utils.Common
 import qualified Kernel.Utils.FlowLogging as L
-import Kernel.Utils.IOLogging (HasLog, appendLogTag)
+import Kernel.Utils.IOLogging (HasLog, appendLogTag, updateLogLevel)
 import Kernel.Utils.Shutdown
 import qualified Kernel.Utils.SignatureAuth as HttpSig
 import Network.HTTP.Types (Method, RequestHeaders)
@@ -56,6 +65,7 @@ import qualified Network.Wai as Wai
 import Network.Wai.Internal
 import System.Environment (lookupEnv)
 import System.Exit (ExitCode)
+import qualified Text.Regex as TR
 
 data RequestInfo = RequestInfo
   { requestMethod :: Method,
@@ -154,21 +164,42 @@ logRequestAndResponseGeneric logInfoIO f req respF =
       respF resp
 
 withModifiedEnv :: HasLog f => (EnvR f -> Application) -> EnvR f -> Application
-withModifiedEnv f env = \req resp -> do
-  requestId <- getRequestId $ Wai.requestHeaders req
-  modifiedEnv <- modifyEnvR requestId
-  let app = f modifiedEnv
-  app req resp
+withModifiedEnv = withModifiedEnvFn $ \_ env requestId -> do
+  let appEnv = env.appEnv
+      updLogEnv = appendLogTag requestId appEnv.loggerEnv
+  newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
+  newOptionsLocal <- newMVar mempty
+  pure $
+    env{appEnv = appEnv{loggerEnv = updLogEnv},
+        flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
+       }
+
+withModifiedEnv' :: (HasLog f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT) => (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
+  let sanitizedUrl = removeUUIDs . cs $ Wai.rawPathInfo req
+  mbDynamicLogLevelConfig <- runFlowR env.flowRuntime env.appEnv $ getDynamicLogLevelConfig
+  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId
   where
-    modifyEnvR requestId = do
+    removeUUIDs path = do
+      T.pack $ TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}") path ":id"
+    modifyEnvR env mbLogLevel requestId = do
       let appEnv = env.appEnv
           updLogEnv = appendLogTag requestId appEnv.loggerEnv
+          updLogEnv' = updateLogLevel mbLogLevel updLogEnv
       newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv},
+        env{appEnv = appEnv{loggerEnv = updLogEnv'},
             flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
            }
+
+withModifiedEnvFn :: HasLog f => (Wai.Request -> EnvR f -> Text -> IO (EnvR f)) -> (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnvFn modifierFn f env = \req resp -> do
+  requestId <- getRequestId $ Wai.requestHeaders req
+  modifiedEnv <- modifierFn req env requestId
+  let app = f modifiedEnv
+  app req resp
+  where
     getRequestId headers = do
       let value = lookup "x-request-id" headers
       case value of
