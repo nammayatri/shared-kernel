@@ -12,6 +12,18 @@ import EulerHS.Types (DBConfig, OptionEntity)
 import Kernel.Streaming.Kafka.Producer.Types
 import qualified Kernel.Types.Common as KTC
 
+data LogLevelLastUpdatedTime = LogLevelLastUpdatedTime
+  deriving stock (Generic, Typeable, Show, Eq, Ord)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity LogLevelLastUpdatedTime UTCTime
+
+data DynamicLogLevelConfig = DynamicLogLevelConfig
+  deriving stock (Generic, Typeable, Show, Eq, Ord)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity DynamicLogLevelConfig (HashMap Text KTC.LogLevel)
+
 data PsqlDbCfg = PsqlDbCfg
   deriving stock (Generic, Typeable, Show, Eq)
   deriving anyclass (ToJSON, FromJSON)

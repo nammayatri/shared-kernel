@@ -24,6 +24,7 @@ module Kernel.Utils.IOLogging
     logOutputIO,
     appendLogTag,
     withLoggerEnv,
+    updateLogLevel,
   )
 where
 
@@ -115,6 +116,13 @@ withLogTagImplementation tag = local modifyEnv
 appendLogTag :: Text -> LoggerEnv -> LoggerEnv
 appendLogTag tag logEnv = do
   logEnv{tags = tag : logEnv.tags}
+
+updateLogLevel :: Maybe LogLevel -> LoggerEnv -> LoggerEnv
+updateLogLevel mbNewLogLevel logEnv =
+  maybe
+    logEnv
+    (\newLogLevel -> logEnv{level = newLogLevel})
+    mbNewLogLevel
 
 formatTags :: [Text] -> Text
 formatTags tag = "[" <> T.intercalate ", " (reverse tag) <> "]"
