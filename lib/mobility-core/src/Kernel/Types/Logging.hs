@@ -18,7 +18,7 @@ import EulerHS.Prelude
 import Kernel.Utils.Dhall (FromDhall)
 
 data LogLevel = DEBUG | INFO | WARNING | ERROR
-  deriving (Generic, Show, Eq, Ord, FromDhall, ToJSON)
+  deriving (Generic, Show, Eq, Ord, FromDhall, ToJSON, FromJSON)
 
 class Log m where
   logOutput :: LogLevel -> Text -> m ()
