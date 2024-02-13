@@ -454,6 +454,7 @@ library
     , servant-multipart-client
     , servant-openapi3
     , servant-server
+    , singletons-th
     , slack-web
     , stm
     , string-conversions
@@ -608,6 +609,7 @@ test-suite mobility-core-tests
     , servant-multipart-client
     , servant-openapi3
     , servant-server
+    , singletons-th
     , slack-web
     , stm
     , string-conversions

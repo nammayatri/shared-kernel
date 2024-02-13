@@ -114,7 +114,7 @@ data SubscriberType
   | LREG
   | CREG
   | RREG
-  deriving (Show, Read, Generic, Eq, ToSchema, FromJSON, ToJSON, FromDhall)
+  deriving (Show, Read, Generic, Eq, Ord, ToSchema, FromJSON, ToJSON, FromDhall)
 
 data SubscriberStatus
   = INITIATED

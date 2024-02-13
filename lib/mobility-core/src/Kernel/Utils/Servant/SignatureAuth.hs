@@ -19,14 +19,14 @@ module Kernel.Utils.Servant.SignatureAuth where
 
 import Control.Arrow
 import Control.Lens (at, (.=), (.~), (?=))
+import qualified Data.Aeson as A
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.CaseInsensitive as CI
 import qualified Data.HashMap.Strict as HMS
 import Data.List (lookup)
 import qualified Data.OpenApi as DS
---import qualified Data.Text as T
-
+import Data.Singletons.TH
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Typeable (typeRep)
@@ -36,11 +36,14 @@ import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import qualified Kernel.Types.Beckn.Context as Context
+import qualified Kernel.Types.Beckn.Domain as Domain
 import Kernel.Types.Common
 import Kernel.Types.Credentials
 import Kernel.Types.Error
 import Kernel.Types.Flow
 import Kernel.Types.Registry
+import qualified Kernel.Types.Registry.Subscriber as Subscriber
 import Kernel.Utils.Common
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.IOLogging (HasLog)
@@ -71,7 +74,7 @@ import Servant.Server.Internal.DelayedIO (DelayedIO, withRequest)
 --
 -- The lookup argument defines how keys can be looked up for performing
 -- signature matches.
-data SignatureAuth (header :: Symbol)
+data SignatureAuth (domain :: Domain.Domain) (header :: Symbol)
 
 class AuthenticatingEntity r where
   getSigningKey :: r -> PrivateKey
@@ -99,44 +102,79 @@ instance
     HasField "hostName" r Text,
     HasField "disableSignatureAuth" r Bool,
     Registry (FlowR r),
-    HasCoreMetrics r
+    HasCoreMetrics r,
+    SingI domain
   ) =>
-  HasServer (SignatureAuth header :> api) ctx
+  HasServer (SignatureAuth domain header :> api) ctx
   where
   type
-    ServerT (SignatureAuth header :> api) m =
+    ServerT (SignatureAuth domain header :> api) m =
       SignatureAuthResult -> ServerT api m
 
   route _ ctx subserver =
     route (Proxy @api) ctx $
-      subserver `addAuthCheck` withRequest authCheck
+      subserver `addAuthCheck` withRequest authCheck'
     where
-      authCheck :: Wai.Request -> DelayedIO SignatureAuthResult
-      authCheck req = runFlowRDelayedIO env . becknApiHandler . withLogTag "authCheck" $ do
+      authCheck' :: Wai.Request -> DelayedIO SignatureAuthResult
+      authCheck' req = runFlowRDelayedIO env . becknApiHandler . withLogTag "authCheck" $ do
         let headers = Wai.requestHeaders req
             pathInfo = Wai.rawPathInfo req
-        merchantId <- getSecondLastElement (decodeUtf8 pathInfo) & fromMaybeM (InternalError $ "Beckn " <> show pathInfo <> " path doesn't have merchant id")
+        (actionTxt, merchantId) <- getLastTwoElements (decodeUtf8 pathInfo) & fromMaybeM (InternalError $ "Beckn " <> show pathInfo <> " path doesn't have merchant id")
         logDebug $ "Incoming headers: " +|| headers ||+ ""
-        bodyHash <-
-          headers
-            & (lookup HttpSig.bodyHashHeader >>> fromMaybeM missingHashHeader)
-            >>= (Base64.decodeLenient >>> HttpSig.hashFromByteString >>> fromMaybeM invalidHashHeader)
-        signPayload <-
-          headers
-            & (lookup headerName >>> fromMaybeM (MissingHeader headerName))
-            >>= (parseHeader >>> fromEitherM (InvalidHeader headerName))
-            >>= (HttpSig.decode . fromString >>> fromEitherM CannotDecodeSignature)
-        subscriber <- verifySignature headerName signPayload bodyHash merchantId
-        return $ SignatureAuthResult signPayload subscriber
-      headerName = fromString $ symbolVal (Proxy @header)
+        let mbBodyHashHeader = lookup HttpSig.bodyHashHeader headers
+        let mbSignPayloadHeader = lookup headerName headers
+        action <- case A.fromJSON (A.String actionTxt) of
+          A.Success action -> pure action
+          A.Error err -> throwError (InternalError $ "Could not parse api name: " <> show actionTxt <> "; err: " <> show err)
+        let subscriberType = case (headerName :: Text) of
+              "X-Gateway-Authorization" -> Subscriber.BG
+              _ -> Context.getSubscriberType action
+        let domain = fromSing (sing @domain)
+        logDebug $ "Action: " <> show action <> "; subscriberType: " <> show subscriberType <> "; domain: " <> show domain
+        authCheck headerName mbSignPayloadHeader mbBodyHashHeader merchantId subscriberType domain
+
+      headerNameStr = symbolVal (Proxy @header)
+      headerName = fromString headerNameStr
       headerName :: IsString a => a
       -- These are 500 because we must add that header in wai middleware
-      missingHashHeader = InternalError $ "Header " +|| HttpSig.bodyHashHeader ||+ " not found"
-      invalidHashHeader = InternalError $ "Header " +|| HttpSig.bodyHashHeader ||+ " does not contain a valid hash"
       env = getEnvEntry ctx
 
   hoistServerWithContext _ ctxp hst serv =
     hoistServerWithContext (Proxy @api) ctxp hst . serv
+
+authCheck ::
+  ( HasLog r,
+    HasField "hostName" r Text,
+    HasField "disableSignatureAuth" r Bool,
+    Registry (FlowR r),
+    HasCoreMetrics r
+  ) =>
+  String ->
+  Maybe ByteString ->
+  Maybe ByteString ->
+  Text ->
+  SubscriberType ->
+  Domain.Domain ->
+  FlowR r SignatureAuthResult
+authCheck headerNameStr mbSignPayloadHeader mbBodyHashHeader merchantId subscriberType domain = do
+  bodyHash <-
+    mbBodyHashHeader
+      & fromMaybeM missingHashHeader
+      >>= (Base64.decodeLenient >>> HttpSig.hashFromByteString >>> fromMaybeM invalidHashHeader)
+  signPayload <-
+    mbSignPayloadHeader
+      & fromMaybeM (MissingHeader headerName)
+      >>= (parseHeader >>> fromEitherM (InvalidHeader headerName))
+      >>= (HttpSig.decode . fromString >>> fromEitherM CannotDecodeSignature)
+  subscriber <- verifySignature headerName signPayload bodyHash merchantId subscriberType domain
+  return $ SignatureAuthResult signPayload subscriber
+  where
+    -- These are 500 because we must add that header in wai middleware
+    missingHashHeader = InternalError $ "Header " +|| HttpSig.bodyHashHeader ||+ " not found"
+    invalidHashHeader = InternalError $ "Header " +|| HttpSig.bodyHashHeader ||+ " does not contain a valid hash"
+
+    headerName = fromString headerNameStr
+    headerName :: IsString a => a
 
 -- | The client implementation for SignatureAuth is a no-op, as we do not have
 -- a request that we can work with at this layer. Clients should instead use
@@ -145,9 +183,9 @@ instance
 -- this regard given what plumbing options Servant gives us.
 instance
   (HasClient m api, KnownSymbol header) =>
-  HasClient m (SignatureAuth header :> api)
+  HasClient m (SignatureAuth domain header :> api)
   where
-  type Client m (SignatureAuth header :> api) = Client m api
+  type Client m (SignatureAuth domain header :> api) = Client m api
 
   clientWithRoute mp _ req =
     clientWithRoute
@@ -218,8 +256,10 @@ verifySignature ::
   HttpSig.SignaturePayload ->
   HttpSig.Hash ->
   Text ->
+  SubscriberType ->
+  Domain.Domain ->
   m Subscriber
-verifySignature headerName signPayload bodyHash merchantId = do
+verifySignature headerName signPayload bodyHash merchantId subscriberType domain = do
   hostName <- asks (.hostName)
   logTagDebug "SignatureAuth" $ "Got Signature: " <> show signPayload
   let uniqueKeyId = signPayload.params.keyId.uniqueKeyId
@@ -228,7 +268,9 @@ verifySignature headerName signPayload bodyHash merchantId = do
         SimpleLookupRequest
           { unique_key_id = uniqueKeyId,
             subscriber_id = subscriberId,
-            merchant_id = merchantId
+            merchant_id = merchantId,
+            subscriber_type = subscriberType,
+            domain
           }
   registryLookup lookupRequest >>= \case
     Just subscriber -> do
@@ -242,8 +284,12 @@ verifySignature headerName signPayload bodyHash merchantId = do
       pure subscriber
     Nothing -> do
       logTagError logTag $
-        "Subscriber with unique_key_id "
+        "Subscriber with unique_key_id:"
           <> signPayload.params.keyId.uniqueKeyId
+          <> "; subscriber type: "
+          <> show lookupRequest.subscriber_type
+          <> "; domain: "
+          <> show lookupRequest.domain
           <> " not found."
       throwError $ getSignatureError hostName
   where
@@ -355,7 +401,7 @@ instance
   ( S.HasOpenApi api,
     KnownSymbol header
   ) =>
-  S.HasOpenApi (SignatureAuth header :> api)
+  S.HasOpenApi (SignatureAuth domain header :> api)
   where
   toOpenApi _ =
     S.toOpenApi (Proxy @api)
@@ -395,12 +441,12 @@ instance
 
 instance
   SanitizedUrl (subroute :: Type) =>
-  SanitizedUrl (SignatureAuth h :> subroute)
+  SanitizedUrl (SignatureAuth domain h :> subroute)
   where
   getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
 
-getSecondLastElement :: Text -> Maybe Text
-getSecondLastElement str =
+getLastTwoElements :: Text -> Maybe (Text, Text)
+getLastTwoElements str =
   case reverse (T.splitOn "/" str) of
-    (_ : secondLast : _) -> Just secondLast
+    (last : secondLast : _) -> Just (last, secondLast)
     _ -> Nothing

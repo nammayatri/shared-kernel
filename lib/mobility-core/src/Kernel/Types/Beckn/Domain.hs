@@ -12,13 +12,15 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Beckn.Domain (Domain (..)) where
+module Kernel.Types.Beckn.Domain where
 
 import Data.Aeson
 import Data.Aeson.Types
 import Data.OpenApi hiding (Example)
+import Data.Singletons.TH
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto
@@ -42,6 +44,8 @@ data Domain
 
 $(mkBeamInstancesForEnumAndList ''Domain)
 
+genSingletons [''Domain]
+
 instance Example Domain where
   example = MOBILITY
 
@@ -49,7 +53,7 @@ instance FromJSON Domain where
   parseJSON (String "nic2004:60221") = pure MOBILITY
   parseJSON (String "ONDC:TRV10") = pure MOBILITY
   parseJSON (String "nic2004:52110") = pure LOCAL_RETAIL
-  parseJSON (String "nic2004:60212") = pure METRO
+  -- parseJSON (String "nic2004:60212") = pure METRO
   parseJSON (String "nic2004:63031") = pure PARKING
   parseJSON (String "ONDC:TRV11") = pure PUBLIC_TRANSPORT
   parseJSON (String "nic2004:60232") = pure LOGISTICS
@@ -59,7 +63,7 @@ instance FromJSON Domain where
 instance ToJSON Domain where
   toJSON MOBILITY = String "ONDC:TRV10"
   toJSON LOCAL_RETAIL = String "nic2004:52110"
-  toJSON METRO = String "nic2004:60212"
+  toJSON METRO = String "ONDC:TRV11"
   toJSON PARKING = String "nic2004:63031"
   toJSON PUBLIC_TRANSPORT = String "ONDC:TRV11"
   toJSON LOGISTICS = String "nic2004:60232"

@@ -19,6 +19,7 @@ module Kernel.Types.Registry
 where
 
 import Kernel.Prelude
+import qualified Kernel.Types.Beckn.Domain as Domain
 import Kernel.Types.Registry.Subscriber as E
 
 class Registry m where
@@ -27,7 +28,9 @@ class Registry m where
 data SimpleLookupRequest = SimpleLookupRequest
   { unique_key_id :: Text,
     subscriber_id :: Text,
-    merchant_id :: Text
+    merchant_id :: Text,
+    subscriber_type :: E.SubscriberType,
+    domain :: Domain.Domain
   }
   deriving (Eq, Ord)
 
