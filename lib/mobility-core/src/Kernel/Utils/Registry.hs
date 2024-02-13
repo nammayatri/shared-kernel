@@ -60,7 +60,8 @@ registryLookup registryUrl request =
       API.emptyLookupRequest
         { API.unique_key_id = Just unique_key_id,
           API.subscriber_id = Just subscriber_id,
-          API.domain = Just MOBILITY
+          API.domain = Just domain,
+          API._type = Just subscriber_type
         }
 
 registryFetch ::
@@ -71,7 +72,7 @@ registryFetch ::
   API.LookupRequest ->
   m [Subscriber]
 registryFetch registryUrl request = do
-  callAPI registryUrl (T.client Registry.lookupAPI request) "lookup" (Registry.lookupAPI)
+  callAPI registryUrl (T.client Registry.lookupAPI request) "lookup" Registry.lookupAPI
     >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
 
 checkBlacklisted ::

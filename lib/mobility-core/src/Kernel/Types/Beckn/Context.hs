@@ -24,6 +24,7 @@ import Kernel.Types.Beckn.City as Reexport
 import Kernel.Types.Beckn.Country as Reexport
 import Kernel.Types.Beckn.Domain as Reexport
 import Kernel.Types.Beckn.IndianState as Reexport
+import qualified Kernel.Types.Registry.Subscriber as Subscriber
 import Kernel.Types.TimeRFC339 (UTCTimeRFC3339 (..))
 import Kernel.Utils.Example
 import Kernel.Utils.GenericPretty
@@ -114,3 +115,6 @@ mapToCbAction = \case
   RATING -> Just ON_RATING
   SUPPORT -> Just ON_SUPPORT
   _ -> Nothing
+
+getSubscriberType :: Action -> Subscriber.SubscriberType
+getSubscriberType action = if isNothing (mapToCbAction action) then Subscriber.BPP else Subscriber.BAP
