@@ -33,7 +33,8 @@ notifyPerson config req isMutable mbNotificationId = do
             fcmEntityData = req.entity.entityData,
             fcmNotificationJSON = FCM.createAndroidNotification title body notificationType,
             fcmOverlayNotificationJSON = Nothing,
-            fcmNotificationId = mbNotificationId
+            fcmNotificationId = mbNotificationId,
+            fcmSound = req.sound
           }
   FCM.notifyPersonWithPriority
     config
@@ -60,6 +61,8 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.REGISTRATION_APPROVED -> FCM.REGISTRATION_APPROVED
   Interface.EXPIRED_CASE -> FCM.EXPIRED_CASE
   Interface.CANCELLED_PRODUCT -> FCM.CANCELLED_PRODUCT
+  Interface.CANCELLED_PRODUCT_DRIVER -> FCM.CANCELLED_PRODUCT_DRIVER
+  Interface.CANCELLED_PRODUCT_USER -> FCM.CANCELLED_PRODUCT_USER
   Interface.REALLOCATE_PRODUCT -> FCM.REALLOCATE_PRODUCT
   Interface.DRIVER_ASSIGNMENT -> FCM.DRIVER_ASSIGNMENT
   Interface.TRIP_STARTED -> FCM.TRIP_STARTED

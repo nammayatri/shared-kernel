@@ -113,6 +113,8 @@ data FCMNotificationType
   = REGISTRATION_APPROVED
   | EXPIRED_CASE
   | CANCELLED_PRODUCT
+  | CANCELLED_PRODUCT_DRIVER
+  | CANCELLED_PRODUCT_USER
   | REALLOCATE_PRODUCT
   | DRIVER_ASSIGNMENT
   | TRIP_STARTED
@@ -424,7 +426,8 @@ data FCMData a = FCMData
     fcmEntityData :: a,
     fcmNotificationJSON :: FCMAndroidNotification,
     fcmNotificationId :: Maybe Text,
-    fcmOverlayNotificationJSON :: Maybe FCMOverlayNotificationJSON
+    fcmOverlayNotificationJSON :: Maybe FCMOverlayNotificationJSON,
+    fcmSound :: Maybe Text
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
@@ -440,7 +443,8 @@ instance (ToJSON a) => ToJSON (FCMData a) where
         "entity_data" .= encodeToText fcmEntityData,
         "notification_json" .= encodeToText fcmNotificationJSON,
         "notification_id" .= (encodeToText <$> fcmNotificationId),
-        "driver_notification_payload" .= (encodeToText <$> fcmOverlayNotificationJSON)
+        "driver_notification_payload" .= (encodeToText <$> fcmOverlayNotificationJSON),
+        "sound" .= (encodeToText <$> fcmSound)
       ]
 
 instance (FromJSON a) => FromJSON (FCMData a) where
@@ -454,6 +458,7 @@ instance (FromJSON a) => FromJSON (FCMData a) where
       <*> (o .: "notification_json" >>= parseNotificationJson)
       <*> o .:? "notification_id"
       <*> (o .:? "driver_notification_payload" >>= maybe (pure Nothing) parseNotificationJson)
+      <*> o .:? "sound"
     where
       parseNotificationJson str =
         maybe (typeMismatch "Json string" (String str)) pure $ decodeFromText str
@@ -510,7 +515,8 @@ data FCMaps a = FCMaps
   { fcmAlert :: !(Maybe FCMAlert),
     fcmData :: !(Maybe (FCMData a)),
     fcmCategory :: !(Maybe FCMNotificationType),
-    fcmMutableContent :: !Int
+    fcmMutableContent :: !Int,
+    fcmSound :: !(Maybe Text)
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
@@ -522,7 +528,8 @@ instance (ToJSON a) => ToJSON (FCMaps a) where
       [ "alert" .= fcmAlert,
         "data" .= fcmData,
         "category" .= fcmCategory,
-        "mutable-content" .= fcmMutableContent
+        "mutable-content" .= fcmMutableContent,
+        "sound" .= fcmSound
       ]
 
 instance (FromJSON a) => FromJSON (FCMaps a) where
@@ -532,9 +539,10 @@ instance (FromJSON a) => FromJSON (FCMaps a) where
       <*> o .: "data"
       <*> o .: "category"
       <*> o .: "mutable-content"
+      <*> o .: "sound"
 
 instance Default (FCMaps a) where
-  def = FCMaps Nothing Nothing Nothing 0
+  def = FCMaps Nothing Nothing Nothing 0 Nothing
 
 newtype FCMApnPayload a = FCMApnPayload
   { fcmAps :: Maybe (FCMaps a)
