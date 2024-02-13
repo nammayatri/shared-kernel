@@ -49,7 +49,7 @@ data Category
   | NEW_MESSAGE
   | REFERRAL_ACTIVATED
   | CHAT_MESSAGE
-  | SAFETY_ALERT
+  | SAFETY_ALERT_DEVIATION
   | DRIVER_BIRTHDAY
   | EDIT_LOCATION
   | ADD_STOP
@@ -63,9 +63,7 @@ data Category
   | SOS_RESOLVED
   | EMERGENCY_CONTACT_ADDED
   | SOS_MOCK_DRILL_NOTIFY
-  deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
-
-$(mkBeamInstancesForEnum ''Category)
+  deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
 data SubCategory
   = ByUser
