@@ -101,6 +101,7 @@ createApnsPayload androidData isMutable =
       def{fcmAlert = Just fcmAlert,
           fcmData = Just androidData,
           fcmCategory = Just androidData.fcmNotificationType,
+          fcmSound = androidData.fcmSound,
           fcmMutableContent = if isMutable then 1 else 0
          }
     title :: Maybe FCMNotificationTitle

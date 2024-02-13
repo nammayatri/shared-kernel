@@ -13,9 +13,11 @@
 -}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Notification.Interface.Types where
 
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Notification.FCM.Types as FCM
 import qualified Kernel.External.Notification.GRPC.Types as GRPC
 import qualified Kernel.External.Notification.PayTM.Types as PayTM
@@ -29,6 +31,8 @@ data Category
   = REGISTRATION_APPROVED
   | EXPIRED_CASE
   | CANCELLED_PRODUCT
+  | CANCELLED_PRODUCT_DRIVER
+  | CANCELLED_PRODUCT_USER
   | REALLOCATE_PRODUCT
   | DRIVER_ASSIGNMENT
   | TRIP_STARTED
@@ -62,7 +66,9 @@ data Category
   | SOS_MOCK_DRILL
   | SOS_RESOLVED
   | EMERGENCY_CONTACT_ADDED
-  deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
+
+$(mkBeamInstancesForEnum ''Category)
 
 data SubCategory
   = ByUser
@@ -105,7 +111,8 @@ data NotificationReq a b = NotificationReq
     dynamicParams :: b,
     body :: Text,
     title :: Text,
-    ttl :: Maybe UTCTime
+    ttl :: Maybe UTCTime,
+    sound :: Maybe Text
   }
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
