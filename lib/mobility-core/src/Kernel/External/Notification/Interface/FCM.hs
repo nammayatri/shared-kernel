@@ -33,8 +33,7 @@ notifyPerson config req isMutable mbNotificationId = do
             fcmEntityData = req.entity.entityData,
             fcmNotificationJSON = FCM.createAndroidNotification title body notificationType,
             fcmOverlayNotificationJSON = Nothing,
-            fcmNotificationId = mbNotificationId,
-            fcmSound = req.sound
+            fcmNotificationId = mbNotificationId
           }
   FCM.notifyPersonWithPriority
     config
