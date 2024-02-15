@@ -17,6 +17,10 @@ findById cfgId = do
   findOneWithDb [Se.Is BeamSC.id $ Se.Eq cfgId] <&> (<&> Domain.configValue)
     >>= maybe (incrementSystemConfigsFailedCounter ("system_configs_find_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT) <> "_" <> cfgId) >> pure Nothing) (pure . Just)
 
+findById' :: (CacheFlow m r, EsqDBFlow m r, HasSchemaName BeamSC.SystemConfigsT) => Text -> m (Maybe Domain.SystemConfigs)
+findById' cfgId = do
+  findOneWithDb [Se.Is BeamSC.id $ Se.Eq cfgId]
+
 instance FromTType' BeamSC.SystemConfigs Domain.SystemConfigs where
   fromTType' BeamSC.SystemConfigsT {..} = do
     pure $ Just Domain.SystemConfigs {..}
