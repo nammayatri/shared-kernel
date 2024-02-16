@@ -101,7 +101,8 @@ createApnsPayload androidData isMutable =
       def{fcmAlert = Just fcmAlert,
           fcmData = Just androidData,
           fcmCategory = Just androidData.fcmNotificationType,
-          fcmMutableContent = if isMutable then 1 else 0
+          fcmMutableContent = if isMutable then 1 else 0,
+          fcmSound = Just $ fromMaybe "" androidData.fcmNotificationJSON.fcmdSound
          }
     title :: Maybe FCMNotificationTitle
     title = androidData.fcmNotificationJSON.fcmdTitle
@@ -109,16 +110,14 @@ createApnsPayload androidData isMutable =
     body :: Maybe FCMNotificationBody
     body = androidData.fcmNotificationJSON.fcmdBody
 
-createAndroidNotification :: FCMNotificationTitle -> FCMNotificationBody -> FCMNotificationType -> FCMAndroidNotification
-createAndroidNotification title body notificationType =
+createAndroidNotification :: FCMNotificationTitle -> FCMNotificationBody -> FCMNotificationType -> Maybe Text -> FCMAndroidNotification
+createAndroidNotification title body notificationType sound =
   let notification = case notificationType of
         ALLOCATION_REQUEST ->
-          def{fcmdSound = Just "notify_sound.mp3",
-              fcmdChannelId = Just "RINGING_ALERT"
+          def{fcmdChannelId = Just "RINGING_ALERT"
              }
         TRIP_STARTED ->
-          def{fcmdSound = Just "notify_otp_sound.mp3",
-              fcmdChannelId = Just "TRIP_STARTED"
+          def{fcmdChannelId = Just "TRIP_STARTED"
              }
         _ -> def
    in notification
@@ -128,7 +127,8 @@ createAndroidNotification title body notificationType =
             Just $
               FCMNotificationIconUrl
                 "http://localhost:8080/static/images/ride-success.png",
-          fcmdTag = Just notificationType
+          fcmdTag = Just notificationType,
+          fcmdSound = sound
         }
 
 createAndroidNotificationWithIcon :: FCMNotificationTitle -> FCMNotificationBody -> FCMNotificationType -> Maybe Text -> FCMAndroidNotification
