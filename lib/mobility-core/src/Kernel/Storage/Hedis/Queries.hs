@@ -31,6 +31,7 @@ import Kernel.Storage.Hedis.Error
 import Kernel.Utils.DatastoreLatencyCalculator
 import qualified Kernel.Utils.Error.Throwing as Error
 import Kernel.Utils.Logging
+import System.Environment as SE
 import qualified Test.RandomStrings as RS
 
 type ExpirationTime = Int
@@ -89,12 +90,14 @@ runHedisTransaction action = do
 withCrossAppRedis ::
   (HedisFlow m env) => m f -> m f
 withCrossAppRedis f = do
-  local (\env -> env{hedisEnv = env.hedisEnv{keyModifier = identity}, hedisClusterEnv = env.hedisClusterEnv{keyModifier = identity}}) f
+  prefixValue <- liftIO $ SE.lookupEnv prefixEnvironmentKey
+  local (\env -> env{hedisEnv = env.hedisEnv{keyModifier = getNewModifierFunction identity prefixValue}, hedisClusterEnv = env.hedisClusterEnv{keyModifier = getNewModifierFunction identity prefixValue}}) f
 
 withNonCriticalCrossAppRedis ::
   (HedisFlow m env) => m f -> m f
 withNonCriticalCrossAppRedis f = do
-  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv{keyModifier = identity}, hedisClusterEnv = env.hedisNonCriticalClusterEnv{keyModifier = identity}}) f
+  prefixValue <- liftIO $ SE.lookupEnv prefixEnvironmentKey
+  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv{keyModifier = getNewModifierFunction identity prefixValue}, hedisClusterEnv = env.hedisNonCriticalClusterEnv{keyModifier = getNewModifierFunction identity prefixValue}}) f
 
 withNonCriticalRedis ::
   (HedisFlow m env) => m f -> m f
