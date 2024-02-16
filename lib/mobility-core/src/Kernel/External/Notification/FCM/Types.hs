@@ -512,7 +512,8 @@ data FCMaps a = FCMaps
   { fcmAlert :: !(Maybe FCMAlert),
     fcmData :: !(Maybe (FCMData a)),
     fcmCategory :: !(Maybe FCMNotificationType),
-    fcmMutableContent :: !Int
+    fcmMutableContent :: !Int,
+    fcmSound :: !(Maybe Text)
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
@@ -524,7 +525,8 @@ instance (ToJSON a) => ToJSON (FCMaps a) where
       [ "alert" .= fcmAlert,
         "data" .= fcmData,
         "category" .= fcmCategory,
-        "mutable-content" .= fcmMutableContent
+        "mutable-content" .= fcmMutableContent,
+        "sound" .= fcmSound
       ]
 
 instance (FromJSON a) => FromJSON (FCMaps a) where
@@ -534,9 +536,10 @@ instance (FromJSON a) => FromJSON (FCMaps a) where
       <*> o .: "data"
       <*> o .: "category"
       <*> o .: "mutable-content"
+      <*> o .: "sound"
 
 instance Default (FCMaps a) where
-  def = FCMaps Nothing Nothing Nothing 0
+  def = FCMaps Nothing Nothing Nothing 0 Nothing
 
 newtype FCMApnPayload a = FCMApnPayload
   { fcmAps :: Maybe (FCMaps a)

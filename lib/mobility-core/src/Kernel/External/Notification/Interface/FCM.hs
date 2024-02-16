@@ -31,7 +31,7 @@ notifyPerson config req isMutable mbNotificationId = do
             fcmEntityType = interfaceEntityTypeToFCMEntityType req.entity.entityType,
             fcmEntityIds = req.entity.entityIds,
             fcmEntityData = req.entity.entityData,
-            fcmNotificationJSON = FCM.createAndroidNotification title body notificationType,
+            fcmNotificationJSON = FCM.createAndroidNotification title body notificationType req.sound,
             fcmOverlayNotificationJSON = Nothing,
             fcmNotificationId = mbNotificationId
           }
