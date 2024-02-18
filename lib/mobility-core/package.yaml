@@ -60,9 +60,11 @@ dependencies:
   - cryptonite
   - data-default-class
   - double-conversion
+  - directory
   - exceptions
   - euler-hs
   - formatting
+  - filepath
   - hex-text
   - hspec
   - http-api-data
@@ -73,6 +75,7 @@ dependencies:
   - http-media
   - kleene
   - lattices
+  - process
   - postgresql-simple
   - postgresql-migration
   - prometheus-client
