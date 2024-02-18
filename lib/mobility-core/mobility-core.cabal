@@ -310,6 +310,7 @@ library
       Kernel.Utils.Example
       Kernel.Utils.FlowLogging
       Kernel.Utils.GenericPretty
+      Kernel.Utils.Geometry
       Kernel.Utils.IOLogging
       Kernel.Utils.JSON
       Kernel.Utils.JWT
@@ -397,6 +398,7 @@ library
     , data-default-class
     , deriving-aeson
     , dhall
+    , directory
     , double-conversion
     , either
     , esqueleto
@@ -404,6 +406,7 @@ library
     , exceptions
     , extra
     , fast-logger
+    , filepath
     , fmt
     , formatting
     , generic-lens
@@ -432,6 +435,7 @@ library
     , persistent-postgresql
     , postgresql-migration
     , postgresql-simple
+    , process
     , prometheus-client
     , prometheus-metrics-ghc
     , prometheus-proc
@@ -551,6 +555,7 @@ test-suite mobility-core-tests
     , data-default-class
     , deriving-aeson
     , dhall
+    , directory
     , double-conversion
     , either
     , esqueleto
@@ -558,6 +563,7 @@ test-suite mobility-core-tests
     , exceptions
     , extra
     , fast-logger
+    , filepath
     , fmt
     , formatting
     , generic-lens
@@ -587,6 +593,7 @@ test-suite mobility-core-tests
     , persistent-postgresql
     , postgresql-migration
     , postgresql-simple
+    , process
     , prometheus-client
     , prometheus-metrics-ghc
     , prometheus-proc
