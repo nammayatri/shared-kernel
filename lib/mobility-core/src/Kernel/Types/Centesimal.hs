@@ -14,11 +14,11 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Kernel.Types.Centesimal (Centesimal (..)) where
+module Kernel.Types.Centesimal (Centesimal (..), toCentesimal) where
 
 import Control.Lens.Operators
 import Data.Aeson
-import Data.Fixed (Centi)
+import Data.Fixed (Centi, Fixed (MkFixed))
 import Data.OpenApi
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto
@@ -44,6 +44,9 @@ message :: Text
 message =
   "Maximum allowed precision (total number of digits) is "
     <> show maxPrecision
+
+toCentesimal :: Int -> Centesimal
+toCentesimal = Centesimal . MkFixed . toInteger
 
 instance ToSchema Centesimal where
   declareNamedSchema _ = do
