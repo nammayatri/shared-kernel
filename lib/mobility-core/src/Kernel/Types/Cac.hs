@@ -1,5 +1,7 @@
 module Kernel.Types.Cac where
 
+import Data.Aeson
+
 data CACValue a = CACValue
   { cacValue :: Value
   }
