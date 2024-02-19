@@ -257,6 +257,7 @@ library
       Kernel.Types.Beckn.IndianState
       Kernel.Types.Beckn.ReqTypes
       Kernel.Types.BecknRequest
+      Kernel.Types.Cac
       Kernel.Types.Cache
       Kernel.Types.CacheFlow
       Kernel.Types.Centesimal
