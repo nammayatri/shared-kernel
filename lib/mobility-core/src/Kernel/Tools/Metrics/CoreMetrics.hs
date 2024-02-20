@@ -21,7 +21,6 @@ module Kernel.Tools.Metrics.CoreMetrics
 where
 
 import Data.Text as DT
-import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude as E
 import Kernel.Tools.Metrics.CoreMetrics.Types as Reexport
@@ -92,7 +91,7 @@ addDatastoreLatencyImplementation ::
   ) =>
   Text ->
   Text ->
-  NominalDiffTime ->
+  Milliseconds ->
   m ()
 addDatastoreLatencyImplementation storeType operation latency = do
   cmContainer <- asks (.coreMetrics)
@@ -101,7 +100,7 @@ addDatastoreLatencyImplementation storeType operation latency = do
     P.withLabel
       cmContainer.datastoresLatency
       (storeType, operation, version.getDeploymentVersion)
-      (`P.observe` (fromIntegral $ div (fromEnum . nominalDiffTimeToSeconds $ latency) 1000000000000))
+      (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
 
 incrementSortedSetCounterImplementation ::
   ( HasCoreMetrics r,
@@ -223,7 +222,7 @@ addGenericLatencyImplementation ::
     MonadReader r m
   ) =>
   Text ->
-  NominalDiffTime ->
+  Milliseconds ->
   m ()
 addGenericLatencyImplementation operation latency = do
   cmContainer <- asks (.coreMetrics)
@@ -232,7 +231,7 @@ addGenericLatencyImplementation operation latency = do
     P.withLabel
       cmContainer.genericLatency
       (operation, version.getDeploymentVersion)
-      (`P.observe` (fromIntegral $ div (fromEnum . nominalDiffTimeToSeconds $ latency) 1000000000000))
+      (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
 
 incrementSchedulerFailureCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
 incrementSchedulerFailureCounterImplementation' cmContainers context version = do

@@ -609,6 +609,19 @@ xAdd key entryId fieldValues = withLogTag "Redis" $ do
       pure ""
     Right items -> pure items
 
+zRangeByScoreByCount :: (HedisFlow m env) => Text -> Double -> Double -> Integer -> Integer -> m [BS.ByteString]
+zRangeByScoreByCount key start end offset limit = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "zRangeByScoreByCount" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zrangebyscoreLimit prefKey start end offset limit)
+    whenLeft res (withLogTag "STANDALONE" . logTagInfo "FAILED_TO_ZRANGEBYSCOREBYCOUNT" . show)
+  res <- withTimeRedis "RedisCluster" "zRangeByScoreByCount" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.zrangebyscoreLimit prefKey start end offset limit)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZRANGEBYSCOREBYCOUNT" $ show err
+      pure [] -- Return an empty list if there was an error
+    Right items -> pure items
+
 zRangeByScore :: (HedisFlow m env) => Text -> Double -> Double -> m [BS.ByteString]
 zRangeByScore key start end = withLogTag "Redis" $ do
   migrating <- asks (.hedisMigrationStage)

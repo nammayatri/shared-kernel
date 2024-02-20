@@ -25,6 +25,7 @@ withTimeRedis ::
     HedisFlow m r,
     Log m,
     Monad m,
+    MonadClock m,
     MonadTime m,
     CoreMetrics m
   ) =>
@@ -41,6 +42,7 @@ withTime ::
   ( MonadReader r m,
     Log m,
     Monad m,
+    MonadClock m,
     MonadTime m,
     CoreMetrics m
   ) =>
@@ -51,13 +53,26 @@ withTime ::
   m a ->
   m a
 withTime storeType operationName enableKibanaLatencyLogging enablePrometheusMetricLogging operation = do
-  btime <- getCurrentTime
-  res <- operation
-  atime <- getCurrentTime
-  let latency = diffUTCTime atime btime
+  (res, latency) <- measureDuration operation
   when enableKibanaLatencyLogging $ logTagInfo (storeType <> ":" <> operationName) $ show latency
   when enablePrometheusMetricLogging $ addDatastoreLatency storeType operationName latency
   pure res
+
+withTimeGeneric ::
+  ( MonadReader r m,
+    Log m,
+    Monad m,
+    MonadClock m,
+    MonadTime m,
+    CoreMetrics m
+  ) =>
+  Text ->
+  m a ->
+  m (a, Milliseconds)
+withTimeGeneric operationName operation = do
+  (res, latency) <- measureDuration operation
+  addGenericLatency operationName latency
+  pure (res, latency)
 
 withTimeAPI ::
   ( MonadReader r m,
@@ -65,6 +80,7 @@ withTimeAPI ::
     HasField "enableAPIPrometheusMetricLogging" r Bool,
     Log m,
     Monad m,
+    MonadClock m,
     MonadTime m,
     CoreMetrics m
   ) =>

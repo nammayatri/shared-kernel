@@ -21,7 +21,6 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
   )
 where
 
-import Data.Time (NominalDiffTime)
 import EulerHS.Prelude as E
 import GHC.Records.Extra
 import Kernel.Types.Time (Milliseconds)
@@ -59,13 +58,13 @@ newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}
 
 class CoreMetrics m where
   addRequestLatency :: Text -> Text -> Milliseconds -> Either ClientError a -> m ()
-  addDatastoreLatency :: Text -> Text -> NominalDiffTime -> m ()
+  addDatastoreLatency :: Text -> Text -> Milliseconds -> m ()
   incrementErrorCounter :: Text -> SomeException -> m ()
   addUrlCallRetries :: BaseUrl -> Int -> m ()
   addUrlCallRetryFailures :: BaseUrl -> m ()
   incrementSortedSetCounter :: Text -> m ()
   incrementStreamCounter :: Text -> m ()
-  addGenericLatency :: Text -> NominalDiffTime -> m ()
+  addGenericLatency :: Text -> Milliseconds -> m ()
   incrementSchedulerFailureCounter :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
   incrementSystemConfigsFailedCounter :: Text -> m ()
