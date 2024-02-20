@@ -16,14 +16,14 @@ module Kernel.Tools.Logging where
 import qualified Data.HashMap.Internal as HM
 import Data.Time hiding (getCurrentTime)
 import qualified EulerHS.Language as L
-import Kernel.Beam.Lib.UtilsTH (HasSchemaName)
+import Kernel.Beam.Lib.UtilsTH (HasSchemaName, schemaName)
 import qualified Kernel.Beam.Types as KT
 import Kernel.Prelude
 import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Esqueleto.Config (HasEsqEnv)
 import Kernel.Storage.Hedis.Config
 import qualified Kernel.Storage.Queries.SystemConfigs as QSC
-import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
+import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics, incrementSystemConfigsFailedCounter)
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow (HasCacheConfig)
 import Kernel.Types.Logging
@@ -57,7 +57,7 @@ getDynamicLogLevelConfig = do
   if shouldFetchFromDB
     then do
       res <- QSC.findById "log_levels" >>= pure . decodeFromText' @(HM.HashMap Text LogLevel)
-      maybe (pure ()) (L.setOption KT.DynamicLogLevelConfig) res
+      maybe (incrementSystemConfigsFailedCounter ("system_configs_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT) <> "_log_levels")) (L.setOption KT.DynamicLogLevelConfig) res
       void $ L.setOption KT.LogLevelLastUpdatedTime now
       pure res
     else L.getOption KT.DynamicLogLevelConfig

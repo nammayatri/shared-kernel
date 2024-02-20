@@ -70,7 +70,7 @@ withFlowHandler flow = do
       kvConfigUpdateFrequency <- L.getOption KBT.KvConfigUpdateFrequency >>= maybe (pure 10) pure
       when (round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency) $
         findById "kv_configs" >>= pure . decodeFromText' @Tables
-          >>= maybe (incrementKvConfigFailedCounter ("kv_config_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT))) (\result' -> L.setOption KBT.Tables result' >> L.setOption KBT.KvConfigLastUpdatedTime now)
+          >>= maybe (incrementSystemConfigsFailedCounter ("kv_config_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT))) (\result' -> L.setOption KBT.Tables result' >> L.setOption KBT.KvConfigLastUpdatedTime now)
 
 -- in case of normal flow use withFlowHandler' as it does not have any extra constraints
 withFlowHandler' ::
