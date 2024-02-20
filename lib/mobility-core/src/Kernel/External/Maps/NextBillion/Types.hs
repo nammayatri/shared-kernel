@@ -14,11 +14,11 @@
 {-# LANGUAGE DerivingVia #-}
 
 module Kernel.External.Maps.NextBillion.Types
-  ( DirectionsResp,
-    Route,
+  ( module Kernel.External.Maps.NextBillion.Types,
   )
 where
 
+import Kernel.External.Maps.Types (LatLong)
 import Kernel.Prelude
 
 data DirectionsResp = DirectionsResp
@@ -31,5 +31,14 @@ data Route = Route
   { geometry :: Text,
     distance :: Double, -- meters
     duration :: Double -- seconds
+  }
+  deriving (Generic, ToJSON, FromJSON, Show, Eq)
+
+data GetRoutesRequest = GetRoutesRequest
+  { waypoints :: NonEmpty LatLong,
+    alternatives :: Maybe Bool,
+    altcount :: Maybe Int,
+    routeType :: Maybe Text,
+    option :: Maybe Text
   }
   deriving (Generic, ToJSON, FromJSON, Show, Eq)

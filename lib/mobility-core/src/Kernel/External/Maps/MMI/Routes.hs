@@ -28,18 +28,19 @@ import Servant hiding (throwError)
 type MMIRouteAPI =
   "advancedmaps" :> "v1"
     :> Capture "Authorization" Text
-    :> "route_eta"
+    :> "route_traffic"
     :> "driving"
     :> Capture "cordinates" Text
     :> QueryParam "steps" Bool
     :> QueryParam "region" Text
     :> QueryParam "overview" Text
+    :> QueryParam "alternatives" Int
     :> Get '[JSON] MMI.RouteResponse
 
 mmiRouteAPI :: Proxy MMIRouteAPI
 mmiRouteAPI = Proxy
 
-getRouteClient :: Text -> Text -> Maybe Bool -> Maybe Text -> Maybe Text -> ET.EulerClient MMI.RouteResponse
+getRouteClient :: Text -> Text -> Maybe Bool -> Maybe Text -> Maybe Text -> Maybe Int -> ET.EulerClient MMI.RouteResponse
 getRouteClient = ET.client mmiRouteAPI
 
 mmiRoute ::
@@ -54,7 +55,7 @@ mmiRoute ::
 mmiRoute url apiKey points = do
   callMMIAPI
     url
-    (getRouteClient apiKey points (Just True) (Just "ind") (Just "full"))
+    (getRouteClient apiKey points (Just True) (Just "ind") (Just "full") (Just 3))
     "mmi-route"
     mmiRouteAPI
 
