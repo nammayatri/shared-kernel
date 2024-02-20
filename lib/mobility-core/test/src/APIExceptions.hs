@@ -70,7 +70,7 @@ instance Metrics.CoreMetrics IO where
   addGenericLatency _ _ = return ()
   incrementSchedulerFailureCounter _ = return ()
   incrementGenericMetrics _ = return ()
-  incrementKvConfigFailedCounter _ = return ()
+  incrementSystemConfigsFailedCounter _ = return ()
 
 httpExceptionTests :: TestTree
 httpExceptionTests =

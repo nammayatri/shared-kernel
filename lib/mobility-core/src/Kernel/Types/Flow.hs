@@ -218,7 +218,7 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   addGenericLatency = Metrics.addGenericLatencyImplementation
   incrementSchedulerFailureCounter = Metrics.incrementSchedulerFailureCounterImplementation
   incrementGenericMetrics = Metrics.incrementGenericMetrics'
-  incrementKvConfigFailedCounter = Metrics.incrementKvConfigFailedCounter'
+  incrementSystemConfigsFailedCounter = Metrics.incrementSystemConfigsFailedCounter'
 
 instance MonadMonitor (FlowR r) where
   doIO = liftIO
