@@ -15,6 +15,7 @@
 module Kernel.External.Maps.Interface.NextBillion
   ( module Reexport,
     getRoutes,
+    getRoutesWithExtraParameters,
   )
 where
 
@@ -61,6 +62,10 @@ latLongToPlace :: LatLong -> GoogleMaps.Place
 latLongToPlace LatLong {..} =
   GoogleMaps.Location $ GoogleMaps.LocationS {lat = lat, lng = lon}
 
+getWayPoints :: [LatLong] -> Maybe [GoogleMaps.Place]
+getWayPoints [] = Nothing
+getWayPoints waypoints = Just (map latLongToPlace waypoints)
+
 getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -76,11 +81,24 @@ getRoutes cfg req = do
       destination = latLongToPlace routeProxyReq.destination
       waypoints = getWayPoints routeProxyReq.waypoints
   key <- decrypt cfg.nextBillionKey
-  res <- NB.directions url key origin destination waypoints
+  res <- NB.directions url key origin destination waypoints Nothing Nothing Nothing Nothing
   let allRoutes = map convertToRoute res.routes
   return $ allRoutes
-  where
-    getWayPoints waypoints =
-      case waypoints of
-        [] -> Nothing
-        _ -> Just (map latLongToPlace waypoints)
+
+getRoutesWithExtraParameters ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Log m
+  ) =>
+  NextBillionCfg ->
+  NextBillion.GetRoutesRequest ->
+  m GetRoutesResp
+getRoutesWithExtraParameters cfg req = do
+  let url = cfg.nextBillionDirectionsUrl
+      origin = latLongToPlace $ NE.head req.waypoints
+      destination = latLongToPlace $ NE.last req.waypoints
+      waypoints = getWayPoints $ originAndDestinationRemover $ NE.toList req.waypoints
+  key <- decrypt cfg.nextBillionKey
+  res <- NB.directions url key origin destination waypoints req.alternatives req.altcount req.routeType req.option
+  let allRoutes = map convertToRoute res.routes
+  return $ allRoutes

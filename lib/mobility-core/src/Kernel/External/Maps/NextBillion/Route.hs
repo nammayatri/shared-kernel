@@ -37,6 +37,9 @@ type DirectionsAPI =
     :> QueryParam "waypoints" [Place]
     :> QueryParam "alternatives" Bool
     :> QueryParam "altcount" Int
+    :> QueryParam "route_type" Text
+    :> QueryParam "option" Text
+    :> QueryParam "mode" Text
     :> Get '[JSON] NextBillion.DirectionsResp
 
 directionsClient ::
@@ -46,6 +49,9 @@ directionsClient ::
   Maybe [Place] ->
   Maybe Bool ->
   Maybe Int ->
+  Maybe Text ->
+  Maybe Text ->
+  Maybe Text ->
   EulerClient NextBillion.DirectionsResp
 directionsClient = client (Proxy :: Proxy DirectionsAPI)
 
@@ -59,7 +65,11 @@ directions ::
   Place ->
   Place ->
   Maybe [Place] ->
+  Maybe Bool ->
+  Maybe Int ->
+  Maybe Text ->
+  Maybe Text ->
   m NextBillion.DirectionsResp
-directions url key origin destination waypoints = do
-  callAPI url (directionsClient origin destination key waypoints (Just True) Nothing) "next-billion-route" (Proxy @DirectionsAPI)
+directions url key origin destination waypoints alternatives altcount routeType option = do
+  callAPI url (directionsClient origin destination key waypoints alternatives altcount routeType option (Just "4w")) "next-billion-route" (Proxy @DirectionsAPI)
     >>= fromEitherM (FailedToCallNextBillionRouteAPI . show)
