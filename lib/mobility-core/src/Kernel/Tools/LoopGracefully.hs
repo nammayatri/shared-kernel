@@ -17,7 +17,6 @@ import GHC.Conc (TVar, atomically, newTVarIO, readTVarIO, writeTVar)
 import Kernel.Prelude hiding (loop)
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.Common (fork)
-import System.IO (BufferMode (NoBuffering), hSetBuffering, stdout)
 import System.Posix.Signals (Handler (Catch), installHandler, sigINT, sigTERM)
 
 loopGracefully :: forall m a. (MonadFlow m) => [m a] -> m ()
@@ -25,7 +24,6 @@ loopGracefully fns = do
   stop <-
     liftIO do
       stop <- newTVarIO 1
-      hSetBuffering stdout NoBuffering
       _ <- installHandler sigINT (Catch $ onSigInt stop) Nothing
       _ <- installHandler sigTERM (Catch $ onSigTerm stop) Nothing
       pure stop
