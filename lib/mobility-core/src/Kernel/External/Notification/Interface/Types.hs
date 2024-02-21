@@ -62,7 +62,10 @@ data Category
   | SOS_MOCK_DRILL
   | SOS_RESOLVED
   | EMERGENCY_CONTACT_ADDED
-  deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  | SOS_MOCK_DRILL_NOTIFY
+  deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
+
+$(mkBeamInstancesForEnum ''Category)
 
 data SubCategory
   = ByUser
