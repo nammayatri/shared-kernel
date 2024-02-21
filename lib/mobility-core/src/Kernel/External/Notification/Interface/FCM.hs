@@ -95,6 +95,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.SOS_MOCK_DRILL -> FCM.SOS_MOCK_DRILL
   Interface.SOS_RESOLVED -> FCM.SOS_RESOLVED
   Interface.EMERGENCY_CONTACT_ADDED -> FCM.EMERGENCY_CONTACT_ADDED
+  Interface.SOS_MOCK_DRILL_NOTIFY -> FCM.SOS_MOCK_DRILL_NOTIFY
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
