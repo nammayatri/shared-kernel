@@ -153,6 +153,7 @@ data FCMNotificationType
   | SOS_MOCK_DRILL
   | SOS_RESOLVED
   | EMERGENCY_CONTACT_ADDED
+  | SOS_MOCK_DRILL_NOTIFY
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
