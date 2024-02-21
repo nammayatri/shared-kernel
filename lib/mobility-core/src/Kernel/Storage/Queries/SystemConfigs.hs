@@ -20,9 +20,7 @@ findById cfgId = do
     >>= maybe (incrementSystemConfigsFailedCounter ("system_configs_find_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT) <> "_" <> cfgId) >> pure Nothing) (pure . Just)
 
 findById' :: (CacheFlow m r, EsqDBFlow m r, HasSchemaName BeamSC.SystemConfigsT) => Text -> m (Domain.SystemConfigs)
-findById' cfgId = do
-  config <- findOneWithDb [Se.Is BeamSC.id $ Se.Eq cfgId]
-  maybe (L.throwException $ InternalError "Not able to find CAC config by id") pure config
+findById' cfgId = findOneWithDb [Se.Is BeamSC.id $ Se.Eq cfgId] >>= maybe (L.throwException $ InternalError "Not able to find CAC config by id") pure
 
 instance FromTType' BeamSC.SystemConfigs Domain.SystemConfigs where
   fromTType' BeamSC.SystemConfigsT {..} = do
