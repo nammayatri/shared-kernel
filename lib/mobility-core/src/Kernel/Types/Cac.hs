@@ -7,4 +7,4 @@ data CACValue a = CACValue
   }
 
 class FromJSONCAC a where
-  fromJSONCAC :: FromJSON a => CACValue a -> a
+  fromJSONCAC :: FromJSON a => CACValue a -> Result a
