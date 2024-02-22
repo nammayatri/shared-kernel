@@ -25,8 +25,10 @@ import qualified Data.Text as T
 import Data.Time hiding (getCurrentTime, nominalDiffTimeToSeconds, secondsToNominalDiffTime)
 import qualified Data.Time as Time hiding (secondsToNominalDiffTime)
 import Data.Time.Clock.System
+import Data.Time.Format.ISO8601
 import EulerHS.Prelude
 import Kernel.Types.Time
+import Kernel.Types.TimeRFC339
 import Kernel.Utils.Logging
 import System.Clock (toNanoSecs)
 
@@ -142,3 +144,31 @@ isTimeWithinBounds startTime endTime time =
 
 utcTimeToDiffTime :: UTCTime -> DiffTime
 utcTimeToDiffTime = timeOfDayToTime . localTimeOfDay . zonedTimeToLocalTime . utcToZonedTime utc
+
+isTtlExpired :: Monad m => Text -> UTCTimeRFC3339 -> UTCTime -> m Bool
+isTtlExpired isoDuration isoTimestamp currTime =
+  case parseISO8601Duration isoDuration of
+    Just duration -> pure $ duration <= timeDiffInSeconds isoTimestamp currTime
+    Nothing -> pure False
+
+timeDiffInSeconds :: UTCTimeRFC3339 -> UTCTime -> NominalDiffTime
+timeDiffInSeconds isoTime curUtcTime = secondsToNominalDiffTime (round $ diffUTCTime curUtcTime (convertRFC3339ToUTC isoTime))
+
+-- Parse ISO8601 duration and return the number of seconds
+parseISO8601Duration :: Text -> Maybe NominalDiffTime
+parseISO8601Duration durationStr = do
+  (calenderDiffernceTime :: CalendarDiffTime) <- iso8601ParseM $ T.unpack durationStr
+  Just $ ctTime calenderDiffernceTime
+
+formatTimeDifference :: NominalDiffTime -> Text
+formatTimeDifference duration =
+  let secondsDiff = fromEnum . nominalDiffTimeToSeconds $ duration
+      (hours, remainingSeconds) = divMod secondsDiff (3600 :: Int)
+      (minutes, seconds) = divMod remainingSeconds 60
+      hoursPart = if hours > 0 then show hours <> "H" else ""
+      minutesPart = if minutes > 0 then show minutes <> "M" else ""
+      secondsPart = if seconds > 0 then show seconds <> "S" else ""
+   in "PT" <> hoursPart <> minutesPart <> secondsPart
+
+addDurationToUTCTime :: UTCTime -> NominalDiffTime -> UTCTime
+addDurationToUTCTime time duration = addUTCTime duration time
