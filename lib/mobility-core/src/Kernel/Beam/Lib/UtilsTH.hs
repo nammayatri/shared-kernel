@@ -41,6 +41,7 @@ import Language.Haskell.TH
 import qualified Sequelize as S
 import Sequelize.SQLObject (SQLObject (..), ToSQLObject (convertToSQLObject))
 import Text.Casing (camel, quietSnake)
+import Text.Hex (encodeHex)
 import Prelude (head)
 import qualified Prelude as P
 
@@ -51,7 +52,7 @@ class HasSchemaName tn where
 --- SQLObject ---
 
 instance {-# OVERLAPPING #-} ToSQLObject DbHash where
-  convertToSQLObject = SQLObjectValue . encodeToText
+  convertToSQLObject = SQLObjectValue . show . ("\\x" <>) . encodeHex . unDbHash
 
 --- templates ---
 
