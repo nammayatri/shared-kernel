@@ -67,6 +67,7 @@ instance FromJSON City where
   parseJSON (String "std:001") = pure Paris
   parseJSON (String "Paris") = pure Paris
   parseJSON (String "std:484") = pure Kochi
+  parseJSON (String "std:0484") = pure Kochi
   parseJSON (String "Kochi") = pure Kochi
   parseJSON (String "std:011") = pure Delhi
   parseJSON (String "Delhi") = pure Delhi
@@ -111,7 +112,7 @@ instance ToJSON City where
   toJSON Bangalore = String "std:080"
   toJSON Kolkata = String "std:033"
   toJSON Paris = String "std:001"
-  toJSON Kochi = String "std:484"
+  toJSON Kochi = String "std:0484"
   toJSON Delhi = String "std:011"
   toJSON Hyderabad = String "std:040"
   toJSON Mumbai = String "std:022"
@@ -144,6 +145,7 @@ instance FromHttpApiData City where
       parseLowerCaseCity "std:001" = Right Paris
       parseLowerCaseCity "paris" = Right Paris
       parseLowerCaseCity "std:484" = Right Kochi
+      parseLowerCaseCity "std:0484" = Right Kochi
       parseLowerCaseCity "kochi" = Right Kochi
       parseLowerCaseCity "std:011" = Right Delhi
       parseLowerCaseCity "delhi" = Right Delhi
