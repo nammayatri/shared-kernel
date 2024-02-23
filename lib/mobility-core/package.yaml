@@ -153,6 +153,8 @@ dependencies:
   - concurrency
   - casing
   - slack-web
+  - hgeometry
+  - hgeometry-combinatorial
 
 ghc-options:
   - -fwrite-ide-info

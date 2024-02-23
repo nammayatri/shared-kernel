@@ -14,6 +14,8 @@
 
 module Kernel.External.Maps.OSRM.Config where
 
+import Data.Aeson.Types
+import qualified Data.HashMap.Strict as HM
 import Kernel.Prelude
 import Kernel.Types.Common
 
@@ -22,3 +24,21 @@ data OSRMCfg = OSRMCfg
     radiusDeviation :: Maybe Meters
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data OSRMShardedCfg = OSRMShardedCfg
+  { cityToRegionUrlMap :: HM.HashMap Text BaseUrl,
+    radiusDeviation :: Maybe Meters
+  }
+  deriving (Show, Eq, Generic, ToJSON)
+
+data OSRMConfig = OSRMSimpleConfig OSRMCfg | OSRMShardedConfig OSRMShardedCfg
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+instance FromJSON OSRMShardedCfg where
+  parseJSON = withObject "OSRMShardedCfg" $ \o -> do
+    cityToRegionUrlMap <- o .: "cityToRegionUrlMap" >>= parseHashMap
+    radiusDeviation <- o .:? "radiusDeviation"
+    return OSRMShardedCfg {..}
+    where
+      parseHashMap :: Value -> Parser (HM.HashMap Text BaseUrl)
+      parseHashMap = parseJSON

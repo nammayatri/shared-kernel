@@ -39,13 +39,13 @@ import Database.PostgreSQL.Simple.FromField (FromField (fromField))
 import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import qualified Debug.Trace as T
 import Deriving.Aeson
-import EulerHS.Prelude
 import qualified Kernel.External.Maps.Google.Config as Google
 import qualified Kernel.External.Maps.MMI.Config as MMI
 import qualified Kernel.External.Maps.NextBillion.Config as NextBillion
 import qualified Kernel.External.Maps.OSRM.Config as OSRM
 import Kernel.External.Maps.Types
 import Kernel.External.Types (Language)
+import Kernel.Prelude
 import Kernel.Types.Common
 import Kernel.Utils.GenericPretty (PrettyShow)
 
@@ -55,7 +55,7 @@ data SnapToRoadHandler m = SnapToRoadHandler
     getProviderConfig :: MapsService -> m MapsServiceConfig
   }
 
-data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg | NextBillionConfig NextBillion.NextBillionCfg
+data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMConfig | MMIConfig MMI.MMICfg | NextBillionConfig NextBillion.NextBillionCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MapsServiceConfig
 
