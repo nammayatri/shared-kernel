@@ -28,12 +28,12 @@ class ClickhouseDb db
 class (ClickhouseDb db, MonadFlow m) => HasClickhouseEnv db m where
   getClickhouseEnv :: Proxy db -> m ClickhouseEnv
 
-data ATLAS_DRIVER_OFFER_BPP
+data APP_SERVICE_CLICKHOUSE
 
-instance ClickhouseDb ATLAS_DRIVER_OFFER_BPP
+instance ClickhouseDb APP_SERVICE_CLICKHOUSE
 
-instance (MonadFlow m, MonadReader r m, HasField "driverClickhouseEnv" r ClickhouseEnv) => HasClickhouseEnv ATLAS_DRIVER_OFFER_BPP m where
-  getClickhouseEnv _ = asks (.driverClickhouseEnv)
+instance (MonadFlow m, MonadReader r m, HasField "serviceClickhouseEnv" r ClickhouseEnv) => HasClickhouseEnv APP_SERVICE_CLICKHOUSE m where
+  getClickhouseEnv _ = asks (.serviceClickhouseEnv)
 
 data ATLAS_KAFKA
 

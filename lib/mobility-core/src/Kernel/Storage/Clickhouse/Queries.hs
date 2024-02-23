@@ -53,7 +53,7 @@ __offset = addClause
 runClickhouse :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => (HttpConnection -> IO (Either String a)) -> ClickhouseDb -> m (Either String a)
 runClickhouse action db = do
   con <- case db of
-    ATLAS_DRIVER_OFFER_BPP -> asks (.driverClickhouseEnv.connection)
+    APP_SERVICE_CLICKHOUSE -> asks (.serviceClickhouseEnv.connection)
     ATLAS_KAFKA -> asks (.kafkaClickhouseEnv.connection)
   L.runIO $ action con
 

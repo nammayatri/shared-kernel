@@ -24,7 +24,7 @@ import qualified Data.Scientific as Sci
 import qualified Data.Text as T
 import qualified Data.Time as Time
 import Kernel.Prelude
-import Kernel.Types.Common (Centesimal)
+import Kernel.Types.Common (Centesimal, HighPrecMeters, HighPrecMoney)
 import Kernel.Types.Id
 import qualified Text.Read as T
 
@@ -50,7 +50,13 @@ class (Show a, Read a) => ClickhouseValue a where
   fromClickhouseValue (Number _) = fail "Unexpected Number"
   fromClickhouseValue Null = fail "Unexpected Null"
 
--- For ATLAS_KAFKA env we store numbers as String, for ATLAS_DRIVER_OFFER_BPP env we store as Number. So we should be able to parse both
+-- For ATLAS_KAFKA env we store numbers as String, for APP_SERVICE_CLICKHOUSE env we store as Number. So we should be able to parse both
+instance ClickhouseValue HighPrecMoney where
+  fromClickhouseValue = parseAsStringOrNumber @HighPrecMoney
+
+instance ClickhouseValue HighPrecMeters where
+  fromClickhouseValue = parseAsStringOrNumber @HighPrecMeters
+
 instance ClickhouseValue Double where
   fromClickhouseValue = parseAsStringOrNumber @Double
 
@@ -81,6 +87,8 @@ instance ClickhouseValue Bool where
   fromClickhouseValue (String _) = fail "Supported format for Bool: 0, 1, false, true, False, True"
   fromClickhouseValue _ = fail "Unexpected Null"
 
+instance ClickhouseValue Text
+
 instance ClickhouseValue Time.Day
 
 instance ClickhouseValue UTCTime where
@@ -108,6 +116,12 @@ instance MonadFail Except where
 instance ClickhouseValue (Id a) where
   toClickhouseValue = String . T.unpack . getId
   fromClickhouseValue (String str) = pure . Id . T.pack $ str
+  fromClickhouseValue (Number _) = fail "Unexpected Number"
+  fromClickhouseValue Null = fail "Unexpected Null"
+
+instance ClickhouseValue (ShortId a) where
+  toClickhouseValue = String . T.unpack . getShortId
+  fromClickhouseValue (String str) = pure . ShortId . T.pack $ str
   fromClickhouseValue (Number _) = fail "Unexpected Number"
   fromClickhouseValue Null = fail "Unexpected Null"
 
