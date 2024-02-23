@@ -10,7 +10,7 @@ import Kernel.Types.Common
 import Kernel.Utils.Dhall (FromDhall)
 
 type ClickhouseFlow m env =
-  (MonadReader env m, HasField "kafkaClickhouseEnv" env ClickhouseEnv, HasField "driverClickhouseEnv" env ClickhouseEnv, MonadIO m, C.MonadThrow m, Log m)
+  (MonadReader env m, HasField "kafkaClickhouseEnv" env ClickhouseEnv, HasField "serviceClickhouseEnv" env ClickhouseEnv, MonadIO m, C.MonadThrow m, Log m)
 
 data ClickhouseCfg = ClickhouseCfg
   { username :: Text,
@@ -22,7 +22,7 @@ data ClickhouseCfg = ClickhouseCfg
   }
   deriving (Generic, FromDhall)
 
-data ClickhouseDb = ATLAS_DRIVER_OFFER_BPP | ATLAS_KAFKA
+data ClickhouseDb = APP_SERVICE_CLICKHOUSE | ATLAS_KAFKA
 
 newtype ClickhouseEnv = ClickhouseEnv
   { connection :: CH.HttpConnection
