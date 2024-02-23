@@ -45,7 +45,8 @@ instance FromField GeoRestriction where
   fromField = fromFieldEnum'
 
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be GeoRestriction where
-  sqlValueSyntax = autoSqlValueSyntax
+  sqlValueSyntax Unrestricted = autoSqlValueSyntax Unrestricted
+  sqlValueSyntax (Regions regions) = autoSqlValueSyntax regions
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be GeoRestriction
 
