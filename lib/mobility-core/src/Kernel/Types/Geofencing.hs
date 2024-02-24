@@ -16,6 +16,7 @@
 
 module Kernel.Types.Geofencing where
 
+import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Database.Beam as B
 import Database.Beam.Backend
@@ -45,8 +46,8 @@ instance FromField GeoRestriction where
   fromField = fromFieldEnum'
 
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be GeoRestriction where
-  sqlValueSyntax Unrestricted = autoSqlValueSyntax Unrestricted
-  sqlValueSyntax (Regions regions) = autoSqlValueSyntax regions
+  sqlValueSyntax Unrestricted = sqlValueSyntax []
+  sqlValueSyntax (Regions regions) = sqlValueSyntax regions
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be GeoRestriction
 
