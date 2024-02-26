@@ -45,9 +45,9 @@ fromFieldEnum' f mbValue = case mbValue of
 instance FromField GeoRestriction where
   fromField = fromFieldEnum'
 
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be GeoRestriction where
-  sqlValueSyntax Unrestricted = sqlValueSyntax []
-  sqlValueSyntax (Regions regions) = sqlValueSyntax regions
+instance HasSqlValueSyntax be (V.Vector Text) => HasSqlValueSyntax be GeoRestriction where
+  sqlValueSyntax Unrestricted = sqlValueSyntax V.empty
+  sqlValueSyntax (Regions regions) = sqlValueSyntax (V.fromList regions)
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be GeoRestriction
 
