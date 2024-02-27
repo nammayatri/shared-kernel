@@ -19,17 +19,27 @@ module Kernel.External.Whatsapp.Types
   )
 where
 
+import Data.Aeson as A
 import Data.OpenApi
+import qualified Data.Text as T
 import Database.Beam.Backend
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForList)
+import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data WhatsappService = GupShup
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Read, Eq, Ord, Generic, ToSchema)
 
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be WhatsappService where
   sqlValueSyntax = autoSqlValueSyntax
+
+instance FromJSON WhatsappService where -- remove this instance once you add more constructors to WhatsappService type.
+  parseJSON (A.String val) = pure $ fromMaybe (error $ "failed to parse String " <> val <> " in WhatsappService type") (KP.readMaybe $ T.unpack val)
+  parseJSON _ = error "unexpected type, expected String for WhatsappService"
+
+instance ToJSON WhatsappService where
+  toJSON GupShup = A.String (show GupShup)
 
 availableWhatsappServices :: [WhatsappService]
 availableWhatsappServices = [GupShup]
