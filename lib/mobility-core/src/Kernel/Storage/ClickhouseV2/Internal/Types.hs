@@ -91,6 +91,10 @@ instance (ClickhouseTable t, C5 ClickhouseValue v1 v2 v3 v4 v5) => IsGroupColumn
   type GroupColumnsType (T5 (Column 'NOT_AGG t) v1 v2 v3 v4 v5) = (T5 (Column 'AGG t) v1 v2 v3 v4 v5)
   groupColumns (c1, c2, c3, c4, c5) = (Group @t @v1 c1, Group @t @v2 c2, Group @t @v3 c3, Group @t @v4 c4, Group @t @v5 c5)
 
+instance (ClickhouseTable t, C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => IsGroupColumns (T6 (Column 'NOT_AGG t) v1 v2 v3 v4 v5 v6) where
+  type GroupColumnsType (T6 (Column 'NOT_AGG t) v1 v2 v3 v4 v5 v6) = (T6 (Column 'AGG t) v1 v2 v3 v4 v5 v6)
+  groupColumns (c1, c2, c3, c4, c5, c6) = (Group @t @v1 c1, Group @t @v2 c2, Group @t @v3 c3, Group @t @v4 c4, Group @t @v5 c5, Group @t @v6 c6)
+
 data NotGrouped
 
 data GroupBy (a :: IsAggregated) gr where
@@ -115,6 +119,8 @@ instance (ClickhouseTable t, C3 ClickhouseValue v1 v2 v3) => IsOrderColumns (T3 
 instance (ClickhouseTable t, C4 ClickhouseValue v1 v2 v3 v4) => IsOrderColumns (T4 (Column a t) v1 v2 v3 v4)
 
 instance (ClickhouseTable t, C5 ClickhouseValue v1 v2 v3 v4 v5) => IsOrderColumns (T5 (Column a t) v1 v2 v3 v4 v5)
+
+instance (ClickhouseTable t, C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => IsOrderColumns (T6 (Column a t) v1 v2 v3 v4 v5 v6)
 
 data Q db table cols ord = (ClickhouseDb db) =>
   Q
@@ -157,6 +163,8 @@ type T4 (c :: Type -> Type) x1 x2 x3 x4 = (c x1, c x2, c x3, c x4)
 
 type T5 (c :: Type -> Type) x1 x2 x3 x4 x5 = (c x1, c x2, c x3, c x4, c x5)
 
+type T6 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 = (c x1, c x2, c x3, c x4, c x5, c x6)
+
 type C2 (c :: Type -> Constraint) x1 x2 = (c x1, c x2)
 
 type C3 (c :: Type -> Constraint) x1 x2 x3 = (c x1, c x2, c x3)
@@ -164,3 +172,5 @@ type C3 (c :: Type -> Constraint) x1 x2 x3 = (c x1, c x2, c x3)
 type C4 (c :: Type -> Constraint) x1 x2 x3 x4 = (c x1, c x2, c x3, c x4)
 
 type C5 (c :: Type -> Constraint) x1 x2 x3 x4 x5 = (c x1, c x2, c x3, c x4, c x5)
+
+type C6 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 = (c x1, c x2, c x3, c x4, c x5, c x6)

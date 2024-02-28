@@ -62,6 +62,11 @@ instance (C5 ClickhouseValue v1 v2 v3 v4 v5) => ClickhouseColumns a (T5 (Column 
   showClickhouseColumns _ = zipColumnsWithSynonyms5
   parseColumns _ = parseColumns5
 
+instance (C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => ClickhouseColumns a (T6 (Column a t) v1 v2 v3 v4 v5 v6) where
+  type ColumnsType a (T6 (Column a t) v1 v2 v3 v4 v5 v6) = (v1, v2, v3, v4, v5, v6)
+  showClickhouseColumns _ = zipColumnsWithSynonyms6
+  parseColumns _ = parseColumns6
+
 -- we need to create map of values with different types
 data NotSpecified
 
@@ -129,6 +134,22 @@ parseColumns5 (c1, c2, c3, c4, c5) json = do
   v5 <- parseValueFromMap @a @t @v5 5 c5 mapResult
   pure (v1, v2, v3, v4, v5)
 
+parseColumns6 ::
+  forall a t v1 v2 v3 v4 v5 v6.
+  (C6 ClickhouseValue v1 v2 v3 v4 v5 v6) =>
+  T6 (Column a t) v1 v2 v3 v4 v5 v6 ->
+  A.Value ->
+  Either String (v1, v2, v3, v4, v5, v6)
+parseColumns6 (c1, c2, c3, c4, c5, c6) json = do
+  mapResult <- eitherResult . A.fromJSON @(A.KeyMap (Value NotSpecified)) $ json
+  v1 <- parseValueFromMap @a @t @v1 1 c1 mapResult
+  v2 <- parseValueFromMap @a @t @v2 2 c2 mapResult
+  v3 <- parseValueFromMap @a @t @v3 3 c3 mapResult
+  v4 <- parseValueFromMap @a @t @v4 4 c4 mapResult
+  v5 <- parseValueFromMap @a @t @v5 5 c5 mapResult
+  v6 <- parseValueFromMap @a @t @v6 6 c6 mapResult
+  pure (v1, v2, v3, v4, v5, v6)
+
 -- FIXME should parse Numbers also
 parseValueFromMap ::
   forall a t v.
@@ -159,6 +180,9 @@ zipColumnsWithSynonyms4 (c1, c2, c3, c4) = zipColumns [showColumn c1, showColumn
 
 zipColumnsWithSynonyms5 :: T5 (Column a t) v1 v2 v3 v4 v5 -> String
 zipColumnsWithSynonyms5 (c1, c2, c3, c4, c5) = zipColumns [showColumn c1, showColumn c2, showColumn c3, showColumn c4, showColumn c5]
+
+zipColumnsWithSynonyms6 :: T6 (Column a t) v1 v2 v3 v4 v5 v6 -> String
+zipColumnsWithSynonyms6 (c1, c2, c3, c4, c5, c6) = zipColumns [showColumn c1, showColumn c2, showColumn c3, showColumn c4, showColumn c5, showColumn c6]
 
 zipColumns :: [String] -> String
 zipColumns columns = List.intercalate ", " $ zipWith (\n column -> column <> " as " <> getColumnSynonym n) [1 ..] columns
