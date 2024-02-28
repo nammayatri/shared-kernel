@@ -154,7 +154,7 @@ instance FromHttpApiData City where
       parseLowerCaseCity "std:044" = Right Chennai
       parseLowerCaseCity "chennai" = Right Chennai
       parseLowerCaseCity "std:0422" = Right TamilNaduCities
-      parseLowerCaseCity "TamilNaduCities" = Right TamilNaduCities
+      parseLowerCaseCity "tamilnaducities" = Right TamilNaduCities
       parseLowerCaseCity "std:020" = Right Pune
       parseLowerCaseCity "pune" = Right Pune
       parseLowerCaseCity "std:0413" = Right Pondicherry
