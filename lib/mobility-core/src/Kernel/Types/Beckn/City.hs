@@ -39,7 +39,7 @@ data City
   | Hyderabad
   | Mumbai
   | Chennai
-  | Coimbatore
+  | TamilNaduCities
   | Mysore
   | Pondicherry
   | Pune
@@ -76,8 +76,8 @@ instance FromJSON City where
   parseJSON (String "Mumbai") = pure Mumbai
   parseJSON (String "std:044") = pure Chennai
   parseJSON (String "Chennai") = pure Chennai
-  parseJSON (String "std:0422") = pure Coimbatore
-  parseJSON (String "Coimbatore") = pure Coimbatore
+  parseJSON (String "std:0422") = pure TamilNaduCities
+  parseJSON (String "TamilNaduCities") = pure TamilNaduCities
   parseJSON (String "std:020") = pure Pune
   parseJSON (String "Pune") = pure Pune
   parseJSON (String "std:0413") = pure Pondicherry
@@ -116,7 +116,7 @@ instance ToJSON City where
   toJSON Hyderabad = String "std:040"
   toJSON Mumbai = String "std:022"
   toJSON Chennai = String "std:044"
-  toJSON Coimbatore = String "std:0422"
+  toJSON TamilNaduCities = String "std:0422"
   toJSON Pondicherry = String "std:0413"
   toJSON Pune = String "std:020"
   toJSON Mysore = String "std:0821"
@@ -153,8 +153,8 @@ instance FromHttpApiData City where
       parseLowerCaseCity "mumbai" = Right Mumbai
       parseLowerCaseCity "std:044" = Right Chennai
       parseLowerCaseCity "chennai" = Right Chennai
-      parseLowerCaseCity "std:0422" = Right Coimbatore
-      parseLowerCaseCity "coimbatore" = Right Coimbatore
+      parseLowerCaseCity "std:0422" = Right TamilNaduCities
+      parseLowerCaseCity "TamilNaduCities" = Right TamilNaduCities
       parseLowerCaseCity "std:020" = Right Pune
       parseLowerCaseCity "pune" = Right Pune
       parseLowerCaseCity "std:0413" = Right Pondicherry
@@ -193,7 +193,7 @@ instance ToHttpApiData City where
   toUrlPiece Hyderabad = "std:040"
   toUrlPiece Mumbai = "std:022"
   toUrlPiece Chennai = "std:044"
-  toUrlPiece Coimbatore = "std:0422"
+  toUrlPiece TamilNaduCities = "std:0422"
   toUrlPiece Pondicherry = "std:0413"
   toUrlPiece Pune = "std:020"
   toUrlPiece Mysore = "std:0821"
