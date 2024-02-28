@@ -130,3 +130,6 @@ instance ClickhouseTable t => ClickhouseQuery (T4 (Column a t) v1 v2 v3 v4) wher
 
 instance ClickhouseTable t => ClickhouseQuery (T5 (Column a t) v1 v2 v3 v4 v5) where
   toClickhouseQuery (c1, c2, c3, c4, c5) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5]
+
+instance ClickhouseTable t => ClickhouseQuery (T6 (Column a t) v1 v2 v3 v4 v5 v6) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6]
