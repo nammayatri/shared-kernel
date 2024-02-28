@@ -11,12 +11,14 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DerivingVia #-}
 
 module Kernel.Types.TimeRFC339 (module Kernel.Types.TimeRFC339, module Reexport) where
 
 import Control.Lens hiding (Context)
 import Data.Aeson
+import Data.Data (Data)
 import Data.OpenApi (NamedSchema (NamedSchema), ToSchema (..), declareSchema, description)
 import Data.Time (UTCTime)
 import Data.Time.Format
@@ -25,7 +27,7 @@ import Kernel.Types.Beckn.Domain as Reexport
 import Kernel.Utils.GenericPretty
 
 newtype UTCTimeRFC3339 = UTCTimeRFC3339 UTCTime
-  deriving (Show, Eq, Ord, Read, Generic, FromJSON)
+  deriving (Show, Eq, Ord, Read, Generic, FromJSON, Data)
 
 instance PrettyShow UTCTimeRFC3339 where
   prettyShow = prettyShow . Showable
