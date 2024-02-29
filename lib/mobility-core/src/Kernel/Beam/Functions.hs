@@ -29,12 +29,13 @@ module Kernel.Beam.Functions
 where
 
 import Data.Aeson
+import Data.Default.Class
 import qualified Data.Serialize as Serialize
-import Database.Beam
+import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
 import qualified EulerHS.KVConnector.Flow as KV
-import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
+import EulerHS.KVConnector.Types (DBCommandVersion' (..), KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log)
@@ -42,12 +43,13 @@ import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
+import qualified Kernel.Tools.ARTUtils as A
 import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Logging (logDebug)
-import Sequelize (Model, ModelMeta (modelSchemaName, modelTableName), OrderBy, Set, Where)
+import Sequelize
 import System.Random
 
 -- classes for converting from beam types to ttypes and vice versa
@@ -203,8 +205,9 @@ findOneWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig
   findOneInternal updatedMeshConfig fromTType' where'
 
 findOneWithKVScheduler ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    EsqDBFlow m r,
     FromTType'' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -238,8 +241,9 @@ findAllWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig
   findAllInternal updatedMeshConfig fromTType' where'
 
 findAllWithKVScheduler ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    EsqDBFlow m r,
     FromTType'' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -319,8 +323,9 @@ findAllWithOptionsKV' where' mbLimit mbOffset = do
     Left err -> throwError $ InternalError $ show err
 
 findAllWithOptionsKVScheduler ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    EsqDBFlow m r,
     FromTType'' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -348,8 +353,8 @@ findAllWithOptionsDb = findAllWithOptionsInternal meshConfig fromTType'
 -- update --
 
 updateWithKV ::
-  forall table m.
-  BeamTableFlow table m =>
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
@@ -357,8 +362,8 @@ updateWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \upd
   updateInternal updatedMeshConfig setClause whereClause
 
 updateWithKVScheduler ::
-  forall table m.
-  BeamTableFlow table m =>
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
@@ -368,8 +373,8 @@ updateWithKVScheduler setClause whereClause = withUpdatedMeshConfig (Proxy @tabl
 -- updateOne --
 
 updateOneWithKV ::
-  forall table m.
-  BeamTableFlow table m =>
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
@@ -379,8 +384,9 @@ updateOneWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \
 -- create --
 
 createWithKV ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    EsqDBFlow m r,
     ToTType' (table Identity) a
   ) =>
   a ->
@@ -389,8 +395,9 @@ createWithKV a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   createInternal updatedMeshConfig toTType' a
 
 createWithKVScheduler ::
-  forall table m a.
+  forall table m r a.
   ( BeamTableFlow table m,
+    EsqDBFlow m r,
     ToTType'' (table Identity) a
   ) =>
   a ->
@@ -401,16 +408,16 @@ createWithKVScheduler a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshCon
 -- delete --
 
 deleteWithKV ::
-  forall table m.
-  BeamTableFlow table m =>
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   Where Postgres table ->
   m ()
 deleteWithKV whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   deleteInternal updatedMeshConfig whereClause
 
 deleteWithDb ::
-  forall table m.
-  BeamTableFlow table m =>
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   Where Postgres table ->
   m ()
 deleteWithDb = deleteInternal meshConfig
@@ -418,8 +425,8 @@ deleteWithDb = deleteInternal meshConfig
 -- internal --
 
 findOneInternal ::
-  forall table m a.
-  BeamTableFlow table m =>
+  forall table m r a.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   MeshConfig ->
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
@@ -427,14 +434,15 @@ findOneInternal ::
 findOneInternal updatedMeshConfig fromTType where' = do
   dbConf' <- getReadDBConfigInternal
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
+  logQueryData "findOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right (Just res) -> fromTType res
     Right Nothing -> pure Nothing
     Left err -> throwError $ InternalError $ show err
 
 findAllInternal ::
-  forall table m a.
-  BeamTableFlow table m =>
+  forall table m r a.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   MeshConfig ->
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
@@ -442,6 +450,7 @@ findAllInternal ::
 findAllInternal updatedMeshConfig fromTType where' = do
   dbConf' <- getReadDBConfigInternal
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
+  logQueryData "findAllInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right res -> do
       res' <- mapM fromTType res
@@ -449,8 +458,8 @@ findAllInternal updatedMeshConfig fromTType where' = do
     Left err -> throwError $ InternalError $ show err
 
 findAllWithOptionsInternal ::
-  forall table m a.
-  BeamTableFlow table m =>
+  forall table m r a.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   MeshConfig ->
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
@@ -461,6 +470,7 @@ findAllWithOptionsInternal ::
 findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mbOffset = do
   dbConf' <- getReadDBConfigInternal
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
+  logQueryData "findAllWithOptionsInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right res -> do
       res' <- mapM fromTType res
@@ -473,8 +483,8 @@ getReadDBConfigInternal = do
   maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
 
 updateInternal ::
-  forall table m.
-  BeamTableFlow table m =>
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   MeshConfig ->
   [Set Postgres table] ->
   Where Postgres table ->
@@ -482,6 +492,7 @@ updateInternal ::
 updateInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
+  logQueryData "updateInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1' setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right res' -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -496,8 +507,8 @@ updateInternal updatedMeshConfig setClause whereClause = do
     Left err -> throwError $ InternalError $ show err
 
 updateOneInternal ::
-  forall table m.
-  BeamTableFlow table m =>
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   MeshConfig ->
   [Set Postgres table] ->
   Where Postgres table ->
@@ -505,6 +516,7 @@ updateOneInternal ::
 updateOneInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
+  logQueryData "updateOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1' setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right obj -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -520,8 +532,8 @@ updateOneInternal updatedMeshConfig setClause whereClause = do
     Left err -> throwError $ InternalError $ show err
 
 createInternal ::
-  forall table m a.
-  BeamTableFlow table m =>
+  forall table m r a.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   MeshConfig ->
   (a -> table Identity) ->
   a ->
@@ -530,6 +542,7 @@ createInternal updatedMeshConfig toTType a = do
   let tType = toTType a
   dbConf' <- getMasterDBConfig
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
+  void $ logQueryData "createInternal" ("Nothing" :: Text) ("Nothing" :: Text) (show tType) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -544,17 +557,38 @@ createInternal updatedMeshConfig toTType a = do
     Left err -> throwError $ InternalError $ show err
 
 deleteInternal ::
-  forall table m.
-  BeamTableFlow table m =>
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
   MeshConfig ->
   Where Postgres table ->
   m ()
 deleteInternal updatedMeshConfig whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
+  logQueryData "deleteInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) ("Nothing" :: Text) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Deleted rows in KV: " <> show res
         else logDebug $ "Deleted rows in DB: " <> show res
     Left err -> throwError $ InternalError $ show err
+
+logQueryData ::
+  (MonadFlow m, EsqDBFlow m r) =>
+  Text ->
+  Text ->
+  Text ->
+  Text ->
+  Bool ->
+  Text ->
+  m ()
+logQueryData queryType whereClause setClause tableObject kvEnabled table = do
+  shouldLogRequestId <- asks (.shouldLogRequestId)
+  timestamp <- getCurrentTime
+  when shouldLogRequestId $
+    fork "ArtData" $ do
+      kafkaConn <- L.getOption KBT.KafkaConn
+      requestId <- fromMaybe "" <$> asks (.requestId)
+      let queryData = A.QueryData {..}
+      handle (\(e :: SomeException) -> L.logError ("ART_QUERY_LOG_FAILED" :: Text) $ "Error while logging query data: " <> show e) $ do
+        liftIO $ A.pushToKafka kafkaConn (encode def {A.requestId = requestId, A.queryData = Just queryData, A.timestamp = Just timestamp}) "ART-Logs" requestId

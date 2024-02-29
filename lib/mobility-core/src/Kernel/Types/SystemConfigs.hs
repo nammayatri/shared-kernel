@@ -6,4 +6,4 @@ data SystemConfigs = SystemConfigs
   { id :: Text,
     configValue :: Text
   }
-  deriving (Generic)
+  deriving (Generic, Show)

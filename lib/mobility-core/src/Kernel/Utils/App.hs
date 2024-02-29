@@ -28,14 +28,18 @@ module Kernel.Utils.App
     logRequestAndResponseGeneric,
     withModifiedEnvGeneric,
     withModifiedEnv',
+    logRequestAndResponse',
   )
 where
 
+import qualified Data.Aeson as A
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString as B
 import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
+import Data.ByteString.Builder (toLazyByteString)
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.CaseInsensitive as CI
+import Data.Default.Class
 import qualified Data.HashMap.Internal as HM
 import Data.List (lookup)
 import Data.String.Conversions
@@ -48,6 +52,7 @@ import Kernel.Beam.Lib.UtilsTH (HasSchemaName)
 import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Esqueleto.Config (EsqDBEnv)
 import Kernel.Storage.Hedis
+import Kernel.Tools.ARTUtils
 import Kernel.Tools.Logging
 import Kernel.Tools.Metrics.CoreMetrics (DeploymentVersion (..))
 import Kernel.Tools.Metrics.CoreMetrics.Types (HasCoreMetrics)
@@ -142,6 +147,60 @@ logRequestAndResponse (EnvR flowRt appEnv) =
   where
     logInfoIO tag info = runFlowR flowRt appEnv $ logTagInfo tag info
 
+logRequestAndResponse' :: (HasARTFlow f) => EnvR f -> Application -> Application
+logRequestAndResponse' (EnvR flowRt appEnv) =
+  logRequestAndResponseGeneric' appEnv logInfoIO
+  where
+    logInfoIO tag info = runFlowR flowRt appEnv $ logTagInfo tag info
+
+logRequestAndResponseGeneric' :: HasARTFlow f => f -> (Text -> Text -> IO ()) -> Application -> Application
+logRequestAndResponseGeneric' appEnv logInfoIO f req respF = do
+  if not appEnv.shouldLogRequestId
+    then logRequestAndResponseGeneric logInfoIO f req respF
+    else do
+      timestamp <- getCurrentTime
+      body <- Wai.consumeRequestBodyStrict req
+      let requestMethod = Wai.requestMethod req
+          rawPathInfo = Wai.rawPathInfo req
+          rawQueryString = Wai.rawQueryString req
+          requestHeaders = Wai.requestHeaders req
+
+      let request = RequestInfo' {body = T.pack $ show body, requestHeaders = show requestHeaders, requestMethod = show requestMethod, rawPathInfo = show rawPathInfo, rawQueryString = show rawQueryString}
+      called :: IORef Int <- newIORef 0
+      let returnBody = do
+            calledTimes <- readIORef called
+            modifyIORef called (+ 1)
+            pure $
+              if calledTimes > 0
+                then B.empty
+                else LB.toStrict body
+      f (req {requestBody = returnBody}) (loggedRespF timestamp request)
+  where
+    toRequestInfo Request {..} = RequestInfo {..}
+    toResponseInfo resp =
+      let (status, headers, _) = responseToStream resp
+          code = HTTP.statusCode status
+          decodeHeader = bimap (decodeUtf8 . CI.original) decodeUtf8
+          respInfo =
+            ResponseInfo
+              { statusCode = code,
+                statusMessage = decodeUtf8 $ HTTP.statusMessage status,
+                headers = decodeHeader <$> headers
+              }
+       in if code >= 300 then show respInfo else "Successful response"
+
+    getBody resp = case resp of
+      (ResponseBuilder _ _ builder) -> decodeUtf8 $ toLazyByteString builder
+      _ -> "No Body Found for requestId : " <> fromMaybe "" (appEnv.requestId)
+
+    loggedRespF timestamp request resp = do
+      let respLogText = toResponseInfo resp
+      logInfoIO "Request&Response" $ "Request: " <> show (toRequestInfo req) <> " || Response: " <> respLogText
+      when appEnv.shouldLogRequestId $ do
+        let artData = def {requestId = fromMaybe "" appEnv.requestId, request = Just request, response = Just $ getBody resp, timestamp = Just timestamp}
+        void $ forkIO $ pushToKafka appEnv.kafkaProducerForART (A.encode artData) "ART-Logs" (fromMaybe "" appEnv.requestId)
+      respF resp
+
 logRequestAndResponseGeneric :: (Text -> Text -> IO ()) -> Application -> Application
 logRequestAndResponseGeneric logInfoIO f req respF =
   f req loggedRespF
@@ -174,7 +233,7 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId -> do
         flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
        }
 
-withModifiedEnv' :: (HasLog f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT) => (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv' :: (HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT) => (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
   let sanitizedUrl = removeUUIDs . cs $ Wai.rawPathInfo req
   mbDynamicLogLevelConfig <- runFlowR env.flowRuntime env.appEnv $ getDynamicLogLevelConfig
@@ -186,10 +245,11 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
       let appEnv = env.appEnv
           updLogEnv = appendLogTag requestId appEnv.loggerEnv
           updLogEnv' = updateLogLevel mbLogLevel updLogEnv
+      let requestId' = bool Nothing (Just requestId) appEnv.shouldLogRequestId
       newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv'},
+        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId'},
             flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
            }
 

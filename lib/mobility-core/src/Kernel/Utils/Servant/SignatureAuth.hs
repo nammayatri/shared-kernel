@@ -34,6 +34,7 @@ import EulerHS.Prelude hiding (fromList, (.~))
 import qualified EulerHS.Runtime as R
 import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
+import Kernel.Tools.ARTUtils (HasARTFlow)
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import qualified Kernel.Types.Beckn.Context as Context
@@ -103,7 +104,8 @@ instance
     HasField "disableSignatureAuth" r Bool,
     Registry (FlowR r),
     HasCoreMetrics r,
-    SingI domain
+    SingI domain,
+    HasARTFlow r
   ) =>
   HasServer (SignatureAuth domain header :> api) ctx
   where
@@ -147,7 +149,8 @@ authCheck ::
     HasField "hostName" r Text,
     HasField "disableSignatureAuth" r Bool,
     Registry (FlowR r),
-    HasCoreMetrics r
+    HasCoreMetrics r,
+    HasARTFlow r
   ) =>
   String ->
   Maybe ByteString ->
