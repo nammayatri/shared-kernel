@@ -19,14 +19,18 @@
 module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR) where
 
 import Control.Monad.IO.Unlift
+import Data.Aeson
+import Data.Default.Class
 import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
 import Kernel.Beam.Lib.UtilsTH
+import Kernel.Prelude
 import Kernel.Storage.Beam.SystemConfigs
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Hedis.Config
+import Kernel.Tools.ARTUtils (ArtData (..), HasARTFlow, pushToKafka)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.CacheFlow
@@ -226,9 +230,17 @@ instance MonadMonitor (FlowR r) where
 instance MonadGuid (FlowR r) where
   generateGUIDText = FlowR L.generateGUID
 
-instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => Forkable (FlowR r) where
+instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
   fork tag f = do
     newLocalOptions <- newMVar mempty
+    shouldLogRequestId <- asks (.shouldLogRequestId)
+    when (shouldLogRequestId && tag /= "ArtData") $ do
+      requestId <- fromMaybe "" <$> asks (.requestId)
+      kafkaConn <- asks (.kafkaProducerForART)
+      timestamp <- getCurrentTime
+      let response = def {requestId = requestId, forkedTag = Just tag, timestamp = Just timestamp}
+      liftIO $ pushToKafka kafkaConn (encode response) "ART-Logs" requestId
+
     FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
     where
       handleExc = try >=> (`whenLeft` err)

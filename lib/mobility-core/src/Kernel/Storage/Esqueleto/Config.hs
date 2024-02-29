@@ -69,7 +69,7 @@ prepareEsqDBEnv cfg logEnv = do
 
 type HasEsq m r = (MonadReader r m, HasLog r, MonadTime m, MonadIO m)
 
-type HasEsqEnv m r = (HasEsq m r, HasField "esqDBEnv" r EsqDBEnv)
+type HasEsqEnv m r = (HasEsq m r, HasField "esqDBEnv" r EsqDBEnv, HasField "requestId" r (Maybe Text), HasField "shouldLogRequestId" r Bool)
 
 type HasEsqReplica m r = (HasEsq m r, HasField "esqDBReplicaEnv" r EsqDBEnv)
 
