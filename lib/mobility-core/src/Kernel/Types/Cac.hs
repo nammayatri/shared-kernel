@@ -1,6 +1,6 @@
 module Kernel.Types.Cac where
 
-import Data.Aeson
+import Data.Aeson as DA
 import qualified Data.Aeson.Key as DAK
 import Data.Maybe
 import qualified Data.Text as Text
@@ -13,6 +13,11 @@ data CACValue a = CACValue
 
 class FromJSONCAC a where
   fromJSONCAC :: FromJSON a => CACValue a -> Result a
+
+fromJSONHelper :: FromJSON a => Value -> Maybe a
+fromJSONHelper k = case fromJSON k of
+  Success a -> Just a
+  DA.Error _ -> Nothing
 
 dropPrefixFromConfig :: Text.Text -> Key -> Key
 dropPrefixFromConfig key config =
