@@ -442,7 +442,7 @@ instance (ToJSON a) => ToJSON (FCMData a) where
         "entity_ids" .= fcmEntityIds,
         "entity_data" .= encodeToText fcmEntityData,
         "notification_json" .= encodeToText fcmNotificationJSON,
-        "notification_id" .= (encodeToText <$> fcmNotificationId),
+        "notification_id" .= fcmNotificationId,
         "driver_notification_payload" .= (encodeToText <$> fcmOverlayNotificationJSON)
       ]
 
