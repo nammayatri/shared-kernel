@@ -159,10 +159,16 @@ library
       Kernel.External.Verification.Interface
       Kernel.External.Verification.Interface.Idfy
       Kernel.External.Verification.Interface.InternalScripts
+      Kernel.External.Verification.Interface.SafetyPortal
       Kernel.External.Verification.Interface.Types
       Kernel.External.Verification.InternalScripts.Error
       Kernel.External.Verification.InternalScripts.FaceVerification
       Kernel.External.Verification.InternalScripts.Types
+      Kernel.External.Verification.SafetyPortal.API
+      Kernel.External.Verification.SafetyPortal.Client
+      Kernel.External.Verification.SafetyPortal.Config
+      Kernel.External.Verification.SafetyPortal.Error
+      Kernel.External.Verification.SafetyPortal.Types
       Kernel.External.Verification.Types
       Kernel.External.Whatsapp.GupShup.Config
       Kernel.External.Whatsapp.GupShup.Flow
