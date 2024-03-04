@@ -23,10 +23,16 @@ import EulerHS.Prelude
 import qualified Kernel.External.Verification.Idfy.Config as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import qualified Kernel.External.Verification.InternalScripts.Types as FV
+import qualified Kernel.External.Verification.SafetyPortal.Config as SafetyPortal
+import Kernel.External.Verification.SafetyPortal.Types
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
 data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data DriverBackgroundVerificationServiceConfig = SafetyPortalConfig SafetyPortal.SafetyPortalCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -122,3 +128,14 @@ data ExtractedDL = ExtractedDL
 type GetTaskReq = Text
 
 type GetTaskResp = Idfy.VerificationResponse
+
+data SearchAgentReq = SearchAgentreq
+  { dl :: Maybe Text,
+    voterId :: Maybe Text
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
+
+newtype SearchAgentResponse = SearchAgentResponse
+  { suspect :: [SearchAgent]
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
