@@ -25,6 +25,7 @@ module Kernel.Beam.Functions
     deleteWithKV,
     deleteWithDb, -- not used
     findAllWithKVAndConditionalDB,
+    pushAnalyticsToKafka,
   )
 where
 
@@ -558,3 +559,17 @@ deleteInternal updatedMeshConfig whereClause = do
         then logDebug $ "Deleted rows in KV: " <> show res
         else logDebug $ "Deleted rows in DB: " <> show res
     Left err -> throwError $ InternalError $ show err
+
+pushAnalyticsToKafka ::
+  forall table m a.
+  ( BeamTableFlow table m,
+    ToTType' (table Identity) a
+  ) =>
+  a ->
+  m ()
+pushAnalyticsToKafka a = do
+  let tType = toTType' a
+  topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
+  let newObject = replaceMappings (toJSON tType) (getMappings [tType])
+  handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while create: " <> show e <> "in topic" <> topicName) $
+    void $ pushToKafka newObject topicName (getKeyForKafka $ getLookupKeyByPKey tType)
