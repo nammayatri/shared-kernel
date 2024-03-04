@@ -126,7 +126,8 @@ newtype HighPrecMoney = HighPrecMoney
 
 data KVTable = KVTable
   { nameOfTable :: Text,
-    percentEnable :: Natural
+    percentEnable :: Natural,
+    redisTtl :: Maybe Integer
   }
   deriving (Generic, Eq, Show, ToJSON, FromJSON, FromDhall, Ord)
 
