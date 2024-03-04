@@ -28,12 +28,20 @@ import Kernel.Storage.Esqueleto (derivePersistField)
 data VerificationService = Idfy | InternalScripts | GovtData
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
+data DriverBackgroundVerificationService = SafetyPortal
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+
 $(mkBeamInstancesForEnumAndList ''VerificationService)
+$(mkBeamInstancesForEnumAndList ''DriverBackgroundVerificationService)
 
 availableVerificationServices :: [VerificationService]
 availableVerificationServices = [Idfy, InternalScripts]
 
+availableDriverBackgroundVerificationServices :: [DriverBackgroundVerificationService]
+availableDriverBackgroundVerificationServices = [SafetyPortal]
+
 derivePersistField "VerificationService"
+derivePersistField "DriverBackgroundVerificationService"
 
 data RCVerificationResponse = RCVerificationResponse
   { registrationDate :: Maybe Text,

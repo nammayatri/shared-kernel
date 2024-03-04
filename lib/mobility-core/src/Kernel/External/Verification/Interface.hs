@@ -20,6 +20,7 @@ module Kernel.External.Verification.Interface
     extractRCImage,
     extractDLImage,
     validateFaceImage,
+    searchAgent,
   )
 where
 
@@ -31,8 +32,10 @@ import Kernel.External.Verification.GovtData.Types as Reexport
 import Kernel.External.Verification.Idfy.Config as Reexport
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
+import qualified Kernel.External.Verification.Interface.SafetyPortal as SafetyPortal
 import Kernel.External.Verification.Interface.Types as Reexport
 import Kernel.External.Verification.InternalScripts.Types
+import Kernel.External.Verification.SafetyPortal.Types
 import Kernel.External.Verification.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.Common
@@ -141,3 +144,13 @@ extractDLImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractDLImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+
+searchAgent ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  DriverBackgroundVerificationServiceConfig ->
+  Agent ->
+  m SearchAgentResponse
+searchAgent serviceConfig req = case serviceConfig of
+  SafetyPortalConfig cfg -> SafetyPortal.searchAgent cfg req
