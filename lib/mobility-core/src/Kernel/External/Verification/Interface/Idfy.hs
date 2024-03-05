@@ -188,7 +188,10 @@ extractDLImage cfg req = do
     ExtractDLImageResp
       { extractedDL =
           resp.result <&> \result -> do
-            ExtractedDL {dlNumber = result.extraction_output.id_number}
+            ExtractedDL
+              { dlNumber = result.extraction_output.id_number,
+                nameOnCard = result.extraction_output.name_on_card
+              }
       }
 
 -- not used in interface

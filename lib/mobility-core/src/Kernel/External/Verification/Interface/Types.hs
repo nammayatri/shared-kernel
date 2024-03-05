@@ -111,8 +111,9 @@ newtype ExtractDLImageResp = ExtractDLImageResp
   }
   deriving stock (Show, Generic)
 
-newtype ExtractedDL = ExtractedDL
-  { dlNumber :: Maybe Text
+data ExtractedDL = ExtractedDL
+  { dlNumber :: Maybe Text,
+    nameOnCard :: Maybe Text
   }
   deriving stock (Show, Generic)
 
