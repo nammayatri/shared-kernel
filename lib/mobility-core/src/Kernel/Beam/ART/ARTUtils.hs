@@ -1,4 +1,4 @@
-module Kernel.Tools.ARTUtils where
+module Kernel.Beam.ART.ARTUtils where
 
 import Data.Aeson.Types
 import qualified Data.ByteString.Lazy as BL
