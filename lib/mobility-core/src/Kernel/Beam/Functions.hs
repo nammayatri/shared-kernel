@@ -26,25 +26,28 @@ module Kernel.Beam.Functions
     deleteWithKV,
     deleteWithDb, -- not used
     findAllWithKVAndConditionalDB,
+    getDBFunction,
+    getArtDbFunctions,
   )
 where
 
 import Data.Aeson
 import Data.Default.Class
-import qualified Data.Serialize as Serialize
+-- import qualified Data.Serialize as Serialize
 import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
 import qualified EulerHS.KVConnector.Flow as KV
-import EulerHS.KVConnector.Types (DBCommandVersion' (..), KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
+import EulerHS.KVConnector.Types (DBCommandVersion' (..), MeshConfig (..))
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log)
+import Kernel.Beam.ART.ARTFunctions
+import qualified Kernel.Beam.ART.ARTUtils as A
 import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
-import qualified Kernel.Tools.ARTUtils as A
 import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Types.Common
 import Kernel.Types.Error
@@ -53,51 +56,7 @@ import Kernel.Utils.Logging (logDebug)
 import Sequelize
 import System.Random
 
--- classes for converting from beam types to ttypes and vice versa
-class
-  FromTType' t a
-    | t -> a
-  where
-  fromTType' :: (MonadFlow m, CacheFlow m r, EsqDBFlow m r) => t -> m (Maybe a)
-
-class
-  ToTType' t a
-    | a -> t
-  where
-  toTType' :: a -> t
-
--- Below class FromTType'' and ToTType'' are only to be used with scheduler
-class
-  FromTType'' t a
-    | a -> t
-  where
-  fromTType'' :: (MonadThrow m, Log m, L.MonadFlow m) => t -> m (Maybe a)
-
--- Below class FromCacType'' are only to be used with cac.
-class
-  FromCacType t a
-    | t -> a
-  where
-  fromCacType :: (MonadFlow m, CacheFlow m r, EsqDBFlow m r) => t -> m (Maybe a)
-
-class
-  ToTType'' t a
-    | a -> t
-  where
-  toTType'' :: a -> t
-
-meshConfig :: MeshConfig
-meshConfig =
-  MeshConfig
-    { meshEnabled = False,
-      memcacheEnabled = False,
-      meshDBName = "postgres",
-      ecRedisDBStream = "driver-db-sync-stream",
-      kvRedis = "KVRedis",
-      redisTtl = 18000,
-      kvHardKilled = True,
-      cerealEnabled = False
-    }
+----------------------- critical functions -----------------------
 
 runInReplica :: (L.MonadFlow m, Log m) => m a -> m a
 runInReplica m = do
@@ -105,6 +64,30 @@ runInReplica m = do
   res <- m
   L.setOptionLocal ReplicaEnabled False
   pure res
+
+getDBFunction :: DbFunctions
+getDBFunction =
+  DbFunctions
+    { createInternalFunction = createInternal,
+      findOneInternalFunction = findOneInternal,
+      findAllInternalFunction = findAllInternal,
+      findAllWithOptionsInternalFunction = findAllWithOptionsInternal,
+      updateInternalFunction = updateInternal,
+      updateOneInternalFunction = updateOneInternal,
+      deleteInternalFunction = deleteInternal
+    }
+
+getArtDbFunctions :: DbFunctions
+getArtDbFunctions =
+  DbFunctions
+    { createInternalFunction = createInternalArt,
+      findOneInternalFunction = findOneInternalArt,
+      findAllInternalFunction = findAllInternalArt,
+      findAllWithOptionsInternalFunction = findAllWithOptionsInternalArt,
+      updateInternalFunction = updateInternalArt,
+      updateOneInternalFunction = updateOneInternalArt,
+      deleteInternalFunction = deleteInternalArt
+    }
 
 setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfig modelName mSchema meshConfig' = do
@@ -180,23 +163,6 @@ getReplicaLocationDbConfig = do
   case dbConf of
     Just dbCnf' -> pure dbCnf'
     Nothing -> L.throwException $ InternalError "Replica LocationDB Config not found"
-
-type BeamTableFlow table m =
-  ( HasCallStack,
-    BeamTable table,
-    MonadFlow m
-  )
-
-type BeamTable table =
-  ( Model Postgres table,
-    MeshMeta Postgres table,
-    KVConnector (table Identity),
-    FromJSON (table Identity),
-    ToJSON (table Identity),
-    TableMappings (table Identity),
-    Serialize.Serialize (table Identity),
-    Show (table Identity)
-  )
 
 -- findOne --
 

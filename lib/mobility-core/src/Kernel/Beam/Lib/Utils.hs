@@ -19,20 +19,106 @@ import qualified Data.Aeson.Key as AesonKey
 import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.HashMap.Strict as HM
+import qualified Data.Serialize as Serialize
 import Data.Text as T hiding (elem, map)
 import qualified Data.Text.Encoding as TE
 import Data.Time
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
-import qualified EulerHS.KVConnector.Types as KV
-import EulerHS.KVConnector.Utils (getShardedHashTag)
+import Database.Beam.Postgres
+import EulerHS.KVConnector.Types
+import qualified EulerHS.KVConnector.Utils as EKU
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified Kafka.Producer as KafkaProd
 import Kernel.Beam.Types (KafkaConn (..))
 import Kernel.Types.App
+import Kernel.Types.CacheFlow (CacheFlow)
+import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
+import Sequelize
 import Text.Casing (camel, quietSnake)
+
+-------------------------------------- classes --------------------------------------
+
+-- classes for converting from beam types to ttypes and vice versa
+class
+  FromTType' t a
+    | t -> a
+  where
+  fromTType' :: (MonadFlow m, CacheFlow m r, EsqDBFlow m r) => t -> m (Maybe a)
+
+class
+  ToTType' t a
+    | a -> t
+  where
+  toTType' :: a -> t
+
+-- Below class FromTType'' and ToTType'' are only to be used with scheduler
+class
+  FromTType'' t a
+    | a -> t
+  where
+  fromTType'' :: (MonadThrow m, Log m, L.MonadFlow m) => t -> m (Maybe a)
+
+class
+  ToTType'' t a
+    | a -> t
+  where
+  toTType'' :: a -> t
+
+-- Below class FromCacType'' are only to be used with cac.
+class
+  FromCacType t a
+    | t -> a
+  where
+  fromCacType :: (MonadFlow m, CacheFlow m r, EsqDBFlow m r) => t -> m (Maybe a)
+
+-------------------------------------- data types --------------------------------------
+
+meshConfig :: MeshConfig
+meshConfig =
+  MeshConfig
+    { meshEnabled = False,
+      memcacheEnabled = False,
+      meshDBName = "postgres",
+      ecRedisDBStream = "driver-db-sync-stream",
+      kvRedis = "KVRedis",
+      redisTtl = 18000,
+      kvHardKilled = True,
+      cerealEnabled = False
+    }
+
+data DbFunctions = DbFunctions
+  { createInternalFunction :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (a -> table Identity) -> a -> m (),
+    findOneInternalFunction :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> m (Maybe a),
+    findAllInternalFunction :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> m [a],
+    findAllWithOptionsInternalFunction :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> OrderBy table -> Maybe Int -> Maybe Int -> m [a],
+    updateInternalFunction :: forall table m r. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> [Set Postgres table] -> Where Postgres table -> m (),
+    updateOneInternalFunction :: forall table m r. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> [Set Postgres table] -> Where Postgres table -> m (),
+    deleteInternalFunction :: forall table m r. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> Where Postgres table -> m ()
+  }
+
+-------------------------------------- types --------------------------------------
+
+type BeamTableFlow table m =
+  ( HasCallStack,
+    BeamTable table,
+    MonadFlow m
+  )
+
+type BeamTable table =
+  ( Model Postgres table,
+    MeshMeta Postgres table,
+    KVConnector (table Identity),
+    FromJSON (table Identity),
+    ToJSON (table Identity),
+    TableMappings (table Identity),
+    Serialize.Serialize (table Identity),
+    Show (table Identity)
+  )
+
+-------------------------------------- functions --------------------------------------
 
 textToSnakeCaseText :: Text -> Text
 textToSnakeCaseText = T.pack . quietSnake . T.unpack
@@ -56,10 +142,10 @@ convertIntoValidValForCkh dbValue = case dbValue of
 
 getMappings ::
   forall table.
-  KV.TableMappings (table Identity) =>
+  TableMappings (table Identity) =>
   [table Identity] ->
   HashMap Text Text
-getMappings _ = HM.fromList (map (bimap T.pack T.pack) (KV.getTableMappings @(table Identity)))
+getMappings _ = HM.fromList (map (bimap T.pack T.pack) (getTableMappings @(table Identity)))
 
 pushToKafka :: (MonadFlow m, ToJSON a) => a -> Text -> Text -> m ()
 pushToKafka messageRecord topic key = do
@@ -92,7 +178,7 @@ getKafkaTopic mSchema model = do
 
 getKeyForKafka :: Text -> Text
 getKeyForKafka pKeyText = do
-  let shard = getShardedHashTag pKeyText
+  let shard = EKU.getShardedHashTag pKeyText
   pKeyText <> shard
 
 -- commenting in case we need it in future
