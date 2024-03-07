@@ -48,11 +48,11 @@ import Data.UUID.V4 (nextRandom)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
 import qualified EulerHS.Runtime as R
+import Kernel.Beam.ART.ARTUtils
 import Kernel.Beam.Lib.UtilsTH (HasSchemaName)
 import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Esqueleto.Config (EsqDBEnv)
 import Kernel.Storage.Hedis
-import Kernel.Tools.ARTUtils
 import Kernel.Tools.Logging
 import Kernel.Tools.Metrics.CoreMetrics (DeploymentVersion (..))
 import Kernel.Tools.Metrics.CoreMetrics.Types (HasCoreMetrics)

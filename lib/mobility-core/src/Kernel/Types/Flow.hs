@@ -25,12 +25,12 @@ import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
+import Kernel.Beam.ART.ARTUtils (ArtData (..), HasARTFlow, pushToKafka)
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
 import Kernel.Storage.Beam.SystemConfigs
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Hedis.Config
-import Kernel.Tools.ARTUtils (ArtData (..), HasARTFlow, pushToKafka)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.CacheFlow

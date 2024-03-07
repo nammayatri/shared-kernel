@@ -34,7 +34,7 @@ import EulerHS.Prelude hiding (fromList, (.~))
 import qualified EulerHS.Runtime as R
 import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import Kernel.Tools.ARTUtils (HasARTFlow)
+import Kernel.Beam.ART.ARTUtils (HasARTFlow)
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import qualified Kernel.Types.Beckn.Context as Context
