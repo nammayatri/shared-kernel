@@ -1,13 +1,17 @@
 module Kernel.Beam.ART.ARTUtils where
 
-import Data.Aeson.Types
+import Data.Aeson
+import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
+import Data.Either (partitionEithers)
 import qualified Data.Text.Encoding as TE
 import qualified Kafka.Producer as KafkaProd
 import Kernel.Prelude
 import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Utils.IOLogging (LoggerEnv)
+import System.Directory (getCurrentDirectory)
+import System.FilePath ((</>))
 
 type HasARTFlow r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools))
 
@@ -18,7 +22,7 @@ data RequestInfo' = RequestInfo'
     requestHeaders :: Text,
     body :: Text
   }
-  deriving (Generic, Show, ToJSON)
+  deriving (Generic, Show, ToJSON, FromJSON)
 
 data ArtData = ArtData
   { requestId :: Text,
@@ -28,7 +32,7 @@ data ArtData = ArtData
     forkedTag :: Maybe Text,
     timestamp :: Maybe UTCTime
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, FromJSON)
 
 data QueryData = QueryData
   { queryType :: Text,
@@ -36,9 +40,10 @@ data QueryData = QueryData
     whereClause :: Text,
     table :: Text,
     tableObject :: Text,
-    kvEnabled :: Bool
+    kvEnabled :: Bool,
+    schemaName :: Maybe Text
   }
-  deriving (Show, Generic, ToJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 instance ToJSON ArtData where
   toJSON = genericToJSON defaultOptions {omitNothingFields = True}
@@ -61,3 +66,17 @@ kafkaMessage topicName event key =
       prKey = Just $ TE.encodeUtf8 key,
       prValue = Just . BL.toStrict $ event
     }
+
+getCurrentFilePath :: FilePath -> IO FilePath
+getCurrentFilePath fileName = do
+  currentDir <- getCurrentDirectory
+  return (currentDir </> fileName)
+
+readAndDecodeArtData :: IO [ArtData]
+readAndDecodeArtData = do
+  let filePath = "/home/kv/projects/shared-kernel/lib/mobility-core/src/Kernel/Beam/data1.log"
+  fileContent <- B.readFile filePath
+  let jsonData = map (eitherDecode . BL.fromStrict) $ B.split '\n' fileContent :: [Either String ArtData]
+  case partitionEithers jsonData of
+    ([], decoded) -> pure decoded
+    (err, _) -> error ("Failed to decode JSON data: " <> show err)
