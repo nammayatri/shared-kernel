@@ -2,6 +2,7 @@ module Kernel.Types.Cac where
 
 import Data.Aeson as DA
 import qualified Data.Aeson.Key as DAK
+import Data.Char
 import Data.Maybe
 import qualified Data.Text as Text
 import Kernel.Prelude
@@ -24,6 +25,12 @@ dropPrefixFromConfig key config =
   case Text.stripPrefix key (DAK.toText config) of
     Just a -> DAK.fromText a
     Nothing -> config
+
+cacTableCaseInsensitive :: String -> String
+cacTableCaseInsensitive [] = []
+cacTableCaseInsensitive ('_' : xs) = cacTableCaseInsensitive xs
+cacTableCaseInsensitive ('-' : xs) = cacTableCaseInsensitive xs
+cacTableCaseInsensitive (x : xs) = toLower x : cacTableCaseInsensitive xs
 
 initializeCACThroughConfig :: (CacheFlow m r, EsqDBFlow m r) => (String -> Int -> String -> String -> IO Int) -> Text -> String -> String -> Int -> m ()
 initializeCACThroughConfig func config tenant host interval = do
