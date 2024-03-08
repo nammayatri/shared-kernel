@@ -58,6 +58,27 @@ findAllWithOptionsInternalArt ::
   m [a]
 findAllWithOptionsInternalArt = error "not implemented"
 
+findAllWithOptionsInternalArt' ::
+  forall table m r a.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
+  MeshConfig ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  Maybe Int ->
+  Maybe Int ->
+  m [a]
+findAllWithOptionsInternalArt' = error "not implemented"
+
+findAllWithKVAndConditionalDBInternalArt ::
+  forall table m r a.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
+  MeshConfig ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  Maybe (OrderBy table) ->
+  m [a]
+findAllWithKVAndConditionalDBInternalArt = error "not implemented"
+
 updateInternalArt ::
   forall table m r.
   (BeamTableFlow table m, EsqDBFlow m r) =>

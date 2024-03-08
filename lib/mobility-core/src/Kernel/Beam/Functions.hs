@@ -71,6 +71,8 @@ getDBFunction =
       findOneInternalFunction = findOneInternal,
       findAllInternalFunction = findAllInternal,
       findAllWithOptionsInternalFunction = findAllWithOptionsInternal,
+      findAllWithOptionsInternalFunction' = findAllWithOptionsInternal',
+      findAllWithKVAndConditionalDBInternalFunction = findAllWithKVAndConditionalDBInternal,
       updateInternalFunction = updateInternal,
       updateOneInternalFunction = updateOneInternal,
       deleteInternalFunction = deleteInternal
@@ -83,6 +85,8 @@ getArtDbFunctions =
       findOneInternalFunction = findOneInternalArt,
       findAllInternalFunction = findAllInternalArt,
       findAllWithOptionsInternalFunction = findAllWithOptionsInternalArt,
+      findAllWithOptionsInternalFunction' = findAllWithOptionsInternalArt',
+      findAllWithKVAndConditionalDBInternalFunction = findAllWithKVAndConditionalDBInternalArt,
       updateInternalFunction = updateInternalArt,
       updateOneInternalFunction = updateOneInternalArt,
       deleteInternalFunction = deleteInternalArt
@@ -245,16 +249,8 @@ findAllWithKVAndConditionalDB ::
   Where Postgres table ->
   Maybe (OrderBy table) ->
   m [a]
-findAllWithKVAndConditionalDB where' orderBy = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
-  inReplica <- L.getOptionLocal ReplicaEnabled
-  dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
-  result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
-  case result of
-    Right res -> do
-      res' <- mapM fromTType' res
-      pure $ catMaybes res'
-    Left err -> throwError $ InternalError $ show err
+findAllWithKVAndConditionalDB where' orderBy = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+  findAllWithKVAndConditionalDBInternal updatedMeshConfig fromTType' where' orderBy
 
 -- findAllWithOptions --
 
@@ -284,16 +280,8 @@ findAllWithOptionsKV' ::
   Maybe Int ->
   Maybe Int ->
   m [a]
-findAllWithOptionsKV' where' mbLimit mbOffset = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
-  inReplica <- L.getOptionLocal ReplicaEnabled
-  dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
-  result <- KV.findAllWithOptionsKVConnector' dbConf' updatedMeshConfig where' mbLimit mbOffset
-  case result of
-    Right res -> do
-      res' <- mapM fromTType' res
-      pure $ catMaybes res'
-    Left err -> throwError $ InternalError $ show err
+findAllWithOptionsKV' where' mbLimit mbOffset = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+  findAllWithOptionsInternal' updatedMeshConfig fromTType' where' mbLimit mbOffset
 
 findAllWithOptionsKVScheduler ::
   forall table m r a.
@@ -444,6 +432,43 @@ findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mb
   dbConf' <- getReadDBConfigInternal
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
   logQueryData "findAllWithOptionsInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
+  case result of
+    Right res -> do
+      res' <- mapM fromTType res
+      pure $ catMaybes res'
+    Left err -> throwError $ InternalError $ show err
+
+findAllWithOptionsInternal' ::
+  forall table m r a.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
+  MeshConfig ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  Maybe Int ->
+  Maybe Int ->
+  m [a]
+findAllWithOptionsInternal' updatedMeshConfig fromTType where' mbLimit mbOffset = do
+  dbConf' <- getReadDBConfigInternal
+  result <- KV.findAllWithOptionsKVConnector' dbConf' updatedMeshConfig where' mbLimit mbOffset
+  logQueryData "findAllWithOptionsInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
+  case result of
+    Right res -> do
+      res' <- mapM fromTType res
+      pure $ catMaybes res'
+    Left err -> throwError $ InternalError $ show err
+
+findAllWithKVAndConditionalDBInternal ::
+  forall table m r a.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
+  MeshConfig ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  Maybe (OrderBy table) ->
+  m [a]
+findAllWithKVAndConditionalDBInternal updatedMeshConfig fromTType where' orderBy = do
+  dbConf' <- getReadDBConfigInternal
+  result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
+  logQueryData "findAllWithKVAndConditionalDBInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right res -> do
       res' <- mapM fromTType res
