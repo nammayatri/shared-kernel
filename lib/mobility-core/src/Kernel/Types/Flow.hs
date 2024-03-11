@@ -26,10 +26,10 @@ import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
 import Kernel.Beam.ART.ARTUtils (ArtData (..), HasARTFlow, pushToKafka)
+import Kernel.Beam.Lib.Utils hiding (pushToKafka)
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
 import Kernel.Storage.Beam.SystemConfigs
-import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Hedis.Config
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
@@ -61,7 +61,7 @@ type HasFlowHandlerR m r =
     HasCacConfig r,
     HasCoreMetrics r,
     HedisFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     IOLogging.HasLog r,
     HasSchemaName SystemConfigsT
   )

@@ -48,7 +48,6 @@ import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
-import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
@@ -173,93 +172,96 @@ getReplicaLocationDbConfig = do
 findOneWithKV ::
   forall table m r a.
   ( BeamTableFlow table m,
-    CacheFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
   m (Maybe a)
 findOneWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  findOneInternal updatedMeshConfig fromTType' where'
+  DbFunctions {..} <- asks (.dbFunctions)
+  findOneInternalFunction updatedMeshConfig fromTType' where'
 
 findOneWithKVScheduler ::
   forall table m r a.
   ( BeamTableFlow table m,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType'' (table Identity) a
   ) =>
   Where Postgres table ->
   m (Maybe a)
 findOneWithKVScheduler where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  findOneInternal updatedMeshConfig fromTType'' where'
+  DbFunctions {..} <- asks (.dbFunctions)
+  findOneInternalFunction updatedMeshConfig fromTType'' where'
 
 findOneWithDb ::
   forall table m r a.
   ( BeamTableFlow table m,
-    CacheFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
   m (Maybe a)
-findOneWithDb = findOneInternal meshConfig fromTType'
+findOneWithDb where' = do
+  DbFunctions {..} <- asks (.dbFunctions)
+  findOneInternalFunction meshConfig fromTType' where'
 
 -- findAll --
 
 findAllWithKV ::
   forall table m r a.
   ( BeamTableFlow table m,
-    CacheFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
   m [a]
 findAllWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  findAllInternal updatedMeshConfig fromTType' where'
+  DbFunctions {..} <- asks (.dbFunctions)
+  findAllInternalFunction updatedMeshConfig fromTType' where'
 
 findAllWithKVScheduler ::
   forall table m r a.
   ( BeamTableFlow table m,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType'' (table Identity) a
   ) =>
   Where Postgres table ->
   m [a]
 findAllWithKVScheduler where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  findAllInternal updatedMeshConfig fromTType'' where'
+  DbFunctions {..} <- asks (.dbFunctions)
+  findAllInternalFunction updatedMeshConfig fromTType'' where'
 
 findAllWithDb ::
   forall table m r a.
   ( BeamTableFlow table m,
-    CacheFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
   m [a]
-findAllWithDb = findAllInternal meshConfig fromTType'
+findAllWithDb where' = do
+  DbFunctions {..} <- asks (.dbFunctions)
+  findAllInternalFunction meshConfig fromTType' where'
 
 findAllWithKVAndConditionalDB ::
   forall table m r a.
   ( BeamTableFlow table m,
-    CacheFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
   Maybe (OrderBy table) ->
   m [a]
 findAllWithKVAndConditionalDB where' orderBy = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  findAllWithKVAndConditionalDBInternal updatedMeshConfig fromTType' where' orderBy
+  DbFunctions {..} <- asks (.dbFunctions)
+  findAllWithKVAndConditionalDBInternalFunction updatedMeshConfig fromTType' where' orderBy
 
 -- findAllWithOptions --
 
 findAllWithOptionsKV ::
   forall table m r a.
   ( BeamTableFlow table m,
-    CacheFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -268,13 +270,13 @@ findAllWithOptionsKV ::
   Maybe Int ->
   m [a]
 findAllWithOptionsKV where' orderBy mbLimit mbOffset = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  findAllWithOptionsInternal updatedMeshConfig fromTType' where' orderBy mbLimit mbOffset
+  DbFunctions {..} <- asks (.dbFunctions)
+  findAllWithOptionsInternalFunction updatedMeshConfig fromTType' where' orderBy mbLimit mbOffset
 
 findAllWithOptionsKV' ::
   forall table m r a.
   ( BeamTableFlow table m,
-    CacheFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -282,12 +284,13 @@ findAllWithOptionsKV' ::
   Maybe Int ->
   m [a]
 findAllWithOptionsKV' where' mbLimit mbOffset = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  findAllWithOptionsInternal' updatedMeshConfig fromTType' where' mbLimit mbOffset
+  DbFunctions {..} <- asks (.dbFunctions)
+  findAllWithOptionsInternalFunction' updatedMeshConfig fromTType' where' mbLimit mbOffset
 
 findAllWithOptionsKVScheduler ::
   forall table m r a.
   ( BeamTableFlow table m,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType'' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -296,13 +299,13 @@ findAllWithOptionsKVScheduler ::
   Maybe Int ->
   m [a]
 findAllWithOptionsKVScheduler where' orderBy mbLimit mbOffset = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  findAllWithOptionsInternal updatedMeshConfig fromTType'' where' orderBy mbLimit mbOffset
+  DbFunctions {..} <- asks (.dbFunctions)
+  findAllWithOptionsInternalFunction updatedMeshConfig fromTType'' where' orderBy mbLimit mbOffset
 
 findAllWithOptionsDb ::
   forall table m r a.
   ( BeamTableFlow table m,
-    CacheFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
   Where Postgres table ->
@@ -310,79 +313,89 @@ findAllWithOptionsDb ::
   Maybe Int ->
   Maybe Int ->
   m [a]
-findAllWithOptionsDb = findAllWithOptionsInternal meshConfig fromTType'
+findAllWithOptionsDb where' orderBy mbLimit mbOffset = do
+  DbFunctions {..} <- asks (.dbFunctions)
+  findAllWithOptionsInternalFunction meshConfig fromTType' where' orderBy mbLimit mbOffset
 
 -- update --
 
 updateWithKV ::
   forall table m r.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m, KvDbFlow m r) =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
 updateWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateInternal updatedMeshConfig setClause whereClause
+  DbFunctions {..} <- asks (.dbFunctions)
+  updateInternalFunction updatedMeshConfig setClause whereClause
 
 updateWithKVScheduler ::
   forall table m r.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m, KvDbFlow m r) =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
 updateWithKVScheduler setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateInternal updatedMeshConfig setClause whereClause
+  DbFunctions {..} <- asks (.dbFunctions)
+  updateInternalFunction updatedMeshConfig setClause whereClause
 
 -- updateOne --
 
 updateOneWithKV ::
   forall table m r.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m, KvDbFlow m r) =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
 updateOneWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateOneInternal updatedMeshConfig setClause whereClause
+  DbFunctions {..} <- asks (.dbFunctions)
+  updateOneInternalFunction updatedMeshConfig setClause whereClause
 
 -- create --
 
 createWithKV ::
   forall table m r a.
   ( BeamTableFlow table m,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     ToTType' (table Identity) a
   ) =>
   a ->
   m ()
 createWithKV a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  createInternal updatedMeshConfig toTType' a
+  DbFunctions {..} <- asks (.dbFunctions)
+  createInternalFunction updatedMeshConfig toTType' a
 
 createWithKVScheduler ::
   forall table m r a.
   ( BeamTableFlow table m,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     ToTType'' (table Identity) a
   ) =>
   a ->
   m ()
 createWithKVScheduler a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  createInternal updatedMeshConfig toTType'' a
+  DbFunctions {..} <- asks (.dbFunctions)
+  createInternalFunction updatedMeshConfig toTType'' a
 
 -- delete --
 
 deleteWithKV ::
   forall table m r.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m, KvDbFlow m r) =>
   Where Postgres table ->
   m ()
 deleteWithKV whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  deleteInternal updatedMeshConfig whereClause
+  DbFunctions {..} <- asks (.dbFunctions)
+  deleteInternalFunction updatedMeshConfig whereClause
 
 deleteWithDb ::
   forall table m r.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m, KvDbFlow m r) =>
   Where Postgres table ->
   m ()
-deleteWithDb = deleteInternal meshConfig
+deleteWithDb where' = do
+  DbFunctions {..} <- asks (.dbFunctions)
+  deleteInternalFunction meshConfig where'
 
 -- internal --
 

@@ -22,6 +22,7 @@ where
 import qualified Crypto.Number.Generate as Cryptonite
 import qualified Data.Text as T
 import EulerHS.Prelude hiding (id)
+import Kernel.Beam.Lib.Utils as Common
 import Kernel.Prelude as Common (everyPossibleVariant, foldWIndex, identity, show)
 import Kernel.Types.Beckn.Ack as Common
 import Kernel.Types.CacheFlow as Common
