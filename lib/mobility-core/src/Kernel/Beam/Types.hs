@@ -91,3 +91,9 @@ data KafkaConn = KafkaConn
   deriving anyclass (ToJSON, FromJSON)
 
 instance OptionEntity KafkaConn KafkaProducerTools
+
+data FilePathForART = FilePathForART
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity FilePathForART String
