@@ -46,7 +46,7 @@ class
   FromTType' t a
     | t -> a
   where
-  fromTType' :: (MonadFlow m, CacheFlow m r, EsqDBFlow m r) => t -> m (Maybe a)
+  fromTType' :: KvDbFlow m r => t -> m (Maybe a)
 
 class
   ToTType' t a
@@ -59,7 +59,7 @@ class
   FromTType'' t a
     | a -> t
   where
-  fromTType'' :: (MonadThrow m, Log m, L.MonadFlow m) => t -> m (Maybe a)
+  fromTType'' :: (MonadThrow m, Log m, KvDbFlow m r) => t -> m (Maybe a)
 
 class
   ToTType'' t a
@@ -95,6 +95,8 @@ data DbFunctions = DbFunctions
   }
 
 -------------------------------------- types --------------------------------------
+
+type KvDbFlow m r = (MonadFlow m, CacheFlow m r, EsqDBFlow m r, HasField "dbFunctions" r DbFunctions)
 
 type BeamTableFlow table m =
   ( HasCallStack,
