@@ -88,7 +88,8 @@ meshConfig =
       kvRedis = "KVRedis",
       redisTtl = 18000,
       kvHardKilled = True,
-      cerealEnabled = False
+      cerealEnabled = False,
+      enableForKVReadOnly = False
     }
 
 runInReplica :: (L.MonadFlow m, Log m) => m a -> m a
@@ -109,14 +110,15 @@ setMeshConfig modelName mSchema meshConfig' = do
     Just tables' -> do
       let enableKVForWriteAlso = tables'.enableKVForWriteAlso
           enableKVForRead = tables'.enableKVForRead
+          enableForKVReadOnly = fromMaybe [] (tables'.enableForKVReadOnly)
           tableObject = find (\table' -> nameOfTable table' == modelName) enableKVForWriteAlso
       updatedMeshConfig <- case tableObject of
         Nothing -> pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
         Just table' -> do
           let redisTtl' = fromMaybe (meshConfig'.redisTtl) (table'.redisTtl)
           if fromIntegral (percentEnable table') >= randomIntV
-            then pure $ meshConfig' {meshEnabled = True, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream, redisTtl = redisTtl'}
-            else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
+            then pure $ meshConfig' {meshEnabled = True, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream, redisTtl = redisTtl', enableForKVReadOnly = modelName `elem` enableForKVReadOnly}
+            else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream, enableForKVReadOnly = modelName `elem` enableForKVReadOnly}
       L.logDebug ("setMeshConfig" :: Text) $ "meshConfig for table: " <> modelName <> " : " <> show updatedMeshConfig
       pure updatedMeshConfig
 
