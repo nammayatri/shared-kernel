@@ -24,6 +24,7 @@ module Kernel.External.Verification.Interface
 where
 
 import EulerHS.Prelude
+import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.External.Verification.GovtData.Client as GovtData
 import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
@@ -55,9 +56,7 @@ verifyRC ::
   ( EncFlow m r,
     CoreMetrics m,
     HasSchemaName BeamGRC.GovtDataRCT,
-    MonadFlow m,
-    EsqDBFlow m r,
-    CacheFlow m r
+    KvDbFlow m r
   ) =>
   [VerificationService] ->
   VerificationServiceConfig ->
@@ -82,9 +81,7 @@ verifyRC' ::
   ( EncFlow m r,
     CoreMetrics m,
     HasSchemaName BeamGRC.GovtDataRCT,
-    MonadFlow m,
-    EsqDBFlow m r,
-    CacheFlow m r
+    KvDbFlow m r
   ) =>
   VerificationServiceConfig ->
   VerifyRCReq ->

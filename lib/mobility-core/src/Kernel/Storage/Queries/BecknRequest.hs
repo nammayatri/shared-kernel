@@ -15,7 +15,8 @@
 
 module Kernel.Storage.Queries.BecknRequest where
 
-import Kernel.Beam.Functions (FromTType' (fromTType'), ToTType' (toTType'), createWithKV)
+import Kernel.Beam.Functions
+import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
 import qualified Kernel.Storage.Beam.BecknRequest as BeamBR
@@ -23,7 +24,7 @@ import qualified Kernel.Types.BecknRequest as Domain
 import Kernel.Types.Id
 import Kernel.Utils.Common
 
-logBecknRequest :: (HasSchemaName BeamBR.BecknRequestT, MonadFlow m, CacheFlow m r, EsqDBFlow m r) => Text -> Text -> m ()
+logBecknRequest :: (HasSchemaName BeamBR.BecknRequestT, KvDbFlow m r) => Text -> Text -> m ()
 logBecknRequest reqJSON sign = do
   uuid <- generateGUID
   now <- getCurrentTime

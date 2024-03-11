@@ -6,11 +6,14 @@ import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
 import Data.Either (partitionEithers)
 import qualified Data.Text.Encoding as TE
+import EulerHS.Language (MonadFlow)
+import qualified EulerHS.Language as L
 import qualified Kafka.Producer as KafkaProd
+import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
 import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Utils.IOLogging (LoggerEnv)
-import System.Directory (getCurrentDirectory)
+import System.Directory (canonicalizePath, getCurrentDirectory)
 import System.FilePath ((</>))
 
 type HasARTFlow r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools))
@@ -72,11 +75,19 @@ getCurrentFilePath fileName = do
   currentDir <- getCurrentDirectory
   return (currentDir </> fileName)
 
-readAndDecodeArtData :: IO [ArtData]
+getFilePath :: FilePath -> IO FilePath
+getFilePath relativePath = do
+  absolutePath <- canonicalizePath relativePath
+  return absolutePath
+
+readAndDecodeArtData :: MonadFlow m => m [ArtData]
 readAndDecodeArtData = do
-  let filePath = "/home/kv/projects/shared-kernel/lib/mobility-core/src/Kernel/Beam/data1.log"
-  fileContent <- B.readFile filePath
-  let jsonData = map (eitherDecode . BL.fromStrict) $ B.split '\n' fileContent :: [Either String ArtData]
-  case partitionEithers jsonData of
-    ([], decoded) -> pure decoded
-    (err, _) -> error ("Failed to decode JSON data: " <> show err)
+  filePath' <- L.getOption KBT.FilePathForART
+  case filePath' of
+    Nothing -> error "No file path for ART data found. Kindly provide the file path or set the environment variable ArtFilePath using setOption."
+    Just filePath -> do
+      fileContent <- L.runIO $ B.readFile filePath
+      let jsonData = map (eitherDecode . BL.fromStrict) $ B.split '\n' fileContent :: [Either String ArtData]
+      case partitionEithers jsonData of
+        ([], decoded) -> pure decoded
+        (err, _) -> error ("Failed to decode JSON data: " <> show err <> " in file: " <> show filePath')

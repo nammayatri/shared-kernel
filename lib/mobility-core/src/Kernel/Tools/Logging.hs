@@ -16,6 +16,7 @@ module Kernel.Tools.Logging where
 import qualified Data.HashMap.Internal as HM
 import Data.Time hiding (getCurrentTime)
 import qualified EulerHS.Language as L
+import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Lib.UtilsTH (HasSchemaName, schemaName)
 import qualified Kernel.Beam.Types as KT
 import Kernel.Prelude
@@ -32,7 +33,7 @@ import Kernel.Utils.IOLogging (HasLog, updateLogLevel)
 import Kernel.Utils.Text
 
 withDynamicLogLevel ::
-  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m) =>
+  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasCacheConfig f, KvDbFlow m f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m) =>
   Text ->
   m a ->
   m a
@@ -46,7 +47,7 @@ withDynamicLogLevel keyName fn = do
       env{loggerEnv = updLogEnv}
 
 getDynamicLogLevelConfig ::
-  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m) => m (Maybe (HM.HashMap Text LogLevel))
+  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasCacheConfig f, KvDbFlow m f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m) => m (Maybe (HM.HashMap Text LogLevel))
 getDynamicLogLevelConfig = do
   now <- getCurrentTime
   shouldFetchFromDB <-

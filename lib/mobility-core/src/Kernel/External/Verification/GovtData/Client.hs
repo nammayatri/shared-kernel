@@ -17,18 +17,18 @@ module Kernel.External.Verification.GovtData.Client
   )
 where
 
+import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
 import qualified Kernel.External.Verification.GovtData.Storage.Query as QGD
 import Kernel.External.Verification.Interface.Types
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
-import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
 
 verifyRC ::
-  (HasSchemaName BeamGRC.GovtDataRCT, MonadFlow m, EsqDBFlow m r, CacheFlow m r) =>
+  (HasSchemaName BeamGRC.GovtDataRCT, KvDbFlow m r) =>
   VerifyRCReq ->
   m VerifyRCResp
 verifyRC req = do
