@@ -13,9 +13,6 @@
 -}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use lambda-case" #-}
 
 module Kernel.External.AadhaarVerification.Types
   ( module Kernel.External.AadhaarVerification.Types,
@@ -35,7 +32,7 @@ data AadhaarVerificationService = Gridline
 
 instance FromJSON AadhaarVerificationService where -- remove this instance once you add more constructors to AadhaarVerificationService type.
   parseJSON (A.String val) = pure $ fromMaybe (error $ "failed to parse String " <> val <> " in AadhaarVerificationService type") (KP.readMaybe $ T.unpack val)
-  parseJSON _ = error "unexpected type, expected String for AadhaarVerificationService"
+  parseJSON e = error $ "unexpected type, expected String for AadhaarVerificationService" <> show e
 
 instance ToJSON AadhaarVerificationService where
   toJSON Gridline = A.String (show Gridline)

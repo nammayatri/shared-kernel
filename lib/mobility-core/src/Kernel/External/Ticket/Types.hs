@@ -31,7 +31,7 @@ data IssueTicketService = Kapture
 
 instance FromJSON IssueTicketService where -- remove this instance once you add more constructors to IssueTicketService type.
   parseJSON (A.String val) = pure $ fromMaybe (error $ "failed to parse String " <> val <> " in IssueTicketService type") (KP.readMaybe $ T.unpack val)
-  parseJSON _ = error "unexpected type, expected String for IssueTicketService"
+  parseJSON e = error $ "unexpected type, expected String for IssueTicketService " <> show e
 
 instance ToJSON IssueTicketService where
   toJSON Kapture = A.String (show Kapture)
