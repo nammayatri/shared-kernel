@@ -27,8 +27,9 @@ import Kernel.Types.Time (Seconds)
 import Kernel.Utils.GenericPretty (PrettyShow)
 import Kernel.Utils.TH
 
-newtype GRPCConfig = GRPCConfig
-  { defaultTtl :: Seconds -- milliseconds ?
+data GRPCConfig = GRPCConfig
+  { defaultTtl :: Seconds, -- milliseconds ?
+    streamExpirationTime :: Int -- in seconds
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (PrettyShow, FromJSON, ToJSON)

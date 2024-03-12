@@ -33,12 +33,12 @@ notifyPerson ::
   GRPCConfig ->
   GrpcNotificationData a ->
   m ()
-notifyPerson _cfg notificationData = do
+notifyPerson cfg notificationData = do
   now <- getCurrentTime
   maxShards <- asks (.maxNotificationShards)
   let idToShardNumber uuidTxt = fromIntegral ((\(a, b) -> a + b) (UU.toWords64 uuidTxt)) `mod` maxShards
       shardId :: Int = idToShardNumber . fromJust $ UU.fromText notificationData.streamId
-  void $ Hedis.withCrossAppRedis $ Hedis.xAdd ("notification:client-" <> notificationData.streamId <> ":{" <> (show shardId) <> "}") "*" (buildFieldValue notificationData now)
+  void $ Hedis.withCrossAppRedis $ Hedis.xAddExp ("notification:client-" <> notificationData.streamId <> ":{" <> (show shardId) <> "}") "*" (buildFieldValue notificationData now) cfg.streamExpirationTime
   where
     buildFieldValue notifData createdAt =
       [ ("entity.id", TE.encodeUtf8 notifData.entityId),
