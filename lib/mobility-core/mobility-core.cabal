@@ -141,6 +141,12 @@ library
       Kernel.External.Ticket.Kapture.Flow
       Kernel.External.Ticket.Kapture.Types
       Kernel.External.Ticket.Types
+      Kernel.External.TransactionLogs.Interface
+      Kernel.External.TransactionLogs.Interface.ONDC
+      Kernel.External.TransactionLogs.Interface.Types
+      Kernel.External.TransactionLogs.ONDC.Flow
+      Kernel.External.TransactionLogs.ONDC.Types
+      Kernel.External.TransactionLogs.Types
       Kernel.External.Types
       Kernel.External.Verification
       Kernel.External.Verification.GovtData.Client
