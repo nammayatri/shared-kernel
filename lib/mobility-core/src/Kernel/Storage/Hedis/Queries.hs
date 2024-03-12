@@ -609,6 +609,28 @@ xAdd key entryId fieldValues = withLogTag "Redis" $ do
       pure ""
     Right items -> pure items
 
+xAddExp :: (HedisFlow m env) => Text -> Text -> [(BS.ByteString, BS.ByteString)] -> ExpirationTime -> m ()
+xAddExp key entryId fieldValues expirationTime = withLogTag "Redis" $ do
+  prefKey <- buildKey key
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <-
+      withTimeRedis "RedisStandalone" "xaddExp" $
+        try @_ @SomeException $ do
+          void $
+            runHedisTransaction' $ do
+              void $ Hedis.xadd prefKey (cs entryId) fieldValues
+              Hedis.expire prefKey (toInteger expirationTime)
+    whenLeft res (withLogTag "STANDALONE" . logTagInfo "FAILED_TO_xaddExp" . show)
+  clusterRes <-
+    withTimeRedis "RedisCluster" "xaddExp" $
+      try @_ @SomeException $ do
+        void $
+          runHedisTransaction $ do
+            void $ Hedis.xadd prefKey (cs entryId) fieldValues
+            Hedis.expire prefKey (toInteger expirationTime)
+  whenLeft clusterRes (withLogTag "CLUSTER" . logTagInfo "FAILED_TO_XADDEXP" . show)
+
 zRangeByScoreByCount :: (HedisFlow m env) => Text -> Double -> Double -> Integer -> Integer -> m [BS.ByteString]
 zRangeByScoreByCount key start end offset limit = withLogTag "Redis" $ do
   migrating <- asks (.hedisMigrationStage)
