@@ -13,23 +13,31 @@
 -}
 
 module Kernel.External.Verification.Interface.InternalScripts
-  ( module Reexport,
-    validateFace,
+  ( validateFace,
   )
 where
 
 import Control.Monad
-import Kernel.External.Verification.InternalScripts.Error
+import Kernel.External.Verification.Error
 import qualified Kernel.External.Verification.InternalScripts.FaceVerification as FV
-import Kernel.External.Verification.InternalScripts.Types as Reexport
+import Kernel.External.Verification.InternalScripts.Types (FaceType (..), FaceVerificationCfg)
+import qualified Kernel.External.Verification.InternalScripts.Types as InternalScriptsTypes
+import qualified Kernel.External.Verification.Types as InterfaceTypes
+import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common
 
-validateFace :: (CoreMetrics m, MonadFlow m) => FaceVerificationCfg -> FaceValidationReq -> m FaceValidationRes
+validateFace :: (CoreMetrics m, MonadFlow m) => FaceVerificationCfg -> InterfaceTypes.FaceValidationReq -> m InterfaceTypes.FaceValidationResp
 validateFace fvCfg req = do
   let url = fvCfg.url
-  res <- FV.validateFace url req
+  res <- FV.validateFace url $ makeInternalScriptsReq req
   case res.faceType of
     UNKNOWN -> throwError PoorImageQuality
     FAKE_FACE -> throwError FakeFaceDetected
-    REAL_FACE -> return res
+    REAL_FACE -> return $ makeInterfaceTypesResp res
+
+makeInternalScriptsReq :: InterfaceTypes.FaceValidationReq -> InternalScriptsTypes.FaceValidationReq
+makeInternalScriptsReq InterfaceTypes.FaceValidationReq {..} = InternalScriptsTypes.FaceValidationReq {..}
+
+makeInterfaceTypesResp :: InternalScriptsTypes.FaceValidationRes -> InterfaceTypes.FaceValidationResp
+makeInterfaceTypesResp InternalScriptsTypes.FaceValidationRes {..} = InterfaceTypes.FaceValidationResp {..}

@@ -23,6 +23,7 @@ import Data.Aeson as A
 import Data.OpenApi
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
+import Kernel.External.Verification.InternalScripts.Types (FaceType)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data VerificationService = Idfy | InternalScripts | GovtData
@@ -56,3 +57,19 @@ data RCVerificationResponse = RCVerificationResponse
     status :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data FaceValidationReq = FaceValidationReq
+  { transactionId :: Text,
+    uid :: Text,
+    file :: Text,
+    filePath :: Text,
+    brisqueFeatures :: [Double]
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data FaceValidationResp = FaceValidationResp
+  { faceType :: FaceType,
+    score :: Double,
+    predictionCost :: Double
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)

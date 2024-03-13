@@ -14,7 +14,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Verification.InternalScripts.Error where
+module Kernel.External.Verification.Error where
 
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError

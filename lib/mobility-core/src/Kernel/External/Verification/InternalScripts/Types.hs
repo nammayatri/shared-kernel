@@ -24,7 +24,7 @@ newtype FaceVerificationCfg = FaceVerificationCfg
   deriving (Generic, ToJSON, FromJSON, Eq, Show)
 
 data FaceType = REAL_FACE | FAKE_FACE | UNKNOWN
-  deriving (Generic, FromJSON, Show, ToJSON)
+  deriving (Generic, FromJSON, Show, ToJSON, ToSchema)
 
 data FaceValidationReq = FaceValidationReq
   { file :: Text,

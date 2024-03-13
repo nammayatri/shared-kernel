@@ -98,6 +98,7 @@ dependencies:
   - singletons-th
   - text
   - wai
+  - wreq
   - warp
   - time
   - template-haskell
@@ -153,7 +154,7 @@ dependencies:
   - concurrency
   - casing
   - slack-web
-
+  - system-filepath
 ghc-options:
   - -fwrite-ide-info
   - -hiedir=.hie
