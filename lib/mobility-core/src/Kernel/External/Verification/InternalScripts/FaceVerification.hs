@@ -19,7 +19,7 @@ import qualified Data.Text as DT
 import EulerHS.Prelude
 import EulerHS.Types (EulerClient, client)
 import qualified EulerHS.Types as ET
-import Kernel.External.Verification.InternalScripts.Error
+import Kernel.External.Verification.Error
 import Kernel.External.Verification.InternalScripts.Types
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common
