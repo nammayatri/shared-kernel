@@ -18,13 +18,23 @@ module Kernel.External.Ticket.Types
   )
 where
 
+import qualified Data.Aeson as A
 import Data.OpenApi
+import qualified Data.Text as T
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data IssueTicketService = Kapture
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Read, Eq, Ord, Generic, ToSchema)
+
+instance FromJSON IssueTicketService where -- remove this instance once you add more constructors to IssueTicketService type.
+  parseJSON (A.String val) = pure $ fromMaybe (error $ "failed to parse String " <> val <> " in IssueTicketService type") (KP.readMaybe $ T.unpack val)
+  parseJSON e = error $ "unexpected type, expected String for IssueTicketService " <> show e
+
+instance ToJSON IssueTicketService where
+  toJSON Kapture = A.String (show Kapture)
 
 $(mkBeamInstancesForEnum ''IssueTicketService)
 
