@@ -19,13 +19,23 @@ module Kernel.External.AadhaarVerification.Types
   )
 where
 
+import qualified Data.Aeson as A
 import Data.OpenApi
+import Data.Text as T
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data AadhaarVerificationService = Gridline
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Read, Eq, Ord, Generic, ToSchema)
+
+instance FromJSON AadhaarVerificationService where -- remove this instance once you add more constructors to AadhaarVerificationService type.
+  parseJSON (A.String val) = pure $ fromMaybe (error $ "failed to parse String " <> val <> " in AadhaarVerificationService type") (KP.readMaybe $ T.unpack val)
+  parseJSON e = error $ "unexpected type, expected String for AadhaarVerificationService" <> show e
+
+instance ToJSON AadhaarVerificationService where
+  toJSON Gridline = A.String (show Gridline)
 
 $(mkBeamInstancesForEnum ''AadhaarVerificationService)
 
