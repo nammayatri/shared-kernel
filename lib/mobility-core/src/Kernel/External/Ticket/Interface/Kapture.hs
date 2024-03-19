@@ -43,6 +43,7 @@ mkCreateTicketReq IT.CreateTicketReq {..} =
     { title = category,
       ticketDetails = issueDescription,
       disposition,
+      queue,
       customerId = personId,
       customerName = name,
       phone = phoneNo,
@@ -73,7 +74,6 @@ mkRideDescriptionDriver IT.RideInfo {..} =
       dropLocationState = (.state) =<< dropLocation,
       dropLocationCountry = (.country) =<< dropLocation,
       dropLocationBuilding = (.building) =<< dropLocation,
-      dropLocationAreaCode = (.areaCode) =<< dropLocation,
       dropLocationArea = (.area) =<< dropLocation,
       ..
     }
