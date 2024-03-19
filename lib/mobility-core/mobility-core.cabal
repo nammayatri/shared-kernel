@@ -84,6 +84,7 @@ library
       Kernel.External.Maps.NextBillion.Route
       Kernel.External.Maps.NextBillion.Types
       Kernel.External.Maps.OSRM.Config
+      Kernel.External.Maps.OSRM.Polygon
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
       Kernel.External.Notification
@@ -416,6 +417,8 @@ library
     , geojson
     , hedis
     , hex-text
+    , hgeometry
+    , hgeometry-combinatorial
     , hspec
     , http-api-data
     , http-client
@@ -573,6 +576,8 @@ test-suite mobility-core-tests
     , geojson
     , hedis
     , hex-text
+    , hgeometry
+    , hgeometry-combinatorial
     , hspec
     , http-api-data
     , http-client

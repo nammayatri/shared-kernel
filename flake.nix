@@ -56,6 +56,8 @@
             clickhouse-haskell.jailbreak = true;
             generic-deriving.check = false;
             singletons-th.jailbreak = true;
+            vector-circular.broken = false;
+            vector-circular.jailbreak = true;
           };
           autoWire = [ "packages" "checks" ];
         };

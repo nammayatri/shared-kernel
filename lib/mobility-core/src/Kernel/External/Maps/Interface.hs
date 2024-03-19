@@ -40,7 +40,7 @@ import qualified Kernel.External.Maps.Interface.NextBillion as NextBillion
 import qualified Kernel.External.Maps.Interface.OSRM as OSRM
 import Kernel.External.Maps.Interface.Types as Reexport
 import Kernel.External.Maps.MMI.Config as Reexport
-import Kernel.External.Maps.OSRM.Config as Reexport
+import Kernel.External.Maps.OSRM.Config as Reexport hiding (OSRMConfig)
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
 import Kernel.Storage.Hedis as Redis
@@ -82,6 +82,7 @@ getDistancesProvided :: MapsService -> Bool
 getDistancesProvided = \case
   Google -> True
   OSRM -> False
+  OSRM_SHARDED -> False
   MMI -> True
   NextBillion -> False
 
@@ -105,6 +106,7 @@ getRoutesProvided :: MapsService -> Bool
 getRoutesProvided = \case
   Google -> True
   OSRM -> False
+  OSRM_SHARDED -> False
   MMI -> False
   NextBillion -> True
 
@@ -127,6 +129,7 @@ snapToRoadProvided :: MapsService -> Bool
 snapToRoadProvided = \case
   Google -> True
   OSRM -> True
+  OSRM_SHARDED -> True
   MMI -> True
   NextBillion -> False
 
@@ -144,6 +147,7 @@ runPreCheck mapsService req = do
     Google -> return (everySnippetIs (< droppedPointsThreshold) req.points)
     MMI -> return (everySnippetIs (< droppedPointsThreshold) req.points)
     OSRM -> return True
+    OSRM_SHARDED -> return True
     _ -> return True
 
 runPostCheck ::
@@ -225,6 +229,7 @@ autoCompleteProvided :: MapsService -> Bool
 autoCompleteProvided = \case
   Google -> True
   OSRM -> False
+  OSRM_SHARDED -> False
   MMI -> True
   NextBillion -> False
 
@@ -246,6 +251,7 @@ getPlaceDetailsProvided :: MapsService -> Bool
 getPlaceDetailsProvided = \case
   Google -> True
   OSRM -> False
+  OSRM_SHARDED -> False
   MMI -> True
   NextBillion -> False
 
@@ -266,6 +272,7 @@ getPlaceNameProvided :: MapsService -> Bool
 getPlaceNameProvided = \case
   Google -> True
   OSRM -> False
+  OSRM_SHARDED -> False
   MMI -> True
   NextBillion -> False
 

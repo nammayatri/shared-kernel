@@ -1,4 +1,3 @@
-{-# HLINT ignore "Use newtype instead of data" #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}

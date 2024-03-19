@@ -22,12 +22,14 @@ module Kernel.External.Maps.Interface.OSRM
 where
 
 import qualified Data.List.NonEmpty as NE
+import Data.Text as T hiding (foldl, head, length, map, take, zip)
 import GHC.Float (double2Int)
 import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.Google.PolyLinePoints
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
-import Kernel.External.Maps.Interface.Types
+import Kernel.External.Maps.Interface.Types hiding (OSRMConfig)
 import Kernel.External.Maps.OSRM.Config
+import Kernel.External.Maps.OSRM.Polygon as Polygon
 import Kernel.External.Maps.OSRM.RoadsClient
 import qualified Kernel.External.Maps.OSRM.RoadsClient as OSRM
 import Kernel.External.Maps.Types as Reexport
@@ -41,14 +43,22 @@ callOsrmMatch ::
     Metrics.CoreMetrics m,
     MonadFlow m
   ) =>
-  OSRMCfg ->
+  OSRMConfig ->
   SnapToRoadReq ->
   m SnapToRoadResp
-callOsrmMatch osrmCfg (SnapToRoadReq wps) = do
-  let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
-  res <- OSRM.callOsrmMatchAPI osrmCfg.osrmUrl mbRadius (OSRM.PointsList wps)
-  (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
-  pure $ SnapToRoadResp dist conf interpolatedPts
+callOsrmMatch osrmConfig (SnapToRoadReq wps) = do
+  case osrmConfig of
+    OSRMSimpleConfig osrmCfg -> do
+      let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
+      res <- OSRM.callOsrmMatchAPI osrmCfg.osrmUrl mbRadius (OSRM.PointsList wps)
+      (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
+      pure $ SnapToRoadResp dist conf interpolatedPts
+    OSRMShardedConfig osrmShardCfg -> do
+      let mbRadius = fmap (.getMeters) osrmShardCfg.radiusDeviation
+      shardUrl <- Polygon.fetchOSRMRegionUrl wps osrmShardCfg
+      res <- OSRM.callOsrmMatchAPI shardUrl mbRadius (OSRM.PointsList wps)
+      (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
+      pure $ SnapToRoadResp dist conf interpolatedPts
 
 getDistances ::
   ( HasCallStack,
@@ -57,15 +67,26 @@ getDistances ::
     HasCoordinates a,
     HasCoordinates b
   ) =>
-  OSRMCfg ->
+  OSRMConfig ->
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
-getDistances osrmCfg request = do
-  let pointsList = OSRM.PointsList $ map getCoordinates (toList request.origins) ++ map getCoordinates (toList request.destinations)
-  let sourcesList = OSRM.SourcesList [0 .. (length request.origins - 1)]
-  let destinationsList = OSRM.DestinationsList [(length request.origins) .. (length request.origins + length request.destinations - 1)]
-  response <- OSRM.callOsrmGetDistancesAPI osrmCfg.osrmUrl pointsList sourcesList destinationsList
-  getOSRMTable response request
+getDistances osrmConfig request = do
+  case osrmConfig of
+    OSRMSimpleConfig osrmCfg -> do
+      let pointsList = OSRM.PointsList $ map getCoordinates (toList request.origins) ++ map getCoordinates (toList request.destinations)
+      let sourcesList = OSRM.SourcesList [0 .. (length request.origins - 1)]
+      let destinationsList = OSRM.DestinationsList [(length request.origins) .. (length request.origins + length request.destinations - 1)]
+      logDebug $ "Waypoints:--------------> " <> T.pack (show pointsList.getPointsList)
+      response <- OSRM.callOsrmGetDistancesAPI osrmCfg.osrmUrl pointsList sourcesList destinationsList
+      getOSRMTable response request
+    OSRMShardedConfig osrmShardCfg -> do
+      let pointsList = OSRM.PointsList $ map getCoordinates (toList request.origins) ++ map getCoordinates (toList request.destinations)
+      let sourcesList = OSRM.SourcesList [0 .. (length request.origins - 1)]
+      logDebug $ "Waypoints:--------------> " <> T.pack (show pointsList.getPointsList)
+      let destinationsList = OSRM.DestinationsList [(length request.origins) .. (length request.origins + length request.destinations - 1)]
+      shardUrl <- Polygon.fetchOSRMRegionUrl pointsList.getPointsList osrmShardCfg
+      response <- OSRM.callOsrmGetDistancesAPI shardUrl pointsList sourcesList destinationsList
+      getOSRMTable response request
 
 getOSRMTable ::
   ( Metrics.CoreMetrics m,
@@ -107,12 +128,18 @@ getRoutes ::
     Metrics.CoreMetrics m,
     MonadFlow m
   ) =>
-  OSRMCfg ->
+  OSRMConfig ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes osrmCfg request = do
-  response <- OSRM.callOsrmRouteAPI osrmCfg.osrmUrl $ OSRM.PointsList {getPointsList = NE.take 2 request.waypoints}
-  getOSRMRoute response
+getRoutes osrmConfig request = do
+  case osrmConfig of
+    OSRMSimpleConfig osrmCfg -> do
+      response <- OSRM.callOsrmRouteAPI osrmCfg.osrmUrl $ OSRM.PointsList {getPointsList = NE.take 2 request.waypoints}
+      getOSRMRoute response
+    OSRMShardedConfig osrmShardCfg -> do
+      shardUrl <- Polygon.fetchOSRMRegionUrl (NE.toList request.waypoints) osrmShardCfg
+      response <- OSRM.callOsrmRouteAPI shardUrl $ OSRM.PointsList {getPointsList = NE.take 2 request.waypoints}
+      getOSRMRoute response
 
 convertRouteToRouteInfo :: (Log m, MonadThrow m) => OSRM.OSRMRouteRoutes -> m RouteInfo
 convertRouteToRouteInfo osrmRouteRoutes =
