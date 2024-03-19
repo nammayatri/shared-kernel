@@ -36,6 +36,7 @@ instance HasSqlValueSyntax be String => HasSqlValueSyntax be WhatsappService whe
 
 instance FromJSON WhatsappService where -- remove this instance once you add more constructors to WhatsappService type.
   parseJSON (A.String val) = pure $ fromMaybe (error $ "failed to parse String " <> val <> " in WhatsappService type") (KP.readMaybe $ T.unpack val)
+  parseJSON (A.Array _) = pure GupShup
   parseJSON e = error $ "unexpected type, expected String for WhatsappService " <> show e
 
 instance ToJSON WhatsappService where
