@@ -701,3 +701,6 @@ xAck key groupName entryId = withLogTag "Redis" $ do
       withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_xAck" $ show err
       pure (-1) -- Return -1 if there was an error
     Right items -> pure items
+
+lrem :: (HedisFlow m env) => Text -> Integer -> Text -> m Integer
+lrem key cnt value = withTimeRedis "RedisCluster" "lrem" $ runWithPrefix key $ \prefKey -> Hedis.lrem prefKey cnt (BSL.toStrict $ Ae.encode value)
