@@ -69,6 +69,7 @@ autoSuggest mmiCfg AutoCompleteReq {..} = do
         case country of
           India -> "ind"
           France -> "fr"
+          USA -> "us"
       lang = language
       mapsUrl = mmiCfg.mmiNonKeyUrl
   token <- MMIAuthToken.getTokenText mmiCfg
