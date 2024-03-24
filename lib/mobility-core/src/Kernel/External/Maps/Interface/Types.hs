@@ -181,7 +181,7 @@ data SnapToRoadResp = SnapToRoadResp
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data Country = India | France
+data Country = India | France | USA
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 

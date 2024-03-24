@@ -27,7 +27,7 @@ import Kernel.Utils.GenericPretty
 
 derivePersistField "Country"
 
-data Country = India | France | AnyCountry
+data Country = India | France | USA | AnyCountry
   deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable Country
 
@@ -36,6 +36,7 @@ $(mkBeamInstancesForEnum ''Country)
 instance FromJSON Country where
   parseJSON (String "IND") = pure India
   parseJSON (String "FRA") = pure France
+  parseJSON (String "USA") = pure USA
   parseJSON (String "*") = pure AnyCountry
   parseJSON (String _) = parseFail "Invalid Country"
   parseJSON e = typeMismatch "String" e
@@ -43,4 +44,5 @@ instance FromJSON Country where
 instance ToJSON Country where
   toJSON India = String "IND"
   toJSON France = String "FRA"
+  toJSON USA = String "USA"
   toJSON AnyCountry = String "*"

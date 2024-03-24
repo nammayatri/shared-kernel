@@ -252,6 +252,7 @@ autoComplete cfg AutoCompleteReq {..} = do
         case country of
           India -> "country:in"
           France -> "country:fr"
+          USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
   res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location radius components language strictbounds origin
   let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, distance = distance_meters, ..}) res.predictions
   return $ AutoCompleteResp predictions
