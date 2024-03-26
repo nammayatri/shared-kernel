@@ -64,6 +64,7 @@ import Kernel.Types.Time as Common
 import Kernel.Utils.Dhall (FromDhall, Natural)
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.TH (mkHttpInstancesForEnum)
+import Sequelize.SQLObject (SQLObject (..), ToSQLObject (convertToSQLObject))
 import Servant
 import Text.Show (Show (..))
 
@@ -276,6 +277,9 @@ instance FromBackendRow Postgres Meters
 
 instance FromField Meters where
   fromField = fromFieldJSON
+
+instance {-# OVERLAPPING #-} ToSQLObject Meters where
+  convertToSQLObject = SQLObjectValue . KP.show . getMeters
 
 instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Seconds where
   sqlValueSyntax = sqlValueSyntax . getSeconds
