@@ -192,7 +192,8 @@ mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
           mandate_start_date = mandateStartDate,
           mandate_end_date = mandateEndDate,
           options_get_upi_deep_links = optionsGetUpiDeepLinks,
-          metadata_expiry_in_mins = metadataExpiryInMins
+          metadata_expiry_in_mins = metadataExpiryInMins,
+          metadata_gateway_reference_id = metadataGatewayReferenceId
         }
 
 orderStatus ::

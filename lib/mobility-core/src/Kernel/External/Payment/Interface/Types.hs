@@ -44,6 +44,7 @@ data CreateOrderReq = CreateOrderReq
     mandateFrequency :: Maybe MandateFrequency,
     mandateStartDate :: Maybe Text,
     mandateEndDate :: Maybe Text,
+    metadataGatewayReferenceId :: Maybe Text,
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int
   }

@@ -38,6 +38,7 @@ data CreateOrderReq = CreateOrderReq
     metadata_remarks :: Text,
     mandate_start_date :: Maybe Text,
     mandate_end_date :: Maybe Text,
+    metadata_gateway_reference_id :: Maybe Text,
     options_get_upi_deep_links :: Maybe Bool,
     metadata_expiry_in_mins :: Maybe Int
   }
@@ -54,6 +55,7 @@ jsonReqOptions =
         "mandate_end_date" -> "mandate.end_date"
         "metadata_mandate_name" -> "metadata.AXIS_BIZ:mandate_name"
         "metadata_remarks" -> "metadata.AXIS_BIZ:remarks"
+        "metadata_gateway_reference_id" -> "metadata.JUSPAY:gateway_reference_id"
         "metadata_expiry_in_mins" -> "metadata.expiryInMins"
         other -> other
     }
