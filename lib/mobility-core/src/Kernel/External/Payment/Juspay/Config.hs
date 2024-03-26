@@ -25,7 +25,8 @@ data JuspayCfg = JuspayCfg
     url :: BaseUrl,
     merchantId :: Text,
     username :: Text,
-    password :: EncryptedField 'AsEncrypted Text
+    password :: EncryptedField 'AsEncrypted Text,
+    gatewayReferenceId :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

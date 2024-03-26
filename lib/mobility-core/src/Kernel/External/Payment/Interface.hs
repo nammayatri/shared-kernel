@@ -31,7 +31,9 @@ createOrder ::
   CreateOrderReq ->
   m CreateOrderResp
 createOrder serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.createOrder cfg req
+  JuspayConfig cfg -> do
+    let req' = req {metadataGatewayReferenceId = cfg.gatewayReferenceId}
+    Juspay.createOrder cfg req'
 
 orderStatus ::
   ( EncFlow m r,
