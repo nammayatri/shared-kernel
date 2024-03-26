@@ -25,7 +25,7 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data VerificationService = Idfy | InternalScripts | GovtData
+data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 $(mkBeamInstancesForEnumAndList ''VerificationService)

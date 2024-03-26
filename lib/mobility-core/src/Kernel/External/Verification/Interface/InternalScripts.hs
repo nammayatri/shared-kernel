@@ -12,24 +12,33 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.Verification.Interface.InternalScripts
-  ( module Reexport,
-    validateFace,
-  )
-where
+module Kernel.External.Verification.Interface.InternalScripts where
 
 import Control.Monad
+import qualified Kernel.External.Verification.Interface.Types as Interface
 import Kernel.External.Verification.InternalScripts.Error
 import qualified Kernel.External.Verification.InternalScripts.FaceVerification as FV
-import Kernel.External.Verification.InternalScripts.Types as Reexport
+import qualified Kernel.External.Verification.InternalScripts.Types as InternalScripts
+import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common
 
-validateFace :: (CoreMetrics m, MonadFlow m) => FaceVerificationCfg -> FaceValidationReq -> m FaceValidationRes
+validateFace :: (CoreMetrics m, MonadFlow m) => InternalScripts.FaceVerificationCfg -> Interface.FaceValidationReq -> m Interface.FaceValidationRes
 validateFace fvCfg req = do
   let url = fvCfg.url
-  res <- FV.validateFace url req
+  let intScrReq = makeInternalScriptsFaceValidationReq req
+  res <- FV.validateFace url intScrReq
   case res.faceType of
-    UNKNOWN -> throwError PoorImageQuality
-    FAKE_FACE -> throwError FakeFaceDetected
-    REAL_FACE -> return res
+    InternalScripts.UNKNOWN -> throwError PoorImageQuality
+    InternalScripts.FAKE_FACE -> throwError FakeFaceDetected
+    InternalScripts.REAL_FACE -> makeInterfaceFaceValidationResp res
+  where
+    makeInternalScriptsFaceValidationReq Interface.FaceValidationReq {..} = InternalScripts.FaceValidationReq {..}
+    makeInterfaceFaceValidationResp InternalScripts.FaceValidationRes {..} =
+      return $
+        Interface.FaceValidationRes
+          { confidence = Nothing,
+            score = Just score,
+            predictionCost = Just predictionCost,
+            ..
+          }
