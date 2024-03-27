@@ -11,7 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -33,7 +33,7 @@ import Data.Aeson
 import Data.ByteString.Internal (ByteString)
 import Data.Fixed (Centi, Fixed (MkFixed))
 import Data.Generics.Labels ()
-import Data.OpenApi
+import Data.OpenApi hiding (value)
 import Data.Text as T
 import qualified Data.Vector as V
 import Database.Beam
@@ -73,6 +73,53 @@ newtype IdObject = IdObject
   }
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data DistanceUnit = Meter | Mile | Yard | Kilometer
+  deriving stock (Generic, Show, Read, Eq, Ord)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+  deriving (PrettyShow) via Showable DistanceUnit
+
+-- cycle imports
+
+-- $(mkBeamInstancesForEnum ''DistanceUnit)
+
+instance FromField DistanceUnit where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be DistanceUnit where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be DistanceUnit
+
+instance FromBackendRow Postgres DistanceUnit
+
+convertToMeters :: Distance -> Distance
+convertToMeters d@(Distance _ _ Meter) = d
+convertToMeters (Distance _ v unit) = do
+  let v' =
+        v * case unit of
+          Mile -> 1609.34
+          Kilometer -> 1000
+          Yard -> 0.9144
+  Distance (roundToIntegral v') v' Meter
+
+data Distance = Distance
+  { valueInt :: Int, -- To be deprecated
+    value :: Double,
+    unit :: DistanceUnit
+  }
+  deriving stock (Generic, Show)
+  deriving (PrettyShow) via Showable Distance
+
+data DistanceAPIEntity = DistanceAPIEntity
+  { value :: Double,
+    unit :: DistanceUnit
+  }
+  deriving stock (Generic, Show)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+mkDistanceAPIEntity :: Distance -> DistanceAPIEntity
+mkDistanceAPIEntity Distance {..} = DistanceAPIEntity {..}
 
 newtype Meters = Meters
   { getMeters :: Int
@@ -118,6 +165,66 @@ newtype Money = Money
   }
   deriving stock (Generic)
   deriving newtype (Show, Read, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData)
+
+data Currency = INR | USD | EUR
+  deriving stock (Generic, Show, Read, Eq, Ord)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+  deriving (PrettyShow) via Showable Currency
+
+-- cycle imports
+
+-- $(mkBeamInstancesForEnum ''Currency)
+
+instance FromField Currency where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Currency where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Currency
+
+instance FromBackendRow Postgres Currency
+
+data Price = Price
+  { amountInt :: Money, -- To be deprecated
+    amount :: HighPrecMoney,
+    currency :: Currency
+  }
+  deriving stock (Generic, Show)
+  deriving (PrettyShow) via Showable Price
+
+mkPrice :: Maybe Currency -> HighPrecMoney -> Price
+mkPrice mbCurrency amount =
+  Price
+    { amountInt = roundToIntegral amount,
+      amount,
+      currency = fromMaybe INR mbCurrency
+    }
+
+mkPriceWithDefault :: Maybe HighPrecMoney -> Maybe Currency -> Money -> Price -- FIXME Currency
+mkPriceWithDefault mbAmount mbCurrency defAmount =
+  Price
+    { amountInt = maybe defAmount roundToIntegral mbAmount,
+      amount = fromMaybe (HighPrecMoney $ toRational defAmount) mbAmount,
+      currency = fromMaybe INR mbCurrency
+    }
+
+mkPriceFromAPIEntity :: PriceAPIEntity -> Price
+mkPriceFromAPIEntity priceAPIEntity = mkPrice (Just priceAPIEntity.currency) priceAPIEntity.amount
+
+-- To be deprecated
+mkPriceFromMoney :: Money -> Price
+mkPriceFromMoney = mkPriceWithDefault Nothing Nothing
+
+data PriceAPIEntity = PriceAPIEntity
+  { amount :: HighPrecMoney,
+    currency :: Currency
+  }
+  deriving stock (Generic, Show)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+mkPriceAPIEntity :: Price -> PriceAPIEntity
+mkPriceAPIEntity Price {..} = PriceAPIEntity {..}
 
 newtype HighPrecMoney = HighPrecMoney
   { getHighPrecMoney :: Rational
