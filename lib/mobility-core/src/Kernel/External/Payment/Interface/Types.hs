@@ -25,7 +25,7 @@ import qualified Kernel.External.Payment.Juspay.Config as Juspay
 import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), TransactionStatus (..))
 import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
-import Kernel.Types.Common
+import Kernel.Types.Common hiding (Currency)
 
 newtype PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

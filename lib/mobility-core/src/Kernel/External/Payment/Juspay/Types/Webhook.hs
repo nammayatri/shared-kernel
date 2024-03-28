@@ -20,7 +20,7 @@ import Data.Aeson
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.External.Payment.Juspay.Types.Mandate (ProviderResponse, SourceInfo)
 import Kernel.Prelude
-import Kernel.Utils.Common
+import Kernel.Utils.Common hiding (Currency)
 
 data WebhookReq = WebhookReq
   { id :: Text,
