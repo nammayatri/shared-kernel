@@ -28,7 +28,6 @@ import Database.Beam.Postgres
 import Database.Persist.Class
 import Database.Persist.Sql
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Prelude as KP
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Types.FromField
@@ -102,7 +101,19 @@ data Currency = INR | USD | EUR
   deriving anyclass (ToJSON, FromJSON, ToSchema)
   deriving (PrettyShow) via Showable Currency
 
-$(mkBeamInstancesForEnum ''Currency)
+-- cycle imports
+
+-- $(mkBeamInstancesForEnum ''Currency)
+
+instance FromField Currency where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Currency where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Currency
+
+instance FromBackendRow Postgres Currency
 
 data Price = Price
   { amountInt :: Money, -- To be deprecated
@@ -172,6 +183,20 @@ withCurrencyChecking3 p1 p2 p3 func = do
     else
       E.throwError $
         InternalError $ "Trying to make operation for prices with different currencies: " <> KP.show p1 <> "; " <> KP.show p2 <> "; " <> KP.show p3
+
+-- | Do not use on endless lists
+withCurrencyCheckingList ::
+  (MonadThrow m, Log m) =>
+  [Price] ->
+  (Maybe Currency -> [HighPrecMoney] -> a) ->
+  m a
+withCurrencyCheckingList [] func = pure $ func Nothing []
+withCurrencyCheckingList ps@(p1 : _) func = do
+  if all (\p -> p.currency == p1.currency) ps
+    then pure $ func (Just p1.currency) (ps <&> (.amount))
+    else
+      E.throwError $
+        InternalError $ "Trying to make operation for prices with different currencies: " <> KP.show ps
 
 addPrice :: (MonadThrow m, Log m) => Price -> Price -> m Price
 addPrice p1 p2 = mkPrice (Just p1.currency) <$> withCurrencyChecking p1 p2 (+)
