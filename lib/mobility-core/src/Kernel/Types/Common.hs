@@ -15,7 +15,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wwarn=identities #-}
@@ -48,7 +47,6 @@ import Database.Persist.Sql
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Encryption
 import Kernel.External.Encryption as Common (EncFlow)
 import Kernel.Prelude as KP
@@ -79,7 +77,19 @@ data DistanceUnit = Meter | Mile | Yard | Kilometer
   deriving anyclass (ToJSON, FromJSON, ToSchema)
   deriving (PrettyShow) via Showable DistanceUnit
 
-$(mkBeamInstancesForEnum ''DistanceUnit)
+-- cycle imports
+
+-- $(mkBeamInstancesForEnum ''DistanceUnit)
+
+instance FromField DistanceUnit where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be DistanceUnit where
+  sqlValueSyntax = autoSqlValueSyntax
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be DistanceUnit
+
+instance FromBackendRow Postgres DistanceUnit
 
 convertToMeters :: Distance -> Distance
 convertToMeters d@(Distance _ _ Meter) = d
