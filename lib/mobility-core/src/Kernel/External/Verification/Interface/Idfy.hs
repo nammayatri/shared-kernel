@@ -111,12 +111,17 @@ validateImage cfg req = do
       idfyReq <- buildIdfyRequest req.driverId reqData
       resp <- Idfy.validateImage apiKey accountId url idfyReq
       pure $ mkValidateImageResp resp
-    VehicleRegistrationCertificate -> do
-      pure
-        ValidateImageResp
-          { validationAvailable = False,
-            detectedImage = Nothing
-          }
+    VehicleRegistrationCertificate -> return validationNotAvailable
+    VehiclePUC -> return validationNotAvailable
+    VehiclePermit -> return validationNotAvailable
+    VehicleInsurance -> return validationNotAvailable
+    VehicleFitnessCertificate -> return validationNotAvailable
+  where
+    validationNotAvailable =
+      ValidateImageResp
+        { validationAvailable = False,
+          detectedImage = Nothing
+        }
 
 mkValidateImageResp :: Idfy.IdfyResponse Idfy.ValidateResponse -> ValidateImageResp
 mkValidateImageResp resp = do
@@ -135,10 +140,18 @@ mkValidateImageResp resp = do
 getDocType :: ImageType -> Text
 getDocType DriverLicense = "ind_driving_license"
 getDocType VehicleRegistrationCertificate = "ind_rc"
+getDocType VehiclePUC = "ind_puc" -- fix these
+getDocType VehiclePermit = "ind_permit"
+getDocType VehicleInsurance = "ind_insurance"
+getDocType VehicleFitnessCertificate = "ind_fitness_certificate"
 
 getImageType :: Text -> ImageType
 getImageType "ind_driving_license" = DriverLicense
 getImageType "ind_rc" = VehicleRegistrationCertificate
+getImageType "ind_puc" = VehiclePUC
+getImageType "ind_permit" = VehiclePermit
+getImageType "ind_insurance" = VehicleInsurance
+getImageType "ind_fitness_certificate" = VehicleFitnessCertificate
 getImageType _ = VehicleRegistrationCertificate
 
 extractRCImage ::

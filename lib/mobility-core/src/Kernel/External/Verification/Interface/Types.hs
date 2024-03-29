@@ -68,7 +68,7 @@ data ValidateImageReq = ValidateImageReq
   }
   deriving stock (Show, Generic)
 
-data ImageType = DriverLicense | VehicleRegistrationCertificate
+data ImageType = DriverLicense | VehicleRegistrationCertificate | VehiclePUC | VehiclePermit | VehicleInsurance | VehicleFitnessCertificate
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
