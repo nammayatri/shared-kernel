@@ -48,6 +48,7 @@ import Database.Persist.Sql
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Encryption
 import Kernel.External.Encryption as Common (EncFlow)
 import Kernel.Prelude as KP
@@ -60,13 +61,12 @@ import Kernel.Types.FromField as Common
 import Kernel.Types.GuidLike as Common
 import Kernel.Types.Logging as Common
 import Kernel.Types.MonadGuid as Common
+import Kernel.Types.Price as Common
 import Kernel.Types.Time as Common
 import Kernel.Utils.Dhall (FromDhall, Natural)
 import Kernel.Utils.GenericPretty
-import Kernel.Utils.TH (mkHttpInstancesForEnum)
 import Sequelize.SQLObject (SQLObject (..), ToSQLObject (convertToSQLObject))
 import Servant
-import Text.Show (Show (..))
 
 newtype IdObject = IdObject
   { id :: Text
@@ -79,19 +79,7 @@ data DistanceUnit = Meter | Mile | Yard | Kilometer
   deriving anyclass (ToJSON, FromJSON, ToSchema)
   deriving (PrettyShow) via Showable DistanceUnit
 
--- cycle imports
-
--- $(mkBeamInstancesForEnum ''DistanceUnit)
-
-instance FromField DistanceUnit where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be DistanceUnit where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be DistanceUnit
-
-instance FromBackendRow Postgres DistanceUnit
+$(mkBeamInstancesForEnum ''DistanceUnit)
 
 convertToMeters :: Distance -> Distance
 convertToMeters d@(Distance _ _ Meter) = d
@@ -160,78 +148,6 @@ metersToHighPrecMeters (Meters n) = HighPrecMeters . realToFrac $ int2Double n
 highPrecMetersToMeters :: HighPrecMeters -> Meters
 highPrecMetersToMeters (HighPrecMeters n) = Meters . double2Int $ realToFrac n
 
-newtype Money = Money
-  { getMoney :: Int
-  }
-  deriving stock (Generic)
-  deriving newtype (Show, Read, PrettyShow, Enum, Eq, Ord, Num, Real, Integral, PersistField, PersistFieldSql, ToJSON, FromJSON, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData)
-
-data Currency = INR | USD | EUR
-  deriving stock (Generic, Show, Read, Eq, Ord)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
-  deriving (PrettyShow) via Showable Currency
-
--- cycle imports
-
--- $(mkBeamInstancesForEnum ''Currency)
-
-instance FromField Currency where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be Currency where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be Currency
-
-instance FromBackendRow Postgres Currency
-
-data Price = Price
-  { amountInt :: Money, -- To be deprecated
-    amount :: HighPrecMoney,
-    currency :: Currency
-  }
-  deriving stock (Generic, Show)
-  deriving (PrettyShow) via Showable Price
-
-mkPrice :: Maybe Currency -> HighPrecMoney -> Price
-mkPrice mbCurrency amount =
-  Price
-    { amountInt = roundToIntegral amount,
-      amount,
-      currency = fromMaybe INR mbCurrency
-    }
-
-mkPriceWithDefault :: Maybe HighPrecMoney -> Maybe Currency -> Money -> Price -- FIXME Currency
-mkPriceWithDefault mbAmount mbCurrency defAmount =
-  Price
-    { amountInt = maybe defAmount roundToIntegral mbAmount,
-      amount = fromMaybe (HighPrecMoney $ toRational defAmount) mbAmount,
-      currency = fromMaybe INR mbCurrency
-    }
-
-mkPriceFromAPIEntity :: PriceAPIEntity -> Price
-mkPriceFromAPIEntity priceAPIEntity = mkPrice (Just priceAPIEntity.currency) priceAPIEntity.amount
-
--- To be deprecated
-mkPriceFromMoney :: Money -> Price
-mkPriceFromMoney = mkPriceWithDefault Nothing Nothing
-
-data PriceAPIEntity = PriceAPIEntity
-  { amount :: HighPrecMoney,
-    currency :: Currency
-  }
-  deriving stock (Generic, Show)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
-
-mkPriceAPIEntity :: Price -> PriceAPIEntity
-mkPriceAPIEntity Price {..} = PriceAPIEntity {..}
-
-newtype HighPrecMoney = HighPrecMoney
-  { getHighPrecMoney :: Rational
-  }
-  deriving stock (Generic)
-  deriving newtype (Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
-
 data KVTable = KVTable
   { nameOfTable :: Text,
     percentEnable :: Natural,
@@ -277,35 +193,6 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be Tables
 instance FromBackendRow Postgres Tables
 
 instance FromField Tables where
-  fromField = fromFieldJSON
-
-instance Show HighPrecMoney where
-  show = Text.Show.show @Double . realToFrac
-
-instance Read HighPrecMoney where
-  readsPrec d s = do
-    (dobuleVal, s1) :: (Double, String) <- readsPrec d s
-    return (realToFrac dobuleVal, s1)
-
-instance ToJSON HighPrecMoney where
-  toJSON = toJSON @Double . realToFrac
-
-instance FromJSON HighPrecMoney where
-  parseJSON = fmap realToFrac . parseJSON @Double
-
-instance ToSchema HighPrecMoney where
-  declareNamedSchema _ = do
-    aSchema <- declareSchema (Proxy :: Proxy Double)
-    return $ NamedSchema (Just "HighPrecMoney") aSchema
-
-instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Money where
-  sqlValueSyntax = sqlValueSyntax . getMoney
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be Money
-
-instance FromBackendRow Postgres Money
-
-instance FromField Money where
   fromField = fromFieldJSON
 
 instance FromField Centi where
@@ -395,19 +282,6 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be Seconds
 
 instance FromBackendRow Postgres Seconds
 
-instance FromField HighPrecMoney where
-  fromField f mbValue = HighPrecMoney <$> fromFieldDefault f mbValue
-
-instance HasSqlValueSyntax be Rational => HasSqlValueSyntax be HighPrecMoney where
-  sqlValueSyntax = sqlValueSyntax . getHighPrecMoney
-
-instance HasSqlValueSyntax be Double => HasSqlValueSyntax be Rational where
-  sqlValueSyntax = sqlValueSyntax . (fromRational :: Rational -> Double)
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecMoney
-
-instance FromBackendRow Postgres HighPrecMoney
-
 instance FromField Seconds where
   fromField f mbValue = Seconds <$> fromFieldDefault f mbValue
 
@@ -456,5 +330,3 @@ buildRadiusWithin'' (lat, lon) rad =
 
 (<->.) :: Point -> Point -> BQ.QGenExpr context Postgres s Double
 (<->.) p1 p2 = BQ.QExpr (\_ -> PgExpressionSyntax (emit $ KP.show p1 <> " <-> " <> KP.show p2))
-
-$(mkHttpInstancesForEnum ''HighPrecMoney)
