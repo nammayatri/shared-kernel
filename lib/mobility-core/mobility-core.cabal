@@ -21,7 +21,6 @@ source-repository head
 
 library
   exposed-modules:
-      Kernel.Beam.ART.ARTFunctions
       Kernel.Beam.ART.ARTUtils
       Kernel.Beam.Connection.EnvVars
       Kernel.Beam.Connection.Flow

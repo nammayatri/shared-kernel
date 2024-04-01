@@ -239,7 +239,7 @@ instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkabl
       kafkaConn <- asks (.kafkaProducerForART)
       timestamp <- getCurrentTime
       let response = def {requestId = requestId, forkedTag = Just tag, timestamp = Just timestamp}
-      liftIO $ pushToKafka kafkaConn (encode response) "ART-Logs" requestId
+      liftIO $ void $ forkIO $ pushToKafka kafkaConn (encode response) "ART-Logs" requestId
 
     FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
     where
