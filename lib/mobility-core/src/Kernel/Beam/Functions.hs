@@ -32,16 +32,15 @@ where
 
 import Data.Aeson
 import Data.Default.Class
--- import qualified Data.Serialize as Serialize
-import Database.Beam hiding (timestamp)
+import Database.Beam hiding (primaryKey, timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
 import qualified EulerHS.KVConnector.Flow as KV
-import EulerHS.KVConnector.Types (DBCommandVersion' (..), MeshConfig (..))
+import EulerHS.KVConnector.Types (DBCommandVersion' (..), MeshConfig (..), MeshMeta (..))
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log)
-import Kernel.Beam.ART.ARTFunctions
+import Kernel.Beam.ART.ARTUtils as ART hiding (pushToKafka)
 import qualified Kernel.Beam.ART.ARTUtils as A
 import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types
@@ -51,6 +50,7 @@ import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Logging (logDebug)
+import Kernel.Utils.Text (decodeFromTextArt, encodeToTextArt)
 import Sequelize
 import System.Random
 
@@ -170,7 +170,7 @@ getReplicaLocationDbConfig = do
 
 findOneWithKV ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
@@ -182,7 +182,7 @@ findOneWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig
 
 findOneWithKVScheduler ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType'' (table Identity) a
   ) =>
@@ -194,7 +194,7 @@ findOneWithKVScheduler where' = withUpdatedMeshConfig (Proxy @table) $ \updatedM
 
 findOneWithDb ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
@@ -208,7 +208,7 @@ findOneWithDb where' = do
 
 findAllWithKV ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
@@ -220,7 +220,7 @@ findAllWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig
 
 findAllWithKVScheduler ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType'' (table Identity) a
   ) =>
@@ -232,7 +232,7 @@ findAllWithKVScheduler where' = withUpdatedMeshConfig (Proxy @table) $ \updatedM
 
 findAllWithDb ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
@@ -244,7 +244,7 @@ findAllWithDb where' = do
 
 findAllWithKVAndConditionalDB ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
@@ -259,7 +259,7 @@ findAllWithKVAndConditionalDB where' orderBy = withUpdatedMeshConfig (Proxy @tab
 
 findAllWithOptionsKV ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
@@ -274,7 +274,7 @@ findAllWithOptionsKV where' orderBy mbLimit mbOffset = withUpdatedMeshConfig (Pr
 
 findAllWithOptionsKV' ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
@@ -288,7 +288,7 @@ findAllWithOptionsKV' where' mbLimit mbOffset = withUpdatedMeshConfig (Proxy @ta
 
 findAllWithOptionsKVScheduler ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType'' (table Identity) a
   ) =>
@@ -303,7 +303,7 @@ findAllWithOptionsKVScheduler where' orderBy mbLimit mbOffset = withUpdatedMeshC
 
 findAllWithOptionsDb ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     FromTType' (table Identity) a
   ) =>
@@ -320,7 +320,7 @@ findAllWithOptionsDb where' orderBy mbLimit mbOffset = do
 
 updateWithKV ::
   forall table m r.
-  (BeamTableFlow table m, KvDbFlow m r) =>
+  (BeamTableFlow table m r, KvDbFlow m r) =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
@@ -330,7 +330,7 @@ updateWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \upd
 
 updateWithKVScheduler ::
   forall table m r.
-  (BeamTableFlow table m, KvDbFlow m r) =>
+  (BeamTableFlow table m r, KvDbFlow m r) =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
@@ -342,7 +342,7 @@ updateWithKVScheduler setClause whereClause = withUpdatedMeshConfig (Proxy @tabl
 
 updateOneWithKV ::
   forall table m r.
-  (BeamTableFlow table m, KvDbFlow m r) =>
+  (BeamTableFlow table m r, KvDbFlow m r) =>
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
@@ -354,7 +354,7 @@ updateOneWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \
 
 createWithKV ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     ToTType' (table Identity) a
   ) =>
@@ -366,7 +366,7 @@ createWithKV a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
 
 createWithKVScheduler ::
   forall table m r a.
-  ( BeamTableFlow table m,
+  ( BeamTableFlow table m r,
     KvDbFlow m r,
     ToTType'' (table Identity) a
   ) =>
@@ -380,7 +380,7 @@ createWithKVScheduler a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshCon
 
 deleteWithKV ::
   forall table m r.
-  (BeamTableFlow table m, KvDbFlow m r) =>
+  (BeamTableFlow table m r, KvDbFlow m r) =>
   Where Postgres table ->
   m ()
 deleteWithKV whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
@@ -389,7 +389,7 @@ deleteWithKV whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshCo
 
 deleteWithDb ::
   forall table m r.
-  (BeamTableFlow table m, KvDbFlow m r) =>
+  (BeamTableFlow table m r, KvDbFlow m r) =>
   Where Postgres table ->
   m ()
 deleteWithDb where' = do
@@ -400,40 +400,44 @@ deleteWithDb where' = do
 
 findOneInternal ::
   forall table m r a.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m r) =>
   MeshConfig ->
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
   m (Maybe a)
 findOneInternal updatedMeshConfig fromTType where' = do
+  now <- getCurrentTime
   dbConf' <- getReadDBConfigInternal
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
-  logQueryData "findOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table)
   case result of
-    Right (Just res) -> fromTType res
+    Right (Just res) -> do
+      logQueryData "findOneInternal" where' [] [res] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
+      fromTType res
     Right Nothing -> pure Nothing
     Left err -> throwError $ InternalError $ show err
 
 findAllInternal ::
   forall table m r a.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m r) =>
   MeshConfig ->
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
   m [a]
 findAllInternal updatedMeshConfig fromTType where' = do
+  now <- getCurrentTime
   dbConf' <- getReadDBConfigInternal
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
-  logQueryData "findAllInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table)
   case result of
     Right res -> do
-      res' <- mapM fromTType res
+      res' <- do
+        logQueryData "findAllInternal" where' [] res (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
+        mapM fromTType res
       pure $ catMaybes res'
     Left err -> throwError $ InternalError $ show err
 
 findAllWithOptionsInternal ::
   forall table m r a.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m r) =>
   MeshConfig ->
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
@@ -442,18 +446,20 @@ findAllWithOptionsInternal ::
   Maybe Int ->
   m [a]
 findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mbOffset = do
+  now <- getCurrentTime
   dbConf' <- getReadDBConfigInternal
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
-  logQueryData "findAllWithOptionsInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table)
   case result of
     Right res -> do
-      res' <- mapM fromTType res
+      res' <- do
+        logQueryData "findAllWithOptionsInternal" where' [] res (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
+        mapM fromTType res
       pure $ catMaybes res'
     Left err -> throwError $ InternalError $ show err
 
 findAllWithOptionsInternal' ::
   forall table m r a.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m r) =>
   MeshConfig ->
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
@@ -461,30 +467,34 @@ findAllWithOptionsInternal' ::
   Maybe Int ->
   m [a]
 findAllWithOptionsInternal' updatedMeshConfig fromTType where' mbLimit mbOffset = do
+  now <- getCurrentTime
   dbConf' <- getReadDBConfigInternal
   result <- KV.findAllWithOptionsKVConnector' dbConf' updatedMeshConfig where' mbLimit mbOffset
-  logQueryData "findAllWithOptionsInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table)
   case result of
     Right res -> do
-      res' <- mapM fromTType res
+      res' <- do
+        logQueryData "findAllWithOptionsInternal" where' [] res (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
+        mapM fromTType res
       pure $ catMaybes res'
     Left err -> throwError $ InternalError $ show err
 
 findAllWithKVAndConditionalDBInternal ::
   forall table m r a.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m r) =>
   MeshConfig ->
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
   Maybe (OrderBy table) ->
   m [a]
 findAllWithKVAndConditionalDBInternal updatedMeshConfig fromTType where' orderBy = do
+  now <- getCurrentTime
   dbConf' <- getReadDBConfigInternal
   result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
-  logQueryData "findAllWithKVAndConditionalDBInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table)
   case result of
     Right res -> do
-      res' <- mapM fromTType res
+      res' <- do
+        logQueryData "findAllWithKVAndConditionalDBInternal" where' [] res (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
+        mapM fromTType res
       pure $ catMaybes res'
     Left err -> throwError $ InternalError $ show err
 
@@ -495,17 +505,18 @@ getReadDBConfigInternal = do
 
 updateInternal ::
   forall table m r.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m r) =>
   MeshConfig ->
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
 updateInternal updatedMeshConfig setClause whereClause = do
+  now <- getCurrentTime
   dbConf <- getMasterDBConfig
   res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
-  logQueryData "updateInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1' setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table)
   case res of
     Right res' -> do
+      logQueryData "updateInternal" whereClause setClause res' (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Updated rows KV: " <> show res'
         else do
@@ -519,21 +530,22 @@ updateInternal updatedMeshConfig setClause whereClause = do
 
 updateOneInternal ::
   forall table m r.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m r) =>
   MeshConfig ->
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
 updateOneInternal updatedMeshConfig setClause whereClause = do
+  now <- getCurrentTime
   dbConf <- getMasterDBConfig
   res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
-  logQueryData "updateOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1' setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table)
   case res of
     Right obj -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Updated row KV: " <> show obj
         else do
           whenJust obj $ \object' -> do
+            logQueryData "updateOneInternal" whereClause setClause [object'] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
             topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
             let newObject = replaceMappings (toJSON object') (getMappings [object'])
             handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update: " <> show e <> "in topic" <> topicName) $
@@ -544,16 +556,17 @@ updateOneInternal updatedMeshConfig setClause whereClause = do
 
 createInternal ::
   forall table m r a.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m r) =>
   MeshConfig ->
   (a -> table Identity) ->
   a ->
   m ()
 createInternal updatedMeshConfig toTType a = do
+  now <- getCurrentTime
   let tType = toTType a
   dbConf' <- getMasterDBConfig
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
-  void $ logQueryData "createInternal" ("Nothing" :: Text) ("Nothing" :: Text) (show tType) (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table)
+  void $ logQueryData "createInternal" [] [] [tType] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
   case result of
     Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -569,38 +582,332 @@ createInternal updatedMeshConfig toTType a = do
 
 deleteInternal ::
   forall table m r.
-  (BeamTableFlow table m, EsqDBFlow m r) =>
+  (BeamTableFlow table m r) =>
   MeshConfig ->
   Where Postgres table ->
   m ()
 deleteInternal updatedMeshConfig whereClause = do
+  now <- getCurrentTime
   dbConf <- getMasterDBConfig
   res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
-  logQueryData "deleteInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) ("Nothing" :: Text) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table)
   case res of
-    Right _ -> do
+    Right res' -> do
+      logQueryData "deleteInternal" whereClause [] res' (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Deleted rows in KV: " <> show res
         else logDebug $ "Deleted rows in DB: " <> show res
     Left err -> throwError $ InternalError $ show err
 
 logQueryData ::
-  (MonadFlow m, EsqDBFlow m r) =>
+  ( EsqDBFlow m r,
+    ToJSON (table Identity),
+    Model Postgres table,
+    MeshMeta Postgres table
+  ) =>
   Text ->
-  Text ->
-  Text ->
-  Text ->
+  Where Postgres table ->
+  [Set Postgres table] ->
+  [table Identity] ->
   Bool ->
   Text ->
   Maybe Text ->
+  UTCTime ->
   m ()
-logQueryData queryType whereClause setClause tableObject kvEnabled table schemaName = do
+logQueryData queryType whereClause' setClause' tableObject' kvEnabled table schemaName timestamp = do
   shouldLogRequestId <- asks (.shouldLogRequestId)
-  timestamp <- getCurrentTime
   when shouldLogRequestId $
     fork "ArtData" $ do
       kafkaConn <- L.getOption KBT.KafkaConn
       requestId <- fromMaybe "" <$> asks (.requestId)
-      let queryData = A.QueryData {..}
+      let whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause')
+          setClause = show $ jsonKeyValueUpdates V1' setClause'
+          tableObject = map encodeToTextArt tableObject'
+          queryData = A.QueryData {..}
       handle (\(e :: SomeException) -> L.logError ("ART_QUERY_LOG_FAILED" :: Text) $ "Error while logging query data: " <> show e) $ do
         liftIO $ A.pushToKafka kafkaConn (encode def {A.requestId = requestId, A.queryData = Just queryData, A.timestamp = Just timestamp}) "ART-Logs" requestId
+
+{--
+------------------------------------------------------------------------------------------------------------------
+             _____    _______       ______   _    _   _   _    _____   _______   _____    ____    _   _    _____
+     /\     |  __ \  |__   __|     |  ____| | |  | | | \ | |  / ____| |__   __| |_   _|  / __ \  | \ | |  / ____|
+    /  \    | |__) |    | |        | |__    | |  | | |  \| | | |         | |      | |   | |  | | |  \| | | (___
+   / /\ \   |  _  /     | |        |  __|   | |  | | | . ` | | |         | |      | |   | |  | | | . ` |  \___ \
+  / ____ \  | | \ \     | |        | |      | |__| | | |\  | | |____     | |     _| |_  | |__| | | |\  |  ____) |
+ /_/    \_\ |_|  \_\    |_|        |_|       \____/  |_| \_|  \_____|    |_|    |_____|  \____/  |_| \_| |_____/
+
+------------------------------------------------------------------------------------------------------------------
+--}
+
+findOneInternalArt ::
+  forall table m r a.
+  (BeamTableFlow table m r) =>
+  MeshConfig ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  m (Maybe a)
+findOneInternalArt _ ttype where' = do
+  let tableName = modelTableName @table
+      schemaName = modelSchemaName @table
+      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
+  artData <- readAndDecodeArtData
+  case artData of
+    Left err -> do
+      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ONE" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ONE " :: Text) <> show err)
+    Right artData' -> do
+      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
+      queryData' <- getArtQueryObject "findOneInternal" tableName schemaName whereClause artDataList
+      case queryData' of
+        Nothing -> do
+          L.logError ("ART_QUERY_DATA_NOT_FOUND_FIND_ONE" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+          pure Nothing
+        Just queryData'' -> do
+          let tableObject' = tableObject queryData''
+              schemaName' = ART.schemaName queryData''
+              tableName' = table queryData''
+          if tableName' == tableName && schemaName' == schemaName
+            then do
+              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
+                  tableIdentity' = catMaybes tableIdentity
+              case tableIdentity' of
+                [] -> do
+                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_FIND_ONE" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+                  pure Nothing
+                _ -> do
+                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
+                  res <- mapM ttype tableIdentity'
+                  now <- getCurrentTime
+                  void $ logQueryData "findOneInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
+                  pure $ listToMaybe $ catMaybes res
+            else do
+              L.logError ("ART_TABLE_MISMATCH_FIND_ONE" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+              throwError $ InternalError ("Art data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+
+findAllInternalArt ::
+  forall table m r a.
+  (BeamTableFlow table m r) =>
+  MeshConfig ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  m [a]
+findAllInternalArt _ ttype where' = do
+  let tableName = modelTableName @table
+      schemaName = modelSchemaName @table
+      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
+  artData <- readAndDecodeArtData
+  case artData of
+    Left err -> do
+      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL " :: Text) <> show err)
+    Right artData' -> do
+      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
+      queryData' <- getArtQueryObject "findAllInternal" tableName schemaName whereClause artDataList
+      case queryData' of
+        Nothing -> do
+          L.logError ("ART_QUERY_DATA_NOT_FOUND_FIND_ALL" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+          pure []
+        Just queryData'' -> do
+          let tableObject' = tableObject queryData''
+              schemaName' = ART.schemaName queryData''
+              tableName' = table queryData''
+          if tableName' == tableName && schemaName' == schemaName
+            then do
+              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
+              let tableIdentity' = catMaybes tableIdentity
+              case tableIdentity' of
+                [] -> do
+                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_FIND_ALL" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+                  pure []
+                _ -> do
+                  now <- getCurrentTime
+                  void $ logQueryData "findAllInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
+                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
+                  res <- mapM ttype tableIdentity'
+                  pure $ catMaybes res
+            else do
+              L.logError ("ART_TABLE_MISMATCH_FIND_ALL" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+              throwError $ InternalError ("Data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+
+findAllWithOptionsInternalArt ::
+  forall table m r a.
+  (BeamTableFlow table m r) =>
+  MeshConfig ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  OrderBy table ->
+  Maybe Int ->
+  Maybe Int ->
+  m [a]
+findAllWithOptionsInternalArt _ ttype where' _ _ _ = do
+  let tableName = modelTableName @table
+      schemaName = modelSchemaName @table
+      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
+  artData <- readAndDecodeArtData
+  case artData of
+    Left err -> do
+      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL_OPTION" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL_OPTION " :: Text) <> show err)
+    Right artData' -> do
+      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
+      queryData' <- getArtQueryObject "findAllWithOptionsInternal" tableName schemaName whereClause artDataList
+      case queryData' of
+        Nothing -> do
+          L.logError ("ART_QUERY_DATA_NOT_FOUND_FIND_ALL_OPTION" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+          pure []
+        Just queryData'' -> do
+          let tableObject' = tableObject queryData''
+              schemaName' = ART.schemaName queryData''
+              tableName' = table queryData''
+          if tableName' == tableName && schemaName' == schemaName
+            then do
+              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
+              let tableIdentity' = catMaybes tableIdentity
+              case tableIdentity' of
+                [] -> do
+                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_FIND_ALL_OPTION" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+                  pure []
+                _ -> do
+                  now <- getCurrentTime
+                  void $ logQueryData "findAllWithOptionsInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
+                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
+                  res <- mapM ttype tableIdentity'
+                  pure $ catMaybes res
+            else do
+              L.logError ("ART_TABLE_MISMATCH_FIND_ALL_OPTION" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+              throwError $ InternalError ("Data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+
+findAllWithOptionsInternalArt' ::
+  forall table m r a.
+  (BeamTableFlow table m r) =>
+  MeshConfig ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  Maybe Int ->
+  Maybe Int ->
+  m [a]
+findAllWithOptionsInternalArt' _ ttype where' _ _ = do
+  let tableName = modelTableName @table
+      schemaName = modelSchemaName @table
+      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
+  artData <- readAndDecodeArtData
+  case artData of
+    Left err -> do
+      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL_OPTION'" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL_OPTION' " :: Text) <> show err)
+    Right artData' -> do
+      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
+      queryData' <- getArtQueryObject "findAllWithOptionsInternal" tableName schemaName whereClause artDataList
+      case queryData' of
+        Nothing -> do
+          L.logError ("ART_QUERY_DATA_NOT_FOUND_FIND_ALL_OPTION'" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+          pure []
+        Just queryData'' -> do
+          let tableObject' = tableObject queryData''
+              schemaName' = ART.schemaName queryData''
+              tableName' = table queryData''
+          if tableName' == tableName && schemaName' == schemaName
+            then do
+              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
+              let tableIdentity' = catMaybes tableIdentity
+              case tableIdentity' of
+                [] -> do
+                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_FIND_ALL_OPTION'" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+                  pure []
+                _ -> do
+                  now <- getCurrentTime
+                  void $ logQueryData "findAllWithOptionsInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
+                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
+                  res <- mapM ttype tableIdentity'
+                  pure $ catMaybes res
+            else do
+              L.logError ("ART_TABLE_MISMATCH_FIND_ALL_OPTION'" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+              throwError $ InternalError ("Data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+
+findAllWithKVAndConditionalDBInternalArt ::
+  forall table m r a.
+  (BeamTableFlow table m r) =>
+  MeshConfig ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  Maybe (OrderBy table) ->
+  m [a]
+findAllWithKVAndConditionalDBInternalArt _ ttype where' _ = do
+  let tableName = modelTableName @table
+      schemaName = modelSchemaName @table
+      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
+  artData <- readAndDecodeArtData
+  case artData of
+    Left err -> do
+      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_CONDITIONAL_FIND" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_CONDITIONAL_FIND " :: Text) <> show err)
+    Right artData' -> do
+      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
+      queryData' <- getArtQueryObject "findAllWithKVAndConditionalDBInternal" tableName schemaName whereClause artDataList
+      case queryData' of
+        Nothing -> do
+          L.logError ("ART_QUERY_DATA_NOT_FOUND_CONDITIONAL_FIND" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+          pure []
+        Just queryData'' -> do
+          let tableObject' = tableObject queryData''
+              schemaName' = ART.schemaName queryData''
+              tableName' = table queryData''
+          if tableName' == tableName && schemaName' == schemaName
+            then do
+              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
+              let tableIdentity' = catMaybes tableIdentity
+              case tableIdentity' of
+                [] -> do
+                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_CONDITIONAL_FIND" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+                  pure []
+                _ -> do
+                  now <- getCurrentTime
+                  void $ logQueryData "findAllWithKVAndConditionalDBInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
+                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
+                  res <- mapM ttype tableIdentity'
+                  pure $ catMaybes res
+            else do
+              L.logError ("ART_TABLE_MISMATCH_CONDITIONAL_FIND" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+              throwError $ InternalError ("Data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+
+updateInternalArt ::
+  forall table m r.
+  (BeamTableFlow table m r) =>
+  MeshConfig ->
+  [Set Postgres table] ->
+  Where Postgres table ->
+  m ()
+updateInternalArt meshConfig' setClause whereClause = do
+  now <- getCurrentTime
+  void $ logQueryData "updateInternalArt" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+
+updateOneInternalArt ::
+  forall table m r.
+  (BeamTableFlow table m r) =>
+  MeshConfig ->
+  [Set Postgres table] ->
+  Where Postgres table ->
+  m ()
+updateOneInternalArt meshConfig' setClause whereClause = do
+  now <- getCurrentTime
+  void $ logQueryData "updateOneInternalArt" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+
+createInternalArt ::
+  forall table m r a.
+  (BeamTableFlow table m r) =>
+  MeshConfig ->
+  (a -> table Identity) ->
+  a ->
+  m ()
+createInternalArt meshConfig' toTType a = do
+  now <- getCurrentTime
+  void $ logQueryData "createInternalArt" [] [] [toTType a] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+
+deleteInternalArt ::
+  forall table m r.
+  (BeamTableFlow table m r) =>
+  MeshConfig ->
+  Where Postgres table ->
+  m ()
+deleteInternalArt meshConfig' whereClause = do
+  now <- getCurrentTime
+  void $ logQueryData "deleteInternalArt" whereClause [] [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now

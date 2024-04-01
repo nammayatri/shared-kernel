@@ -83,25 +83,26 @@ meshConfig =
     }
 
 data DbFunctions = DbFunctions
-  { createInternalFunction :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (a -> table Identity) -> a -> m (),
-    findOneInternalFunction :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> m (Maybe a),
-    findAllInternalFunction :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> m [a],
-    findAllWithOptionsInternalFunction :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> OrderBy table -> Maybe Int -> Maybe Int -> m [a],
-    findAllWithOptionsInternalFunction' :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> Maybe Int -> Maybe Int -> m [a],
-    findAllWithKVAndConditionalDBInternalFunction :: forall table m r a. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> Maybe (OrderBy table) -> m [a],
-    updateInternalFunction :: forall table m r. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> [Set Postgres table] -> Where Postgres table -> m (),
-    updateOneInternalFunction :: forall table m r. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> [Set Postgres table] -> Where Postgres table -> m (),
-    deleteInternalFunction :: forall table m r. (BeamTableFlow table m, EsqDBFlow m r) => MeshConfig -> Where Postgres table -> m ()
+  { createInternalFunction :: forall table m r a. (BeamTableFlow table m r) => MeshConfig -> (a -> table Identity) -> a -> m (),
+    findOneInternalFunction :: forall table m r a. (BeamTableFlow table m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> m (Maybe a),
+    findAllInternalFunction :: forall table m r a. (BeamTableFlow table m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> m [a],
+    findAllWithOptionsInternalFunction :: forall table m r a. (BeamTableFlow table m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> OrderBy table -> Maybe Int -> Maybe Int -> m [a],
+    findAllWithOptionsInternalFunction' :: forall table m r a. (BeamTableFlow table m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> Maybe Int -> Maybe Int -> m [a],
+    findAllWithKVAndConditionalDBInternalFunction :: forall table m r a. (BeamTableFlow table m r) => MeshConfig -> (table Identity -> m (Maybe a)) -> Where Postgres table -> Maybe (OrderBy table) -> m [a],
+    updateInternalFunction :: forall table m r. (BeamTableFlow table m r) => MeshConfig -> [Set Postgres table] -> Where Postgres table -> m (),
+    updateOneInternalFunction :: forall table m r. (BeamTableFlow table m r) => MeshConfig -> [Set Postgres table] -> Where Postgres table -> m (),
+    deleteInternalFunction :: forall table m r. (BeamTableFlow table m r) => MeshConfig -> Where Postgres table -> m ()
   }
 
 -------------------------------------- types --------------------------------------
 
 type KvDbFlow m r = (MonadFlow m, CacheFlow m r, EsqDBFlow m r, HasField "dbFunctions" r DbFunctions)
 
-type BeamTableFlow table m =
+type BeamTableFlow table m r =
   ( HasCallStack,
     BeamTable table,
-    MonadFlow m
+    MonadFlow m,
+    EsqDBFlow m r
   )
 
 type BeamTable table =
