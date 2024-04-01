@@ -87,8 +87,6 @@ instance ClickhouseValue Bool where
   fromClickhouseValue (String _) = fail "Supported format for Bool: 0, 1, false, true, False, True"
   fromClickhouseValue _ = fail "Unexpected Null"
 
-instance ClickhouseValue Text
-
 instance ClickhouseValue Time.Day
 
 instance ClickhouseValue UTCTime where
@@ -122,6 +120,12 @@ instance ClickhouseValue (Id a) where
 instance ClickhouseValue (ShortId a) where
   toClickhouseValue = String . T.unpack . getShortId
   fromClickhouseValue (String str) = pure . ShortId . T.pack $ str
+  fromClickhouseValue (Number _) = fail "Unexpected Number"
+  fromClickhouseValue Null = fail "Unexpected Null"
+
+instance ClickhouseValue Text where
+  toClickhouseValue = String . T.unpack
+  fromClickhouseValue (String str) = pure . T.pack $ str
   fromClickhouseValue (Number _) = fail "Unexpected Number"
   fromClickhouseValue Null = fail "Unexpected Null"
 
