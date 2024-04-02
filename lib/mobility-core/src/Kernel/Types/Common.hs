@@ -13,9 +13,6 @@
 -}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wwarn=identities #-}
@@ -43,10 +40,7 @@ import qualified Database.Beam.Backend.SQL.AST as B
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
 import qualified Database.Beam.Query as BQ
-import Database.Persist.Class
-import Database.Persist.Sql
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
 import Kernel.External.Encryption
 import Kernel.External.Encryption as Common (EncFlow)
@@ -55,6 +49,7 @@ import Kernel.Storage.Esqueleto.Config as Common (EsqDBFlow)
 import Kernel.Storage.Esqueleto.Types
 import Kernel.Types.App as Common
 import Kernel.Types.Centesimal as Common
+import Kernel.Types.Distance as Common
 import Kernel.Types.Forkable as Common
 import Kernel.Types.FromField as Common
 import Kernel.Types.GuidLike as Common
@@ -63,140 +58,12 @@ import Kernel.Types.MonadGuid as Common
 import Kernel.Types.Price as Common
 import Kernel.Types.Time as Common
 import Kernel.Utils.Dhall (FromDhall, Natural)
-import Kernel.Utils.GenericPretty
-import Kernel.Utils.TH (mkHttpInstancesForEnum)
-import Sequelize.SQLObject (SQLObject (..), ToSQLObject (convertToSQLObject))
-import Servant
-import Text.Show (Show (..))
 
 newtype IdObject = IdObject
   { id :: Text
   }
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
-
-newtype HighPrecDistance = HighPrecDistance
-  { getHighPrecDistance :: Rational
-  }
-  deriving stock (Generic)
-  deriving newtype (Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
-
-instance Show HighPrecDistance where
-  show = Text.Show.show @Double . realToFrac
-
-instance Read HighPrecDistance where
-  readsPrec d s = do
-    (dobuleVal, s1) :: (Double, String) <- readsPrec d s
-    return (realToFrac dobuleVal, s1)
-
-instance ToJSON HighPrecDistance where
-  toJSON = toJSON @Double . realToFrac
-
-instance FromJSON HighPrecDistance where
-  parseJSON = fmap realToFrac . parseJSON @Double
-
-instance FromField HighPrecDistance where
-  fromField f mbValue = HighPrecDistance <$> fromFieldDefault f mbValue
-
-instance HasSqlValueSyntax be Rational => HasSqlValueSyntax be HighPrecDistance where
-  sqlValueSyntax = sqlValueSyntax . getHighPrecDistance
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecDistance
-
-instance FromBackendRow Postgres HighPrecDistance
-
-instance ToSchema HighPrecDistance where
-  declareNamedSchema _ = do
-    aSchema <- declareSchema (Proxy :: Proxy Double)
-    return $ NamedSchema (Just "HighPrecDistance") aSchema
-
-$(mkHttpInstancesForEnum ''HighPrecDistance)
-
-data DistanceUnit = Meter | Mile | Yard | Kilometer
-  deriving stock (Generic, Show, Read, Eq, Ord)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
-  deriving (PrettyShow) via Showable DistanceUnit
-
--- cycle imports
-
--- $(mkBeamInstancesForEnum ''DistanceUnit)
-
-instance FromField DistanceUnit where
-  fromField = fromFieldEnum
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be DistanceUnit where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be DistanceUnit
-
-instance FromBackendRow Postgres DistanceUnit
-
-convertToMeters :: Distance -> Distance
-convertToMeters d@(Distance _ _ Meter) = d
-convertToMeters (Distance _ v unit) = do
-  let v' =
-        v * case unit of
-          Mile -> 1609.34
-          Kilometer -> 1000
-          Yard -> 0.9144
-  Distance (roundToIntegral v') v' Meter
-
-data Distance = Distance
-  { valueInt :: Int, -- To be deprecated
-    value :: HighPrecDistance,
-    unit :: DistanceUnit
-  }
-  deriving stock (Generic, Show)
-  deriving (PrettyShow) via Showable Distance
-
-data DistanceAPIEntity = DistanceAPIEntity
-  { value :: HighPrecDistance,
-    unit :: DistanceUnit
-  }
-  deriving stock (Generic, Show)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
-
-mkDistanceAPIEntity :: Distance -> DistanceAPIEntity
-mkDistanceAPIEntity Distance {..} = DistanceAPIEntity {..}
-
-newtype Meters = Meters
-  { getMeters :: Int
-  }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData, PrettyShow, PersistField, PersistFieldSql)
-  deriving stock (Generic)
-
-newtype HighPrecMeters = HighPrecMeters
-  { getHighPrecMeters :: Centesimal
-  }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Fractional, Real, RealFrac, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
-  deriving stock (Generic)
-
-newtype Kilometers = Kilometers
-  { getKilometers :: Int
-  }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
-  deriving stock (Generic)
-
-deriving newtype instance FromField Kilometers
-
-instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Kilometers where
-  sqlValueSyntax = sqlValueSyntax . getKilometers
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be Kilometers
-
-instance FromBackendRow Postgres Kilometers
-
-kilometersToMeters :: Kilometers -> Meters
-kilometersToMeters (Kilometers n) = Meters $ n * 1000
-
-metersToKilometers :: Meters -> Kilometers
-metersToKilometers (Meters n) = Kilometers $ n `div` 1000
-
-metersToHighPrecMeters :: Meters -> HighPrecMeters
-metersToHighPrecMeters (Meters n) = HighPrecMeters . realToFrac $ int2Double n
-
-highPrecMetersToMeters :: HighPrecMeters -> Meters
-highPrecMetersToMeters (HighPrecMeters n) = Meters . double2Int $ realToFrac n
 
 data KVTable = KVTable
   { nameOfTable :: Text,
@@ -275,13 +142,6 @@ instance HasSqlValueSyntax be Double => HasSqlValueSyntax be CentiDouble where
 instance HasSqlValueSyntax be Double => HasSqlValueSyntax be Centi where
   sqlValueSyntax = sqlValueSyntax . centiToDouble
 
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be Centesimal
-
-instance FromBackendRow Postgres Centesimal
-
-instance FromField Centesimal where
-  fromField = fromFieldEnum
-
 instance HasSqlValueSyntax B.Value (V.Vector Text) where
   sqlValueSyntax = autoSqlValueSyntax
 
@@ -298,32 +158,6 @@ instance FromField [Text] where
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be Centi
 
 instance FromBackendRow Postgres Centi
-
-instance HasSqlValueSyntax be Centi => HasSqlValueSyntax be Centesimal where
-  sqlValueSyntax = sqlValueSyntax . getCenti
-
-instance HasSqlValueSyntax be Centesimal => HasSqlValueSyntax be HighPrecMeters where
-  sqlValueSyntax = sqlValueSyntax . getHighPrecMeters
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecMeters
-
-instance FromBackendRow Postgres HighPrecMeters
-
-instance FromField HighPrecMeters where
-  fromField f mbValue = HighPrecMeters <$> fromFieldDefault f mbValue
-
-instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Meters where
-  sqlValueSyntax = sqlValueSyntax . getMeters
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be Meters
-
-instance FromBackendRow Postgres Meters
-
-instance FromField Meters where
-  fromField = fromFieldJSON
-
-instance {-# OVERLAPPING #-} ToSQLObject Meters where
-  convertToSQLObject = SQLObjectValue . KP.show . getMeters
 
 instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Seconds where
   sqlValueSyntax = sqlValueSyntax . getSeconds
