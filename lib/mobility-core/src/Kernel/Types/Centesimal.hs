@@ -20,8 +20,14 @@ import Control.Lens.Operators
 import Data.Aeson
 import Data.Fixed (Centi, Fixed (MkFixed))
 import Data.OpenApi
+import Database.Beam
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto
+import Kernel.Types.FromField
 import Kernel.Utils.GenericPretty
 
 newtype Centesimal = Centesimal {getCenti :: Centi}
@@ -61,3 +67,13 @@ instance ToSchema Centesimal where
               <> message
               <> " String format is used to prevent loss of precision."
           & format ?~ "[-]?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?"
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Centesimal
+
+instance FromBackendRow Postgres Centesimal
+
+instance FromField Centesimal where
+  fromField = fromFieldEnum
+
+instance HasSqlValueSyntax be Centi => HasSqlValueSyntax be Centesimal where
+  sqlValueSyntax = sqlValueSyntax . getCenti

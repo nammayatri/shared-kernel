@@ -270,6 +270,7 @@ library
       Kernel.Types.Centesimal
       Kernel.Types.Common
       Kernel.Types.Credentials
+      Kernel.Types.Distance
       Kernel.Types.Error
       Kernel.Types.Error.BaseError
       Kernel.Types.Error.BaseError.HTTPError
