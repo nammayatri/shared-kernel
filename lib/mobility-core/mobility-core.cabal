@@ -147,6 +147,9 @@ library
       Kernel.External.Verification.GovtData.Storage.Beam
       Kernel.External.Verification.GovtData.Storage.Query
       Kernel.External.Verification.GovtData.Types
+      Kernel.External.Verification.HyperVerge.Error
+      Kernel.External.Verification.HyperVerge.Flow
+      Kernel.External.Verification.HyperVerge.Types
       Kernel.External.Verification.Idfy.Auth
       Kernel.External.Verification.Idfy.Client
       Kernel.External.Verification.Idfy.Config
@@ -157,6 +160,7 @@ library
       Kernel.External.Verification.Idfy.Types.Response
       Kernel.External.Verification.Idfy.WebhookHandler
       Kernel.External.Verification.Interface
+      Kernel.External.Verification.Interface.HyperVerge
       Kernel.External.Verification.Interface.Idfy
       Kernel.External.Verification.Interface.InternalScripts
       Kernel.External.Verification.Interface.Types

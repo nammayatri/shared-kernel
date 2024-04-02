@@ -29,10 +29,10 @@ import qualified Kernel.External.Verification.GovtData.Client as GovtData
 import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
 import Kernel.External.Verification.GovtData.Types as Reexport
 import Kernel.External.Verification.Idfy.Config as Reexport
+import qualified Kernel.External.Verification.Interface.HyperVerge as HV
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
 import Kernel.External.Verification.Interface.Types as Reexport
-import Kernel.External.Verification.InternalScripts.Types
 import Kernel.External.Verification.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.Common
@@ -50,6 +50,7 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyDLAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyRC ::
   ( EncFlow m r,
@@ -93,6 +94,7 @@ verifyRC' serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyRCAsync cfg req
   GovtDataConfig -> GovtData.verifyRC req
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateImage ::
   ( EncFlow m r,
@@ -105,6 +107,7 @@ validateImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.validateImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateFaceImage ::
   ( CoreMetrics m,
@@ -117,6 +120,7 @@ validateFaceImage serviceConfig req = case serviceConfig of
   IdfyConfig _ -> throwError $ InternalError "Not Implemented!"
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig cfg -> IS.validateFace cfg req
+  HyperVergeConfig cfg -> HV.validateFace cfg req
 
 extractRCImage ::
   ( EncFlow m r,
@@ -129,6 +133,7 @@ extractRCImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractRCImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
   ( EncFlow m r,
@@ -141,3 +146,4 @@ extractDLImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractDLImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeConfig _ -> throwError $ InternalError "Not Implemented!"
