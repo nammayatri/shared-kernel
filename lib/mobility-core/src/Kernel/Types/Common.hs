@@ -15,6 +15,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wwarn=identities #-}
@@ -63,14 +64,53 @@ import Kernel.Types.Price as Common
 import Kernel.Types.Time as Common
 import Kernel.Utils.Dhall (FromDhall, Natural)
 import Kernel.Utils.GenericPretty
+import Kernel.Utils.TH (mkHttpInstancesForEnum)
 import Sequelize.SQLObject (SQLObject (..), ToSQLObject (convertToSQLObject))
 import Servant
+import Text.Show (Show (..))
 
 newtype IdObject = IdObject
   { id :: Text
   }
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+newtype HighPrecDistance = HighPrecDistance
+  { getHighPrecDistance :: Rational
+  }
+  deriving stock (Generic)
+  deriving newtype (Num, FromDhall, Real, Fractional, RealFrac, Ord, Eq, Enum, PrettyShow, PersistField, PersistFieldSql)
+
+instance Show HighPrecDistance where
+  show = Text.Show.show @Double . realToFrac
+
+instance Read HighPrecDistance where
+  readsPrec d s = do
+    (dobuleVal, s1) :: (Double, String) <- readsPrec d s
+    return (realToFrac dobuleVal, s1)
+
+instance ToJSON HighPrecDistance where
+  toJSON = toJSON @Double . realToFrac
+
+instance FromJSON HighPrecDistance where
+  parseJSON = fmap realToFrac . parseJSON @Double
+
+instance FromField HighPrecDistance where
+  fromField f mbValue = HighPrecDistance <$> fromFieldDefault f mbValue
+
+instance HasSqlValueSyntax be Rational => HasSqlValueSyntax be HighPrecDistance where
+  sqlValueSyntax = sqlValueSyntax . getHighPrecDistance
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be HighPrecDistance
+
+instance FromBackendRow Postgres HighPrecDistance
+
+instance ToSchema HighPrecDistance where
+  declareNamedSchema _ = do
+    aSchema <- declareSchema (Proxy :: Proxy Double)
+    return $ NamedSchema (Just "HighPrecDistance") aSchema
+
+$(mkHttpInstancesForEnum ''HighPrecDistance)
 
 data DistanceUnit = Meter | Mile | Yard | Kilometer
   deriving stock (Generic, Show, Read, Eq, Ord)
@@ -103,14 +143,14 @@ convertToMeters (Distance _ v unit) = do
 
 data Distance = Distance
   { valueInt :: Int, -- To be deprecated
-    value :: Double,
+    value :: HighPrecDistance,
     unit :: DistanceUnit
   }
   deriving stock (Generic, Show)
   deriving (PrettyShow) via Showable Distance
 
 data DistanceAPIEntity = DistanceAPIEntity
-  { value :: Double,
+  { value :: HighPrecDistance,
     unit :: DistanceUnit
   }
   deriving stock (Generic, Show)
