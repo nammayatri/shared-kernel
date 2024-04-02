@@ -5,7 +5,6 @@ import qualified Data.ByteString as BS
 import Data.ByteString.Builder (toLazyByteString)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Text as T
 import Kernel.External.Verification.HyperVerge.Error
 import Kernel.External.Verification.HyperVerge.Types
 import Kernel.Prelude
@@ -30,15 +29,15 @@ type FaceValidationAPI =
     :> MultipartForm Tmp HyperVergeSelfieValidationReq
     :> "v1"
     :> "checkLiveness"
-    :> Post '[JSON] (Either HyperVergeSelfieValidationFailureRes HyperVergeSelfieValidationSuccessRes)
+    :> Post '[JSON] HyperVergeSelfieValidationRes
 
 api :: Proxy FaceValidationAPI
 api = Proxy
 
-clientFunction :: Maybe Text -> Maybe Text -> Maybe Text -> (BL.ByteString, HyperVergeSelfieValidationReq) -> ClientM (Either HyperVergeSelfieValidationFailureRes HyperVergeSelfieValidationSuccessRes)
+clientFunction :: Maybe Text -> Maybe Text -> Maybe Text -> (BL.ByteString, HyperVergeSelfieValidationReq) -> ClientM HyperVergeSelfieValidationRes
 clientFunction = client api
 
-callAPI :: Maybe Text -> Maybe Text -> Maybe Text -> HyperVergeSelfieValidationReq -> ClientM (Either HyperVergeSelfieValidationFailureRes HyperVergeSelfieValidationSuccessRes)
+callAPI :: Maybe Text -> Maybe Text -> Maybe Text -> HyperVergeSelfieValidationReq -> ClientM HyperVergeSelfieValidationRes
 callAPI transactionId appId appKey formData = clientFunction transactionId appId appKey ("xxxxxx", formData)
 
 callHyperVergeFaceValidationAPI ::
@@ -48,29 +47,23 @@ callHyperVergeFaceValidationAPI ::
   Text ->
   Text ->
   HyperVergeSelfieValidationReq ->
-  m HyperVergeSelfieValidationSuccessRes
+  m HyperVergeSelfieValidationRes
 callHyperVergeFaceValidationAPI url transactionId appId appKey req = do
   manager <- liftIO $ Client.newManager tlsManagerSettings
   logDebug $ "The request is : " <> (show req) --HVTODO: Remove this
   (liftIO $ runClientM (callAPI (Just transactionId) (Just appId) (Just appKey) req) (ClientEnv manager url Nothing modifiedHVMakeClientRequest)) >>= checkHyperVergeError url
 
-checkHyperVergeError :: (MonadThrow m, Log m) => BaseUrl -> Either ClientError (Either HyperVergeSelfieValidationFailureRes HyperVergeSelfieValidationSuccessRes) -> m HyperVergeSelfieValidationSuccessRes
+checkHyperVergeError :: (MonadThrow m, Log m) => BaseUrl -> Either ClientError HyperVergeSelfieValidationRes -> m HyperVergeSelfieValidationRes
 checkHyperVergeError url resp = do
   fromEitherM (hyperVergeError url) resp >>= validateResponseStatus
 
 hyperVergeError :: BaseUrl -> ClientError -> ExternalAPICallError
 hyperVergeError = ExternalAPICallError (Just "HYPERVERGE_API_ERROR")
 
-validateResponseStatus :: (MonadThrow m, Log m) => Either HyperVergeSelfieValidationFailureRes HyperVergeSelfieValidationSuccessRes -> m HyperVergeSelfieValidationSuccessRes
-validateResponseStatus (Right response)
-  | response.statusCode == "200" = pure response
-  | response.statusCode == "400" = throwError $ HyperVergeBadRequest (fromMaybe "Error " response.validationResult.err)
-  | otherwise = throwError $ HyperVergeCallError response.statusCode (fromMaybe "Error " response.validationResult.err)
-validateResponseStatus (Left response)
-  | response.statusCode == "422" = throwError HyperVergeFaceNotDetected
-  | response.statusCode == "429" = throwError HyperVergeRateLimitError
-  | listToMaybe (T.unpack response.statusCode) == (Just '5') = throwError HyperVergeInternalError
-  | otherwise = throwError $ HyperVergeCallError response.statusCode (fromMaybe "Error " response.err)
+validateResponseStatus :: (MonadThrow m, Log m) => HyperVergeSelfieValidationRes -> m HyperVergeSelfieValidationRes
+validateResponseStatus response
+  | response.statusCode == 200 = pure response
+  | otherwise = throwError $ HyperVergeCallError (show response.statusCode) (show response)
 
 modifiedHVMakeClientRequest :: BaseUrl -> Request -> Client.Request
 modifiedHVMakeClientRequest burl r =

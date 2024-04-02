@@ -2,7 +2,7 @@ module Kernel.External.Verification.HyperVerge.Types where
 
 import Data.Aeson
 import qualified Data.Text as T
-import Kernel.Prelude
+import Kernel.Prelude hiding (error)
 import Servant.Multipart.API (FileData (..), MultipartData (..), Tmp, ToMultipart (..))
 
 data HyperVergeConfig = HyperVergeConfig
@@ -29,15 +29,15 @@ data FaceDetails = FaceDetails
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
-data SummeryDetails = SummeryDetails
+data SummaryDetails = SummaryDetails
   { code :: Text,
     message :: Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
-data Summery = Summery
+data Summary = Summary
   { action :: Text,
-    details :: [SummeryDetails]
+    details :: [SummaryDetails]
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -63,9 +63,9 @@ data ResultElement = ResultElement
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data ValidationResult = ValidationResult
-  { err :: Maybe Text,
+  { error :: Maybe Text,
     details :: Maybe FaceDetails,
-    summery :: Summery
+    summary :: Maybe Summary
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -75,24 +75,11 @@ data MetaData = MetaData
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
-data HyperVergeSelfieValidationSuccessRes = HyperVergeSelfieValidationSuccessRes
+data HyperVergeSelfieValidationRes = HyperVergeSelfieValidationRes
   { status :: Text,
-    statusCode :: Text,
-    validationResult :: ValidationResult,
-    metaData :: MetaData
-  }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
-
-newtype ValidationErrResult = ValidationErrResult
-  { err :: Text
-  }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
-
-data HyperVergeSelfieValidationFailureRes = HyperVergeSelfieValidationFailureRes
-  { status :: Text,
-    statusCode :: Text,
-    metaData :: Maybe MetaData,
-    validationErrResult :: Maybe ValidationErrResult,
-    err :: Maybe Text
+    statusCode :: Int,
+    result :: Maybe ValidationResult,
+    metadata :: Maybe MetaData,
+    error :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
