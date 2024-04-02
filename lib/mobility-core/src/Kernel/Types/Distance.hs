@@ -96,33 +96,73 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be DistanceUnit
 
 instance FromBackendRow Postgres DistanceUnit
 
+-- convertToMeters :: Distance -> Distance
+-- convertToMeters d@(Distance _ _ Meter) = d
+-- convertToMeters (Distance _ v unit) = do
+--   let v' =
+--         v * case unit of
+--           Mile -> 1609.34
+--           Kilometer -> 1000
+--           Yard -> 0.9144
+--   Distance (roundToIntegral v') v' Meter
+
 convertToMeters :: Distance -> Distance
-convertToMeters d@(Distance _ _ Meter) = d
-convertToMeters (Distance _ v unit) = do
+convertToMeters d@(Distance _ Meter) = d
+convertToMeters (Distance v unit) = do
   let v' =
         v * case unit of
           Mile -> 1609.34
           Kilometer -> 1000
           Yard -> 0.9144
-  Distance (roundToIntegral v') v' Meter
+  Distance v' Meter
 
 data Distance = Distance
-  { valueInt :: Int, -- To be deprecated
+  { -- valueInt :: Int, -- To be deprecated
     value :: HighPrecDistance,
     unit :: DistanceUnit
   }
   deriving stock (Generic, Show)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
   deriving (PrettyShow) via Showable Distance
 
-data DistanceAPIEntity = DistanceAPIEntity
-  { value :: HighPrecDistance,
-    unit :: DistanceUnit
-  }
-  deriving stock (Generic, Show)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
+instance Eq Distance where
+  a == b = withUnitChecking a b (\_unit -> (==))
 
-mkDistanceAPIEntity :: Distance -> DistanceAPIEntity
-mkDistanceAPIEntity Distance {..} = DistanceAPIEntity {..}
+instance Ord Distance where
+  a <= b = withUnitChecking a b (\_unit -> (<=))
+
+-- do we need this instance?
+instance Num Distance where
+  a + b = withUnitChecking a b (\unit a' b' -> Distance (a' + b') unit)
+  a - b = withUnitChecking a b (\unit a' b' -> Distance (a' - b') unit)
+  a * b = withUnitChecking a b (\unit a' b' -> Distance (a' * b') unit) -- should not be used
+  negate = modifyDistanceValue negate
+  abs = modifyDistanceValue abs
+  signum = modifyDistanceValue signum
+  fromInteger a = Distance (fromInteger a) Meter -- should not be used
+
+modifyDistanceValue :: (HighPrecDistance -> HighPrecDistance) -> Distance -> Distance
+modifyDistanceValue func d = d{value = func d.value}
+
+withUnitChecking ::
+  Distance ->
+  Distance ->
+  (DistanceUnit -> HighPrecDistance -> HighPrecDistance -> a) ->
+  a
+withUnitChecking d1 d2 func =
+  if (d1.unit == d2.unit)
+    then func d1.unit d1.value d2.value
+    else func Meter ((convertToMeters d1).value) ((convertToMeters d2).value)
+
+-- data DistanceAPIEntity = DistanceAPIEntity
+--   { value :: HighPrecDistance,
+--     unit :: DistanceUnit
+--   }
+--   deriving stock (Generic, Show)
+--   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+-- mkDistanceAPIEntity :: Distance -> DistanceAPIEntity
+-- mkDistanceAPIEntity Distance {..} = DistanceAPIEntity {..}
 
 newtype Meters = Meters
   { getMeters :: Int
@@ -185,3 +225,41 @@ instance FromField Meters where
 
 instance {-# OVERLAPPING #-} ToSQLObject Meters where
   convertToSQLObject = SQLObjectValue . KP.show . getMeters
+
+mkDistanceWithDefaultMeters :: Maybe DistanceUnit -> Maybe HighPrecDistance -> Meters -> Distance
+mkDistanceWithDefaultMeters mbUnit mbValue defDistance = case mbValue of
+  Just value ->
+    Distance
+      { value,
+        unit = fromMaybe Meter mbUnit
+      }
+  Nothing -> metersToDistance defDistance
+
+mkDistanceWithDefault :: Maybe DistanceUnit -> Maybe HighPrecDistance -> HighPrecMeters -> Distance
+mkDistanceWithDefault mbUnit mbValue defDistance = case mbValue of
+  Just value ->
+    Distance
+      { value,
+        unit = fromMaybe Meter mbUnit
+      }
+  Nothing -> highPrecMetersToDistance defDistance
+
+distanceToMeters :: Distance -> Meters
+distanceToMeters = Meters . round @HighPrecDistance @Int . (.value) . convertToMeters
+
+distanceToHighPrecMeters :: Distance -> HighPrecMeters
+distanceToHighPrecMeters = realToFrac @HighPrecDistance @HighPrecMeters . (.value) . convertToMeters
+
+metersToDistance :: Meters -> Distance
+metersToDistance meters =
+  Distance
+    { value = realToFrac @Meters @HighPrecDistance meters,
+      unit = Meter
+    }
+
+highPrecMetersToDistance :: HighPrecMeters -> Distance
+highPrecMetersToDistance highPrecMeters =
+  Distance
+    { value = realToFrac @HighPrecMeters @HighPrecDistance highPrecMeters,
+      unit = Meter
+    }
