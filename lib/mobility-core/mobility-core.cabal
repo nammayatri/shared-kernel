@@ -142,6 +142,13 @@ library
       Kernel.External.Ticket.Kapture.Flow
       Kernel.External.Ticket.Kapture.Types
       Kernel.External.Ticket.Types
+      Kernel.External.Tokenize.HyperVerge.Error
+      Kernel.External.Tokenize.HyperVerge.Flow
+      Kernel.External.Tokenize.HyperVerge.Types
+      Kernel.External.Tokenize.Interface
+      Kernel.External.Tokenize.Interface.HyperVerge
+      Kernel.External.Tokenize.Interface.Types
+      Kernel.External.Tokenize.Types
       Kernel.External.Types
       Kernel.External.Verification
       Kernel.External.Verification.GovtData.Client
