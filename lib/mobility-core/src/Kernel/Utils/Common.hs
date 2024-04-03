@@ -46,3 +46,6 @@ generateShortId = ShortId . T.pack <$> liftIO (RS.randomString (RS.onlyAlphaNum 
 generateOTPCode :: MonadFlow m => m Text
 generateOTPCode =
   liftIO $ padNumber 4 <$> Cryptonite.generateBetween 1 9999
+
+generateAplhaNumbericCode :: MonadFlow m => Int -> m Text
+generateAplhaNumbericCode len = T.pack <$> liftIO (RS.randomString (RS.onlyAlphaNum RS.randomASCII) len)
