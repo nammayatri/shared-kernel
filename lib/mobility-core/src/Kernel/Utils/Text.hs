@@ -68,3 +68,10 @@ validateAllDigitWithMinLength minLength str = validateLength && validateAllDigit
     validateLength = T.length str == minLength
     validateAllDigits (x : xs) = fromEnum x <= 57 && fromEnum x >= 48 && validateAllDigits xs
     validateAllDigits [] = True
+
+validateAlphaNumericWithLength :: Text -> Int -> Bool
+validateAlphaNumericWithLength str minLength = validateLength && validateAlphaNumeric (T.unpack str)
+  where
+    validateLength = T.length str == minLength
+    validateAlphaNumeric (x : xs) = (fromEnum x <= 57 && fromEnum x >= 48) || (fromEnum x <= 90 && fromEnum x >= 65) || (fromEnum x <= 122 && fromEnum x >= 97) && validateAlphaNumeric xs
+    validateAlphaNumeric [] = True
