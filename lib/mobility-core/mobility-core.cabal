@@ -307,6 +307,7 @@ library
       Kernel.Utils.CalculateDistance
       Kernel.Utils.Callback
       Kernel.Utils.Common
+      Kernel.Utils.ComputeIntersection
       Kernel.Utils.Context
       Kernel.Utils.DatastoreLatencyCalculator
       Kernel.Utils.Dhall
@@ -499,6 +500,7 @@ test-suite mobility-core-tests
   other-modules:
       APIExceptions
       Centesimal
+      ComputeIntersectionTests
       DistanceCalculation
       SignatureAuth
       SlidingWindowLimiter

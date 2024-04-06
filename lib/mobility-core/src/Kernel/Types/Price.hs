@@ -120,7 +120,8 @@ data Price = Price
     amount :: HighPrecMoney,
     currency :: Currency
   }
-  deriving stock (Generic, Show)
+  deriving anyclass (ToJSON, FromJSON)
+  deriving stock (Generic, Show, Read)
   deriving (PrettyShow) via Showable Price
 
 mkPrice :: Maybe Currency -> HighPrecMoney -> Price
