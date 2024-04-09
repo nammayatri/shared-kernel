@@ -96,25 +96,29 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be DistanceUnit
 
 instance FromBackendRow Postgres DistanceUnit
 
--- convertToMeters :: Distance -> Distance
--- convertToMeters d@(Distance _ _ Meter) = d
--- convertToMeters (Distance _ v unit) = do
---   let v' =
---         v * case unit of
---           Mile -> 1609.34
---           Kilometer -> 1000
---           Yard -> 0.9144
---   Distance (roundToIntegral v') v' Meter
-
 convertToMeters :: Distance -> Distance
 convertToMeters d@(Distance _ Meter) = d
-convertToMeters (Distance v unit) = do
-  let v' =
-        v * case unit of
-          Mile -> 1609.34
-          Kilometer -> 1000
-          Yard -> 0.9144
-  Distance v' Meter
+convertToMeters (Distance v unit) = Distance (v * distanceConversionRate unit) Meter
+
+convertFromMeters :: DistanceUnit -> HighPrecDistance -> Distance
+convertFromMeters Meter v = Distance v Meter
+convertFromMeters unit v = Distance (v / distanceConversionRate unit) unit
+
+distanceConversionRate :: DistanceUnit -> HighPrecDistance
+distanceConversionRate = \case
+  Meter -> 1.0
+  Mile -> 1609.34
+  Kilometer -> 1000
+  Yard -> 0.9144
+
+-- | On DB side we use single distanceUnit field for each table
+--   So we should check that unit for current Distance is correct, and convert if it is not correct
+distanceToHighPrecDistance :: Maybe DistanceUnit -> Distance -> HighPrecDistance
+distanceToHighPrecDistance mbDistanceUnit distance = do
+  let distanceUnit = fromMaybe Meter mbDistanceUnit
+  if distanceUnit == distance.unit
+    then distance.value
+    else (.value) . convertFromMeters distanceUnit . (.value) . convertToMeters $ distance
 
 data Distance = Distance
   { -- valueInt :: Int, -- To be deprecated
@@ -131,7 +135,6 @@ instance Eq Distance where
 instance Ord Distance where
   a <= b = withUnitChecking a b (\_unit -> (<=))
 
--- do we need this instance?
 instance Num Distance where
   a + b = withUnitChecking a b (\unit a' b' -> Distance (a' + b') unit)
   a - b = withUnitChecking a b (\unit a' b' -> Distance (a' - b') unit)
@@ -150,7 +153,7 @@ withUnitChecking ::
   (DistanceUnit -> HighPrecDistance -> HighPrecDistance -> a) ->
   a
 withUnitChecking d1 d2 func =
-  if (d1.unit == d2.unit)
+  if d1.unit == d2.unit
     then func d1.unit d1.value d2.value
     else func Meter ((convertToMeters d1).value) ((convertToMeters d2).value)
 
