@@ -25,7 +25,8 @@ import Network.HTTP.Client.TLS as Http
 
 data SafetyPortalCfg = SafetyPortalCfg
   { token :: EncryptedField 'AsEncrypted Text,
-    url :: BaseUrl
+    url :: BaseUrl,
+    safetyWebhookAuthToken :: EncryptedField 'AsEncrypted Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
