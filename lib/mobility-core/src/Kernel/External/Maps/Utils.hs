@@ -12,11 +12,15 @@
  the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.Maps.Utils where
+module Kernel.External.Maps.Utils
+  ( module Reexport,
+  )
+where
 
 import qualified Data.List as DL
 import EulerHS.Prelude
-import qualified Kernel.External.Maps.Interface.Types as Maps
+import Kernel.External.Maps as Reexport
+import qualified Kernel.External.Maps as Maps
 import Kernel.Types.Common
 
 findMaxWeightedInfoIdx :: Float -> Float -> [(Maybe Float, Maybe Float)] -> Int
