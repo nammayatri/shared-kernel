@@ -20,8 +20,8 @@ import Kernel.Utils.ComputeIntersection
 import Test.Tasty
 import Test.Tasty.HUnit
 
-route :: RoutePoints
-route =
+straightRoute :: RoutePoints
+straightRoute =
   [ LatLong 13.01111 77.58381,
     LatLong 13.01165 77.58384,
     LatLong 13.01194 77.58386,
@@ -557,34 +557,91 @@ route =
     LatLong 13.19494 77.6516
   ]
 
-checkIntersectionTest :: TestTree
-checkIntersectionTest = do
+curvyRoute :: RoutePoints
+curvyRoute =
+  [ LatLong 13.097317083766796 77.65527018886291,
+    LatLong 13.098690180395195 77.65667759376782,
+    LatLong 13.100682075774017 77.6576608059134,
+    LatLong 13.102812500514645 77.65921034755735,
+    LatLong 13.106250816853034 77.6608946063813,
+    LatLong 13.105769151300123 77.66499302882863,
+    LatLong 13.111279597381909 77.66681659802714,
+    LatLong 13.116801360597137 77.66850444518923,
+    LatLong 13.118184681251947 77.66878468752361,
+    LatLong 13.120123642875157 77.66828426411962,
+    LatLong 13.122271844452627 77.66820856711092,
+    LatLong 13.122964988416129 77.6687034449867,
+    LatLong 13.126777654669482 77.66763319188703,
+    LatLong 13.127816487405994 77.66685161024992,
+    LatLong 13.13003494585972 77.66642267165219,
+    LatLong 13.132400776983914 77.66684253706683,
+    LatLong 13.134074041152772 77.66683772076664,
+    LatLong 13.134912087672475 77.66811426720051,
+    LatLong 13.134006798231908 77.66967925286616,
+    LatLong 13.127959713172444 77.67472720942703,
+    LatLong 13.123868768843963 77.67742402664527,
+    LatLong 13.121857679085835 77.67827460956732,
+    LatLong 13.119363640255187 77.67884076165996,
+    LatLong 13.11742841777911 77.6803276425652,
+    LatLong 13.117084216250916 77.68273595149282,
+    LatLong 13.116531440544279 77.68401029195184,
+    LatLong 13.11438774533552 77.68612979799661,
+    LatLong 13.1134204982895 77.6876135475369,
+    LatLong 13.112522920038316 77.69029965736888,
+    LatLong 13.109556512728332 77.69311706728348,
+    LatLong 13.106319611652808 77.6961421157817,
+    LatLong 13.103156266178871 77.70142423066744,
+    LatLong 13.10288133261598 77.70057660132682,
+    LatLong 13.095470994264005 77.69412709141557,
+    LatLong 13.094580348447792 77.69327865741815,
+    LatLong 13.097116272558296 77.69236922138424,
+    LatLong 13.097115820670837 77.68898593514382,
+    LatLong 13.094441430989818 77.6871494936081,
+    LatLong 13.094371873606306 77.68496529114236,
+    LatLong 13.095126676016207 77.68172301228702,
+    LatLong 13.0958126882405 77.68066584668344,
+    LatLong 13.093688424078962 77.67784592424096,
+    LatLong 13.092798450142013 77.6776344562033,
+    LatLong 13.089164281557402 77.66594072352694,
+    LatLong 13.088889916638536 77.66453188587576,
+    LatLong 13.088958493001456 77.66312298883435
+  ]
+
+checkIntersectionOnStraightRoute :: TestTree
+checkIntersectionOnStraightRoute = do
   testGroup
     "Check for Intersection of Line Segment with the Route tests"
     [ testCase "Toll Gate Intersection Line Segment" $
-        assertBool "Toll Gate Intersection Failed" (checkIntersection route (LineSegment (LatLong 13.194035537466561 77.64945751470611) (LatLong 13.193132939951079 77.65010378799398))),
+        assertBool "Toll Gate Intersection Failed" (isJust $ checkIntersection straightRoute [(LineSegment (LatLong 13.194035537466561 77.64945751470611) (LatLong 13.193132939951079 77.65010378799398))]),
       testCase "Toll Gate Intersection Line Segment - Reversed" $
-        assertBool "Toll Gate Intersection Failed" (checkIntersection route (LineSegment (LatLong 13.193132939951079 77.65010378799398) (LatLong 13.194035537466561 77.64945751470611))),
+        assertBool "Toll Gate Intersection Failed" (isJust $ checkIntersection straightRoute [(LineSegment (LatLong 13.193132939951079 77.65010378799398) (LatLong 13.194035537466561 77.64945751470611))]),
       testCase "Intersecting Line Segment On The Route" $
-        assertBool "Random Non Intersecting Failed" (checkIntersection route (LineSegment (LatLong 13.18958 77.64514) (LatLong 13.19488 77.65149))),
+        assertBool "Random Non Intersecting Failed" (isJust $ checkIntersection straightRoute [(LineSegment (LatLong 13.18958 77.64514) (LatLong 13.19488 77.65149))]),
       testCase "Intersecting Line Segment On The Route - Reversed" $
-        assertBool "Random Non Intersecting Failed" (checkIntersection route (LineSegment (LatLong 13.18958 77.64514) (LatLong 13.19488 77.65149))),
+        assertBool "Random Non Intersecting Failed" (isJust $ checkIntersection straightRoute [(LineSegment (LatLong 13.18958 77.64514) (LatLong 13.19488 77.65149))]),
       testCase "Random Non Intersecting Line Segment Parallel To The Route On Left" $
-        assertBool "Random Non Intersecting Failed" (not $ checkIntersection route (LineSegment (LatLong 13.133001338627825 77.61534703605838) (LatLong 13.133539191728158 77.6158097729554))),
+        assertBool "Random Non Intersecting Failed" (isNothing $ checkIntersection straightRoute [(LineSegment (LatLong 13.133001338627825 77.61534703605838) (LatLong 13.133539191728158 77.6158097729554))]),
       testCase "Random Non Intersecting Line Segment Parallel To The Route On Right" $
-        assertBool "Random Non Intersecting Failed" (not $ checkIntersection route (LineSegment (LatLong 13.127782648739322 77.61461561322118) (LatLong 13.129522696016432 77.61483522604748)))
+        assertBool "Random Non Intersecting Failed" (isNothing $ checkIntersection straightRoute [(LineSegment (LatLong 13.127782648739322 77.61461561322118) (LatLong 13.129522696016432 77.61483522604748))])
     ]
 
-getBoundingBoxTest :: TestTree
-getBoundingBoxTest = do
-  testCase "Get Bounding Box Test with sample route" $ do
-    let boundingBox = getBoundingBox route
+checkBoundingBoxOnStraightRoute :: TestTree
+checkBoundingBoxOnStraightRoute = do
+  testCase "Check Bounding Box Test with straight route" $ do
+    let boundingBox = getBoundingBox straightRoute
     assertBool "Bounding Box Failed" (boundingBox == BoundingBox (LatLong 13.19494 77.58381) (LatLong 13.19494 77.6516) (LatLong 13.01111 77.58381) (LatLong 13.01111 77.6516))
+
+checkBoundingBoxOnCurvyRoute :: TestTree
+checkBoundingBoxOnCurvyRoute = do
+  testCase "Check Bounding Box Test with curvy route" $ do
+    let boundingBox = getBoundingBox curvyRoute
+    assertBool "Bounding Box Failed" (boundingBox == BoundingBox (LatLong 13.134912087672475 77.65527018886291) (LatLong 13.134912087672475 77.70142423066744) (LatLong 13.088889916638536 77.65527018886291) (LatLong 13.088889916638536 77.70142423066744))
 
 computeIntersectionTests :: TestTree
 computeIntersectionTests =
   testGroup
     "ComputeIntersection tests"
-    [ getBoundingBoxTest,
-      checkIntersectionTest
+    [ checkBoundingBoxOnStraightRoute,
+      checkBoundingBoxOnCurvyRoute,
+      checkIntersectionOnStraightRoute
     ]

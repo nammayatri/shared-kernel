@@ -19,7 +19,7 @@ import Database.Beam.Backend
 import qualified Database.Beam.Backend.SQL.AST as B
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.External.Maps.Types
-import Kernel.Prelude
+import Kernel.Prelude hiding (lines)
 import Kernel.Utils.GenericPretty (PrettyShow)
 
 type RoutePoints = [LatLong]
@@ -83,16 +83,19 @@ pointWithinBoundingBox (LatLong lat lon) (BoundingBox (LatLong topLeftLat topLef
   lat <= max topLeftLat topRightLat && lat >= min bottomLeftLat bottomRightLat && lon >= min topLeftLon bottomLeftLon && lon <= max topRightLon bottomRightLon
 
 -- Check if a line segment is within the bounding box
-lineSegmentWithinBoundingBox :: LineSegment -> BoundingBox -> Bool
-lineSegmentWithinBoundingBox (LineSegment startPoint endPoint) boundingBox =
+lineSegmentWithinBoundingBox :: BoundingBox -> LineSegment -> Bool
+lineSegmentWithinBoundingBox boundingBox (LineSegment startPoint endPoint) =
   pointWithinBoundingBox startPoint boundingBox && pointWithinBoundingBox endPoint boundingBox
 
--- Check if any line between two route points passes through intersection points
-doRouteIntersectWithLine :: RoutePoints -> LineSegment -> Bool
-doRouteIntersectWithLine [] _ = False
-doRouteIntersectWithLine [_] _ = False
-doRouteIntersectWithLine (p1 : p2 : ps) line =
-  doIntersect (LineSegment p1 p2) line || doRouteIntersectWithLine (p2 : ps) line
+-- Check if any line between two route points passes through the line segments and return remaining route points after the intersection
+doRouteIntersectWithLine :: RoutePoints -> [LineSegment] -> Maybe RoutePoints
+doRouteIntersectWithLine [] _ = Nothing
+doRouteIntersectWithLine [_] _ = Nothing
+doRouteIntersectWithLine (p1 : p2 : ps) lines = do
+  let isAnyLineSegmentIntersect = find (doIntersect (LineSegment p1 p2)) lines
+  if isJust isAnyLineSegmentIntersect
+    then Just (p2 : ps)
+    else doRouteIntersectWithLine (p2 : ps) lines
 
 getBoundingBox :: RoutePoints -> BoundingBox
 getBoundingBox points =
@@ -108,10 +111,11 @@ getBoundingBox points =
       bottomRightPoint = LatLong minLat maxLon
    in BoundingBox topLeftPoint topRightPoint bottomLeftPoint bottomRightPoint
 
--- Check if intersection points lie within a bounding box and if any line between two route points passes through the intersection line
-checkIntersection :: RoutePoints -> LineSegment -> Bool
-checkIntersection [] _ = False
-checkIntersection [_] _ = False
-checkIntersection points intersectionLine = do
-  lineSegmentWithinBoundingBox intersectionLine (getBoundingBox points)
-    && doRouteIntersectWithLine points intersectionLine
+-- Filter the intersection line segments that lie within a bounding box and if any line between two route points passes through the line segments then we return the remaining route points after the intersection
+checkIntersection :: RoutePoints -> [LineSegment] -> Maybe RoutePoints
+checkIntersection [] _ = Nothing
+checkIntersection [_] _ = Nothing
+checkIntersection points intersectionLines =
+  let boundingBox = getBoundingBox points
+      intersectionLinesWithinBoundingBox = filter (lineSegmentWithinBoundingBox boundingBox) intersectionLines
+   in doRouteIntersectWithLine points intersectionLinesWithinBoundingBox
