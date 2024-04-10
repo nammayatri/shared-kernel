@@ -86,6 +86,7 @@ library
       Kernel.External.Maps.OSRM.Config
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
+      Kernel.External.Maps.Utils
       Kernel.External.Notification
       Kernel.External.Notification.FCM.Flow
       Kernel.External.Notification.FCM.Types
