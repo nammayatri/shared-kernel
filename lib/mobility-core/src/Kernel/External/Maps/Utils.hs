@@ -14,6 +14,7 @@
 
 module Kernel.External.Maps.Utils
   ( module Reexport,
+    module Kernel.External.Maps.Utils,
   )
 where
 
