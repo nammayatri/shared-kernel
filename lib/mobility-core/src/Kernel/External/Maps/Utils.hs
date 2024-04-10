@@ -85,3 +85,8 @@ getEfficientRouteInfo routeInfos distanceWeight durationWeight = do
   if resultInfoIdx < length routeInfos
     then (Just (routeInfos !! resultInfoIdx), resultInfoIdx)
     else (Nothing, 0)
+
+updateEfficientRoutePosition :: [Maps.RouteInfo] -> Int -> [Maps.RouteInfo]
+updateEfficientRoutePosition routeInfos idx = do
+  let (x, y) = splitAt idx routeInfos
+  y ++ x
