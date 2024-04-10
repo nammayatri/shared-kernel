@@ -19,9 +19,10 @@ module Kernel.External.Maps.Utils
 where
 
 import qualified Data.List as DL
-import EulerHS.Prelude
+import EulerHS.Prelude (comparing)
 import Kernel.External.Maps as Reexport
 import qualified Kernel.External.Maps as Maps
+import Kernel.Prelude
 import Kernel.Types.Common
 
 findMaxWeightedInfoIdx :: Float -> Float -> [(Maybe Float, Maybe Float)] -> Int
@@ -59,3 +60,28 @@ calculateWeightedScore distanceWeight durationWeight (dis, dur) =
   case (dis, dur) of
     (Just normDist, Just normDur) -> normDist * distanceWeight + normDur * durationWeight
     _ -> 0
+
+getLongestRouteDistance :: [Maps.RouteInfo] -> Maybe Maps.RouteInfo
+getLongestRouteDistance [] = Nothing
+getLongestRouteDistance (routeInfo : routeInfoArray) =
+  if null routeInfoArray
+    then Just routeInfo
+    else do
+      restRouteresult <- getLongestRouteDistance routeInfoArray
+      Just $ comparator' routeInfo restRouteresult
+  where
+    comparator' route1 route2 =
+      if route1.distance > route2.distance
+        then route1
+        else route2
+
+getEfficientRouteInfo :: [Maps.RouteInfo] -> Int -> Int -> (Maybe Maps.RouteInfo, Int)
+getEfficientRouteInfo [] _ _ = (Nothing, 0)
+getEfficientRouteInfo routeInfos distanceWeight durationWeight = do
+  let minD = minDistance routeInfos
+      minDur = minDuration routeInfos
+      normalizedInfos = normalizeArr (Just minD) (Just minDur) routeInfos
+      resultInfoIdx = findMaxWeightedInfoIdx (fromIntegral distanceWeight) (fromIntegral durationWeight) normalizedInfos
+  if resultInfoIdx < length routeInfos
+    then (Just (routeInfos !! resultInfoIdx), resultInfoIdx)
+    else (Nothing, 0)
