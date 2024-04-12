@@ -33,6 +33,29 @@ distanceBetweenInMeters (LatLong lat1 lon1) (LatLong lat2 lon2) =
       h = sq (sin (dlat / 2)) + cos rlat1 * cos rlat2 * sq (sin (dlon / 2))
    in realToFrac $ 2 * r * atan2 (sqrt h) (sqrt (1 - h))
 
+-- This returns the array of inflection latlong points as an array and the distance between two such points as straightline distance
+getEverySnippetWhichIsNot :: (HighPrecMeters -> Bool) -> [LatLong] -> ([LatLong], HighPrecMeters)
+getEverySnippetWhichIsNot p points = go ([], 0) points
+  where
+    go (accPoints, straightDistance) (x1 : x2 : xs) = do
+      let distance = distanceBetweenInMeters x1 x2
+      go
+        (if p distance then (accPoints, straightDistance) else (accPoints <> [x1], straightDistance + distance))
+        (x2 : xs)
+    go acc _ = acc
+
+splitWith :: [LatLong] -> [LatLong] -> [[LatLong]]
+splitWith markerPoints allPoints = reverse . map reverse $ go [[]] markerPoints allPoints
+  where
+    go (a : ax) [] restPoints = ((reverse restPoints <> a) : ax)
+    go (a : ax) (marker : restMarkers) (p1 : px) = do
+      let (newMarker, newAcc) =
+            if marker == p1
+              then (restMarkers, [[], p1 : a] <> ax)
+              else ((marker : restMarkers), (p1 : a) : ax)
+      go newAcc newMarker px
+    go acc _ _ = acc
+
 everySnippetIs :: (HighPrecMeters -> Bool) -> [LatLong] -> Bool
 everySnippetIs p (x1 : x2 : xs) =
   let distance = distanceBetweenInMeters x1 x2
