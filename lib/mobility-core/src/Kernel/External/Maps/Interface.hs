@@ -22,6 +22,7 @@ module Kernel.External.Maps.Interface
     snapToRoadProvided,
     snapToRoad,
     snapToRoadWithFallback,
+    nonFailingSnapToRoadWithFallback,
     autoCompleteProvided,
     autoComplete,
     getPlaceDetailsProvided,
@@ -84,6 +85,7 @@ getDistancesProvided = \case
   OSRM -> False
   MMI -> True
   NextBillion -> False
+  SelfTuned -> False
 
 -- FIXME this logic is redundant, because we throw error always when getDistancesProvided service = False
 getDistances ::
@@ -107,6 +109,7 @@ getRoutesProvided = \case
   OSRM -> False
   MMI -> False
   NextBillion -> True
+  SelfTuned -> False
 
 getRoutes ::
   ( EncFlow m r,
@@ -129,6 +132,7 @@ snapToRoadProvided = \case
   OSRM -> True
   MMI -> True
   NextBillion -> False
+  SelfTuned -> True
 
 runPreCheck ::
   ( EncFlow m r,
@@ -165,6 +169,19 @@ runPostCheck mapsService req res = do
     OSRM -> return $ (< osrmThreshold) $ distanceBetweenInMeters (last req.points) (last res.snappedPoints)
     _ -> return True
 
+nonFailingSnapToRoadWithFallback ::
+  ( EncFlow m r,
+    EsqDBFlow m r,
+    CoreMetrics m,
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters]
+  ) =>
+  SnapToRoadHandler m ->
+  SnapToRoadReq ->
+  m ([MapsService], Either String SnapToRoadResp)
+nonFailingSnapToRoadWithFallback sh req = snapToRoadWithFallbackImpl True sh req
+
 snapToRoadWithFallback ::
   ( EncFlow m r,
     EsqDBFlow m r,
@@ -176,7 +193,21 @@ snapToRoadWithFallback ::
   SnapToRoadHandler m ->
   SnapToRoadReq ->
   m ([MapsService], Either String SnapToRoadResp)
-snapToRoadWithFallback SnapToRoadHandler {..} req = do
+snapToRoadWithFallback sh req = snapToRoadWithFallbackImpl False sh req
+
+snapToRoadWithFallbackImpl ::
+  ( EncFlow m r,
+    EsqDBFlow m r,
+    CoreMetrics m,
+    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters]
+  ) =>
+  Bool ->
+  SnapToRoadHandler m ->
+  SnapToRoadReq ->
+  m ([MapsService], Either String SnapToRoadResp)
+snapToRoadWithFallbackImpl rectifyDistantPointsFailure SnapToRoadHandler {..} req = do
   prividersList <- getProvidersList
   when (null prividersList) $ throwError $ InternalError "No maps serive provider configured"
   callSnapToRoadWithFallback prividersList
@@ -187,11 +218,29 @@ snapToRoadWithFallback SnapToRoadHandler {..} req = do
     callSnapToRoadWithFallback (preferredProvider : restProviders) = do
       mapsConfig <- getProviderConfig preferredProvider
       preCheckPassed <- runPreCheck preferredProvider req
-      if not preCheckPassed
-        then do
+      case (preCheckPassed, rectifyDistantPointsFailure) of
+        (False, False) -> do
           logError $ "Pre check failed for provider " <> show preferredProvider
           callSnapToRoadWithFallback restProviders
-        else do
+        (False, True) -> do
+          droppedPointsThreshold <- asks (.droppedPointsThreshold)
+          let (pointsOutOfThreshold, distance) = getEverySnippetWhichIsNot (< droppedPointsThreshold) req.points
+          let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
+          pointsRes <- try @_ @SomeException $ mapM (\section -> snapToRoad mapsConfig (req {points = section})) splitSnapToRoadCalls
+          case pointsRes of
+            Left _ -> do
+              (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
+              return (preferredProvider : servicesUsed, snapResponse)
+            Right results -> do
+              let (totalSectorsDistance, snappedPoints) = foldl' (\(accDis, snappedPoints') res -> (res.distance + accDis, snappedPoints' <> res.snappedPoints)) (0, []) results
+                  snappedResp =
+                    SnapToRoadResp
+                      { distance = totalSectorsDistance + distance,
+                        confidence = 1,
+                        snappedPoints = snappedPoints
+                      }
+              return ([preferredProvider, SelfTuned], Right snappedResp)
+        (True, _) -> do
           result <- try @_ @SomeException $ snapToRoad mapsConfig req
           case result of
             Left _ -> do
@@ -227,6 +276,7 @@ autoCompleteProvided = \case
   OSRM -> False
   MMI -> True
   NextBillion -> False
+  SelfTuned -> False
 
 autoComplete ::
   ( EncFlow m r,
@@ -248,6 +298,7 @@ getPlaceDetailsProvided = \case
   OSRM -> False
   MMI -> True
   NextBillion -> False
+  SelfTuned -> False
 
 getPlaceDetails ::
   ( EncFlow m r,
@@ -268,6 +319,7 @@ getPlaceNameProvided = \case
   OSRM -> False
   MMI -> True
   NextBillion -> False
+  SelfTuned -> False
 
 getPlaceName ::
   ( EncFlow m r,
