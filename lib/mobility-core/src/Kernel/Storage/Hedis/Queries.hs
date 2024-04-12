@@ -192,6 +192,7 @@ get' key decodeErrHandler = getImpl decodeResult key
       case Ae.decode $ BSL.fromStrict bs of
         Just a -> return $ Just a
         Nothing -> do
+          logTagError "REDIS" $ "Decode Failure for key:" <> key <> ", with value:" <> cs bs
           decodeErrHandler
           return Nothing
 
