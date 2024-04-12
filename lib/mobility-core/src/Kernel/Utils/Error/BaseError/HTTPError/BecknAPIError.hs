@@ -42,7 +42,7 @@ instance IsHTTPError BecknAPICallError where
 
 type IsBecknAPI api req res =
   ( HasClient ET.EulerClient api,
-    Client ET.EulerClient api ~ (req -> ET.EulerClient res),
+    Client ET.EulerClient api ~ (Maybe Text -> req -> ET.EulerClient res),
     ToJSON res
   )
 
@@ -52,6 +52,7 @@ callBecknAPI ::
     IsBecknAPI api req res,
     SanitizedUrl api
   ) =>
+  Maybe Text ->
   Maybe ET.ManagerSelector ->
   Maybe Text ->
   Text ->
@@ -60,8 +61,8 @@ callBecknAPI ::
   HM.HashMap BaseUrl BaseUrl ->
   req ->
   m res
-callBecknAPI mbManagerSelector errorCodeMb action api baseUrl internalEndPointHashMap req = do
-  callBecknAPI' mbManagerSelector errorCodeMb (Just internalEndPointHashMap) baseUrl (ET.client api req) action api
+callBecknAPI mbReqId mbManagerSelector errorCodeMb action api baseUrl internalEndPointHashMap req = do
+  callBecknAPI' mbManagerSelector errorCodeMb (Just internalEndPointHashMap) baseUrl (ET.client api mbReqId req) action api
 
 callBecknAPI' ::
   MonadFlow m =>
