@@ -43,7 +43,7 @@ import Data.Default.Class
 import qualified Data.HashMap.Internal as HM
 import Data.List (lookup)
 import Data.String.Conversions
-import qualified Data.Text as T (pack)
+import qualified Data.Text as T
 import Data.UUID.V4 (nextRandom)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
@@ -249,9 +249,17 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
       newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId'},
+        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = getReqId requestId'},
             flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
            }
+
+getReqId :: Maybe T.Text -> Maybe T.Text
+getReqId (Just rId) =
+  let stripped = T.stripPrefix "requestId-" rId <|> T.stripPrefix "randomRequestId-" rId
+   in case stripped of
+        Just rId' -> Just rId'
+        Nothing -> Just rId
+getReqId Nothing = Nothing
 
 withModifiedEnvFn :: HasLog f => (Wai.Request -> EnvR f -> Text -> IO (EnvR f)) -> (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnvFn modifierFn f env = \req resp -> do
@@ -261,7 +269,7 @@ withModifiedEnvFn modifierFn f env = \req resp -> do
   app req resp
   where
     getRequestId headers = do
-      let value = lookup "x-request-id" headers
+      let value = lookup "custom-request-id" headers <|> lookup "x-request-id" headers
       case value of
         Just val -> pure ("requestId-" <> decodeUtf8 val)
         Nothing -> pure "randomRequestId-" <> show <$> nextRandom
