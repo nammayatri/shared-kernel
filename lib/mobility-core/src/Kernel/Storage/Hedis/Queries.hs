@@ -705,3 +705,30 @@ xAck key groupName entryId = withLogTag "Redis" $ do
 
 lrem :: (HedisFlow m env) => Text -> Integer -> Text -> m Integer
 lrem key cnt value = withTimeRedis "RedisCluster" "lrem" $ runWithPrefix key $ \prefKey -> Hedis.lrem prefKey cnt (BSL.toStrict $ Ae.encode value)
+
+-- NOTE: If required to fetch set of texts, use decodeUtf8 for converting [ByteString] to [Text]
+sMembers :: (FromJSON a, HedisFlow m env) => Text -> m (Maybe [a])
+sMembers key = withTimeRedis "RedisCluster" "sMembers" $ do
+  bsRes <- runWithPrefix key Hedis.smembers
+  case bsRes of
+    [] -> return Nothing
+    _ -> decodeHandler bsRes . sequence $ map (Ae.decode . BSL.fromStrict) bsRes
+  where
+    decodeHandler bsRes = \case
+      Just xs -> return $ Just xs
+      Nothing -> do
+        logTagError "REDIS" $ "Decode Failure for key:" <> key <> ", with value:" <> cs (BS.intercalate "," bsRes)
+        del key
+        return Nothing
+
+-- NOTE: If required to store set of texts, use encodeUtf8 for converting [Text] to [ByteString]
+sAddExp :: (HedisFlow m env, ToJSON a) => Text -> ExpirationTime -> a -> m ()
+sAddExp key expirationTime val = withLogTag "Redis" $ do
+  prefKey <- buildKey key
+  clusterRes <-
+    withTimeRedis "RedisCluster" "sAdd" $
+      try @_ @SomeException $
+        runHedisTransaction $ do
+          void $ Hedis.sadd prefKey [BSL.toStrict $ Ae.encode val]
+          Hedis.expire prefKey (toInteger expirationTime)
+  whenLeft clusterRes (withLogTag "CLUSTER" . logTagInfo "FAILED_TO_sAddExp" . show)
