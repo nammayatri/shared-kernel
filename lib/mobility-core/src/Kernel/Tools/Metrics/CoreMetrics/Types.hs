@@ -49,6 +49,8 @@ type GenericCounter = P.Vector P.Label1 P.Counter
 
 type SystemConfigsFailedCounter = P.Vector P.Label1 P.Counter
 
+type CacConfigsFailedCounter = P.Vector P.Label1 P.Counter
+
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
     HasField "version" r DeploymentVersion
@@ -68,6 +70,7 @@ class CoreMetrics m where
   incrementSchedulerFailureCounter :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
   incrementSystemConfigsFailedCounter :: Text -> m ()
+  incrementCacConfigsFailedCounter :: Text -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -80,7 +83,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     streamCounter :: StreamMetric,
     schedulerFailureCounter :: SchedulerFailureMetric,
     genericCounter :: GenericCounter,
-    systemConfigsFailedCounter :: SystemConfigsFailedCounter
+    systemConfigsFailedCounter :: SystemConfigsFailedCounter,
+    cacConfigsFailedCounter :: CacConfigsFailedCounter
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -96,6 +100,7 @@ registerCoreMetricsContainer = do
   schedulerFailureCounter <- registerSchedulerFailureCounter
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
+  cacConfigsFailedCounter <- registerCacConfigsFailedCounter
 
   return CoreMetricsContainer {..}
 
@@ -186,3 +191,11 @@ registerSystemConfigsFailedCounter =
       P.counter info
   where
     info = P.Info "system_configs_failed_counter" ""
+
+registerCacConfigsFailedCounter :: IO CacConfigsFailedCounter
+registerCacConfigsFailedCounter =
+  P.register $
+    P.vector "event" $
+      P.counter info
+  where
+    info = P.Info "cac_configs_failed_counter" ""

@@ -191,6 +191,7 @@ library
       Kernel.Serviceability
       Kernel.Sms.Config
       Kernel.Storage.Beam.BecknRequest
+      Kernel.Storage.Beam.CacConfigs
       Kernel.Storage.Beam.SystemConfigs
       Kernel.Storage.Clickhouse.Config
       Kernel.Storage.Clickhouse.Operators
@@ -223,6 +224,7 @@ library
       Kernel.Storage.Hedis.Error
       Kernel.Storage.Hedis.Queries
       Kernel.Storage.Queries.BecknRequest
+      Kernel.Storage.Queries.CacConfigs
       Kernel.Storage.Queries.SystemConfigs
       Kernel.Streaming.Kafka.Commons
       Kernel.Streaming.Kafka.Consumer
@@ -266,6 +268,7 @@ library
       Kernel.Types.Beckn.ReqTypes
       Kernel.Types.BecknRequest
       Kernel.Types.Cac
+      Kernel.Types.CacConfigs
       Kernel.Types.Cache
       Kernel.Types.CacheFlow
       Kernel.Types.Centesimal
