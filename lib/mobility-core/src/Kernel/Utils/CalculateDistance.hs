@@ -34,13 +34,13 @@ distanceBetweenInMeters (LatLong lat1 lon1) (LatLong lat2 lon2) =
    in realToFrac $ 2 * r * atan2 (sqrt h) (sqrt (1 - h))
 
 -- This returns the array of inflection latlong points as an array and the distance between two such points as straightline distance
-getEverySnippetWhichIsNot :: (HighPrecMeters -> Bool) -> [LatLong] -> ([LatLong], HighPrecMeters)
-getEverySnippetWhichIsNot p points = go ([], 0) points
+getEverySnippetWhichIsNot :: (HighPrecMeters -> Bool) -> [LatLong] -> [(LatLong, LatLong, HighPrecMeters)]
+getEverySnippetWhichIsNot p points = go [] points
   where
-    go (accPoints, straightDistance) (x1 : x2 : xs) = do
+    go accPoints (x1 : x2 : xs) = do
       let distance = distanceBetweenInMeters x1 x2
       go
-        (if p distance then (accPoints, straightDistance) else (accPoints <> [x1], straightDistance + distance))
+        (if p distance then accPoints else accPoints <> [(x1, x2, distance)])
         (x2 : xs)
     go acc _ = acc
 

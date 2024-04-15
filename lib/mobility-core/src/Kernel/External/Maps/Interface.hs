@@ -22,7 +22,6 @@ module Kernel.External.Maps.Interface
     snapToRoadProvided,
     snapToRoad,
     snapToRoadWithFallback,
-    nonFailingSnapToRoadWithFallback,
     autoCompleteProvided,
     autoComplete,
     getPlaceDetailsProvided,
@@ -169,45 +168,20 @@ runPostCheck mapsService req res = do
     OSRM -> return $ (< osrmThreshold) $ distanceBetweenInMeters (last req.points) (last res.snappedPoints)
     _ -> return True
 
-nonFailingSnapToRoadWithFallback ::
-  ( EncFlow m r,
-    EsqDBFlow m r,
-    CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters]
-  ) =>
-  SnapToRoadHandler m ->
-  SnapToRoadReq ->
-  m ([MapsService], Either String SnapToRoadResp)
-nonFailingSnapToRoadWithFallback sh req = snapToRoadWithFallbackImpl True sh req
-
 snapToRoadWithFallback ::
   ( EncFlow m r,
     EsqDBFlow m r,
     CoreMetrics m,
     HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
     HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
+    HasFlowEnv m r '["maxStraightLineRectificationThreshold" ::: HighPrecMeters],
     HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters]
   ) =>
+  Maybe MapsServiceConfig ->
   SnapToRoadHandler m ->
   SnapToRoadReq ->
   m ([MapsService], Either String SnapToRoadResp)
-snapToRoadWithFallback sh req = snapToRoadWithFallbackImpl False sh req
-
-snapToRoadWithFallbackImpl ::
-  ( EncFlow m r,
-    EsqDBFlow m r,
-    CoreMetrics m,
-    HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters]
-  ) =>
-  Bool ->
-  SnapToRoadHandler m ->
-  SnapToRoadReq ->
-  m ([MapsService], Either String SnapToRoadResp)
-snapToRoadWithFallbackImpl rectifyDistantPointsFailure SnapToRoadHandler {..} req = do
+snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandler {..} req = do
   prividersList <- getProvidersList
   when (null prividersList) $ throwError $ InternalError "No maps serive provider configured"
   callSnapToRoadWithFallback prividersList
@@ -218,13 +192,25 @@ snapToRoadWithFallbackImpl rectifyDistantPointsFailure SnapToRoadHandler {..} re
     callSnapToRoadWithFallback (preferredProvider : restProviders) = do
       mapsConfig <- getProviderConfig preferredProvider
       preCheckPassed <- runPreCheck preferredProvider req
-      case (preCheckPassed, rectifyDistantPointsFailure) of
-        (False, False) -> do
+      case (preCheckPassed, mbMapServiceToRectifyDistantPointsFailure) of
+        (False, Nothing) -> do
           logError $ "Pre check failed for provider " <> show preferredProvider
           callSnapToRoadWithFallback restProviders
-        (False, True) -> do
+        (False, Just mapServiceCfg) -> do
           droppedPointsThreshold <- asks (.droppedPointsThreshold)
-          let (pointsOutOfThreshold, distance) = getEverySnippetWhichIsNot (< droppedPointsThreshold) req.points
+          maxStraightLineRectificationThreshold <- asks (.maxStraightLineRectificationThreshold)
+          let starightDistancePoints = getEverySnippetWhichIsNot (< droppedPointsThreshold) req.points
+          distanceRectified <-
+            mapM
+              ( \(x1, x2, dist) -> do
+                  if dist < maxStraightLineRectificationThreshold
+                    then pure (x1, dist)
+                    else do
+                      distanceRes <- getDistance mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR} :: GetDistanceReq LatLong LatLong)
+                      pure (x1, metersToHighPrecMeters distanceRes.distance)
+              )
+              starightDistancePoints
+          let (pointsOutOfThreshold, distance) = foldl' (\(accPoints, accDis) (x1, dis) -> (accPoints <> [x1], accDis + dis)) ([], 0) distanceRectified
           let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
           pointsRes <- try @_ @SomeException $ mapM (\section -> snapToRoad mapsConfig (req {points = section})) splitSnapToRoadCalls
           case pointsRes of
