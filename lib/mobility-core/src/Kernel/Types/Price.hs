@@ -29,6 +29,7 @@ import Database.Persist.Class
 import Database.Persist.Sql
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Kernel.Prelude as KP
+import qualified Kernel.Types.Beckn.DecimalValue as DecimalValue
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Types.FromField
 import Kernel.Types.Logging
@@ -76,6 +77,9 @@ instance ToJSON HighPrecMoney where
 instance FromJSON HighPrecMoney where
   parseJSON = fmap realToFrac . parseJSON @Double
 
+instance ToParamSchema HighPrecMoney where
+  toParamSchema _ = toParamSchema (Proxy @Double)
+
 instance FromField HighPrecMoney where
   fromField f mbValue = HighPrecMoney <$> fromFieldDefault f mbValue
 
@@ -98,8 +102,10 @@ $(mkHttpInstancesForEnum ''HighPrecMoney)
 
 data Currency = INR | USD | EUR
   deriving stock (Generic, Show, Read, Eq, Ord)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
+  deriving anyclass (ToJSON, FromJSON, ToSchema, ToParamSchema)
   deriving (PrettyShow) via Showable Currency
+
+$(mkHttpInstancesForEnum ''Currency)
 
 -- cycle imports
 
@@ -136,23 +142,26 @@ mkPriceWithDefault :: Maybe HighPrecMoney -> Maybe Currency -> Money -> Price --
 mkPriceWithDefault mbAmount mbCurrency defAmount =
   Price
     { amountInt = maybe defAmount roundToIntegral mbAmount,
-      amount = fromMaybe (HighPrecMoney $ toRational defAmount) mbAmount,
+      amount = mkAmountWithDefault mbAmount defAmount,
       currency = fromMaybe INR mbCurrency
     }
+
+mkAmountWithDefault :: Maybe HighPrecMoney -> Money -> HighPrecMoney
+mkAmountWithDefault mbAmount defAmount = fromMaybe (HighPrecMoney $ toRational defAmount) mbAmount
 
 mkPriceFromAPIEntity :: PriceAPIEntity -> Price
 mkPriceFromAPIEntity priceAPIEntity = mkPrice (Just priceAPIEntity.currency) priceAPIEntity.amount
 
 -- To be deprecated
-mkPriceFromMoney :: Money -> Price
-mkPriceFromMoney = mkPriceWithDefault Nothing Nothing
+mkPriceFromMoney :: Maybe Currency -> Money -> Price
+mkPriceFromMoney = mkPriceWithDefault Nothing
 
 -- To be deprecated when remove Money
 data PriceAPIEntity = PriceAPIEntity
   { amount :: HighPrecMoney,
     currency :: Currency
   }
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Show, Read, Eq, Ord)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 mkPriceAPIEntity :: Price -> PriceAPIEntity
@@ -207,3 +216,14 @@ subtractPrice p1 p2 = mkPrice (Just p1.currency) <$> withCurrencyChecking p1 p2 
 
 modifyPrice :: Price -> (HighPrecMoney -> HighPrecMoney) -> Price
 modifyPrice price func = mkPrice (Just price.currency) (func price.amount)
+
+highPrecMoneyFromText :: Text -> Maybe HighPrecMoney
+highPrecMoneyFromText txt = do
+  DecimalValue.DecimalValue rational <- DecimalValue.valueFromString txt
+  pure $ HighPrecMoney rational
+
+highPrecMoneyToText :: HighPrecMoney -> Text
+highPrecMoneyToText = DecimalValue.valueToString . DecimalValue.DecimalValue . getHighPrecMoney
+
+toHighPrecMoney :: Real a => a -> HighPrecMoney
+toHighPrecMoney = HighPrecMoney . toRational
