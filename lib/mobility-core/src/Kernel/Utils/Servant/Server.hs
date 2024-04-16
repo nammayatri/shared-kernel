@@ -18,6 +18,7 @@ module Kernel.Utils.Servant.Server where
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as E
 import GHC.Records.Extra (HasField)
+import Kernel.Beam.ART.ARTUtils
 import Kernel.Prelude (identity)
 import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Metrics
 import qualified Kernel.Tools.Metrics.Init as Metrics
@@ -110,6 +111,7 @@ runServer ::
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
+    HasARTFlow env,
     HasField "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
@@ -144,7 +146,7 @@ runServer appEnv serverAPI serverHandler waiMiddleware waiSettings servantCtx se
     flowRt' <-
       runFlowR flowRt appEnv $
         initialize flowRt <* logInfo ("Runtime created. Starting server at port " <> show port)
-    serverStartAction flowRt' $ runSettings settings $ server (EnvR flowRt' appEnv)
+    serverStartAction flowRt' $ runSettings settings $ server (EnvR flowRt' appEnv Nothing)
 
 runServerGeneric ::
   forall m env (api :: Type) ctx.
@@ -197,6 +199,7 @@ runHealthCheckServerWithService ::
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
+    HasARTFlow env,
     HasField "version" env Metrics.DeploymentVersion,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters
   ) =>
@@ -222,6 +225,7 @@ runServerWithHealthCheck ::
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
+    HasARTFlow env,
     HasField "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
@@ -246,6 +250,7 @@ runServerWithHealthCheckAndSlackNotification ::
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
     HasSlackEnv env,
+    HasARTFlow env,
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
