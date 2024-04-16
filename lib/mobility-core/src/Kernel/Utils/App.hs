@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE PackageImports #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 {-# OPTIONS_GHC -Wno-warnings-deprecations #-}
 
 module Kernel.Utils.App
@@ -32,6 +33,7 @@ module Kernel.Utils.App
   )
 where
 
+import Control.Exception
 import qualified Data.Aeson as A
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString as B
@@ -142,39 +144,30 @@ modifyRequestHeaders :: (RequestHeaders -> RequestHeaders) -> Request -> Request
 modifyRequestHeaders f req = req {Wai.requestHeaders = f (Wai.requestHeaders req)}
 
 logRequestAndResponse :: HasLog f => EnvR f -> Application -> Application
-logRequestAndResponse (EnvR flowRt appEnv) =
+logRequestAndResponse (EnvR flowRt appEnv _) =
   logRequestAndResponseGeneric logInfoIO
   where
     logInfoIO tag info = runFlowR flowRt appEnv $ logTagInfo tag info
 
 logRequestAndResponse' :: (HasARTFlow f) => EnvR f -> Application -> Application
-logRequestAndResponse' (EnvR flowRt appEnv) =
-  logRequestAndResponseGeneric' appEnv logInfoIO
+logRequestAndResponse' (EnvR flowRt appEnv bodyEnv) =
+  logRequestAndResponseGeneric' bodyEnv appEnv logInfoIO
   where
     logInfoIO tag info = runFlowR flowRt appEnv $ logTagInfo tag info
 
-logRequestAndResponseGeneric' :: HasARTFlow f => f -> (Text -> Text -> IO ()) -> Application -> Application
-logRequestAndResponseGeneric' appEnv logInfoIO f req respF = do
+logRequestAndResponseGeneric' :: HasARTFlow f => Maybe LB.ByteString -> f -> (Text -> Text -> IO ()) -> Application -> Application
+logRequestAndResponseGeneric' body appEnv logInfoIO f req respF = do
   if not appEnv.shouldLogRequestId
     then logRequestAndResponseGeneric logInfoIO f req respF
     else do
       timestamp <- getCurrentTime
-      body <- Wai.consumeRequestBodyStrict req
       let requestMethod = Wai.requestMethod req
           rawPathInfo = Wai.rawPathInfo req
           rawQueryString = Wai.rawQueryString req
           requestHeaders = Wai.requestHeaders req
-
+      logInfoIO "Request" $ "Request: " <> show (RequestInfo' {body = T.pack $ show $ fromMaybe "" body, requestHeaders = show requestHeaders, requestMethod = show requestMethod, rawPathInfo = show rawPathInfo, rawQueryString = show rawQueryString})
       let request = RequestInfo' {body = T.pack $ show body, requestHeaders = show requestHeaders, requestMethod = show requestMethod, rawPathInfo = show rawPathInfo, rawQueryString = show rawQueryString}
-      called :: IORef Int <- newIORef 0
-      let returnBody = do
-            calledTimes <- readIORef called
-            modifyIORef called (+ 1)
-            pure $
-              if calledTimes > 0
-                then B.empty
-                else LB.toStrict body
-      f (req {requestBody = returnBody}) (loggedRespF timestamp request)
+      f req (loggedRespF timestamp request)
   where
     toRequestInfo Request {..} = RequestInfo {..}
     toResponseInfo resp =
@@ -222,7 +215,7 @@ logRequestAndResponseGeneric logInfoIO f req respF =
       logInfoIO "Request&Response" $ "Request: " <> show (toRequestInfo req) <> " || Response: " <> respLogText
       respF resp
 
-withModifiedEnv :: HasLog f => (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv :: HasARTFlow f => (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv = withModifiedEnvFn $ \_ env requestId -> do
   let appEnv = env.appEnv
       updLogEnv = appendLogTag requestId appEnv.loggerEnv
@@ -261,18 +254,39 @@ getReqId (Just rId) =
         Nothing -> Just rId
 getReqId Nothing = Nothing
 
-withModifiedEnvFn :: HasLog f => (Wai.Request -> EnvR f -> Text -> IO (EnvR f)) -> (EnvR f -> Application) -> EnvR f -> Application
-withModifiedEnvFn modifierFn f env = \req resp -> do
-  requestId <- getRequestId $ Wai.requestHeaders req
+withModifiedEnvFn :: HasARTFlow f => (Wai.Request -> EnvR f -> Text -> IO (EnvR f)) -> (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnvFn modifierFn f env' = \req' resp -> do
+  requestId' <- getRequestId $ Wai.requestHeaders req'
+  (requestId, env, req) <- getReqIdAndBody env' requestId' req'
   modifiedEnv <- modifierFn req env requestId
   let app = f modifiedEnv
   app req resp
   where
     getRequestId headers = do
-      let value = lookup "custom-request-id" headers <|> lookup "x-request-id" headers
+      let value = lookup "x-custom-request-id" headers <|> lookup "x-request-id" headers
       case value of
         Just val -> pure ("requestId-" <> decodeUtf8 val)
         Nothing -> pure "randomRequestId-" <> show <$> nextRandom
+
+    getReqIdAndBody env requestId req = do
+      let shouldLogRequestId = env.appEnv.shouldLogRequestId
+      if shouldLogRequestId
+        then do
+          -- handle exception and return the else condition if any error occurs
+          handle (\(_ :: SomeException) -> pure (requestId, env, req)) $ do
+            body <- Wai.strictRequestBody req
+            let reqId = fromMaybe requestId $ extractRequestId (Just body)
+            called :: IORef Int <- newIORef 0
+            let returnBody = do
+                  calledTimes <- readIORef called
+                  modifyIORef called (+ 1)
+                  pure $
+                    if calledTimes > 0
+                      then B.empty
+                      else LB.toStrict body
+            pure (reqId, env{bodyEnv = Just body}, req {requestBody = returnBody})
+        else do
+          pure (requestId, env, req)
 
 withModifiedEnvGeneric :: HasLog env => (env -> Application) -> env -> Application
 withModifiedEnvGeneric f env = \req resp -> do

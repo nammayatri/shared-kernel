@@ -1,6 +1,7 @@
 module Kernel.Beam.ART.ARTUtils where
 
-import Data.Aeson
+import qualified Data.Aeson as A
+import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
@@ -10,6 +11,7 @@ import qualified Data.List as DL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Data.Time
+import qualified Data.Vector as V
 import EulerHS.Language (MonadFlow)
 import qualified EulerHS.Language as L
 import qualified Kafka.Producer as KafkaProd
@@ -22,7 +24,7 @@ import System.Directory (canonicalizePath, getCurrentDirectory)
 import System.FilePath (combine, splitFileName, (</>))
 import System.IO (IOMode (AppendMode), withFile)
 
-type HasARTFlow r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools))
+type HasARTFlow r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools), HasField "isArtReplayerEnabled" r Bool)
 
 data RequestInfo' = RequestInfo'
   { requestMethod :: Text,
@@ -61,7 +63,7 @@ data QueryData = QueryData
   deriving (Show, Generic, ToJSON, FromJSON)
 
 instance ToJSON ArtData where
-  toJSON = genericToJSON defaultOptions {omitNothingFields = True}
+  toJSON = genericToJSON A.defaultOptions {A.omitNothingFields = True}
 
 instance Default ArtData where
   def = ArtData "" Nothing Nothing Nothing Nothing Nothing
@@ -81,6 +83,34 @@ kafkaMessage topicName event key =
       prKey = Just $ TE.encodeUtf8 key,
       prValue = Just . BL.toStrict $ event
     }
+
+extractRequestId :: Maybe BL.ByteString -> Maybe Text
+extractRequestId (Just jsonString)
+  | Just (A.Object obj) <- A.decode jsonString,
+    Just (A.Object intent) <- AKM.lookup "message" obj,
+    Just (A.Object fulfillment) <- AKM.lookup "intent" intent,
+    Just (A.Object tags) <- AKM.lookup "fulfillment" fulfillment,
+    Just (A.Array tagsArray) <- AKM.lookup "tags" tags,
+    Just (A.Object customRequestId) <- findCustomRequestIdObj tagsArray,
+    Just (A.Array list) <- AKM.lookup "list" customRequestId,
+    (A.Object listObj) <- V.head list,
+    Just (A.String value) <- AKM.lookup "value" listObj =
+    Just value
+  | otherwise = Nothing
+extractRequestId Nothing = Nothing
+
+findCustomRequestIdObj :: V.Vector A.Value -> Maybe A.Value
+findCustomRequestIdObj tagsArray =
+  V.find
+    ( \tag -> case tag of
+        A.Object tagObj -> case AKM.lookup "descriptor" tagObj of
+          Just (A.Object descriptor) -> case AKM.lookup "code" descriptor of
+            Just (A.String code) -> code == "CUSTOM_REQUEST_IDS"
+            _ -> False
+          _ -> False
+        _ -> False
+    )
+    tagsArray
 
 getCurrentFilePath :: FilePath -> IO FilePath
 getCurrentFilePath fileName = do
@@ -102,7 +132,7 @@ readAndDecodeArtData = do
     Nothing -> return $ Left "No file path for ART data found. Kindly provide the file path or set the environment variable ArtFilePath using setOption."
     Just filePath -> do
       fileContent <- L.runIO $ B.readFile filePath
-      let jsonData = map (eitherDecode . BL.fromStrict) $ filter (not . B.null) $ B.split '\n' fileContent
+      let jsonData = map (A.eitherDecode . BL.fromStrict) $ filter (not . B.null) $ B.split '\n' fileContent
       case partitionEithers jsonData of
         ([], decoded) -> return $ Right decoded
         (err, _) -> return $ Left $ "Failed to decode JSON data: " <> show err <> " in file: " <> show filePath
@@ -129,7 +159,7 @@ getProcessedData = do
     Just filePath -> do
       let newFilePath = replaceLastFileName filePath "processedData.log"
       fileContent <- L.runIO $ B.readFile newFilePath
-      let jsonData = map (eitherDecode . BL.fromStrict) $ B.split '\n' fileContent :: [Either String ArtProcessed]
+      let jsonData = map (A.eitherDecode . BL.fromStrict) $ B.split '\n' fileContent :: [Either String ArtProcessed]
       case partitionEithers jsonData of
         ([], decoded) -> do
           let processedData = HM.fromList $ map (\(ArtProcessed whereClauseText' dataTimestamp') -> (whereClauseText', dataTimestamp')) decoded
@@ -182,7 +212,7 @@ getArtQueryObject queryType tableName' schemaName' whereClause' artDataList = do
       whenJust queryData $ \queryData' -> do
         let whereClause'' = show $ whereClause queryData'
             key = tableName' <> "-" <> fromMaybe "" schemaName' <> "-" <> whereClause''
-        appendOrWriteToFile $ encode $ ArtProcessed key timestamp
+        appendOrWriteToFile $ A.encode $ ArtProcessed key timestamp
       pure queryData
 
 getTableIdentity :: Text -> Maybe Text -> [Maybe QueryData] -> Text -> Maybe [Text]
@@ -196,7 +226,7 @@ readAndDecodeArtData' :: IO (Either String [ArtData])
 readAndDecodeArtData' = do
   let path = "path/to/file"
   fileContent <- B.readFile path
-  let jsonData = map (eitherDecode . BL.fromStrict) $ B.split '\n' fileContent :: [Either String ArtData]
+  let jsonData = map (A.eitherDecode . BL.fromStrict) $ B.split '\n' fileContent :: [Either String ArtData]
   case partitionEithers jsonData of
     ([], decoded) -> return $ Right decoded
     (err, _) -> return $ Left ("Failed to decode JSON data: " <> show err <> " in file: " <> show path)

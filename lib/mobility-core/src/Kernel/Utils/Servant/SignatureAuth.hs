@@ -252,6 +252,7 @@ verifySignature ::
     Metrics.CoreMetrics m,
     HasField "hostName" r Text,
     HasField "disableSignatureAuth" r Bool,
+    HasField "isArtReplayerEnabled" r Bool,
     Registry m,
     HasLog r
   ) =>
@@ -278,7 +279,8 @@ verifySignature headerName signPayload bodyHash merchantId subscriberType domain
   registryLookup lookupRequest >>= \case
     Just subscriber -> do
       disableSignatureAuth <- asks (.disableSignatureAuth)
-      unless disableSignatureAuth do
+      isArtReplayerEnabled <- asks (.isArtReplayerEnabled)
+      unless (disableSignatureAuth || isArtReplayerEnabled) do
         let publicKey = subscriber.signing_public_key
         isVerified <- performVerification publicKey hostName
         unless isVerified $ do
