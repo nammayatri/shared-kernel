@@ -26,7 +26,7 @@ module Kernel.Beam.Functions
     deleteWithKV,
     deleteWithDb, -- not used
     findAllWithKVAndConditionalDB,
-    getDBFunction,
+    getDbFunctions,
     getArtDbFunctions,
   )
 where
@@ -64,8 +64,8 @@ runInReplica m = do
   L.setOptionLocal ReplicaEnabled False
   pure res
 
-getDBFunction :: DbFunctions
-getDBFunction =
+getDbFunctions :: DbFunctions
+getDbFunctions =
   DbFunctions
     { createInternalFunction = createInternal,
       findOneInternalFunction = findOneInternal,
@@ -474,7 +474,7 @@ findAllWithOptionsInternal' updatedMeshConfig fromTType where' mbLimit mbOffset 
   case result of
     Right res -> do
       res' <- do
-        logQueryData "findAllWithOptionsInternal" where' [] res (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
+        logQueryData "findAllWithOptionsInternal'" where' [] res (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
         mapM fromTType res
       pure $ catMaybes res'
     Left err -> throwError $ InternalError $ show err
@@ -646,43 +646,7 @@ findOneInternalArt ::
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
   m (Maybe a)
-findOneInternalArt _ ttype where' = do
-  let tableName = modelTableName @table
-      schemaName = modelSchemaName @table
-      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
-  artData <- readAndDecodeArtData
-  case artData of
-    Left err -> do
-      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ONE" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ONE " :: Text) <> show err)
-    Right artData' -> do
-      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
-      queryData' <- getArtQueryObject "findOneInternal" tableName schemaName whereClause artDataList
-      case queryData' of
-        Nothing -> do
-          L.logError ("ART_QUERY_DATA_NOT_FOUND_FIND_ONE" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-          pure Nothing
-        Just queryData'' -> do
-          let tableObject' = tableObject queryData''
-              schemaName' = ART.schemaName queryData''
-              tableName' = table queryData''
-          if tableName' == tableName && schemaName' == schemaName
-            then do
-              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
-                  tableIdentity' = catMaybes tableIdentity
-              case tableIdentity' of
-                [] -> do
-                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_FIND_ONE" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-                  pure Nothing
-                _ -> do
-                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
-                  res <- mapM ttype tableIdentity'
-                  now <- getCurrentTime
-                  void $ logQueryData "findOneInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
-                  pure $ listToMaybe $ catMaybes res
-            else do
-              L.logError ("ART_TABLE_MISMATCH_FIND_ONE" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-              throwError $ InternalError ("Art data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+findOneInternalArt _ ttype where' = listToMaybe <$> getTableObject @table "FIND_ONE" "findOneInternal" ttype where'
 
 findAllInternalArt ::
   forall table m r a.
@@ -691,43 +655,7 @@ findAllInternalArt ::
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
   m [a]
-findAllInternalArt _ ttype where' = do
-  let tableName = modelTableName @table
-      schemaName = modelSchemaName @table
-      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
-  artData <- readAndDecodeArtData
-  case artData of
-    Left err -> do
-      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL " :: Text) <> show err)
-    Right artData' -> do
-      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
-      queryData' <- getArtQueryObject "findAllInternal" tableName schemaName whereClause artDataList
-      case queryData' of
-        Nothing -> do
-          L.logError ("ART_QUERY_DATA_NOT_FOUND_FIND_ALL" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-          pure []
-        Just queryData'' -> do
-          let tableObject' = tableObject queryData''
-              schemaName' = ART.schemaName queryData''
-              tableName' = table queryData''
-          if tableName' == tableName && schemaName' == schemaName
-            then do
-              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
-              let tableIdentity' = catMaybes tableIdentity
-              case tableIdentity' of
-                [] -> do
-                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_FIND_ALL" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-                  pure []
-                _ -> do
-                  now <- getCurrentTime
-                  void $ logQueryData "findAllInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
-                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
-                  res <- mapM ttype tableIdentity'
-                  pure $ catMaybes res
-            else do
-              L.logError ("ART_TABLE_MISMATCH_FIND_ALL" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-              throwError $ InternalError ("Data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+findAllInternalArt _ ttype where' = getTableObject @table "FIND_ALL" "findAllInternal" ttype where'
 
 findAllWithOptionsInternalArt ::
   forall table m r a.
@@ -739,43 +667,7 @@ findAllWithOptionsInternalArt ::
   Maybe Int ->
   Maybe Int ->
   m [a]
-findAllWithOptionsInternalArt _ ttype where' _ _ _ = do
-  let tableName = modelTableName @table
-      schemaName = modelSchemaName @table
-      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
-  artData <- readAndDecodeArtData
-  case artData of
-    Left err -> do
-      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL_OPTION" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL_OPTION " :: Text) <> show err)
-    Right artData' -> do
-      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
-      queryData' <- getArtQueryObject "findAllWithOptionsInternal" tableName schemaName whereClause artDataList
-      case queryData' of
-        Nothing -> do
-          L.logError ("ART_QUERY_DATA_NOT_FOUND_FIND_ALL_OPTION" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-          pure []
-        Just queryData'' -> do
-          let tableObject' = tableObject queryData''
-              schemaName' = ART.schemaName queryData''
-              tableName' = table queryData''
-          if tableName' == tableName && schemaName' == schemaName
-            then do
-              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
-              let tableIdentity' = catMaybes tableIdentity
-              case tableIdentity' of
-                [] -> do
-                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_FIND_ALL_OPTION" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-                  pure []
-                _ -> do
-                  now <- getCurrentTime
-                  void $ logQueryData "findAllWithOptionsInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
-                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
-                  res <- mapM ttype tableIdentity'
-                  pure $ catMaybes res
-            else do
-              L.logError ("ART_TABLE_MISMATCH_FIND_ALL_OPTION" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-              throwError $ InternalError ("Data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+findAllWithOptionsInternalArt _ ttype where' _ _ _ = getTableObject @table "FIND_ALL_OPTION" "findAllWithOptionsInternal" ttype where'
 
 findAllWithOptionsInternalArt' ::
   forall table m r a.
@@ -786,43 +678,7 @@ findAllWithOptionsInternalArt' ::
   Maybe Int ->
   Maybe Int ->
   m [a]
-findAllWithOptionsInternalArt' _ ttype where' _ _ = do
-  let tableName = modelTableName @table
-      schemaName = modelSchemaName @table
-      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
-  artData <- readAndDecodeArtData
-  case artData of
-    Left err -> do
-      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL_OPTION'" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_FIND_ALL_OPTION' " :: Text) <> show err)
-    Right artData' -> do
-      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
-      queryData' <- getArtQueryObject "findAllWithOptionsInternal" tableName schemaName whereClause artDataList
-      case queryData' of
-        Nothing -> do
-          L.logError ("ART_QUERY_DATA_NOT_FOUND_FIND_ALL_OPTION'" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-          pure []
-        Just queryData'' -> do
-          let tableObject' = tableObject queryData''
-              schemaName' = ART.schemaName queryData''
-              tableName' = table queryData''
-          if tableName' == tableName && schemaName' == schemaName
-            then do
-              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
-              let tableIdentity' = catMaybes tableIdentity
-              case tableIdentity' of
-                [] -> do
-                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_FIND_ALL_OPTION'" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-                  pure []
-                _ -> do
-                  now <- getCurrentTime
-                  void $ logQueryData "findAllWithOptionsInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
-                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
-                  res <- mapM ttype tableIdentity'
-                  pure $ catMaybes res
-            else do
-              L.logError ("ART_TABLE_MISMATCH_FIND_ALL_OPTION'" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-              throwError $ InternalError ("Data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+findAllWithOptionsInternalArt' _ ttype where' _ _ = getTableObject @table "FIND_ALL_OPTION_'" "findAllWithOptionsInternal'" ttype where'
 
 findAllWithKVAndConditionalDBInternalArt ::
   forall table m r a.
@@ -832,43 +688,7 @@ findAllWithKVAndConditionalDBInternalArt ::
   Where Postgres table ->
   Maybe (OrderBy table) ->
   m [a]
-findAllWithKVAndConditionalDBInternalArt _ ttype where' _ = do
-  let tableName = modelTableName @table
-      schemaName = modelSchemaName @table
-      whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')
-  artData <- readAndDecodeArtData
-  case artData of
-    Left err -> do
-      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_CONDITIONAL_FIND" :: Text) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_CONDITIONAL_FIND " :: Text) <> show err)
-    Right artData' -> do
-      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
-      queryData' <- getArtQueryObject "findAllWithKVAndConditionalDBInternal" tableName schemaName whereClause artDataList
-      case queryData' of
-        Nothing -> do
-          L.logError ("ART_QUERY_DATA_NOT_FOUND_CONDITIONAL_FIND" :: Text) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-          pure []
-        Just queryData'' -> do
-          let tableObject' = tableObject queryData''
-              schemaName' = ART.schemaName queryData''
-              tableName' = table queryData''
-          if tableName' == tableName && schemaName' == schemaName
-            then do
-              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
-              let tableIdentity' = catMaybes tableIdentity
-              case tableIdentity' of
-                [] -> do
-                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_CONDITIONAL_FIND" :: Text) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-                  pure []
-                _ -> do
-                  now <- getCurrentTime
-                  void $ logQueryData "findAllWithKVAndConditionalDBInternalArt" where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
-                  logDebug $ "Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
-                  res <- mapM ttype tableIdentity'
-                  pure $ catMaybes res
-            else do
-              L.logError ("ART_TABLE_MISMATCH_CONDITIONAL_FIND" :: Text) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
-              throwError $ InternalError ("Data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)
+findAllWithKVAndConditionalDBInternalArt _ ttype where' _ = getTableObject @table "FIND_ALL_WITH_KV_AND_CONDITIONAL_DB" "findAllWithKVAndConditionalDBInternal" ttype where'
 
 updateInternalArt ::
   forall table m r.
@@ -879,7 +699,7 @@ updateInternalArt ::
   m ()
 updateInternalArt meshConfig' setClause whereClause = do
   now <- getCurrentTime
-  void $ logQueryData "updateInternalArt" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+  void $ logQueryData "updateInternal" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
 
 updateOneInternalArt ::
   forall table m r.
@@ -890,7 +710,7 @@ updateOneInternalArt ::
   m ()
 updateOneInternalArt meshConfig' setClause whereClause = do
   now <- getCurrentTime
-  void $ logQueryData "updateOneInternalArt" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+  void $ logQueryData "updateOneInternal" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
 
 createInternalArt ::
   forall table m r a.
@@ -901,7 +721,7 @@ createInternalArt ::
   m ()
 createInternalArt meshConfig' toTType a = do
   now <- getCurrentTime
-  void $ logQueryData "createInternalArt" [] [] [toTType a] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+  void $ logQueryData "createInternal" [] [] [toTType a] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
 
 deleteInternalArt ::
   forall table m r.
@@ -911,4 +731,55 @@ deleteInternalArt ::
   m ()
 deleteInternalArt meshConfig' whereClause = do
   now <- getCurrentTime
-  void $ logQueryData "deleteInternalArt" whereClause [] [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+  void $ logQueryData "deleteInternal" whereClause [] [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+
+getTableInformation ::
+  forall table m r.
+  (BeamTableFlow table m r) =>
+  Where Postgres table ->
+  m (Text, Maybe Text, [[(Text, Text)]])
+getTableInformation where' = pure (modelTableName @table, modelSchemaName @table, getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where'))
+
+getTableObject ::
+  forall table m r a.
+  (BeamTableFlow table m r) =>
+  Text ->
+  Text ->
+  (table Identity -> m (Maybe a)) ->
+  Where Postgres table ->
+  m [a]
+getTableObject errorTag queryType ttype where' = do
+  (tableName, schemaName, whereClause) <- getTableInformation @table where'
+  artData <- readAndDecodeArtData
+  case artData of
+    Left err -> do
+      L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_" <> errorTag) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+      throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_" <> errorTag) <> show err)
+    Right artData' -> do
+      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
+      queryData' <- getArtQueryObject queryType tableName schemaName whereClause artDataList
+      case queryData' of
+        Nothing -> do
+          L.logError ("ART_QUERY_DATA_NOT_FOUND_" <> errorTag) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+          pure []
+        Just queryData'' -> do
+          let tableObject' = tableObject queryData''
+              schemaName' = ART.schemaName queryData''
+              tableName' = table queryData''
+          if tableName' == tableName && schemaName' == schemaName
+            then do
+              let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
+              let tableIdentity' = catMaybes tableIdentity
+              case tableIdentity' of
+                [] -> do
+                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_" <> errorTag) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+                  pure []
+                _ -> do
+                  logDebug $ errorTag <> " => Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
+                  res <- mapM ttype tableIdentity'
+                  now <- getCurrentTime
+                  void $ logQueryData queryType where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
+                  pure $ catMaybes res
+            else do
+              L.logError ("ART_TABLE_MISMATCH_" <> errorTag) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+              throwError $ InternalError (errorTag <> " => Art data found for different table : " <> tableName' <> " schema: " <> fromMaybe "" schemaName' <> " where: actual table and schema: " <> tableName <> " || " <> fromMaybe "" schemaName <> " where: " <> show whereClause)

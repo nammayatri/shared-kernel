@@ -93,7 +93,7 @@ extractRequestId (Just jsonString)
     Just (A.Array tagsArray) <- AKM.lookup "tags" tags,
     Just (A.Object customRequestId) <- findCustomRequestIdObj tagsArray,
     Just (A.Array list) <- AKM.lookup "list" customRequestId,
-    (A.Object listObj) <- V.head list,
+    Just (A.Object listObj) <- list V.!? 0,
     Just (A.String value) <- AKM.lookup "value" listObj =
     Just value
   | otherwise = Nothing

@@ -165,7 +165,6 @@ logRequestAndResponseGeneric' body appEnv logInfoIO f req respF = do
           rawPathInfo = Wai.rawPathInfo req
           rawQueryString = Wai.rawQueryString req
           requestHeaders = Wai.requestHeaders req
-      logInfoIO "Request" $ "Request: " <> show (RequestInfo' {body = T.pack $ show $ fromMaybe "" body, requestHeaders = show requestHeaders, requestMethod = show requestMethod, rawPathInfo = show rawPathInfo, rawQueryString = show rawQueryString})
       let request = RequestInfo' {body = T.pack $ show body, requestHeaders = show requestHeaders, requestMethod = show requestMethod, rawPathInfo = show rawPathInfo, rawQueryString = show rawQueryString}
       f req (loggedRespF timestamp request)
   where
@@ -238,7 +237,7 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
       let appEnv = env.appEnv
           updLogEnv = appendLogTag requestId appEnv.loggerEnv
           updLogEnv' = updateLogLevel mbLogLevel updLogEnv
-      let requestId' = bool Nothing (Just requestId) appEnv.shouldLogRequestId
+      let requestId' = getReqId (Just requestId)
       newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       pure $
