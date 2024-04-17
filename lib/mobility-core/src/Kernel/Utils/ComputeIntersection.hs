@@ -15,8 +15,6 @@
 
 module Kernel.Utils.ComputeIntersection where
 
-import Database.Beam.Backend
-import qualified Database.Beam.Backend.SQL.AST as B
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.External.Maps.Types
 import Kernel.Prelude
@@ -38,10 +36,7 @@ data LineSegment = LineSegment
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema, PrettyShow, Ord, Read)
 
-instance HasSqlValueSyntax B.Value LineSegment where
-  sqlValueSyntax = autoSqlValueSyntax
-
-$(mkBeamInstancesForList ''LineSegment)
+$(mkBeamInstancesForEnumAndList ''LineSegment)
 
 data Orientation = Collinear | Clockwise | AntiClockwise
   deriving (Generic, Eq, Show, Read)
