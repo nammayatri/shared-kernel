@@ -87,11 +87,12 @@ checkBlacklisted isBlackListed = maybe (pure Nothing) \sub -> do
 
 checkWhitelisted ::
   (MonadThrow m, Log m) =>
-  (Text -> Domain -> m Bool) ->
+  (Text -> Domain -> Text -> m Bool) ->
+  Text ->
   Maybe Subscriber ->
   m (Maybe Subscriber)
-checkWhitelisted isNotWhiteListed = maybe (pure Nothing) \sub -> do
-  whenM (isNotWhiteListed sub.subscriber_id sub.domain) . throwError . InvalidRequest $
+checkWhitelisted isNotWhiteListed merchantId = maybe (pure Nothing) \sub -> do
+  whenM (isNotWhiteListed sub.subscriber_id sub.domain merchantId) . throwError . InvalidRequest $
     "Not Whitelisted subscriber " <> sub.subscriber_id
   pure (Just sub)
 
