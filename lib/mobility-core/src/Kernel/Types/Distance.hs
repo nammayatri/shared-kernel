@@ -77,6 +77,9 @@ instance ToSchema HighPrecDistance where
 
 $(mkHttpInstancesForEnum ''HighPrecDistance)
 
+toHighPrecDistance :: Real a => a -> HighPrecDistance
+toHighPrecDistance = HighPrecDistance . toRational
+
 data DistanceUnit = Meter | Mile | Yard | Kilometer
   deriving stock (Generic, Show, Read, Eq, Ord)
   deriving anyclass (ToJSON, FromJSON, ToSchema)

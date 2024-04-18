@@ -108,11 +108,12 @@ type GetRoutesResp = [RouteInfo]
 data RouteInfo = RouteInfo
   { duration :: Maybe Seconds,
     distance :: Maybe Meters,
+    distanceWithUnit :: Maybe Distance,
     boundingBox :: Maybe BoundingBoxWithoutCRS,
     snappedWaypoints :: [LatLong],
     points :: [LatLong]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema, Show, Eq, Read, Ord)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show, Eq, Ord)
 
 instance FromField RouteInfo where
   fromField f mbValue = case mbValue of
