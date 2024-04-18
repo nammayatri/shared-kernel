@@ -53,6 +53,7 @@ convertToRoute route =
   RouteInfo
     { duration = Just (Seconds $ double2Int route.duration),
       distance = Just (Meters $ double2Int route.distance),
+      distanceWithUnit = Just $ Distance (toHighPrecDistance route.distance) Meter,
       boundingBox = Nothing,
       snappedWaypoints = [],
       points = PP.decode $ route.geometry
