@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 
 module Kernel.Types.Version where
@@ -19,6 +20,7 @@ import Control.Lens
 import Data.OpenApi (OpenApiType (OpenApiString), ToParamSchema (..))
 import Data.OpenApi.Lens as L
 import Data.Text as T
+import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude as Prelude
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
 import Text.Regex
@@ -38,6 +40,15 @@ versionToText Version {..} =
     <> maybe "" ("-" <>) preRelease
     <> maybe "" ("+" <>) build
 
+data DeviceType = IOS | ANDROID
+  deriving (Show, Eq, Ord, Generic, Read, ToJSON, FromJSON, ToSchema)
+
+data Device = Device
+  { deviceType :: DeviceType,
+    deviceVersion :: Text
+  }
+  deriving (Show, Eq, Ord, Generic, Read, ToJSON, FromJSON, ToSchema)
+
 textToVersion :: Text -> Either Text Version
 textToVersion versionText =
   let versionStr = unpack versionText
@@ -52,8 +63,8 @@ textToVersion versionText =
           let build = if buildStr /= "" then Just (T.tail $ pack buildStr) else Nothing -- Tail to remove the leading '+'
           case (mbMajor, mbMinor, mbMaintenance) of
             (Just major, Just minor, Just maintenance) -> Right Version {..}
-            _ -> Left "Invalid version number"
-        _ -> Left "Version does not match expected format"
+            _ -> Right Version {major = 0, minor = 0, maintenance = 0, preRelease = Nothing, build = Nothing}
+        _ -> Right Version {major = 0, minor = 0, maintenance = 0, preRelease = Nothing, build = Nothing}
 
 instance ToParamSchema Version where
   toParamSchema _ =
@@ -66,3 +77,5 @@ instance ToHttpApiData Version where
 
 instance FromHttpApiData Version where
   parseUrlPiece = textToVersion
+
+$(mkBeamInstancesForEnum ''DeviceType)
