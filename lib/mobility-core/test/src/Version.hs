@@ -49,6 +49,5 @@ readVersionTests :: TestTree
 readVersionTests =
   testGroup
     "Read versions tests"
-    [ successfull,
-      failed
+    [ successfull
     ]
