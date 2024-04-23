@@ -35,9 +35,9 @@ getDeviceFromText deviceText = do
   case deviceInfo of
     _ : _ : version' : _ -> do
       let [deviceTypeStr, deviceVersion] = T.splitOn " v" version'
-      deviceType <- case deviceTypeStr of
-        "Android" -> Just ANDROID
-        "iOS" -> Just IOS
+      deviceType <- case T.toLower deviceTypeStr of
+        "android" -> Just ANDROID
+        "ios" -> Just IOS
         _ -> Nothing
       return Device {deviceType = deviceType, deviceVersion = deviceVersion}
     _ -> Nothing
