@@ -41,8 +41,7 @@ import EulerHS.KVConnector.Types (DBCommandVersion' (..), MeshConfig (..), MeshM
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log)
-import Kernel.Beam.ART.ARTUtils as ART hiding (pushToKafka)
-import qualified Kernel.Beam.ART.ARTUtils as A
+import qualified Kernel.Beam.ART.ARTUtils as ART
 import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
@@ -414,7 +413,7 @@ findOneInternal updatedMeshConfig fromTType where' = do
     Right (Just res) -> do
       logQueryData "findOneInternal" where' [] [res] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
       fromTType res
-    Right Nothing -> pure Nothing
+    Right Nothing -> logQueryData "findOneInternal" where' [] [] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now >> pure Nothing
     Left err -> throwError $ InternalError $ show err
 
 findAllInternal ::
@@ -515,9 +514,9 @@ updateInternal updatedMeshConfig setClause whereClause = do
   now <- getCurrentTime
   dbConf <- getMasterDBConfig
   res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
+  logQueryData "updateInternal" whereClause setClause [] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
   case res of
     Right res' -> do
-      logQueryData "updateInternal" whereClause setClause res' (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Updated rows KV: " <> show res'
         else do
@@ -540,13 +539,13 @@ updateOneInternal updatedMeshConfig setClause whereClause = do
   now <- getCurrentTime
   dbConf <- getMasterDBConfig
   res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
+  logQueryData "updateOneInternal" whereClause setClause [] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
   case res of
     Right obj -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Updated row KV: " <> show obj
         else do
           whenJust obj $ \object' -> do
-            logQueryData "updateOneInternal" whereClause setClause [object'] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
             topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
             let newObject = replaceMappings (toJSON object') (getMappings [object'])
             handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update: " <> show e <> "in topic" <> topicName) $
@@ -567,7 +566,7 @@ createInternal updatedMeshConfig toTType a = do
   let tType = toTType a
   dbConf' <- getMasterDBConfig
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
-  void $ logQueryData "createInternal" [] [] [tType] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
+  logQueryData "createInternal" [] [] [tType] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
   case result of
     Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -591,9 +590,9 @@ deleteInternal updatedMeshConfig whereClause = do
   now <- getCurrentTime
   dbConf <- getMasterDBConfig
   res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
+  logQueryData "deleteInternal" whereClause [] [] (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
   case res of
-    Right res' -> do
-      logQueryData "deleteInternal" whereClause [] res' (meshEnabled updatedMeshConfig) (modelTableName @table) (modelSchemaName @table) now
+    Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Deleted rows in KV: " <> show res
         else logDebug $ "Deleted rows in DB: " <> show res
@@ -623,9 +622,9 @@ logQueryData queryType whereClause' setClause' tableObject' kvEnabled table sche
       let whereClause = getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause')
           setClause = show $ jsonKeyValueUpdates V1' setClause'
           tableObject = map encodeToTextArt tableObject'
-          queryData = A.QueryData {..}
+          queryData = ART.QueryData {..}
       handle (\(e :: SomeException) -> L.logError ("ART_QUERY_LOG_FAILED" :: Text) $ "Error while logging query data: " <> show e) $ do
-        liftIO $ A.pushToKafka kafkaConn (encode def {A.requestId = requestId, A.queryData = Just queryData, A.timestamp = Just timestamp}) "ART-Logs" requestId
+        liftIO $ ART.pushToKafka kafkaConn (encode def {ART.requestId = requestId, ART.queryData = Just queryData, ART.timestamp = Just timestamp}) "ART-Logs" requestId
 
 {--
 ------------------------------------------------------------------------------------------------------------------
@@ -749,36 +748,37 @@ getTableObject ::
   Where Postgres table ->
   m [a]
 getTableObject errorTag queryType ttype where' = do
+  now <- getCurrentTime
   (tableName, schemaName, whereClause) <- getTableInformation @table where'
-  artData <- readAndDecodeArtData
+  artData <- ART.readAndDecodeArtData
   case artData of
     Left err -> do
       L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_" <> errorTag) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
       throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_" <> errorTag) <> show err)
     Right artData' -> do
       let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
-      queryData' <- getArtQueryObject queryType tableName schemaName whereClause artDataList
+      queryData' <- ART.getArtQueryObject queryType tableName schemaName whereClause artDataList
       case queryData' of
         Nothing -> do
+          logQueryData queryType where' [] [] (meshEnabled meshConfig) tableName schemaName now
           L.logError ("ART_QUERY_DATA_NOT_FOUND_" <> errorTag) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
           pure []
         Just queryData'' -> do
-          let tableObject' = tableObject queryData''
+          let tableObject' = ART.tableObject queryData''
               schemaName' = ART.schemaName queryData''
-              tableName' = table queryData''
+              tableName' = ART.table queryData''
           if tableName' == tableName && schemaName' == schemaName
             then do
               let tableIdentity = map decodeFromTextArt tableObject' :: [Maybe (table Identity)]
               let tableIdentity' = catMaybes tableIdentity
+              logQueryData queryType where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
               case tableIdentity' of
                 [] -> do
-                  unless (null tableObject') $ L.logError ("ART_TABLE_OBJECT_NOT_FOUND_" <> errorTag) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+                  L.logDebug ("ART_TABLE_OBJECT_NOT_FOUND_" <> errorTag) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
                   pure []
                 _ -> do
                   logDebug $ errorTag <> " => Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
                   res <- mapM ttype tableIdentity'
-                  now <- getCurrentTime
-                  void $ logQueryData queryType where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
                   pure $ catMaybes res
             else do
               L.logError ("ART_TABLE_MISMATCH_" <> errorTag) $ "Art table mismatch for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
