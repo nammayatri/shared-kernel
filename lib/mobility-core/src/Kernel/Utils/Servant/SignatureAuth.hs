@@ -279,8 +279,7 @@ verifySignature headerName signPayload bodyHash merchantId subscriberType domain
   registryLookup lookupRequest >>= \case
     Just subscriber -> do
       disableSignatureAuth <- asks (.disableSignatureAuth)
-      isArtReplayerEnabled <- asks (.isArtReplayerEnabled)
-      unless (disableSignatureAuth || isArtReplayerEnabled) do
+      unless (disableSignatureAuth) do
         let publicKey = subscriber.signing_public_key
         isVerified <- performVerification publicKey hostName
         unless isVerified $ do
@@ -310,13 +309,15 @@ verifySignature headerName signPayload bodyHash merchantId subscriberType domain
       let signatureMsg = HttpSig.makeSignatureString signatureParams bodyHash headers
       logTagDebug logTag $
         "Start verifying. Signature: " +|| HttpSig.encode signPayload ||+ ", Signature Message: " +|| signatureMsg ||+ ", Body hash: " +|| bodyHash ||+ ""
-      let verificationResult =
+      let verificationResult' =
             HttpSig.verify
               key
               signatureParams
               bodyHash
               headers
               signature
+      isArtReplayerEnabled <- asks (.isArtReplayerEnabled)
+      let verificationResult = bool verificationResult' (Right True) isArtReplayerEnabled
       case verificationResult of
         Right result -> pure result
         Left err -> do

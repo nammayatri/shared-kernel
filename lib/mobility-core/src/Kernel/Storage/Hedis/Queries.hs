@@ -25,12 +25,14 @@ import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
 import EulerHS.Prelude (whenLeft)
 import GHC.Records.Extra
+import Kernel.Beam.ART.ARTUtils
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Storage.Hedis.Error
 import Kernel.Utils.DatastoreLatencyCalculator
 import qualified Kernel.Utils.Error.Throwing as Error
 import Kernel.Utils.Logging
+-- import qualified Data.ByteString.Char8 as BSC
 import qualified Test.RandomStrings as RS
 
 type ExpirationTime = Int
@@ -116,7 +118,8 @@ runWithPrefix :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Re
 runWithPrefix key action = do
   prefKey <- buildKey key
   withLogTag "Redis" $ logDebug $ "working with key : " <> cs prefKey
-  runHedis $ action prefKey
+  result <- runHedis $ action prefKey
+  pure result
 
 runWithPrefix_ :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Reply a)) -> m ()
 runWithPrefix_ key action = void $ runWithPrefix key action
@@ -167,17 +170,23 @@ tryGetFromCluster key = withLogTag "CLUSTER" $ do
     Right maybeBS -> pure maybeBS
 
 getImpl :: (FromJSON a, HedisFlow m env) => (BS.ByteString -> m (Maybe a)) -> Text -> m (Maybe a)
-getImpl decodeResult key = withLogTag "Redis" $ do
-  res <- tryGetFromCluster key
-  case res of
-    Nothing -> do
-      migrating <- asks (.hedisMigrationStage)
-      if migrating
-        then do
-          res' <- tryGetFromStandalone key
-          maybe (pure Nothing) decodeResult res'
-        else pure Nothing
-    Just res' -> decodeResult res'
+getImpl decodeResult key = do
+  isArtReplayerEnabled <- asks (.isArtReplayerEnabled)
+  if isArtReplayerEnabled
+    then getArt "GET" key
+    else do
+      withLogTag "Redis" $ do
+        res <- tryGetFromCluster key
+        logRedisQueryData "GET" key (maybeToList res)
+        case res of
+          Nothing -> do
+            migrating <- asks (.hedisMigrationStage)
+            if migrating
+              then do
+                res' <- tryGetFromStandalone key
+                maybe (pure Nothing) decodeResult res'
+              else pure Nothing
+          Just res' -> decodeResult res'
 
 get :: (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
 get = getImpl decodeResult
@@ -316,8 +325,15 @@ lRange key start stop = withTimeRedis "RedisCluster" "lRange" $ do
     Hedis.lrange prefKey start stop
   mapM (\a -> Error.fromMaybeM (HedisDecodeError $ cs a) . Ae.decode $ cs a) res
 
-getList :: (HedisFlow m env, FromJSON a) => Text -> m [a]
-getList key = lRange key 0 (-1)
+getList :: (HedisFlow m env, FromJSON a, ToJSON a) => Text -> m [a]
+getList key = do
+  isArtReplayerEnabled <- asks (.isArtReplayerEnabled)
+  if isArtReplayerEnabled
+    then getListArt "GETLIST" key
+    else do
+      res <- lRange key 0 (-1)
+      logRedisQueryData "GETLIST" key (map (BSL.toStrict . Ae.encode) res)
+      return res
 
 incr :: (HedisFlow m env) => Text -> m Integer
 incr key = withTimeRedis "RedisCluster" "incr" $ runWithPrefix key Hedis.incr
@@ -435,20 +451,32 @@ hSetExp key field value expirationTime = withLogTag "Redis" $ do
   whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_HSETEXP" $ show err)
 
 hGet :: (FromJSON a, HedisFlow m env) => Text -> Text -> m (Maybe a)
-hGet key field =
-  withTimeRedis "RedisCluster" "hGet" $ do
-    maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
-    case maybeBS of
-      Nothing -> pure Nothing
-      Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+hGet key field = do
+  isArtReplayerEnabled <- asks (.isArtReplayerEnabled)
+  if isArtReplayerEnabled
+    then getArt "HGET" key
+    else do
+      withTimeRedis "RedisCluster" "hGet" $ do
+        maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
+        logRedisQueryData "HGET" key $ maybeToList maybeBS
+        case maybeBS of
+          Nothing -> pure Nothing
+          Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
 hDel :: HedisFlow m env => Text -> [Text] -> m ()
 hDel key fields = withTimeRedis "RedisCluster" "hDel" $ runWithPrefix_ key (`Hedis.hdel` map cs fields)
 
-hGetAll :: (FromJSON a, HedisFlow m env) => Text -> m [(Text, a)]
-hGetAll key = withTimeRedis "RedisCluster" "hGetAll" $ do
-  hMap <- runWithPrefix key Hedis.hgetall
-  pure $ mapMaybe (\(k, val) -> (cs k,) <$> Ae.decode (BSL.fromStrict val)) hMap
+hGetAll :: (FromJSON a, HedisFlow m env, ToJSON a) => Text -> m [(Text, a)]
+hGetAll key = do
+  isArtReplayerEnabled <- asks (.isArtReplayerEnabled)
+  if isArtReplayerEnabled
+    then hGetAllArt "HGETALL" key
+    else do
+      withTimeRedis "RedisCluster" "hGetAll" $ do
+        hMap <- runWithPrefix key Hedis.hgetall
+        let res = mapMaybe (\(k, val) -> (cs k,) <$> Ae.decode (BSL.fromStrict val)) hMap
+        logRedisQueryData "HGETALL" key (concatWithDelimiter (T.pack "~~") hMap)
+        pure res
 
 zAddExp :: (ToJSON Integer, HedisFlow m env) => Text -> Text -> Integer -> ExpirationTime -> m ()
 zAddExp key field value expirationTime = withLogTag "Redis" $ do
