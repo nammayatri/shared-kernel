@@ -31,9 +31,9 @@ data AadhaarVerificationService = Gridline
   deriving (Show, Read, Eq, Ord, Generic, ToSchema)
 
 instance FromJSON AadhaarVerificationService where -- remove this instance once you add more constructors to AadhaarVerificationService type.
-  parseJSON (A.String val) = pure $ fromMaybe (error $ "failed to parse String " <> val <> " in AadhaarVerificationService type") (KP.readMaybe $ T.unpack val)
+  parseJSON (A.String val) = maybe (fail ("failed to parse String " <> show val <> " in AadhaarVerificationService type")) pure (KP.readMaybe $ T.unpack val)
   parseJSON (A.Array _) = pure Gridline
-  parseJSON e = error $ "unexpected type, expected String for AadhaarVerificationService" <> show e
+  parseJSON e = fail $ "unexpected type, expected String for AadhaarVerificationService" <> show e
 
 instance ToJSON AadhaarVerificationService where
   toJSON Gridline = A.String (show Gridline)
