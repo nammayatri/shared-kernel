@@ -23,6 +23,17 @@ newtype CacheConfig = CacheConfig
   }
   deriving (Generic, FromDhall)
 
+data CacConfig = CacConfig
+  { host :: String,
+    interval :: Natural,
+    tenant :: String,
+    retryConnection :: Bool,
+    cacExpTime :: Seconds
+  }
+  deriving (Generic, FromDhall)
+
 type HasCacheConfig r = HasField "cacheConfig" r CacheConfig
 
-type CacheFlow m r = (HasCacheConfig r, HedisFlow m r)
+type HasCacConfig r = HasField "cacConfig" r CacConfig
+
+type CacheFlow m r = (HasCacheConfig r, HedisFlow m r, HasCacConfig r)

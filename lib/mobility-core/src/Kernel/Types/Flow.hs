@@ -58,6 +58,7 @@ newtype FlowR r a = FlowR {unFlowR :: ReaderT r L.Flow a}
 
 type HasFlowHandlerR m r =
   ( HasCacheConfig r,
+    HasCacConfig r,
     HasCoreMetrics r,
     HedisFlow m r,
     EsqDBFlow m r,
