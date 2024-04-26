@@ -11,10 +11,17 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-module Kernel.External.Tokenize.Interface.Types where
+{-# LANGUAGE DerivingStrategies #-}
 
-import qualified Kernel.External.Tokenize.HyperVerge.Types as HVTypes
+module Kernel.External.Common.HyperVerge.HyperVergeConfig where
+
+import Kernel.External.Encryption
 import Kernel.Prelude
 
-data TokenizationServiceConfig = HyperVergeTokenizationServiceConfig HVTypes.HyperVergeConfig
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+data HyperVergeConfig = HyperVergeConfig
+  { url :: BaseUrl,
+    appId :: Text,
+    appKey :: EncryptedField 'AsEncrypted Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)

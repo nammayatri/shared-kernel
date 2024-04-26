@@ -13,18 +13,14 @@
 -}
 {-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.External.Tokenize.HyperVerge.Types where
+module Kernel.External.Tokenize.HyperVerge.Types
+  ( module Reexport,
+    module Kernel.External.Tokenize.HyperVerge.Types,
+  )
+where
 
-import Kernel.External.Encryption
+import Kernel.External.Common.HyperVerge.HyperVergeConfig as Reexport
 import Kernel.Prelude hiding (error)
-
-data HyperVergeTokenizeConfig = HyperVergeTokenizeConfig
-  { url :: BaseUrl,
-    appId :: Text,
-    appKey :: EncryptedField 'AsEncrypted Text
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
 
 data HyperVergeTokenizeRequest = HyperVergeTokenizeRequest
   { appId :: Text,

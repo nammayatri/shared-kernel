@@ -14,7 +14,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Tokenize.HyperVerge.Error where
+module Kernel.External.Common.HyperVerge.HyperVergeErrors where
 
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
@@ -24,6 +24,8 @@ data HyperVergeError
   = HVUnauthorizedError
   | HVBadRequestError Text
   | HVError Text
+  | HVRCValidationResultNotFound
+  | HVRCValidationInvalidRC Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''HyperVergeError
@@ -33,16 +35,22 @@ instance IsBaseError HyperVergeError where
     HVUnauthorizedError -> Just "Invalid Credentaials, Please provide valida appId and appKey."
     HVBadRequestError msg -> Just $ "Bad Request with message: " <> msg
     HVError msg -> Just $ "HyperVerge Error with message: " <> msg
+    HVRCValidationResultNotFound -> Just "HyperVerge RC validation result is missing even though status is success"
+    HVRCValidationInvalidRC number -> Just $ "HyperVerge Rc validation api returned invalid response for given rc number " <> number
 
 instance IsHTTPError HyperVergeError where
   toErrorCode = \case
     HVUnauthorizedError -> "HV_UNAUTHORIZED"
     HVBadRequestError _ -> "HV_BAD_REQUEST"
     HVError _ -> "HV_ERROR"
+    HVRCValidationResultNotFound -> "HV_RC_VALIDATION_RESULT_NOT_FOUND"
+    HVRCValidationInvalidRC _ -> "HV_RC_VALIDATION_INVALID_RC"
 
   toHttpCode = \case
     HVUnauthorizedError -> E401
     HVBadRequestError _ -> E400
     HVError _ -> E400
+    HVRCValidationResultNotFound -> E400
+    HVRCValidationInvalidRC _ -> E400
 
 instance IsAPIError HyperVergeError

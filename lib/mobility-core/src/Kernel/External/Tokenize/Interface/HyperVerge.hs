@@ -24,15 +24,15 @@ tokenize ::
   ( CoreMetrics m,
     EncFlow m r
   ) =>
-  HyperVergeTypes.HyperVergeTokenizeConfig ->
+  HyperVergeTypes.HyperVergeConfig ->
   Int ->
   m HyperVergeTypes.HyperVergeTokenizeResponse
 tokenize config expSec = do
   req <- makeHyperVergeTokenizeRequest config expSec
   HyperVergeFlow.tokenize config.url req
   where
-    makeHyperVergeTokenizeRequest :: EncFlow m r => HyperVergeTypes.HyperVergeTokenizeConfig -> Int -> m HyperVergeTypes.HyperVergeTokenizeRequest
-    makeHyperVergeTokenizeRequest HyperVergeTypes.HyperVergeTokenizeConfig {..} expiry = do
+    makeHyperVergeTokenizeRequest :: EncFlow m r => HyperVergeTypes.HyperVergeConfig -> Int -> m HyperVergeTypes.HyperVergeTokenizeRequest
+    makeHyperVergeTokenizeRequest HyperVergeTypes.HyperVergeConfig {..} expiry = do
       appkey' <- decrypt appKey
       return $
         HyperVergeTypes.HyperVergeTokenizeRequest

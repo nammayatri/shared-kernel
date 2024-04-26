@@ -16,7 +16,7 @@ module Kernel.External.Tokenize.HyperVerge.Flow where
 import qualified Data.HashMap.Internal as HMap
 import qualified Data.Text as DT
 import EulerHS.Types (EulerClient, client)
-import Kernel.External.Tokenize.HyperVerge.Error
+import Kernel.External.Common.HyperVerge.HyperVergeErrors
 import qualified Kernel.External.Tokenize.HyperVerge.Types as HyperVergeTypes
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)

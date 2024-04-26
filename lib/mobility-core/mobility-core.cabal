@@ -49,6 +49,8 @@ library
       Kernel.External.Call.Interface.Exotel
       Kernel.External.Call.Interface.Types
       Kernel.External.Call.Types
+      Kernel.External.Common.HyperVerge.HyperVergeConfig
+      Kernel.External.Common.HyperVerge.HyperVergeErrors
       Kernel.External.Encryption
       Kernel.External.GoogleTranslate.API
       Kernel.External.GoogleTranslate.Client
@@ -142,7 +144,6 @@ library
       Kernel.External.Ticket.Kapture.Flow
       Kernel.External.Ticket.Kapture.Types
       Kernel.External.Ticket.Types
-      Kernel.External.Tokenize.HyperVerge.Error
       Kernel.External.Tokenize.HyperVerge.Flow
       Kernel.External.Tokenize.HyperVerge.Types
       Kernel.External.Tokenize.Interface
@@ -155,6 +156,8 @@ library
       Kernel.External.Verification.GovtData.Storage.Beam
       Kernel.External.Verification.GovtData.Storage.Query
       Kernel.External.Verification.GovtData.Types
+      Kernel.External.Verification.HyperVerge.Flow
+      Kernel.External.Verification.HyperVerge.Types
       Kernel.External.Verification.Idfy.Auth
       Kernel.External.Verification.Idfy.Client
       Kernel.External.Verification.Idfy.Config
@@ -165,6 +168,7 @@ library
       Kernel.External.Verification.Idfy.Types.Response
       Kernel.External.Verification.Idfy.WebhookHandler
       Kernel.External.Verification.Interface
+      Kernel.External.Verification.Interface.HyperVerge
       Kernel.External.Verification.Interface.Idfy
       Kernel.External.Verification.Interface.InternalScripts
       Kernel.External.Verification.Interface.SafetyPortal
@@ -299,6 +303,7 @@ library
       Kernel.Types.MonadGuid
       Kernel.Types.Predicate
       Kernel.Types.Price
+      Kernel.Types.RCFlow
       Kernel.Types.Registry
       Kernel.Types.Registry.API
       Kernel.Types.Registry.Routes
