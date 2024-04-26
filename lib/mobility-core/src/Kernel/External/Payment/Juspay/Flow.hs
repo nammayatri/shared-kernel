@@ -319,7 +319,7 @@ type AutoRefundAPI =
     :> "refunds"
     :> BasicAuth "username-password" BasicAuthData
     :> ReqBody '[JSON] AutoRefundReq
-    :> Post '[JSON] AutoRefundResp
+    :> Post '[JSON] ()
 
 autoRefund ::
   ( Metrics.CoreMetrics m,
@@ -329,7 +329,7 @@ autoRefund ::
   Text ->
   Text ->
   AutoRefundReq ->
-  m AutoRefundResp
+  m ()
 autoRefund url apiKey orderId req = do
   let eulerClient = Euler.client (Proxy @AutoRefundAPI)
   let basicAuthData =
