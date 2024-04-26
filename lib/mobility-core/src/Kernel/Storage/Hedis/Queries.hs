@@ -192,6 +192,7 @@ get' key decodeErrHandler = getImpl decodeResult key
       case Ae.decode $ BSL.fromStrict bs of
         Just a -> return $ Just a
         Nothing -> do
+          logTagError "REDIS" $ "Decode Failure for key:" <> key <> ", with value:" <> cs bs
           decodeErrHandler
           return Nothing
 
@@ -669,6 +670,21 @@ zRemRangeByScore key start end = withLogTag "Redis" $ do
   case res of
     Left err -> do
       withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZREMRANGEBYSCORE" $ show err
+      pure (-1) -- Return -1 if there was an error
+    Right items -> pure items
+
+zRem :: (HedisFlow m env) => Text -> [Text] -> m Integer
+zRem key members = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "zRem" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zrem prefKey (map cs members))
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_ZREM" $ show err
+      Right items -> pure items
+  res <- withTimeRedis "RedisCluster" "zRem" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.zrem prefKey (map cs members))
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZREM" $ show err
       pure (-1) -- Return -1 if there was an error
     Right items -> pure items
 

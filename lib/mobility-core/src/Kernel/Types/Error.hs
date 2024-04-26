@@ -819,16 +819,22 @@ instance IsAPIError CallStatusError
 
 data ServiceabilityError
   = RideNotServiceable
+  | RideNotServiceableInState Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''ServiceabilityError
 
 instance IsBaseError ServiceabilityError where
   toMessage RideNotServiceable = Just "Requested ride is not serviceable due to georestrictions."
+  toMessage (RideNotServiceableInState state_) = Just ("Selected state " <> state_ <> " is not serviceable since it does not fall within the state boundary.")
 
 instance IsHTTPError ServiceabilityError where
-  toErrorCode RideNotServiceable = "RIDE_NOT_SERVICEABLE"
-  toHttpCode RideNotServiceable = E400
+  toErrorCode = \case
+    RideNotServiceable -> "RIDE_NOT_SERVICEABLE"
+    RideNotServiceableInState _ -> "RIDE_NOT_SERVICEABLE_IN_STATE"
+  toHttpCode = \case
+    RideNotServiceable -> E400
+    RideNotServiceableInState _ -> E400
 
 instance IsAPIError ServiceabilityError
 

@@ -14,17 +14,36 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 
-module Kernel.Utils.Version (Reexport.versionToText, readVersion) where
+module Kernel.Utils.Version (Reexport.versionToText, readVersion, getDeviceFromText, mkClientDevice) where
 
 import Data.Text
+import qualified Data.Text as T
 import Kernel.Prelude as Prelude
-import Kernel.Types.Error
 import Kernel.Types.Logging
 import Kernel.Types.Version as Reexport
-import Kernel.Utils.Common
 
 readVersion :: (MonadThrow m, Log m) => Text -> m Version
 readVersion versionText =
   case textToVersion versionText of
     Right version -> return version
-    Left err -> throwError $ VersionUnexpectedVersion err
+    _ -> pure $ Version {major = 0, minor = 0, maintenance = 0, preRelease = Nothing, build = Nothing}
+
+getDeviceFromText :: Maybe Text -> Maybe Device
+getDeviceFromText deviceText = do
+  text <- deviceText
+  let deviceInfo = T.splitOn "/" text
+  case deviceInfo of
+    _ : _ : version' : _ -> do
+      let [deviceTypeStr, deviceVersion] = T.splitOn " v" version'
+      deviceType <- case T.toLower deviceTypeStr of
+        "android" -> Just ANDROID
+        "ios" -> Just IOS
+        _ -> Nothing
+      return Device {deviceType = deviceType, deviceVersion = deviceVersion}
+    _ -> Nothing
+
+mkClientDevice :: Maybe DeviceType -> Maybe Text -> Maybe Device
+mkClientDevice clientOsType clientOsVersion =
+  ((,) <$> clientOsType <*> clientOsVersion)
+    <&> \(clientOsType', clientOsVersion') ->
+      Device {deviceType = clientOsType', deviceVersion = clientOsVersion'}

@@ -190,7 +190,7 @@ mkRoute req resp route = do
   if null route.legs
     then do
       logTagWarning "MMIRoutes" ("Empty route.legs, " <> show req)
-      return $ RouteInfo Nothing Nothing bound [] []
+      return $ RouteInfo Nothing Nothing Nothing bound [] []
     else do
       when (length route.legs > 1) $
         logTagWarning "MMIRoutes" ("More than one element in route.legs, " <> show req)
@@ -199,8 +199,9 @@ mkRoute req resp route = do
           boundBox = Just $ BoundingBoxWithoutCRSXY (PointXY bounds.minLat bounds.minLon) (PointXY bounds.minLat bounds.minLon)
           snappedWayPoints = (\waypoint -> waypoint.location.getLatLong) <$> resp.waypoints
           distanceInM = Just $ Meters $ double2Int route.distance
+          distanceWithUnit = Just $ Distance (toHighPrecDistance route.distance) Meter
           durationInS = Just $ Seconds $ double2Int route.duration
-      return $ RouteInfo durationInS distanceInM boundBox snappedWayPoints points
+      return $ RouteInfo durationInS distanceInM distanceWithUnit boundBox snappedWayPoints points
   where
     createAcc = Acc {minLat = 91.0, maxLat = -91.0, minLon = 180.0, maxLon = -180.0}
     boundingBoxCal points = foldl' compareLatLong createAcc points

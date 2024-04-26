@@ -106,7 +106,7 @@ instance FromJSON City where
   parseJSON (String "Hosur") = pure Hosur
   parseJSON (String "std:0431") = pure Trichy
   parseJSON (String "Trichy") = pure Trichy
-  parseJSON (String "area:612") = pure Minneapolis
+  parseJSON (String "std:0820") = pure Minneapolis
   parseJSON (String "Minneapolis") = pure Minneapolis
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
@@ -134,7 +134,7 @@ instance ToJSON City where
   toJSON Salem = String "std:0427"
   toJSON Hosur = String "std:04344"
   toJSON Trichy = String "std:0431"
-  toJSON Minneapolis = String "area:612"
+  toJSON Minneapolis = String "std:0820"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -187,7 +187,7 @@ instance FromHttpApiData City where
       parseLowerCaseCity "hosur" = Right Hosur
       parseLowerCaseCity "std:0431" = Right Trichy
       parseLowerCaseCity "trichy" = Right Trichy
-      parseLowerCaseCity "area:612" = Right Minneapolis
+      parseLowerCaseCity "std:0820" = Right Minneapolis
       parseLowerCaseCity "minneapolis" = Right Minneapolis
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
@@ -215,5 +215,5 @@ instance ToHttpApiData City where
   toUrlPiece Salem = "std:0427"
   toUrlPiece Hosur = "std:04344"
   toUrlPiece Trichy = "std:0431"
-  toUrlPiece Minneapolis = "area:612"
+  toUrlPiece Minneapolis = "std:0820"
   toUrlPiece AnyCity = "*"

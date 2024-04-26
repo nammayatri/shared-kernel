@@ -34,7 +34,7 @@ import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.GenericPretty (PrettyShow)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
-data MapsService = Google | OSRM | MMI | NextBillion
+data MapsService = Google | OSRM | MMI | NextBillion | SelfTuned
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 $(mkBeamInstancesForEnumAndList ''MapsService)

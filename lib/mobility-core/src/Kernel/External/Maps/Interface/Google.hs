@@ -147,19 +147,20 @@ mkRoute req route = do
   if null route.legs
     then do
       logTagWarning "GoogleMapsDirections" ("Empty route.legs, " <> show req)
-      return $ RouteInfo Nothing Nothing bound [] []
+      return $ RouteInfo Nothing Nothing Nothing bound [] []
     else do
       when (length route.legs > 1) $
         logTagWarning "GoogleMapsDirections" ("More than one element in route.legs, " <> show req)
 
       let totalDistance = foldr (\leg acc -> acc + fromIntegral leg.distance.value) 0 route.legs
+          distanceWithUnit = Distance (toHighPrecDistance totalDistance) Meter
           totalDuration = foldr (\leg acc -> acc + fromIntegral leg.duration.value) 0 route.legs
           allSteps = foldr (\leg acc -> acc ++ leg.steps) [] route.legs
           polylinePoints = concatMap (\step -> decode step.polyline.points) allSteps
       -- TODO: Fix snappedWayPoints: the waypoint passed in request which are snapped to road
       -- snappedWayPoints = (\step -> (LatLong step.start_location.lat step.start_location.lng, LatLong step.end_location.lat step.end_location.lng)) <$> steps
 
-      return $ RouteInfo (Just totalDuration) (Just totalDistance) bound [] polylinePoints
+      return $ RouteInfo (Just totalDuration) (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints
   where
     mkBounds :: GoogleMaps.Bounds -> BoundingBoxWithoutCRS
     mkBounds gBound =
