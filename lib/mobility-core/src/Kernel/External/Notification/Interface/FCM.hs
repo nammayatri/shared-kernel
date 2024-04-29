@@ -20,7 +20,7 @@ notifyPerson ::
   Bool ->
   Maybe Text ->
   m ()
-notifyPerson config req isMutable mbNotificationId = do
+notifyPerson config req isMutable _mbNotificationId = do
   let title = FCM.FCMNotificationTitle req.title
       body = FCM.FCMNotificationBody req.body
       notificationType = interfaceCategoryToFCMNotificationType req.category
@@ -33,7 +33,7 @@ notifyPerson config req isMutable mbNotificationId = do
             fcmEntityData = req.entity.entityData,
             fcmNotificationJSON = FCM.createAndroidNotification title body notificationType req.sound,
             fcmOverlayNotificationJSON = Nothing,
-            fcmNotificationId = mbNotificationId
+            fcmNotificationId = Nothing -- mbNotificationId
           }
   FCM.notifyPersonWithPriority
     config
