@@ -97,8 +97,11 @@ instance (ClickhouseTable t, C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => IsGroupCol
 
 data NotGrouped
 
+data NoColumns
+
 data GroupBy (a :: IsAggregated) gr where
   GroupBy :: IsGroupColumns gr => gr -> GroupBy 'AGG gr
+  Aggregate :: GroupBy 'AGG NoColumns
   NotGrouped :: GroupBy 'NOT_AGG NotGrouped
 
 data OrderBy ord where

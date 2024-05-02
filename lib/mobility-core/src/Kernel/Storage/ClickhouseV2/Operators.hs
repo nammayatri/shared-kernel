@@ -97,6 +97,9 @@ desc = OrderBy Desc
 groupBy :: forall cols gr. IsGroupColumns gr => gr -> (GroupColumnsType gr -> cols) -> (cols, GroupBy 'AGG gr)
 groupBy gr mkCols = (mkCols (groupColumns gr), GroupBy gr)
 
+aggregate :: forall cols. cols -> (cols, GroupBy 'AGG NoColumns)
+aggregate cols = (cols, Aggregate)
+
 notGrouped :: cols -> (cols, GroupBy 'NOT_AGG NotGrouped)
 notGrouped cols = (cols, NotGrouped)
 
