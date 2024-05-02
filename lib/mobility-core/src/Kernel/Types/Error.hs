@@ -421,6 +421,7 @@ data RideError
   | RideForDriverNotFound Text
   | RideInvalidStatus Text
   | DriverNotAtPickupLocation Text
+  | OperatingCityOrMerchantIdMismatch Text Text Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''RideError
@@ -434,6 +435,7 @@ instance IsBaseError RideError where
     RideForDriverNotFound driverId -> Just $ "Ride for driver id \"" <> show driverId <> "\"not found. "
     RideInvalidStatus msg -> Just $ "Attempted to do some action in wrong ride status. " <> msg
     DriverNotAtPickupLocation driverId -> Just $ "Driver id \"" <> show driverId <> "\" has not reached the pickup location."
+    OperatingCityOrMerchantIdMismatch driverEntityId personEntityId entity -> Just $ "Driver " <> entity <> " ID \"" <> driverEntityId <> "\" does not match with requestor " <> entity <> "ID \"" <> personEntityId <> "\""
 
 instance IsHTTPError RideError where
   toErrorCode = \case
@@ -444,6 +446,7 @@ instance IsHTTPError RideError where
     RideForDriverNotFound _ -> "RIDE_NOT_FOUND"
     RideInvalidStatus _ -> "RIDE_INVALID_STATUS"
     DriverNotAtPickupLocation _ -> "DRIVER_NOT_AT_PICKUP_LOCATION"
+    OperatingCityOrMerchantIdMismatch _ _ _ -> "OPERATING_ID_OR_MERCHANT_ID_DOES_NOT_MATCH"
 
   toHttpCode = \case
     RideNotFound _ -> E500
@@ -453,6 +456,7 @@ instance IsHTTPError RideError where
     RideForDriverNotFound _ -> E422
     RideInvalidStatus _ -> E400
     DriverNotAtPickupLocation _ -> E400
+    OperatingCityOrMerchantIdMismatch _ _ _ -> E422
 
 instance IsAPIError RideError
 
