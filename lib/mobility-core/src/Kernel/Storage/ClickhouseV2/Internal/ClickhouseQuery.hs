@@ -112,8 +112,12 @@ instance ClickhouseQuery ord => ClickhouseQuery (OrderBy ord) where
 instance ClickhouseQuery NotGrouped where
   toClickhouseQuery _ = mempty
 
+instance ClickhouseQuery NoColumns where
+  toClickhouseQuery _ = mempty
+
 instance ClickhouseQuery gr => ClickhouseQuery (GroupBy a gr) where
   toClickhouseQuery (GroupBy gr) = " GROUP BY " <> toClickhouseQuery gr
+  toClickhouseQuery Aggregate = mempty
   toClickhouseQuery NotGrouped = mempty
 
 instance ClickhouseTable t => ClickhouseQuery (Column a t value) where
