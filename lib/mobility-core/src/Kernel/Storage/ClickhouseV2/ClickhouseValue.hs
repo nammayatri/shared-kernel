@@ -24,7 +24,7 @@ import qualified Data.Scientific as Sci
 import qualified Data.Text as T
 import qualified Data.Time as Time
 import Kernel.Prelude
-import Kernel.Types.Common (Centesimal, HighPrecMeters, HighPrecMoney)
+import Kernel.Types.Common (Centesimal, Currency, HighPrecMeters, HighPrecMoney)
 import Kernel.Types.Id
 import qualified Text.Read as T
 
@@ -54,6 +54,9 @@ class (Show a, Read a) => ClickhouseValue a where
 instance ClickhouseValue HighPrecMoney where
   fromClickhouseValue = parseAsStringOrNumber @HighPrecMoney
 
+instance ClickhouseValue Currency where
+  fromClickhouseValue = parseAsEnum @Currency
+
 instance ClickhouseValue HighPrecMeters where
   fromClickhouseValue = parseAsStringOrNumber @HighPrecMeters
 
@@ -70,6 +73,11 @@ parseAsStringOrNumber :: forall a. (Read a, Num a, FromJSON a) => Value a -> Exc
 parseAsStringOrNumber (String str) = parseAsString @a str
 parseAsStringOrNumber (Number num) = parseAsNumber @a num
 parseAsStringOrNumber Null = fail "Unexpected Null"
+
+parseAsEnum :: forall a. Read a => Value a -> Except a
+parseAsEnum (String str) = parseAsString @a str
+parseAsEnum (Number _) = fail "Unexpected Number"
+parseAsEnum Null = fail "Unexpected Null"
 
 parseAsString :: forall a. Read a => String -> Except a
 parseAsString = Except . T.readEither @a
