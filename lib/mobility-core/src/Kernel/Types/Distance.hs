@@ -21,6 +21,7 @@ module Kernel.Types.Distance where
 
 import Data.Aeson
 import Data.OpenApi hiding (value)
+import qualified Data.Text as T
 import Database.Beam
 import qualified Database.Beam as B
 import Database.Beam.Backend
@@ -31,6 +32,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Float (double2Int, int2Double)
 import GHC.Records.Extra (HasField)
 import Kernel.Prelude as KP
+import qualified Kernel.Types.Beckn.DecimalValue as DecimalValue
 import Kernel.Types.Centesimal
 import Kernel.Types.FromField
 import Kernel.Utils.Dhall (FromDhall)
@@ -141,7 +143,7 @@ instance Ord Distance where
 instance Num Distance where
   a + b = withUnitChecking a b (\unit a' b' -> Distance (a' + b') unit)
   a - b = withUnitChecking a b (\unit a' b' -> Distance (a' - b') unit)
-  a * b = withUnitChecking a b (\unit a' b' -> Distance (a' * b') unit) -- should not be used
+  a * b = withUnitChecking a b (\unit a' b' -> Distance (a' * b') unit) -- should not be used:  1 KiloMeter * 1 KiloMeter = 1 Kilometer, 1000 Meter * 1000 Meter = 1000000 Meter
   negate = modifyDistanceValue negate
   abs = modifyDistanceValue abs
   signum = modifyDistanceValue signum
@@ -269,3 +271,15 @@ highPrecMetersToDistance highPrecMeters =
     { value = realToFrac @HighPrecMeters @HighPrecDistance highPrecMeters,
       unit = Meter
     }
+
+highPrecDistanceToText :: HighPrecDistance -> Text
+highPrecDistanceToText = DecimalValue.valueToString . DecimalValue.DecimalValue . getHighPrecDistance
+
+unitsToText :: DistanceUnit -> Text
+unitsToText = (<> "s") . T.toLower . KP.show
+
+distanceToText :: Distance -> Text
+distanceToText distance = highPrecDistanceToText distance.value <> " " <> unitsToText distance.unit
+
+showDistanceAsMeters :: Distance -> Text
+showDistanceAsMeters = highPrecDistanceToText . (.value) . convertToMeters
