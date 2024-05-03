@@ -1,3 +1,6 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
 module Kernel.Beam.ART.ARTUtils where
 
 import qualified Data.Aeson as A
@@ -16,6 +19,7 @@ import Data.Time
 import qualified Data.Vector as V
 import EulerHS.Language (MonadFlow)
 import qualified EulerHS.Language as L
+import EulerHS.Types (OptionEntity)
 import qualified Kafka.Producer as KafkaProd
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
@@ -56,6 +60,19 @@ data ArtProcessed = ArtProcessed
     dataTimestamp :: Maybe UTCTime
   }
   deriving (Show, Generic, FromJSON, ToJSON)
+
+data BlackListedColumns = BlackListedColumns
+  { tableName :: Text,
+    schemaName :: Maybe Text,
+    columns :: [Text]
+  }
+  deriving (Show, Generic, ToJSON, FromJSON)
+
+data BlackListedColumnList = BlackListedColumnList
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity BlackListedColumnList [BlackListedColumns]
 
 data QueryData = QueryData
   { queryType :: Text,
@@ -106,17 +123,15 @@ extractRequestId (Just jsonString)
 extractRequestId Nothing = Nothing
 
 findCustomRequestIdObj :: V.Vector A.Value -> Maybe A.Value
-findCustomRequestIdObj tagsArray =
-  V.find
-    ( \tag -> case tag of
-        A.Object tagObj -> case AKM.lookup "descriptor" tagObj of
-          Just (A.Object descriptor) -> case AKM.lookup "code" descriptor of
-            Just (A.String code) -> code == "CUSTOM_REQUEST_IDS"
-            _ -> False
+findCustomRequestIdObj = V.find $ \case
+  A.Object tagObj ->
+    case AKM.lookup "descriptor" tagObj of
+      Just (A.Object descriptor) ->
+        case AKM.lookup "code" descriptor of
+          Just (A.String code) -> code == "CUSTOM_REQUEST_IDS"
           _ -> False
-        _ -> False
-    )
-    tagsArray
+      _ -> False
+  _ -> False
 
 getCurrentFilePath :: FilePath -> IO FilePath
 getCurrentFilePath fileName = do
@@ -152,8 +167,96 @@ appendOrWriteToFile messageRecord = do
       pure ()
     Just filePath -> do
       let newFilePath = replaceLastFileName filePath "processedData.log"
-      handle (\(e :: SomeException) -> L.logError ("FAILED_TO_WRITE_TO_FILE" :: Text) $ "Failed to write to file: " <> show e) $
-        L.runIO $ withFile newFilePath AppendMode (\handle' -> BL.hPut handle' ("\n" <> messageRecord))
+      writeToFileSafely newFilePath messageRecord
+
+getBlackListedColumns :: (MonadFlow m) => m [BlackListedColumns]
+getBlackListedColumns = do
+  filePath' <- L.getOption KBT.FilePathForART
+  case filePath' of
+    Nothing -> do
+      L.logError ("NO_FILE_PATH_FOR_ART_BLACKLISTED_COLUMNS" :: Text) $ "No file path for ART data found. Kindly provide the file path or set the environment variable ArtFilePath using setOption."
+      pure []
+    Just filePath -> do
+      blackListedColumns <- L.getOption BlackListedColumnList
+      case blackListedColumns of
+        Just blackListedColumns' -> pure blackListedColumns'
+        Nothing -> do
+          let newFilePath = replaceLastFileName filePath "blackListedColumns.log"
+          fileContent <- readFileSafely newFilePath
+          let jsonData = map (A.eitherDecode . BL.fromStrict) $ B.split '\n' fileContent :: [Either String BlackListedColumns]
+          case partitionEithers jsonData of
+            ([], decoded) -> do
+              L.setOption BlackListedColumnList decoded
+              pure decoded
+            (err, _) -> do
+              L.logError ("FAILED_TO_DECODE_BLACKLISTED_COLUMNS" :: Text) $ "Failed to decode JSON data: " <> show err <> " in file: " <> show newFilePath
+              pure []
+
+getRedisWhereClauseValue :: [[(Text, Text)]] -> Text
+getRedisWhereClauseValue [whereClause] = do
+  case listToMaybe whereClause of
+    Just (_, value) -> value
+    _ -> ""
+getRedisWhereClauseValue _ = ""
+
+getColumnInBlackListForRedis :: (MonadFlow m) => T.Text -> Maybe T.Text -> [[(T.Text, T.Text)]] -> QueryData -> m Bool
+getColumnInBlackListForRedis tableName' schemaName' whereClauses queryData = do
+  if tableName' == "redis"
+    then do
+      blackListedColumns <- getBlackListedColumns
+      let blackListed = find (\blackListedColumns' -> tableName' == tableName blackListedColumns' && schemaName' == blackListedColumns'.schemaName) blackListedColumns
+      case blackListed of
+        Nothing -> pure False
+        Just blackListed' -> do
+          let redisKeyText = getRedisWhereClauseValue whereClauses
+              queryDataWhereClause = getRedisWhereClauseValue $ whereClause queryData
+              queryDataWhereClauseText = T.splitOn ":" queryDataWhereClause
+              columnListText = T.splitOn ":" redisKeyText
+              blackListedKeys = columns blackListed'
+              blackListedColumnsText = map (T.splitOn ":") blackListedKeys
+              -- Check if columnListText matches any of blackListedColumnsText
+              found' = find (\blk -> length (columnListText `DL.intersect` blk) == (length columnListText -1)) blackListedColumnsText
+              matches = if isJust found' then (length $ queryDataWhereClauseText `DL.intersect` columnListText) == (length queryDataWhereClauseText -1) else False
+          L.logDebug ("BLACKLISTED_COLUMNS_FOR_REDIS" :: Text) $ "Blacklisted columns for redis: " <> show blackListedColumnsText <> " and columnListText is: " <> show columnListText <> " and found is: " <> show found' <> " and matches is: " <> show matches
+          pure matches
+    else pure False
+
+-- -- \\\"driver-offer:CachedQueries:DriverIntelligentPoolConfig:MerchantOperatingCityId-favorit0-0000-0000-0000-00000000city\\\")]] and WhereClause is [[(\\\"key\\\",\\\"Driver-Offer:Allocator:PoolRadiusStep:SearchTryId-cc5ac22a-50f0-4f2d-97f9-e5ca85860c67\\\")]]
+
+-- getColumnInBlackListForRedis' :: IO ()
+-- getColumnInBlackListForRedis' = do
+--   let redisKeyText = "Driver-Offer:Allocator:PoolRadiusStep:SearchTryId-cc5ac22a-50f0-4f2d-97f9-e5ca85860c67"
+--       queryDataWhereClause = "Driver-Offer:Allocator:PoolRadiusStep:SearchTryId-cc5ac22a-50f0-4f2d-97f9-e5ca"
+--       columnListText = T.splitOn ":" redisKeyText
+--       blackListedColumns = ["beckn:on_search:received", "SyncAPI:Ride:Cron:Status", "Driver-Offer:Allocator:PoolRadiusStep", "Driver-Offer:Allocator:PoolBatchNum", "Driver-Offer:PreviouslyAttemptedDrivers", "driver-offer:DriverPool:Total-Rides"]
+--       blackListedColumnsText = map (T.splitOn ":") blackListedColumns
+--       -- Check if columnListText matches any of blackListedColumnsText
+--       found = find (\blk -> length (columnListText `DL.intersect` blk) == (length columnListText -1)) blackListedColumnsText
+--       matches = if isJust found then (length $ T.splitOn ":" queryDataWhereClause `DL.intersect` columnListText) == ((length $ T.splitOn ":" queryDataWhereClause) -1) else False
+--   print $ ("Blacklisted columns for redis: " :: Text) <> show blackListedColumnsText <> " and columnListText is: " <> show columnListText <> " and found is: " <> show (isJust found) <> " and matches is: " <> show matches <> show ((length $ T.splitOn ":" queryDataWhereClause) -1) <> " "<> show (length $ T.splitOn ":" queryDataWhereClause `DL.intersect` columnListText)
+
+getColumnInBlackList :: (MonadFlow m) => Text -> Maybe Text -> [[(Text, Text)]] -> m Int
+getColumnInBlackList tableName' schemaName' [whereClause] = do
+  blackListedColumns <- getBlackListedColumns
+  let blackListed = find (\blackListedColumns' -> tableName' == tableName blackListedColumns' && schemaName' == blackListedColumns'.schemaName) blackListedColumns
+  case blackListed of
+    Nothing -> pure 0
+    Just blackListed' -> do
+      let columnList = map fst whereClause
+          blackListedColumns' = columns blackListed'
+          commonElements = columnList `DL.intersect` blackListedColumns'
+      pure $ length commonElements
+getColumnInBlackList _ _ _ = pure 0
+
+writeToFileSafely :: (MonadFlow m) => FilePath -> BL.ByteString -> m ()
+writeToFileSafely filePath messageRecord = do
+  fileContent <- try $ L.runIO $ withFile filePath AppendMode (\handle' -> BL.hPut handle' ("\n" <> messageRecord))
+  case fileContent of
+    Left (e :: SomeException) -> do
+      L.logError ("FAILED_TO_WRITE_TO_FILE" :: Text) $ "Failed to write to file ... Trying again with error: " <> show e
+      L.runIO $ threadDelay 1000000
+      writeToFileSafely filePath messageRecord
+    Right _ -> pure ()
 
 getProcessedData :: (MonadFlow m) => m (HM.HashMap Text (Maybe UTCTime))
 getProcessedData = do
@@ -164,7 +267,7 @@ getProcessedData = do
       pure HM.empty
     Just filePath -> do
       let newFilePath = replaceLastFileName filePath "processedData.log"
-      fileContent <- L.runIO $ B.readFile newFilePath
+      fileContent <- readFileSafely newFilePath
       let jsonData = map (A.eitherDecode . BL.fromStrict) $ B.split '\n' fileContent :: [Either String ArtProcessed]
       case partitionEithers jsonData of
         ([], decoded) -> do
@@ -177,12 +280,21 @@ getProcessedData = do
               L.logError ("FAILED_TO_DECODE_PROCESSED_DATA" :: Text) $ "Failed to decode JSON data: " <> show err <> " in file: " <> show newFilePath
               pure HM.empty
 
+readFileSafely :: (MonadFlow m) => FilePath -> m B.ByteString
+readFileSafely filePath = do
+  fileContent <- try $ L.runIO $ B.readFile filePath
+  case fileContent of
+    Left (e :: SomeException) -> do
+      L.logError ("FAILED_TO_READ_FILE" :: Text) $ "Failed to read file ... Trying again with error: " <> show e
+      L.runIO $ threadDelay 1000000
+      readFileSafely filePath
+    Right content -> pure content
+
 checkProcessedQuery :: (MonadFlow m, Log m) => QueryData -> Maybe UTCTime -> Maybe Text -> Text -> m Bool
 checkProcessedQuery queryData' timestamp schemaName' tableName' = do
   let whereClause' = show $ whereClause queryData'
       key = tableName' <> "-" <> fromMaybe "" schemaName' <> "-" <> whereClause'
   checkIfUsed <- getProcessedData
-  logDebug $ "Vijay" <> show (HM.lookup key checkIfUsed)
   case HM.lookup key checkIfUsed of
     Nothing -> pure False
     Just timestamp'' -> pure $ timestamp'' == timestamp
@@ -192,27 +304,31 @@ matchesWhereClause queryType' tableName' schemaName' whereClause' (queryData, ti
   case queryData of
     Nothing -> pure False
     Just queryData' -> do
-      if queryType' `T.isInfixOf` queryType queryData' && tableName' == table queryData' && schemaName' == schemaName queryData'
+      if queryType' `T.isInfixOf` queryType queryData' && tableName' == table queryData' && schemaName' == queryData'.schemaName
         then do
+          numberOfColumnsInBlackList <- getColumnInBlackList tableName' schemaName' whereClause'
+          isRedisKeyBlackListed <- getColumnInBlackListForRedis tableName' schemaName' whereClause' queryData'
           -- lets get the HashMap of where clause and timestamp and check if that has been used
-          checkIfUsed <- if (requestId' == "" || T.null requestId') then pure False else checkProcessedQuery queryData' timestamp schemaName' tableName'
-          logDebug $ "Checking if the query has been used: " <> show checkIfUsed <> " for queryType: " <> queryType' <> " and whereClause: " <> show whereClause' <> " for table: " <> table queryData' <> " and schemaName: " <> fromMaybe "" (schemaName queryData')
+          checkIfUsed <- if requestId' == "" || T.null requestId' then pure False else checkProcessedQuery queryData' timestamp schemaName' tableName'
+          logDebug $ "Checking if the query has been used: " <> show checkIfUsed <> " for queryType: " <> queryType' <> " and whereClause: " <> show whereClause' <> " for table: " <> table queryData' <> " and schemaName: " <> fromMaybe "" (queryData'.schemaName)
 
           let flattenedWhereClause = DL.concat whereClause'
               flattenedWhereClauseArt = DL.concat $ whereClause queryData'
               lengthOfWhereClause = length flattenedWhereClause
-              commonElements' = DL.intersect flattenedWhereClause flattenedWhereClauseArt
+              commonElements' = flattenedWhereClause `DL.intersect` flattenedWhereClauseArt
               commonElements = length commonElements'
               percentageMatch = if lengthOfWhereClause /= 0 then (fromIntegral commonElements / fromIntegral lengthOfWhereClause) * 100 :: Double else 100.0
-          logDebug $ "Percentage match for ART: " <> show percentageMatch <> " for queryType: " <> queryType' <> " and whereClause: " <> show whereClause' <> " for table: " <> table queryData' <> " and schemaName: " <> fromMaybe "" (schemaName queryData') <> " with whereClauseArt is " <> show (whereClause queryData')
-          logDebug $ "Common elements for table " <> table queryData' <> " and schemaName: " <> fromMaybe "" (schemaName queryData') <> " are: " <> show commonElements'
-
-          if percentageMatch > 90 && not checkIfUsed then pure $ True else pure $ False
+              lengthOfTableObject = length $ tableObject queryData'
+              condition = (percentageMatch > 90 && not checkIfUsed) || ((lengthOfWhereClause == commonElements + numberOfColumnsInBlackList || isRedisKeyBlackListed) && not checkIfUsed)
+          logDebug $ "Matched with Where Clause : " <> show condition <> " for table: " <> table queryData' <> " with whereClauseArt is " <> show (whereClause queryData') <> " and WhereClause is " <> show whereClause' <> " and lengthOfTableObject is " <> show lengthOfTableObject <> " and commonElements is " <> show commonElements <> " and numberOfColumnsInBlackList is " <> show numberOfColumnsInBlackList <> " and isRedisKeyBlackListed is " <> show isRedisKeyBlackListed <> " tableObject is " <> show (tableObject queryData')
+          logDebug $ "Percentage match for ART: " <> show percentageMatch <> " for queryType: " <> queryType' <> " and whereClause: " <> show whereClause' <> " for table: " <> table queryData' <> " and schemaName: " <> fromMaybe "" (queryData'.schemaName) <> " with whereClauseArt is " <> show (whereClause queryData')
+          logDebug $ "Common elements for table " <> table queryData' <> " are: " <> show commonElements' <> " with whereClauseArt is " <> show (whereClause queryData') <> " and whereClause is " <> show whereClause' <> " and blackListedColumns are: " <> show numberOfColumnsInBlackList
+          if condition then pure True else pure False
         else pure False
 
 getArtQueryObject :: (MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> [(Maybe QueryData, Maybe UTCTime, Text)] -> m (Maybe QueryData)
 getArtQueryObject queryType tableName' schemaName' whereClause' artDataList = do
-  filteredData <- filterM (\artData -> matchesWhereClause queryType tableName' schemaName' whereClause' artData) artDataList
+  filteredData <- filterM (matchesWhereClause queryType tableName' schemaName' whereClause') artDataList
   case filteredData of
     [] -> pure Nothing
     ((queryData, timestamp, _) : _) -> do
@@ -224,7 +340,7 @@ getArtQueryObject queryType tableName' schemaName' whereClause' artDataList = do
 
 getTableIdentity :: Text -> Maybe Text -> [Maybe QueryData] -> Text -> Maybe [Text]
 getTableIdentity tableName schemaName' queryDataList queryType' = do
-  let data' = find (\queryData -> (tableName == table queryData) && (schemaName' == schemaName queryData) && queryType' `T.isInfixOf` queryType queryData) (catMaybes queryDataList)
+  let data' = find (\queryData -> (tableName == table queryData) && (schemaName' == queryData.schemaName) && queryType' `T.isInfixOf` queryType queryData) (catMaybes queryDataList)
   tableObject <$> data'
 
 ---------------------------------------------------------------------redis functions---------------------------------------------------------------------
@@ -253,7 +369,7 @@ getArt callType keyRedis = do
           L.logDebug ("ART_REDIS_KEY_DATA_FOUND" :: Text) $ "Art data found for key: " <> keyRedis <> " with callType: " <> callType
           pure $ Just res
         _ -> do
-          L.logError ("ART_REDIS_KEY_DATA_DECODE_ERROR" :: Text) $ "Art data decode error for key: " <> keyRedis <> " with callType: " <> callType
+          L.logError ("ART_REDIS_KEY_DATA_DECODE_ERROR" :: Text) $ "Art data decode error for key: " <> keyRedis <> " with callType: " <> callType <> " with data: " <> cs redisObject''
           pure Nothing
 
 getListArt :: (FromJSON a, HedisFlow m env) => Text -> Text -> m [a]
@@ -299,19 +415,17 @@ getRedisObject callType keyRedis = do
     Right artData' -> do
       let artDataList = map (\artdata -> (queryData artdata, timestamp artdata, requestId artdata)) artData'
       queryData' <- getArtQueryObject callType "redis" Nothing key artDataList
+      logRedisQueryData callType keyRedis (maybe [] (map TE.encodeUtf8 . tableObject) queryData')
       case queryData' of
         Nothing -> do
-          L.logError ("ART_REDIS_DATA_NOT_FOUND_" <> errorTag) $ "Art data not found for key: " <> keyRedis <> " schema: " <> " where: " <> show key
+          L.logWarning ("ART_REDIS_DATA_NOT_FOUND_" <> errorTag) $ "Art data not found for key: " <> keyRedis <> " schema: " <> " where: " <> show key
           pure []
-        Just queryData'' -> do
-          let redisObject' = tableObject queryData''
-          logRedisQueryData callType keyRedis (map TE.encodeUtf8 redisObject')
-          pure redisObject'
+        Just queryData'' -> pure $ tableObject queryData''
 
 logRedisQueryData :: (HedisFlow m env) => Text -> Text -> [BS.ByteString] -> m ()
 logRedisQueryData queryType keyRedis value = do
   shouldLogRequestId <- asks (.shouldLogRequestId)
-  timestamp <- liftIO $ getCurrentTime
+  timestamp <- liftIO getCurrentTime
   when shouldLogRequestId $ do
     fork "ArtData" $ do
       kafkaConn <- L.getOption KBT.KafkaConn
