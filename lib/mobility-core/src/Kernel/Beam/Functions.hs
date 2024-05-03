@@ -654,7 +654,7 @@ findAllInternalArt ::
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
   m [a]
-findAllInternalArt _ ttype where' = getTableObject @table "FIND_ALL" "findAllInternal" ttype where'
+findAllInternalArt _ = getTableObject @table "FIND_ALL" "findAllInternal"
 
 findAllWithOptionsInternalArt ::
   forall table m r a.
@@ -698,7 +698,7 @@ updateInternalArt ::
   m ()
 updateInternalArt meshConfig' setClause whereClause = do
   now <- getCurrentTime
-  void $ logQueryData "updateInternal" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+  logQueryData "updateInternal" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
 
 updateOneInternalArt ::
   forall table m r.
@@ -709,7 +709,7 @@ updateOneInternalArt ::
   m ()
 updateOneInternalArt meshConfig' setClause whereClause = do
   now <- getCurrentTime
-  void $ logQueryData "updateOneInternal" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+  logQueryData "updateOneInternal" whereClause setClause [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
 
 createInternalArt ::
   forall table m r a.
@@ -720,7 +720,7 @@ createInternalArt ::
   m ()
 createInternalArt meshConfig' toTType a = do
   now <- getCurrentTime
-  void $ logQueryData "createInternal" [] [] [toTType a] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+  logQueryData "createInternal" [] [] [toTType a] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
 
 deleteInternalArt ::
   forall table m r.
@@ -730,7 +730,7 @@ deleteInternalArt ::
   m ()
 deleteInternalArt meshConfig' whereClause = do
   now <- getCurrentTime
-  void $ logQueryData "deleteInternal" whereClause [] [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
+  logQueryData "deleteInternal" whereClause [] [] (meshEnabled meshConfig') (modelTableName @table) (modelSchemaName @table) now
 
 getTableInformation ::
   forall table m r.
@@ -761,11 +761,11 @@ getTableObject errorTag queryType ttype where' = do
       case queryData' of
         Nothing -> do
           logQueryData queryType where' [] [] (meshEnabled meshConfig) tableName schemaName now
-          L.logError ("ART_QUERY_DATA_NOT_FOUND_" <> errorTag) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+          L.logWarning ("ART_QUERY_DATA_NOT_FOUND_" <> errorTag) $ "Art query data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
           pure []
         Just queryData'' -> do
           let tableObject' = ART.tableObject queryData''
-              schemaName' = ART.schemaName queryData''
+              schemaName' = queryData''.schemaName
               tableName' = ART.table queryData''
           if tableName' == tableName && schemaName' == schemaName
             then do
@@ -774,7 +774,7 @@ getTableObject errorTag queryType ttype where' = do
               logQueryData queryType where' [] tableIdentity' (meshEnabled meshConfig) tableName schemaName now
               case tableIdentity' of
                 [] -> do
-                  L.logDebug ("ART_TABLE_OBJECT_NOT_FOUND_" <> errorTag) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
+                  L.logDebug ("ART_TABLE_OBJECT_NOT_FOUND_" <> errorTag) $ "Art table object not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableObject: " <> show tableObject'
                   pure []
                 _ -> do
                   logDebug $ errorTag <> " => Found table identity for " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause <> " tableIdentity: " <> show tableIdentity'
