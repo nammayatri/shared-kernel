@@ -33,6 +33,7 @@ import Database.Beam.Backend
 import Database.Beam.Postgres
 import Database.PostgreSQL.Simple.FromField (FromField)
 import EulerHS.Prelude hiding (id)
+import Kernel.Beam.Lib.UtilsTH
 import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Kernel.Types.App
 import Kernel.Utils.GenericPretty
@@ -142,6 +143,7 @@ data FCMNotificationType
   | PAYMENT_MODE_MANUAL
   | PAYMENT_NUDGE
   | DRIVER_NOTIFY
+  | DRIVER_NOTIFY_LOCATION_UPDATE
   | SAFETY_ALERT_DEVIATION
   | DRIVER_BIRTHDAY
   | EDIT_LOCATION
@@ -297,6 +299,8 @@ data FCMOverlayReq = FCMOverlayReq
     okButtonText :: Maybe Text,
     cancelButtonText :: Maybe Text,
     actions :: [Text],
+    actions2 :: [FCMOverlayAction],
+    secondaryActions2 :: Maybe [FCMOverlayAction],
     link :: Maybe Text,
     endPoint :: Maybe Text,
     method :: Maybe Text,
@@ -308,7 +312,81 @@ data FCMOverlayReq = FCMOverlayReq
     socialMediaLinks :: Maybe [FCMMediaLink],
     showPushNotification :: Maybe Bool
   }
-  deriving (Eq, Show, Generic, PrettyShow, ToSchema, FromJSON)
+  deriving (Eq, Show, Generic, ToSchema, FromJSON, PrettyShow)
+
+data FCMOverlayAction = CALL_API CallAPIDetails | SET_DRIVER_ONLINE | OPEN_LINK OpenLinkDetails | CALL_SUPPORT CallSupportDetails | OPEN_SUBSCRIPTION | NAVIGATE NavigationDetails
+  deriving (Eq, Show, Generic, ToSchema, Read)
+  deriving (PrettyShow) via Showable FCMOverlayAction
+
+data CallAPIDetails = CallAPIDetails
+  { endPoint :: Text,
+    method :: Text,
+    reqBody :: Value
+  }
+  deriving (Eq, Show, Generic, PrettyShow, ToSchema, FromJSON, ToJSON, Read)
+
+data NavigationDetails = NavigationDetails
+  { lat :: Double,
+    long :: Double
+  }
+  deriving (Eq, Show, Generic, PrettyShow, ToSchema, FromJSON, ToJSON, Read)
+
+newtype OpenLinkDetails = OpenLinkDetails
+  { link :: Text
+  }
+  deriving (Eq, Show, Generic)
+  deriving newtype (PrettyShow, ToSchema, FromJSON, ToJSON, Read)
+
+newtype CallSupportDetails = CallSupportDetails
+  { contactSupportNumber :: Text
+  }
+  deriving (Eq, Show, Generic)
+  deriving newtype (PrettyShow, ToSchema, FromJSON, ToJSON, Read)
+
+instance ToJSON FCMOverlayAction where
+  toJSON (CALL_API details) =
+    object
+      [ "actionName" .= String "CALL_API",
+        "actionDetails" .= toJSON details
+      ]
+  toJSON SET_DRIVER_ONLINE =
+    object
+      [ "actionName" .= String "SET_DRIVER_ONLINE",
+        "actionDetails" .= Null
+      ]
+  toJSON (OPEN_LINK details) =
+    object
+      [ "actionName" .= String "OPEN_LINK",
+        "actionDetails" .= toJSON details
+      ]
+  toJSON (CALL_SUPPORT details) =
+    object
+      [ "actionName" .= String "CALL_SUPPORT",
+        "actionDetails" .= toJSON details
+      ]
+  toJSON OPEN_SUBSCRIPTION =
+    object
+      [ "actionName" .= String "OPEN_SUBSCRIPTION",
+        "actionDetails" .= Null
+      ]
+  toJSON (NAVIGATE details) =
+    object
+      [ "actionName" .= String "NAVIGATE",
+        "actionDetails" .= toJSON details
+      ]
+
+instance FromJSON FCMOverlayAction where
+  parseJSON = withObject "FCMOverlayAction" $ \o -> do
+    actionName <- o .: "actionName" :: Parser Text
+    actionDetails <- o .:? "actionDetails" :: Parser (Maybe Value)
+    case (actionName, actionDetails) of
+      ("CALL_API", Just details) -> CALL_API <$> parseJSON details
+      ("SET_DRIVER_ONLINE", _) -> return SET_DRIVER_ONLINE
+      ("OPEN_LINK", Just details) -> OPEN_LINK <$> parseJSON details
+      ("CALL_SUPPORT", Just details) -> CALL_SUPPORT <$> parseJSON details
+      ("OPEN_SUBSCRIPTION", _) -> return OPEN_SUBSCRIPTION
+      ("NAVIGATE", Just details) -> NAVIGATE <$> parseJSON details
+      _ -> fail "Invalid JSON format for FCMOverlayAction"
 
 data FCMMediaLink = FCMMediaLink
   { prefixImage :: Maybe Text,
@@ -336,6 +414,8 @@ data FCMOverlayNotificationJSON = FCMOverlayNotificationJSON
     link :: !(Maybe Text),
     method :: Maybe Text,
     reqBody :: Value,
+    actions2 :: ![FCMOverlayAction],
+    secondaryActions2 :: !(Maybe [FCMOverlayAction]),
     endPoint :: Maybe Text,
     titleVisibility :: !Bool,
     descriptionVisibility :: !Bool,
@@ -686,3 +766,5 @@ data FCMResponse = FCMResponse
   deriving (Show, Eq, Read, Generic, PrettyShow)
 
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMResponse)
+
+$(mkBeamInstancesForEnum ''FCMOverlayAction)
