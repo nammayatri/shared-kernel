@@ -146,6 +146,7 @@ library
       Kernel.External.Verification
       Kernel.External.Verification.GovtData.Client
       Kernel.External.Verification.GovtData.Storage.Beam
+      Kernel.External.Verification.GovtData.Storage.ClickHouse
       Kernel.External.Verification.GovtData.Storage.Query
       Kernel.External.Verification.GovtData.Types
       Kernel.External.Verification.Idfy.Auth

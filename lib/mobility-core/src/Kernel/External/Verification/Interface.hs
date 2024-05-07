@@ -25,11 +25,7 @@ module Kernel.External.Verification.Interface
 where
 
 import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.External.Verification.GovtData.Client as GovtData
-import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
-import Kernel.External.Verification.GovtData.Types as Reexport
-import Kernel.External.Verification.Idfy.Config as Reexport
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
 import qualified Kernel.External.Verification.Interface.SafetyPortal as SafetyPortal
@@ -37,6 +33,7 @@ import Kernel.External.Verification.Interface.Types as Reexport
 import Kernel.External.Verification.InternalScripts.Types
 import Kernel.External.Verification.SafetyPortal.Types
 import Kernel.External.Verification.Types as Reexport
+import qualified Kernel.Storage.ClickhouseV2 as CH
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.Common
 import Kernel.Types.Error
@@ -57,7 +54,7 @@ verifyDLAsync serviceConfig req = case serviceConfig of
 verifyRC ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasSchemaName BeamGRC.GovtDataRCT,
+    CH.HasClickhouseEnv CH.APP_SERVICE_CLICKHOUSE m,
     MonadFlow m,
     EsqDBFlow m r,
     CacheFlow m r
@@ -84,7 +81,7 @@ verifyRC verificationProvidersPriorityList idfyServiceConfig req = do
 verifyRC' ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasSchemaName BeamGRC.GovtDataRCT,
+    CH.HasClickhouseEnv CH.APP_SERVICE_CLICKHOUSE m,
     MonadFlow m,
     EsqDBFlow m r,
     CacheFlow m r
