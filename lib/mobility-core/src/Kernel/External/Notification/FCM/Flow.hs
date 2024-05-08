@@ -58,15 +58,15 @@ import Servant
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
 -- recipientId::FCMToken is an app's registration token
-createMessage :: FCMData a -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> Bool -> FCMMessage a
-createMessage msgData recipientId priority isMutable =
+createMessage :: FCMData a -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> Bool -> (FCMData a -> FCMData b) -> FCMMessage a b
+createMessage msgData recipientId priority isMutable iosModifier =
   def{fcmToken = Just recipientId,
       fcmAndroid = Just androidCfg,
       fcmApns = Just apnsCfg
      }
   where
     androidCfg = createAndroidConfig msgData priority
-    apnsCfg = createApnsConfig msgData isMutable
+    apnsCfg = createApnsConfig msgData isMutable iosModifier
 
 -- | Android Notification details
 createAndroidConfig :: FCMData a -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig a
@@ -75,8 +75,8 @@ createAndroidConfig cfgData priority =
       fcmdPriority = priority
      }
 
-createApnsConfig :: FCMData a -> Bool -> FCMApnsConfig a
-createApnsConfig androidFcmData isMutable =
+createApnsConfig :: FCMData a -> Bool -> (FCMData a -> FCMData b) -> FCMApnsConfig b
+createApnsConfig androidFcmData isMutable iosModifier =
   def{fcmaPayload = Just apnsPayload,
       fcmaHeaders =
         Just
@@ -85,10 +85,10 @@ createApnsConfig androidFcmData isMutable =
           )
      }
   where
-    apnsPayload = createApnsPayload androidFcmData isMutable
+    apnsPayload = createApnsPayload androidFcmData isMutable iosModifier
 
-createApnsPayload :: forall a. FCMData a -> Bool -> FCMApnPayload a
-createApnsPayload androidData isMutable =
+createApnsPayload :: forall a b. FCMData a -> Bool -> (FCMData a -> FCMData b) -> FCMApnPayload b
+createApnsPayload androidData isMutable iosModifier =
   def {fcmAps = Just fcmAps}
   where
     fcmAlert :: FCMAlert
@@ -96,13 +96,14 @@ createApnsPayload androidData isMutable =
       def{fcmBody = (.getFCMNotificationBody) <$> body,
           fcmTitle = (.getFCMNotificationTitle) <$> title
          }
-    fcmAps :: FCMaps a
+    fcmAps :: FCMaps b
     fcmAps =
       def{fcmAlert = Just fcmAlert,
-          fcmData = Just androidData,
+          fcmData = Just (iosModifier androidData),
           fcmCategory = Just androidData.fcmNotificationType,
           fcmMutableContent = if isMutable then 1 else 0,
-          fcmSound = Just $ fromMaybe "" androidData.fcmNotificationJSON.fcmdSound
+          fcmSound = Just $ fromMaybe "" androidData.fcmNotificationJSON.fcmdSound,
+          fcmContentAvailable = 1
          }
     title :: Maybe FCMNotificationTitle
     title = androidData.fcmNotificationJSON.fcmdTitle
@@ -166,11 +167,12 @@ notifyPerson ::
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPerson config = notifyPersonWithPriority config Nothing False
+notifyPerson config msgData recipient = notifyPersonWithPriority config Nothing False msgData recipient EulerHS.Prelude.id
 
 notifyPersonWithPriority ::
   ( CoreMetrics m,
     ToJSON a,
+    ToJSON b,
     Redis.HedisFlow m r,
     MonadFlow m
   ) =>
@@ -179,36 +181,39 @@ notifyPersonWithPriority ::
   Bool ->
   FCMData a ->
   FCMNotificationRecipient ->
+  (FCMData a -> FCMData b) ->
   m ()
-notifyPersonWithPriority config priority isMutable msgData recipient = do
+notifyPersonWithPriority config priority isMutable msgData recipient iosModifier = do
   let tokenNotFound = "device token of a person " <> recipient.id <> " not found"
   case recipient.token of
     Nothing -> do
       logTagInfo "FCM" tokenNotFound
       pure ()
-    Just token -> sendMessage config (FCMRequest (createMessage msgData token priority isMutable)) recipient.id
+    Just token -> sendMessage config (FCMRequest (createMessage msgData token priority isMutable iosModifier)) recipient.id
 
 -- | Google API interface
-type FCMSendMessageAPI a =
+type FCMSendMessageAPI a b =
   Header "Authorization" FCMAuthToken
-    :> ReqBody '[JSON] (FCMRequest a)
+    :> ReqBody '[JSON] (FCMRequest a b)
     :> Post '[JSON] FCMResponse
 
-fcmSendMessageAPI :: Proxy (FCMSendMessageAPI a)
+fcmSendMessageAPI :: Proxy (FCMSendMessageAPI a b)
 fcmSendMessageAPI = Proxy
 
 -- | Send FCM message to a registered device
 sendMessage ::
   ( CoreMetrics m,
     ToJSON a,
+    ToJSON b,
     Redis.HedisFlow m r,
     MonadFlow m
   ) =>
   FCMConfig ->
-  FCMRequest a ->
+  FCMRequest a b ->
   Text ->
   m ()
 sendMessage config fcmMsg toWhom = fork desc $ do
+  logTagInfo fcm $ "Message to be sent to the person: " <> show (Aeson.encode fcmMsg)
   authToken <- getTokenText config
   case authToken of
     Right token -> do
@@ -218,7 +223,7 @@ sendMessage config fcmMsg toWhom = fork desc $ do
         Right _ -> logTagInfo fcm $ "message sent successfully to a person with id " <> toWhom
         Left x -> logTagError fcm $ "error while sending message to person with id " <> toWhom <> " : " <> show x
     Left err -> do
-      logTagError fcm $ "error while sending message to person with id " <> toWhom <> " : " <> show err
+      logTagError fcm $ "Auth token fail error while sending message to person with id " <> toWhom <> " : " <> show err
   where
     callFCM token msg = void $ ET.client fcmSendMessageAPI token msg
     desc = "FCM send message forked flow"

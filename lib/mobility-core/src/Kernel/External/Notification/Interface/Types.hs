@@ -18,6 +18,7 @@
 module Kernel.External.Notification.Interface.Types where
 
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import Kernel.External.Notification.FCM.Types
 import qualified Kernel.External.Notification.FCM.Types as FCM
 import qualified Kernel.External.Notification.GRPC.Types as GRPC
 import qualified Kernel.External.Notification.PayTM.Types as PayTM
@@ -117,7 +118,8 @@ data NotificationReq a b = NotificationReq
   }
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
-data NotficationServiceHandler m = NotficationServiceHandler
+data NotficationServiceHandler m a b = NotficationServiceHandler
   { getNotificationServiceList :: m [Interface.NotificationService],
-    getServiceConfig :: Interface.NotificationService -> m NotificationServiceConfig
+    getServiceConfig :: Interface.NotificationService -> m NotificationServiceConfig,
+    iosModifier :: FCMData a -> FCMData b
   }

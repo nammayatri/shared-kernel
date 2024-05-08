@@ -594,7 +594,8 @@ data FCMaps a = FCMaps
     fcmData :: !(Maybe (FCMData a)),
     fcmCategory :: !(Maybe FCMNotificationType),
     fcmMutableContent :: !Int,
-    fcmSound :: !(Maybe Text)
+    fcmSound :: !(Maybe Text),
+    fcmContentAvailable :: !Int
   }
   deriving (Eq, Show, Generic, PrettyShow)
 
@@ -607,7 +608,8 @@ instance (ToJSON a) => ToJSON (FCMaps a) where
         "data" .= fcmData,
         "category" .= fcmCategory,
         "mutable-content" .= fcmMutableContent,
-        "sound" .= fcmSound
+        "sound" .= fcmSound,
+        "content-available" .= fcmContentAvailable
       ]
 
 instance (FromJSON a) => FromJSON (FCMaps a) where
@@ -618,9 +620,10 @@ instance (FromJSON a) => FromJSON (FCMaps a) where
       <*> o .: "category"
       <*> o .: "mutable-content"
       <*> o .: "sound"
+      <*> o .: "content-available"
 
 instance Default (FCMaps a) where
-  def = FCMaps Nothing Nothing Nothing 0 Nothing
+  def = FCMaps Nothing Nothing Nothing 0 Nothing 1
 
 newtype FCMApnPayload a = FCMApnPayload
   { fcmAps :: Maybe (FCMaps a)
@@ -689,14 +692,14 @@ instance Default (FCMWebpushConfig a) where
   def = FCMWebpushConfig Nothing Nothing Nothing Nothing
 
 -- | Message to send by Firebase Cloud Messaging Service
-data FCMMessage a = FCMMessage
+data FCMMessage a b = FCMMessage
   { fcmToken :: !(Maybe FCMRecipientToken),
     fcmTopic :: !(Maybe Text),
     fcmCondition :: !(Maybe Text),
     fcmNotification :: !(Maybe FCMNotification),
     fcmAndroid :: !(Maybe (FCMAndroidConfig a)),
     fcmWebpush :: !(Maybe (FCMWebpushConfig a)),
-    fcmApns :: !(Maybe (FCMApnsConfig a)),
+    fcmApns :: !(Maybe (FCMApnsConfig b)),
     fcmOptions :: !(Maybe FCMAndroidOptions)
   }
   deriving (Eq, Show, Generic, PrettyShow)
@@ -705,13 +708,13 @@ $(makeLenses ''FCMMessage)
 
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMMessage)
 
-instance Default (FCMMessage a) where
+instance Default (FCMMessage a b) where
   def =
     let z = Nothing
      in FCMMessage z z z z z z z z
 
-newtype FCMRequest a = FCMRequest
-  { fcmeMessage :: FCMMessage a
+newtype FCMRequest a b = FCMRequest
+  { fcmeMessage :: FCMMessage a b
   }
   deriving (Eq, Show, Generic)
   deriving anyclass (PrettyShow)
