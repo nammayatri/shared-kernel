@@ -88,6 +88,7 @@ library
       Kernel.External.Maps.Types
       Kernel.External.Maps.Utils
       Kernel.External.Notification
+      Kernel.External.Notification.FCM.Error
       Kernel.External.Notification.FCM.Flow
       Kernel.External.Notification.FCM.Types
       Kernel.External.Notification.GRPC.Flow

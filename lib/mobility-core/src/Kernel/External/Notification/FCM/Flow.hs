@@ -13,6 +13,7 @@
 -}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 -- |
 -- Module      : FCM.Flow
@@ -43,10 +44,12 @@ where
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
+import qualified Data.Text as T'
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Base64 as B64
 import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
+import Kernel.External.Notification.FCM.Error
 import Kernel.External.Notification.FCM.Types
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -54,6 +57,7 @@ import Kernel.Types.Common
 import Kernel.Utils.Common
 import qualified Kernel.Utils.JWT as JWT
 import Servant
+import Servant.Client (ClientError (..), ResponseF (..))
 
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
@@ -164,10 +168,11 @@ notifyPerson ::
     MonadFlow m
   ) =>
   FCMConfig ->
+  m () ->
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPerson config msgData recipient = notifyPersonWithPriority config Nothing True msgData recipient EulerHS.Prelude.id
+notifyPerson config action msgData recipient = notifyPersonWithPriority config Nothing action True msgData recipient EulerHS.Prelude.id
 
 notifyPersonWithPriority ::
   ( CoreMetrics m,
@@ -178,18 +183,19 @@ notifyPersonWithPriority ::
   ) =>
   FCMConfig ->
   Maybe FCMAndroidMessagePriority ->
+  m () ->
   Bool ->
   FCMData a ->
   FCMNotificationRecipient ->
   (FCMData a -> FCMData b) ->
   m ()
-notifyPersonWithPriority config priority isMutable msgData recipient iosModifier = do
+notifyPersonWithPriority config priority action isMutable msgData recipient iosModifier = do
   let tokenNotFound = "device token of a person " <> recipient.id <> " not found"
   case recipient.token of
     Nothing -> do
       logTagInfo "FCM" tokenNotFound
       pure ()
-    Just token -> sendMessage config (FCMRequest (createMessage msgData token priority isMutable iosModifier)) recipient.id
+    Just token -> sendMessage config (FCMRequest (createMessage msgData token priority isMutable iosModifier)) action recipient.id
 
 -- | Google API interface
 type FCMSendMessageAPI a b =
@@ -210,9 +216,10 @@ sendMessage ::
   ) =>
   FCMConfig ->
   FCMRequest a b ->
+  m () ->
   Text ->
   m ()
-sendMessage config fcmMsg toWhom = fork desc $ do
+sendMessage config fcmMsg action toWhom = fork desc $ do
   logTagInfo fcm $ "Message to be sent to the person: " <> show (Aeson.encode fcmMsg)
   authToken <- getTokenText config
   case authToken of
@@ -220,14 +227,34 @@ sendMessage config fcmMsg toWhom = fork desc $ do
       let fcmUrl = config.fcmUrl
       res <- callAPI fcmUrl (callFCM (Just $ FCMAuthToken token) fcmMsg) "sendMessage" fcmSendMessageAPI
       case res of
-        Right _ -> logTagInfo fcm $ "message sent successfully to a person with id " <> toWhom
-        Left x -> logTagError fcm $ "error while sending message to person with id " <> toWhom <> " : " <> show x
-    Left err -> do
-      logTagError fcm $ "Auth token fail error while sending message to person with id " <> toWhom <> " : " <> show err
+        Right _ -> logTagInfo fcm $ "Message sent successfully to a person with id " <> toWhom
+        Left clientError -> do
+          case clientError of
+            FailureResponse _ (Response _ _ _ resbody) -> do
+              let eitherError = Aeson.eitherDecodeStrict (BL.toStrict resbody) :: Either String FcmError
+              case eitherError of
+                Right fcmError -> handleFcmError fcmError action
+                Left errorMsg -> logTagError fcm $ "FCM decoding failed for person with id : " <> toWhom <> " Error Message : " <> T'.pack errorMsg
+            _ -> return ()
+    Left err -> logTagError fcm $ "AuthToken error while sending message to person with id " <> toWhom <> " : " <> show err
   where
     callFCM token msg = void $ ET.client fcmSendMessageAPI token msg
     desc = "FCM send message forked flow"
     fcm = "FCM"
+
+    handleFcmError :: MonadFlow m => FcmError -> m () -> m ()
+    handleFcmError (FcmError (Just (ErrorRes _ _ _ (Just details)))) action =
+      mapM_ (`handleDetail` action) details
+    handleFcmError _ _ = pure ()
+
+    handleDetail :: MonadFlow m => ErrorDetail -> m () -> m ()
+    handleDetail (ErrorDetail (Just errorCode)) action =
+      case errorCode of
+        "UNREGISTERED" -> do
+          logTagError fcm $ "Error while sending message to person with id " <> toWhom <> " : " <> "device token is unregistered and errorCode is : " <> show errorCode
+          action
+        _ -> logTagError fcm $ "Error while sending message to person with id " <> toWhom <> " : " <> "unknown error code " <> show errorCode
+    handleDetail _ _ = pure ()
 
 -- | try to get FCM text token
 getTokenText ::
