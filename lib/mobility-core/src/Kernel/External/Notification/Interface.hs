@@ -45,7 +45,7 @@ notifyPerson' ::
 notifyPerson' serviceConfig req isMutable = do
   notificationId <- generateGUID
   case serviceConfig of
-    FCMConfig cfg -> FCM.notifyPerson cfg req isMutable (Just notificationId)
+    FCMConfig cfg -> FCM.notifyPerson cfg req isMutable (Just notificationId) EulerHS.Prelude.id
     PayTMConfig cfg -> PayTM.notifyPerson cfg req
     GRPCConfig _ -> throwError $ InternalError "GRPC notification type not supported."
 
@@ -57,9 +57,10 @@ notifyPersonWithAllProviders ::
     Redis.HedisFlow m r,
     ToJSON a,
     ToJSON b,
+    ToJSON c,
     HasFlowEnv m r '["maxNotificationShards" ::: Int]
   ) =>
-  NotficationServiceHandler m ->
+  NotficationServiceHandler m a c ->
   NotificationReq a b ->
   Bool ->
   m ()
@@ -73,7 +74,7 @@ notifyPersonWithAllProviders NotficationServiceHandler {..} req isMutable = do
       fork ("notifying person with following service " <> show serviceProvider <> "for following notification id : " <> notificationId) $ do
         serviceProviderConfig <- getServiceConfig serviceProvider
         case serviceProviderConfig of
-          FCMConfig cfg -> FCM.notifyPerson cfg req isMutable (Just notificationId)
+          FCMConfig cfg -> FCM.notifyPerson cfg req isMutable (Just notificationId) iosModifier
           PayTMConfig cfg -> PayTM.notifyPerson cfg req
           GRPCConfig cfg -> GRPC.notifyPerson cfg req notificationId
       callNotifPerson remaining notificationId

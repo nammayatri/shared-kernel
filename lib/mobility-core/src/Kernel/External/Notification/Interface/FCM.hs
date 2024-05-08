@@ -13,14 +13,16 @@ notifyPerson ::
     MonadFlow m,
     Redis.HedisFlow m r,
     ToJSON a,
-    ToJSON b
+    ToJSON b,
+    ToJSON c
   ) =>
   FCM.FCMConfig ->
   Interface.NotificationReq a b ->
   Bool ->
   Maybe Text ->
+  (FCM.FCMData a -> FCM.FCMData c) ->
   m ()
-notifyPerson config req isMutable mbNotificationId = do
+notifyPerson config req isMutable mbNotificationId iosModifier = do
   let title = FCM.FCMNotificationTitle req.title
       body = FCM.FCMNotificationBody req.body
       notificationType = interfaceCategoryToFCMNotificationType req.category
@@ -41,6 +43,7 @@ notifyPerson config req isMutable mbNotificationId = do
     isMutable
     notificationData
     (FCM.FCMNotificationRecipient req.auth.recipientId (FCM.FCMRecipientToken <$> req.auth.fcmToken))
+    iosModifier
 
 interfaceMessagePriorityToFCMMessagePriority :: Interface.MessagePriority -> FCM.FCMAndroidMessagePriority
 interfaceMessagePriorityToFCMMessagePriority = \case
