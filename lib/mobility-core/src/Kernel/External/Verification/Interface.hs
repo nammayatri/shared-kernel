@@ -15,7 +15,7 @@
 module Kernel.External.Verification.Interface
   ( module Reexport,
     verifyDLAsync,
-    verifyRC,
+    verifyRC',
     validateImage,
     extractRCImage,
     extractDLImage,
@@ -29,7 +29,9 @@ import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.External.Verification.GovtData.Client as GovtData
 import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
 import Kernel.External.Verification.GovtData.Types as Reexport
+import Kernel.External.Verification.HyperVerge.Types as Reexport
 import Kernel.External.Verification.Idfy.Config as Reexport
+import qualified Kernel.External.Verification.Interface.HyperVerge as HyperVerge
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
 import qualified Kernel.External.Verification.Interface.SafetyPortal as SafetyPortal
@@ -52,34 +54,8 @@ verifyDLAsync ::
 verifyDLAsync serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyDLAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  HyperVergeCfg _ -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-
-verifyRC ::
-  ( EncFlow m r,
-    CoreMetrics m,
-    HasSchemaName BeamGRC.GovtDataRCT,
-    MonadFlow m,
-    EsqDBFlow m r,
-    CacheFlow m r
-  ) =>
-  [VerificationService] ->
-  VerificationServiceConfig ->
-  VerifyRCReq ->
-  m VerifyRCResp
-verifyRC verificationProvidersPriorityList idfyServiceConfig req = do
-  when (null verificationProvidersPriorityList) $ throwError $ InternalError "No verification service provider configured"
-  verifyRCWithFallback verificationProvidersPriorityList
-  where
-    verifyRCWithFallback [] = throwError $ InternalError "Not able to verify the RC with all the configured providers"
-    verifyRCWithFallback (preferredProvider : restProviders) = do
-      cfg <- case preferredProvider of
-        Idfy -> pure idfyServiceConfig
-        GovtData -> pure GovtDataConfig {}
-        _ -> throwError $ InternalError "Not Implemented!"
-      result <- try @_ @SomeException $ verifyRC' cfg req
-      case result of
-        Left _ -> verifyRCWithFallback restProviders
-        Right res -> pure res
 
 verifyRC' ::
   ( EncFlow m r,
@@ -95,6 +71,7 @@ verifyRC' ::
 verifyRC' serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyRCAsync cfg req
   GovtDataConfig -> GovtData.verifyRC req
+  HyperVergeCfg cfg -> HyperVerge.validateRC cfg req
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateImage ::
@@ -107,6 +84,7 @@ validateImage ::
 validateImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.validateImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  HyperVergeCfg _ -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateFaceImage ::
@@ -119,6 +97,7 @@ validateFaceImage ::
 validateFaceImage serviceConfig req = case serviceConfig of
   IdfyConfig _ -> throwError $ InternalError "Not Implemented!"
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  HyperVergeCfg _ -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig cfg -> IS.validateFace cfg req
 
 extractRCImage ::
@@ -131,6 +110,7 @@ extractRCImage ::
 extractRCImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractRCImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  HyperVergeCfg _ -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
@@ -143,6 +123,7 @@ extractDLImage ::
 extractDLImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractDLImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  HyperVergeCfg _ -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 searchAgent ::
