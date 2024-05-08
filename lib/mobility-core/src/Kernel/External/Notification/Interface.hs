@@ -40,12 +40,13 @@ notifyPerson' ::
   ) =>
   NotificationServiceConfig ->
   NotificationReq a b ->
+  m () ->
   Bool ->
   m ()
-notifyPerson' serviceConfig req isMutable = do
+notifyPerson' serviceConfig req action isMutable = do
   notificationId <- generateGUID
   case serviceConfig of
-    FCMConfig cfg -> FCM.notifyPerson cfg req isMutable (Just notificationId) EulerHS.Prelude.id
+    FCMConfig cfg -> FCM.notifyPerson cfg req action isMutable (Just notificationId) EulerHS.Prelude.id
     PayTMConfig cfg -> PayTM.notifyPerson cfg req
     GRPCConfig _ -> throwError $ InternalError "GRPC notification type not supported."
 
@@ -62,9 +63,10 @@ notifyPersonWithAllProviders ::
   ) =>
   NotficationServiceHandler m a c ->
   NotificationReq a b ->
+  m () ->
   Bool ->
   m ()
-notifyPersonWithAllProviders NotficationServiceHandler {..} req isMutable = do
+notifyPersonWithAllProviders NotficationServiceHandler {..} req action isMutable = do
   serviceList <- getNotificationServiceList
   notificationId <- generateGUID
   callNotifPerson serviceList notificationId
@@ -74,7 +76,7 @@ notifyPersonWithAllProviders NotficationServiceHandler {..} req isMutable = do
       fork ("notifying person with following service " <> show serviceProvider <> "for following notification id : " <> notificationId) $ do
         serviceProviderConfig <- getServiceConfig serviceProvider
         case serviceProviderConfig of
-          FCMConfig cfg -> FCM.notifyPerson cfg req isMutable (Just notificationId) iosModifier
+          FCMConfig cfg -> FCM.notifyPerson cfg req action isMutable (Just notificationId) iosModifier
           PayTMConfig cfg -> PayTM.notifyPerson cfg req
           GRPCConfig cfg -> GRPC.notifyPerson cfg req notificationId
       callNotifPerson remaining notificationId
@@ -89,8 +91,9 @@ notifyPerson ::
   ) =>
   NotificationServiceConfig ->
   NotificationReq a b ->
+  m () ->
   m ()
-notifyPerson serviceConfig req = notifyPerson' serviceConfig req False
+notifyPerson serviceConfig req action = notifyPerson' serviceConfig req action False
 
 notifyPersonWithMutableContent ::
   ( MonadFlow m,
@@ -102,5 +105,6 @@ notifyPersonWithMutableContent ::
   ) =>
   NotificationServiceConfig ->
   NotificationReq a b ->
+  m () ->
   m ()
-notifyPersonWithMutableContent serviceConfig req = notifyPerson' serviceConfig req True
+notifyPersonWithMutableContent serviceConfig req action = notifyPerson' serviceConfig req action True
