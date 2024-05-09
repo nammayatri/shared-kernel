@@ -194,7 +194,7 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
       preCheckPassed <- runPreCheck preferredProvider req
       case (preCheckPassed, mbMapServiceToRectifyDistantPointsFailure) of
         (False, Nothing) -> do
-          logError $ "Pre check failed for provider " <> show preferredProvider
+          logDebug $ "Pre check failed for provider " <> show preferredProvider <> ". Points: " <> show req.points
           callSnapToRoadWithFallback restProviders
         (False, Just mapServiceCfg) -> do
           droppedPointsThreshold <- asks (.droppedPointsThreshold)
@@ -210,9 +210,12 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
                       pure (x1, metersToHighPrecMeters distanceRes.distance)
               )
               starightDistancePoints
+          logDebug $ "Rectified distances: " <> show distanceRectified
           let (pointsOutOfThreshold, distance) = foldl' (\(accPoints, accDis) (x1, dis) -> (accPoints <> [x1], accDis + dis)) ([], 0) distanceRectified
           let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
+          logDebug $ "Split snap-to-road calls: " <> show splitSnapToRoadCalls
           pointsRes <- try @_ @SomeException $ mapM (\section -> snapToRoad mapsConfig (req {points = section})) splitSnapToRoadCalls
+          logDebug $ "Snap-to-road results: " <> show pointsRes
           case pointsRes of
             Left _ -> do
               (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
