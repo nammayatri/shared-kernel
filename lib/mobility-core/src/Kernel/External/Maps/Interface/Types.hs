@@ -172,6 +172,7 @@ newtype SnapToRoadReq = SnapToRoadReq
   { points :: [LatLong]
   }
   deriving stock (Generic)
+  deriving (Show)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data SnapToRoadResp = SnapToRoadResp
@@ -180,6 +181,7 @@ data SnapToRoadResp = SnapToRoadResp
     snappedPoints :: [LatLong]
   }
   deriving stock (Generic)
+  deriving (Show)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data Country = India | France | USA
