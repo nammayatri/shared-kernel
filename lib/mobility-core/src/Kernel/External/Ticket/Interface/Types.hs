@@ -41,7 +41,8 @@ data CreateTicketReq = CreateTicketReq
     phoneNo :: Maybe Text,
     personId :: Text,
     classification :: Classification,
-    rideDescription :: Maybe RideInfo
+    rideDescription :: Maybe RideInfo,
+    becknIssueId :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 

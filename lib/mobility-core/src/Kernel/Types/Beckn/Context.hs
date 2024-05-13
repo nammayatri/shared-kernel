@@ -90,6 +90,10 @@ data Action
   | ON_CANCEL
   | ON_RATING
   | ON_SUPPORT
+  | ISSUE
+  | ON_ISSUE
+  | ISSUE_STATUS
+  | ON_ISSUE_STATUS
   deriving (Generic, Show, Eq, ToSchema)
   deriving (PrettyShow) via Showable Action
 
@@ -114,6 +118,8 @@ mapToCbAction = \case
   CANCEL -> Just ON_CANCEL
   RATING -> Just ON_RATING
   SUPPORT -> Just ON_SUPPORT
+  ISSUE -> Just ON_ISSUE
+  ISSUE_STATUS -> Just ON_ISSUE_STATUS
   _ -> Nothing
 
 getSubscriberType :: Action -> Subscriber.SubscriberType
