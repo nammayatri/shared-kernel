@@ -40,7 +40,8 @@ data CreateTicketReq = CreateTicketReq
     phoneNo :: Maybe Text,
     personId :: Text,
     classification :: Classification,
-    rideDescription :: Maybe RideInfo
+    rideDescription :: Maybe RideInfo,
+    becknIssueId :: Maybe Text
   }
 
 data RideInfo = RideInfo
