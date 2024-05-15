@@ -615,6 +615,7 @@ logQueryData ::
   m ()
 logQueryData queryType whereClause' setClause' tableObject' kvEnabled table schemaName timestamp = do
   shouldLogRequestId <- asks (.shouldLogRequestId)
+  forkedTag <- L.getOptionLocal ART.ForkedTag
   when shouldLogRequestId $
     fork "ArtData" $ do
       kafkaConn <- L.getOption KBT.KafkaConn
@@ -624,7 +625,7 @@ logQueryData queryType whereClause' setClause' tableObject' kvEnabled table sche
           tableObject = map encodeToTextArt tableObject'
           queryData = ART.QueryData {..}
       handle (\(e :: SomeException) -> L.logError ("ART_QUERY_LOG_FAILED" :: Text) $ "Error while logging query data: " <> show e) $ do
-        liftIO $ ART.pushToKafka kafkaConn (encode def {ART.requestId = requestId, ART.queryData = Just queryData, ART.timestamp = Just timestamp}) "ART-Logs" requestId
+        liftIO $ ART.pushToKafka kafkaConn (encode def {ART.requestId = requestId, ART.queryData = Just queryData, ART.timestamp = Just timestamp, ART.forkedTag = forkedTag}) "ART-Logs" requestId
 
 {--
 ------------------------------------------------------------------------------------------------------------------
@@ -756,7 +757,7 @@ getTableObject errorTag queryType ttype where' = do
       L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_" <> errorTag) $ "Art data not found for table: " <> tableName <> " schema: " <> fromMaybe "" schemaName <> " where: " <> show whereClause
       throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_" <> errorTag) <> show err)
     Right artData' -> do
-      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata)) artData'
+      let artDataList = map (\artdata -> (ART.queryData artdata, ART.timestamp artdata, ART.requestId artdata, ART.forkedTag artdata)) artData'
       queryData' <- ART.getArtQueryObject queryType tableName schemaName whereClause artDataList
       case queryData' of
         Nothing -> do
