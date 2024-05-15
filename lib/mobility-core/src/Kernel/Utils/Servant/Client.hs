@@ -47,8 +47,6 @@ import qualified Text.Regex as TR
 import WaiAppStatic.Storage.Filesystem
 import WaiAppStatic.Types (StaticSettings (..))
 
--- import qualified Kernel.Beam.ART.ARTUtils as ART
-
 newtype HttpClientOptions = HttpClientOptions
   { timeoutMs :: Int
   }
@@ -75,7 +73,8 @@ type CallAPI' m api res res' =
     Metrics.CoreMetrics m,
     SanitizedUrl api,
     MonadFlow m,
-    ToJSON res
+    ToJSON res,
+    FromJSON res
   ) =>
   BaseUrl ->
   ET.EulerClient res ->
@@ -95,16 +94,17 @@ callAPI' ::
   CallAPI' m api res (Either ClientError res)
 callAPI' mbManagerSelector baseUrl eulerClient desc api =
   withLogTag "callAPI" $ do
+    isArtReplayerEnabled <- Metrics.getIsArtReplayerEnabled
     let managerSelector = fromMaybe defaultHttpManager mbManagerSelector
     let sanitizedUrl = buildSanitizedUrl
     logDebug $ "Sanitized URL is " <> sanitizedUrl
     res <-
       measuringDuration (Metrics.addRequestLatency sanitizedUrl desc) $
-        L.callAPI' (Just managerSelector) baseUrl eulerClient
+        bool (L.callAPI' (Just managerSelector) baseUrl eulerClient) (Metrics.getArtReplayResponse sanitizedUrl) isArtReplayerEnabled
     case res of
       Right r -> do
         logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
-      -- ART.logApiResponseData sanitizedUrl r
+        Metrics.logApiResponseData sanitizedUrl r
       Left err -> logDebug $ "Error occured during client call: " <> show err
     return res
   where

@@ -9,16 +9,16 @@ import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.Default.Class
 import Data.Either (partitionEithers)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.List as DL
+import qualified Data.Sequence as Seq
 import Data.String.Conversions
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Data.Time
 import qualified Data.Vector as V
-import EulerHS.Language (MonadFlow)
 import qualified EulerHS.Language as L
 import EulerHS.Types (OptionEntity)
 import qualified Kafka.Producer as KafkaProd
@@ -26,21 +26,20 @@ import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Streaming.Kafka.Producer.Types
-import Kernel.Types.App (HasFlowEnv)
+import Kernel.Tools.Metrics.CoreMetrics.Types hiding (logApiResponseData)
+import Kernel.Types.Common
 import Kernel.Types.Error
-import Kernel.Types.Field
-import Kernel.Types.Forkable
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.IOLogging (LoggerEnv)
 import Kernel.Utils.Logging
 import Kernel.Utils.Text
+import qualified Network.HTTP.Types as HTTP
+import Servant.Client.Core
 import System.Directory (canonicalizePath, getCurrentDirectory)
 import System.FilePath (combine, splitFileName, (</>))
 import System.IO (IOMode (AppendMode), withFile)
 
 type HasARTFlow r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools), HasField "isArtReplayerEnabled" r Bool)
-
-type HasARTFlowEnv m r = HasFlowEnv m r '["shouldLogRequestId" ::: Bool, "requestId" ::: Maybe Text, "kafkaProducerForART" ::: Maybe KafkaProducerTools, "isArtReplayerEnabled" ::: Bool]
 
 data RequestInfo' = RequestInfo'
   { requestMethod :: Text,
@@ -158,7 +157,7 @@ replaceLastFileName path newFileName =
   let (dir, _) = splitFileName path
    in combine dir newFileName
 
-readAndDecodeArtData :: (MonadFlow m, Log m) => m (Either String [ArtData])
+readAndDecodeArtData :: (L.MonadFlow m, Log m) => m (Either String [ArtData])
 readAndDecodeArtData = do
   filePath' <- L.getOption KBT.FilePathForART
   forkedTag <- L.getOptionLocal ForkedTag
@@ -173,7 +172,7 @@ readAndDecodeArtData = do
         ([], decoded) -> return $ Right decoded
         (err, _) -> return $ Left $ "Failed to decode JSON data: " <> show err <> " in file: " <> show newFilePath
 
-appendOrWriteToFile :: (MonadFlow m) => BL.ByteString -> m ()
+appendOrWriteToFile :: (L.MonadFlow m) => BL.ByteString -> m ()
 appendOrWriteToFile messageRecord = do
   filePath' <- L.getOption KBT.FilePathForART
   case filePath' of
@@ -184,7 +183,7 @@ appendOrWriteToFile messageRecord = do
       let newFilePath = replaceLastFileName filePath "processedData.log"
       writeToFileSafely newFilePath messageRecord
 
-getBlackListedColumns :: (MonadFlow m) => m [BlackListedColumns]
+getBlackListedColumns :: (L.MonadFlow m) => m [BlackListedColumns]
 getBlackListedColumns = do
   filePath' <- L.getOption KBT.FilePathForART
   case filePath' of
@@ -214,7 +213,7 @@ getRedisWhereClauseValue [whereClause] = do
     _ -> ""
 getRedisWhereClauseValue _ = ""
 
-getColumnInBlackListForRedis :: (MonadFlow m) => T.Text -> Maybe T.Text -> [[(T.Text, T.Text)]] -> QueryData -> m Bool
+getColumnInBlackListForRedis :: (L.MonadFlow m) => T.Text -> Maybe T.Text -> [[(T.Text, T.Text)]] -> QueryData -> m Bool
 getColumnInBlackListForRedis tableName' schemaName' whereClauses queryData = do
   if tableName' == "redis"
     then do
@@ -250,7 +249,7 @@ getColumnInBlackListForRedis tableName' schemaName' whereClauses queryData = do
 --       matches = if isJust found then (length $ T.splitOn ":" queryDataWhereClause `DL.intersect` columnListText) == ((length $ T.splitOn ":" queryDataWhereClause) -1) else False
 --   print $ ("Blacklisted columns for redis: " :: Text) <> show blackListedColumnsText <> " and columnListText is: " <> show columnListText <> " and found is: " <> show (isJust found) <> " and matches is: " <> show matches <> show ((length $ T.splitOn ":" queryDataWhereClause) -1) <> " "<> show (length $ T.splitOn ":" queryDataWhereClause `DL.intersect` columnListText)
 
-getColumnInBlackList :: (MonadFlow m) => Text -> Maybe Text -> [[(Text, Text)]] -> m Int
+getColumnInBlackList :: (L.MonadFlow m) => Text -> Maybe Text -> [[(Text, Text)]] -> m Int
 getColumnInBlackList tableName' schemaName' [whereClause] = do
   blackListedColumns <- getBlackListedColumns
   let blackListed = find (\blackListedColumns' -> tableName' == tableName blackListedColumns' && schemaName' == blackListedColumns'.schemaName) blackListedColumns
@@ -263,7 +262,7 @@ getColumnInBlackList tableName' schemaName' [whereClause] = do
       pure $ length commonElements
 getColumnInBlackList _ _ _ = pure 0
 
-writeToFileSafely :: (MonadFlow m) => FilePath -> BL.ByteString -> m ()
+writeToFileSafely :: (L.MonadFlow m) => FilePath -> BL.ByteString -> m ()
 writeToFileSafely filePath messageRecord = do
   fileContent <- try $ L.runIO $ withFile filePath AppendMode (\handle' -> BL.hPut handle' ("\n" <> messageRecord))
   case fileContent of
@@ -273,7 +272,7 @@ writeToFileSafely filePath messageRecord = do
       writeToFileSafely filePath messageRecord
     Right _ -> pure ()
 
-getProcessedData :: (MonadFlow m) => m (HM.HashMap Text (Maybe UTCTime))
+getProcessedData :: (L.MonadFlow m) => m (HM.HashMap Text (Maybe UTCTime))
 getProcessedData = do
   filePath' <- L.getOption KBT.FilePathForART
   case filePath' of
@@ -295,7 +294,7 @@ getProcessedData = do
               L.logError ("FAILED_TO_DECODE_PROCESSED_DATA" :: Text) $ "Failed to decode JSON data: " <> show err <> " in file: " <> show newFilePath
               pure HM.empty
 
-readFileSafely :: (MonadFlow m) => FilePath -> m B.ByteString
+readFileSafely :: (L.MonadFlow m) => FilePath -> m B.ByteString
 readFileSafely filePath = do
   fileContent <- try $ L.runIO $ B.readFile filePath
   case fileContent of
@@ -305,7 +304,7 @@ readFileSafely filePath = do
       readFileSafely filePath
     Right content -> pure content
 
-checkProcessedQuery :: (MonadFlow m, Log m) => QueryData -> Maybe UTCTime -> Maybe Text -> Text -> Maybe Text -> m Bool
+checkProcessedQuery :: (L.MonadFlow m, Log m) => QueryData -> Maybe UTCTime -> Maybe Text -> Text -> Maybe Text -> m Bool
 checkProcessedQuery queryData' timestamp schemaName' tableName' forkedTag = do
   let whereClause' = show $ whereClause queryData'
       key = tableName' <> "-" <> fromMaybe "" schemaName' <> "-" <> whereClause' <> "-" <> show timestamp <> "-" <> fromMaybe "" forkedTag
@@ -314,7 +313,7 @@ checkProcessedQuery queryData' timestamp schemaName' tableName' forkedTag = do
   logDebug $ show checkIfUsed <> " for key: " <> key <> " and timestamp: " <> show timestamp <> " and look is: " <> show look
   pure $ isJust look
 
--- matchesWhereClause :: (MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> (Maybe QueryData, Maybe UTCTime, Text) -> m Bool
+-- matchesWhereClause :: (L.MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> (Maybe QueryData, Maybe UTCTime, Text) -> m Bool
 -- matchesWhereClause queryType' tableName' schemaName' whereClause' (queryData, timestamp, requestId') =
 --   case queryData of
 --     Nothing -> pure False
@@ -341,7 +340,7 @@ checkProcessedQuery queryData' timestamp schemaName' tableName' forkedTag = do
 --           if condition then pure True else pure False
 --         else pure False
 
-checkWhereClauseMatching :: (MonadFlow m, Log m) => [[(Text, Text)]] -> [[(Text, Text)]] -> m Bool
+checkWhereClauseMatching :: (L.MonadFlow m, Log m) => [[(Text, Text)]] -> [[(Text, Text)]] -> m Bool
 checkWhereClauseMatching whereClause' whereClauseArt' = do
   let flattenedWhereClause = DL.concat whereClause'
       flattenedWhereClauseArt = DL.concat whereClauseArt'
@@ -352,7 +351,7 @@ checkWhereClauseMatching whereClause' whereClauseArt' = do
       lengthOfCommonElements = length commonElements'
   pure $ lengthOfCommonElements == lengthOfWhereClause
 
-matchesWhereClause :: (MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> (Maybe QueryData, Maybe UTCTime, Text, Maybe Text) -> m Bool
+matchesWhereClause :: (L.MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> (Maybe QueryData, Maybe UTCTime, Text, Maybe Text) -> m Bool
 matchesWhereClause queryType' tableName' schemaName' whereClause' (queryData, timestamp, requestId', tag) =
   case queryData of
     Nothing -> pure False
@@ -370,7 +369,7 @@ matchesWhereClause queryType' tableName' schemaName' whereClause' (queryData, ti
           logDebug $ "Where clause didn't matched for table: " <> tableName' <> " with whereClauseArt is " <> show whereClause' <> "whereClause is " <> show whereClause' <> " and schemaName is " <> show schemaName' <> " and queryType is " <> queryType'
           pure False
 
-getArtQueryObject :: (MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> [(Maybe QueryData, Maybe UTCTime, Text, Maybe Text)] -> m (Maybe QueryData)
+getArtQueryObject :: (L.MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> [(Maybe QueryData, Maybe UTCTime, Text, Maybe Text)] -> m (Maybe QueryData)
 getArtQueryObject queryType tableName' schemaName' whereClause' artDataList = do
   filteredData <- findM (matchesWhereClause queryType tableName' schemaName' whereClause') artDataList
   case filteredData of
@@ -472,7 +471,7 @@ getRedisObject callType keyRedis = do
 logRedisQueryData :: (HedisFlow m env) => Text -> Text -> [BS.ByteString] -> m ()
 logRedisQueryData queryType keyRedis value = do
   shouldLogRequestId <- asks (.shouldLogRequestId)
-  timestamp <- liftIO getCurrentTime
+  timestamp <- getCurrentTime
   forkedTag <- L.getOptionLocal ForkedTag
   when shouldLogRequestId $ do
     fork "ArtData" $ do
@@ -501,9 +500,12 @@ printART = do
   parsedData <- readAndDecodeArtData'
   print parsedData
 
-logApiResponseData :: (MonadFlow m, ToJSON a, HasARTFlowEnv m r) => Text -> a -> m ()
+--------------------------------------------------------------------------------API functions--------------------------------------------------------------------------------
+
+logApiResponseData :: (Forkable m, L.MonadFlow m, ToJSON a, HasCoreMetrics r, MonadReader r m) => Text -> a -> m ()
 logApiResponseData url response = do
   shouldLogRequestId <- asks (.shouldLogRequestId)
+  forkedTag <- L.getOptionLocal ForkedTag
   when shouldLogRequestId $ do
     fork "ArtData" $ do
       let whereClause = [[(url, "url")]]
@@ -511,8 +513,43 @@ logApiResponseData url response = do
           tableObject = [encodeToText response]
       kafkaConn <- L.getOption KBT.KafkaConn
       requestId <- fromMaybe "" <$> asks (.requestId)
-      timestamp <- liftIO getCurrentTime
-      forkedTag <- L.getOptionLocal ForkedTag
+      timestamp <- L.runIO getCurrentTime
       let queryData = QueryData "response" setClause whereClause "api" tableObject False Nothing
       handle (\(e :: SomeException) -> L.logError ("ART_QUERY_LOG_FAILED" :: Text) $ "Error while logging api response data: " <> show e) $ do
-        liftIO $ pushToKafka kafkaConn (A.encode def {requestId = requestId, queryData = Just queryData, timestamp = Just timestamp, forkedTag = forkedTag}) "ART-Logs" requestId
+        L.runIO $ pushToKafka kafkaConn (A.encode def {requestId = requestId, queryData = Just queryData, timestamp = Just timestamp, forkedTag = forkedTag}) "ART-Logs" requestId
+
+getIsArtReplayerEnabled :: (L.MonadFlow m, HasCoreMetrics r, MonadReader r m) => m Bool
+getIsArtReplayerEnabled = do
+  isArtReplayerEnabled <- asks (.isArtReplayerEnabled)
+  pure isArtReplayerEnabled
+
+exampleResponse :: Response
+exampleResponse =
+  Response
+    { responseStatusCode = HTTP.status200,
+      responseHeaders = Seq.empty,
+      responseHttpVersion = HTTP.HttpVersion 1 1,
+      responseBody = LBS.pack "ERROR: No response found for ART replay"
+    }
+
+getArtReplayResponse :: (Forkable m, L.MonadFlow m, FromJSON res, HasCoreMetrics r, MonadReader r m, Log m) => Text -> m (Either ClientError res)
+getArtReplayResponse url = do
+  let whereClause = [[(url, "url")]]
+  artReplayResponse <- readAndDecodeArtData
+  case artReplayResponse of
+    Right response -> do
+      let artDataList = map (\artdata -> (queryData artdata, timestamp artdata, requestId artdata, forkedTag artdata)) response
+      queryData <- getArtQueryObject "response" "api" Nothing whereClause artDataList
+      logApiResponseData url (maybeToList queryData)
+      case queryData of
+        Nothing -> return $ Left $ DecodeFailure ("No response found for ART replay" :: Text) exampleResponse
+        Just queryData' -> do
+          let apiObject = queryData'.tableObject
+              apiResponse = map decodeFromText apiObject
+              apiResponse' = catMaybes apiResponse
+          case listToMaybe apiResponse' of
+            Just response' -> return $ Right response'
+            Nothing -> return $ Left $ DecodeFailure ("No response found for ART replay" :: Text) exampleResponse
+    Left err -> do
+      logError $ "Error occured during ART replay: " <> show err
+      return $ Left $ DecodeFailure ("Error occured during ART replay" :: Text) exampleResponse

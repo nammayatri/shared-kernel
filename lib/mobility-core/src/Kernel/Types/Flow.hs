@@ -28,6 +28,7 @@ import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
 import qualified EulerHS.Types as EO
 import Kernel.Beam.ART.ARTUtils (ArtData (..), ForkedTag (..), HasARTFlow, pushToKafka)
+import qualified Kernel.Beam.ART.ARTUtils as ART
 import Kernel.Beam.Lib.Utils hiding (pushToKafka)
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
@@ -227,6 +228,9 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   incrementSchedulerFailureCounter = Metrics.incrementSchedulerFailureCounterImplementation
   incrementGenericMetrics = Metrics.incrementGenericMetrics'
   incrementSystemConfigsFailedCounter = Metrics.incrementSystemConfigsFailedCounter'
+  logApiResponseData = ART.logApiResponseData
+  getIsArtReplayerEnabled = ART.getIsArtReplayerEnabled
+  getArtReplayResponse = ART.getArtReplayResponse
 
 instance MonadMonitor (FlowR r) where
   doIO = liftIO
