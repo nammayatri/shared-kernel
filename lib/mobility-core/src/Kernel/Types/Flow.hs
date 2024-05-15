@@ -21,11 +21,13 @@ module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR) where
 import Control.Monad.IO.Unlift
 import Data.Aeson
 import Data.Default.Class
+import qualified Data.Map.Internal as M
 import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
-import Kernel.Beam.ART.ARTUtils (ArtData (..), HasARTFlow, pushToKafka)
+import qualified EulerHS.Types as EO
+import Kernel.Beam.ART.ARTUtils (ArtData (..), ForkedTag (..), HasARTFlow, pushToKafka)
 import Kernel.Beam.Lib.Utils hiding (pushToKafka)
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
@@ -41,6 +43,7 @@ import Kernel.Types.Time
 import qualified Kernel.Utils.IOLogging as IOLogging
 import Kernel.Utils.Logging
 import Prometheus (MonadMonitor (..))
+import Unsafe.Coerce (unsafeCoerce)
 
 runFlowR :: R.FlowRuntime -> r -> FlowR r a -> IO a
 runFlowR flowRt r (FlowR x) = I.runFlow flowRt . runReaderT x $ r
@@ -232,7 +235,8 @@ instance MonadGuid (FlowR r) where
 
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
   fork tag f = do
-    newLocalOptions <- newMVar mempty
+    let keyText = EO.mkOptionKey ForkedTag
+    newLocalOptions <- newMVar (M.singleton keyText (unsafeCoerce @_ @Any tag))
     shouldLogRequestId <- asks (.shouldLogRequestId)
     when (shouldLogRequestId && tag /= "ArtData") $ do
       requestId <- fromMaybe "" <$> asks (.requestId)

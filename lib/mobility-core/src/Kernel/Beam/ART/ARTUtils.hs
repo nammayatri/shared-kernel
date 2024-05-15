@@ -3,6 +3,7 @@
 
 module Kernel.Beam.ART.ARTUtils where
 
+import Control.Monad.Extra (findM)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.ByteString as BS
@@ -25,16 +26,21 @@ import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Streaming.Kafka.Producer.Types
+import Kernel.Types.App (HasFlowEnv)
 import Kernel.Types.Error
+import Kernel.Types.Field
 import Kernel.Types.Forkable
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.IOLogging (LoggerEnv)
 import Kernel.Utils.Logging
+import Kernel.Utils.Text
 import System.Directory (canonicalizePath, getCurrentDirectory)
 import System.FilePath (combine, splitFileName, (</>))
 import System.IO (IOMode (AppendMode), withFile)
 
 type HasARTFlow r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools), HasField "isArtReplayerEnabled" r Bool)
+
+type HasARTFlowEnv m r = HasFlowEnv m r '["shouldLogRequestId" ::: Bool, "requestId" ::: Maybe Text, "kafkaProducerForART" ::: Maybe KafkaProducerTools, "isArtReplayerEnabled" ::: Bool]
 
 data RequestInfo' = RequestInfo'
   { requestMethod :: Text,
@@ -73,6 +79,12 @@ data BlackListedColumnList = BlackListedColumnList
   deriving anyclass (ToJSON, FromJSON)
 
 instance OptionEntity BlackListedColumnList [BlackListedColumns]
+
+data ForkedTag = ForkedTag
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity ForkedTag Text
 
 data QueryData = QueryData
   { queryType :: Text,
@@ -146,17 +158,20 @@ replaceLastFileName path newFileName =
   let (dir, _) = splitFileName path
    in combine dir newFileName
 
-readAndDecodeArtData :: (MonadFlow m) => m (Either String [ArtData])
+readAndDecodeArtData :: (MonadFlow m, Log m) => m (Either String [ArtData])
 readAndDecodeArtData = do
   filePath' <- L.getOption KBT.FilePathForART
+  forkedTag <- L.getOptionLocal ForkedTag
   case filePath' of
     Nothing -> return $ Left "No file path for ART data found. Kindly provide the file path or set the environment variable ArtFilePath using setOption."
     Just filePath -> do
-      fileContent <- L.runIO $ B.readFile filePath
+      let newFilePath = maybe filePath (\tag -> replaceLastFileName filePath $ T.unpack ("ArtForked/" <> tag <> ".log")) forkedTag
+      logDebug $ "Reading ART data from file: " <> show newFilePath
+      fileContent <- L.runIO $ B.readFile newFilePath
       let jsonData = map (A.eitherDecode . BL.fromStrict) $ filter (not . B.null) $ B.split '\n' fileContent
       case partitionEithers jsonData of
         ([], decoded) -> return $ Right decoded
-        (err, _) -> return $ Left $ "Failed to decode JSON data: " <> show err <> " in file: " <> show filePath
+        (err, _) -> return $ Left $ "Failed to decode JSON data: " <> show err <> " in file: " <> show newFilePath
 
 appendOrWriteToFile :: (MonadFlow m) => BL.ByteString -> m ()
 appendOrWriteToFile messageRecord = do
@@ -290,53 +305,85 @@ readFileSafely filePath = do
       readFileSafely filePath
     Right content -> pure content
 
-checkProcessedQuery :: (MonadFlow m, Log m) => QueryData -> Maybe UTCTime -> Maybe Text -> Text -> m Bool
-checkProcessedQuery queryData' timestamp schemaName' tableName' = do
+checkProcessedQuery :: (MonadFlow m, Log m) => QueryData -> Maybe UTCTime -> Maybe Text -> Text -> Maybe Text -> m Bool
+checkProcessedQuery queryData' timestamp schemaName' tableName' forkedTag = do
   let whereClause' = show $ whereClause queryData'
-      key = tableName' <> "-" <> fromMaybe "" schemaName' <> "-" <> whereClause'
+      key = tableName' <> "-" <> fromMaybe "" schemaName' <> "-" <> whereClause' <> "-" <> show timestamp <> "-" <> fromMaybe "" forkedTag
   checkIfUsed <- getProcessedData
-  case HM.lookup key checkIfUsed of
-    Nothing -> pure False
-    Just timestamp'' -> pure $ timestamp'' == timestamp
+  let look = HM.lookup key checkIfUsed
+  logDebug $ show checkIfUsed <> " for key: " <> key <> " and timestamp: " <> show timestamp <> " and look is: " <> show look
+  pure $ isJust look
 
-matchesWhereClause :: (MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> (Maybe QueryData, Maybe UTCTime, Text) -> m Bool
-matchesWhereClause queryType' tableName' schemaName' whereClause' (queryData, timestamp, requestId') =
+-- matchesWhereClause :: (MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> (Maybe QueryData, Maybe UTCTime, Text) -> m Bool
+-- matchesWhereClause queryType' tableName' schemaName' whereClause' (queryData, timestamp, requestId') =
+--   case queryData of
+--     Nothing -> pure False
+--     Just queryData' -> do
+--       if queryType' `T.isInfixOf` queryType queryData' && tableName' == table queryData' && schemaName' == queryData'.schemaName
+--         then do
+--           numberOfColumnsInBlackList <- getColumnInBlackList tableName' schemaName' whereClause'
+--           isRedisKeyBlackListed <- getColumnInBlackListForRedis tableName' schemaName' whereClause' queryData'
+--           -- lets get the HashMap of where clause and timestamp and check if that has been used
+--           checkIfUsed <- if requestId' == "" || T.null requestId' then pure False else checkProcessedQuery queryData' timestamp schemaName' tableName'
+--           logDebug $ "Checking if the query has been used: " <> show checkIfUsed <> " for queryType: " <> queryType' <> " and whereClause: " <> show whereClause' <> " for table: " <> table queryData' <> " and schemaName: " <> fromMaybe "" (queryData'.schemaName)
+
+--           let flattenedWhereClause = DL.concat whereClause'
+--               flattenedWhereClauseArt = DL.concat $ whereClause queryData'
+--               lengthOfWhereClause = length flattenedWhereClause
+--               commonElements' = flattenedWhereClause `DL.intersect` flattenedWhereClauseArt
+--               commonElements = length commonElements'
+--               percentageMatch = if lengthOfWhereClause /= 0 then (fromIntegral commonElements / fromIntegral lengthOfWhereClause) * 100 :: Double else 100.0
+--               lengthOfTableObject = length $ tableObject queryData'
+--               condition = (percentageMatch > 90 && not checkIfUsed) || ((lengthOfWhereClause == commonElements + numberOfColumnsInBlackList || isRedisKeyBlackListed) && not checkIfUsed)
+--           logDebug $ "Matched with Where Clause : " <> show condition <> " for table: " <> table queryData' <> " with whereClauseArt is " <> show (whereClause queryData') <> " and WhereClause is " <> show whereClause' <> " and lengthOfTableObject is " <> show lengthOfTableObject <> " and commonElements is " <> show commonElements <> " and numberOfColumnsInBlackList is " <> show numberOfColumnsInBlackList <> " and isRedisKeyBlackListed is " <> show isRedisKeyBlackListed <> " tableObject is " <> show (tableObject queryData')
+--           logDebug $ "Percentage match for ART: " <> show percentageMatch <> " for queryType: " <> queryType' <> " and whereClause: " <> show whereClause' <> " for table: " <> table queryData' <> " and schemaName: " <> fromMaybe "" (queryData'.schemaName) <> " with whereClauseArt is " <> show (whereClause queryData')
+--           logDebug $ "Common elements for table " <> table queryData' <> " are: " <> show commonElements' <> " with whereClauseArt is " <> show (whereClause queryData') <> " and whereClause is " <> show whereClause' <> " and blackListedColumns are: " <> show numberOfColumnsInBlackList
+--           if condition then pure True else pure False
+--         else pure False
+
+checkWhereClauseMatching :: (MonadFlow m, Log m) => [[(Text, Text)]] -> [[(Text, Text)]] -> m Bool
+checkWhereClauseMatching whereClause' whereClauseArt' = do
+  let flattenedWhereClause = DL.concat whereClause'
+      flattenedWhereClauseArt = DL.concat whereClauseArt'
+      flattenedColumnList = map fst flattenedWhereClause
+      flattenedColumnListArt = map fst flattenedWhereClauseArt
+      commonElements' = flattenedColumnList `DL.intersect` flattenedColumnListArt
+      lengthOfWhereClause = length flattenedColumnList
+      lengthOfCommonElements = length commonElements'
+  pure $ lengthOfCommonElements == lengthOfWhereClause
+
+matchesWhereClause :: (MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> (Maybe QueryData, Maybe UTCTime, Text, Maybe Text) -> m Bool
+matchesWhereClause queryType' tableName' schemaName' whereClause' (queryData, timestamp, requestId', tag) =
   case queryData of
     Nothing -> pure False
     Just queryData' -> do
-      if queryType' `T.isInfixOf` queryType queryData' && tableName' == table queryData' && schemaName' == queryData'.schemaName
+      forkedTag' <- L.getOptionLocal ForkedTag
+      if queryType' `T.isInfixOf` queryType queryData' && tableName' == table queryData' && schemaName' == queryData'.schemaName && tag == forkedTag'
         then do
-          numberOfColumnsInBlackList <- getColumnInBlackList tableName' schemaName' whereClause'
-          isRedisKeyBlackListed <- getColumnInBlackListForRedis tableName' schemaName' whereClause' queryData'
           -- lets get the HashMap of where clause and timestamp and check if that has been used
-          checkIfUsed <- if requestId' == "" || T.null requestId' then pure False else checkProcessedQuery queryData' timestamp schemaName' tableName'
-          logDebug $ "Checking if the query has been used: " <> show checkIfUsed <> " for queryType: " <> queryType' <> " and whereClause: " <> show whereClause' <> " for table: " <> table queryData' <> " and schemaName: " <> fromMaybe "" (queryData'.schemaName)
+          checkIfUsed <- if requestId' == "" || T.null requestId' then pure False else checkProcessedQuery queryData' timestamp schemaName' tableName' forkedTag'
+          checkWhereClause <- checkWhereClauseMatching whereClause' (whereClause queryData')
+          let matchWhereClauseCondition = checkWhereClause && not checkIfUsed
+          logDebug $ "Matched with Where Clause : " <> show matchWhereClauseCondition <> " for table: " <> table queryData' <> " with whereClauseArt is " <> show (whereClause queryData') <> " and WhereClause is " <> show whereClause' <> " and checkWhereClause is " <> show checkWhereClause <> " and checkIfUsed is " <> show checkIfUsed <> " and tag is " <> show tag <> " and forkedTag is " <> show forkedTag'
+          pure matchWhereClauseCondition
+        else do
+          logDebug $ "Where clause didn't matched for table: " <> tableName' <> " with whereClauseArt is " <> show whereClause' <> "whereClause is " <> show whereClause' <> " and schemaName is " <> show schemaName' <> " and queryType is " <> queryType'
+          pure False
 
-          let flattenedWhereClause = DL.concat whereClause'
-              flattenedWhereClauseArt = DL.concat $ whereClause queryData'
-              lengthOfWhereClause = length flattenedWhereClause
-              commonElements' = flattenedWhereClause `DL.intersect` flattenedWhereClauseArt
-              commonElements = length commonElements'
-              percentageMatch = if lengthOfWhereClause /= 0 then (fromIntegral commonElements / fromIntegral lengthOfWhereClause) * 100 :: Double else 100.0
-              lengthOfTableObject = length $ tableObject queryData'
-              condition = (percentageMatch > 90 && not checkIfUsed) || ((lengthOfWhereClause == commonElements + numberOfColumnsInBlackList || isRedisKeyBlackListed) && not checkIfUsed)
-          logDebug $ "Matched with Where Clause : " <> show condition <> " for table: " <> table queryData' <> " with whereClauseArt is " <> show (whereClause queryData') <> " and WhereClause is " <> show whereClause' <> " and lengthOfTableObject is " <> show lengthOfTableObject <> " and commonElements is " <> show commonElements <> " and numberOfColumnsInBlackList is " <> show numberOfColumnsInBlackList <> " and isRedisKeyBlackListed is " <> show isRedisKeyBlackListed <> " tableObject is " <> show (tableObject queryData')
-          logDebug $ "Percentage match for ART: " <> show percentageMatch <> " for queryType: " <> queryType' <> " and whereClause: " <> show whereClause' <> " for table: " <> table queryData' <> " and schemaName: " <> fromMaybe "" (queryData'.schemaName) <> " with whereClauseArt is " <> show (whereClause queryData')
-          logDebug $ "Common elements for table " <> table queryData' <> " are: " <> show commonElements' <> " with whereClauseArt is " <> show (whereClause queryData') <> " and whereClause is " <> show whereClause' <> " and blackListedColumns are: " <> show numberOfColumnsInBlackList
-          if condition then pure True else pure False
-        else pure False
-
-getArtQueryObject :: (MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> [(Maybe QueryData, Maybe UTCTime, Text)] -> m (Maybe QueryData)
+getArtQueryObject :: (MonadFlow m, Log m) => Text -> Text -> Maybe Text -> [[(Text, Text)]] -> [(Maybe QueryData, Maybe UTCTime, Text, Maybe Text)] -> m (Maybe QueryData)
 getArtQueryObject queryType tableName' schemaName' whereClause' artDataList = do
-  filteredData <- filterM (matchesWhereClause queryType tableName' schemaName' whereClause') artDataList
+  filteredData <- findM (matchesWhereClause queryType tableName' schemaName' whereClause') artDataList
   case filteredData of
-    [] -> pure Nothing
-    ((queryData, timestamp, _) : _) -> do
+    Just (queryData, timestamp, _, forkedTag) -> do
       whenJust queryData $ \queryData' -> do
         let whereClause'' = show $ whereClause queryData'
-            key = tableName' <> "-" <> fromMaybe "" schemaName' <> "-" <> whereClause''
+            key = tableName' <> "-" <> fromMaybe "" schemaName' <> "-" <> whereClause'' <> "-" <> show timestamp <> "-" <> fromMaybe "" forkedTag
+        logDebug $ "Matched with Where Clause in get Art : " <> show (whereClause queryData') <> " for table: " <> table queryData' <> " with whereClauseArt is " <> show (whereClause queryData') <> " and WhereClause is " <> show whereClause' <> " and forkedTag is " <> show forkedTag
         appendOrWriteToFile $ A.encode $ ArtProcessed key timestamp
       pure queryData
+    Nothing -> do
+      logDebug $ "No match found for table: " <> tableName' <> " with whereClauseArt is " <> show whereClause' <> "whereClause is " <> show whereClause' <> " and schemaName is " <> show schemaName' <> " and queryType is " <> queryType
+      pure Nothing
 
 getTableIdentity :: Text -> Maybe Text -> [Maybe QueryData] -> Text -> Maybe [Text]
 getTableIdentity tableName schemaName' queryDataList queryType' = do
@@ -413,7 +460,7 @@ getRedisObject callType keyRedis = do
       L.logError ("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_" <> errorTag) $ "Art data not found for key: " <> keyRedis <> " schema: " <> " where: " <> show key <> " with error: " <> show err
       throwError $ InternalError (("ART_DATA_PARSE_ERROR_OR_NOT_FOUND_" <> errorTag) <> show err)
     Right artData' -> do
-      let artDataList = map (\artdata -> (queryData artdata, timestamp artdata, requestId artdata)) artData'
+      let artDataList = map (\artdata -> (queryData artdata, timestamp artdata, requestId artdata, forkedTag artdata)) artData'
       queryData' <- getArtQueryObject callType "redis" Nothing key artDataList
       logRedisQueryData callType keyRedis (maybe [] (map TE.encodeUtf8 . tableObject) queryData')
       case queryData' of
@@ -426,6 +473,7 @@ logRedisQueryData :: (HedisFlow m env) => Text -> Text -> [BS.ByteString] -> m (
 logRedisQueryData queryType keyRedis value = do
   shouldLogRequestId <- asks (.shouldLogRequestId)
   timestamp <- liftIO getCurrentTime
+  forkedTag <- L.getOptionLocal ForkedTag
   when shouldLogRequestId $ do
     fork "ArtData" $ do
       kafkaConn <- L.getOption KBT.KafkaConn
@@ -435,7 +483,7 @@ logRedisQueryData queryType keyRedis value = do
           tableObject = map TE.decodeUtf8 value
           queryData = QueryData queryType setClause whereClause "redis" tableObject False Nothing
       handle (\(e :: SomeException) -> L.logError ("ART_QUERY_LOG_FAILED" :: Text) $ "Error while logging redis query data: " <> show e) $ do
-        liftIO $ pushToKafka kafkaConn (A.encode def {requestId = requestId, queryData = Just queryData, timestamp = Just timestamp}) "ART-Logs" requestId
+        liftIO $ pushToKafka kafkaConn (A.encode def {requestId = requestId, queryData = Just queryData, timestamp = Just timestamp, forkedTag = forkedTag}) "ART-Logs" requestId
 
 --------------------------------------------------------------------------------for Debugging--------------------------------------------------------------------------------
 
@@ -452,3 +500,19 @@ printART :: IO ()
 printART = do
   parsedData <- readAndDecodeArtData'
   print parsedData
+
+logApiResponseData :: (MonadFlow m, ToJSON a, HasARTFlowEnv m r) => Text -> a -> m ()
+logApiResponseData url response = do
+  shouldLogRequestId <- asks (.shouldLogRequestId)
+  when shouldLogRequestId $ do
+    fork "ArtData" $ do
+      let whereClause = [[(url, "url")]]
+          setClause = ""
+          tableObject = [encodeToText response]
+      kafkaConn <- L.getOption KBT.KafkaConn
+      requestId <- fromMaybe "" <$> asks (.requestId)
+      timestamp <- liftIO getCurrentTime
+      forkedTag <- L.getOptionLocal ForkedTag
+      let queryData = QueryData "response" setClause whereClause "api" tableObject False Nothing
+      handle (\(e :: SomeException) -> L.logError ("ART_QUERY_LOG_FAILED" :: Text) $ "Error while logging api response data: " <> show e) $ do
+        liftIO $ pushToKafka kafkaConn (A.encode def {requestId = requestId, queryData = Just queryData, timestamp = Just timestamp, forkedTag = forkedTag}) "ART-Logs" requestId
