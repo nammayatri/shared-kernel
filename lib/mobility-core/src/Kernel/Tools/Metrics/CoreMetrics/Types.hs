@@ -18,12 +18,15 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
     CoreMetricsContainer (..),
     DeploymentVersion (..),
     registerCoreMetricsContainer,
+    HasARTEnv,
   )
 where
 
 import EulerHS.Prelude as E
 import GHC.Records.Extra
+import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Types.Time (Milliseconds)
+import Kernel.Utils.IOLogging
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError)
 
@@ -49,9 +52,12 @@ type GenericCounter = P.Vector P.Label1 P.Counter
 
 type SystemConfigsFailedCounter = P.Vector P.Label1 P.Counter
 
+type HasARTEnv r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools), HasField "isArtReplayerEnabled" r Bool)
+
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
-    HasField "version" r DeploymentVersion
+    HasField "version" r DeploymentVersion,
+    HasARTEnv r
   )
 
 newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}
@@ -68,6 +74,9 @@ class CoreMetrics m where
   incrementSchedulerFailureCounter :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
   incrementSystemConfigsFailedCounter :: Text -> m ()
+  logApiResponseData :: (ToJSON a, FromJSON a) => Text -> a -> m ()
+  getIsArtReplayerEnabled :: m Bool
+  getArtReplayResponse :: (ToJSON a, FromJSON a) => Text -> m (Either ClientError a)
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,

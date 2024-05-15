@@ -22,11 +22,13 @@ import Control.Arrow (left)
 import qualified Data.Aeson as A
 import Data.Maybe (fromJust)
 import EulerHS.Prelude
+import qualified Kernel.Beam.ART.ARTUtils as ART
 import Kernel.Tools.Metrics.CoreMetrics
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Utils.Error.FlowHandling
 import qualified Servant as S
+import Servant.Client.Core
 import Test.Hspec
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -71,6 +73,9 @@ instance Metrics.CoreMetrics IO where
   incrementSchedulerFailureCounter _ = return ()
   incrementGenericMetrics _ = return ()
   incrementSystemConfigsFailedCounter _ = return ()
+  logApiResponseData _ _ = return ()
+  getIsArtReplayerEnabled = return False
+  getArtReplayResponse _ = return $ Left $ DecodeFailure ("Error occured during ART replay" :: Text) ART.exampleResponse
 
 httpExceptionTests :: TestTree
 httpExceptionTests =
