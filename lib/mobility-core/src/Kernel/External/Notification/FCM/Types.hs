@@ -299,8 +299,8 @@ data FCMOverlayReq = FCMOverlayReq
     okButtonText :: Maybe Text,
     cancelButtonText :: Maybe Text,
     actions :: [Text],
-    actions2 :: [FCMOverlayAction],
-    secondaryActions2 :: Maybe [FCMOverlayAction],
+    actions2 :: [FCMActions],
+    secondaryActions2 :: Maybe [FCMActions],
     link :: Maybe Text,
     endPoint :: Maybe Text,
     method :: Maybe Text,
@@ -313,6 +313,12 @@ data FCMOverlayReq = FCMOverlayReq
     showPushNotification :: Maybe Bool
   }
   deriving (Eq, Show, Generic, ToSchema, FromJSON, PrettyShow)
+
+data FCMActions = FCMActions
+  { primaryAction :: FCMOverlayAction,
+    dependentActions :: [FCMActions]
+  }
+  deriving (Eq, Show, Generic, ToSchema, FromJSON, PrettyShow, ToJSON)
 
 data FCMOverlayAction = CALL_API CallAPIDetails | SET_DRIVER_ONLINE | OPEN_LINK OpenLinkDetails | CALL_SUPPORT CallSupportDetails | OPEN_SUBSCRIPTION | NAVIGATE NavigationDetails
   deriving (Eq, Show, Generic, ToSchema, Read)
@@ -414,8 +420,8 @@ data FCMOverlayNotificationJSON = FCMOverlayNotificationJSON
     link :: !(Maybe Text),
     method :: Maybe Text,
     reqBody :: Value,
-    actions2 :: ![FCMOverlayAction],
-    secondaryActions2 :: !(Maybe [FCMOverlayAction]),
+    actions2 :: ![FCMActions],
+    secondaryActions2 :: !(Maybe [FCMActions]),
     endPoint :: Maybe Text,
     titleVisibility :: !Bool,
     descriptionVisibility :: !Bool,
