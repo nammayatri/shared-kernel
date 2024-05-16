@@ -16,13 +16,14 @@
 
 module Kernel.External.Types where
 
+import qualified Data.Map as M
 import Data.OpenApi
 import Database.Beam
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
-import Kernel.External.Encryption (EncFlow)
-import Kernel.Storage.Esqueleto (EsqDBFlow)
 import Kernel.Types.CacheFlow (CacheFlow)
+import Kernel.Types.Common
+import Kernel.Utils.Dhall
 import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
@@ -62,3 +63,15 @@ instance ToHttpApiData Language where
   toUrlPiece TELUGU = "te"
 
 type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r)
+
+data SchedulerType = RedisBased | DbBased deriving (Show, Enum, Eq, Read, Generic, FromDhall)
+
+type HasSchedulerName r = HasField "schedulerSetName" r Text
+
+type HasMaxShards r = HasField "maxShards" r Int
+
+type HasSchedulerType r = HasField "schedulerType" r SchedulerType
+
+type HasJobInfoMap r = HasField "jobInfoMap" r (M.Map Text Bool)
+
+type SchedulerFlow r = (HasSchedulerName r, HasMaxShards r, HasSchedulerType r, HasJobInfoMap r)
