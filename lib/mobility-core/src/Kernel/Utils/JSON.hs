@@ -14,7 +14,7 @@
 
 module Kernel.Utils.JSON where
 
-import Data.Aeson (Options (..), SumEncoding (ObjectWithSingleField, UntaggedValue), Value (..), camelTo2, defaultOptions)
+import Data.Aeson (Options (..), Result (..), SumEncoding (ObjectWithSingleField, UntaggedValue), Value (..), camelTo2, defaultOptions, fromJSON)
 import qualified Data.Aeson.KeyMap as AKM
 import Data.Text (pack, replace, toLower, toUpper, unpack)
 import EulerHS.Prelude hiding (pack, unpack)
@@ -120,3 +120,8 @@ constructorsWithLowerCase =
   defaultOptions
     { fieldLabelModifier = unpack . toLower . pack
     }
+
+valueToMaybe :: FromJSON a => Value -> Maybe a
+valueToMaybe value = case fromJSON value of
+  Success a -> Just a
+  Error _ -> Nothing

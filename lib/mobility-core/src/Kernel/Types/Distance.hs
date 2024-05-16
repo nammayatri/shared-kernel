@@ -62,6 +62,9 @@ instance ToJSON HighPrecDistance where
 instance FromJSON HighPrecDistance where
   parseJSON = fmap realToFrac . parseJSON @Double
 
+instance ToParamSchema HighPrecDistance where
+  toParamSchema _ = toParamSchema (Proxy @Double)
+
 instance FromField HighPrecDistance where
   fromField f mbValue = HighPrecDistance <$> fromFieldDefault f mbValue
 
@@ -84,8 +87,10 @@ toHighPrecDistance = HighPrecDistance . toRational
 
 data DistanceUnit = Meter | Mile | Yard | Kilometer
   deriving stock (Generic, Show, Read, Eq, Ord)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
+  deriving anyclass (ToJSON, FromJSON, ToSchema, ToParamSchema)
   deriving (PrettyShow) via Showable DistanceUnit
+
+$(mkHttpInstancesForEnum ''DistanceUnit)
 
 -- cycle imports
 
@@ -101,13 +106,14 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be DistanceUnit
 
 instance FromBackendRow Postgres DistanceUnit
 
-convertToMeters :: Distance -> Distance
-convertToMeters d@(Distance _ Meter) = d
-convertToMeters (Distance v unit) = Distance (v * distanceConversionRate unit) Meter
+convertMetersToDistance :: DistanceUnit -> Meters -> Distance
+convertMetersToDistance distanceUnit = convertDistance distanceUnit . metersToDistance
 
-convertFromMeters :: DistanceUnit -> HighPrecDistance -> Distance
-convertFromMeters Meter v = Distance v Meter
-convertFromMeters unit v = Distance (v / distanceConversionRate unit) unit
+convertToMeters :: Distance -> Distance
+convertToMeters = convertDistance Meter
+
+convertDistance :: DistanceUnit -> Distance -> Distance
+convertDistance unit2 (Distance v unit1) = Distance ((v * distanceConversionRate unit1) / distanceConversionRate unit2) unit2
 
 distanceConversionRate :: DistanceUnit -> HighPrecDistance
 distanceConversionRate = \case
@@ -123,7 +129,7 @@ distanceToHighPrecDistance mbDistanceUnit distance = do
   let distanceUnit = fromMaybe Meter mbDistanceUnit
   if distanceUnit == distance.unit
     then distance.value
-    else (.value) . convertFromMeters distanceUnit . (.value) . convertToMeters $ distance
+    else (.value) . convertDistance distanceUnit $ distance
 
 data Distance = Distance
   { -- valueInt :: Int, -- To be deprecated
