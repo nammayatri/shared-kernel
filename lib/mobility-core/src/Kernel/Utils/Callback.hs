@@ -44,7 +44,7 @@ type WithBecknCallbackMig api callback_success m =
     CoreMetrics m,
     HasClient ET.EulerClient api,
     Client ET.EulerClient api
-      ~ (Maybe Text -> BecknCallbackReq callback_success -> ET.EulerClient AckResponse)
+      ~ (BecknCallbackReq callback_success -> ET.EulerClient AckResponse)
   ) =>
   M.Context.Action ->
   Proxy api ->
@@ -70,7 +70,7 @@ withBecknCallbackMig doWithCallback auth actionName api context cbUrl internalEn
   forkBecknCallback
     (someExceptionToCallbackReqMig cbContext)
     (BecknCallbackReq cbContext . Right)
-    (doWithCallback . void . callBecknAPI Nothing auth Nothing (show cbAction) api cbUrl internalEndPointHashMap)
+    (doWithCallback . void . callBecknAPI auth Nothing (show cbAction) api cbUrl internalEndPointHashMap)
     (show actionName)
     action
   return Ack

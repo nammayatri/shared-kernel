@@ -61,7 +61,7 @@ withFlowHandler ::
   FlowR r a ->
   FlowHandlerR r a
 withFlowHandler flow = do
-  (EnvR flowRt appEnv _) <- ask
+  (EnvR flowRt appEnv) <- ask
   liftIO . runFlowR flowRt appEnv $ getAndSetKvConfigs >> flow
   where
     getAndSetKvConfigs = do
@@ -77,7 +77,7 @@ withFlowHandler' ::
   FlowR r a ->
   FlowHandlerR r a
 withFlowHandler' flow = do
-  (EnvR flowRt appEnv _) <- ask
+  (EnvR flowRt appEnv) <- ask
   liftIO . runFlowR flowRt appEnv $ flow
 
 withFlowHandlerAPI ::

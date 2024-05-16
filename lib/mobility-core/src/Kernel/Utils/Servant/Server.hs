@@ -146,7 +146,7 @@ runServer appEnv serverAPI serverHandler waiMiddleware waiSettings servantCtx se
     flowRt' <-
       runFlowR flowRt appEnv $
         initialize flowRt <* logInfo ("Runtime created. Starting server at port " <> show port)
-    serverStartAction flowRt' $ runSettings settings $ server (EnvR flowRt' appEnv Nothing)
+    serverStartAction flowRt' $ runSettings settings $ server (EnvR flowRt' appEnv)
 
 runServerGeneric ::
   forall m env (api :: Type) ctx.

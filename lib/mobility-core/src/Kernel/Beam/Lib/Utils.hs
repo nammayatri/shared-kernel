@@ -72,7 +72,7 @@ class
   FromCacType t a
     | t -> a
   where
-  fromCacType :: (MonadFlow m, CacheFlow m r, EsqDBFlow m r) => t -> m (Maybe a)
+  fromCacType :: KvDbFlow m r => t -> m (Maybe a)
 
 -------------------------------------- data types --------------------------------------
 

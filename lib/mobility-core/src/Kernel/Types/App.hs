@@ -24,7 +24,6 @@ where
 
 import Control.Lens.Operators
 import Data.Aeson as Aeson (Value)
-import qualified Data.ByteString.Lazy as BL
 import Data.OpenApi
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
@@ -39,8 +38,7 @@ import qualified Servant.Client.Core as Servant
 
 data EnvR r = EnvR
   { flowRuntime :: R.FlowRuntime,
-    appEnv :: r,
-    bodyEnv :: Maybe BL.ByteString
+    appEnv :: r
   }
   deriving (Generic)
 
