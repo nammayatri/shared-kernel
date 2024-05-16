@@ -159,8 +159,11 @@ data FCMNotificationType
   | EMERGENCY_CONTACT_ADDED
   | SOS_MOCK_DRILL_NOTIFY
   | DOCUMENT_INVALID
-  deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  | SCHEDULED_RIDE_NOTIFICATION
+  deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
+
+$(mkBeamInstancesForEnum ''FCMNotificationType)
 
 -- | Entity types types
 data FCMEntityType = SearchRequest | Product | Merchant | Person | PaymentOrder | EditLocation

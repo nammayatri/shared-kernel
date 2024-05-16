@@ -1120,3 +1120,38 @@ instance IsHTTPError NextBillionError where
     FailedToCallNextBillionRouteAPI _ -> E400
 
 instance IsAPIError NextBillionError
+
+data RideRelatedNotificationError
+  = RideRelatedNotificationConfigNotFound Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''RideRelatedNotificationError
+
+instance IsBaseError RideRelatedNotificationError where
+  toMessage (RideRelatedNotificationConfigNotFound merchantOperatingCityId) = Just $ "RideRelatedNotification with merchantOperatingCityId \"" <> show merchantOperatingCityId <> "\" not found."
+
+instance IsHTTPError RideRelatedNotificationError where
+  toErrorCode = \case
+    RideRelatedNotificationConfigNotFound _ -> "RIDE_RELATED_NOTIFICATION_CONFIG_NOT_FOUND"
+  toHttpCode = \case
+    RideRelatedNotificationConfigNotFound _ -> E500
+
+instance IsAPIError RideRelatedNotificationError
+
+data MerchantPNError
+  = MerchantPNNotFound Text Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''MerchantPNError
+
+instance IsBaseError MerchantPNError where
+  toMessage = \case
+    MerchantPNNotFound merchantOperatingCityId messageKey -> Just $ "MerchantPushNotification with merchantOperatingCityId \"" <> show merchantOperatingCityId <> " and message key" <> show messageKey <> "\" not found. "
+
+instance IsHTTPError MerchantPNError where
+  toErrorCode = \case
+    MerchantPNNotFound _ _ -> "MERCHANT_PN_NOT_FOUND"
+  toHttpCode = \case
+    MerchantPNNotFound _ _ -> E500
+
+instance IsAPIError MerchantPNError
