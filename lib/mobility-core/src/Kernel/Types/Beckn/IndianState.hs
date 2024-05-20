@@ -57,7 +57,7 @@ data IndianState
   | Uttarakhand
   | WestBengal
   | AndamanAndNicobarIslands
-  | Chandigarh
+  | ChandigarhUT
   | DadraAndNagarHaveli
   | DamanAndDiu
   | NationalCapitalTerritory
@@ -100,7 +100,7 @@ instance FromJSON IndianState where
   parseJSON (String "Uttarakhand") = pure Uttarakhand
   parseJSON (String "WestBengal") = pure WestBengal
   parseJSON (String "AndamanAndNicobarIslands") = pure AndamanAndNicobarIslands
-  parseJSON (String "Chandigarh") = pure Chandigarh
+  parseJSON (String "ChandigarhUT") = pure ChandigarhUT
   parseJSON (String "DadraAndNagarHaveli") = pure DadraAndNagarHaveli
   parseJSON (String "DamanAndDiu") = pure DamanAndDiu
   parseJSON (String "NationalCapitalTerritory") = pure NationalCapitalTerritory
@@ -141,7 +141,7 @@ instance ToJSON IndianState where
   toJSON Uttarakhand = String "Uttarakhand"
   toJSON WestBengal = String "WestBengal"
   toJSON AndamanAndNicobarIslands = String "AndamanAndNicobarIslands"
-  toJSON Chandigarh = String "Chandigarh"
+  toJSON ChandigarhUT = String "ChandigarhUT"
   toJSON DadraAndNagarHaveli = String "DadraAndNagarHaveli"
   toJSON DamanAndDiu = String "DamanAndDiu"
   toJSON NationalCapitalTerritory = String "NationalCapitalTerritory"

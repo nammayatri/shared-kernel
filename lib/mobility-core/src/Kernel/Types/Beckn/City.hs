@@ -54,6 +54,11 @@ data City
   | Hosur
   | Trichy
   | Minneapolis
+  | Trivandrum
+  | Thrissur
+  | Kozhikode
+  | Chandigarh
+  | Jaipur
   | AnyCity
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
@@ -108,6 +113,16 @@ instance FromJSON City where
   parseJSON (String "Trichy") = pure Trichy
   parseJSON (String "std:0820") = pure Minneapolis
   parseJSON (String "Minneapolis") = pure Minneapolis
+  parseJSON (String "std:0471") = pure Trivandrum
+  parseJSON (String "Trivandrum") = pure Trivandrum
+  parseJSON (String "std:0487") = pure Thrissur
+  parseJSON (String "Thrissur") = pure Thrissur
+  parseJSON (String "std:0495") = pure Kozhikode
+  parseJSON (String "Kozhikode") = pure Kozhikode
+  parseJSON (String "std:0172") = pure Chandigarh
+  parseJSON (String "Chandigarh") = pure Chandigarh
+  parseJSON (String "std:0141") = pure Jaipur
+  parseJSON (String "Jaipur") = pure Jaipur
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
@@ -135,6 +150,11 @@ instance ToJSON City where
   toJSON Hosur = String "std:04344"
   toJSON Trichy = String "std:0431"
   toJSON Minneapolis = String "std:0820"
+  toJSON Trivandrum = String "std:0471"
+  toJSON Thrissur = String "std:0487"
+  toJSON Kozhikode = String "std:0495"
+  toJSON Chandigarh = String "std:0172"
+  toJSON Jaipur = String "std:0141"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -189,6 +209,16 @@ instance FromHttpApiData City where
       parseLowerCaseCity "trichy" = Right Trichy
       parseLowerCaseCity "std:0820" = Right Minneapolis
       parseLowerCaseCity "minneapolis" = Right Minneapolis
+      parseLowerCaseCity "std:0471" = Right Trivandrum
+      parseLowerCaseCity "trivandrum" = Right Trivandrum
+      parseLowerCaseCity "std:0487" = Right Thrissur
+      parseLowerCaseCity "thrissur" = Right Thrissur
+      parseLowerCaseCity "std:0495" = Right Kozhikode
+      parseLowerCaseCity "kozhikode" = Right Kozhikode
+      parseLowerCaseCity "std:0172" = Right Chandigarh
+      parseLowerCaseCity "chandigarh" = Right Chandigarh
+      parseLowerCaseCity "std:0141" = Right Jaipur
+      parseLowerCaseCity "jaipur" = Right Jaipur
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
@@ -216,4 +246,9 @@ instance ToHttpApiData City where
   toUrlPiece Hosur = "std:04344"
   toUrlPiece Trichy = "std:0431"
   toUrlPiece Minneapolis = "std:0820"
+  toUrlPiece Trivandrum = "std:0471"
+  toUrlPiece Thrissur = "std:0487"
+  toUrlPiece Kozhikode = "std:0495"
+  toUrlPiece Chandigarh = "std:0172"
+  toUrlPiece Jaipur = "std:0141"
   toUrlPiece AnyCity = "*"
