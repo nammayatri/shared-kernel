@@ -28,7 +28,8 @@ data CacConfig = CacConfig
     interval :: Natural,
     tenant :: String,
     retryConnection :: Bool,
-    cacExpTime :: Seconds
+    cacExpTime :: Seconds,
+    enablePolling :: Bool
   }
   deriving (Generic, FromDhall)
 
