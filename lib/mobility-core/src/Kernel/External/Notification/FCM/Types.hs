@@ -158,6 +158,7 @@ data FCMNotificationType
   | SOS_RESOLVED
   | EMERGENCY_CONTACT_ADDED
   | SOS_MOCK_DRILL_NOTIFY
+  | DOCUMENT_INVALID
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
