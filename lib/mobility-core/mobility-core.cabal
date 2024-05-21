@@ -279,6 +279,7 @@ library
       Kernel.Types.CacheFlow
       Kernel.Types.Centesimal
       Kernel.Types.Common
+      Kernel.Types.Confidence
       Kernel.Types.Credentials
       Kernel.Types.Distance
       Kernel.Types.Error
