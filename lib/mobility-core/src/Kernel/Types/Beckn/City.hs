@@ -54,6 +54,7 @@ data City
   | Hosur
   | Trichy
   | Minneapolis
+  | Siliguri
   | Trivandrum
   | Thrissur
   | Kozhikode
@@ -113,6 +114,8 @@ instance FromJSON City where
   parseJSON (String "Trichy") = pure Trichy
   parseJSON (String "std:0820") = pure Minneapolis
   parseJSON (String "Minneapolis") = pure Minneapolis
+  parseJSON (String "std:0353") = pure Siliguri
+  parseJSON (String "Siliguri") = pure Siliguri
   parseJSON (String "std:0471") = pure Trivandrum
   parseJSON (String "Trivandrum") = pure Trivandrum
   parseJSON (String "std:0487") = pure Thrissur
@@ -150,6 +153,7 @@ instance ToJSON City where
   toJSON Hosur = String "std:04344"
   toJSON Trichy = String "std:0431"
   toJSON Minneapolis = String "std:0820"
+  toJSON Siliguri = String "std:0353"
   toJSON Trivandrum = String "std:0471"
   toJSON Thrissur = String "std:0487"
   toJSON Kozhikode = String "std:0495"
@@ -209,6 +213,8 @@ instance FromHttpApiData City where
       parseLowerCaseCity "trichy" = Right Trichy
       parseLowerCaseCity "std:0820" = Right Minneapolis
       parseLowerCaseCity "minneapolis" = Right Minneapolis
+      parseLowerCaseCity "std:0353" = Right Siliguri
+      parseLowerCaseCity "siliguri" = Right Siliguri
       parseLowerCaseCity "std:0471" = Right Trivandrum
       parseLowerCaseCity "trivandrum" = Right Trivandrum
       parseLowerCaseCity "std:0487" = Right Thrissur
@@ -246,6 +252,7 @@ instance ToHttpApiData City where
   toUrlPiece Hosur = "std:04344"
   toUrlPiece Trichy = "std:0431"
   toUrlPiece Minneapolis = "std:0820"
+  toUrlPiece Siliguri = "std:0353"
   toUrlPiece Trivandrum = "std:0471"
   toUrlPiece Thrissur = "std:0487"
   toUrlPiece Kozhikode = "std:0495"
