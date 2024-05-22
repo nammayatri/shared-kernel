@@ -108,6 +108,23 @@ instance FromBackendRow Postgres DistanceUnit
 
 convertMetersToDistance :: DistanceUnit -> Meters -> Distance
 convertMetersToDistance distanceUnit = convertDistance distanceUnit . metersToDistance
+  where
+    metersToDistance :: Meters -> Distance
+    metersToDistance meters =
+      Distance
+        { value = realToFrac @Meters @HighPrecDistance meters,
+          unit = Meter
+        }
+
+convertHighPrecMetersToDistance :: DistanceUnit -> HighPrecMeters -> Distance
+convertHighPrecMetersToDistance distanceUnit = convertDistance distanceUnit . highPrecMetersToDistance
+  where
+    highPrecMetersToDistance :: HighPrecMeters -> Distance
+    highPrecMetersToDistance highPrecMeters =
+      Distance
+        { value = realToFrac @HighPrecMeters @HighPrecDistance highPrecMeters,
+          unit = Meter
+        }
 
 convertToMeters :: Distance -> Distance
 convertToMeters = convertDistance Meter
@@ -124,9 +141,8 @@ distanceConversionRate = \case
 
 -- | On DB side we use single distanceUnit field for each table
 --   So we should check that unit for current Distance is correct, and convert if it is not correct
-distanceToHighPrecDistance :: Maybe DistanceUnit -> Distance -> HighPrecDistance
-distanceToHighPrecDistance mbDistanceUnit distance = do
-  let distanceUnit = fromMaybe Meter mbDistanceUnit
+distanceToHighPrecDistance :: DistanceUnit -> Distance -> HighPrecDistance
+distanceToHighPrecDistance distanceUnit distance = do
   if distanceUnit == distance.unit
     then distance.value
     else (.value) . convertDistance distanceUnit $ distance
@@ -146,14 +162,23 @@ instance Eq Distance where
 instance Ord Distance where
   a <= b = withUnitChecking a b (\_unit -> (<=))
 
-instance Num Distance where
-  a + b = withUnitChecking a b (\unit a' b' -> Distance (a' + b') unit)
-  a - b = withUnitChecking a b (\unit a' b' -> Distance (a' - b') unit)
-  a * b = withUnitChecking a b (\unit a' b' -> Distance (a' * b') unit) -- should not be used:  1 KiloMeter * 1 KiloMeter = 1 Kilometer, 1000 Meter * 1000 Meter = 1000000 Meter
-  negate = modifyDistanceValue negate
-  abs = modifyDistanceValue abs
-  signum = modifyDistanceValue signum
-  fromInteger a = Distance (fromInteger a) Meter -- should not be used
+-- using Num instance is unsafe, because (*) operator and other functions can show different result depending on units:
+-- 1 KiloMeter * 1 KiloMeter = 1 Kilometer, 1000 Meter * 1000 Meter = 1000000 Meter
+(.+) :: Distance -> Distance -> Distance
+a .+ b = withUnitChecking a b (\unit a' b' -> Distance (a' + b') unit)
+
+infixl 6 .+
+
+(.-) :: Distance -> Distance -> Distance
+a .- b = withUnitChecking a b (\unit a' b' -> Distance (a' + b') unit)
+
+infixl 6 .-
+
+negateDistance :: Distance -> Distance
+negateDistance = modifyDistanceValue negate
+
+absDistance :: Distance -> Distance
+absDistance = modifyDistanceValue abs
 
 modifyDistanceValue :: (HighPrecDistance -> HighPrecDistance) -> Distance -> Distance
 modifyDistanceValue func d = d{value = func d.value}
@@ -167,6 +192,18 @@ withUnitChecking d1 d2 func =
   if d1.unit == d2.unit
     then func d1.unit d1.value d2.value
     else func Meter ((convertToMeters d1).value) ((convertToMeters d2).value)
+
+withUnitCheckingList ::
+  NonEmpty Distance ->
+  (DistanceUnit -> NonEmpty HighPrecDistance -> a) ->
+  a
+withUnitCheckingList ds@(d1 :| _) func =
+  if all (\d -> d.unit == d1.unit) ds
+    then func d1.unit (ds <&> (.value))
+    else func Meter (ds <&> (.value) . convertToMeters)
+
+sumDistance :: NonEmpty Distance -> Distance
+sumDistance ds = withUnitCheckingList ds $ \unit ds' -> Distance (sum ds') unit
 
 -- data DistanceAPIEntity = DistanceAPIEntity
 --   { value :: HighPrecDistance,
@@ -247,7 +284,7 @@ mkDistanceWithDefaultMeters mbUnit mbValue defDistance = case mbValue of
       { value,
         unit = fromMaybe Meter mbUnit
       }
-  Nothing -> metersToDistance defDistance
+  Nothing -> convertMetersToDistance (fromMaybe Meter mbUnit) defDistance
 
 mkDistanceWithDefault :: Maybe DistanceUnit -> Maybe HighPrecDistance -> HighPrecMeters -> Distance
 mkDistanceWithDefault mbUnit mbValue defDistance = case mbValue of
@@ -256,27 +293,13 @@ mkDistanceWithDefault mbUnit mbValue defDistance = case mbValue of
       { value,
         unit = fromMaybe Meter mbUnit
       }
-  Nothing -> highPrecMetersToDistance defDistance
+  Nothing -> convertHighPrecMetersToDistance (fromMaybe Meter mbUnit) defDistance
 
 distanceToMeters :: Distance -> Meters
 distanceToMeters = Meters . round @HighPrecDistance @Int . (.value) . convertToMeters
 
 distanceToHighPrecMeters :: Distance -> HighPrecMeters
 distanceToHighPrecMeters = realToFrac @HighPrecDistance @HighPrecMeters . (.value) . convertToMeters
-
-metersToDistance :: Meters -> Distance
-metersToDistance meters =
-  Distance
-    { value = realToFrac @Meters @HighPrecDistance meters,
-      unit = Meter
-    }
-
-highPrecMetersToDistance :: HighPrecMeters -> Distance
-highPrecMetersToDistance highPrecMeters =
-  Distance
-    { value = realToFrac @HighPrecMeters @HighPrecDistance highPrecMeters,
-      unit = Meter
-    }
 
 highPrecDistanceToText :: HighPrecDistance -> Text
 highPrecDistanceToText = DecimalValue.valueToString . DecimalValue.DecimalValue . getHighPrecDistance
