@@ -54,6 +54,7 @@ data City
   | Hosur
   | Trichy
   | Minneapolis
+  | Siliguri
   | AnyCity
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
@@ -108,6 +109,8 @@ instance FromJSON City where
   parseJSON (String "Trichy") = pure Trichy
   parseJSON (String "std:0820") = pure Minneapolis
   parseJSON (String "Minneapolis") = pure Minneapolis
+  parseJSON (String "std:0353") = pure Siliguri
+  parseJSON (String "Siliguri") = pure Siliguri
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
@@ -135,6 +138,7 @@ instance ToJSON City where
   toJSON Hosur = String "std:04344"
   toJSON Trichy = String "std:0431"
   toJSON Minneapolis = String "std:0820"
+  toJSON Siliguri = String "std:0353"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -189,6 +193,8 @@ instance FromHttpApiData City where
       parseLowerCaseCity "trichy" = Right Trichy
       parseLowerCaseCity "std:0820" = Right Minneapolis
       parseLowerCaseCity "minneapolis" = Right Minneapolis
+      parseLowerCaseCity "std:0353" = Right Siliguri
+      parseLowerCaseCity "siliguri" = Right Siliguri
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
@@ -216,4 +222,5 @@ instance ToHttpApiData City where
   toUrlPiece Hosur = "std:04344"
   toUrlPiece Trichy = "std:0431"
   toUrlPiece Minneapolis = "std:0820"
+  toUrlPiece Siliguri = "std:0353"
   toUrlPiece AnyCity = "*"
