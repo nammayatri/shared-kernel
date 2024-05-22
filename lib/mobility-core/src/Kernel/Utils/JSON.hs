@@ -121,7 +121,7 @@ constructorsWithLowerCase =
     { fieldLabelModifier = unpack . toLower . pack
     }
 
-valueToMaybe :: FromJSON a => Value -> Maybe a
+valueToMaybe :: forall a. FromJSON a => Value -> Maybe a
 valueToMaybe value = case fromJSON value of
   Success a -> Just a
   Error _ -> Nothing
