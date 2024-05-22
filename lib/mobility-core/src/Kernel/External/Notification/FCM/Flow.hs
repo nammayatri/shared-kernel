@@ -167,7 +167,7 @@ notifyPerson ::
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPerson config msgData recipient = notifyPersonWithPriority config Nothing False msgData recipient EulerHS.Prelude.id
+notifyPerson config msgData recipient = notifyPersonWithPriority config Nothing True msgData recipient EulerHS.Prelude.id
 
 notifyPersonWithPriority ::
   ( CoreMetrics m,
