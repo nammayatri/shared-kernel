@@ -39,6 +39,7 @@ data Column (a :: IsAggregated) t v where
   CoerceNum :: (ClickhouseTable t, ClickhouseNum v1, ClickhouseNum v2) => Column a t v1 -> Column a t v2
   ToDate :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Time.Day) => Column a t DateTime -> Column a t Time.Day -- FIXME create some generic constructor for different clickhouse functions
   ToHour :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Int) => Column a t DateTime -> Column a t Int
+  TimeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
   ValColumn :: (ClickhouseTable t, ClickhouseValue v) => v -> Column a t v
 
 mkTableColumns :: ClickhouseTable t => FieldModifications t -> Columns 'NOT_AGG t
@@ -153,6 +154,7 @@ showColumn (Add column1 column2) = addBrackets' (showColumn column1 <> "+" <> sh
 showColumn (CoerceNum column) = showColumn column
 showColumn (ToDate column) = "toDate" <> addBrackets' (showColumn column)
 showColumn (ToHour column) = "toHour" <> addBrackets' (showColumn column)
+showColumn (TimeDiff column1 column2) = "timeDiff" <> addBrackets' (showColumn column1 <> ", " <> showColumn column2)
 showColumn (ValColumn v) = valToString . toClickhouseValue $ v
 
 addBrackets' :: String -> String
