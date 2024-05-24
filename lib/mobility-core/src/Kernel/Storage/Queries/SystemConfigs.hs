@@ -2,17 +2,16 @@
 
 module Kernel.Storage.Queries.SystemConfigs where
 
-import Kernel.Beam.Functions (FromTType' (fromTType'), ToTType' (toTType'), findOneWithDb)
+import Kernel.Beam.Functions (findOneWithDb)
+import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
 import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
-import Kernel.Storage.Esqueleto.Config
 import Kernel.Tools.Metrics.CoreMetrics.Types
-import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Types.SystemConfigs as Domain
 import Sequelize as Se
 
-findById :: (CacheFlow m r, EsqDBFlow m r, HasSchemaName BeamSC.SystemConfigsT) => Text -> m (Maybe Text)
+findById :: (KvDbFlow m r, HasSchemaName BeamSC.SystemConfigsT) => Text -> m (Maybe Text)
 findById cfgId = do
   findOneWithDb [Se.Is BeamSC.id $ Se.Eq cfgId] <&> (<&> Domain.configValue)
     >>= maybe (incrementSystemConfigsFailedCounter ("system_configs_find_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT) <> "_" <> cfgId) >> pure Nothing) (pure . Just)

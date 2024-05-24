@@ -27,6 +27,12 @@ compareWithoutRightSpaces = (==) `on` T.dropWhileEnd Char.isSpace
 decodeFromText :: FromJSON a => Text -> Maybe a
 decodeFromText = A.decode . BSL.fromStrict . DT.encodeUtf8
 
+decodeFromTextArt :: FromJSON (table Identity) => Text -> Maybe (table Identity)
+decodeFromTextArt = decodeFromText
+
+encodeToTextArt :: ToJSON (table Identity) => table Identity -> Text
+encodeToTextArt = encodeToText
+
 decodeFromText' :: FromJSON a => Maybe Text -> Maybe a
 decodeFromText' = maybe Nothing decodeFromText
 

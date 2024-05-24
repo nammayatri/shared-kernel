@@ -19,10 +19,9 @@ module Kernel.External.Types where
 import Data.OpenApi
 import Database.Beam
 import EulerHS.Prelude
+import Kernel.Beam.Lib.Utils (KvDbFlow)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.External.Encryption (EncFlow)
-import Kernel.Storage.Esqueleto (EsqDBFlow)
-import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
@@ -61,4 +60,4 @@ instance ToHttpApiData Language where
   toUrlPiece FRENCH = "fr"
   toUrlPiece TELUGU = "te"
 
-type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r)
+type ServiceFlow m r = (EncFlow m r, KvDbFlow m r)

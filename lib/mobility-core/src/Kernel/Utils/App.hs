@@ -48,17 +48,17 @@ import Data.UUID.V4 (nextRandom)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
 import qualified EulerHS.Runtime as R
+import Kernel.Beam.ART.ARTUtils
 import Kernel.Beam.Lib.UtilsTH (HasSchemaName)
 import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Esqueleto.Config (EsqDBEnv)
 import Kernel.Storage.Hedis
-import Kernel.Tools.ARTUtils
 import Kernel.Tools.Logging
 import Kernel.Tools.Metrics.CoreMetrics (DeploymentVersion (..))
 import Kernel.Tools.Metrics.CoreMetrics.Types (HasCoreMetrics)
 import Kernel.Types.App
 import Kernel.Types.Flow
-import Kernel.Utils.Common
+import Kernel.Utils.Common hiding (pushToKafka)
 import qualified Kernel.Utils.FlowLogging as L
 import Kernel.Utils.IOLogging (HasLog, appendLogTag, updateLogLevel)
 import Kernel.Utils.Shutdown
@@ -233,7 +233,7 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId -> do
         flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
        }
 
-withModifiedEnv' :: (HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv' :: (HasARTFlow f, HasCoreMetrics f, HasField "dbFunctions" f DbFunctions, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
   let sanitizedUrl = removeUUIDs . cs $ Wai.rawPathInfo req
   mbDynamicLogLevelConfig <- runFlowR env.flowRuntime env.appEnv $ getDynamicLogLevelConfig

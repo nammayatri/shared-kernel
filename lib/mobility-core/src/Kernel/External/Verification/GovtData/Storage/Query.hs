@@ -15,19 +15,18 @@
 
 module Kernel.External.Verification.GovtData.Storage.Query where
 
-import Kernel.Beam.Functions (FromTType' (fromTType'), ToTType' (toTType'), createWithKV, findAllWithOptionsKV)
+import Kernel.Beam.Functions (createWithKV, findAllWithOptionsKV)
+import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
 import qualified Kernel.External.Verification.GovtData.Types as GD
 import Kernel.Prelude
-import Kernel.Types.Common
-import Kernel.Utils.Common
 import qualified Sequelize as Se
 
-create :: (HasSchemaName BeamGRC.GovtDataRCT, MonadFlow m, EsqDBFlow m r) => GD.GovtDataResponse -> m ()
+create :: (HasSchemaName BeamGRC.GovtDataRCT, KvDbFlow m r) => GD.GovtDataResponse -> m ()
 create = createWithKV
 
-findByRCNumber :: (HasSchemaName BeamGRC.GovtDataRCT, MonadFlow m, EsqDBFlow m r, CacheFlow m r) => Text -> m (Maybe GD.GovtDataResponse)
+findByRCNumber :: (HasSchemaName BeamGRC.GovtDataRCT, KvDbFlow m r) => Text -> m (Maybe GD.GovtDataResponse)
 findByRCNumber rcNumber = findAllWithOptionsKV [Se.Is BeamGRC.registrationNumber $ Se.Eq (Just rcNumber)] (Se.Desc BeamGRC.createdAt) (Just 1) Nothing <&> listToMaybe
 
 instance FromTType' BeamGRC.GovtDataRC GD.GovtDataResponse where

@@ -21,16 +21,19 @@ module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR) where
 import Control.Monad.IO.Unlift
 import Data.Aeson
 import Data.Default.Class
+import qualified Data.Map.Internal as M
 import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
+import qualified EulerHS.Types as EO
+import Kernel.Beam.ART.ARTUtils (ArtData (..), ForkedTag (..), HasARTFlow, pushToKafka)
+import qualified Kernel.Beam.ART.ARTUtils as ART
+import Kernel.Beam.Lib.Utils hiding (pushToKafka)
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
 import Kernel.Storage.Beam.SystemConfigs
-import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Hedis.Config
-import Kernel.Tools.ARTUtils (ArtData (..), HasARTFlow, pushToKafka)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.CacheFlow
@@ -41,6 +44,7 @@ import Kernel.Types.Time
 import qualified Kernel.Utils.IOLogging as IOLogging
 import Kernel.Utils.Logging
 import Prometheus (MonadMonitor (..))
+import Unsafe.Coerce (unsafeCoerce)
 
 runFlowR :: R.FlowRuntime -> r -> FlowR r a -> IO a
 runFlowR flowRt r (FlowR x) = I.runFlow flowRt . runReaderT x $ r
@@ -61,7 +65,7 @@ type HasFlowHandlerR m r =
     HasCacConfig r,
     HasCoreMetrics r,
     HedisFlow m r,
-    EsqDBFlow m r,
+    KvDbFlow m r,
     IOLogging.HasLog r,
     HasSchemaName SystemConfigsT
   )
@@ -224,6 +228,9 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   incrementSchedulerFailureCounter = Metrics.incrementSchedulerFailureCounterImplementation
   incrementGenericMetrics = Metrics.incrementGenericMetrics'
   incrementSystemConfigsFailedCounter = Metrics.incrementSystemConfigsFailedCounter'
+  logApiResponseData = ART.logApiResponseData
+  getIsArtReplayerEnabled = ART.getIsArtReplayerEnabled
+  getArtReplayResponse = ART.getArtReplayResponse
 
 instance MonadMonitor (FlowR r) where
   doIO = liftIO
@@ -233,14 +240,15 @@ instance MonadGuid (FlowR r) where
 
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
   fork tag f = do
-    newLocalOptions <- newMVar mempty
+    let keyText = EO.mkOptionKey ForkedTag
+    newLocalOptions <- newMVar (M.singleton keyText (unsafeCoerce @_ @Any tag))
     shouldLogRequestId <- asks (.shouldLogRequestId)
     when (shouldLogRequestId && tag /= "ArtData") $ do
       requestId <- fromMaybe "" <$> asks (.requestId)
       kafkaConn <- asks (.kafkaProducerForART)
       timestamp <- getCurrentTime
       let response = def {requestId = requestId, forkedTag = Just tag, timestamp = Just timestamp}
-      liftIO $ pushToKafka kafkaConn (encode response) "ART-Logs" requestId
+      liftIO $ void $ forkIO $ pushToKafka kafkaConn (encode response) "ART-Logs" requestId
 
     FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
     where

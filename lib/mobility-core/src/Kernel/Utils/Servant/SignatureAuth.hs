@@ -34,7 +34,7 @@ import EulerHS.Prelude hiding (fromList, (.~))
 import qualified EulerHS.Runtime as R
 import GHC.Exts (fromList)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import Kernel.Tools.ARTUtils (HasARTFlow)
+import Kernel.Beam.ART.ARTUtils (HasARTFlow)
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import qualified Kernel.Types.Beckn.Context as Context
@@ -252,6 +252,7 @@ verifySignature ::
     Metrics.CoreMetrics m,
     HasField "hostName" r Text,
     HasField "disableSignatureAuth" r Bool,
+    HasField "isArtReplayerEnabled" r Bool,
     Registry m,
     HasLog r
   ) =>
@@ -278,7 +279,7 @@ verifySignature headerName signPayload bodyHash merchantId subscriberType domain
   registryLookup lookupRequest >>= \case
     Just subscriber -> do
       disableSignatureAuth <- asks (.disableSignatureAuth)
-      unless disableSignatureAuth do
+      unless (disableSignatureAuth) do
         let publicKey = subscriber.signing_public_key
         isVerified <- performVerification publicKey hostName
         unless isVerified $ do
@@ -308,13 +309,15 @@ verifySignature headerName signPayload bodyHash merchantId subscriberType domain
       let signatureMsg = HttpSig.makeSignatureString signatureParams bodyHash headers
       logTagDebug logTag $
         "Start verifying. Signature: " +|| HttpSig.encode signPayload ||+ ", Signature Message: " +|| signatureMsg ||+ ", Body hash: " +|| bodyHash ||+ ""
-      let verificationResult =
+      let verificationResult' =
             HttpSig.verify
               key
               signatureParams
               bodyHash
               headers
               signature
+      isArtReplayerEnabled <- asks (.isArtReplayerEnabled)
+      let verificationResult = bool verificationResult' (Right True) isArtReplayerEnabled
       case verificationResult of
         Right result -> pure result
         Left err -> do

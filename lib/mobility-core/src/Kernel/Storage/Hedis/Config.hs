@@ -19,14 +19,14 @@ import Data.Word (Word16)
 import Database.Redis
 import GHC.Records.Extra
 import Kernel.Prelude
+import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Tools.Metrics.CoreMetrics
-import Kernel.Types.Logging
-import Kernel.Types.Time
+import Kernel.Types.App
 import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
 type HedisFlow m env =
-  (MonadTime m, MonadClock m, CoreMetrics m, MonadCatch m, MonadReader env m, HedisFlowEnv env, MonadIO m, C.MonadThrow m, Log m)
+  (CoreMetrics m, MonadCatch m, MonadReader env m, HedisFlowEnv env, MonadFlow m, HasField "shouldLogRequestId" env Bool, HasField "requestId" env (Maybe Text), HasField "kafkaProducerForART" env (Maybe KafkaProducerTools), HasField "isArtReplayerEnabled" env Bool)
 
 type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool)
 

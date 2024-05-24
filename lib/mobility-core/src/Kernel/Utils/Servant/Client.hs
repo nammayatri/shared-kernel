@@ -73,7 +73,8 @@ type CallAPI' m api res res' =
     Metrics.CoreMetrics m,
     SanitizedUrl api,
     MonadFlow m,
-    ToJSON res
+    ToJSON res,
+    FromJSON res
   ) =>
   BaseUrl ->
   ET.EulerClient res ->
@@ -93,13 +94,17 @@ callAPI' ::
   CallAPI' m api res (Either ClientError res)
 callAPI' mbManagerSelector baseUrl eulerClient desc api =
   withLogTag "callAPI" $ do
+    isArtReplayerEnabled <- Metrics.getIsArtReplayerEnabled
     let managerSelector = fromMaybe defaultHttpManager mbManagerSelector
-    logDebug $ "Sanitized URL is " <> buildSanitizedUrl
+    let sanitizedUrl = buildSanitizedUrl
+    logDebug $ "Sanitized URL is " <> sanitizedUrl
     res <-
-      measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
-        L.callAPI' (Just managerSelector) baseUrl eulerClient
+      measuringDuration (Metrics.addRequestLatency sanitizedUrl desc) $
+        bool (L.callAPI' (Just managerSelector) baseUrl eulerClient) (Metrics.getArtReplayResponse sanitizedUrl) isArtReplayerEnabled
     case res of
-      Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
+      Right r -> do
+        logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
+        Metrics.logApiResponseData sanitizedUrl r
       Left err -> logDebug $ "Error occured during client call: " <> show err
     return res
   where
