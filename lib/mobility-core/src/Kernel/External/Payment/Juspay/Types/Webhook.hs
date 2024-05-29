@@ -81,7 +81,7 @@ data WebhookTxnData = WebhookTxnData
     error_code :: Maybe Text,
     error_message :: Maybe Text,
     txn_amount :: Double,
-    status_id :: Int,
+    status_id :: Maybe Int,
     currency :: Currency,
     metadata :: Maybe MetaData,
     additional_info :: Maybe AdditionalInfo,

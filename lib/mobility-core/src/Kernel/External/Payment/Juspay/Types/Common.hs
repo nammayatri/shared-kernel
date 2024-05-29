@@ -154,7 +154,7 @@ data OrderData = OrderData
   { order_id :: Text,
     txn_uuid :: Maybe Text,
     txn_id :: Maybe Text,
-    status_id :: Int,
+    status_id :: Maybe Int,
     event_name :: Maybe PaymentStatus, --- only webhook res contains this field ---
     status :: TransactionStatus,
     payment_method_type :: Maybe Text,
