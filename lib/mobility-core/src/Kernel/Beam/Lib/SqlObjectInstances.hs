@@ -8,10 +8,6 @@ import Kernel.Prelude
 import Sequelize.SQLObject (SQLObject (..), ToSQLObject (convertToSQLObject))
 import Text.Hex (encodeHex)
 
--- to let this module get rexported
-__x :: ()
-__x = ()
-
 instance {-# OVERLAPPING #-} ToSQLObject DbHash where
   convertToSQLObject = SQLObjectValue . show . ("\\x" <>) . encodeHex . unDbHash
 
