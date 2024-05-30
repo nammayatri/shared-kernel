@@ -13,6 +13,7 @@ module Kernel.Beam.Lib.UtilsTH
     mkBeamInstancesForEnumAndList,
     mkBeamInstancesForJSON,
     mkCustomMappings,
+    module Rexport,
   )
 where
 
@@ -33,26 +34,19 @@ import Database.PostgreSQL.Simple.FromField (FromField (fromField), ResultError 
 import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import qualified EulerHS.KVConnector.Types as KV
 import EulerHS.Prelude hiding (Type, words)
-import Kernel.External.Encryption (DbHash (..))
-import Kernel.Types.Common ()
+import Kernel.Beam.Lib.SqlObjectInstances as Rexport
 import Kernel.Types.FromField (fromFieldEnum, fromFieldJSON)
 import Kernel.Utils.Text (encodeToText)
 import Language.Haskell.TH
 import qualified Sequelize as S
 import Sequelize.SQLObject (SQLObject (..), ToSQLObject (convertToSQLObject))
 import Text.Casing (camel, quietSnake)
-import Text.Hex (encodeHex)
 import Prelude (head)
 import qualified Prelude as P
 
 -- | WARNING! Instances should be defined in application itself to avoid overlapping
 class HasSchemaName tn where
   schemaName :: Proxy tn -> Text
-
---- SQLObject ---
-
-instance {-# OVERLAPPING #-} ToSQLObject DbHash where
-  convertToSQLObject = SQLObjectValue . show . ("\\x" <>) . encodeHex . unDbHash
 
 --- templates ---
 
@@ -369,17 +363,18 @@ mkTableInstances' name table mbSchema tableFieldModifier = do
   serialInstances <- mkSerialInstances name
   fromJSONInstances <- mkFromJSONInstance name
   toJSONInstances <- mkToJSONInstance name
-  customMappings <- mkCustomMappings name tableFieldModifier
+  customMappings <- mkCustomMappings name table tableFieldModifier
   showInstances <- mkShowInstance name
   (tModSig, tModBody) <- mkTModFunction tableFieldModifier name
   pure ([tModSig, tModBody, modelMetaInstances, eModSig, eModBody, serialInstances, fromJSONInstances, toJSONInstances, showInstances] <> customMappings)
 
 ------------------- instances for table row ---------------
 
-mkCustomMappings :: Name -> [(String, String)] -> Q [Dec]
-mkCustomMappings name valuePairs = do
+mkCustomMappings :: Name -> String -> [(String, String)] -> Q [Dec]
+mkCustomMappings name table valuePairs = do
+  let tableNameInstance = ValD (VarP 'KV.getTableName) (NormalB (LitE (StringL table))) []
   let toJSONInstance = ValD (VarP 'KV.getTableMappings) (NormalB (ListE (map (\(key, value) -> TupE [Just (LitE (StringL key)), Just (LitE (StringL value))]) valuePairs))) []
-  return [InstanceD Nothing [] (AppT (ConT ''KV.TableMappings) (AppT (ConT name) (ConT $ mkName "Identity"))) [toJSONInstance]]
+  return [InstanceD Nothing [] (AppT (ConT ''KV.TableMappings) (AppT (ConT name) (ConT $ mkName "Identity"))) [toJSONInstance, tableNameInstance]]
 
 -- | A set of instances required for beam table row as enum.
 mkBeamInstancesForEnum :: Name -> Q [Dec]

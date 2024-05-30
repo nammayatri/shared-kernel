@@ -27,6 +27,7 @@ library
       Kernel.Beam.Connection.Redis
       Kernel.Beam.Connection.Types
       Kernel.Beam.Functions
+      Kernel.Beam.Lib.SqlObjectInstances
       Kernel.Beam.Lib.Utils
       Kernel.Beam.Lib.UtilsTH
       Kernel.Beam.Types
