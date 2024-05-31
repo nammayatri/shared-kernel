@@ -225,6 +225,7 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
                   snappedResp =
                     SnapToRoadResp
                       { distance = totalSectorsDistance + distance,
+                        distanceWithUnit = convertHighPrecMetersToDistance Meter $ totalSectorsDistance + distance,
                         confidence = 1,
                         snappedPoints = snappedPoints
                       }

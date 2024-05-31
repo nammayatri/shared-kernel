@@ -74,7 +74,7 @@ autoSuggest mmiCfg AutoCompleteReq {..} = do
       mapsUrl = mmiCfg.mmiNonKeyUrl
   token <- MMIAuthToken.getTokenText mmiCfg
   res <- MMI.mmiAutoSuggest mapsUrl (Just $ MMITypes.MMIAuthToken token) query loc region lang
-  let predictions = map (\MMITypes.SuggestedLocations {..} -> Prediction {placeId = Just eLoc, description = placeName <> " " <> placeAddress, distance = Nothing}) res.suggestedLocations
+  let predictions = map (\MMITypes.SuggestedLocations {..} -> Prediction {placeId = Just eLoc, description = placeName <> " " <> placeAddress, distance = Nothing, distanceWithUnit = Nothing}) res.suggestedLocations
   return $ AutoCompleteResp predictions
 
 getDistanceMatrix ::
@@ -139,11 +139,13 @@ buildResp ::
   MMITypes.DistanceMatrixResp ->
   (Int, Int) ->
   IT.GetDistanceResp a b
-buildResp listSrc listDest distanceMatrixResp pair =
+buildResp listSrc listDest distanceMatrixResp pair = do
+  let distance = floor $ (distanceMatrixResp.results.distances !! fst pair) !! snd pair
   GetDistanceResp
     { origin = listSrc !! fst pair,
       destination = listDest !! snd pair,
-      distance = floor $ (distanceMatrixResp.results.distances !! fst pair) !! snd pair,
+      distance,
+      distanceWithUnit = convertMetersToDistance Meter distance,
       duration = floor $ (distanceMatrixResp.results.durations !! fst pair) !! snd pair,
       status = distanceMatrixResp.results.code
     }
@@ -236,6 +238,7 @@ snapToRoad mmiCfg req = do
   pure
     SnapToRoadResp
       { distance = dist,
+        distanceWithUnit = convertHighPrecMetersToDistance Meter dist,
         confidence = 1.0, -- Considering MMI's default confidence as 1.0
         snappedPoints = listOfPoints
       }

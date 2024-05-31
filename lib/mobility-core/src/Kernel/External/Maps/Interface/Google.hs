@@ -190,6 +190,7 @@ parseDistanceMatrixResp origins destinations distanceMatrixResp = do
           { origin = orig,
             destination = dest,
             distance = distance,
+            distanceWithUnit = convertMetersToDistance Meter distance,
             duration = Seconds . double2Int . realToFrac $ duration,
             status = element.status
           }
@@ -235,6 +236,7 @@ snapToRoad cfg SnapToRoadReq {..} = do
   pure
     SnapToRoadResp
       { distance = dist,
+        distanceWithUnit = convertHighPrecMetersToDistance Meter dist,
         confidence = 1.0, -- Considering Google's default confidence as 1.0
         snappedPoints = pts
       }
@@ -254,8 +256,8 @@ autoComplete cfg AutoCompleteReq {..} = do
           India -> "country:in"
           France -> "country:fr"
           USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
-  res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location radius components language strictbounds origin
-  let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, distance = distance_meters, ..}) res.predictions
+  res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin
+  let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, distance = distance_meters, distanceWithUnit = convertMetersToDistance Meter . Meters <$> distance_meters, ..}) res.predictions
   return $ AutoCompleteResp predictions
 
 getPlaceDetails ::
