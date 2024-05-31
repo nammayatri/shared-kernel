@@ -80,6 +80,7 @@ data GetDistanceResp a b = GetDistanceResp
   { origin :: a,
     destination :: b,
     distance :: Meters,
+    distanceWithUnit :: Distance,
     duration :: Seconds,
     status :: Text
   }
@@ -177,6 +178,7 @@ newtype SnapToRoadReq = SnapToRoadReq
 
 data SnapToRoadResp = SnapToRoadResp
   { distance :: HighPrecMeters,
+    distanceWithUnit :: Distance,
     confidence :: Double,
     snappedPoints :: [LatLong]
   }
@@ -193,6 +195,7 @@ data AutoCompleteReq = AutoCompleteReq
     sessionToken :: Maybe Text,
     location :: Text,
     radius :: Integer,
+    radiusWithUnit :: Maybe Distance,
     language :: Language,
     strictbounds :: Maybe Bool,
     origin :: Maybe LatLong,
@@ -209,7 +212,8 @@ newtype AutoCompleteResp = AutoCompleteResp
 data Prediction = Prediction
   { description :: Text,
     placeId :: Maybe Text,
-    distance :: Maybe Int
+    distance :: Maybe Int,
+    distanceWithUnit :: Maybe Distance
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
