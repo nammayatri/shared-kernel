@@ -282,8 +282,7 @@ findAllWithKVAndConditionalDB ::
   m [a]
 findAllWithKVAndConditionalDB where' orderBy = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
-  inReplica <- L.getOptionLocal ReplicaEnabled
-  dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
+  dbConf' <- getReadDBConfigInternal updatedMeshConfig
   result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
   case result of
     Right res -> do
@@ -321,8 +320,7 @@ findAllWithOptionsKV' ::
   m [a]
 findAllWithOptionsKV' where' mbLimit mbOffset = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
-  inReplica <- L.getOptionLocal ReplicaEnabled
-  dbConf' <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
+  dbConf' <- getReadDBConfigInternal updatedMeshConfig
   result <- KV.findAllWithOptionsKVConnector' dbConf' updatedMeshConfig where' mbLimit mbOffset
   case result of
     Right res -> do
@@ -440,7 +438,7 @@ findOneInternal ::
   Where Postgres table ->
   m (Maybe a)
 findOneInternal updatedMeshConfig fromTType where' = do
-  dbConf' <- getReadDBConfigInternal
+  dbConf' <- getReadDBConfigInternal updatedMeshConfig
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
   logQueryData "findOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
@@ -456,7 +454,7 @@ findAllInternal ::
   Where Postgres table ->
   m [a]
 findAllInternal updatedMeshConfig fromTType where' = do
-  dbConf' <- getReadDBConfigInternal
+  dbConf' <- getReadDBConfigInternal updatedMeshConfig
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
   logQueryData "findAllInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
@@ -476,7 +474,7 @@ findAllWithOptionsInternal ::
   Maybe Int ->
   m [a]
 findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mbOffset = do
-  dbConf' <- getReadDBConfigInternal
+  dbConf' <- getReadDBConfigInternal updatedMeshConfig
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
   logQueryData "findAllWithOptionsInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
@@ -485,10 +483,11 @@ findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mb
       pure $ catMaybes res'
     Left err -> throwError $ InternalError $ show err
 
-getReadDBConfigInternal :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
-getReadDBConfigInternal = do
+getReadDBConfigInternal :: (HasCallStack, L.MonadFlow m) => MeshConfig -> m (DBConfig Pg)
+getReadDBConfigInternal meshConfig' = do
+  let dbConfig = bool getReplicaDbConfig getMasterDBConfig meshConfig'.kvHardKilled -- if kvHardKilled(which is kv disabled) is true, read from master
   inReplica <- L.getOptionLocal ReplicaEnabled
-  maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
+  maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else dbConfig) inReplica
 
 updateInternal ::
   forall table m r.
