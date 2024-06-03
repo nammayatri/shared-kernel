@@ -18,15 +18,18 @@ module Kernel.External.Payment.Types where
 import Data.Aeson.Types
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 
-data PaymentService = Juspay
+data PaymentService = Juspay | Stripe
   deriving (Show, Read, Eq, Ord, Generic)
 
+$(mkBeamInstancesForEnumAndList ''PaymentService)
 derivePersistField "PaymentService"
 
 -- Generic instances for type with single value will not work
 instance FromJSON PaymentService where
   parseJSON (String "Juspay") = pure Juspay
+  parseJSON (String "Stripe") = pure Stripe
   parseJSON (String _) = parseFail "Expected \"Juspay\""
   parseJSON e = typeMismatch "String" e
 

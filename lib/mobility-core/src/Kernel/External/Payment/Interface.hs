@@ -18,10 +18,14 @@ module Kernel.External.Payment.Interface
 where
 
 import qualified Kernel.External.Payment.Interface.Juspay as Juspay
+import qualified Kernel.External.Payment.Interface.Stripe as Stripe
 import Kernel.External.Payment.Interface.Types as Reexport
+import qualified Kernel.External.Payment.Stripe.Types as Stripe
 import Kernel.External.Payment.Types as Reexport
+import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Types.Common
+import Kernel.Types.Error
+import Kernel.Utils.Common
 
 createOrder ::
   ( EncFlow m r,
@@ -34,6 +38,7 @@ createOrder serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> do
     let req' = req {metadataGatewayReferenceId = cfg.gatewayReferenceId}
     Juspay.createOrder cfg req'
+  StripeConfig _ -> throwError $ InternalError "Stripe Create Order not supported."
 
 orderStatus ::
   ( EncFlow m r,
@@ -44,6 +49,7 @@ orderStatus ::
   m OrderStatusResp
 orderStatus serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.orderStatus cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Order Status not supported."
 
 offerList ::
   ( EncFlow m r,
@@ -54,6 +60,7 @@ offerList ::
   m OfferListResp
 offerList serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.offerList cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Offer List not supported."
 
 offerApply ::
   ( EncFlow m r,
@@ -64,6 +71,7 @@ offerApply ::
   m OfferApplyResp
 offerApply serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.offerApply cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Offer Apply not supported."
 
 offerNotify ::
   ( EncFlow m r,
@@ -74,6 +82,7 @@ offerNotify ::
   m OfferNotifyResp
 offerNotify serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.offerNotify cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Offer Notify not supported."
 
 mandateRevoke ::
   ( EncFlow m r,
@@ -84,6 +93,7 @@ mandateRevoke ::
   m MandateRevokeRes
 mandateRevoke serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateRevoke cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Mandate Revoke not supported."
 
 mandateNotification ::
   ( EncFlow m r,
@@ -94,6 +104,7 @@ mandateNotification ::
   m MandateNotificationRes
 mandateNotification serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateNotification cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Mandate Notification not supported."
 
 mandateNotificationStatus ::
   ( EncFlow m r,
@@ -104,6 +115,7 @@ mandateNotificationStatus ::
   m NotificationStatusResp
 mandateNotificationStatus serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateNotificationStatus cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Mandate Notification Status not supported."
 
 mandateExecution ::
   ( EncFlow m r,
@@ -114,6 +126,7 @@ mandateExecution ::
   m MandateExecutionRes
 mandateExecution serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateExecution cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Mandate Execution not supported."
 
 autoRefunds ::
   ( EncFlow m r,
@@ -124,3 +137,37 @@ autoRefunds ::
   m AutoRefundResp
 autoRefunds serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.autoRefund cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Auto Refunds not supported."
+
+createIndividualConnectAccount ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  PaymentServiceConfig ->
+  IndividualConnectAccountReq ->
+  m IndividualConnectAccountResp
+createIndividualConnectAccount serviceConfig req = case serviceConfig of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Create Individual Connect Account not supported."
+  StripeConfig cfg -> Stripe.createIndividualConnectAccount cfg req
+
+retryAccountLink ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  Stripe.AccountId ->
+  m RetryAccountLink
+retryAccountLink config accountId = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Retry Account Link not supported."
+  StripeConfig cfg -> Stripe.retryAccountLink cfg accountId
+
+getAccount ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  Stripe.AccountId ->
+  m ConnectAccountResp
+getAccount config accountId = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Get Account not supported."
+  StripeConfig cfg -> Stripe.getAccount cfg accountId

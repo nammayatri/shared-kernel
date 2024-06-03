@@ -21,13 +21,17 @@ module Kernel.External.Payment.Interface.Types
   )
 where
 
+import Data.Time
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
 import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
+import qualified Kernel.External.Payment.Stripe.Config as Stripe
+import Kernel.External.Payment.Stripe.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
+import qualified Kernel.Types.Beckn.Context as Context
 import Kernel.Types.Common hiding (Currency)
 
-newtype PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg
+data PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg | StripeConfig Stripe.StripeCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data CreateOrderReq = CreateOrderReq
@@ -378,4 +382,45 @@ data RefundsData = RefundsData
     requestId :: Text
   }
   deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- | Request to create a Connect Account
+data IndividualConnectAccountReq = IndividualConnectAccountReq
+  { country :: Context.Country,
+    email :: Maybe Text,
+    mobileNumber :: Text,
+    dateOfBirth :: Day,
+    firstName :: Text,
+    lastName :: Maybe Text,
+    ssnLast4 :: Maybe Text,
+    idNumber :: Maybe Text,
+    address :: Maybe Address
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data IndividualConnectAccountResp = IndividualConnectAccountResp
+  { accountId :: AccountId,
+    accountUrl :: Text,
+    accountUrlExpiry :: UTCTime,
+    chargesEnabled :: Bool,
+    detailsSubmitted :: Bool
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RetryAccountLink = RetryAccountLink
+  { accountId :: AccountId,
+    accountUrl :: Text,
+    accountUrlExpiry :: UTCTime
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data ConnectAccountResp = ConnectAccountResp
+  { accountId :: AccountId,
+    chargesEnabled :: Bool,
+    detailsSubmitted :: Bool
+  }
+  deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

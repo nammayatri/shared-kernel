@@ -56,9 +56,10 @@ verifyAuth ::
   BasicAuthData ->
   m ()
 verifyAuth config authData = do
-  let (username, password) = case config of
-        JuspayConfig cfg -> (cfg.username, cfg.password)
-
-  cfgPassword <- decrypt password
-  unless (basicAuthUsername authData == DT.encodeUtf8 username && basicAuthPassword authData == DT.encodeUtf8 cfgPassword) $
+  (username, password) <- case config of
+    JuspayConfig cfg -> do
+      cfgPassword <- decrypt cfg.password
+      return (cfg.username, cfgPassword)
+    StripeConfig _ -> return ("", "")
+  unless (basicAuthUsername authData == DT.encodeUtf8 username && basicAuthPassword authData == DT.encodeUtf8 password) $
     throwError (InvalidRequest "INVALID_AUTHORIZATION_HEADER")
