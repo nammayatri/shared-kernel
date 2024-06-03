@@ -44,11 +44,11 @@ callOsrmMatch ::
   OSRMCfg ->
   SnapToRoadReq ->
   m SnapToRoadResp
-callOsrmMatch osrmCfg (SnapToRoadReq wps) = do
+callOsrmMatch osrmCfg (SnapToRoadReq wps distanceUnit) = do
   let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
   res <- OSRM.callOsrmMatchAPI osrmCfg.osrmUrl mbRadius (OSRM.PointsList wps)
   (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
-  pure $ SnapToRoadResp dist (convertHighPrecMetersToDistance Meter dist) conf interpolatedPts
+  pure $ SnapToRoadResp dist (convertHighPrecMetersToDistance distanceUnit dist) conf interpolatedPts
 
 getDistances ::
   ( HasCallStack,
@@ -93,7 +93,7 @@ getOSRMTable tableResponse request = do
                             { origin = snd sourcePair,
                               destination = snd destinationPair,
                               distance,
-                              distanceWithUnit = convertMetersToDistance Meter distance,
+                              distanceWithUnit = convertMetersToDistance request.distanceUnit distance,
                               duration = Seconds {getSeconds = round $ tableResponse.durations !! fst sourcePair !! fst destinationPair},
                               status = "ok"
                             }

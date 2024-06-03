@@ -57,13 +57,13 @@ getDistancesWrapper ::
   Maybe GoogleMaps.Mode ->
   Bool ->
   m [GetDistanceResp a b]
-getDistancesWrapper _ limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode isAvoidTolls = concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
+getDistancesWrapper req limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode isAvoidTolls = concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
   concatForM limitedDestinationObjectsList $ \limitedDestinationObjects ->
     do
       let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
           limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
       GoogleMaps.distanceMatrix googleMapsUrl key limitedOriginPlaces limitedDestinationPlaces mode isAvoidTolls
-      >>= parseDistanceMatrixResp limitedOriginObjects limitedDestinationObjects
+      >>= parseDistanceMatrixResp req.distanceUnit limitedOriginObjects limitedDestinationObjects
 
 getDistances ::
   ( EncFlow m r,
@@ -170,11 +170,12 @@ mkRoute req route = do
 
 parseDistanceMatrixResp ::
   (MonadThrow m, MonadIO m, Log m) =>
+  DistanceUnit ->
   [a] ->
   [b] ->
   GoogleMaps.DistanceMatrixResp ->
   m [GetDistanceResp a b]
-parseDistanceMatrixResp origins destinations distanceMatrixResp = do
+parseDistanceMatrixResp distanceUnit origins destinations distanceMatrixResp = do
   mapM buildGetDistanceResult origDestAndElemList
   where
     origDestAndElemList = do
@@ -190,7 +191,7 @@ parseDistanceMatrixResp origins destinations distanceMatrixResp = do
           { origin = orig,
             destination = dest,
             distance = distance,
-            distanceWithUnit = convertMetersToDistance Meter distance,
+            distanceWithUnit = convertMetersToDistance distanceUnit distance,
             duration = Seconds . double2Int . realToFrac $ duration,
             status = element.status
           }
@@ -236,7 +237,7 @@ snapToRoad cfg SnapToRoadReq {..} = do
   pure
     SnapToRoadResp
       { distance = dist,
-        distanceWithUnit = convertHighPrecMetersToDistance Meter dist,
+        distanceWithUnit = convertHighPrecMetersToDistance distanceUnit dist,
         confidence = 1.0, -- Considering Google's default confidence as 1.0
         snappedPoints = pts
       }
@@ -257,7 +258,8 @@ autoComplete cfg AutoCompleteReq {..} = do
           France -> "country:fr"
           USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
   res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin
-  let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, distance = distance_meters, distanceWithUnit = convertMetersToDistance Meter . Meters <$> distance_meters, ..}) res.predictions
+  let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
+  let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, distance = distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> distance_meters, ..}) res.predictions
   return $ AutoCompleteResp predictions
 
 getPlaceDetails ::

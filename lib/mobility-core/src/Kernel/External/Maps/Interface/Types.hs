@@ -65,6 +65,7 @@ data TravelMode = CAR | MOTORCYCLE | BICYCLE | FOOT
 data GetDistanceReq a b = GetDistanceReq
   { origin :: a,
     destination :: b,
+    distanceUnit :: DistanceUnit,
     travelMode :: Maybe TravelMode
   }
   deriving (Generic, Show)
@@ -72,9 +73,10 @@ data GetDistanceReq a b = GetDistanceReq
 data GetDistancesReq a b = GetDistancesReq
   { origins :: NonEmpty a,
     destinations :: NonEmpty b,
+    distanceUnit :: DistanceUnit,
     travelMode :: Maybe TravelMode
   }
-  deriving (Generic, Show, ToSchema)
+  deriving (Generic, Show)
 
 data GetDistanceResp a b = GetDistanceResp
   { origin :: a,
@@ -169,12 +171,14 @@ instance ToSchema GeospatialGeometry where
           & OpenApi.description
             ?~ "https://datatracker.ietf.org/doc/html/rfc7946#section-2"
 
-newtype SnapToRoadReq = SnapToRoadReq
-  { points :: [LatLong]
+data SnapToRoadReq = SnapToRoadReq
+  { points :: [LatLong],
+    distanceUnit :: DistanceUnit
   }
   deriving stock (Generic)
   deriving (Show)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data SnapToRoadResp = SnapToRoadResp
   { distance :: HighPrecMeters,

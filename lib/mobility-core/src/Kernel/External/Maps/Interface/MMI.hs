@@ -106,7 +106,7 @@ getDistanceMatrix mmiCfg GetDistancesReq {..} = do
           coordinatesList = map latLongToText placesList
           coordinates = T.intercalate ";" coordinatesList
       MMI.mmiDistanceMatrix mapsUrl key coordinates (Just origParam) (Just origDest)
-        >>= parseDistanceMatrixResp lOrigin lDest limitedOriginObjects limitedDestinationObjects
+        >>= parseDistanceMatrixResp distanceUnit lOrigin lDest limitedOriginObjects limitedDestinationObjects
   case res of
     [] -> throwError (InternalError "Empty MMI.getDistances result.")
     (a : xs) -> return $ a :| xs
@@ -123,29 +123,31 @@ cartProd xs ys = [(x, y) | x <- xs, y <- ys]
 -- orig, dest, distance, duration, status
 parseDistanceMatrixResp ::
   (MonadThrow m, MonadIO m, Log m) =>
+  DistanceUnit ->
   Int ->
   Int ->
   [a] ->
   [b] ->
   MMITypes.DistanceMatrixResp ->
   m [IT.GetDistanceResp a b]
-parseDistanceMatrixResp lOrigin lDest listSrc listDest distanceMatrixResp = do
+parseDistanceMatrixResp distanceUnit lOrigin lDest listSrc listDest distanceMatrixResp = do
   let lst = cartProd [0 .. (lOrigin - 1)] [0 .. (lDest - 1)]
-  return $ map (buildResp listSrc listDest distanceMatrixResp) lst
+  return $ map (buildResp distanceUnit listSrc listDest distanceMatrixResp) lst
 
 buildResp ::
+  DistanceUnit ->
   [a] ->
   [b] ->
   MMITypes.DistanceMatrixResp ->
   (Int, Int) ->
   IT.GetDistanceResp a b
-buildResp listSrc listDest distanceMatrixResp pair = do
+buildResp distanceUnit listSrc listDest distanceMatrixResp pair = do
   let distance = floor $ (distanceMatrixResp.results.distances !! fst pair) !! snd pair
   GetDistanceResp
     { origin = listSrc !! fst pair,
       destination = listDest !! snd pair,
       distance,
-      distanceWithUnit = convertMetersToDistance Meter distance,
+      distanceWithUnit = convertMetersToDistance distanceUnit distance,
       duration = floor $ (distanceMatrixResp.results.durations !! fst pair) !! snd pair,
       status = distanceMatrixResp.results.code
     }
@@ -238,7 +240,7 @@ snapToRoad mmiCfg req = do
   pure
     SnapToRoadResp
       { distance = dist,
-        distanceWithUnit = convertHighPrecMetersToDistance Meter dist,
+        distanceWithUnit = convertHighPrecMetersToDistance req.distanceUnit dist,
         confidence = 1.0, -- Considering MMI's default confidence as 1.0
         snappedPoints = listOfPoints
       }
