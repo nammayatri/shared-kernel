@@ -15,15 +15,15 @@
 module Kernel.Sms.Config where
 
 import EulerHS.Prelude
+import Kernel.Prelude
 import Kernel.Utils.Dhall (FromDhall)
-import Servant.Client (BaseUrl)
 
 data SmsSessionConfig = SmsSessionConfig
   { attempts :: Int,
     authExpiry :: Int,
     tokenExpiry :: Int
   }
-  deriving (Generic, FromDhall)
+  deriving (Generic, FromDhall, Show, FromJSON, ToJSON, ToSchema)
 
 data SmsCredConfig = SmsCredConfig
   { username :: Text, -- FIXME? Do we need to reuse Servant's one?

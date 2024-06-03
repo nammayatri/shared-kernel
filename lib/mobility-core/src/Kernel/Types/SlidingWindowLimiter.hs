@@ -15,10 +15,11 @@
 module Kernel.Types.SlidingWindowLimiter where
 
 import EulerHS.Prelude
+import Kernel.Prelude
 import Kernel.Utils.Dhall (FromDhall)
 
 data APIRateLimitOptions = APIRateLimitOptions
   { limit :: Int,
     limitResetTimeInSec :: Int
   }
-  deriving (Generic, FromDhall)
+  deriving (Generic, FromDhall, Show, FromJSON, ToJSON, ToSchema)
