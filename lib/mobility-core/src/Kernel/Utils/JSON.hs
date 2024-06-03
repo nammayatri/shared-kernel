@@ -16,6 +16,7 @@ module Kernel.Utils.JSON where
 
 import Data.Aeson (Options (..), Result (..), SumEncoding (ObjectWithSingleField, UntaggedValue), Value (..), camelTo2, defaultOptions, fromJSON)
 import qualified Data.Aeson.KeyMap as AKM
+import qualified Data.Char as Char
 import Data.Text (pack, replace, toLower, toUpper, unpack)
 import EulerHS.Prelude hiding (pack, unpack)
 import Kernel.Utils.Text (recursiveStrip)
@@ -56,6 +57,20 @@ constructorsWithHyphensToLowerOptions =
   defaultOptions
     { constructorTagModifier = unpack . replaceUnderscores . toLower . pack
     }
+
+constructorsWithCapitalToSnakeCase :: Options
+constructorsWithCapitalToSnakeCase =
+  defaultOptions
+    { constructorTagModifier = recursiveStrip . camelToSnake
+    }
+
+camelToSnake :: String -> String
+camelToSnake = foldr f (unpack "")
+  where
+    f :: Char.Char -> String -> String
+    f c acc
+      | Char.isUpper c = "_" <> (Char.toLower c : acc)
+      | otherwise = c : acc
 
 slashedRecordFields :: Options
 slashedRecordFields =
