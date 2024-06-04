@@ -83,6 +83,7 @@ dependencies:
   - wai-middleware-prometheus
   - prometheus-metrics-ghc
   - jwt
+  - hashable
   - lens
   - memory
   - network

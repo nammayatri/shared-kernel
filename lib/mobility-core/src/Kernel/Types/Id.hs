@@ -16,6 +16,7 @@
 
 module Kernel.Types.Id where
 
+import Data.Hashable
 import Data.OpenApi (ToParamSchema, ToSchema)
 import qualified Data.Text as Text
 import Database.PostgreSQL.Simple.FromField (FromField)
@@ -30,7 +31,7 @@ import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData)
 newtype Id domain = Id
   {getId :: Text}
   deriving stock (Generic, Show, Eq, Ord, Read)
-  deriving newtype (ToJSON, FromJSON, ToHttpApiData, ToSchema, ToParamSchema, FromField, PrettyShow, Hashable)
+  deriving newtype (ToJSON, FromJSON, ToHttpApiData, ToSchema, ToParamSchema, FromField, PrettyShow)
 
 cast :: Id a -> Id b
 cast = Id . getId
@@ -64,3 +65,11 @@ instance FromHttpApiData (ShortId a) where
 
 instance (MonadGuid m) => GuidLike m (ShortId a) where
   generateGUID = ShortId <$> generateGUIDText
+
+instance Hashable (Id a) where
+  hashWithSalt s (Id t) = hashWithSalt s t
+  hash (Id t) = hash t
+
+instance Hashable (ShortId a) where
+  hashWithSalt s (ShortId t) = hashWithSalt s t
+  hash (ShortId t) = hash t
