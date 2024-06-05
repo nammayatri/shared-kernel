@@ -161,6 +161,7 @@ data FCMNotificationType
   | SOS_MOCK_DRILL_NOTIFY
   | DOCUMENT_INVALID
   | SCHEDULED_RIDE_NOTIFICATION
+  | FIRST_RIDE_EVENT
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
