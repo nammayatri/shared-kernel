@@ -17,8 +17,8 @@ module Kernel.External.Payment.Types where
 
 import Data.Aeson.Types
 import EulerHS.Prelude
-import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
+import Kernel.Storage.Esqueleto (derivePersistField)
 
 data PaymentService = Juspay | Stripe
   deriving (Show, Read, Eq, Ord, Generic)

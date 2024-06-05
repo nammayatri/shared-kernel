@@ -32,20 +32,18 @@ initiateCall ::
   InitiateCallReq a ->
   m InitiateCallResp
 initiateCall config InitiateCallReq {..} = do
+  let exotelReq = getExotelCallReq
   res <-
-    Exotel.initiateCall config $
-      ExotelInitiateCallReq
-        { from = fromPhoneNum,
-          to = toPhoneNum,
-          callerId = config.callerId,
-          statusCallbackUrl = config.callbackUrl,
-          customField = getAttachments attachments
-        }
+    Exotel.initiateCall config exotelReq
   return $
     InitiateCallResp
       { callId = res.exoCall.exoSid.getExotelCallSID,
         callStatus = exotelStatusToInterfaceStatus res.exoCall.exoStatus
       }
+  where
+    getExotelCallReq = case toPhoneNum of
+      Just toPhoneNum_ -> ConnectCalls $ ExotelConnectCallReq {from = fromPhoneNum, to = toPhoneNum_, callerId = config.callerId, statusCallbackUrl = config.callbackUrl, customField = getAttachments attachments}
+      Nothing -> ConnectToCallFlow $ ExotelConnectCallFlowReq {from = fromPhoneNum, callerId = config.callerId, url = config.url, statusCallbackUrl = config.callbackUrl, customField = getAttachments attachments}
 
 exotelStatusToInterfaceStatus :: Exotel.ExotelCallStatus -> Interface.CallStatus
 exotelStatusToInterfaceStatus = \case

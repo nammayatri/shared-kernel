@@ -15,10 +15,10 @@
 
 module Kernel.External.Payment.Stripe.Types.Accounts where
 
-import Kernel.Prelude
-import Kernel.Utils.JSON
 import Data.Aeson
 import Data.Time.Clock.POSIX (POSIXTime)
+import Kernel.Prelude
+import Kernel.Utils.JSON
 
 type AccountId = Text
 
@@ -60,7 +60,6 @@ newtype AccountLosses = AccountLosses
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
-
 
 -- A value indicating the responsible payer of Stripe fees on this account. Defaults to Account
 data AccountFeePayer = AccountFeePayerAccount | AccountFeePayerApplication
@@ -218,7 +217,7 @@ data AccountResp = AccountResp
     _object :: Text,
     charges_enabled :: Bool,
     details_submitted :: Bool
-    {-| Other paramters can be explored on basis of requirement. -}
+    -- Other paramters can be explored on basis of requirement.
     -- business_profile :: Maybe BusinessProfile,
     -- country :: Text,
     -- created :: Int,

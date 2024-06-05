@@ -75,7 +75,7 @@ newtype ExotelCallSID = ExotelCallSID
 deriveIdentifierInstances ''ExotelCallSID
 
 -- | Exotel response body
-data ExotelInitiateCallReq a = ExotelInitiateCallReq
+data ExotelConnectCallReq a = ExotelConnectCallReq
   { -- String; The phone number that will be called first.
     -- Preferably in E.164 format. If not set, our system will try to
     -- match it with a country and make a call.
@@ -94,10 +94,10 @@ data ExotelInitiateCallReq a = ExotelInitiateCallReq
     -- as a parameter in StatusCallback (only via 'terminal' StatusCallbackEvent)
     customField :: a
   }
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
-instance ToJSON a => ToForm (ExotelInitiateCallReq a) where
-  toForm ExotelInitiateCallReq {..} =
+instance ToJSON a => ToForm (ExotelConnectCallReq a) where
+  toForm ExotelConnectCallReq {..} =
     [ ("From", toQueryParam from),
       ("To", toQueryParam to),
       ("CallerId", toQueryParam callerId),
@@ -106,6 +106,42 @@ instance ToJSON a => ToForm (ExotelInitiateCallReq a) where
       ("StatusCallbackContentType", "application/json"),
       ("CustomField", decodeUtf8 $ encode customField)
     ]
+
+-- | Exotel Body to Connect to Call Flow (IVR or Greeting or other applets)
+data ExotelConnectCallFlowReq a = ExotelConnectCallFlowReq
+  { --The phone number that will be called first. Preferably in E.164 format.
+    -- If not set, our system will try to match it with a country and make a call. If landline number, prefix it with STD code; Ex: 0XXXXXX2400
+    from :: Text,
+    -- String; This is your ExoPhone/Exotel Virtual Number
+    callerId :: ExotelCallerId,
+    -- http://my.exotel.com/{your_sid}/exoml/start_voice/{app_id} where app_id is the identiﬁer of the flow (or applet) that you want to connect
+    -- to once the From number picks up the call. You can get the app_id from your Exotel Dashboard
+    url :: BaseUrl,
+    -- 	String; An HTTP POST request will be made to this URL depending
+    --  on what events are subscribed using ‘StatusCallbackEvents’.
+    --  Refer here for complete list of parameters which will be sent to your endpoint.
+    statusCallbackUrl :: BaseUrl,
+    -- Any application specific value like order id that will be passed back
+    -- as a parameter in StatusCallback (only via 'terminal' StatusCallbackEvent)
+    customField :: a
+  }
+  deriving (Generic, Show, Eq)
+
+instance ToJSON a => ToForm (ExotelConnectCallFlowReq a) where
+  toForm ExotelConnectCallFlowReq {..} =
+    [ ("From", toQueryParam from),
+      ("CallerId", toQueryParam callerId),
+      ("Url", T.pack $ showBaseUrl url),
+      ("StatusCallback", T.pack $ showBaseUrl statusCallbackUrl),
+      ("CustomField", decodeUtf8 $ encode customField)
+    ]
+
+data ExotelInitiateCallReq a = ConnectCalls (ExotelConnectCallReq a) | ConnectToCallFlow (ExotelConnectCallFlowReq a)
+  deriving (Generic, Show, Eq)
+
+instance ToJSON a => ToForm (ExotelInitiateCallReq a) where
+  toForm (ConnectCalls req) = toForm req
+  toForm (ConnectToCallFlow req) = toForm req
 
 -- | Overall call status
 data ExotelCallStatus
