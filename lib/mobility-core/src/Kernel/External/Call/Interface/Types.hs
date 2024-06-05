@@ -27,7 +27,7 @@ newtype CallServiceConfig = ExotelConfig Exotel.ExotelCfg
 
 data InitiateCallReq a = InitiateCallReq
   { fromPhoneNum :: Text,
-    toPhoneNum :: Text,
+    toPhoneNum :: Maybe Text,
     attachments :: Attachments a
   }
   deriving (Generic)

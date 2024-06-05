@@ -70,6 +70,7 @@ data Category
   | EMERGENCY_CONTACT_ADDED
   | SOS_MOCK_DRILL_NOTIFY
   | SCHEDULED_RIDE_NOTIFICATION
+  | TOLL_CROSSED
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

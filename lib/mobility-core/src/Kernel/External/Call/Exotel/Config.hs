@@ -30,6 +30,7 @@ import Kernel.Prelude
 data ExotelCfg = ExotelCfg
   { exotelUrl :: BaseUrl,
     callbackUrl :: BaseUrl,
+    url :: BaseUrl, -- applet url for Call Flow (IVR, greeting etc.)
     apiKey :: EncryptedField 'AsEncrypted ExotelApiKey,
     apiToken :: EncryptedField 'AsEncrypted ExotelApiToken,
     accountSID :: ExotelAccountSID,
