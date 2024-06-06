@@ -90,6 +90,8 @@ data Action
   | ON_CANCEL
   | ON_RATING
   | ON_SUPPORT
+  | GET_CANCELLATION_REASONS
+  | CANCELLATION_REASONS
   deriving (Generic, Show, Eq, ToSchema)
   deriving (PrettyShow) via Showable Action
 
