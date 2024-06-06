@@ -29,7 +29,9 @@ import Data.Text
 import Database.Beam.Backend
 import qualified Database.Beam.Backend.SQL.AST as B
 import EulerHS.Prelude
+import qualified GHC.Show as Show
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList, mkBeamInstancesForList)
+import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.GenericPretty (PrettyShow)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
@@ -72,3 +74,55 @@ instance FromHttpApiData LatLong where
 instance ToHttpApiData LatLong where
   toQueryParam :: LatLong -> Text
   toQueryParam LatLong {..} = show lat <> "," <> show lon
+
+-- sum should be always 100
+data MapsServiceUsage = MapsServiceUsage
+  { mapsService :: MapsService,
+    usePercentage :: Bool, -- False by default
+    googlePercentage :: Maybe Int,
+    osrmPercentage :: Maybe Int,
+    mmiPercentage :: Maybe Int,
+    nextBillionPercentage :: Maybe Int
+  }
+  deriving (Generic, Show, FromJSON, ToJSON, ToSchema)
+
+data MapsServiceUsagePercentage = MapsServiceUsagePercentage
+  { usePercentage :: Bool, -- False by default
+    googlePercentage :: Maybe Int,
+    osrmPercentage :: Maybe Int,
+    mmiPercentage :: Maybe Int,
+    nextBillionPercentage :: Maybe Int
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+mkMapsServiceUsage :: MapsService -> MapsServiceUsagePercentage -> MapsServiceUsage
+mkMapsServiceUsage mapsService MapsServiceUsagePercentage {..} = MapsServiceUsage {..}
+
+mkMapsServiceUsagePercentage :: MapsServiceUsage -> MapsServiceUsagePercentage
+mkMapsServiceUsagePercentage MapsServiceUsage {..} = MapsServiceUsagePercentage {..}
+
+data MapsServiceUsageMethod
+  = GetDistances
+  | GetEstimatedPickupDistances
+  | GetRoutes
+  | GetPickupRoutes
+  | GetTripRoutes
+  | SnapToRoad
+  | GetPlaceName
+  | GetPlaceDetails
+  | AutoComplete
+  | GetDistancesForCancelRide
+
+-- TODO add some generic instance
+instance Show MapsServiceUsageMethod where
+  show = \case
+    GetDistances -> "getDistances"
+    GetEstimatedPickupDistances -> "getEstimatedPickupDistances"
+    GetRoutes -> "getRoutes"
+    GetPickupRoutes -> "getPickupRoutes"
+    GetTripRoutes -> "getTripRoutes"
+    SnapToRoad -> "snapToRoad"
+    GetPlaceName -> "getPlaceName"
+    GetPlaceDetails -> "getPlaceDetails"
+    AutoComplete -> "autoComplete"
+    GetDistancesForCancelRide -> "getDistancesForCancelRide"

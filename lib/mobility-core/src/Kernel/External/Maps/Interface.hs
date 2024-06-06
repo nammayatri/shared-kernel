@@ -11,22 +11,20 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DerivingStrategies #-}
 
 module Kernel.External.Maps.Interface
   ( module Reexport,
+    mapsMethodProvided,
+    pickService,
     getDistance,
-    getDistancesProvided,
     getDistances,
-    getRoutesProvided,
     getRoutes,
-    snapToRoadProvided,
     snapToRoad,
     snapToRoadWithFallback,
     autoCompleteProvided,
     autoComplete,
-    getPlaceDetailsProvided,
     getPlaceDetails,
-    getPlaceNameProvided,
     getPlaceName,
   )
 where
@@ -43,12 +41,51 @@ import Kernel.External.Maps.MMI.Config as Reexport
 import Kernel.External.Maps.OSRM.Config as Reexport
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
+import qualified Kernel.Randomizer as Random
 import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
+import Kernel.Types.Id
 import Kernel.Utils.CalculateDistance
 import Kernel.Utils.Common hiding (id)
+
+mapsMethodProvided ::
+  MapsServiceUsageMethod ->
+  MapsService ->
+  Bool
+mapsMethodProvided = \case
+  GetDistances -> getDistancesProvided
+  GetEstimatedPickupDistances -> getDistancesProvided
+  GetRoutes -> getRoutesProvided
+  GetPickupRoutes -> getRoutesProvided
+  GetTripRoutes -> getRoutesProvided
+  SnapToRoad -> snapToRoadProvided
+  GetPlaceName -> getPlaceNameProvided
+  GetPlaceDetails -> getPlaceDetailsProvided
+  AutoComplete -> autoCompleteProvided
+  GetDistancesForCancelRide -> getDistancesProvided
+
+pickService ::
+  (Log m, MonadIO m) =>
+  Id merchantOperatingCity ->
+  MapsServiceUsage ->
+  MapsServiceUsageMethod ->
+  m MapsService
+pickService merchantOpCityId MapsServiceUsage {..} mapsMethod = do
+  let percentages =
+        [(Google, googlePercentage), (OSRM, osrmPercentage), (MMI, mmiPercentage), (NextBillion, nextBillionPercentage)] <&> \(element, percentage) -> do
+          Random.Percentage {element, percentage = fromMaybe 0 percentage}
+  if usePercentage
+    then do
+      result <- Random.getRandomElementUsingPercentages percentages
+      logDebug $ "Pick maps service: " <> show mapsMethod <> "; merchantOperationCityId: " <> merchantOpCityId.getId <> "; result: " <> show result
+      case result.pickedElement of
+        Left err -> do
+          logWarning $ "Fail to pick random service: " <> show err <> "; use configured service instead: " <> show mapsService
+          pure mapsService
+        Right pickedService -> pure pickedService
+    else pure mapsService
 
 getDistance ::
   ( EncFlow m r,
@@ -81,7 +118,7 @@ throwNotProvidedError =
 getDistancesProvided :: MapsService -> Bool
 getDistancesProvided = \case
   Google -> True
-  OSRM -> False
+  OSRM -> True
   MMI -> True
   NextBillion -> False
   SelfTuned -> False
@@ -105,8 +142,8 @@ getDistances serviceConfig req = case serviceConfig of
 getRoutesProvided :: MapsService -> Bool
 getRoutesProvided = \case
   Google -> True
-  OSRM -> False
-  MMI -> False
+  OSRM -> True
+  MMI -> True
   NextBillion -> True
   SelfTuned -> False
 

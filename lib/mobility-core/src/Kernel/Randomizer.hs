@@ -15,8 +15,10 @@
 
 module Kernel.Randomizer where
 
+import Kernel.Prelude (listToMaybe)
 import Safe (at)
-import System.Random
+import System.Random hiding (random)
+import qualified Text.Show
 import Universum
 
 getRandomInRange :: (MonadIO m, Random a) => (a, a) -> m a
@@ -46,3 +48,75 @@ getRandomElement arr = do
   let len = length arr
   randNum <- getRandomInRange (0, len - 1)
   return $ toList arr `at` randNum
+
+-- get value from list using provided percentages
+
+data Percentage e = Percentage
+  { element :: e,
+    percentage :: Int
+  }
+
+data PercentagesResult e = PercentagesResult
+  { random :: Int,
+    pickedElement :: Either RangeError e,
+    ranges :: [PercentageRange e]
+  }
+  deriving (Show)
+
+data PercentageRange e = PercentageRange
+  { element :: e,
+    percentage :: Int,
+    range :: Range
+  }
+  deriving (Show)
+
+data Range = Range
+  { rangeFloor :: Int,
+    rangeCeil :: Int
+  }
+
+instance Show Range where
+  show range = show range.rangeFloor <> " < random <= " <> show range.rangeCeil
+
+-- RANGE_NOT_FOUND should never happen
+data RangeError
+  = EMPTY_ELEMENTS
+  | PERCENTAGE_LESS_THAN_0
+  | PERCENTAGE_MORE_THAN_100
+  | SUM_NOT_100
+  | RANGE_NOT_FOUND
+  deriving (Show, Eq)
+
+getRandomElementUsingPercentages :: MonadIO m => [Percentage e] -> m (PercentagesResult e)
+getRandomElementUsingPercentages percentages = do
+  random <- getRandomInRange (1, 100)
+  pure $ getRandomElementUsingPercentages' percentages random
+
+getRandomElementUsingPercentages' :: [Percentage e] -> Int -> PercentagesResult e
+getRandomElementUsingPercentages' percentages random
+  | null percentages = PercentagesResult {pickedElement = Left EMPTY_ELEMENTS, ranges = [], random}
+  | any (\p -> p.percentage < 0) percentages = PercentagesResult {pickedElement = Left PERCENTAGE_LESS_THAN_0, ranges = [], random}
+  | any (\p -> p.percentage > 100) percentages = PercentagesResult {pickedElement = Left PERCENTAGE_MORE_THAN_100, ranges = [], random}
+  | sum (map (.percentage) percentages) /= 100 = PercentagesResult {pickedElement = Left SUM_NOT_100, ranges = [], random}
+  | otherwise = do
+    let emptyResult = PercentagesResult {pickedElement = Left RANGE_NOT_FOUND, ranges = [], random}
+    foldl foldRange emptyResult percentages
+  where
+    foldRange :: PercentagesResult e -> Percentage e -> PercentagesResult e
+    foldRange result percentage = do
+      let range = maybe (Range 0 0) (.range) (listToMaybe result.ranges)
+          range' = Range {rangeFloor = range.rangeCeil, rangeCeil = range.rangeCeil + percentage.percentage}
+      let percentageRange' =
+            PercentageRange
+              { element = percentage.element,
+                percentage = percentage.percentage,
+                range = range'
+              }
+      let pickedElement' = case result.pickedElement of
+            Left err -> if range'.rangeFloor < random && random <= range'.rangeCeil then Right percentage.element else Left err
+            Right pickedElement -> Right pickedElement
+      PercentagesResult
+        { random,
+          pickedElement = pickedElement',
+          ranges = percentageRange' : result.ranges
+        }

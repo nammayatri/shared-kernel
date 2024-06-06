@@ -523,6 +523,7 @@ test-suite mobility-core-tests
       Centesimal
       ComputeIntersectionTests
       DistanceCalculation
+      Randomizer
       SignatureAuth
       SlidingWindowLimiter
       SnippetsCheck
