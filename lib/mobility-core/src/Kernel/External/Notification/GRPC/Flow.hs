@@ -36,8 +36,8 @@ notifyPerson ::
 notifyPerson cfg notificationData = do
   now <- getCurrentTime
   maxShards <- asks (.maxNotificationShards)
-  let idToShardNumber uuidTxt = fromIntegral ((\(a, b) -> a + b) (UU.toWords64 uuidTxt)) `mod` maxShards
-      shardId :: Int = idToShardNumber . fromJust $ UU.fromText notificationData.streamId
+  let idToShardNumber uuidTxt = fromIntegral ((\(a, b) -> a + b) (UU.toWords64 uuidTxt)) `mod` (fromIntegral maxShards :: Integer)
+      shardId :: Integer = idToShardNumber . fromJust $ UU.fromText notificationData.streamId
   void $ Hedis.withCrossAppRedis $ Hedis.xAddExp ("notification:client-" <> notificationData.streamId <> ":{" <> (show shardId) <> "}") "*" (buildFieldValue notificationData now) cfg.streamExpirationTime
   where
     buildFieldValue notifData createdAt =
