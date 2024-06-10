@@ -9,8 +9,9 @@ import qualified EulerHS.Types as T
 import Kernel.Prelude
 import qualified Kernel.Storage.Hedis as Hedis
 import Kernel.Tools.Metrics.CoreMetrics.Types
+import Kernel.Types.App
 import Kernel.Types.Error
-import Kernel.Utils.Common (CacheFlow, EsqDBFlow, logDebug)
+import Kernel.Utils.Common (CacheFlow, EsqDBFlow, logDebug, logError)
 import Kernel.Utils.Error.Throwing (throwError)
 import System.Random
 
@@ -19,10 +20,12 @@ newtype CacKeyValue = CacKeyValue
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
-fromJSONHelper :: FromJSON a => Value -> Maybe a
-fromJSONHelper k = case fromJSON k of
-  Success a -> Just a
-  DA.Error _ -> Nothing
+fromJSONHelper :: (MonadFlow m, FromJSON a) => Value -> Text -> m (Maybe a)
+fromJSONHelper k tn = case fromJSON k of
+  Success a -> pure (Just a)
+  DA.Error err -> do
+    logError $ "Error in parsing the value for the table: " <> tn <> " with error: " <> Text.pack err
+    pure Nothing
 
 dropPrefixFromConfig :: Text.Text -> Key -> Key
 dropPrefixFromConfig key config = maybe config DAK.fromText $ Text.stripPrefix key (DAK.toText config)
