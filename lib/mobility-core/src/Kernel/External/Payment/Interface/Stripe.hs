@@ -65,7 +65,7 @@ getAccount config accountId = do
 
 mkAccountReq :: IndividualConnectAccountReq -> Stripe.AccountsReq
 mkAccountReq req =
-  let _type = Stripe.Express
+  let _type = Stripe.Standard
       country =
         case req.country of
           Context.India -> "IN"
@@ -77,9 +77,20 @@ mkAccountReq req =
         Just $
           Stripe.AccountController
             { fees = Just $ Stripe.AccountFees {payer = Stripe.AccountFeePayerAccount},
-              losses = Just $ Stripe.AccountLosses {payments = Stripe.AccountLossesPayerApplication},
+              losses = Just $ Stripe.AccountLosses {payments = Stripe.AccountLossesPayerStripe},
               requirement_collection = Just Stripe.AccountRquirementCollectorStripe,
-              stripe_dashboard = Just $ Stripe.AccountDashboard {_type = Stripe.AccountDashboardExpress}
+              stripe_dashboard = Just $ Stripe.AccountDashboard {_type = Stripe.AccountDashboardNone}
+            }
+      capabilities =
+        Just $
+          Stripe.AccountCapabilities
+            { card_payments = Stripe.CardPayments {requested = True},
+              cashapp_payments = Stripe.CashAppPayments {requested = True}
+            }
+      settings =
+        Just $
+          Stripe.AccountSettings
+            { payouts = Stripe.PayoutsSettings {debit_negative_balances = True, statement_descriptor = "Bridge Rideshare"}
             }
       business_type = Stripe.Individual
       (year', month, day) = toGregorian req.dateOfBirth

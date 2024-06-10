@@ -159,6 +159,38 @@ instance FromJSON BusinessType where
 instance ToJSON BusinessType where
   toJSON = genericToJSON constructorsWithCapitalToSnakeCase
 
+data AccountCapabilities = AccountCapabilities
+  { card_payments :: CardPayments,
+    cashapp_payments :: CashAppPayments
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype CardPayments = CardPayments
+  { requested :: Bool
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype CashAppPayments = CashAppPayments
+  { requested :: Bool
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype AccountSettings = AccountSettings
+  { payouts :: PayoutsSettings
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PayoutsSettings = PayoutsSettings
+  { debit_negative_balances :: Bool,
+    statement_descriptor :: Text
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data DateOfBirth = DateOfBirth
   { day :: Int,
     month :: Int,
@@ -196,11 +228,12 @@ data AccountsReq = AccountsReq
     country :: Text, -- default to US, will fix later
     email :: Maybe Text,
     controller :: Maybe AccountController,
+    capabilities :: Maybe AccountCapabilities,
     business_type :: BusinessType,
+    settings :: Maybe AccountSettings,
     -- business_profile :: Maybe BusinessProfile, -- not for individual account
     individual :: Maybe IndividualDetails
     -- tos_acceptance :: Maybe TosAcceptance, -- can be revisit later
-    -- settings :: Maybe Settings, -- could come back to this later
     -- metadata :: Maybe Metadata, -- can be used to store additional information
   }
   deriving stock (Show, Eq, Generic, Read)
