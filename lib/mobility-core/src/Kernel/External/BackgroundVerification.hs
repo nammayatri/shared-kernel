@@ -11,14 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Documents where
+module Kernel.External.BackgroundVerification (module Reexport) where
 
-import Data.Aeson
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
-import Kernel.Prelude
-
-data VerificationStatus = PENDING | VALID | INVALID | MANUAL_VERIFICATION_REQUIRED | UNAUTHORIZED deriving (Eq, Ord, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
-
-$(mkBeamInstancesForEnumAndList ''VerificationStatus)
+import Kernel.External.BackgroundVerification.Interface as Reexport
