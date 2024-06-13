@@ -11,14 +11,16 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.External.Payment.Stripe.Types
-  ( module Reexport,
-  )
-where
+module Kernel.External.Payment.Stripe.Types.Common where
 
-import Kernel.External.Payment.Stripe.Types.Accounts as Reexport
-import Kernel.External.Payment.Stripe.Types.Card as Reexport
-import Kernel.External.Payment.Stripe.Types.Common as Reexport
-import Kernel.External.Payment.Stripe.Types.Customer as Reexport
-import Kernel.External.Payment.Stripe.Types.PaymentIntent as Reexport
+import Kernel.Prelude
+
+type AccountId = Text
+
+type CustomerId = Text
+
+type PaymentIntentId = Text
+
+type PaymentMethodId = Text

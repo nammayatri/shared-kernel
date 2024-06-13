@@ -120,6 +120,10 @@ library
       Kernel.External.Payment.Stripe.Flow
       Kernel.External.Payment.Stripe.Types
       Kernel.External.Payment.Stripe.Types.Accounts
+      Kernel.External.Payment.Stripe.Types.Card
+      Kernel.External.Payment.Stripe.Types.Common
+      Kernel.External.Payment.Stripe.Types.Customer
+      Kernel.External.Payment.Stripe.Types.PaymentIntent
       Kernel.External.Payment.Types
       Kernel.External.Slack.Flow
       Kernel.External.Slack.Types

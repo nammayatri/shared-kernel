@@ -17,10 +17,9 @@ module Kernel.External.Payment.Stripe.Types.Accounts where
 
 import Data.Aeson
 import Data.Time.Clock.POSIX (POSIXTime)
+import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 import Kernel.Utils.JSON
-
-type AccountId = Text
 
 data AccountType
   = Standard
