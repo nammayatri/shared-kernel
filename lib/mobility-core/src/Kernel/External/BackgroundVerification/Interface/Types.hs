@@ -11,14 +11,22 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE OverloadedLists #-}
 
-module Kernel.Types.Documents where
+module Kernel.External.BackgroundVerification.Interface.Types (module Reexport, module Kernel.External.BackgroundVerification.Interface.Types) where
 
-import Data.Aeson
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
+import Kernel.External.BackgroundVerification.Checkr.Types as Reexport
 import Kernel.Prelude
+import Kernel.Types.Beckn.City
+import Kernel.Types.Beckn.Country
+import Kernel.Types.Beckn.IndianState
 
-data VerificationStatus = PENDING | VALID | INVALID | MANUAL_VERIFICATION_REQUIRED | UNAUTHORIZED deriving (Eq, Ord, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
-
-$(mkBeamInstancesForEnumAndList ''VerificationStatus)
+data CreateInvitationReqI = CreateInvitationReqI
+  { candidateId :: Text,
+    ssn :: Text,
+    workLocationCountry :: Country,
+    workLocationState :: IndianState,
+    workLocationCity :: City
+  }
+  deriving (Generic, Eq, Show)

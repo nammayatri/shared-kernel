@@ -11,14 +11,19 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.Types.Documents where
+module Kernel.External.BackgroundVerification.Checkr.Config where
 
 import Data.Aeson
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
+import Kernel.External.Encryption
 import Kernel.Prelude
 
-data VerificationStatus = PENDING | VALID | INVALID | MANUAL_VERIFICATION_REQUIRED | UNAUTHORIZED deriving (Eq, Ord, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
-
-$(mkBeamInstancesForEnumAndList ''VerificationStatus)
+data CheckrCfg = CheckrCfg
+  { apiKey :: EncryptedField 'AsEncrypted Text,
+    returnUrl :: BaseUrl,
+    url :: BaseUrl,
+    package :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)

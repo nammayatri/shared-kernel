@@ -42,6 +42,14 @@ library
       Kernel.External.AadhaarVerification.Interface.Gridline
       Kernel.External.AadhaarVerification.Interface.Types
       Kernel.External.AadhaarVerification.Types
+      Kernel.External.BackgroundVerification
+      Kernel.External.BackgroundVerification.Checkr.Config
+      Kernel.External.BackgroundVerification.Checkr.Flow
+      Kernel.External.BackgroundVerification.Checkr.Types
+      Kernel.External.BackgroundVerification.Interface
+      Kernel.External.BackgroundVerification.Interface.Checkr
+      Kernel.External.BackgroundVerification.Interface.Types
+      Kernel.External.BackgroundVerification.Types
       Kernel.External.Call
       Kernel.External.Call.Exotel.Client
       Kernel.External.Call.Exotel.Config
