@@ -134,6 +134,16 @@ library
       Kernel.External.Payment.Stripe.Types.PaymentIntent
       Kernel.External.Payment.Stripe.Types.SetupIntent
       Kernel.External.Payment.Types
+      Kernel.External.Payout.Interface
+      Kernel.External.Payout.Interface.Juspay
+      Kernel.External.Payout.Interface.Types
+      Kernel.External.Payout.Juspay.Config
+      Kernel.External.Payout.Juspay.Flow
+      Kernel.External.Payout.Juspay.Types
+      Kernel.External.Payout.Juspay.Types.Payout
+      Kernel.External.Payout.Juspay.Types.Webhook
+      Kernel.External.Payout.Juspay.Webhook
+      Kernel.External.Payout.Types
       Kernel.External.Slack.Flow
       Kernel.External.Slack.Types
       Kernel.External.SMS
