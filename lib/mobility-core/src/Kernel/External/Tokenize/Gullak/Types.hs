@@ -13,24 +13,19 @@
 -}
 {-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.External.Tokenize.Interface.Types where
+module Kernel.External.Tokenize.Gullak.Types where
 
-import qualified Kernel.External.Tokenize.Gullak.Types as GUKTypes
-import qualified Kernel.External.Tokenize.HyperVerge.Types as HVTypes
-import Kernel.Prelude
+import Kernel.External.Encryption
+import Kernel.Prelude hiding (error)
 
-data TokenizationServiceConfig = HyperVergeTokenizationServiceConfig HVTypes.HyperVergeTokenizeConfig | GullakTokenizationServiceConfig GUKTypes.GullakConfig
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
-
-newtype TokenizationReq = TokenizationReq
-  { expiry :: Int
+data GullakConfig = GullakConfig
+  { url :: BaseUrl,
+    udf :: Maybe Text,
+    merchantId :: Text,
+    apiKey :: EncryptedField 'AsEncrypted Text
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
-
-newtype TokenizationResp = TokenizationResp
-  { token :: Text
-  }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 data OnboardingAndLoginRes = OnboardingAndLoginRes
   { status :: Text,

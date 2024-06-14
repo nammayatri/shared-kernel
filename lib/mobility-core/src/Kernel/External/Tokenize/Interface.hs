@@ -14,9 +14,12 @@
 module Kernel.External.Tokenize.Interface where
 
 import Kernel.External.Encryption as Common (EncFlow)
+import qualified Kernel.External.Tokenize.Interface.Gullak as GullakInt
 import qualified Kernel.External.Tokenize.Interface.HyperVerge as HyperVergeInt
 import qualified Kernel.External.Tokenize.Interface.Types as InterfaceTypes
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Error
+import Kernel.Utils.Error.Throwing (throwError)
 
 tokenize ::
   ( EncFlow m r,
@@ -28,3 +31,28 @@ tokenize ::
 tokenize serviceConfig expSec =
   case serviceConfig of
     InterfaceTypes.HyperVergeTokenizationServiceConfig config -> HyperVergeInt.tokenize config expSec
+    _ -> throwError (InternalError "Unsupported Tokenization Service")
+
+onboard ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  InterfaceTypes.TokenizationServiceConfig ->
+  InterfaceTypes.OnboardingReq ->
+  m InterfaceTypes.OnboardingAndLoginRes
+onboard serviceConfig req = do
+  case serviceConfig of
+    InterfaceTypes.GullakTokenizationServiceConfig config -> GullakInt.gullakOnboarding config req
+    _ -> throwError (InternalError "Unsupported Tokenization Service")
+
+login ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  InterfaceTypes.TokenizationServiceConfig ->
+  InterfaceTypes.LoginReq ->
+  m InterfaceTypes.OnboardingAndLoginRes
+login serviceConfig req = do
+  case serviceConfig of
+    InterfaceTypes.GullakTokenizationServiceConfig config -> GullakInt.gullakLogin config req
+    _ -> throwError (InternalError "Unsupported Tokenization Service")

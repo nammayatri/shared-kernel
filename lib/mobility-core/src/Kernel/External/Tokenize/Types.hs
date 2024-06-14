@@ -17,7 +17,7 @@ import Data.Text (unpack)
 import Kernel.Prelude
 import Servant.API (FromHttpApiData (..))
 
-data TokenizationService = HyperVerge
+data TokenizationService = HyperVerge | Gullak
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
 
 instance FromHttpApiData TokenizationService where
