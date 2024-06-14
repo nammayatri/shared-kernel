@@ -21,6 +21,7 @@ module Kernel.External.Verification.Interface
     extractDLImage,
     validateFaceImage,
     searchAgent,
+    verifySdkResp,
   )
 where
 
@@ -29,7 +30,9 @@ import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.External.Verification.GovtData.Client as GovtData
 import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
 import Kernel.External.Verification.GovtData.Types as Reexport
+import Kernel.External.Verification.HyperVerge.Types as Reexport
 import Kernel.External.Verification.Idfy.Config as Reexport
+import qualified Kernel.External.Verification.Interface.HyperVerge as HyperVerge
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
 import qualified Kernel.External.Verification.Interface.SafetyPortal as SafetyPortal
@@ -53,6 +56,7 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyDLAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyRC ::
   ( EncFlow m r,
@@ -96,6 +100,7 @@ verifyRC' serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyRCAsync cfg req
   GovtDataConfig -> GovtData.verifyRC req
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateImage ::
   ( EncFlow m r,
@@ -108,6 +113,7 @@ validateImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.validateImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateFaceImage ::
   ( CoreMetrics m,
@@ -120,6 +126,7 @@ validateFaceImage serviceConfig req = case serviceConfig of
   IdfyConfig _ -> throwError $ InternalError "Not Implemented!"
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig cfg -> IS.validateFace cfg req
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractRCImage ::
   ( EncFlow m r,
@@ -132,6 +139,7 @@ extractRCImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractRCImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
   ( EncFlow m r,
@@ -144,6 +152,7 @@ extractDLImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractDLImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 searchAgent ::
   ( EncFlow m r,
@@ -154,3 +163,16 @@ searchAgent ::
   m SearchAgentResponse
 searchAgent serviceConfig req = case serviceConfig of
   SafetyPortalConfig cfg -> SafetyPortal.searchAgent cfg req
+
+verifySdkResp ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  VerifySdkDataReq ->
+  m VerifySdkDataResp
+verifySdkResp serviceConfig req = case serviceConfig of
+  IdfyConfig _ -> throwError $ InternalError "Not Implemented!"
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig cfg -> HyperVerge.verifySdkResp cfg req
