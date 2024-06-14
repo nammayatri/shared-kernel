@@ -13,18 +13,15 @@
 -}
 module Kernel.External.Tokenize.HyperVerge.Flow where
 
-import qualified Data.HashMap.Internal as HMap
 import qualified Data.Text as DT
-import qualified Data.Text as T
 import EulerHS.Types (EulerClient, ManagerSelector (..), client)
-import Kernel.External.Tokenize.HyperVerge.Error
+import Kernel.External.SharedLogic.HyperVerge.Error
+import Kernel.External.SharedLogic.HyperVerge.Functions (hyperVergeHttpManagerKey)
 import qualified Kernel.External.Tokenize.HyperVerge.Types as HyperVergeTypes
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Error (ExternalAPICallError (..))
 import Kernel.Utils.Common
-import qualified Network.HTTP.Client as Http
-import qualified Network.HTTP.Client.TLS as Http
 import Servant hiding (throwError)
 import Servant.Client.Core (ClientError)
 
@@ -45,7 +42,7 @@ tokenize ::
   HyperVergeTypes.HyperVergeTokenizeRequest ->
   m HyperVergeTypes.HyperVergeTokenizeResponse
 tokenize url req = do
-  callAPI' ((Just $ ManagerSelector $ T.pack hyperVergeHttpManagerKey)) url (tokenizeClient req) "HV-tokenize-API" (Proxy @HyperVergeTokenizeAPI) >>= checkHyperVergeTokenizeResponse url
+  callAPI' (Just $ ManagerSelector $ DT.pack hyperVergeHttpManagerKey) url (tokenizeClient req) "HV-tokenize-API" (Proxy @HyperVergeTokenizeAPI) >>= checkHyperVergeTokenizeResponse url
 
 checkHyperVergeTokenizeResponse ::
   ( HasCallStack,
@@ -68,11 +65,3 @@ validateHyperVergeTokenizeResponse resp = do
     (Just "400") -> throwError $ HVBadRequestError (fromMaybe "" resp.error)
     (Just "200") -> return resp
     _ -> throwError $ HVError ("The response from HV is : " <> show resp)
-
-prepareHyperVergeHttpManager :: Int -> HMap.HashMap DT.Text Http.ManagerSettings
-prepareHyperVergeHttpManager timeout =
-  HMap.singleton (DT.pack hyperVergeHttpManagerKey) $
-    Http.tlsManagerSettings {Http.managerResponseTimeout = Http.responseTimeoutMicro (timeout * 1000)}
-
-hyperVergeHttpManagerKey :: String
-hyperVergeHttpManagerKey = "hyperverge-http-manager"

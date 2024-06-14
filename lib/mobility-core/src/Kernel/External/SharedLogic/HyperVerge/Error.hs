@@ -14,7 +14,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Tokenize.HyperVerge.Error where
+module Kernel.External.SharedLogic.HyperVerge.Error where
 
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
@@ -24,6 +24,7 @@ data HyperVergeError
   = HVUnauthorizedError
   | HVBadRequestError Text
   | HVError Text
+  | HVBadInputError Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''HyperVergeError
@@ -33,16 +34,19 @@ instance IsBaseError HyperVergeError where
     HVUnauthorizedError -> Just "Invalid Credentaials, Please provide valida appId and appKey."
     HVBadRequestError msg -> Just $ "Bad Request with message: " <> msg
     HVError msg -> Just $ "HyperVerge Error with message: " <> msg
+    HVBadInputError msg -> Just $ "Bad Input with message: " <> msg
 
 instance IsHTTPError HyperVergeError where
   toErrorCode = \case
     HVUnauthorizedError -> "HV_UNAUTHORIZED"
     HVBadRequestError _ -> "HV_BAD_REQUEST"
     HVError _ -> "HV_ERROR"
+    HVBadInputError _ -> "HV_BAD_INPUT"
 
   toHttpCode = \case
     HVUnauthorizedError -> E401
     HVBadRequestError _ -> E400
     HVError _ -> E400
+    HVBadInputError _ -> E400
 
 instance IsAPIError HyperVergeError
