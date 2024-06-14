@@ -20,6 +20,7 @@ where
 
 import Deriving.Aeson
 import EulerHS.Prelude
+import qualified Kernel.External.Verification.HyperVerge.Types as HyperVergeTypes
 import qualified Kernel.External.Verification.Idfy.Config as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import qualified Kernel.External.Verification.InternalScripts.Types as FV
@@ -28,7 +29,7 @@ import Kernel.External.Verification.SafetyPortal.Types
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -137,5 +138,17 @@ data SearchAgentReq = SearchAgentreq
 
 newtype SearchAgentResponse = SearchAgentResponse
   { suspect :: [SearchAgent]
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
+
+data VerifySdkDataReq = VerifySdkDataReq
+  { transactionId :: Text
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
+
+data VerifySdkDataResp = VerifySdkDataResp
+  { userDetails :: Maybe HyperVergeTypes.UserDetails,
+    status :: Maybe Text,
+    transactionId :: Maybe Text
   }
   deriving (Generic, FromJSON, ToJSON, Show)

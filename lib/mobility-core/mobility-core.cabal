@@ -121,6 +121,8 @@ library
       Kernel.External.Payment.Stripe.Types
       Kernel.External.Payment.Stripe.Types.Accounts
       Kernel.External.Payment.Types
+      Kernel.External.SharedLogic.HyperVerge.Error
+      Kernel.External.SharedLogic.HyperVerge.Functions
       Kernel.External.Slack.Flow
       Kernel.External.Slack.Types
       Kernel.External.SMS
@@ -150,7 +152,6 @@ library
       Kernel.External.Ticket.Kapture.Types
       Kernel.External.Ticket.Types
       Kernel.External.Tokenize
-      Kernel.External.Tokenize.HyperVerge.Error
       Kernel.External.Tokenize.HyperVerge.Flow
       Kernel.External.Tokenize.HyperVerge.Types
       Kernel.External.Tokenize.Interface
@@ -164,6 +165,8 @@ library
       Kernel.External.Verification.GovtData.Storage.Beam
       Kernel.External.Verification.GovtData.Storage.Query
       Kernel.External.Verification.GovtData.Types
+      Kernel.External.Verification.HyperVerge.Flow
+      Kernel.External.Verification.HyperVerge.Types
       Kernel.External.Verification.Idfy.Auth
       Kernel.External.Verification.Idfy.Client
       Kernel.External.Verification.Idfy.Config
@@ -174,6 +177,7 @@ library
       Kernel.External.Verification.Idfy.Types.Response
       Kernel.External.Verification.Idfy.WebhookHandler
       Kernel.External.Verification.Interface
+      Kernel.External.Verification.Interface.HyperVerge
       Kernel.External.Verification.Interface.Idfy
       Kernel.External.Verification.Interface.InternalScripts
       Kernel.External.Verification.Interface.SafetyPortal
