@@ -54,6 +54,13 @@ library
       Kernel.External.GoogleTranslate.API
       Kernel.External.GoogleTranslate.Client
       Kernel.External.GoogleTranslate.Types
+      Kernel.External.IncidentReport.ERSS.Config
+      Kernel.External.IncidentReport.ERSS.Flow
+      Kernel.External.IncidentReport.ERSS.Types
+      Kernel.External.IncidentReport.Interface
+      Kernel.External.IncidentReport.Interface.ERSS
+      Kernel.External.IncidentReport.Interface.Types
+      Kernel.External.IncidentReport.Types
       Kernel.External.Infobip.API.SendSms
       Kernel.External.Infobip.API.WebengageWebhook
       Kernel.External.Infobip.Flow
