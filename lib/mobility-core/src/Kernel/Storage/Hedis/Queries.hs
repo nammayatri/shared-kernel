@@ -366,6 +366,16 @@ whenWithLockRedis key timeout func = do
   whenM (tryLockRedis key timeout) $ do
     finally func $ unlockRedis key
 
+withWaitAndLockRedis :: (HedisFlow m env, MonadMask m) => Text -> ExpirationTime -> Int -> m a -> m a
+withWaitAndLockRedis key timeout delay func = do
+  getLock
+  finally func (unlockRedis key)
+  where
+    getLock = do
+      lockAvailable <- tryLockRedis key timeout
+      threadDelay delay
+      unless lockAvailable getLock
+
 withLockRedis :: (HedisFlow m env, MonadMask m) => Text -> ExpirationTime -> m () -> m ()
 withLockRedis key timeout func = do
   getLock
