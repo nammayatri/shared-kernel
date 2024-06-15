@@ -18,7 +18,10 @@ module Kernel.Utils.SlidingWindowCounters
     incrementByValueInTimeBucket,
     decrementWindowCount,
     getkeysForLastPeriods,
+    makeSWKeyForTime,
+    getCurrentWindowValuesUptoLast,
     getLatestRatio,
+    getCurrentWindowCount,
     getCurrentWindowValues,
     makeSlidingWindowKey,
     splitOnPeriodGranuality,
@@ -28,7 +31,6 @@ module Kernel.Utils.SlidingWindowCounters
   )
 where
 
-import Control.Monad.Extra (fromMaybeM, mapMaybeM)
 import qualified Control.Monad.Extra as CME
 import qualified Data.Text as T
 import Data.Time
@@ -91,8 +93,14 @@ incrementPeriod periodType (UTCTime date time) = do
           (newDate, 0)
   uncurry UTCTime res
 
+makeCachingLockKey :: Text -> Text
+makeCachingLockKey key = ("SW-CACHE-FOR-" <> key)
+
 makeSlidingWindowKey :: PeriodType -> Text -> UTCTime -> Text
 makeSlidingWindowKey pt k = (<> "-sliding-window") . makeTimeBasedKey pt k
+
+makeQuickAccessWindowCountKey :: Text -> Text
+makeQuickAccessWindowCountKey = (<> "-sliding-window-result")
 
 makeTimeBasedKey :: PeriodType -> Text -> UTCTime -> Text
 makeTimeBasedKey periodType oldKey = do
@@ -119,17 +127,20 @@ convertPeriodTypeToSeconds periodType =
     Years -> 365 * 31 * 60 * 60 * 24
 
 getkeysForLastPeriods :: SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> [Text]
-getkeysForLastPeriods SlidingWindowOptions {..} utcTime keyModifier =
-  map
-    ( keyModifier
-        . flip addUTCTime utcTime
-        . fromInteger
-        . getTimeUnit
-    )
-    [0 .. period - 1]
+getkeysForLastPeriods swo utcTime keyModifier = map (makeSWKeyForTime swo utcTime keyModifier) [0 .. swo.period - 1]
+
+getkeysUptoThisPeriod :: SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> [Text]
+getkeysUptoThisPeriod swo utcTime keyModifier uptoPeriod = map (makeSWKeyForTime swo utcTime keyModifier) [0 .. swo.period - uptoPeriod]
+
+makeSWKeyForTime :: SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> Text
+makeSWKeyForTime SlidingWindowOptions {..} utcTime keyModifier periodMagnitude =
+  keyModifier
+    . flip addUTCTime utcTime
+    . fromInteger
+    $ getTimeUnit
   where
-    getTimeUnit :: Integer -> Integer
-    getTimeUnit magnitude = -1 * magnitude * convertPeriodTypeToSeconds periodType
+    getTimeUnit :: Integer
+    getTimeUnit = -1 * periodMagnitude * convertPeriodTypeToSeconds periodType
 
 -- ========================== Sliding Window Counters ==========================
 
@@ -140,7 +151,7 @@ incrementWindowCount ::
   Text ->
   SlidingWindowOptions ->
   m ()
-incrementWindowCount = incrementCounter makeSlidingWindowKey
+incrementWindowCount = incrementCounter makeSWKeyForTime makeQuickAccessWindowCountKey makeSlidingWindowKey
 
 incrementByValue ::
   ( L.MonadFlow m,
@@ -150,7 +161,7 @@ incrementByValue ::
   Text ->
   SlidingWindowOptions ->
   m ()
-incrementByValue val = incrementByValueImpl Nothing val makeSlidingWindowKey
+incrementByValue val = incrementByValueImpl Nothing val makeSWKeyForTime makeQuickAccessWindowCountKey makeSlidingWindowKey
 
 incrementByValueInTimeBucket ::
   ( L.MonadFlow m,
@@ -161,12 +172,14 @@ incrementByValueInTimeBucket ::
   Text ->
   SlidingWindowOptions ->
   m ()
-incrementByValueInTimeBucket utcTime val = incrementByValueImpl (Just utcTime) val makeSlidingWindowKey
+incrementByValueInTimeBucket utcTime val = incrementByValueImpl (Just utcTime) val makeSWKeyForTime makeQuickAccessWindowCountKey makeSlidingWindowKey
 
 incrementCounter ::
   ( L.MonadFlow m,
     Redis.HedisFlow m r
   ) =>
+  (SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> Text) ->
+  (Text -> Text) ->
   (PeriodType -> Text -> UTCTime -> Text) ->
   Text ->
   SlidingWindowOptions ->
@@ -179,14 +192,18 @@ incrementByValueImpl ::
   ) =>
   Maybe UTCTime ->
   Integer ->
+  (SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> Text) ->
+  (Text -> Text) ->
   (PeriodType -> Text -> UTCTime -> Text) ->
   Text ->
   SlidingWindowOptions ->
   m ()
-incrementByValueImpl mbTimeStamp val keyModifier key SlidingWindowOptions {..} = do
-  utcTime <- fromMaybeM (L.runIO getCurrentTime) (pure mbTimeStamp)
-  let finalKey = keyModifier periodType key utcTime
-  let expirationTime = period * convertPeriodTypeToSeconds periodType
+incrementByValueImpl mbTimeStamp val getOutOfWindowKey getStoredResultKey getWindowKey key swo@SlidingWindowOptions {..} = do
+  now <- L.runIO getCurrentTime
+  let utcTime = fromMaybe now mbTimeStamp
+      finalKey = getWindowKey periodType key utcTime
+  Redis.whenWithLockRedis (makeCachingLockKey key) 10 . void $ cacheTheCounts now val getOutOfWindowKey getStoredResultKey getWindowKey key swo
+  let expirationTime = (period + 1) * convertPeriodTypeToSeconds periodType
   void $ Redis.incrby finalKey val
   Redis.expire finalKey $ fromIntegral expirationTime
 
@@ -197,12 +214,14 @@ decrementWindowCount ::
   Text ->
   SlidingWindowOptions ->
   m ()
-decrementWindowCount = decrementCounter makeSlidingWindowKey
+decrementWindowCount = decrementCounter makeSWKeyForTime makeQuickAccessWindowCountKey makeSlidingWindowKey
 
 decrementCounter ::
   ( L.MonadFlow m,
     Redis.HedisFlow m r
   ) =>
+  (SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> Text) ->
+  (Text -> Text) ->
   (PeriodType -> Text -> UTCTime -> Text) ->
   Text ->
   SlidingWindowOptions ->
@@ -215,16 +234,60 @@ decrementByValueImpl ::
   ) =>
   Maybe UTCTime ->
   Integer ->
+  (SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> Text) ->
+  (Text -> Text) ->
   (PeriodType -> Text -> UTCTime -> Text) ->
   Text ->
   SlidingWindowOptions ->
   m ()
-decrementByValueImpl mbTimeStamp val keyModifier key SlidingWindowOptions {..} = do
-  utcTime <- fromMaybeM (L.runIO getCurrentTime) (pure mbTimeStamp)
-  let finalKey = keyModifier periodType key utcTime
-  let expirationTime = period * convertPeriodTypeToSeconds periodType
+decrementByValueImpl mbTimeStamp val getOutOfWindowKey getStoredResultKey getWindowKey key swo@SlidingWindowOptions {..} = do
+  now <- L.runIO getCurrentTime
+  let utcTime = fromMaybe now mbTimeStamp
+      finalKey = getWindowKey periodType key utcTime
+  Redis.whenWithLockRedis (makeCachingLockKey key) 10 . void $ cacheTheCounts now val getOutOfWindowKey getStoredResultKey getWindowKey key swo
+  let expirationTime = (period + 1) * convertPeriodTypeToSeconds periodType
   void $ Redis.decrby finalKey val
   Redis.expire finalKey $ fromIntegral expirationTime
+
+-- the cached value would stay correct for current and current + 1 peroid in any given periodType so keeping the expiry as end of (current + 1) periodType from now
+cacheTheCounts ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r
+  ) =>
+  UTCTime ->
+  Integer ->
+  (SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> Text) ->
+  (Text -> Text) ->
+  (PeriodType -> Text -> UTCTime -> Text) ->
+  Text ->
+  SlidingWindowOptions ->
+  m Integer
+cacheTheCounts now val getOutOfWindowKey getStoredResultKey getWindowKey key swo@SlidingWindowOptions {..} = do
+  let storedResultKey = getStoredResultKey key
+  mbOldStoredResult <- Redis.get storedResultKey
+  (updatedValueToStore, shouldRecache) <-
+    case mbOldStoredResult of
+      Just oldStoredResult -> do
+        let noLongerPartOfWindowKey = getOutOfWindowKey swo now (getWindowKey periodType key) period
+        mbValToRemoveFromWindow <- Redis.get noLongerPartOfWindowKey
+        let finalValToRemoveFromWindow =
+              case mbValToRemoveFromWindow of
+                Just valToRemoveFromWindow | valToRemoveFromWindow > 0 -> valToRemoveFromWindow
+                _ -> 0
+            newStoreValue = max 0 $ oldStoredResult + val - finalValToRemoveFromWindow
+        whenJust mbValToRemoveFromWindow $ \_ -> Redis.del noLongerPartOfWindowKey
+        if newStoreValue == oldStoredResult
+          then pure (newStoreValue, False)
+          else pure (newStoreValue, True)
+      Nothing -> (,True) . (+ val) . sum . catMaybes <$> getCurrentWindowValues key swo
+  bool
+    (pure updatedValueToStore)
+    ( do
+        let storedResultExpTime = fromInteger $ floor (diffUTCTime (incrementPeriod periodType now) now) + (convertPeriodTypeToSeconds periodType)
+        void $ Redis.setExp storedResultKey updatedValueToStore storedResultExpTime
+        pure updatedValueToStore
+    )
+    shouldRecache
 
 -- ================= Getter functions for fetching window results during first calculation ======================
 
@@ -249,31 +312,12 @@ decrementByValueImpl mbTimeStamp val keyModifier key SlidingWindowOptions {..} =
 
 -- | getLatestRatio :: (id to getResult for, and generate TIMEBASED_KEY_FOR_THE_TOTAL_CASES) -> (id modifier to create TIMEBASED_KEY_FOR_POSITIVE_CASE) -> Resultsant Ratio of the sliding window
 -- Minutes | Hours | Days | Months | Years
-cacheOldPeriodsCounts ::
-  ( L.MonadFlow m,
-    Redis.HedisFlow m r
-  ) =>
-  UTCTime ->
-  Text ->
-  (Text -> Text) ->
-  (Text -> Text) ->
-  (Text -> Text) ->
-  SlidingWindowOptions ->
-  m (Double, Double)
-cacheOldPeriodsCounts now driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn mkCachedCountsKey s@SlidingWindowOptions {..} = do
-  let positiveCaseKeysList = drop 1 . getkeysForLastPeriods s now $ makeSlidingWindowKey periodType (mkPostiveCaseKeyfn driverId)
-      totalCountKeysList = drop 1 . getkeysForLastPeriods s now $ makeSlidingWindowKey periodType (mkTotalCaseKeyfn driverId)
-  positiveCases <- sum <$> mapMaybeM Redis.get positiveCaseKeysList
-  totalCases <- nonZero . sum <$> mapMaybeM Redis.get totalCountKeysList
-  let expTime = fromInteger . floor $ diffUTCTime (incrementPeriod periodType now) now
-      valuesToCache = (positiveCases, totalCases)
-  Redis.setExp (mkCachedCountsKey driverId) valuesToCache expTime
-  pure valuesToCache
-  where
-    nonZero :: Double -> Double
-    nonZero a = if a == 0.0 then 1.0 else a
+getCountsFromCache :: (L.MonadFlow m, Redis.HedisFlow m r) => Text -> m (Maybe Integer)
+getCountsFromCache key = do
+  let storesResultKey = makeQuickAccessWindowCountKey key
+  Redis.get storesResultKey
 
-calculateRatio ::
+cacheAndGetNumDeno ::
   ( L.MonadFlow m,
     Redis.HedisFlow m r
   ) =>
@@ -281,15 +325,14 @@ calculateRatio ::
   Text ->
   (Text -> Text) ->
   (Text -> Text) ->
-  (Double, Double) ->
   SlidingWindowOptions ->
-  m Double
-calculateRatio now driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn (oldPeriodsPositiveCases, oldPeriodsTotalCases) SlidingWindowOptions {..} = do
-  let positiveCaseKey = makeSlidingWindowKey periodType (mkPostiveCaseKeyfn driverId) now
-      totalCaseKey = makeSlidingWindowKey periodType (mkTotalCaseKeyfn driverId) now
-  currentPeriodsPositiveCase <- fromMaybe 0 <$> Redis.get positiveCaseKey
-  currentPeriodsTotalCase <- fromMaybe 1 <$> Redis.get totalCaseKey
-  return $ (oldPeriodsPositiveCases + currentPeriodsPositiveCase) / (oldPeriodsTotalCases + currentPeriodsTotalCase)
+  m (Integer, Integer)
+cacheAndGetNumDeno now driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn swo = do
+  let totalCaseKey = mkTotalCaseKeyfn driverId
+      positiveCaseKey = mkPostiveCaseKeyfn driverId
+  totalCases <- cacheTheCounts now 0 makeSWKeyForTime makeQuickAccessWindowCountKey makeSlidingWindowKey totalCaseKey swo
+  positiveCases <- cacheTheCounts now 0 makeSWKeyForTime makeQuickAccessWindowCountKey makeSlidingWindowKey positiveCaseKey swo
+  pure (positiveCases, totalCases)
 
 getLatestRatio ::
   ( L.MonadFlow m,
@@ -298,16 +341,50 @@ getLatestRatio ::
   Text ->
   (Text -> Text) ->
   (Text -> Text) ->
-  (Text -> Text) ->
   SlidingWindowOptions ->
   m Double
-getLatestRatio driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn mkCachedCountsKey slidingWindowOptions = do
+getLatestRatio driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn slidingWindowOptions = do
   now <- L.runIO getCurrentTime
-  cachedCounts :: (Double, Double) <-
+  (positiveCases, totalCases) <-
     CME.fromMaybeM
-      (cacheOldPeriodsCounts now driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn mkCachedCountsKey slidingWindowOptions)
-      (Redis.get $ mkCachedCountsKey driverId)
-  calculateRatio now driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn cachedCounts slidingWindowOptions
+      (cacheAndGetNumDeno now driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn slidingWindowOptions)
+      (getNumDenFromCache (mkPostiveCaseKeyfn driverId) (mkTotalCaseKeyfn driverId))
+  return $ fromIntegral positiveCases / fromIntegral (max 1 totalCases)
+
+getNumDenFromCache :: (L.MonadFlow m, Redis.HedisFlow m r) => Text -> Text -> m (Maybe (Integer, Integer))
+getNumDenFromCache postiveCaseKey totalCaseKey =
+  runMaybeT $ do
+    positiveCases <- MaybeT $ getCountsFromCache postiveCaseKey
+    totalCases <- MaybeT $ getCountsFromCache totalCaseKey
+    pure (positiveCases, totalCases)
+
+getCurrentWindowCount ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r
+  ) =>
+  Text ->
+  SlidingWindowOptions ->
+  m Integer
+getCurrentWindowCount key swo = do
+  now <- L.runIO getCurrentTime
+  mbCountFromCache <- getCountsFromCache key
+  case mbCountFromCache of
+    Just count -> pure count
+    Nothing -> Redis.withWaitAndLockRedis (makeCachingLockKey key) 10 20 $ cacheTheCounts now 0 makeSWKeyForTime makeQuickAccessWindowCountKey makeSlidingWindowKey key swo
+
+getCurrentWindowValuesUptoLast ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r,
+    FromJSON a
+  ) =>
+  Integer ->
+  Text ->
+  SlidingWindowOptions ->
+  m [Maybe a]
+getCurrentWindowValuesUptoLast nPeriod key swo = do
+  utcTime <- L.runIO getCurrentTime
+  let keysToFetch = getkeysUptoThisPeriod swo utcTime (makeSlidingWindowKey (periodType swo) key) nPeriod
+  mapM Redis.get keysToFetch
 
 getCurrentWindowValues ::
   ( L.MonadFlow m,
