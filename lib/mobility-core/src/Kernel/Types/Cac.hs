@@ -24,7 +24,7 @@ fromJSONHelper :: (MonadFlow m, FromJSON a) => Value -> Text -> m (Maybe a)
 fromJSONHelper k tn = case fromJSON k of
   Success a -> pure (Just a)
   DA.Error err -> do
-    logError $ "Error in parsing the value for the table: " <> tn <> " with error: " <> Text.pack err
+    logError $ "Error in parsing the value for the table: " <> tn <> " with error: " <> Text.pack err <> " for config:" <> show k
     pure Nothing
 
 dropPrefixFromConfig :: Text.Text -> Key -> Key
