@@ -17,7 +17,7 @@
 
 module Kernel.Types.Time where
 
-import Data.OpenApi (ToSchema)
+import Data.OpenApi (ToParamSchema, ToSchema)
 import Data.Time (UTCTime)
 import qualified Data.Time as Time
 import qualified Database.Beam as B
@@ -29,6 +29,7 @@ import Database.PostgreSQL.Simple.FromField (FromField)
 import EulerHS.Prelude
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.GenericPretty
+import Servant (FromHttpApiData, ToHttpApiData)
 import qualified System.Clock as Clock
 
 newtype Microseconds = Microseconds
@@ -52,7 +53,7 @@ newtype Seconds = Seconds
 newtype Minutes = Minutes
   { getMinutes :: Int
   }
-  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, ToParamSchema, FromHttpApiData, ToHttpApiData, PrettyShow, PersistField, PersistFieldSql)
   deriving stock (Generic)
 
 newtype Hours = Hours
@@ -78,6 +79,9 @@ newtype Days = Days
 
 daysToSeconds :: Days -> Seconds
 daysToSeconds = Seconds . (* 86400) . getDays
+
+minutesToSeconds :: Minutes -> Seconds
+minutesToSeconds = Seconds . (* 60) . getMinutes
 
 type MeasuringDuration m a = MonadClock m => m a -> m a
 
