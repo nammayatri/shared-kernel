@@ -29,7 +29,18 @@ data CacConfig = CacConfig
     tenant :: String,
     retryConnection :: Bool,
     cacExpTime :: Seconds,
-    enablePolling :: Bool
+    enablePolling :: Bool,
+    enableCac :: Bool
+  }
+  deriving (Generic, FromDhall)
+
+data SuperPositionConfig = SuperPositionConfig
+  { host :: String,
+    interval :: Natural,
+    tenants :: [String],
+    retryConnection :: Bool,
+    enablePolling :: Bool,
+    enableSuperPosition :: Bool
   }
   deriving (Generic, FromDhall)
 
