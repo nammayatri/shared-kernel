@@ -153,7 +153,7 @@ type CreatePaymentIntentAPI =
   "v1"
     :> "payment_intents"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] CreatePaymentIntentReq
+    :> ReqBody '[JSON] PaymentIntentReq
     :> Post '[JSON] PaymentIntentObject
 
 createPaymentIntent ::
@@ -162,12 +162,102 @@ createPaymentIntent ::
   ) =>
   BaseUrl ->
   Text ->
-  CreatePaymentIntentReq ->
+  PaymentIntentReq ->
   m PaymentIntentObject
 createPaymentIntent url apiKey paymentIntentReq = do
   let proxy = Proxy @CreatePaymentIntentAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) paymentIntentReq
   callStripeAPI url eulerClient "create-payment-intent" proxy
+
+type ConfirmPaymentIntentAPI =
+  "v1"
+    :> "payment_intents"
+    :> Capture "id" PaymentIntentId
+    :> "confirm"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> ReqBody '[JSON] ConfirmPaymentIntentReq
+    :> Post '[JSON] PaymentIntentObject
+
+confirmPaymentIntent ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  PaymentIntentId ->
+  ConfirmPaymentIntentReq ->
+  m PaymentIntentObject
+confirmPaymentIntent url apiKey paymentIntentId confirmPaymentIntentReq = do
+  let proxy = Proxy @ConfirmPaymentIntentAPI
+      eulerClient = Euler.client proxy paymentIntentId (mkBasicAuthData apiKey) confirmPaymentIntentReq
+  callStripeAPI url eulerClient "confirm-payment-intent" proxy
+
+type CapturePaymentIntentAPI =
+  "v1"
+    :> "payment_intents"
+    :> Capture "id" PaymentIntentId
+    :> "capture"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> ReqBody '[JSON] CapturePaymentIntentReq
+    :> Post '[JSON] PaymentIntentObject
+
+capturePaymentIntent ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  PaymentIntentId ->
+  CapturePaymentIntentReq ->
+  m PaymentIntentObject
+capturePaymentIntent url apiKey paymentIntentId capturePaymentIntentReq = do
+  let proxy = Proxy @CapturePaymentIntentAPI
+      eulerClient = Euler.client proxy paymentIntentId (mkBasicAuthData apiKey) capturePaymentIntentReq
+  callStripeAPI url eulerClient "capture-payment-intent" proxy
+
+type IncrementAuthorizationPaymentIntentAPI =
+  "v1"
+    :> "payment_intents"
+    :> Capture "id" PaymentIntentId
+    :> "increment_authorization"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> ReqBody '[JSON] IncrementAuthorizationReq
+    :> Post '[JSON] PaymentIntentObject
+
+incrementAuthorizationPaymentIntent ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  PaymentIntentId ->
+  IncrementAuthorizationReq ->
+  m PaymentIntentObject
+incrementAuthorizationPaymentIntent url apiKey paymentIntentId incrementAuthorizationReq = do
+  let proxy = Proxy @IncrementAuthorizationPaymentIntentAPI
+      eulerClient = Euler.client proxy paymentIntentId (mkBasicAuthData apiKey) incrementAuthorizationReq
+  callStripeAPI url eulerClient "increment-authorization-payment-intent" proxy
+
+-------------------------------------------- Setup Intent APIs --------------------------------------------
+type CreateSetupIntentAPI =
+  "v1"
+    :> "setup_intents"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> ReqBody '[JSON] SetupIntentReq
+    :> Post '[JSON] SetupIntentObject
+
+createSetupIntent ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  SetupIntentReq ->
+  m SetupIntentObject
+createSetupIntent url apiKey setupIntentReq = do
+  let proxy = Proxy @CreateSetupIntentAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) setupIntentReq
+  callStripeAPI url eulerClient "create-setup-intent" proxy
 
 -------------------------------------------- Card APIs --------------------------------------------
 type CreateCardAPI =
@@ -241,13 +331,34 @@ getCard url apiKey customerId cardId = do
       eulerClient = Euler.client proxy customerId cardId (mkBasicAuthData apiKey)
   callStripeAPI url eulerClient "get-card" proxy
 
+type GetCardListAPI =
+  "v1"
+    :> "customers"
+    :> Capture "id" CustomerId
+    :> "cards"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Get '[JSON] CardList
+
+getCardList ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  CustomerId ->
+  m CardList
+getCardList url apiKey customerId = do
+  let proxy = Proxy @GetCardListAPI
+      eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey)
+  callStripeAPI url eulerClient "get-card-list" proxy
+
 -------------------------------------------- Ephemeral Keys APIs --------------------------------------------
 type CreateEphemeralKeysAPI =
   "v1"
     :> "ephemeral_keys"
     :> BasicAuth "secretkey-password" BasicAuthData
     :> ReqBody '[JSON] EphemeralKeysReq
-    :> Post '[JSON] CardObject
+    :> Post '[JSON] EphemeralKeysResp
 
 createEphemeralKeys ::
   ( Metrics.CoreMetrics m,
@@ -256,7 +367,7 @@ createEphemeralKeys ::
   BaseUrl ->
   Text ->
   EphemeralKeysReq ->
-  m CardObject
+  m EphemeralKeysResp
 createEphemeralKeys url apiKey ephemeralKeysReq = do
   let proxy = Proxy @CreateEphemeralKeysAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) ephemeralKeysReq

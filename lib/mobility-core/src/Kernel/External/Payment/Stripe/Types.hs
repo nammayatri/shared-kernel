@@ -22,3 +22,4 @@ import Kernel.External.Payment.Stripe.Types.Card as Reexport
 import Kernel.External.Payment.Stripe.Types.Common as Reexport
 import Kernel.External.Payment.Stripe.Types.Customer as Reexport
 import Kernel.External.Payment.Stripe.Types.PaymentIntent as Reexport
+import Kernel.External.Payment.Stripe.Types.SetupIntent as Reexport

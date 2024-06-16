@@ -13,49 +13,32 @@
 -}
 {-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.External.Payment.Stripe.Types.Customer where
+module Kernel.External.Payment.Stripe.Types.SetupIntent where
 
-import Data.Aeson
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 
-data CustomerReq = CustomerReq
-  { email :: Text,
-    name :: Text,
+data SetupIntentReq = SetupIntentReq
+  { automatic_payment_methods :: AutomaticPayementMethods,
+    confirm :: Bool,
+    customer :: CustomerId,
+    description :: Maybe Text,
     payment_method :: Maybe Text,
-    source :: Maybe Text,
-    phone :: Maybe Text
+    usage :: Maybe SetupFutureUsage,
+    use_stripe_sdk :: Bool
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data UpdateCustomerReq = UpdateCustomerReq
-  { email :: Maybe Text,
-    name :: Maybe Text,
-    source :: Maybe Text,
-    phone :: Maybe Text
-  }
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-data CustomerObject = CustomerObject
-  { id :: CustomerId,
-    email :: Text,
-    name :: Text,
-    default_source :: Maybe Text,
-    phone :: Maybe Text
-  }
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-newtype EphemeralKeysReq = EphemeralKeysReq
-  { customer :: CustomerId
-  }
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-newtype EphemeralKeysResp = EphemeralKeysResp
-  { secret :: Text
+data SetupIntentObject = SetupIntentObject
+  { id :: SetupIntentId,
+    client_secret :: Text,
+    latest_charge :: Maybe Text,
+    status :: PaymentIntentStatus,
+    confirm :: Bool,
+    customer :: Maybe CustomerId,
+    description :: Maybe Text,
+    payment_method :: Maybe Text
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

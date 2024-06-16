@@ -171,3 +171,94 @@ getAccount ::
 getAccount config accountId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Get Account not supported."
   StripeConfig cfg -> Stripe.getAccount cfg accountId
+
+createCustomer ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  CreateCustomerReq ->
+  m CreateCustomerResp
+createCustomer config req = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Create Customer not supported."
+  StripeConfig cfg -> Stripe.createCustomer cfg req
+
+createEphemeralKeys ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  CustomerId ->
+  m Text
+createEphemeralKeys config customerId = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Create Ephemeral Keys not supported."
+  StripeConfig cfg -> Stripe.createEphemeralKeys cfg customerId
+
+getCardList ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  CustomerId ->
+  m CustomerCardListResp
+getCardList config customerId = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Get Card List not supported."
+  StripeConfig cfg -> Stripe.getCardList cfg customerId
+
+createPaymentIntent ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  CreatePaymentIntentReq ->
+  m CreatePaymentIntentResp
+createPaymentIntent config req = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Create Payment Intent not supported."
+  StripeConfig cfg -> Stripe.createPaymentIntent cfg req
+
+updatePaymentMethodInIntent ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  PaymentIntentId ->
+  PaymentMethodId ->
+  m ()
+updatePaymentMethodInIntent config paymentIntentId paymentMethodId = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Update Payment Method In Intent not supported."
+  StripeConfig cfg -> Stripe.updatePaymentMethodInIntent cfg paymentIntentId paymentMethodId
+
+capturePaymentIntent ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  PaymentIntentId ->
+  Int ->
+  m ()
+capturePaymentIntent config paymentIntentId amount = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Capture Payment Intent not supported."
+  StripeConfig cfg -> Stripe.capturePaymentIntent cfg paymentIntentId amount
+
+updateAmountInPaymentIntent ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  PaymentIntentId ->
+  Int ->
+  m ()
+updateAmountInPaymentIntent config paymentIntentId amount = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Update Amount In Payment Intent not supported."
+  StripeConfig cfg -> Stripe.updateAmountInPaymentIntent cfg paymentIntentId amount
+
+createSetupIntent ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  CustomerId ->
+  m CreateSetupIntentResp
+createSetupIntent config customerId = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Create Setup Intent not supported."
+  StripeConfig cfg -> Stripe.createSetupIntent cfg customerId

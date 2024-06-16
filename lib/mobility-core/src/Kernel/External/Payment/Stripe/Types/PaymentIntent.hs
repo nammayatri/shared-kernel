@@ -20,14 +20,14 @@ import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 import Kernel.Types.Price
 
-data CreatePaymentIntentReq = CreatePaymentIntentReq
+data PaymentIntentReq = PaymentIntentReq
   { amount :: Int,
     currency :: Currency,
     automatic_payment_methods :: AutomaticPayementMethods,
     confirm :: Bool,
-    customer_id :: CustomerId,
+    customer :: CustomerId,
     description :: Maybe Text,
-    payment_method :: Text,
+    payment_method :: PaymentMethodId,
     receipt_email :: Maybe Text,
     setup_future_usage :: Maybe SetupFutureUsage,
     application_fee_amount :: Int,
@@ -38,51 +38,6 @@ data CreatePaymentIntentReq = CreatePaymentIntentReq
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-data AutomaticPayementMethods = AutomaticPayementMethods
-  { enabled :: Bool,
-    allow_redirects :: AutomaticPayementMethodsAllowRedirects
-  }
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-data AutomaticPayementMethodsAllowRedirects = AlwaysRedirect | NeverRedirect
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (ToSchema)
-
-automaticPayementMethodsAllowRedirectsJsonOptions :: Options
-automaticPayementMethodsAllowRedirectsJsonOptions =
-  defaultOptions
-    { constructorTagModifier = \case
-        "AlwaysRedirect" -> "redirect"
-        "NeverRedirect" -> "never"
-        x -> x
-    }
-
-instance FromJSON AutomaticPayementMethodsAllowRedirects where
-  parseJSON = genericParseJSON automaticPayementMethodsAllowRedirectsJsonOptions
-
-instance ToJSON AutomaticPayementMethodsAllowRedirects where
-  toJSON = genericToJSON automaticPayementMethodsAllowRedirectsJsonOptions
-
-data SetupFutureUsage = FutureUsageOffSession | FutureUsageOnSession
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (ToSchema)
-
-setupFutureUsageJsonOptions :: Options
-setupFutureUsageJsonOptions =
-  defaultOptions
-    { constructorTagModifier = \case
-        "FutureUsageOffSession" -> "off_session"
-        "FutureUsageOnSession" -> "on_session"
-        x -> x
-    }
-
-instance FromJSON SetupFutureUsage where
-  parseJSON = genericParseJSON setupFutureUsageJsonOptions
-
-instance ToJSON SetupFutureUsage where
-  toJSON = genericToJSON setupFutureUsageJsonOptions
 
 data CaptureMethod = AutomaticCaptureMethod | AutomaticAsyncCaptureMethod | ManualCaptureMethod
   deriving stock (Show, Eq, Generic, Read)
@@ -125,47 +80,43 @@ instance ToJSON ConfirmationMethod where
 
 data PaymentIntentObject = PaymentIntentObject
   { id :: PaymentIntentId,
-    amount :: Int,
-    currency :: Currency,
+    amount :: Maybe Int,
+    currency :: Maybe Currency,
     client_secret :: Text,
     latest_charge :: Maybe Text,
     status :: PaymentIntentStatus,
-    automatic_payment_methods :: AutomaticPayementMethods,
-    confirm :: Bool,
-    customer_id :: CustomerId,
+    automatic_payment_methods :: Maybe AutomaticPayementMethods,
+    confirm :: Maybe Bool,
+    customer_id :: Maybe CustomerId,
     description :: Maybe Text,
-    payment_method :: Text,
+    payment_method :: Maybe Text,
     receipt_email :: Maybe Text,
     setup_future_usage :: Maybe SetupFutureUsage,
-    application_fee_amount :: Int,
-    capture_method :: CaptureMethod,
-    confirmation_method :: ConfirmationMethod,
-    on_behalf_of :: AccountId,
-    use_stripe_sdk :: Bool
+    application_fee_amount :: Maybe Int,
+    capture_method :: Maybe CaptureMethod,
+    confirmation_method :: Maybe ConfirmationMethod,
+    on_behalf_of :: Maybe AccountId,
+    use_stripe_sdk :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data PaymentIntentStatus = Cancelled | Processing | RequiresAction | RequiresCapture | RequiresConfirmation | RequiresPaymentMethod | Succeeded
+newtype ConfirmPaymentIntentReq = ConfirmPaymentIntentReq
+  { payment_method :: PaymentMethodId
+  }
   deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (ToSchema)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-paymentIntentStatusJsonOptions :: Options
-paymentIntentStatusJsonOptions =
-  defaultOptions
-    { constructorTagModifier = \case
-        "Cancelled" -> "cancelled"
-        "Processing" -> "processing"
-        "RequiresAction" -> "requires_action"
-        "RequiresCapture" -> "requires_capture"
-        "RequiresConfirmation" -> "requires_confirmation"
-        "RequiresPaymentMethod" -> "requires_payment_method"
-        "Succeeded" -> "succeeded"
-        x -> x
-    }
+data CapturePaymentIntentReq = CapturePaymentIntentReq
+  { amount_to_capture :: Int,
+    application_fee_amount :: Int
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-instance FromJSON PaymentIntentStatus where
-  parseJSON = genericParseJSON paymentIntentStatusJsonOptions
-
-instance ToJSON PaymentIntentStatus where
-  toJSON = genericToJSON paymentIntentStatusJsonOptions
+data IncrementAuthorizationReq = IncrementAuthorizationReq
+  { amount :: Int,
+    application_fee_amount :: Int
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)

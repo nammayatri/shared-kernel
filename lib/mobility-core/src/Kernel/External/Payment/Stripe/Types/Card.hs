@@ -22,7 +22,7 @@ import Kernel.Utils.JSON
 
 data CardObject = CardObject
   { id :: PaymentMethodId,
-    name :: Text,
+    name :: Maybe Text,
     brand :: Text,
     country :: Maybe Text,
     customer :: Maybe Text,
@@ -30,6 +30,7 @@ data CardObject = CardObject
     exp_month :: Int,
     exp_year :: Int,
     funding :: CardFunding,
+    fingerprint :: Maybe Text,
     last4 :: Text
   }
   deriving stock (Show, Eq, Generic, Read)
@@ -95,3 +96,16 @@ data UpdateCardReq = UpdateCardReq
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CardList = CardList
+  { _data :: [CardObject],
+    has_more :: Bool
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+instance FromJSON CardList where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON CardList where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny

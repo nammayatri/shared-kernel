@@ -15,6 +15,7 @@
 
 module Kernel.External.Payment.Stripe.Types.Common where
 
+import Data.Aeson
 import Kernel.Prelude
 
 type AccountId = Text
@@ -23,4 +24,75 @@ type CustomerId = Text
 
 type PaymentIntentId = Text
 
+type SetupIntentId = Text
+
 type PaymentMethodId = Text
+
+data AutomaticPayementMethods = AutomaticPayementMethods
+  { enabled :: Bool,
+    allow_redirects :: AutomaticPayementMethodsAllowRedirects
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data AutomaticPayementMethodsAllowRedirects = AlwaysRedirect | NeverRedirect
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+automaticPayementMethodsAllowRedirectsJsonOptions :: Options
+automaticPayementMethodsAllowRedirectsJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "AlwaysRedirect" -> "redirect"
+        "NeverRedirect" -> "never"
+        x -> x
+    }
+
+instance FromJSON AutomaticPayementMethodsAllowRedirects where
+  parseJSON = genericParseJSON automaticPayementMethodsAllowRedirectsJsonOptions
+
+instance ToJSON AutomaticPayementMethodsAllowRedirects where
+  toJSON = genericToJSON automaticPayementMethodsAllowRedirectsJsonOptions
+
+data SetupFutureUsage = FutureUsageOffSession | FutureUsageOnSession
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+setupFutureUsageJsonOptions :: Options
+setupFutureUsageJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "FutureUsageOffSession" -> "off_session"
+        "FutureUsageOnSession" -> "on_session"
+        x -> x
+    }
+
+instance FromJSON SetupFutureUsage where
+  parseJSON = genericParseJSON setupFutureUsageJsonOptions
+
+instance ToJSON SetupFutureUsage where
+  toJSON = genericToJSON setupFutureUsageJsonOptions
+
+data PaymentIntentStatus = Cancelled | Processing | RequiresAction | RequiresCapture | RequiresConfirmation | RequiresPaymentMethod | Succeeded
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+paymentIntentStatusJsonOptions :: Options
+paymentIntentStatusJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "Cancelled" -> "cancelled"
+        "Processing" -> "processing"
+        "RequiresAction" -> "requires_action"
+        "RequiresCapture" -> "requires_capture"
+        "RequiresConfirmation" -> "requires_confirmation"
+        "RequiresPaymentMethod" -> "requires_payment_method"
+        "Succeeded" -> "succeeded"
+        x -> x
+    }
+
+instance FromJSON PaymentIntentStatus where
+  parseJSON = genericParseJSON paymentIntentStatusJsonOptions
+
+instance ToJSON PaymentIntentStatus where
+  toJSON = genericToJSON paymentIntentStatusJsonOptions

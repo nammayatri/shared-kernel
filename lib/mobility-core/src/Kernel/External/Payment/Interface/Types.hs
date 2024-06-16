@@ -23,13 +23,13 @@ where
 
 import Data.Time
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), Currency (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
 import qualified Kernel.External.Payment.Stripe.Config as Stripe
 import Kernel.External.Payment.Stripe.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
 import qualified Kernel.Types.Beckn.Context as Context
-import Kernel.Types.Common hiding (Currency)
+import Kernel.Types.Common
 
 data PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg | StripeConfig Stripe.StripeCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -424,3 +424,57 @@ data ConnectAccountResp = ConnectAccountResp
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CreateCustomerReq = CreateCustomerReq
+  { email :: Text,
+    name :: Text,
+    phone :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype CreateCustomerResp = CreateCustomerResp
+  { customerId :: CustomerId
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CreatePaymentIntentReq = CreatePaymentIntentReq
+  { amount :: Int,
+    currency :: Currency,
+    customer :: CustomerId,
+    paymentMethod :: PaymentMethodId,
+    receiptEmail :: Maybe Text,
+    driverAccountId :: AccountId
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CreatePaymentIntentResp = CreatePaymentIntentResp
+  { paymentIntentId :: PaymentIntentId,
+    clientSecret :: Text,
+    status :: PaymentIntentStatus
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CreateSetupIntentResp = CreateSetupIntentResp
+  { setupIntentId :: SetupIntentId,
+    clientSecret :: Text,
+    status :: PaymentIntentStatus
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CustomerCard = CustomerCard
+  { cardId :: PaymentMethodId,
+    brand :: Text,
+    last4 :: Text,
+    expMonth :: Int,
+    expYear :: Int,
+    country :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+type CustomerCardListResp = [CustomerCard]

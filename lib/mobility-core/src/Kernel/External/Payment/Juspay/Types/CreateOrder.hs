@@ -18,6 +18,7 @@ module Kernel.External.Payment.Juspay.Types.CreateOrder where
 import Data.Aeson
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
+import Kernel.Types.Price
 
 data CreateOrderReq = CreateOrderReq
   { order_id :: Text,

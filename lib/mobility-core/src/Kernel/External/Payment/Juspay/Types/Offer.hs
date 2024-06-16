@@ -18,7 +18,7 @@ module Kernel.External.Payment.Juspay.Types.Offer where
 import Data.Aeson
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
-import Kernel.Types.Common (HighPrecMoney)
+import Kernel.Types.Common
 import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
 
 -- offer list request --

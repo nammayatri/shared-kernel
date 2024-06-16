@@ -20,7 +20,7 @@ import Data.Aeson.Types
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common (HighPrecMoney)
+import Kernel.Types.Common
 
 data PaymentStatus
   = ORDER_SUCCEEDED
@@ -45,23 +45,6 @@ data PaymentStatus
   | TXN_FAILED
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-data Currency = INR
-  deriving stock (Show, Eq, Read, Ord, Generic)
-  deriving anyclass (ToSchema)
-
-derivePersistField "Currency"
-
-$(mkBeamInstancesForEnum ''Currency)
-
--- Generic instances for type with single value will not work
-instance FromJSON Currency where
-  parseJSON (String "INR") = pure INR
-  parseJSON (String _) = parseFail "Expected \"INR\""
-  parseJSON e = typeMismatch "String" e
-
-instance ToJSON Currency where
-  toJSON = String . show
 
 data MandateType = OPTIONAL | REQUIRED
   deriving stock (Show, Read, Eq, Generic, Ord)
