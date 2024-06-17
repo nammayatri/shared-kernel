@@ -35,7 +35,7 @@ data SetupIntentObject = SetupIntentObject
     client_secret :: Text,
     latest_charge :: Maybe Text,
     status :: PaymentIntentStatus,
-    confirm :: Bool,
+    confirm :: Maybe Bool,
     customer :: Maybe CustomerId,
     description :: Maybe Text,
     payment_method :: Maybe Text
