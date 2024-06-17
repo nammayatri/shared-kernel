@@ -166,6 +166,19 @@ getCardList config customerId = do
           ..
         }
 
+deleteCard ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  StripeCfg ->
+  CustomerId ->
+  PaymentMethodId ->
+  m ()
+deleteCard config customerId paymentMethodId = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  void $ Stripe.deleteCard url apiKey customerId paymentMethodId
+
 createPaymentIntent ::
   ( Metrics.CoreMetrics m,
     EncFlow m r

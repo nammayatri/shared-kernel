@@ -194,6 +194,18 @@ createEphemeralKeys config customerId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Ephemeral Keys not supported."
   StripeConfig cfg -> Stripe.createEphemeralKeys cfg customerId
 
+deleteCard ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  CustomerId ->
+  PaymentMethodId ->
+  m ()
+deleteCard config customerId cardId = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Delete Card not supported."
+  StripeConfig cfg -> Stripe.deleteCard cfg customerId cardId
+
 getCardList ::
   ( CoreMetrics m,
     EncFlow m r

@@ -283,6 +283,29 @@ createCard url apiKey customerId cardReq = do
       eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) cardReq
   callStripeAPI url eulerClient "create-card" proxy
 
+type DeleteCardAPI =
+  "v1"
+    :> "customers"
+    :> Capture "id" CustomerId
+    :> "sources"
+    :> Capture "card_id" PaymentMethodId
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Delete '[JSON] DeleteCardResp
+
+deleteCard ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  CustomerId ->
+  PaymentMethodId ->
+  m DeleteCardResp
+deleteCard url apiKey customerId cardId = do
+  let proxy = Proxy @DeleteCardAPI
+      eulerClient = Euler.client proxy customerId cardId (mkBasicAuthData apiKey)
+  callStripeAPI url eulerClient "delete-card" proxy
+
 type UpdateCardAPI =
   "v1"
     :> "customers"

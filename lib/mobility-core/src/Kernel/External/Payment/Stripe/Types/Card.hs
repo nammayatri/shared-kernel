@@ -97,6 +97,13 @@ data UpdateCardReq = UpdateCardReq
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data DeleteCardResp = DeleteCardResp
+  { id :: PaymentMethodId,
+    deleted :: Bool
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data CardList = CardList
   { _data :: [CardObject],
     has_more :: Bool
