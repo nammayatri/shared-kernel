@@ -29,7 +29,7 @@ data CardObject = CardObject
     cvc_check :: Maybe CVCCheck,
     exp_month :: Int,
     exp_year :: Int,
-    funding :: CardFunding,
+    funding :: Maybe CardFunding,
     fingerprint :: Maybe Text,
     last4 :: Text
   }

@@ -40,8 +40,8 @@ data UpdateCustomerReq = UpdateCustomerReq
 
 data CustomerObject = CustomerObject
   { id :: CustomerId,
-    email :: Text,
-    name :: Text,
+    email :: Maybe Text,
+    name :: Maybe Text,
     default_source :: Maybe Text,
     phone :: Maybe Text
   }
