@@ -18,6 +18,7 @@ module Kernel.External.Payment.Stripe.Types.Customer where
 import Data.Aeson
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
+import Web.FormUrlEncoded
 
 data CustomerReq = CustomerReq
   { email :: Text,
@@ -52,7 +53,9 @@ newtype EphemeralKeysReq = EphemeralKeysReq
   { customer :: CustomerId
   }
   deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+  deriving anyclass (ToSchema)
+
+instance ToForm EphemeralKeysReq
 
 newtype EphemeralKeysResp = EphemeralKeysResp
   { secret :: Text

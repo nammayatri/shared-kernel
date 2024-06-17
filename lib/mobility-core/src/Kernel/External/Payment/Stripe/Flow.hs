@@ -380,7 +380,8 @@ type CreateEphemeralKeysAPI =
   "v1"
     :> "ephemeral_keys"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] EphemeralKeysReq
+    :> Header "Stripe-Version" Text
+    :> ReqBody '[FormUrlEncoded] EphemeralKeysReq
     :> Post '[JSON] EphemeralKeysResp
 
 createEphemeralKeys ::
@@ -393,5 +394,5 @@ createEphemeralKeys ::
   m EphemeralKeysResp
 createEphemeralKeys url apiKey ephemeralKeysReq = do
   let proxy = Proxy @CreateEphemeralKeysAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) ephemeralKeysReq
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just "2024-04-10") ephemeralKeysReq
   callStripeAPI url eulerClient "create-ephemeralKeys" proxy
