@@ -16,9 +16,11 @@
 module Kernel.External.Payment.Stripe.Types.Customer where
 
 import Data.Aeson
+import qualified Data.HashMap.Strict as HM
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 import Web.FormUrlEncoded
+import Web.HttpApiData (ToHttpApiData (..))
 
 data CustomerReq = CustomerReq
   { email :: Text,
@@ -30,6 +32,19 @@ data CustomerReq = CustomerReq
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+instance ToForm CustomerReq where
+  toForm CustomerReq {..} =
+    Form $
+      HM.fromList $
+        [ ("email", [toQueryParam email]),
+          ("name", [toQueryParam name])
+        ]
+          ++ catMaybes
+            [ ("payment_method",) . pure <$> toQueryParam <$> payment_method,
+              ("source",) . pure <$> toQueryParam <$> source,
+              ("phone",) . pure <$> toQueryParam <$> phone
+            ]
+
 data UpdateCustomerReq = UpdateCustomerReq
   { email :: Maybe Text,
     name :: Maybe Text,
@@ -38,6 +53,17 @@ data UpdateCustomerReq = UpdateCustomerReq
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+instance ToForm UpdateCustomerReq where
+  toForm UpdateCustomerReq {..} =
+    Form $
+      HM.fromList $
+        catMaybes
+          [ ("email",) . pure <$> toQueryParam <$> email,
+            ("name",) . pure <$> toQueryParam <$> name,
+            ("source",) . pure <$> toQueryParam <$> source,
+            ("phone",) . pure <$> toQueryParam <$> phone
+          ]
 
 data CustomerObject = CustomerObject
   { id :: CustomerId,

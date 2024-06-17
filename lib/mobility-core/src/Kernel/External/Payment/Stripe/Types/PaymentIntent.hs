@@ -12,13 +12,17 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Kernel.External.Payment.Stripe.Types.PaymentIntent where
 
 import Data.Aeson
+import qualified Data.HashMap.Strict as HM
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 import Kernel.Types.Price
+import Web.FormUrlEncoded
+import Web.HttpApiData (ToHttpApiData (..))
 
 data PaymentIntentReq = PaymentIntentReq
   { amount :: Int,
@@ -39,6 +43,31 @@ data PaymentIntentReq = PaymentIntentReq
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+instance ToForm PaymentIntentReq where
+  toForm PaymentIntentReq {..} =
+    Form $
+      HM.fromListWith
+        (++)
+        [ ("amount", [toQueryParam amount]),
+          ("currency", [toQueryParam currency]),
+          ("automatic_payment_methods[enabled]", [toQueryParam (automatic_payment_methods.enabled)]),
+          ("automatic_payment_methods[allow_redirects]", [toQueryParam (automatic_payment_methods.allow_redirects)]),
+          ("confirm", [toQueryParam confirm]),
+          ("customer", [toQueryParam customer]),
+          ("payment_method", [toQueryParam payment_method]),
+          ("application_fee_amount", [toQueryParam application_fee_amount]),
+          ("capture_method", [toQueryParam capture_method]),
+          ("confirmation_method", [toQueryParam confirmation_method]),
+          ("on_behalf_of", [toQueryParam on_behalf_of]),
+          ("use_stripe_sdk", [toQueryParam use_stripe_sdk])
+        ]
+        <> maybeToForm "description" description
+        <> maybeToForm "receipt_email" receipt_email
+        <> maybeToForm "setup_future_usage" setup_future_usage
+    where
+      maybeToForm :: ToHttpApiData a => Text -> Maybe a -> HM.HashMap Text [Text]
+      maybeToForm key = maybe HM.empty (\value -> HM.singleton key [toQueryParam value])
+
 data CaptureMethod = AutomaticCaptureMethod | AutomaticAsyncCaptureMethod | ManualCaptureMethod
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
@@ -52,6 +81,12 @@ captureMethodJsonOptions =
         "ManualCaptureMethod" -> "manual"
         x -> x
     }
+
+instance ToHttpApiData CaptureMethod where
+  toQueryParam :: CaptureMethod -> Text
+  toQueryParam AutomaticCaptureMethod = "automatic"
+  toQueryParam AutomaticAsyncCaptureMethod = "automatic_async"
+  toQueryParam ManualCaptureMethod = "manual"
 
 instance FromJSON CaptureMethod where
   parseJSON = genericParseJSON captureMethodJsonOptions
@@ -71,6 +106,11 @@ confirmationMethodJsonOptions =
         "ManualConfirmationMethod" -> "manual"
         x -> x
     }
+
+instance ToHttpApiData ConfirmationMethod where
+  toQueryParam :: ConfirmationMethod -> Text
+  toQueryParam AutomaticConfirmationMethod = "automatic"
+  toQueryParam ManualConfirmationMethod = "manual"
 
 instance FromJSON ConfirmationMethod where
   parseJSON = genericParseJSON confirmationMethodJsonOptions
@@ -107,6 +147,9 @@ newtype ConfirmPaymentIntentReq = ConfirmPaymentIntentReq
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+instance ToForm ConfirmPaymentIntentReq where
+  toForm ConfirmPaymentIntentReq {..} = Form $ HM.singleton "payment_method" [toQueryParam payment_method]
+
 data CapturePaymentIntentReq = CapturePaymentIntentReq
   { amount_to_capture :: Int,
     application_fee_amount :: Int
@@ -114,9 +157,25 @@ data CapturePaymentIntentReq = CapturePaymentIntentReq
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+instance ToForm CapturePaymentIntentReq where
+  toForm CapturePaymentIntentReq {..} =
+    Form $
+      HM.fromList
+        [ ("amount_to_capture", [toQueryParam amount_to_capture]),
+          ("application_fee_amount", [toQueryParam application_fee_amount])
+        ]
+
 data IncrementAuthorizationReq = IncrementAuthorizationReq
   { amount :: Int,
     application_fee_amount :: Int
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+instance ToForm IncrementAuthorizationReq where
+  toForm IncrementAuthorizationReq {..} =
+    Form $
+      HM.fromList
+        [ ("amount", [toQueryParam amount]),
+          ("application_fee_amount", [toQueryParam application_fee_amount])
+        ]
