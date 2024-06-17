@@ -15,8 +15,11 @@
 
 module Kernel.External.Payment.Stripe.Types.SetupIntent where
 
+import qualified Data.HashMap.Strict as HM
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
+import Web.FormUrlEncoded
+import Web.HttpApiData (ToHttpApiData (..))
 
 data SetupIntentReq = SetupIntentReq
   { automatic_payment_methods :: AutomaticPayementMethods,
@@ -29,6 +32,23 @@ data SetupIntentReq = SetupIntentReq
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+instance ToForm SetupIntentReq where
+  toForm SetupIntentReq {..} =
+    Form $
+      HM.fromList
+        [ ("automatic_payment_methods[enabled]", [toQueryParam (automatic_payment_methods.enabled)]),
+          ("automatic_payment_methods[allow_redirects]", [toQueryParam (automatic_payment_methods.allow_redirects)]),
+          ("confirm", [toQueryParam confirm]),
+          ("customer", [toQueryParam customer]),
+          ("use_stripe_sdk", [toQueryParam use_stripe_sdk])
+        ]
+        <> maybeToForm "description" description
+        <> maybeToForm "payment_method" payment_method
+        <> maybeToForm "usage" usage
+    where
+      maybeToForm :: ToHttpApiData a => Text -> Maybe a -> HM.HashMap Text [Text]
+      maybeToForm key = maybe HM.empty (\value -> HM.singleton key [toQueryParam value])
 
 data SetupIntentObject = SetupIntentObject
   { id :: SetupIntentId,

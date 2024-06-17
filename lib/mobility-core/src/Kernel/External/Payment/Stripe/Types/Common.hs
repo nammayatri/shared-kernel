@@ -12,11 +12,13 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Kernel.External.Payment.Stripe.Types.Common where
 
 import Data.Aeson
 import Kernel.Prelude
+import Web.HttpApiData (ToHttpApiData (..))
 
 type AccountId = Text
 
@@ -38,6 +40,11 @@ data AutomaticPayementMethods = AutomaticPayementMethods
 data AutomaticPayementMethodsAllowRedirects = AlwaysRedirect | NeverRedirect
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
+
+instance ToHttpApiData AutomaticPayementMethodsAllowRedirects where
+  toQueryParam :: AutomaticPayementMethodsAllowRedirects -> Text
+  toQueryParam AlwaysRedirect = "redirect"
+  toQueryParam NeverRedirect = "never"
 
 automaticPayementMethodsAllowRedirectsJsonOptions :: Options
 automaticPayementMethodsAllowRedirectsJsonOptions =
@@ -66,6 +73,11 @@ setupFutureUsageJsonOptions =
         "FutureUsageOnSession" -> "on_session"
         x -> x
     }
+
+instance ToHttpApiData SetupFutureUsage where
+  toQueryParam :: SetupFutureUsage -> Text
+  toQueryParam FutureUsageOffSession = "off_session"
+  toQueryParam FutureUsageOnSession = "on_session"
 
 instance FromJSON SetupFutureUsage where
   parseJSON = genericParseJSON setupFutureUsageJsonOptions

@@ -12,14 +12,20 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Kernel.External.Payment.Stripe.Types.Accounts where
 
 import Data.Aeson
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Text as T
 import Data.Time.Clock.POSIX (POSIXTime)
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
+import Kernel.Utils.Common
 import Kernel.Utils.JSON
+import Servant
+import Web.FormUrlEncoded
 
 data AccountType
   = Standard
@@ -27,6 +33,10 @@ data AccountType
   | Custom
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
+
+instance ToHttpApiData AccountType where
+  toQueryParam :: AccountType -> Text
+  toQueryParam = T.pack . recursiveStrip . camelToSnake . show
 
 instance FromJSON AccountType where
   parseJSON = genericParseJSON constructorsWithCapitalToSnakeCase
@@ -48,6 +58,11 @@ accountLossesPayerJsonOptions =
         x -> x
     }
 
+instance ToHttpApiData AccountLossesPayer where
+  toQueryParam :: AccountLossesPayer -> Text
+  toQueryParam AccountLossesPayerStripe = "stripe"
+  toQueryParam AccountLossesPayerApplication = "application"
+
 instance FromJSON AccountLossesPayer where
   parseJSON = genericParseJSON accountLossesPayerJsonOptions
 
@@ -58,7 +73,7 @@ newtype AccountLosses = AccountLosses
   { payments :: AccountLossesPayer
   }
   deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+  deriving anyclass (FromJSON, ToJSON, ToSchema, ToForm)
 
 -- A value indicating the responsible payer of Stripe fees on this account. Defaults to Account
 data AccountFeePayer = AccountFeePayerAccount | AccountFeePayerApplication
@@ -73,6 +88,11 @@ accountFeePayerJsonOptions =
         "AccountFeePayerApplication" -> "application"
         x -> x
     }
+
+instance ToHttpApiData AccountFeePayer where
+  toQueryParam :: AccountFeePayer -> Text
+  toQueryParam AccountFeePayerAccount = "account"
+  toQueryParam AccountFeePayerApplication = "application"
 
 instance FromJSON AccountFeePayer where
   parseJSON = genericParseJSON accountFeePayerJsonOptions
@@ -100,6 +120,11 @@ accountRquirementCollectorJsonOptions =
         x -> x
     }
 
+instance ToHttpApiData AccountRquirementCollector where
+  toQueryParam :: AccountRquirementCollector -> Text
+  toQueryParam AccountRquirementCollectorStripe = "stripe"
+  toQueryParam AccountRquirementCollectorApplication = "application"
+
 instance FromJSON AccountRquirementCollector where
   parseJSON = genericParseJSON accountRquirementCollectorJsonOptions
 
@@ -120,6 +145,12 @@ accountDashboardTypeJsonOptions =
         "AccountDashboardNone" -> "none"
         x -> x
     }
+
+instance ToHttpApiData AccountDashboardType where
+  toQueryParam :: AccountDashboardType -> Text
+  toQueryParam AccountDashboardExpress = "express"
+  toQueryParam AccountDashboardFull = "full"
+  toQueryParam AccountDashboardNone = "none"
 
 instance FromJSON AccountDashboardType where
   parseJSON = genericParseJSON accountDashboardTypeJsonOptions
@@ -151,6 +182,10 @@ data AccountController = AccountController
 data BusinessType = Individual | Company | GovernmentEntity | NonProfit
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
+
+instance ToHttpApiData BusinessType where
+  toQueryParam :: BusinessType -> Text
+  toQueryParam = T.pack . recursiveStrip . camelToSnake . show
 
 instance FromJSON BusinessType where
   parseJSON = genericParseJSON constructorsWithCapitalToSnakeCase
@@ -238,6 +273,62 @@ data AccountsReq = AccountsReq
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
 
+instance ToForm AccountsReq where
+  toForm AccountsReq {..} =
+    Form $
+      foldl' insertOrAppend HM.empty $
+        [ ("type", toQueryParam _type),
+          ("country", toQueryParam country),
+          ("business_type", toQueryParam business_type)
+        ]
+          ++ catMaybes
+            [ ("email",) <$> toQueryParam <$> email,
+              ("capabilities[card_payments][requested]",) <$> (toQueryParam . (.card_payments.requested)) <$> capabilities,
+              ("capabilities[cashapp_payments][requested]",) <$> (toQueryParam . (.cashapp_payments.requested)) <$> capabilities,
+              ("controller[fees][payer]",) <$> (toQueryParam . (.payer)) <$> ((.fees) =<< controller),
+              ("controller[losses][payments]",) <$> (toQueryParam . (.payments)) <$> ((.losses) =<< controller),
+              ("controller[requirement_collection]",) <$> toQueryParam <$> ((.requirement_collection) =<< controller),
+              ("controller[stripe_dashboard][type]",) <$> (toQueryParam . (._type)) <$> ((.stripe_dashboard) =<< controller),
+              ("settings[payouts][debit_negative_balances]",) <$> (toQueryParam . (.payouts.debit_negative_balances)) <$> settings,
+              ("settings[payouts][statement_descriptor]",) <$> (toQueryParam . (.payouts.statement_descriptor)) <$> settings
+            ]
+          ++ maybe [] individualToForm individual
+
+insertOrAppend :: HM.HashMap Text [Text] -> (Text, Text) -> HM.HashMap Text [Text]
+insertOrAppend hm (k, v) = HM.insertWith (++) k [v] hm
+
+individualToForm :: IndividualDetails -> [(Text, Text)]
+individualToForm IndividualDetails {..} =
+  [ ("individual[first_name]", toQueryParam first_name),
+    ("individual[phone]", toQueryParam phone)
+  ]
+    ++ catMaybes
+      [ ("individual[last_name]",) <$> toQueryParam <$> last_name,
+        ("individual[email]",) <$> toQueryParam <$> email,
+        ("individual[id_number]",) <$> toQueryParam <$> id_number,
+        ("individual[ssn_last_4]",) <$> toQueryParam <$> ssn_last_4
+      ]
+    ++ maybe [] dobToForm dob
+    ++ maybe [] addressToForm address
+
+dobToForm :: DateOfBirth -> [(Text, Text)]
+dobToForm DateOfBirth {..} =
+  [ ("individual[dob][day]", toQueryParam day),
+    ("individual[dob][month]", toQueryParam month),
+    ("individual[dob][year]", toQueryParam year)
+  ]
+
+addressToForm :: Address -> [(Text, Text)]
+addressToForm Address {..} =
+  catMaybes
+    [ ("individual[address][city]",) <$> toQueryParam <$> city,
+      ("individual[address][country]",) <$> toQueryParam <$> country,
+      ("individual[address][line1]",) <$> toQueryParam <$> line1,
+      ("individual[address][line2]",) <$> toQueryParam <$> line2,
+      ("individual[address][postal_code]",) <$> toQueryParam <$> postal_code,
+      ("individual[address][state]",) <$> toQueryParam <$> state
+    ]
+
 instance FromJSON AccountsReq where
   parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
 
@@ -278,6 +369,10 @@ data AccountLinkType = AccountOnboarding | AccountUpdate
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
 
+instance ToHttpApiData AccountLinkType where
+  toQueryParam :: AccountLinkType -> Text
+  toQueryParam = T.pack . recursiveStrip . camelToSnake . show
+
 instance FromJSON AccountLinkType where
   parseJSON = genericParseJSON constructorsWithCapitalToSnakeCase
 
@@ -288,6 +383,10 @@ data CollectionOptionsFields = CurrentlyDue | EventuallyDue
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
 
+instance ToHttpApiData CollectionOptionsFields where
+  toQueryParam :: CollectionOptionsFields -> Text
+  toQueryParam = T.pack . recursiveStrip . camelToSnake . show
+
 instance FromJSON CollectionOptionsFields where
   parseJSON = genericParseJSON constructorsWithCapitalToSnakeCase
 
@@ -297,6 +396,10 @@ instance ToJSON CollectionOptionsFields where
 data CollectionOptionsFutureRequirements = Include | Omit
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
+
+instance ToHttpApiData CollectionOptionsFutureRequirements where
+  toQueryParam :: CollectionOptionsFutureRequirements -> Text
+  toQueryParam = T.pack . recursiveStrip . camelToSnake . show
 
 instance FromJSON CollectionOptionsFutureRequirements where
   parseJSON = genericParseJSON constructorsWithCapitalToSnakeCase
@@ -320,6 +423,20 @@ data AccountLinkReq = AccountLinkReq
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
+
+instance ToForm AccountLinkReq where
+  toForm AccountLinkReq {..} =
+    Form $
+      foldl' insertOrAppend HM.empty $
+        [ ("account", toQueryParam account),
+          ("refresh_url", toQueryParam refresh_url),
+          ("return_url", toQueryParam return_url),
+          ("type", toQueryParam _type)
+        ]
+          ++ catMaybes
+            [ ("collection_options[fields]",) <$> (toQueryParam . (.fields)) <$> collection_options,
+              ("collection_options[future_requirements]",) <$> (toQueryParam . (.future_requirements)) <$> collection_options
+            ]
 
 instance FromJSON AccountLinkReq where
   parseJSON = genericParseJSON stripPrefixUnderscoreIfAny

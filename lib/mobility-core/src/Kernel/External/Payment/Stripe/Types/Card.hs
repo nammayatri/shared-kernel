@@ -12,13 +12,19 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Kernel.External.Payment.Stripe.Types.Card where
 
 import Data.Aeson
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Text as T
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
+import Kernel.Utils.Common (recursiveStrip)
 import Kernel.Utils.JSON
+import Web.FormUrlEncoded
+import Web.HttpApiData (ToHttpApiData (..))
 
 data CardObject = CardObject
   { id :: PaymentMethodId,
@@ -73,6 +79,21 @@ data CardReqSource = CardReqSource
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
 
+instance ToForm CardReq where
+  toForm CardReq {source = CardReqSource {..}} =
+    Form $
+      HM.fromList
+        [ ("source[exp_month]", [toQueryParam exp_month]),
+          ("source[exp_year]", [toQueryParam exp_year]),
+          ("source[number]", [toQueryParam number]),
+          ("source[object]", [toQueryParam _object]),
+          ("source[cvc]", [toQueryParam cvc])
+        ]
+        <> maybeToForm "source[name]" name
+    where
+      maybeToForm :: ToHttpApiData a => Text -> Maybe a -> HM.HashMap Text [Text]
+      maybeToForm key = maybe HM.empty (\value -> HM.singleton key [toQueryParam value])
+
 instance FromJSON CardReqSource where
   parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
 
@@ -82,6 +103,10 @@ instance ToJSON CardReqSource where
 data PaymentSourceType = Card | Wallet
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
+
+instance ToHttpApiData PaymentSourceType where
+  toQueryParam :: PaymentSourceType -> Text
+  toQueryParam = T.pack . recursiveStrip . camelToSnake . show
 
 instance FromJSON PaymentSourceType where
   parseJSON = genericParseJSON constructorsWithLowerCase
@@ -96,6 +121,16 @@ data UpdateCardReq = UpdateCardReq
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+instance ToForm UpdateCardReq where
+  toForm UpdateCardReq {..} =
+    Form $
+      HM.fromList $
+        catMaybes
+          [ ("exp_month",) . pure <$> toQueryParam <$> exp_month,
+            ("exp_year",) . pure <$> toQueryParam <$> exp_year,
+            ("name",) . pure <$> toQueryParam <$> name
+          ]
 
 data DeleteCardResp = DeleteCardResp
   { id :: PaymentMethodId,

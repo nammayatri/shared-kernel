@@ -29,7 +29,7 @@ type CreateAccountAPI =
   "v1"
     :> "accounts"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] AccountsReq
+    :> ReqBody '[FormUrlEncoded] AccountsReq
     :> Post '[JSON] AccountResp
 
 createAccount ::
@@ -49,7 +49,7 @@ type CreateAccountLinkAPI =
   "v1"
     :> "accounts"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] AccountLinkReq
+    :> ReqBody '[FormUrlEncoded] AccountLinkReq
     :> Post '[JSON] AccountLinkObject
 
 createAccountLink ::
@@ -90,7 +90,7 @@ type CreateCustomerAPI =
   "v1"
     :> "customers"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] CustomerReq
+    :> ReqBody '[FormUrlEncoded] CustomerReq
     :> Post '[JSON] CustomerObject
 
 createCustomer ::
@@ -111,7 +111,7 @@ type UpdateCustomerAPI =
     :> "customers"
     :> Capture "id" CustomerId
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] UpdateCustomerReq
+    :> ReqBody '[FormUrlEncoded] UpdateCustomerReq
     :> Post '[JSON] CustomerObject
 
 updateCustomer ::
@@ -153,7 +153,7 @@ type CreatePaymentIntentAPI =
   "v1"
     :> "payment_intents"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] PaymentIntentReq
+    :> ReqBody '[FormUrlEncoded] PaymentIntentReq
     :> Post '[JSON] PaymentIntentObject
 
 createPaymentIntent ::
@@ -175,7 +175,7 @@ type ConfirmPaymentIntentAPI =
     :> Capture "id" PaymentIntentId
     :> "confirm"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] ConfirmPaymentIntentReq
+    :> ReqBody '[FormUrlEncoded] ConfirmPaymentIntentReq
     :> Post '[JSON] PaymentIntentObject
 
 confirmPaymentIntent ::
@@ -198,7 +198,7 @@ type CapturePaymentIntentAPI =
     :> Capture "id" PaymentIntentId
     :> "capture"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] CapturePaymentIntentReq
+    :> ReqBody '[FormUrlEncoded] CapturePaymentIntentReq
     :> Post '[JSON] PaymentIntentObject
 
 capturePaymentIntent ::
@@ -221,7 +221,7 @@ type IncrementAuthorizationPaymentIntentAPI =
     :> Capture "id" PaymentIntentId
     :> "increment_authorization"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] IncrementAuthorizationReq
+    :> ReqBody '[FormUrlEncoded] IncrementAuthorizationReq
     :> Post '[JSON] PaymentIntentObject
 
 incrementAuthorizationPaymentIntent ::
@@ -243,7 +243,7 @@ type CreateSetupIntentAPI =
   "v1"
     :> "setup_intents"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] SetupIntentReq
+    :> ReqBody '[FormUrlEncoded] SetupIntentReq
     :> Post '[JSON] SetupIntentObject
 
 createSetupIntent ::
@@ -266,7 +266,7 @@ type CreateCardAPI =
     :> Capture "id" CustomerId
     :> "sources"
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] CardReq
+    :> ReqBody '[FormUrlEncoded] CardReq
     :> Post '[JSON] CardObject
 
 createCard ::
@@ -313,7 +313,7 @@ type UpdateCardAPI =
     :> "sources"
     :> Capture "card_id" PaymentMethodId
     :> BasicAuth "secretkey-password" BasicAuthData
-    :> ReqBody '[JSON] UpdateCardReq
+    :> ReqBody '[FormUrlEncoded] UpdateCardReq
     :> Post '[JSON] CardObject
 
 updateCard ::
