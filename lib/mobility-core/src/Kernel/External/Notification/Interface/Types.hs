@@ -72,6 +72,7 @@ data Category
   | SCHEDULED_RIDE_NOTIFICATION
   | FIRST_RIDE_EVENT
   | TOLL_CROSSED
+  | TRIP_UPDATED
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
