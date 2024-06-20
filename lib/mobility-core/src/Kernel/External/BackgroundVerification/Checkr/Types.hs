@@ -135,8 +135,7 @@ data GetReportResp = GetReportResp
   { id :: Text,
     adjudication :: Maybe Text, -- "engaged"
     status :: Text, -- "pending | completed"
-    reportId :: Maybe Text,
-    expiresAt :: UTCTime
+    reportId :: Maybe Text
   }
   deriving (Generic, Eq, Show)
 
