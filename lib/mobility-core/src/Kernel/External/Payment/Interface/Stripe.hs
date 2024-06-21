@@ -10,6 +10,7 @@ import qualified Kernel.External.Payment.Stripe.Types as Stripe
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import qualified Kernel.Types.Beckn.Context as Context
+import Kernel.Types.Common
 
 createIndividualConnectAccount ::
   ( Metrics.CoreMetrics m,
@@ -153,17 +154,19 @@ getCardList ::
 getCardList config customerId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  cardListResp <- Stripe.getCardList url apiKey customerId
-  let cards = map mkCard cardListResp._data
+  paymentMethodListResp <- Stripe.getPaymentMethodList url apiKey customerId
+  let cards = map mkCard paymentMethodListResp._data
   return cards
   where
-    mkCard :: Stripe.CardObject -> CustomerCard
-    mkCard Stripe.CardObject {..} =
+    mkCard :: Stripe.PaymentMethod -> CustomerCard
+    mkCard paymentMethod =
       CustomerCard
-        { cardId = id,
-          expMonth = exp_month,
-          expYear = exp_year,
-          ..
+        { cardId = paymentMethod.id,
+          expMonth = paymentMethod.card.exp_month,
+          expYear = paymentMethod.card.exp_year,
+          last4 = paymentMethod.card.last4,
+          brand = paymentMethod.card.brand,
+          country = paymentMethod.card.country
         }
 
 deleteCard ::
@@ -197,8 +200,9 @@ createPaymentIntent config req = do
   return $ CreatePaymentIntentResp {..}
   where
     mkPaymentIntentReq :: CreatePaymentIntentReq -> Stripe.PaymentIntentReq
-    mkPaymentIntentReq CreatePaymentIntentReq {..} = do
-      let application_fee_amount = 0 -- fix later
+    mkPaymentIntentReq CreatePaymentIntentReq {amount = amonutInUsd, ..} = do
+      let application_fee_amount = usdToCents applicationFeeAmount
+      let amountInCents = usdToCents amonutInUsd
       let payment_method = paymentMethod
       let receipt_email = receiptEmail
       let on_behalf_of = driverAccountId
@@ -209,7 +213,7 @@ createPaymentIntent config req = do
       let capture_method = Stripe.ManualCaptureMethod
       let confirmation_method = Stripe.AutomaticConfirmationMethod
       let use_stripe_sdk = True
-      Stripe.PaymentIntentReq {..}
+      Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
 createSetupIntent ::
   ( Metrics.CoreMetrics m,
@@ -259,12 +263,14 @@ capturePaymentIntent ::
   ) =>
   StripeCfg ->
   PaymentIntentId ->
-  Int ->
+  HighPrecMoney ->
+  HighPrecMoney ->
   m ()
-capturePaymentIntent config paymentIntentId amount_to_capture = do
+capturePaymentIntent config paymentIntentId amount applicationFeeAmount = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  let application_fee_amount = 0 -- fix later
+  let amount_to_capture = usdToCents amount
+  let application_fee_amount = usdToCents applicationFeeAmount
   let req = Stripe.CapturePaymentIntentReq {..}
   void $ Stripe.capturePaymentIntent url apiKey paymentIntentId req
 
@@ -274,12 +280,14 @@ updateAmountInPaymentIntent ::
   ) =>
   StripeCfg ->
   PaymentIntentId ->
-  Int ->
+  HighPrecMoney ->
+  HighPrecMoney ->
   m ()
-updateAmountInPaymentIntent config paymentIntentId amount = do
+updateAmountInPaymentIntent config paymentIntentId amount_ applicationFeeAmount = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  let application_fee_amount = 0 -- fix later
+  let amount = usdToCents amount_
+  let application_fee_amount = usdToCents applicationFeeAmount
   let req = Stripe.IncrementAuthorizationReq {..}
   void $ Stripe.incrementAuthorizationPaymentIntent url apiKey paymentIntentId req
 
@@ -296,3 +304,9 @@ mkAccountLinkReq config accountId =
               future_requirements = Stripe.Omit
             }
    in Stripe.AccountLinkReq {..}
+
+-- TODO: Do it properly later for other currencies as well
+
+-- | Convert USD to cents
+usdToCents :: HighPrecMoney -> Int
+usdToCents (HighPrecMoney money) = round $ money * 100
