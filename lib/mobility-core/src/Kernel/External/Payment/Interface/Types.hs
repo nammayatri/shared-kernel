@@ -31,6 +31,27 @@ import Kernel.Types.APISuccess (APISuccess)
 import qualified Kernel.Types.Beckn.Context as Context
 import Kernel.Types.Common
 
+castToTransactionStatus :: PaymentIntentStatus -> TransactionStatus
+castToTransactionStatus Succeeded = CHARGED
+castToTransactionStatus Cancelled = CANCELLED
+castToTransactionStatus Processing = AUTHORIZING
+castToTransactionStatus RequiresAction = PENDING_VBV
+castToTransactionStatus RequiresCapture = STARTED
+castToTransactionStatus RequiresConfirmation = NEW
+castToTransactionStatus RequiresPaymentMethod = NEW
+
+caseToPaymentIntentStatus :: TransactionStatus -> PaymentIntentStatus
+caseToPaymentIntentStatus CHARGED = Succeeded
+caseToPaymentIntentStatus CANCELLED = Cancelled
+caseToPaymentIntentStatus AUTHORIZING = Processing
+caseToPaymentIntentStatus PENDING_VBV = RequiresAction
+caseToPaymentIntentStatus STARTED = RequiresCapture
+caseToPaymentIntentStatus NEW = RequiresConfirmation
+caseToPaymentIntentStatus AUTHENTICATION_FAILED = Cancelled
+caseToPaymentIntentStatus AUTHORIZATION_FAILED = Cancelled
+caseToPaymentIntentStatus JUSPAY_DECLINED = Cancelled
+caseToPaymentIntentStatus _ = RequiresPaymentMethod
+
 data PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg | StripeConfig Stripe.StripeCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
@@ -440,7 +461,8 @@ newtype CreateCustomerResp = CreateCustomerResp
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data CreatePaymentIntentReq = CreatePaymentIntentReq
-  { amount :: Int,
+  { amount :: HighPrecMoney,
+    applicationFeeAmount :: HighPrecMoney,
     currency :: Currency,
     customer :: CustomerId,
     paymentMethod :: PaymentMethodId,

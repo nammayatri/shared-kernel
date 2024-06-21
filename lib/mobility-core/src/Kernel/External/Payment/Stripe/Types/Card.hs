@@ -151,3 +151,37 @@ instance FromJSON CardList where
 
 instance ToJSON CardList where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data PaymentMethodList = PaymentMethodList
+  { _data :: [PaymentMethod],
+    has_more :: Bool
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+instance FromJSON PaymentMethodList where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON PaymentMethodList where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data PaymentMethod = PaymentMethod
+  { id :: PaymentMethodId,
+    card :: CardPaymentMethod
+    -- later more types
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CardPaymentMethod = CardPaymentMethod
+  { brand :: Text,
+    country :: Maybe Text,
+    customer :: Maybe Text,
+    exp_month :: Int,
+    exp_year :: Int,
+    funding :: Maybe CardFunding,
+    fingerprint :: Maybe Text,
+    last4 :: Text
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)

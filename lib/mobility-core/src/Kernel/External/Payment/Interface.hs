@@ -246,11 +246,12 @@ capturePaymentIntent ::
   ) =>
   PaymentServiceConfig ->
   PaymentIntentId ->
-  Int ->
+  HighPrecMoney ->
+  HighPrecMoney ->
   m ()
-capturePaymentIntent config paymentIntentId amount = case config of
+capturePaymentIntent config paymentIntentId amount applicationFeeAmount = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Capture Payment Intent not supported."
-  StripeConfig cfg -> Stripe.capturePaymentIntent cfg paymentIntentId amount
+  StripeConfig cfg -> Stripe.capturePaymentIntent cfg paymentIntentId amount applicationFeeAmount
 
 updateAmountInPaymentIntent ::
   ( CoreMetrics m,
@@ -258,11 +259,12 @@ updateAmountInPaymentIntent ::
   ) =>
   PaymentServiceConfig ->
   PaymentIntentId ->
-  Int ->
+  HighPrecMoney ->
+  HighPrecMoney ->
   m ()
-updateAmountInPaymentIntent config paymentIntentId amount = case config of
+updateAmountInPaymentIntent config paymentIntentId amount applicationFeeAmount = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Update Amount In Payment Intent not supported."
-  StripeConfig cfg -> Stripe.updateAmountInPaymentIntent cfg paymentIntentId amount
+  StripeConfig cfg -> Stripe.updateAmountInPaymentIntent cfg paymentIntentId amount applicationFeeAmount
 
 createSetupIntent ::
   ( CoreMetrics m,

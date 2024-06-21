@@ -375,6 +375,27 @@ getCardList url apiKey customerId = do
       eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey)
   callStripeAPI url eulerClient "get-card-list" proxy
 
+type GetPaymentMethodListAPI =
+  "v1"
+    :> "customers"
+    :> Capture "id" CustomerId
+    :> "payment_methods"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Get '[JSON] PaymentMethodList
+
+getPaymentMethodList ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  CustomerId ->
+  m PaymentMethodList
+getPaymentMethodList url apiKey customerId = do
+  let proxy = Proxy @GetPaymentMethodListAPI
+      eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey)
+  callStripeAPI url eulerClient "get-payment-method-list" proxy
+
 -------------------------------------------- Ephemeral Keys APIs --------------------------------------------
 type CreateEphemeralKeysAPI =
   "v1"
