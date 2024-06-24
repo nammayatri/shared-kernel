@@ -235,7 +235,7 @@ createSetupIntent config customerId = do
     mkSetupIntentReq :: Stripe.SetupIntentReq
     mkSetupIntentReq = do
       let automatic_payment_methods = Stripe.AutomaticPayementMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
-      let confirm = True
+      let confirm = False
       let customer = customerId
       let description = Nothing
       let usage = Nothing
