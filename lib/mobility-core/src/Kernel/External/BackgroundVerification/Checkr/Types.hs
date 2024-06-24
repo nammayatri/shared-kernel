@@ -40,7 +40,7 @@ castStateToCheckrState _ = "MN"
 
 data CreateCandidateReq = CreateCandidateReq
   { email :: Text,
-    ssn :: Text,
+    ssn :: Maybe Text,
     firstName :: Text,
     middleName :: Maybe Text,
     lastName :: Maybe Text,
