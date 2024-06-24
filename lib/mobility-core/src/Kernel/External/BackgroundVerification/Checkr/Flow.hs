@@ -31,17 +31,15 @@ import qualified Data.Text.Encoding as DT
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import Kernel.External.BackgroundVerification.Checkr.Config
+import Kernel.External.BackgroundVerification.Checkr.Error
 import Kernel.External.BackgroundVerification.Checkr.Types
 import Kernel.External.Encryption
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
-import Kernel.Types.Error
 import Kernel.Utils.Common
 import Servant
 
 callCheckrAPI :: CallAPI' m api res res
-callCheckrAPI url eulerClient description proxy = do
-  callAPI url eulerClient description proxy
-    >>= fromEitherM (\err -> InternalError $ "Failed to call " <> description <> " API: " <> show err)
+callCheckrAPI = callApiUnwrappingApiError (identity @CheckrError) Nothing (Just "CHECKR_ERROR") Nothing
 
 mkBasicAuthData :: Text -> BasicAuthData
 mkBasicAuthData apiKey =
