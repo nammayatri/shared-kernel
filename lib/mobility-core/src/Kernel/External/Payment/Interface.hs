@@ -199,12 +199,11 @@ deleteCard ::
     EncFlow m r
   ) =>
   PaymentServiceConfig ->
-  CustomerId ->
   PaymentMethodId ->
   m ()
-deleteCard config customerId cardId = case config of
+deleteCard config cardId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Delete Card not supported."
-  StripeConfig cfg -> Stripe.deleteCard cfg customerId cardId
+  StripeConfig cfg -> Stripe.deleteCard cfg cardId
 
 getCardList ::
   ( CoreMetrics m,
