@@ -35,7 +35,7 @@ data CardObject = CardObject
     cvc_check :: Maybe CVCCheck,
     exp_month :: Int,
     exp_year :: Int,
-    funding :: Maybe CardFunding,
+    funding :: Maybe Text,
     fingerprint :: Maybe Text,
     last4 :: Text
   }
@@ -50,16 +50,6 @@ instance FromJSON CVCCheck where
   parseJSON = genericParseJSON constructorsWithLowerCase
 
 instance ToJSON CVCCheck where
-  toJSON = genericToJSON constructorsWithLowerCase
-
-data CardFunding = Credit | Debit | Prepaid | Unknown
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (ToSchema)
-
-instance FromJSON CardFunding where
-  parseJSON = genericParseJSON constructorsWithLowerCase
-
-instance ToJSON CardFunding where
   toJSON = genericToJSON constructorsWithLowerCase
 
 newtype CardReq = CardReq
@@ -179,7 +169,7 @@ data CardPaymentMethod = CardPaymentMethod
     customer :: Maybe Text,
     exp_month :: Int,
     exp_year :: Int,
-    funding :: Maybe CardFunding,
+    funding :: Maybe Text,
     fingerprint :: Maybe Text,
     last4 :: Text
   }
