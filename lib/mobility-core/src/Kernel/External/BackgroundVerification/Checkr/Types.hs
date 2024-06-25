@@ -86,7 +86,6 @@ instance ToJSON CreateCandidateResp where
 data CreateInvitationReq = CreateInvitationReq
   { candidateId :: Text,
     package :: Text,
-    ssn :: Text,
     workLocationCountry :: Country,
     workLocationState :: IndianState,
     workLocationCity :: City
@@ -97,7 +96,6 @@ instance ToForm CreateInvitationReq where
   toForm CreateInvitationReq {..} =
     [ ("candidate_id", candidateId),
       ("package", package),
-      ("ssn", ssn),
       ("work_locations[][country]", castCountryToCheckrCountry workLocationCountry),
       ("work_locations[][state]", castStateToCheckrState workLocationState),
       ("work_locations[][city]", castCityToCheckrCity workLocationCity)
