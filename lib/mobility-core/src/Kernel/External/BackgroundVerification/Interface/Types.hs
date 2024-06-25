@@ -24,7 +24,6 @@ import Kernel.Types.Beckn.IndianState
 
 data CreateInvitationReqI = CreateInvitationReqI
   { candidateId :: Text,
-    ssn :: Text,
     workLocationCountry :: Country,
     workLocationState :: IndianState,
     workLocationCity :: City
