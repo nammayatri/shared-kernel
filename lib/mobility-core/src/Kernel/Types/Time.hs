@@ -83,6 +83,21 @@ daysToSeconds = Seconds . (* 86400) . getDays
 minutesToSeconds :: Minutes -> Seconds
 minutesToSeconds = Seconds . (* 60) . getMinutes
 
+newtype Months = Months
+  { getMonths :: Int
+  }
+  deriving newtype (Show, Read, Num, FromDhall, FromJSON, ToJSON, Integral, Real, Ord, Eq, Enum, ToSchema, PrettyShow, PersistField, PersistFieldSql)
+  deriving stock (Generic)
+
+deriving newtype instance FromField Months
+
+instance HasSqlValueSyntax be Int => HasSqlValueSyntax be Months where
+  sqlValueSyntax = sqlValueSyntax . getMonths
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be Months
+
+instance FromBackendRow Postgres Months
+
 type MeasuringDuration m a = MonadClock m => m a -> m a
 
 class Monad m => MonadTime m where

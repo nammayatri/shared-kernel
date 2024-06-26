@@ -203,6 +203,7 @@ data AutoCompleteReq = AutoCompleteReq
     language :: Language,
     strictbounds :: Maybe Bool,
     origin :: Maybe LatLong,
+    types :: Maybe Text,
     country :: Country
   }
   deriving stock (Generic)
