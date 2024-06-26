@@ -59,6 +59,7 @@ type AutocompleteAPI =
     :> MandatoryQueryParam "language" Language
     :> QueryParam "strictbounds" Bool
     :> QueryParam "origin" LatLong
+    :> QueryParam "types" Text
     :> Get '[JSON] GoogleMaps.AutoCompleteResp
 
 type PlaceDetailsAPI =
@@ -98,7 +99,7 @@ type DirectionsAPI =
     :> QueryParam "avoid" Text
     :> Get '[JSON] GoogleMaps.DirectionsResp
 
-autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Language -> Maybe Bool -> Maybe LatLong -> EulerClient GoogleMaps.AutoCompleteResp
+autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Language -> Maybe Bool -> Maybe LatLong -> Maybe Text -> EulerClient GoogleMaps.AutoCompleteResp
 getPlaceDetailsClient :: Maybe Text -> Text -> Text -> Text -> EulerClient GoogleMaps.GetPlaceDetailsResp
 getPlaceNameClient :: Maybe Text -> Text -> Maybe LatLong -> Maybe Text -> Maybe Language -> EulerClient GoogleMaps.GetPlaceNameResp
 distanceMatrixClient ::
@@ -133,9 +134,10 @@ autoComplete ::
   Language ->
   Maybe Bool ->
   Maybe LatLong ->
+  Maybe Text ->
   m GoogleMaps.AutoCompleteResp
-autoComplete url apiKey input sessiontoken location radius components lang strictBounds origin = do
-  callAPI url (autoCompleteClient sessiontoken apiKey input location radius components lang strictBounds origin) "autoComplete" (Proxy :: Proxy GoogleMapsAPI)
+autoComplete url apiKey input sessiontoken location radius components lang strictBounds origin types = do
+  callAPI url (autoCompleteClient sessiontoken apiKey input location radius components lang strictBounds origin types) "autoComplete" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
 
 getPlaceDetails ::
