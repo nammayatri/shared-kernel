@@ -62,10 +62,10 @@ createCandidate ::
   CheckrCfg ->
   CreateCandidateReq ->
   m CreateCandidateResp
-createCandidate cfg req = do
+createCandidate cfg CreateCandidateReq {..} = do
   let proxy = Proxy @CreateCandidateAPI
   apiKey <- decrypt cfg.apiKey
-  let eulerClient = ET.client proxy (mkBasicAuthData apiKey) req
+  let eulerClient = ET.client proxy (mkBasicAuthData apiKey) (CreateCandidateReq {lastName = if maybe False ((> 2) . length) lastName then lastName else Nothing, ..})
   callCheckrAPI cfg.url eulerClient "create-candidate" proxy
 
 type CreateInvitationAPI =
