@@ -117,7 +117,7 @@ instance ToJSON CreateInvitationResp where
 data GetInvitationResp = GetInvitationResp
   { id :: Text,
     invitationUrl :: BaseUrl,
-    status :: Text, -- "pending | completed"
+    status :: Text, -- "pending | completed | expired"
     reportId :: Maybe Text,
     expiresAt :: UTCTime
   }
@@ -131,8 +131,9 @@ instance ToJSON GetInvitationResp where
 
 data GetReportResp = GetReportResp
   { id :: Text,
-    adjudication :: Maybe Text, -- "engaged"
-    status :: Text, -- "pending | completed"
+    adjudication :: Maybe Text, -- "engaged | pre_adverse_action | post_adverse_action"
+    status :: Text, -- "pending | complete | suspended | dispute | canceled"
+    assessment :: Maybe Text, -- "eligible | review | escalated"
     reportId :: Maybe Text
   }
   deriving (Generic, Eq, Show)
