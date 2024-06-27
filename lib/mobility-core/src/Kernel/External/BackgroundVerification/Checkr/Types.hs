@@ -58,12 +58,12 @@ data CreateCandidateReq = CreateCandidateReq
 instance ToForm CreateCandidateReq where
   toForm CreateCandidateReq {..} =
     [ ("email", toQueryParam email),
-      ("ssn", toQueryParam ssn),
       ("first_name", toQueryParam firstName),
       ("work_locations[][country]", toQueryParam $ castCountryToCheckrCountry workLocationCountry),
       ("work_locations[][state]", toQueryParam $ castStateToCheckrState workLocationState),
       ("work_locations[][city]", toQueryParam $ castCityToCheckrCity workLocationCity)
     ]
+      <> maybe [] (\val -> [("ssn", toQueryParam val)]) ssn
       <> maybe [] (\val -> [("middle_name", toQueryParam val)]) middleName
       <> maybe [] (\val -> [("last_name", toQueryParam val)]) lastName
       <> maybe [] (\val -> [("phone", toQueryParam val)]) phone
