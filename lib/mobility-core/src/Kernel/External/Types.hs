@@ -36,7 +36,7 @@ data Language
   | BENGALI
   | FRENCH
   | TELUGU
-  deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema)
+  deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema, Enum, Bounded)
   deriving (PrettyShow) via Showable Language
 
 $(mkBeamInstancesForEnumAndList ''Language)
