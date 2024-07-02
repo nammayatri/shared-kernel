@@ -147,6 +147,7 @@ data FCMNotificationType
   | DRIVER_NOTIFY_LOCATION_UPDATE
   | SAFETY_ALERT_DEVIATION
   | DRIVER_BIRTHDAY
+  | TRIP_UPDATED
   | EDIT_LOCATION
   | ADD_STOP
   | EDIT_STOP
@@ -163,7 +164,7 @@ data FCMNotificationType
   | SCHEDULED_RIDE_NOTIFICATION
   | FIRST_RIDE_EVENT
   | TOLL_CROSSED
-  | TRIP_UPDATED
+  | CALL_SERVICE_DOWN
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
