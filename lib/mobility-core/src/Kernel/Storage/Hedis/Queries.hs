@@ -109,13 +109,11 @@ buildKey key = do
 runWithPrefixEither :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Reply a)) -> m (Either Reply a)
 runWithPrefixEither key action = do
   prefKey <- buildKey key
-  withLogTag "Redis" $ logDebug $ "working with key : " <> cs prefKey
   runHedisEither $ action prefKey
 
 runWithPrefix :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Reply a)) -> m a
 runWithPrefix key action = do
   prefKey <- buildKey key
-  withLogTag "Redis" $ logDebug $ "working with key : " <> cs prefKey
   runHedis $ action prefKey
 
 runWithPrefix_ :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Reply a)) -> m ()
@@ -127,7 +125,6 @@ runWithPrefix'_ key action = void $ runWithPrefix' key action
 runWithPrefix' :: (HedisFlow m env) => Text -> (BS.ByteString -> Redis (Either Reply a)) -> m a
 runWithPrefix' key action = do
   prefKey <- buildKey key
-  withLogTag "Redis" $ logDebug $ "working with key : " <> cs prefKey
   runHedis' $ action prefKey
 
 runHedisTransaction' ::
@@ -266,7 +263,6 @@ del key = withLogTag "Redis" do
 rPushExp :: (HedisFlow m env, ToJSON a) => Text -> [a] -> ExpirationTime -> m ()
 rPushExp key list ex = withLogTag "Redis" $ do
   prefKey <- buildKey key
-  logDebug $ "working with key : " <> cs prefKey
   unless (null list) $ do
     migrating <- asks (.hedisMigrationStage)
     if migrating
