@@ -66,8 +66,10 @@ instance ClickhouseValue Double where
 instance ClickhouseValue Centesimal where
   fromClickhouseValue = parseAsStringOrNumber @Centesimal
 
+-- TODO create type safe wrapper CString Int in case of we have string on clickhouse side
 instance ClickhouseValue Int where
   fromClickhouseValue = parseAsStringOrNumber @Int
+  toClickhouseValue = Number . fromIntegral
 
 parseAsStringOrNumber :: forall a. (Read a, Num a, FromJSON a) => Value a -> Except a
 parseAsStringOrNumber (String str) = parseAsString @a str
@@ -150,7 +152,7 @@ eitherResult (A.Success a) = Right a
 
 valToString :: Value value -> String
 valToString (String str) = addQuotes $ str
-valToString (Number num) = addQuotes $ show num -- working both with quotes and without quotes
+valToString (Number num) = show num
 valToString Null = "null"
 
 addQuotes :: String -> String

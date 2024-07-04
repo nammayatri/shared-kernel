@@ -41,6 +41,8 @@ data Column (a :: IsAggregated) t v where
   ToHour :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Int) => Column a t DateTime -> Column a t Int
   TimeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
   ValColumn :: (ClickhouseTable t, ClickhouseValue v) => v -> Column a t v
+  If :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
+  EqColumn :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
 
 mkTableColumns :: ClickhouseTable t => FieldModifications t -> Columns 'NOT_AGG t
 mkTableColumns = mapTable Column
@@ -156,6 +158,8 @@ showColumn (ToDate column) = "toDate" <> addBrackets' (showColumn column)
 showColumn (ToHour column) = "toHour" <> addBrackets' (showColumn column)
 showColumn (TimeDiff column1 column2) = "timeDiff" <> addBrackets' (showColumn column1 <> ", " <> showColumn column2)
 showColumn (ValColumn v) = valToString . toClickhouseValue $ v
+showColumn (If cond v1 v2) = "if" <> addBrackets' (showColumn cond <> ", " <> showColumn v1 <> ", " <> showColumn v2)
+showColumn (EqColumn column1 column2) = addBrackets' $ showColumn column1 <> "=" <> showColumn column2
 
 addBrackets' :: String -> String
 addBrackets' rq = "(" <> rq <> ")"
