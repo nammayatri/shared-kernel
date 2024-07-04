@@ -412,11 +412,11 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1719241407,
-        "narHash": "sha256-U9mScUidGIR78ObBo7SQrCSq48CaTEmmE2YRNFIycMA=",
+        "lastModified": 1720100970,
+        "narHash": "sha256-rMX23waUTteJ8XvsEFQ2ALRsJ+0REHzQ1Xq9cC2Rkss=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "3baeca280bd3e2ecec9b6138f85bce79ff5de939",
+        "rev": "fb40bb8a1327e8090889d10df9b9f7d70a9549c5",
         "type": "github"
       },
       "original": {
