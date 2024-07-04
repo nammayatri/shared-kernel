@@ -150,3 +150,11 @@ toHour = ToHour
 
 timeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
 timeDiff = TimeDiff
+
+if_ :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
+if_ = If
+
+(==..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+(==..) = EqColumn
+
+infix 4 ==..
