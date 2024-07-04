@@ -21,6 +21,7 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
   )
 where
 
+import qualified EulerHS.KVConnector.Metrics as KVMetrics
 import EulerHS.Prelude as E
 import GHC.Records.Extra
 import Kernel.Types.Time (Milliseconds)
@@ -80,7 +81,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     streamCounter :: StreamMetric,
     schedulerFailureCounter :: SchedulerFailureMetric,
     genericCounter :: GenericCounter,
-    systemConfigsFailedCounter :: SystemConfigsFailedCounter
+    systemConfigsFailedCounter :: SystemConfigsFailedCounter,
+    kvRedisMetricsContainer :: KVMetrics.KVMetricHandler
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -96,6 +98,7 @@ registerCoreMetricsContainer = do
   schedulerFailureCounter <- registerSchedulerFailureCounter
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
+  kvRedisMetricsContainer <- KVMetrics.mkKVMetricHandler
 
   return CoreMetricsContainer {..}
 
