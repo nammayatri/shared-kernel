@@ -259,7 +259,7 @@ autoComplete cfg AutoCompleteReq {..} = do
           USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
   res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
   let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
-  let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, distance = distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> distance_meters, ..}) res.predictions
+  let predictions = map (\prediction -> Prediction {placeId = prediction.place_id, distance = prediction.distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> prediction.distance_meters, types = prediction.types, description = prediction.description}) res.predictions
   return $ AutoCompleteResp predictions
 
 getPlaceDetails ::
