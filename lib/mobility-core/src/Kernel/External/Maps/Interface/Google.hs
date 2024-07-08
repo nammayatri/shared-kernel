@@ -257,7 +257,7 @@ autoComplete cfg AutoCompleteReq {..} = do
           India -> "country:in"
           France -> "country:fr"
           USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
-  res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types
+  res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
   let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
   let predictions = map (\GoogleMaps.Prediction {..} -> Prediction {placeId = place_id, distance = distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> distance_meters, ..}) res.predictions
   return $ AutoCompleteResp predictions
