@@ -101,7 +101,9 @@ data OrderStatusResp
         retargetPaymentLink :: Maybe Text,
         retargetPaymentLinkExpiry :: Maybe UTCTime,
         amountRefunded :: Maybe HighPrecMoney,
-        refunds :: [RefundsData]
+        refunds :: [RefundsData],
+        payerVpa :: Maybe Text,
+        upi :: Maybe Upi
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
