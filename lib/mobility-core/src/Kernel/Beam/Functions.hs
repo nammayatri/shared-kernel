@@ -36,10 +36,10 @@ import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
 import qualified EulerHS.KVConnector.Flow as KV
-import EulerHS.KVConnector.Types (DBCommandVersion' (..), KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
+import EulerHS.KVConnector.Types (DBCommandVersion (..), KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
-import EulerHS.Types hiding (Log)
+import EulerHS.Types hiding (Log, V1)
 import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
@@ -499,7 +499,7 @@ updateInternal ::
 updateInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
-  logQueryData "updateInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1' setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
+  logQueryData "updateInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1 setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right res' -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -523,7 +523,7 @@ updateOneInternal ::
 updateOneInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
-  logQueryData "updateOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1' setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
+  logQueryData "updateOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1 setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right obj -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
