@@ -33,7 +33,8 @@ data AutoCompleteResp = AutoCompleteResp
 data Prediction = Prediction
   { description :: Text,
     place_id :: Maybe Text,
-    distance_meters :: Maybe Int
+    distance_meters :: Maybe Int,
+    types :: Maybe [Text]
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
