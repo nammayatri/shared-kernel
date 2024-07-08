@@ -263,6 +263,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
           dateCreated = date_created,
           refunds = maybe [] mkRefundsData refunds,
           amountRefunded = realToFrac <$> amount_refunded,
+          payerVpa = payer_vpa,
+          upi = castUpi <$> upi,
           ..
         }
 
@@ -405,6 +407,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               dateCreated = justOrder.date_created,
               refunds = maybe [] mkRefundsData justOrder.refunds,
               amountRefunded = realToFrac <$> justOrder.amount_refunded,
+              payerVpa = justOrder.payer_vpa,
+              upi = castUpi <$> justOrder.upi,
               ..
             }
     (Nothing, Just justMandate, _, _) ->
@@ -452,6 +456,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           dateCreated = Nothing,
           refunds = [],
           amountRefunded = Nothing,
+          payerVpa = Nothing,
+          upi = Nothing,
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp
