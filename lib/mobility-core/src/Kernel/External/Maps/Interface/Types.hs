@@ -218,7 +218,8 @@ data Prediction = Prediction
   { description :: Text,
     placeId :: Maybe Text,
     distance :: Maybe Int,
-    distanceWithUnit :: Maybe Distance
+    distanceWithUnit :: Maybe Distance,
+    types :: Maybe [Text]
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
