@@ -181,10 +181,13 @@ library
       Kernel.External.Ticket.Kapture.Types
       Kernel.External.Ticket.Types
       Kernel.External.Tokenize
+      Kernel.External.Tokenize.Gullak.Flow
+      Kernel.External.Tokenize.Gullak.Types
       Kernel.External.Tokenize.HyperVerge.Flow
       Kernel.External.Tokenize.HyperVerge.Types
       Kernel.External.Tokenize.Interface
       Kernel.External.Tokenize.Interface.Error
+      Kernel.External.Tokenize.Interface.Gullak
       Kernel.External.Tokenize.Interface.HyperVerge
       Kernel.External.Tokenize.Interface.Types
       Kernel.External.Tokenize.Types
