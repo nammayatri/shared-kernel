@@ -21,7 +21,6 @@ module Kernel.External.Payout.Interface.Types
   )
 where
 
-import Data.Time
 import qualified Kernel.External.Payout.Juspay.Config as Juspay
 import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), PayoutOrderStatus (..))
 import Kernel.Prelude
@@ -34,12 +33,12 @@ data OrderStatusPayoutResp
   = OrderStatusPayoutResp
       { payoutOrderId :: Text,
         payoutStatus :: PayoutOrderStatus,
-        orderType :: Text,
-        merchantOrderId :: Text,
+        orderType :: Maybe Text,
+        merchantOrderId :: Maybe Text,
         merchantCustomerId :: Maybe Text,
         amount :: HighPrecMoney,
-        createdAt :: Maybe UTCTime,
-        updatedAt :: Maybe UTCTime
+        createdAt :: Maybe Text,
+        updatedAt :: Maybe Text
       }
   | BadStatusResp
   deriving stock (Show, Read, Eq, Generic)
