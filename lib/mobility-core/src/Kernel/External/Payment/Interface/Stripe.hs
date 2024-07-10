@@ -205,7 +205,7 @@ createPaymentIntent config req = do
       let payment_method = paymentMethod
       let receipt_email = receiptEmail
       let on_behalf_of = driverAccountId
-      let automatic_payment_methods = Stripe.AutomaticPayementMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
+      -- let automatic_payment_methods = Stripe.AutomaticPayementMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
       let confirm = True
       let description = Nothing
       let setup_future_usage = Nothing

@@ -27,7 +27,7 @@ import Web.HttpApiData (ToHttpApiData (..))
 data PaymentIntentReq = PaymentIntentReq
   { amount :: Int,
     currency :: Currency,
-    automatic_payment_methods :: AutomaticPayementMethods,
+    -- automatic_payment_methods :: AutomaticPayementMethods,
     confirm :: Bool,
     customer :: CustomerId,
     description :: Maybe Text,
@@ -50,8 +50,8 @@ instance ToForm PaymentIntentReq where
         (++)
         [ ("amount", [toQueryParam amount]),
           ("currency", [toQueryParam currency]),
-          ("automatic_payment_methods[enabled]", [toQueryParam (automatic_payment_methods.enabled)]),
-          ("automatic_payment_methods[allow_redirects]", [toQueryParam (automatic_payment_methods.allow_redirects)]),
+          -- ("automatic_payment_methods[enabled]", [toQueryParam (automatic_payment_methods.enabled)]),
+          -- ("automatic_payment_methods[allow_redirects]", [toQueryParam (automatic_payment_methods.allow_redirects)]),
           ("confirm", [toQueryParam confirm]),
           ("customer", [toQueryParam customer]),
           ("payment_method", [toQueryParam payment_method]),
@@ -125,7 +125,7 @@ data PaymentIntentObject = PaymentIntentObject
     client_secret :: Text,
     latest_charge :: Maybe Text,
     status :: PaymentIntentStatus,
-    automatic_payment_methods :: Maybe AutomaticPayementMethods,
+    -- automatic_payment_methods :: Maybe AutomaticPayementMethods,
     confirm :: Maybe Bool,
     customer_id :: Maybe CustomerId,
     description :: Maybe Text,
