@@ -43,14 +43,14 @@ createIndividualConnectAccount config req = do
               Context.France -> "FR"
               Context.AnyCountry -> "US" -- fix later
           email = req.email
-          controller =
-            Just $
-              Stripe.AccountController
-                { fees = Just $ Stripe.AccountFees {payer = Stripe.AccountFeePayerAccount},
-                  losses = Just $ Stripe.AccountLosses {payments = Stripe.AccountLossesPayerStripe},
-                  requirement_collection = Just Stripe.AccountRquirementCollectorStripe,
-                  stripe_dashboard = Just $ Stripe.AccountDashboard {_type = Stripe.AccountDashboardNone}
-                }
+          controller = Nothing
+          -- Just $
+          --   Stripe.AccountController
+          --     { fees = Just $ Stripe.AccountFees {payer = Stripe.AccountFeePayerAccount},
+          --       losses = Just $ Stripe.AccountLosses {payments = Stripe.AccountLossesPayerStripe},
+          --       requirement_collection = Just Stripe.AccountRquirementCollectorStripe,
+          --       stripe_dashboard = Just $ Stripe.AccountDashboard {_type = Stripe.AccountDashboardNone}
+          --     }
           capabilities =
             Just $
               Stripe.AccountCapabilities
