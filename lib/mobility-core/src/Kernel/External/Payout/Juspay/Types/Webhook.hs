@@ -19,13 +19,14 @@ module Kernel.External.Payout.Juspay.Types.Webhook where
 import Data.Aeson
 import qualified Kernel.External.Payout.Juspay.Types.Payout as Payout
 import Kernel.Prelude
+import Kernel.Utils.JSON
 
 data PayoutWebhookReq = PayoutWebhookReq
   { id :: Text,
     label :: Maybe Text,
     value :: Maybe Text,
     category :: Maybe Text,
-    payoutInfo :: PayoutInfo
+    info :: PayoutInfo
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -33,12 +34,17 @@ data PayoutWebhookReq = PayoutWebhookReq
 data PayoutInfo = PayoutInfo
   { id :: Text,
     status :: Payout.PayoutOrderStatus,
-    orderType :: Text,
-    merchantOrderId :: Text,
-    merchantCustomerId :: Text,
+    _type :: Maybe Text,
+    merchantOrderId :: Maybe Text,
     amount :: Double,
-    createdAt :: Text,
-    updatedAt :: Text
+    merchantCustomerId :: Maybe Text,
+    createdAt :: Maybe Text,
+    updatedAt :: Maybe Text
   }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+  deriving (Show, Generic, ToSchema)
+
+instance FromJSON PayoutInfo where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON PayoutInfo where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
