@@ -22,7 +22,6 @@ module Kernel.External.Payout.Interface.Juspay
 where
 
 import qualified Data.Aeson as A
-import qualified Data.Text as T
 import Kernel.External.Encryption
 import Kernel.External.Payout.Interface.Types
 import Kernel.External.Payout.Juspay.Config as Reexport
@@ -135,10 +134,10 @@ mkWebhookOrderStatusPayoutResp payoutInfo =
       OrderStatusPayoutResp
         { payoutOrderId = payoutInfo.id,
           payoutStatus = payoutInfo.status,
-          orderType = payoutInfo.orderType,
+          orderType = payoutInfo._type,
           merchantOrderId = payoutInfo.merchantOrderId,
-          merchantCustomerId = Just payoutInfo.merchantCustomerId,
+          merchantCustomerId = payoutInfo.merchantCustomerId,
           amount = realToFrac payoutInfo.amount,
-          createdAt = readMaybe (T.unpack payoutInfo.createdAt) :: Maybe UTCTime,
-          updatedAt = readMaybe (T.unpack payoutInfo.updatedAt) :: Maybe UTCTime
+          createdAt = payoutInfo.createdAt,
+          updatedAt = payoutInfo.updatedAt
         }
