@@ -162,11 +162,16 @@ library
       Kernel.External.SMS.Interface.ExotelSms
       Kernel.External.SMS.Interface.GupShup
       Kernel.External.SMS.Interface.MyValueFirst
+      Kernel.External.SMS.Interface.TwillioSms
       Kernel.External.SMS.Interface.Types
       Kernel.External.SMS.MyValueFirst.API
       Kernel.External.SMS.MyValueFirst.Config
       Kernel.External.SMS.MyValueFirst.Flow
       Kernel.External.SMS.MyValueFirst.Types
+      Kernel.External.SMS.TwillioSms.API
+      Kernel.External.SMS.TwillioSms.Config
+      Kernel.External.SMS.TwillioSms.Flow
+      Kernel.External.SMS.TwillioSms.Types
       Kernel.External.SMS.Types
       Kernel.External.Ticket.Interface
       Kernel.External.Ticket.Interface.Kapture
