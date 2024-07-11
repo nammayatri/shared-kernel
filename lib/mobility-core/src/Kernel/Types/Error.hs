@@ -706,6 +706,59 @@ instance FromResponse GupShupError where
 
 instance IsAPIError GupShupError
 
+data TwillioError
+  = TwillioBadRequest
+  | TwillioForbidden
+  | TwillioAPIDoesNotExist
+  | TwillioAccountNotActive
+  | TwillioTrialAccountFound
+  | TwillioConcurrencyLimitExceeded
+  | TwillioInvalidURLFormat
+  | TwillioInternalServerError
+  | TwillioUnknownError
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''TwillioError
+
+instance IsBaseError TwillioError where
+  toMessage = \case
+    TwillioBadRequest -> Just "Invalid request to Twillio."
+    TwillioForbidden -> Just "Forbidden request to Twillio."
+    TwillioAPIDoesNotExist -> Just "API does not exist in Twillio."
+    TwillioAccountNotActive -> Just "Account is not active in Twillio."
+    TwillioTrialAccountFound -> Just "Trial account found in Twillio."
+    TwillioConcurrencyLimitExceeded -> Just "Concurrency limit exceeded in Twillio."
+    TwillioInvalidURLFormat -> Just "Invalid URL format in Twillio."
+    TwillioInternalServerError -> Just "Internal server error in Twillio."
+    TwillioUnknownError -> Just "Unknown error in Twillio."
+
+instance IsHTTPError TwillioError where
+  toErrorCode = \case
+    TwillioBadRequest -> "TWILLIO_BAD_REQUEST"
+    TwillioForbidden -> "TWILLIO_FORBIDDEN"
+    TwillioAPIDoesNotExist -> "TWILLIO_API_DOES_NOT_EXIST"
+    TwillioAccountNotActive -> "TWILLIO_ACCOUNT_NOT_ACTIVE"
+    TwillioTrialAccountFound -> "TWILLIO_TRIAL_ACCOUNT_FOUND"
+    TwillioConcurrencyLimitExceeded -> "TWILLIO_CONCURRENCY_LIMIT_EXCEEDED"
+    TwillioInvalidURLFormat -> "TWILLIO_INVALID_URL_FORMAT"
+    TwillioInternalServerError -> "TWILLIO_INTERNAL_SERVER_ERROR"
+    TwillioUnknownError -> "TWILLIO_UNKNOWN_ERROR"
+
+instance FromResponse TwillioError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just TwillioBadRequest
+    403 -> Just TwillioForbidden
+    410 -> Just TwillioUnknownError
+    404 -> Just TwillioAPIDoesNotExist
+    10001 -> Just TwillioAccountNotActive
+    10002 -> Just TwillioTrialAccountFound
+    10004 -> Just TwillioConcurrencyLimitExceeded
+    11100 -> Just TwillioInvalidURLFormat
+    503 -> Just TwillioInternalServerError
+    _ -> Just TwillioUnknownError
+
+instance IsAPIError TwillioError
+
 data AgencyDisabled
   = AgencyDisabled
   deriving (Eq, Show, IsBecknAPIError)
