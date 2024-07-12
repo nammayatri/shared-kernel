@@ -41,8 +41,10 @@ tokenize config req = do
       return $
         HyperVergeTypes.HyperVergeTokenizeRequest
           { appKey = appkey',
+            expiry = fromMaybe 0 expiry,
             ..
           }
     makeHyperVergeTokenizeResp HyperVergeTypes.HyperVergeTokenizeResponse {..} = do
       token <- fromMaybeM (TokenNotFound "HyperVerge") $ result <&> (.token)
+      let expiresAt = Nothing
       return $ InterfaceTypes.TokenizationResp {..}

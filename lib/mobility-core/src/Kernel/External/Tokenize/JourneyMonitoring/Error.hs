@@ -14,31 +14,31 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Tokenize.Interface.Error where
+module Kernel.External.Tokenize.JourneyMonitoring.Error where
 
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 
-data TokenizationError
-  = TokenNotFound Text
-  | ExpiryNotFound Text
+data JourneyMonitoringError
+  = JMUnauthorizedError
+  | JMError Text
   deriving (Eq, Show, IsBecknAPIError)
 
-instanceExceptionWithParent 'HTTPException ''TokenizationError
+instanceExceptionWithParent 'HTTPException ''JourneyMonitoringError
 
-instance IsBaseError TokenizationError where
+instance IsBaseError JourneyMonitoringError where
   toMessage = \case
-    TokenNotFound svcName -> Just $ "Token Not found in Tokenization response of service provider" <> svcName
-    ExpiryNotFound svcName -> Just $ "Expiry Not found in Tokenization response of service provider" <> svcName
+    JMUnauthorizedError -> Just "Invalid Credentaials, Please provide valid username and password."
+    JMError msg -> Just $ "JourneyMonitoring Error with message: " <> msg
 
-instance IsHTTPError TokenizationError where
+instance IsHTTPError JourneyMonitoringError where
   toErrorCode = \case
-    TokenNotFound _ -> "TOKEN_NOT_FOUND"
-    ExpiryNotFound _ -> "EXPIRY_NOT_FOUND"
+    JMUnauthorizedError -> "JM_UNAUTHORIZED"
+    JMError _ -> "JM_ERROR"
 
   toHttpCode = \case
-    TokenNotFound _ -> E500
-    ExpiryNotFound _ -> E500
+    JMUnauthorizedError -> E401
+    JMError _ -> E400
 
-instance IsAPIError TokenizationError
+instance IsAPIError JourneyMonitoringError

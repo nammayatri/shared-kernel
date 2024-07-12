@@ -14,13 +14,15 @@
 
 module Kernel.External.Call.Interface.Exotel where
 
-import EulerHS.Prelude
+import EulerHS.Prelude hiding (id)
 import qualified Kernel.External.Call.Exotel.Client as Exotel
 import Kernel.External.Call.Exotel.Config (ExotelCfg)
 import Kernel.External.Call.Exotel.Types as Exotel
 import Kernel.External.Call.Interface.Types as Interface
+import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Utils.Logging (logDebug)
 
 initiateCall ::
   ( CoreMetrics m,
@@ -32,7 +34,9 @@ initiateCall ::
   InitiateCallReq a ->
   m InitiateCallResp
 initiateCall config InitiateCallReq {..} = do
-  let exotelReq = getExotelCallReq
+  url <- parseBaseUrl $ (showBaseUrl config.url) <> "/" <> fromMaybe "" appletId
+  logDebug $ "URL for Exotel call: " <> show url
+  let exotelReq = getExotelCallReq url
   res <-
     Exotel.initiateCall config exotelReq
   return $
@@ -41,9 +45,25 @@ initiateCall config InitiateCallReq {..} = do
         callStatus = exotelStatusToInterfaceStatus res.exoCall.exoStatus
       }
   where
-    getExotelCallReq = case toPhoneNum of
-      Just toPhoneNum_ -> ConnectCalls $ ExotelConnectCallReq {from = fromPhoneNum, to = toPhoneNum_, callerId = config.callerId, statusCallbackUrl = config.callbackUrl, customField = getAttachments attachments}
-      Nothing -> ConnectToCallFlow $ ExotelConnectCallFlowReq {from = fromPhoneNum, callerId = config.callerId, url = config.url, statusCallbackUrl = config.callbackUrl, customField = getAttachments attachments}
+    getExotelCallReq url = case toPhoneNum of
+      Just toPhoneNum_ ->
+        ConnectCalls $
+          ExotelConnectCallReq
+            { from = fromPhoneNum,
+              to = toPhoneNum_,
+              callerId = config.callerId,
+              statusCallbackUrl = config.callbackUrl,
+              customField = getAttachments attachments
+            }
+      Nothing ->
+        ConnectToCallFlow $
+          ExotelConnectCallFlowReq
+            { from = fromPhoneNum,
+              callerId = config.callerId,
+              url = url,
+              statusCallbackUrl = config.callbackUrl,
+              customField = getAttachments attachments
+            }
 
 exotelStatusToInterfaceStatus :: Exotel.ExotelCallStatus -> Interface.CallStatus
 exotelStatusToInterfaceStatus = \case

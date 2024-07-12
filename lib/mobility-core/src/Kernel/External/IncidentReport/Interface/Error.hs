@@ -14,31 +14,30 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Tokenize.Interface.Error where
+module Kernel.External.IncidentReport.Interface.Error where
 
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 
-data TokenizationError
-  = TokenNotFound Text
-  | ExpiryNotFound Text
+data IncidentReportError
+  = FailedToCallIncidentReportAPI Text
+  | FailedToCallIncidentReportUpdateAPI Text
   deriving (Eq, Show, IsBecknAPIError)
 
-instanceExceptionWithParent 'HTTPException ''TokenizationError
+instanceExceptionWithParent 'HTTPException ''IncidentReportError
 
-instance IsBaseError TokenizationError where
+instance IsBaseError IncidentReportError where
   toMessage = \case
-    TokenNotFound svcName -> Just $ "Token Not found in Tokenization response of service provider" <> svcName
-    ExpiryNotFound svcName -> Just $ "Expiry Not found in Tokenization response of service provider" <> svcName
+    FailedToCallIncidentReportAPI err -> Just $ "Failed to incident report API: " <> err
+    FailedToCallIncidentReportUpdateAPI err -> Just $ "Failed to incident report update API: " <> err
 
-instance IsHTTPError TokenizationError where
+instance IsHTTPError IncidentReportError where
   toErrorCode = \case
-    TokenNotFound _ -> "TOKEN_NOT_FOUND"
-    ExpiryNotFound _ -> "EXPIRY_NOT_FOUND"
-
+    FailedToCallIncidentReportAPI _ -> "FAILED_TO_CALL_INCIDENT_REPORT_API"
+    FailedToCallIncidentReportUpdateAPI _ -> "FAILED_TO_CALL_INCIDENT_REPORT_UPDATE_API"
   toHttpCode = \case
-    TokenNotFound _ -> E500
-    ExpiryNotFound _ -> E500
+    FailedToCallIncidentReportAPI _ -> E400
+    FailedToCallIncidentReportUpdateAPI _ -> E400
 
-instance IsAPIError TokenizationError
+instance IsAPIError IncidentReportError
