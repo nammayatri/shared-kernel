@@ -35,14 +35,14 @@ payoutOrderStatusWebhook ::
   PayoutServiceConfig ->
   BasicAuthData ->
   Value ->
-  m (Maybe Juspay.PayoutInfo)
+  m (Maybe Juspay.PayoutWebhookReq)
 payoutOrderStatusWebhook payoutConfig authData val = do
   withLogTag "webhookPayoutOrderStatus" $ do
     let mResp = fromJSON val
     case mResp of
       DAT.Success (resp :: Juspay.PayoutWebhookReq) -> do
         void $ verifyAuth payoutConfig authData
-        pure (Just resp.info)
+        pure (Just resp)
       DAT.Error err -> do
         logInfo $ "PayoutOrderStatus Parsing failed :: " <> show err
         pure Nothing
