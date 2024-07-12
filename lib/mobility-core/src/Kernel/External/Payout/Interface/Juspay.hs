@@ -126,18 +126,18 @@ payoutOrderStatusWebhook payoutConfig authData val = do
   response <- Juspay.payoutOrderStatusWebhook payoutConfig authData val
   return $ mkWebhookOrderStatusPayoutResp <$> response
 
-mkWebhookOrderStatusPayoutResp :: Juspay.PayoutInfo -> OrderStatusPayoutResp
-mkWebhookOrderStatusPayoutResp payoutInfo =
+mkWebhookOrderStatusPayoutResp :: Juspay.PayoutWebhookReq -> OrderStatusPayoutResp
+mkWebhookOrderStatusPayoutResp payoutReq =
   parsePayoutWebhook
   where
     parsePayoutWebhook =
       OrderStatusPayoutResp
-        { payoutOrderId = payoutInfo.id,
-          payoutStatus = payoutInfo.status,
-          orderType = payoutInfo._type,
-          merchantOrderId = payoutInfo.merchantOrderId,
-          merchantCustomerId = payoutInfo.merchantCustomerId,
-          amount = realToFrac payoutInfo.amount,
-          createdAt = payoutInfo.createdAt,
-          updatedAt = payoutInfo.updatedAt
+        { payoutOrderId = payoutReq.id,
+          payoutStatus = payoutReq.info.status,
+          orderType = payoutReq.info._type,
+          merchantOrderId = payoutReq.info.merchantOrderId,
+          merchantCustomerId = payoutReq.info.merchantCustomerId,
+          amount = realToFrac payoutReq.info.amount,
+          createdAt = payoutReq.info.createdAt,
+          updatedAt = payoutReq.info.updatedAt
         }
