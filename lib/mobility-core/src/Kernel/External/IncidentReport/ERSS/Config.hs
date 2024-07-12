@@ -11,14 +11,13 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-module Kernel.External.Tokenize.Types where
 
-import Data.Text (unpack)
+module Kernel.External.IncidentReport.ERSS.Config where
+
 import Kernel.Prelude
-import Servant.API (FromHttpApiData (..))
 
-data TokenizationService = HyperVerge | JourneyMonitoring | Gullak
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
-
-instance FromHttpApiData TokenizationService where
-  parseUrlPiece = pure . read . unpack
+data ERSSCfg = ERSSCfg
+  { url :: BaseUrl,
+    userName :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)

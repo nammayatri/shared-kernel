@@ -11,14 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-module Kernel.External.Tokenize.Types where
 
-import Data.Text (unpack)
-import Kernel.Prelude
-import Servant.API (FromHttpApiData (..))
+module Kernel.External.IncidentReport (module Reexport) where
 
-data TokenizationService = HyperVerge | JourneyMonitoring | Gullak
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
-
-instance FromHttpApiData TokenizationService where
-  parseUrlPiece = pure . read . unpack
+import Kernel.External.IncidentReport.Interface as Reexport
