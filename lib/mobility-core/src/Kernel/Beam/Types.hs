@@ -86,6 +86,12 @@ data ReplicaEnabled = ReplicaEnabled
 
 instance OptionEntity ReplicaEnabled Bool
 
+data MasterReadEnabled = MasterReadEnabled
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity MasterReadEnabled Bool
+
 data KafkaConn = KafkaConn
   deriving stock (Generic, Typeable, Show, Eq)
   deriving anyclass (ToJSON, FromJSON)
