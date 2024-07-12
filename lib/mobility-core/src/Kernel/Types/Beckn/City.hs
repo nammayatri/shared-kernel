@@ -63,6 +63,8 @@ data City
   | Asansol
   | Gangtok
   | Darjeeling
+  | Davanagere
+  | Shivamogga
   | AnyCity
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
@@ -135,6 +137,10 @@ instance FromJSON City where
   parseJSON (String "Gangtok") = pure Gangtok
   parseJSON (String "std:0354") = pure Darjeeling
   parseJSON (String "Darjeeling") = pure Darjeeling
+  parseJSON (String "std:08192") = pure Davanagere
+  parseJSON (String "Davanagere") = pure Davanagere
+  parseJSON (String "std:08182") = pure Shivamogga
+  parseJSON (String "Shivamogga") = pure Shivamogga
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
@@ -171,6 +177,8 @@ instance ToJSON City where
   toJSON Asansol = String "std:0341"
   toJSON Gangtok = String "std:03592"
   toJSON Darjeeling = String "std:0354"
+  toJSON Davanagere = String "std:08192"
+  toJSON Shivamogga = String "std:08182"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -243,6 +251,10 @@ instance FromHttpApiData City where
       parseLowerCaseCity "gangtok" = Right Gangtok
       parseLowerCaseCity "std:0354" = Right Darjeeling
       parseLowerCaseCity "darjeeling" = Right Darjeeling
+      parseLowerCaseCity "std:08192" = Right Davanagere
+      parseLowerCaseCity "davanagere" = Right Davanagere
+      parseLowerCaseCity "std:08182" = Right Shivamogga
+      parseLowerCaseCity "shivamogga" = Right Shivamogga
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
@@ -279,4 +291,6 @@ instance ToHttpApiData City where
   toUrlPiece Asansol = "std:0341"
   toUrlPiece Gangtok = "std:03592"
   toUrlPiece Darjeeling = "std:0354"
+  toUrlPiece Davanagere = "std:08192"
+  toUrlPiece Shivamogga = "std:08182"
   toUrlPiece AnyCity = "*"
