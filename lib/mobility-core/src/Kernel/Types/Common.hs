@@ -86,7 +86,8 @@ data Tables = Tables
   { enableKVForWriteAlso :: [KVTable],
     enableKVForRead :: [Text],
     useCAC :: [Text],
-    useCACForFrontend :: Bool
+    useCACForFrontend :: Bool,
+    readFromMasterDb :: [Text]
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
