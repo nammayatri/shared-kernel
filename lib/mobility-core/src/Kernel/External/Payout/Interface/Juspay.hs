@@ -127,15 +127,15 @@ payoutOrderStatusWebhook payoutConfig authData val = do
   return $ mkWebhookOrderStatusPayoutResp <$> response
 
 mkWebhookOrderStatusPayoutResp :: Juspay.PayoutWebhookReq -> OrderStatusPayoutResp
-mkWebhookOrderStatusPayoutResp payoutReq =
-  parsePayoutWebhook
+mkWebhookOrderStatusPayoutResp payoutReq = case payoutReq.label of
+  Just "ORDER" -> parsePayoutWebhook -- consuming only order level webhooks
+  _ -> BadStatusResp
   where
     parsePayoutWebhook =
       OrderStatusPayoutResp
-        { payoutOrderId = payoutReq.id,
+        { payoutOrderId = payoutReq.info.merchantOrderId,
           payoutStatus = payoutReq.info.status,
           orderType = payoutReq.info._type,
-          merchantOrderId = payoutReq.info.merchantOrderId,
           merchantCustomerId = payoutReq.info.merchantCustomerId,
           amount = realToFrac payoutReq.info.amount,
           createdAt = payoutReq.info.createdAt,
