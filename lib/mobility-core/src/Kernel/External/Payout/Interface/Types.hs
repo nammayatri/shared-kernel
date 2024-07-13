@@ -34,7 +34,6 @@ data OrderStatusPayoutResp
       { payoutOrderId :: Text,
         payoutStatus :: PayoutOrderStatus,
         orderType :: Maybe Text,
-        merchantOrderId :: Maybe Text,
         merchantCustomerId :: Maybe Text,
         amount :: HighPrecMoney,
         createdAt :: Maybe Text,

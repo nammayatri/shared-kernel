@@ -35,7 +35,7 @@ data PayoutInfo = PayoutInfo
   { id :: Text,
     status :: Payout.PayoutOrderStatus,
     _type :: Maybe Text,
-    merchantOrderId :: Maybe Text,
+    merchantOrderId :: Text,
     amount :: Double,
     merchantCustomerId :: Maybe Text,
     createdAt :: Maybe Text,
