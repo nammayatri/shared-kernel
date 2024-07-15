@@ -6,14 +6,12 @@ import Kernel.External.Payment.Stripe.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
-import Kernel.Types.Error
-import Kernel.Utils.Common (CallAPI', callAPI, fromEitherM)
+import Kernel.Utils.Common (CallAPI, callApiUnwrappingApiError)
 import Servant hiding (throwError)
 
-callStripeAPI :: CallAPI' m api res res
+callStripeAPI :: CallAPI m api res
 callStripeAPI url eulerClient description proxy = do
-  callAPI url eulerClient description proxy
-    >>= fromEitherM (\err -> InternalError $ "Failed to call " <> description <> " API: " <> show err)
+  callApiUnwrappingApiError (identity @StripeError) Nothing Nothing Nothing url eulerClient description proxy
 
 mkBasicAuthData :: Text -> BasicAuthData
 mkBasicAuthData apiKey =
