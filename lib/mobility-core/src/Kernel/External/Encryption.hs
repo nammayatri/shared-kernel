@@ -45,6 +45,7 @@ module Kernel.External.Encryption
     EncryptedItem (..),
     genericEncryptItem,
     genericDecryptItem,
+    mkDefPassettoContext,
   )
 where
 
@@ -169,12 +170,11 @@ data EncTools = EncTools
   deriving (Generic, FromDhall)
 
 -- FIXME! Modify passetto to use BaseUrl and use it too!
-type EncFlow m r = (HasFlowEnv m r '["encTools" ::: EncTools])
+type EncFlow m r = (HasFlowEnv m r '["encTools" ::: EncTools, "passettoContext" ::: PassettoContext])
 
 -- Helper which allows running passetto client operations in our monad.
-withPassettoCtx :: MonadIO m => (String, Word16) -> ReaderT PassettoContext IO a -> m a
-withPassettoCtx (host, port) action =
-  liftIO (mkDefPassettoContext host port) >>= liftIO . runReaderT action
+withPassettoCtx :: MonadIO m => PassettoContext -> ReaderT PassettoContext IO a -> m a
+withPassettoCtx passettoContext = liftIO . (flip runReaderT) passettoContext
 
 -- | Encrypt given value.
 --
@@ -188,7 +188,8 @@ encrypt ::
   m e
 encrypt payload = do
   encTools <- asks (.encTools)
-  encrypt' encTools payload
+  passettoContext <- asks (.passettoContext)
+  encrypt' passettoContext encTools payload
 
 -- | Encrypt given value using provided tools.
 --
@@ -198,12 +199,13 @@ encrypt payload = do
 encrypt' ::
   forall (m :: Type -> Type) e.
   (MonadIO m, EncryptedItem' e) =>
+  PassettoContext ->
   EncTools ->
   UnencryptedItem e ->
   m e
-encrypt' encTools payload = do
+encrypt' passettoContext encTools payload = do
   let unencrypted = toUnencrypted @e payload encTools.hashSalt
-  withPassettoCtx encTools.service $ throwLeft =<< cliEncrypt unencrypted
+  withPassettoCtx passettoContext $ throwLeft =<< cliEncrypt unencrypted
 
 -- | Decrypt given value.
 decrypt ::
@@ -212,8 +214,8 @@ decrypt ::
   e ->
   m (UnencryptedItem e)
 decrypt encrypted = do
-  encTools <- asks (.encTools)
-  item <- withPassettoCtx encTools.service $ throwLeft =<< cliDecrypt encrypted
+  passettoContext <- asks (.passettoContext)
+  item <- withPassettoCtx passettoContext $ throwLeft =<< cliDecrypt encrypted
   return $ fromUnencrypted @e item
 
 getDbHash ::
