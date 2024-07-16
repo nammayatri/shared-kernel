@@ -49,7 +49,7 @@ instance ToForm PaymentIntentReq where
       HM.fromListWith
         (++)
         [ ("amount", [toQueryParam amount]),
-          ("currency", [toQueryParam currency]),
+          ("currency", [show currency]),
           -- ("automatic_payment_methods[enabled]", [toQueryParam (automatic_payment_methods.enabled)]),
           -- ("automatic_payment_methods[allow_redirects]", [toQueryParam (automatic_payment_methods.allow_redirects)]),
           ("confirm", [toQueryParam confirm]),
