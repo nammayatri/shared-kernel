@@ -29,10 +29,8 @@ import Kernel.Utils.JSON
 import Servant.Client (ResponseF (responseBody))
 import qualified Text.Show
 
-data StripeErrorResp = StripeErrorResp
-  { _type :: Text,
-    _code :: Maybe Text,
-    _message :: Maybe Text
+newtype StripeErrorResp = StripeErrorResp
+  { _error :: StripeErrorBody
   }
   deriving (Eq, Generic, Show)
 
@@ -42,12 +40,32 @@ instance FromJSON StripeErrorResp where
 instance ToJSON StripeErrorResp where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
 
+data StripeErrorBody = StripeErrorBody
+  { _type :: Text,
+    _code :: Maybe Text,
+    _message :: Maybe Text
+  }
+  deriving (Eq, Generic, Show)
+
+instance FromJSON StripeErrorBody where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON StripeErrorBody where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+{-
+api_error:	API errors cover any other type of problem (e.g., a temporary problem with Stripe’s servers), and are extremely uncommon.
+card_error:	Card errors are the most common type of error you should expect to handle. They result when the user enters a card that can’t be charged for some reason.
+idempotency_error:	Idempotency errors occur when an Idempotency-Key is re-used on a request that does not match the first request’s API endpoint and parameters.
+invalid_request_error:	Invalid request errors arise when your request has invalid parameters.
+source: https://docs.stripe.com/api/errors
+-}
 data StripeError
-  = ApiError StripeErrorInfo
-  | CardError StripeErrorInfo
-  | IdempotencyError StripeErrorInfo
-  | InvalidRequestError StripeErrorInfo
-  | SomethingWentWrong Text
+  = ApiError StripeErrorInfo -- issue from strip side. ideally shouldn't happen, but if it does, just cancel booking and show user something went wrong please try again
+  | CardError StripeErrorInfo -- issue from user side, ask user to retry with another card and can show proper error message too to the user
+  | IdempotencyError StripeErrorInfo -- not sure when it will come. ideally shouldn't happen, but if it does, just cancel booking and show user something went wrong please try again
+  | InvalidRequestError StripeErrorInfo -- issue from our side. ideally shouldn't happen, but if it does, just cancel booking and show user something went wrong please try again
+  | SomethingWentWrong Text -- ideally shouldn't happen, but if it does, just cancel booking and show user something went wrong please try again
   deriving (Eq, Show, IsBecknAPIError)
 
 data StripeErrorInfo = StripeErrorInfo
@@ -76,7 +94,8 @@ instance FromResponse StripeError where
   fromResponse resp = do
     let mRespBody = decode $ responseBody resp
     case mRespBody of
-      Just (respBody :: StripeErrorResp) -> do
+      Just (resp_ :: StripeErrorResp) -> do
+        let respBody = resp_._error
         let errorInfo = StripeErrorInfo respBody._code respBody._message
         case respBody._type of
           "api_error" -> Just $ ApiError errorInfo
