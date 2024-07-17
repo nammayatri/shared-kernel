@@ -17,13 +17,15 @@ module Kernel.External.Payment.Stripe.Config where
 
 import Data.Aeson
 import Kernel.External.Encryption
+import Kernel.External.Payment.Stripe.Types.Accounts
 import Kernel.Prelude
 
 data StripeCfg = StripeCfg
   { apiKey :: EncryptedField 'AsEncrypted Text,
     returnUrl :: BaseUrl,
     refreshUrl :: BaseUrl,
-    url :: BaseUrl
+    url :: BaseUrl,
+    businessProfile :: Maybe BusinessProfile
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

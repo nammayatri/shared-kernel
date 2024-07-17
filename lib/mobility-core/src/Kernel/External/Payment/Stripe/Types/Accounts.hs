@@ -195,12 +195,19 @@ instance ToJSON BusinessType where
 
 data AccountCapabilities = AccountCapabilities
   { card_payments :: CardPayments,
-    cashapp_payments :: CashAppPayments
+    -- cashapp_payments :: CashAppPayments,
+    transfers :: Transfers
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 newtype CardPayments = CardPayments
+  { requested :: Bool
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype Transfers = Transfers
   { requested :: Bool
   }
   deriving stock (Show, Eq, Generic, Read)
@@ -258,14 +265,14 @@ data IndividualDetails = IndividualDetails
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data AccountsReq = AccountsReq
-  { _type :: AccountType,
+  { _type :: Maybe AccountType,
     country :: Text, -- default to US, will fix later
     email :: Maybe Text,
     controller :: Maybe AccountController,
     capabilities :: Maybe AccountCapabilities,
     business_type :: BusinessType,
     settings :: Maybe AccountSettings,
-    -- business_profile :: Maybe BusinessProfile, -- not for individual account
+    business_profile :: Maybe BusinessProfile, -- not for individual account
     individual :: Maybe IndividualDetails
     -- tos_acceptance :: Maybe TosAcceptance, -- can be revisit later
     -- metadata :: Maybe Metadata, -- can be used to store additional information
@@ -277,14 +284,15 @@ instance ToForm AccountsReq where
   toForm AccountsReq {..} =
     Form $
       foldl' insertOrAppend HM.empty $
-        [ ("type", toQueryParam _type),
-          ("country", toQueryParam country),
+        [ ("country", toQueryParam country),
           ("business_type", toQueryParam business_type)
         ]
           ++ catMaybes
-            [ ("email",) <$> toQueryParam <$> email,
+            [ ("type",) <$> toQueryParam <$> _type,
+              ("email",) <$> toQueryParam <$> email,
               ("capabilities[card_payments][requested]",) <$> (toQueryParam . (.card_payments.requested)) <$> capabilities,
-              ("capabilities[cashapp_payments][requested]",) <$> (toQueryParam . (.cashapp_payments.requested)) <$> capabilities,
+              -- ("capabilities[cashapp_payments][requested]",) <$> (toQueryParam . (.cashapp_payments.requested)) <$> capabilities,
+              ("capabilities[transfers][requested]",) <$> (toQueryParam . (.transfers.requested)) <$> capabilities,
               ("controller[fees][payer]",) <$> (toQueryParam . (.payer)) <$> ((.fees) =<< controller),
               ("controller[losses][payments]",) <$> (toQueryParam . (.payments)) <$> ((.losses) =<< controller),
               ("controller[requirement_collection]",) <$> toQueryParam <$> ((.requirement_collection) =<< controller),
@@ -293,6 +301,7 @@ instance ToForm AccountsReq where
               ("settings[payouts][statement_descriptor]",) <$> (toQueryParam . (.payouts.statement_descriptor)) <$> settings
             ]
           ++ maybe [] individualToForm individual
+          ++ maybe [] businessProfileToForm business_profile
 
 insertOrAppend :: HM.HashMap Text [Text] -> (Text, Text) -> HM.HashMap Text [Text]
 insertOrAppend hm (k, v) = HM.insertWith (++) k [v] hm
@@ -329,11 +338,53 @@ addressToForm Address {..} =
       ("individual[address][state]",) <$> toQueryParam <$> state
     ]
 
+businessProfileToForm :: BusinessProfile -> [(Text, Text)]
+businessProfileToForm BusinessProfile {..} =
+  catMaybes
+    [ ("business_profile[mcc]",) <$> toQueryParam <$> mcc,
+      ("business_profile[product_description]",) <$> toQueryParam <$> product_description,
+      ("business_profile[support_phone]",) <$> toQueryParam <$> support_phone,
+      ("business_profile[url]",) <$> toQueryParam <$> url
+    ]
+    ++ maybe [] businessSupportAdressToForm support_address
+
+businessSupportAdressToForm :: BusinessSupportAddress -> [(Text, Text)]
+businessSupportAdressToForm BusinessSupportAddress {..} =
+  catMaybes
+    [ ("business_profile[support_address][city]",) <$> toQueryParam <$> city,
+      ("business_profile[support_address][country]",) <$> toQueryParam <$> country,
+      ("business_profile[support_address][line1]",) <$> toQueryParam <$> line1,
+      ("business_profile[support_address][line2]",) <$> toQueryParam <$> line2,
+      ("business_profile[support_address][postal_code]",) <$> toQueryParam <$> postal_code,
+      ("business_profile[support_address][state]",) <$> toQueryParam <$> state
+    ]
+
 instance FromJSON AccountsReq where
   parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
 
 instance ToJSON AccountsReq where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data BusinessProfile = BusinessProfile
+  { mcc :: Maybe Text,
+    product_description :: Maybe Text,
+    support_phone :: Maybe Text,
+    url :: Maybe Text,
+    support_address :: Maybe BusinessSupportAddress
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data BusinessSupportAddress = BusinessSupportAddress
+  { city :: Maybe Text,
+    country :: Maybe Text,
+    line1 :: Maybe Text,
+    line2 :: Maybe Text,
+    postal_code :: Maybe Text,
+    state :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data AccountResp = AccountResp
   { id :: AccountId,

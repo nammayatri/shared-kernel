@@ -61,7 +61,7 @@ invalid_request_error:	Invalid request errors arise when your request has invali
 source: https://docs.stripe.com/api/errors
 -}
 data StripeError
-  = ApiError StripeErrorInfo -- issue from strip side. ideally shouldn't happen, but if it does, just cancel booking and show user something went wrong please try again
+  = ApiError StripeErrorInfo -- issue from stripe side. ideally shouldn't happen, but if it does, just cancel booking and show user something went wrong please try again
   | CardError StripeErrorInfo -- issue from user side, ask user to retry with another card and can show proper error message too to the user
   | IdempotencyError StripeErrorInfo -- not sure when it will come. ideally shouldn't happen, but if it does, just cancel booking and show user something went wrong please try again
   | InvalidRequestError StripeErrorInfo -- issue from our side. ideally shouldn't happen, but if it does, just cancel booking and show user something went wrong please try again

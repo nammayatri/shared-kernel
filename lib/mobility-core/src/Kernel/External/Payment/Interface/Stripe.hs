@@ -1,5 +1,6 @@
 module Kernel.External.Payment.Interface.Stripe where
 
+import Control.Applicative ((<|>))
 import Data.Time
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Kernel.External.Encryption
@@ -35,7 +36,7 @@ createIndividualConnectAccount config req = do
   where
     mkAccountReq :: Stripe.AccountsReq
     mkAccountReq =
-      let _type = Stripe.Standard
+      let _type = Nothing
           country =
             case req.country of
               Context.India -> "IN"
@@ -43,19 +44,20 @@ createIndividualConnectAccount config req = do
               Context.France -> "FR"
               Context.AnyCountry -> "US" -- fix later
           email = req.email
-          controller = Nothing
-          -- Just $
-          --   Stripe.AccountController
-          --     { fees = Just $ Stripe.AccountFees {payer = Stripe.AccountFeePayerAccount},
-          --       losses = Just $ Stripe.AccountLosses {payments = Stripe.AccountLossesPayerStripe},
-          --       requirement_collection = Just Stripe.AccountRquirementCollectorStripe,
-          --       stripe_dashboard = Just $ Stripe.AccountDashboard {_type = Stripe.AccountDashboardNone}
-          --     }
+          controller =
+            Just $
+              Stripe.AccountController
+                { fees = Just $ Stripe.AccountFees {payer = Stripe.AccountFeePayerAccount},
+                  losses = Just $ Stripe.AccountLosses {payments = Stripe.AccountLossesPayerStripe},
+                  requirement_collection = Just Stripe.AccountRquirementCollectorStripe,
+                  stripe_dashboard = Just $ Stripe.AccountDashboard {_type = Stripe.AccountDashboardNone}
+                }
           capabilities =
             Just $
               Stripe.AccountCapabilities
                 { card_payments = Stripe.CardPayments {requested = True},
-                  cashapp_payments = Stripe.CashAppPayments {requested = True}
+                  -- cashapp_payments = Stripe.CashAppPayments {requested = True}
+                  transfers = Stripe.Transfers {requested = True}
                 }
           settings =
             Just $
@@ -76,6 +78,25 @@ createIndividualConnectAccount config req = do
                   phone = req.mobileNumber,
                   ssn_last_4 = req.ssnLast4
                 }
+          default_business_profile =
+            Just $
+              Stripe.BusinessProfile
+                { mcc = Just "4121",
+                  product_description = Just "Rideshare driver",
+                  support_phone = Just "7605636815", -- dummy number
+                  url = Just "https://bridge.cab",
+                  support_address =
+                    Just $
+                      Stripe.BusinessSupportAddress
+                        { city = Just "St. Louis Park",
+                          country = Just "US",
+                          line1 = Just "Suite 100, 1650, West End Blvd",
+                          line2 = Nothing,
+                          postal_code = Just "55416",
+                          state = Just "MN"
+                        }
+                }
+          business_profile = config.businessProfile <|> default_business_profile
        in Stripe.AccountsReq {..}
 
 retryAccountLink ::
@@ -205,6 +226,7 @@ createPaymentIntent config req = do
       let payment_method = paymentMethod
       let receipt_email = receiptEmail
       let on_behalf_of = driverAccountId
+      let transfer_data = Stripe.TransferData {destination = driverAccountId}
       -- let automatic_payment_methods = Stripe.AutomaticPayementMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
       let confirm = True
       let description = Nothing
@@ -212,6 +234,7 @@ createPaymentIntent config req = do
       let capture_method = Stripe.ManualCaptureMethod
       let confirmation_method = Stripe.AutomaticConfirmationMethod
       let use_stripe_sdk = True
+      let return_url = showBaseUrl config.returnUrl
       Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
 createSetupIntent ::

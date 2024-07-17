@@ -38,7 +38,9 @@ data PaymentIntentReq = PaymentIntentReq
     capture_method :: CaptureMethod,
     confirmation_method :: ConfirmationMethod,
     on_behalf_of :: AccountId,
-    use_stripe_sdk :: Bool
+    use_stripe_sdk :: Bool,
+    return_url :: Text,
+    transfer_data :: TransferData
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -59,7 +61,9 @@ instance ToForm PaymentIntentReq where
           ("capture_method", [toQueryParam capture_method]),
           ("confirmation_method", [toQueryParam confirmation_method]),
           ("on_behalf_of", [toQueryParam on_behalf_of]),
-          ("use_stripe_sdk", [toQueryParam use_stripe_sdk])
+          ("use_stripe_sdk", [toQueryParam use_stripe_sdk]),
+          ("return_url", [toQueryParam return_url]),
+          ("transfer_data[destination]", [toQueryParam transfer_data.destination])
         ]
         <> maybeToForm "description" description
         <> maybeToForm "receipt_email" receipt_email
@@ -67,6 +71,12 @@ instance ToForm PaymentIntentReq where
     where
       maybeToForm :: ToHttpApiData a => Text -> Maybe a -> HM.HashMap Text [Text]
       maybeToForm key = maybe HM.empty (\value -> HM.singleton key [toQueryParam value])
+
+newtype TransferData = TransferData
+  { destination :: AccountId
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data CaptureMethod = AutomaticCaptureMethod | AutomaticAsyncCaptureMethod | ManualCaptureMethod
   deriving stock (Show, Eq, Generic, Read)
