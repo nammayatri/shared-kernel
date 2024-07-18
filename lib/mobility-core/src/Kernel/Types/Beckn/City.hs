@@ -65,6 +65,10 @@ data City
   | Darjeeling
   | Davanagere
   | Shivamogga
+  | Hubli
+  | Mangalore
+  | Udupi
+  | Gulbarga
   | AnyCity
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
@@ -141,6 +145,14 @@ instance FromJSON City where
   parseJSON (String "Davanagere") = pure Davanagere
   parseJSON (String "std:08182") = pure Shivamogga
   parseJSON (String "Shivamogga") = pure Shivamogga
+  parseJSON (String "std:0836") = pure Hubli
+  parseJSON (String "Hubli") = pure Hubli
+  parseJSON (String "std:0824") = pure Mangalore
+  parseJSON (String "Mangalore") = pure Mangalore
+  parseJSON (String "std:08200") = pure Udupi
+  parseJSON (String "Udupi") = pure Udupi
+  parseJSON (String "std:08472") = pure Gulbarga
+  parseJSON (String "Gulbarga") = pure Gulbarga
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
@@ -179,6 +191,10 @@ instance ToJSON City where
   toJSON Darjeeling = String "std:0354"
   toJSON Davanagere = String "std:08192"
   toJSON Shivamogga = String "std:08182"
+  toJSON Hubli = String "std:0836"
+  toJSON Mangalore = String "std:0824"
+  toJSON Udupi = String "std:08200"
+  toJSON Gulbarga = String "std:08472"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -255,6 +271,14 @@ instance FromHttpApiData City where
       parseLowerCaseCity "davanagere" = Right Davanagere
       parseLowerCaseCity "std:08182" = Right Shivamogga
       parseLowerCaseCity "shivamogga" = Right Shivamogga
+      parseLowerCaseCity "std:0836" = Right Hubli
+      parseLowerCaseCity "hubli" = Right Hubli
+      parseLowerCaseCity "std:0824" = Right Mangalore
+      parseLowerCaseCity "mangalore" = Right Mangalore
+      parseLowerCaseCity "std:08200" = Right Udupi
+      parseLowerCaseCity "udupi" = Right Udupi
+      parseLowerCaseCity "std:08472" = Right Gulbarga
+      parseLowerCaseCity "gulbarga" = Right Gulbarga
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
@@ -293,4 +317,8 @@ instance ToHttpApiData City where
   toUrlPiece Darjeeling = "std:0354"
   toUrlPiece Davanagere = "std:08192"
   toUrlPiece Shivamogga = "std:08182"
+  toUrlPiece Hubli = "std:0836"
+  toUrlPiece Mangalore = "std:0824"
+  toUrlPiece Udupi = "std:08200"
+  toUrlPiece Gulbarga = "std:08472"
   toUrlPiece AnyCity = "*"
