@@ -45,7 +45,9 @@ data DeviceType = IOS | ANDROID
 
 data Device = Device
   { deviceType :: DeviceType,
-    deviceVersion :: Text
+    deviceVersion :: Text,
+    deviceModel :: Text,
+    deviceManufacturer :: Maybe Text
   }
   deriving (Show, Eq, Ord, Generic, Read, ToJSON, FromJSON, ToSchema)
 

@@ -16,7 +16,7 @@
 
 module Kernel.Utils.Version (Reexport.versionToText, readVersion, getDeviceFromText, mkClientDevice) where
 
-import Data.Text
+import Data.Text hiding (reverse)
 import qualified Data.Text as T
 import Kernel.Prelude as Prelude
 import Kernel.Types.Logging
@@ -33,17 +33,24 @@ getDeviceFromText deviceText = do
   text <- deviceText
   let deviceInfo = T.splitOn "/" text
   case deviceInfo of
-    _ : _ : version' : _ -> do
+    _ : deviceModel : version' : xs -> do
+      let mbManufacturer = getManufacturer xs
       let [deviceTypeStr, deviceVersion] = T.splitOn " v" version'
       deviceType <- case T.toLower deviceTypeStr of
         "android" -> Just ANDROID
         "ios" -> Just IOS
         _ -> Nothing
-      return Device {deviceType = deviceType, deviceVersion = deviceVersion}
+      return Device {deviceType = deviceType, deviceVersion = deviceVersion, deviceModel = deviceModel, deviceManufacturer = mbManufacturer}
     _ -> Nothing
 
-mkClientDevice :: Maybe DeviceType -> Maybe Text -> Maybe Device
-mkClientDevice clientOsType clientOsVersion =
-  ((,) <$> clientOsType <*> clientOsVersion)
-    <&> \(clientOsType', clientOsVersion') ->
-      Device {deviceType = clientOsType', deviceVersion = clientOsVersion'}
+mkClientDevice :: Maybe DeviceType -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Device
+mkClientDevice clientOsType clientOsVersion clientModel clientManufacturer =
+  Device <$> clientOsType <*> clientOsVersion <*> clientModel <*> pure clientManufacturer
+
+getManufacturer :: [Text] -> Maybe Text
+getManufacturer xs = do
+  manufacturer' <- listToMaybe (reverse xs)
+  let parts = T.splitOn ":" manufacturer' -- expecting manufacturer at the end of deviceText
+  case parts of
+    ("mf" : manufacturer : _) -> Just manufacturer
+    _ -> Nothing
