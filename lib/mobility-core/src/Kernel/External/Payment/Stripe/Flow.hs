@@ -45,7 +45,7 @@ createAccount url apiKey req = do
 
 type CreateAccountLinkAPI =
   "v1"
-    :> "accounts"
+    :> "account_links"
     :> BasicAuth "secretkey-password" BasicAuthData
     :> ReqBody '[FormUrlEncoded] AccountLinkReq
     :> Post '[JSON] AccountLinkObject
