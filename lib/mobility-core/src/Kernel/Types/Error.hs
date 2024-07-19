@@ -857,16 +857,20 @@ instance IsAPIError KafkaError
 
 data CallStatusError
   = CallStatusDoesNotExist
+  | CallStatusFieldNotPresent Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''CallStatusError
 
 instance IsBaseError CallStatusError where
   toMessage CallStatusDoesNotExist = Just "No call callback received yet."
+  toMessage (CallStatusFieldNotPresent field) = Just $ "Required field " <> field <> " is null for this call."
 
 instance IsHTTPError CallStatusError where
   toErrorCode CallStatusDoesNotExist = "CALL_DOES_NOT_EXIST"
+  toErrorCode (CallStatusFieldNotPresent _) = "CALL_FIELD_NOT_PRESENT"
   toHttpCode CallStatusDoesNotExist = E400
+  toHttpCode (CallStatusFieldNotPresent _) = E500
 
 instance IsAPIError CallStatusError
 

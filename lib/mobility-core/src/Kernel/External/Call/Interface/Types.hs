@@ -61,6 +61,7 @@ data CallStatus
   | -- KNOWLARITY STATUS
     CONNECTED
   | NOT_CONNECTED
+  | ATTEMPTED
   | MISSED
   deriving stock (Show, Eq, Read, Ord, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -74,3 +75,6 @@ data InitiateCallResp = InitiateCallResp
     callStatus :: CallStatus
   }
   deriving (Generic)
+
+data CallAttemptStatus = Attempted | Resolved | Failed | Pending
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)

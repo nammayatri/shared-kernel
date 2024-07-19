@@ -168,6 +168,7 @@ data ExotelCallStatus
     CONNECTED
   | NOT_CONNECTED
   | MISSED
+  | ATTEMPTED
   deriving (Show, Eq, Read, Generic, ToSchema, ToParamSchema)
 
 instance FromHttpApiData ExotelCallStatus where
