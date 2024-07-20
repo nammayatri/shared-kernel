@@ -239,6 +239,17 @@ updatePaymentMethodInIntent config paymentIntentId paymentMethodId = case config
   JuspayConfig _ -> throwError $ InternalError "Juspay Update Payment Method In Intent not supported."
   StripeConfig cfg -> Stripe.updatePaymentMethodInIntent cfg paymentIntentId paymentMethodId
 
+getPaymentIntent ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  PaymentIntentId ->
+  m CreatePaymentIntentResp
+getPaymentIntent config paymentIntentId = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Get Payment Intent not supported."
+  StripeConfig cfg -> Stripe.getPaymentIntent cfg paymentIntentId
+
 capturePaymentIntent ::
   ( CoreMetrics m,
     EncFlow m r

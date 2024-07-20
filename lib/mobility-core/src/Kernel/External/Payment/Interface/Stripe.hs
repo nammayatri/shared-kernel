@@ -279,6 +279,21 @@ updatePaymentMethodInIntent config paymentIntentId paymentMethodId = do
   let confirmPaymentIntentReq = Stripe.ConfirmPaymentIntentReq {payment_method = paymentMethodId}
   void $ Stripe.confirmPaymentIntent url apiKey paymentIntentId confirmPaymentIntentReq
 
+getPaymentIntent ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  StripeCfg ->
+  PaymentIntentId ->
+  m CreatePaymentIntentResp
+getPaymentIntent config paymentIntentId = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  paymentIntentResp <- Stripe.getPaymentIntent url apiKey paymentIntentId
+  let clientSecret = paymentIntentResp.client_secret
+  let status = paymentIntentResp.status
+  return $ CreatePaymentIntentResp {..}
+
 capturePaymentIntent ::
   ( Metrics.CoreMetrics m,
     EncFlow m r
