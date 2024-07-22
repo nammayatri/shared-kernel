@@ -981,6 +981,9 @@ instance IsAPIError SosError
 data PaymentOrderError
   = PaymentOrderNotFound Text
   | PaymentOrderDoesNotExist Text
+  | PayoutOrderAlreadyExists Text
+  | PayoutOrderDoesNotExist Text
+  | PayoutOrderNotFound Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''PaymentOrderError
@@ -989,14 +992,23 @@ instance IsBaseError PaymentOrderError where
   toMessage = \case
     PaymentOrderNotFound orderId -> Just $ "PaymentOrder with orderId \"" <> show orderId <> "\"not found. "
     PaymentOrderDoesNotExist orderId -> Just $ "No payment order matches passed data \"" <> show orderId <> "\" not exist. "
+    PayoutOrderAlreadyExists orderId -> Just $ "Payout order with orderId \"" <> show orderId <> "\" already exists."
+    PayoutOrderDoesNotExist orderId -> Just $ "No payout order matches passed data \"" <> show orderId <> "\" not exist. "
+    PayoutOrderNotFound orderId -> Just $ "Payout order with orderId \"" <> show orderId <> "\" not found."
 
 instance IsHTTPError PaymentOrderError where
   toErrorCode = \case
     PaymentOrderNotFound _ -> "PAYMENT_ORDER_NOT_FOUND"
+    PayoutOrderAlreadyExists _ -> "PAYOUT_ORDER_ALREADY_EXISTS"
+    PayoutOrderDoesNotExist _ -> "PAYOUT_ORDER_DOES_NOT_EXIST"
+    PayoutOrderNotFound _ -> "PAYOUT_ORDER_NOT_FOUND"
     PaymentOrderDoesNotExist _ -> "PAYMENT_ORDER_DOES_NOT_EXIST"
 
   toHttpCode = \case
     PaymentOrderNotFound _ -> E500
+    PayoutOrderAlreadyExists _ -> E400
+    PayoutOrderDoesNotExist _ -> E400
+    PayoutOrderNotFound _ -> E500
     PaymentOrderDoesNotExist _ -> E400
 
 instance IsAPIError PaymentOrderError
