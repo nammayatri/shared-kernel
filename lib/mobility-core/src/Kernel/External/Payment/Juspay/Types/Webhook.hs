@@ -85,7 +85,9 @@ data WebhookTxnData = WebhookTxnData
     currency :: Currency,
     metadata :: Maybe MetaData,
     additional_info :: Maybe AdditionalInfo,
-    links :: Maybe LinkData
+    links :: Maybe LinkData,
+    payer_vpa :: Maybe Text,
+    upi :: Maybe Upi
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
