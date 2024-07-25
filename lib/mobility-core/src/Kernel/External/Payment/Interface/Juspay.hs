@@ -456,8 +456,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           dateCreated = Nothing,
           refunds = [],
           amountRefunded = Nothing,
-          payerVpa = Nothing,
-          upi = Nothing,
+          payerVpa = justTransaction.payer_vpa,
+          upi = castUpi <$> justTransaction.upi,
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp
