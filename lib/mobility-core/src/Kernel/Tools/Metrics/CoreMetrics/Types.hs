@@ -56,6 +56,9 @@ type HasCoreMetrics r =
 
 newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}
 
+verboseBucket :: [Double]
+verboseBucket = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 25, 40]
+
 class CoreMetrics m where
   addRequestLatency :: Text -> Text -> Milliseconds -> Either ClientError a -> m ()
   addDatastoreLatency :: Text -> Text -> Milliseconds -> m ()
@@ -159,7 +162,7 @@ registerGenericLatencyMetrics :: IO GenericLatencyMetric
 registerGenericLatencyMetrics =
   P.register $
     P.vector ("operation", "version") $
-      P.histogram info P.defaultBuckets
+      P.histogram info verboseBucket
   where
     info = P.Info "producer_operation_duration" ""
 
