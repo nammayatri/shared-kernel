@@ -11,6 +11,8 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE BangPatterns #-}
+
 module Kernel.Tools.LoopGracefully where
 
 import GHC.Conc (TVar, atomically, newTVarIO, readTVarIO, writeTVar)
@@ -39,7 +41,7 @@ loop fa stop = do
   if stopRequested > 1
     then print ("bye!" :: String)
     else do
-      void fa
+      !_ <- fa
       loop fa stop
 
 onSigInt :: TVar Int -> IO ()
