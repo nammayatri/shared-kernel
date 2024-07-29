@@ -20,6 +20,8 @@ module Kernel.External.Maps.Google.MapsClient
     PlaceNameAPI,
     DistanceMatrixAPI,
     DirectionsAPI,
+    AdvancedDirectionsAPI,
+    advancedDirectionsAPI,
     autoComplete,
     getPlaceDetails,
     getPlaceName,
@@ -47,6 +49,7 @@ type GoogleMapsAPI =
     :<|> PlaceNameAPI
     :<|> DistanceMatrixAPI
     :<|> DirectionsAPI
+    :<|> AdvancedDirectionsAPI
 
 type AutocompleteAPI =
   "place" :> "autocomplete" :> "json"
@@ -99,6 +102,13 @@ type DirectionsAPI =
     :> QueryParam "avoid" Text
     :> Get '[JSON] GoogleMaps.DirectionsResp
 
+type AdvancedDirectionsAPI =
+  "directions" :> "v2" :> ":computeRoutes"
+    :> MandatoryHeader "X-Goog-Api-Key" Text
+    :> MandatoryHeader "X-Goog-FieldMask" Text
+    :> ReqBody '[JSON] (GoogleMaps.AdvancedDirectionsReq)
+    :> Post '[JSON] GoogleMaps.AdvancedDirectionsResp
+
 autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Language -> Maybe Bool -> Maybe LatLong -> Maybe Text -> EulerClient GoogleMaps.AutoCompleteResp
 getPlaceDetailsClient :: Maybe Text -> Text -> Text -> Text -> EulerClient GoogleMaps.GetPlaceDetailsResp
 getPlaceNameClient :: Maybe Text -> Text -> Maybe LatLong -> Maybe Text -> Maybe Language -> EulerClient GoogleMaps.GetPlaceNameResp
@@ -118,7 +128,12 @@ directionsClient ::
   Maybe [GoogleMaps.Place] ->
   Maybe Text ->
   EulerClient GoogleMaps.DirectionsResp
-autoCompleteClient :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient = client (Proxy :: Proxy GoogleMapsAPI)
+advancedDirectionsClient ::
+  Text ->
+  Text ->
+  GoogleMaps.AdvancedDirectionsReq ->
+  EulerClient GoogleMaps.AdvancedDirectionsResp
+autoCompleteClient :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient = client (Proxy :: Proxy GoogleMapsAPI)
 
 autoComplete ::
   ( CoreMetrics m,
@@ -206,9 +221,34 @@ directions url key origin destination mode waypoints isAvoidTolls = do
   callAPI url (directionsClient origin destination key (Just True) mode waypoints (Just avoid)) "directionsAPI" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
 
+advancedDirectionsAPI ::
+  ( CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  GoogleMaps.WayPointV2 ->
+  GoogleMaps.WayPointV2 ->
+  Maybe GoogleMaps.ModeV2 ->
+  Maybe [GoogleMaps.WayPointV2] ->
+  Bool ->
+  Bool ->
+  GoogleMaps.RoutingPreference ->
+  m GoogleMaps.AdvancedDirectionsResp
+advancedDirectionsAPI url key origin destination mode intermediates isAvoidTolls computeAlternativeRoutes routingPreference = do
+  let routeModifiers = GoogleMaps.RouteModifiers {avoidTolls = if isAvoidTolls then Just True else Nothing, avoidFerries = True}
+      travelMode = mode
+      req = GoogleMaps.AdvancedDirectionsReq {..}
+  callAPI url (advancedDirectionsClient key "*" req) "advancedDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
+    >>= checkGoogleMapsError' url
+
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
 checkGoogleMapsError url res =
   fromEitherM (googleMapsError url) res >>= validateResponseStatus
+
+checkGoogleMapsError' :: (MonadThrow m, Log m, HasField "routes" a [GoogleMaps.RouteV2]) => BaseUrl -> Either ClientError a -> m a
+checkGoogleMapsError' url res =
+  fromEitherM (googleMapsError url) res
 
 googleMapsError :: BaseUrl -> ClientError -> ExternalAPICallError
 googleMapsError = ExternalAPICallError (Just "GOOGLE_MAPS_API_ERROR")

@@ -76,6 +76,8 @@ type RegToken = Text
 -- FIXME: remove this
 type AuthHeader = Header' '[Required, Strict] "token" RegToken
 
+type MandatoryHeader name a = Header' '[Required, Strict] name a
+
 instance ToSchema Servant.BaseUrl where
   declareNamedSchema _ = do
     aSchema <- declareSchema (Proxy :: Proxy Text)
