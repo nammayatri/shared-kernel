@@ -22,6 +22,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as DT
 import Kernel.External.Maps.Google.PolyLinePoints (PolyLinePoints)
 import Kernel.Prelude
+import Kernel.Utils.Dhall (FromDhall)
 import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData (toUrlPiece))
 
 data AutoCompleteResp = AutoCompleteResp
@@ -115,6 +116,51 @@ data DirectionsResp = DirectionsResp
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
+newtype AdvancedDirectionsResp = AdvancedDirectionsResp
+  { routes :: [RouteV2]
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data AdvancedDirectionsReq = AdvancedDirectionsReq
+  { origin :: WayPointV2,
+    destination :: WayPointV2,
+    intermediates :: Maybe [WayPointV2],
+    routingPreference :: RoutingPreference,
+    travelMode :: Maybe ModeV2,
+    computeAlternativeRoutes :: Bool,
+    routeModifiers :: RouteModifiers
+  }
+  -----------remove null fields-----------
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype WayPointV2 = WayPointV2
+  { ---- Union field location_type can be only one of the following:
+    location :: LocationV2
+    -- address :: Maybe Text --------if needed in future--------
+    -----End of list of possible types for union field location_type.
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype LocationV2 = LocationV2
+  { latLng :: LatLngV2
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data LatLngV2 = LatLngV2
+  { latitude :: Double,
+    longitude :: Double
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data RouteModifiers = RouteModifiers
+  { avoidTolls :: Maybe Bool,
+    avoidFerries :: Bool --------default False--------
+    ------- Can be added in future if required ----------
+    -- avoidHighways :: Bool,
+    -- avoidIndoor :: Bool
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
 data Route = Route
   { bounds :: Bounds,
     legs :: [Leg]
@@ -143,6 +189,44 @@ data Step = Step
     polyline :: EncodedPointObject,
     start_location :: LocationS,
     travel_mode :: Mode
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data RouteV2 = RouteV2
+  { legs :: [LegV2],
+    viewport :: ViewPort,
+    distanceMeters :: Int,
+    duration :: Text
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data ViewPort = ViewPort
+  { low :: LatLngV2,
+    high :: LatLngV2
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data LegV2 = LegV2
+  { distanceMeters :: Int,
+    duration :: Text,
+    endLocation :: LocationV2,
+    startLocation :: LocationV2,
+    steps :: [StepV2]
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data StepV2 = StepV2
+  { distanceMeters :: Int,
+    staticDuration :: Text,
+    endLocation :: LocationV2,
+    polyline :: Polyline,
+    startLocation :: LocationV2,
+    travelMode :: ModeV2
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype Polyline = Polyline
+  { encodedPolyline :: PolyLinePoints
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
@@ -194,8 +278,20 @@ instance FromHttpApiData [Place] where
     let places = T.splitOn "|" piece
     forM places parseUrlPiece
 
-data Mode = DRIVING | WALKING | BICYCLING | TRANSIT
+data Mode = DRIVING | WALKING | BICYCLING
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data ModeV2
+  = TRAVEL_MODE_UNSPECIFIED -- No travel mode specified. Defaults to DRIVE.
+  | DRIVE --Travel by passenger car.
+  | BICYCLE -- Travel by bicycle.
+  | WALK -- Travel by walking.
+  | TWO_WHEELER -- Two-wheeled, motorized vehicle. For example, motorcycle. Note that this differs from the BICYCLE travel mode which covers human-powered mode.
+  | TRANSIT -- Travel by public transit.
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data RoutingPreference = ROUTING_PREFERENCE_UNSPECIFIED | TRAFFIC_UNAWARE | TRAFFIC_AWARE | TRAFFIC_AWARE_OPTIMAL
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema, FromDhall)
 
 instance ToHttpApiData Mode where
   toUrlPiece = T.toLower . show

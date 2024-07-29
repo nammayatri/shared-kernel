@@ -15,11 +15,22 @@
 module Kernel.External.Maps.Google.Config where
 
 import Kernel.External.Encryption
+import Kernel.External.Maps.Google.MapsClient.Types
 import Kernel.Prelude
+import Kernel.Utils.Dhall (FromDhall)
 
 data GoogleCfg = GoogleCfg
   { googleMapsUrl :: BaseUrl,
     googleRoadsUrl :: BaseUrl,
-    googleKey :: EncryptedField 'AsEncrypted Text
+    googleKey :: EncryptedField 'AsEncrypted Text,
+    useAdvancedDirections :: Bool,
+    googleRouteConfig :: GoogleRouteConfig
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data GoogleRouteConfig = GoogleRouteConfig
+  { computeAlternativeRoutes :: Bool,
+    routePreference :: RoutingPreference,
+    url :: BaseUrl
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema, FromDhall)

@@ -27,6 +27,7 @@ import Control.Applicative ((<|>))
 import Control.Monad.Extra (concatForM)
 import qualified Data.List.Extra as List
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Text as T
 import GHC.Float (double2Int)
 import Kernel.External.Encryption
 import Kernel.External.Maps.Google.Config as Reexport
@@ -34,7 +35,7 @@ import qualified Kernel.External.Maps.Google.MapsClient as GoogleMaps
 import Kernel.External.Maps.Google.PolyLinePoints
 import qualified Kernel.External.Maps.Google.RoadsClient as GoogleRoads
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
-import Kernel.External.Maps.Interface.Types
+import Kernel.External.Maps.Interface.Types as Types
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -108,6 +109,19 @@ routeToRouteProxyConverter req =
       waypoints = originAndDestinationRemover $ NE.toList req.waypoints
     }
 
+latLngToWaypointV2Converter :: LatLong -> GoogleMaps.WayPointV2
+latLngToWaypointV2Converter LatLong {..} =
+  GoogleMaps.WayPointV2
+    { location =
+        GoogleMaps.LocationV2
+          { latLng =
+              GoogleMaps.LatLngV2
+                { latitude = lat,
+                  longitude = lon
+                }
+          }
+    }
+
 getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -119,23 +133,81 @@ getRoutes ::
   m GetRoutesResp
 getRoutes isAvoidToll cfg req = do
   let routeProxyReq = routeToRouteProxyConverter req
-  let googleMapsUrl = cfg.googleMapsUrl
+      useAdvancedDirections = cfg.useAdvancedDirections
   key <- decrypt cfg.googleKey
-  let origin = latLongToPlace routeProxyReq.origin
-      destination = latLongToPlace routeProxyReq.destination
-      waypoints = getWayPoints routeProxyReq.waypoints
-      mode = mapToMode <$> routeProxyReq.mode
-  gRes <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints isAvoidToll
-  if null gRes.routes
+  if useAdvancedDirections && (routeProxyReq.origin /= routeProxyReq.destination)
     then do
-      gResp <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints False
-      traverse (mkRoute routeProxyReq) gResp.routes
-    else traverse (mkRoute routeProxyReq) gRes.routes
+      let googleMapsUrl = cfg.googleRouteConfig.url
+          computeAlternativeRoutes = cfg.googleRouteConfig.computeAlternativeRoutes
+          routePreference = cfg.googleRouteConfig.routePreference
+          waypointsV2 = NE.map latLngToWaypointV2Converter req.waypoints
+          origin = NE.head waypointsV2
+          destination = NE.last waypointsV2
+          intermediates = if length waypointsV2 > 2 then Just $ init $ NE.tail waypointsV2 else Nothing
+          mode = getModeV2 <$> req.mode
+      gRes <- GoogleMaps.advancedDirectionsAPI googleMapsUrl key origin destination mode intermediates isAvoidToll computeAlternativeRoutes routePreference
+      if null gRes.routes && isAvoidToll
+        then do
+          gResp <- GoogleMaps.advancedDirectionsAPI googleMapsUrl key origin destination mode intermediates False computeAlternativeRoutes routePreference
+          traverse (mkRoute' routeProxyReq) gResp.routes
+        else traverse (mkRoute' routeProxyReq) gRes.routes
+    else do
+      let googleMapsUrl = cfg.googleMapsUrl
+      let origin = latLongToPlace routeProxyReq.origin
+          destination = latLongToPlace routeProxyReq.destination
+          waypoints = getWayPoints routeProxyReq.waypoints
+          mode = mapToMode <$> routeProxyReq.mode
+      gRes <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints isAvoidToll
+      if null gRes.routes && isAvoidToll
+        then do
+          gResp <- GoogleMaps.directions googleMapsUrl key origin destination mode waypoints False
+          traverse (mkRoute routeProxyReq) gResp.routes
+        else traverse (mkRoute routeProxyReq) gRes.routes
   where
     getWayPoints waypoints =
       case waypoints of
         [] -> Nothing
         _ -> Just (map latLongToPlace waypoints)
+    getModeV2 :: TravelMode -> GoogleMaps.ModeV2
+    getModeV2 mode =
+      case mode of
+        CAR -> GoogleMaps.DRIVE
+        FOOT -> GoogleMaps.WALK
+        BICYCLE -> GoogleMaps.BICYCLE
+        MOTORCYCLE -> GoogleMaps.TWO_WHEELER
+
+mkRoute' ::
+  (MonadFlow m) =>
+  GetRoutesReqProxy ->
+  GoogleMaps.RouteV2 ->
+  m RouteInfo
+mkRoute' req route = do
+  let bound = Just $ mkBounds route.viewport
+  if null route.legs
+    then do
+      logTagWarning "GoogleMapsDirections" ("Empty route.legs, " <> show req)
+      return $ RouteInfo Nothing Nothing Nothing bound [] []
+    else do
+      when (length route.legs > 1) $
+        logTagWarning "GoogleMapsDirections" ("More than one element in route.legs, " <> show req)
+
+      let totalDistance = Meters route.distanceMeters
+          distanceWithUnit = Distance (toHighPrecDistance totalDistance) Meter
+          allSteps = foldr (\leg acc -> acc ++ leg.steps) [] route.legs
+          polylinePoints = concatMap (\step -> decode step.polyline.encodedPolyline) allSteps
+      totalDuration <- durationInS route.duration & fromMaybeM (InternalError "No duration value provided in advanced directions API response")
+      return $ RouteInfo (Just totalDuration) (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints
+  where
+    mkBounds :: GoogleMaps.ViewPort -> BoundingBoxWithoutCRS
+    mkBounds viewport =
+      let ne = PointXY viewport.high.latitude viewport.high.longitude
+          sw = PointXY viewport.low.latitude viewport.low.longitude
+       in BoundingBoxWithoutCRSXY ne sw
+    durationInS :: Text -> (Maybe Seconds)
+    durationInS dur = do
+      let durationText = T.replace "s" "" dur
+          maybeDuration = fmap (round :: Double -> Int) (readMaybe $ T.unpack durationText) -- Convert Maybe Double to Maybe Int
+      Just . Seconds =<< maybeDuration
 
 mkRoute ::
   (MonadFlow m) =>
