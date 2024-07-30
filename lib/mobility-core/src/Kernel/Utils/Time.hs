@@ -142,3 +142,6 @@ isTimeWithinBounds startTime endTime time =
 
 utcTimeToDiffTime :: UTCTime -> DiffTime
 utcTimeToDiffTime = timeOfDayToTime . localTimeOfDay . zonedTimeToLocalTime . utcToZonedTime utc
+
+utcTimeToText :: UTCTime -> Text
+utcTimeToText = T.pack . formatTime defaultTimeLocale "%FT%T%z"
