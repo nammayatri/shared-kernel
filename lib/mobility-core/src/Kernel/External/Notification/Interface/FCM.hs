@@ -106,6 +106,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.SCHEDULED_RIDE_NOTIFICATION -> FCM.SCHEDULED_RIDE_NOTIFICATION
   Interface.FIRST_RIDE_EVENT -> FCM.FIRST_RIDE_EVENT
   Interface.TOLL_CROSSED -> FCM.TOLL_CROSSED
+  Interface.FCM_CHAT_MESSAGE -> FCM.FCM_CHAT_MESSAGE
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case

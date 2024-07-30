@@ -73,6 +73,7 @@ data Category
   | FIRST_RIDE_EVENT
   | TOLL_CROSSED
   | TRIP_UPDATED
+  | FCM_CHAT_MESSAGE
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
