@@ -164,6 +164,7 @@ data FCMNotificationType
   | FIRST_RIDE_EVENT
   | TOLL_CROSSED
   | TRIP_UPDATED
+  | FCM_CHAT_MESSAGE
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
