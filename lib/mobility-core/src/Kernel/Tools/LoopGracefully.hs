@@ -11,6 +11,8 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE BangPatterns #-}
+
 module Kernel.Tools.LoopGracefully where
 
 import GHC.Conc (TVar, atomically, newTVarIO, readTVarIO, writeTVar)
@@ -19,6 +21,7 @@ import Kernel.Types.App (MonadFlow)
 import Kernel.Types.Common (fork)
 import System.Posix.Signals (Handler (Catch), installHandler, sigINT, sigTERM)
 
+{-# INLINE loopGracefully #-}
 loopGracefully :: forall m a. (MonadFlow m) => [m a] -> m ()
 loopGracefully fns = do
   stop <-
@@ -33,14 +36,17 @@ loopGracefully fns = do
       loop fstfn stop
     [] -> pure ()
 
+{-# INLINE loop #-}
 loop :: forall m a. (MonadFlow m) => m a -> TVar Int -> m ()
-loop fa stop = do
+loop fa stop = forever $ do
   stopRequested :: Int <- liftIO $ readTVarIO stop
   if stopRequested > 1
-    then print ("bye!" :: String)
+    then do
+      print ("bye!" :: String)
+      threadDelay 60000000
     else do
-      void fa
-      loop fa stop
+      !_ <- fa
+      pure ()
 
 onSigInt :: TVar Int -> IO ()
 onSigInt stop = do
