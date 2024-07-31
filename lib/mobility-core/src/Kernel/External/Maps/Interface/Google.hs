@@ -145,12 +145,18 @@ getRoutes isAvoidToll cfg req = do
           destination = NE.last waypointsV2
           intermediates = if length waypointsV2 > 2 then Just $ init $ NE.tail waypointsV2 else Nothing
           mode = getModeV2 <$> req.mode
-      gRes <- GoogleMaps.advancedDirectionsAPI googleMapsUrl key origin destination mode intermediates isAvoidToll computeAlternativeRoutes routePreference
-      if null gRes.routes && isAvoidToll
-        then do
-          gResp <- GoogleMaps.advancedDirectionsAPI googleMapsUrl key origin destination mode intermediates False computeAlternativeRoutes routePreference
-          traverse (mkRoute' routeProxyReq) gResp.routes
-        else traverse (mkRoute' routeProxyReq) gRes.routes
+      result <- try @_ @SomeException $ GoogleMaps.advancedDirectionsAPI googleMapsUrl key origin destination mode intermediates isAvoidToll computeAlternativeRoutes routePreference
+      case result of
+        Right gRes -> do
+          if null gRes.routes && isAvoidToll
+            then do
+              gResp <- GoogleMaps.advancedDirectionsAPI googleMapsUrl key origin destination mode intermediates False computeAlternativeRoutes routePreference
+              traverse (mkRoute' routeProxyReq) gResp.routes
+            else traverse (mkRoute' routeProxyReq) gRes.routes
+        Left _ -> do
+          logTagWarning "GoogleMapsDirections" ("Advanced Directions API failed, falling back to basic directions API, " <> show req)
+          let cfg' = cfg {useAdvancedDirections = False}
+          getRoutes isAvoidToll cfg' req
     else do
       let googleMapsUrl = cfg.googleMapsUrl
       let origin = latLongToPlace routeProxyReq.origin
