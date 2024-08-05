@@ -759,17 +759,18 @@ instance FromResponse TwillioError where
 
 instance IsAPIError TwillioError
 
-data AgencyDisabled
-  = AgencyDisabled
+newtype AgencyDisabled
+  = AgencyDisabled Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''AgencyDisabled
 
-instance IsBaseError AgencyDisabled
+instance IsBaseError AgencyDisabled where
+  toMessage (AgencyDisabled agencyId) = Just $ "Agency with agencyId: " <> show agencyId <> " is disabled."
 
 instance IsHTTPError AgencyDisabled where
-  toErrorCode AgencyDisabled = "AGENCY_DISABLED"
-  toHttpCode AgencyDisabled = E503
+  toErrorCode (AgencyDisabled _) = "AGENCY_DISABLED"
+  toHttpCode (AgencyDisabled _) = E403
 
 instance IsAPIError AgencyDisabled
 
