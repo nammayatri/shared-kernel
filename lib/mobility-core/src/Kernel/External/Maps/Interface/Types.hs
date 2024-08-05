@@ -192,6 +192,7 @@ data SnapToRoadResp = SnapToRoadResp
 
 data Country = India | France | USA
   deriving stock (Generic)
+  deriving (Show)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data AutoCompleteReq = AutoCompleteReq
@@ -207,6 +208,7 @@ data AutoCompleteReq = AutoCompleteReq
     country :: Country
   }
   deriving stock (Generic)
+  deriving (Show)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 newtype AutoCompleteResp = AutoCompleteResp
