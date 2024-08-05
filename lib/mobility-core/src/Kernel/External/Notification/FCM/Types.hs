@@ -167,6 +167,7 @@ data FCMNotificationType
   | FCM_CHAT_MESSAGE
   | PAYOUT_REWARD
   | PAYOUT_VPA_REMINDER
+  | MULTICHAT_MESSAGE
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
