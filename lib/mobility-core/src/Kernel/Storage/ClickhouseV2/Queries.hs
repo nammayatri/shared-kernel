@@ -16,7 +16,7 @@ module Kernel.Storage.ClickhouseV2.Queries
   ( findAll,
     -- findOne,
     runRawQuery,
-    RawQuery (getRawQuery),
+    RawQuery (..),
   )
 where
 

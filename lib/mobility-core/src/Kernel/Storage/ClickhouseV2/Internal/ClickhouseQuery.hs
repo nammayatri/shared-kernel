@@ -16,7 +16,7 @@
 
 module Kernel.Storage.ClickhouseV2.Internal.ClickhouseQuery
   ( ClickhouseQuery (toClickhouseQuery),
-    RawQuery (getRawQuery),
+    RawQuery (..),
   )
 where
 
