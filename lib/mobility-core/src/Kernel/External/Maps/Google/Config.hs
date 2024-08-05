@@ -24,7 +24,9 @@ data GoogleCfg = GoogleCfg
     googleRoadsUrl :: BaseUrl,
     googleKey :: EncryptedField 'AsEncrypted Text,
     useAdvancedDirections :: Bool,
-    googleRouteConfig :: GoogleRouteConfig
+    googleRouteConfig :: GoogleRouteConfig,
+    googlePlaceNewUrl :: BaseUrl,
+    useNewPlaces :: Bool
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 

@@ -16,6 +16,7 @@ module Kernel.External.Maps.Google.MapsClient
   ( module GoogleMaps,
     GoogleMapsAPI,
     AutocompleteAPI,
+    AutoCompleteV2API,
     PlaceDetailsAPI,
     PlaceNameAPI,
     DistanceMatrixAPI,
@@ -27,6 +28,7 @@ module Kernel.External.Maps.Google.MapsClient
     getPlaceName,
     distanceMatrix,
     directions,
+    autoCompleteV2,
   )
 where
 
@@ -45,6 +47,7 @@ import Servant.Client.Core (ClientError)
 
 type GoogleMapsAPI =
   AutocompleteAPI
+    :<|> AutoCompleteV2API
     :<|> PlaceDetailsAPI
     :<|> PlaceNameAPI
     :<|> DistanceMatrixAPI
@@ -64,6 +67,13 @@ type AutocompleteAPI =
     :> QueryParam "origin" LatLong
     :> QueryParam "types" Text
     :> Get '[JSON] GoogleMaps.AutoCompleteResp
+
+type AutoCompleteV2API =
+  "places" :> ":autocomplete"
+    :> MandatoryHeader "X-Goog-Api-Key" Text
+    :> MandatoryQueryParam "languageCode" Language
+    :> ReqBody '[JSON] (GoogleMaps.AutoCompleteReqV2)
+    :> Post '[JSON] GoogleMaps.AutoCompleteRespV2
 
 type PlaceDetailsAPI =
   "place" :> "details" :> "json"
@@ -110,6 +120,7 @@ type AdvancedDirectionsAPI =
     :> Post '[JSON] GoogleMaps.AdvancedDirectionsResp
 
 autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Language -> Maybe Bool -> Maybe LatLong -> Maybe Text -> EulerClient GoogleMaps.AutoCompleteResp
+autoCompleteV2Client :: Text -> Language -> GoogleMaps.AutoCompleteReqV2 -> EulerClient GoogleMaps.AutoCompleteRespV2
 getPlaceDetailsClient :: Maybe Text -> Text -> Text -> Text -> EulerClient GoogleMaps.GetPlaceDetailsResp
 getPlaceNameClient :: Maybe Text -> Text -> Maybe LatLong -> Maybe Text -> Maybe Language -> EulerClient GoogleMaps.GetPlaceNameResp
 distanceMatrixClient ::
@@ -133,7 +144,7 @@ advancedDirectionsClient ::
   Text ->
   GoogleMaps.AdvancedDirectionsReq ->
   EulerClient GoogleMaps.AdvancedDirectionsResp
-autoCompleteClient :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient = client (Proxy :: Proxy GoogleMapsAPI)
+autoCompleteClient :<|> autoCompleteV2Client :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient = client (Proxy :: Proxy GoogleMapsAPI)
 
 autoComplete ::
   ( CoreMetrics m,
@@ -154,6 +165,19 @@ autoComplete ::
 autoComplete url apiKey input sessiontoken location radius components lang strictBounds origin types = do
   callAPI url (autoCompleteClient sessiontoken apiKey input location radius components lang strictBounds origin types) "autoComplete" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
+
+autoCompleteV2 ::
+  ( CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Language ->
+  GoogleMaps.AutoCompleteReqV2 ->
+  m GoogleMaps.AutoCompleteRespV2
+autoCompleteV2 url apiKey language req = do
+  callAPI url (autoCompleteV2Client apiKey language req) "autoCompleteV2" (Proxy :: Proxy GoogleMapsAPI)
+    >>= checkGooglePlaceError url
 
 getPlaceDetails ::
   ( CoreMetrics m,
@@ -245,6 +269,10 @@ advancedDirectionsAPI url key origin destination mode intermediates isAvoidTolls
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
 checkGoogleMapsError url res =
   fromEitherM (googleMapsError url) res >>= validateResponseStatus
+
+checkGooglePlaceError :: (MonadThrow m, Log m, HasField "suggestions" a [GoogleMaps.Suggestion]) => BaseUrl -> Either ClientError a -> m a
+checkGooglePlaceError url res =
+  fromEitherM (googleMapsError url) res
 
 checkGoogleMapsError' :: (MonadThrow m, Log m, HasField "routes" a [GoogleMaps.RouteV2]) => BaseUrl -> Either ClientError a -> m a
 checkGoogleMapsError' url res =

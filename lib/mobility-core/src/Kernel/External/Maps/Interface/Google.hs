@@ -20,6 +20,7 @@ module Kernel.External.Maps.Interface.Google
     autoComplete,
     getPlaceDetails,
     getPlaceName,
+    autoCompleteNew,
   )
 where
 
@@ -153,8 +154,8 @@ getRoutes isAvoidToll cfg req = do
               gResp <- GoogleMaps.advancedDirectionsAPI googleMapsUrl key origin destination mode intermediates False computeAlternativeRoutes routePreference
               traverse (mkRoute' routeProxyReq) gResp.routes
             else traverse (mkRoute' routeProxyReq) gRes.routes
-        Left _ -> do
-          logTagWarning "GoogleMapsDirections" ("Advanced Directions API failed, falling back to basic directions API, " <> show req)
+        Left err -> do
+          logTagWarning "GoogleMapsDirections" ("Advanced Directions API failed, falling back to basic directions API, " <> show req <> " error is: " <> show err)
           let cfg' = cfg {useAdvancedDirections = False}
           getRoutes isAvoidToll cfg' req
     else do
@@ -328,17 +329,72 @@ autoComplete ::
   AutoCompleteReq ->
   m AutoCompleteResp
 autoComplete cfg AutoCompleteReq {..} = do
-  let mapsUrl = cfg.googleMapsUrl
+  if cfg.useNewPlaces
+    then do
+      result <- try @_ @SomeException $ autoCompleteNew cfg AutoCompleteReq {..}
+      case result of
+        Right res -> return res
+        Left err -> do
+          logTagWarning "GoogleMapsAutoComplete" ("New Places API failed, falling back to old places API, " <> show AutoCompleteReq {..} <> " error is: " <> show err)
+          autoCompleteOld
+    else autoCompleteOld
+  where
+    autoCompleteOld = do
+      let mapsUrl = cfg.googleMapsUrl
+      key <- decrypt cfg.googleKey
+      let components =
+            case country of
+              India -> "country:in"
+              France -> "country:fr"
+              USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
+      res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
+      let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
+      let predictions = map (\prediction -> Prediction {placeId = prediction.place_id, distance = prediction.distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> prediction.distance_meters, types = prediction.types, description = prediction.description}) res.predictions
+      return $ AutoCompleteResp predictions
+
+autoCompleteNew ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  GoogleCfg ->
+  AutoCompleteReq ->
+  m AutoCompleteResp
+autoCompleteNew cfg AutoCompleteReq {..} = do
+  let mapsUrl = cfg.googlePlaceNewUrl
   key <- decrypt cfg.googleKey
-  let components =
+  let includedRegionCodes =
         case country of
-          India -> "country:in"
-          France -> "country:fr"
-          USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
-  res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
+          India -> ["in"]
+          France -> ["fr"]
+          USA -> ["us", "pr", "vi", "gu", "mp"]
+      includedPrimaryTypes = types_
+      origin' = mkLatLngV2 <$> origin
+  center <- buildLatLng location
+  let radiusInM = (maybe radius (toInteger . distanceToMeters) radiusWithUnit)
+  let circle = GoogleMaps.Circle {center = center, radius = fromIntegral radiusInM}
+      (locationBias, locationRestriction) = case strictbounds of
+        Nothing -> (Just $ GoogleMaps.LocationBias circle, Nothing)
+        Just True -> (Nothing, Just $ GoogleMaps.LocationRestriction circle)
+        Just False -> (Just $ GoogleMaps.LocationBias circle, Nothing)
+  let req = GoogleMaps.AutoCompleteReqV2 {input, sessionToken, origin = origin', locationBias, locationRestriction, includedPrimaryTypes, includedRegionCodes}
+  res <- GoogleMaps.autoCompleteV2 mapsUrl key language req
   let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
-  let predictions = map (\prediction -> Prediction {placeId = prediction.place_id, distance = prediction.distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> prediction.distance_meters, types = prediction.types, description = prediction.description}) res.predictions
+  let predictions = map (\suggestion -> Prediction {placeId = suggestion.placePrediction.placeId, distance = suggestion.placePrediction.distanceMeters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> suggestion.placePrediction.distanceMeters, types = suggestion.placePrediction.types, description = suggestion.placePrediction.text.text}) res.suggestions
   return $ AutoCompleteResp predictions
+  where
+    mkLatLngV2 :: LatLong -> GoogleMaps.LatLngV2
+    mkLatLngV2 LatLong {..} = GoogleMaps.LatLngV2 {latitude = lat, longitude = lon}
+
+    buildLatLng :: (EncFlow m r, CoreMetrics m) => Text -> m GoogleMaps.LatLngV2
+    buildLatLng loc = do
+      case T.splitOn "," loc of
+        [lat, lon] -> do
+          let lat' = readMaybe $ T.unpack lat
+              lon' = readMaybe $ T.unpack lon
+          case (lat', lon') of
+            (Just latitude, Just longitude) -> return $ GoogleMaps.LatLngV2 {latitude = latitude, longitude = longitude}
+            _ -> error "Invalid location"
+        _ -> error "Invalid location"
 
 getPlaceDetails ::
   ( EncFlow m r,
