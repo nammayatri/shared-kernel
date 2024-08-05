@@ -39,6 +39,29 @@ data Prediction = Prediction
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
+newtype AutoCompleteRespV2 = AutoCompleteRespV2
+  { suggestions :: [Suggestion]
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype Suggestion = Suggestion
+  { placePrediction :: PlacePrediction
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data PlacePrediction = PlacePrediction
+  { text :: PlaceText,
+    placeId :: Maybe Text,
+    types :: Maybe [Text],
+    distanceMeters :: Maybe Int
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype PlaceText = PlaceText
+  { text :: Text
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
 data GetPlaceDetailsResp = GetPlaceDetailsResp
   { status :: Text,
     result :: PlaceDetailsResult
@@ -121,6 +144,41 @@ newtype AdvancedDirectionsResp = AdvancedDirectionsResp
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
+data AutoCompleteReqV2 = AutoCompleteReqV2
+  { input :: Text,
+    sessionToken :: Maybe Text,
+    origin :: Maybe LatLngV2,
+    includedPrimaryTypes :: Maybe Text,
+    includedRegionCodes :: [Text],
+    locationBias :: Maybe LocationBias,
+    locationRestriction :: Maybe LocationRestriction
+  }
+  deriving (Generic, FromJSON, ToJSON)
+
+newtype LocationBias = LocationBias
+  { circle :: Circle --,
+  -- rectangle :: Maybe Rectangle  -----------can be used in future-----------
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+newtype LocationRestriction = LocationRestriction
+  { circle :: Circle --,
+  -- rectangle :: Maybe Rectangle  -----------can be used in future-----------
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data Circle = Circle
+  { center :: LatLngV2,
+    radius :: Double
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data Rectangle = Rectangle
+  { low :: LatLngV2,
+    high :: LatLngV2
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
 data AdvancedDirectionsReq = AdvancedDirectionsReq
   { origin :: WayPointV2,
     destination :: WayPointV2,
@@ -150,7 +208,7 @@ data LatLngV2 = LatLngV2
   { latitude :: Double,
     longitude :: Double
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, Eq, ToJSON, FromJSON, ToSchema, Show)
 
 data RouteModifiers = RouteModifiers
   { avoidTolls :: Maybe Bool,
