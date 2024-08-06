@@ -311,6 +311,7 @@ library
       Kernel.Tools.ARTUtils
       Kernel.Tools.Logging
       Kernel.Tools.LoopGracefully
+      Kernel.Tools.Metrics.AppMetrics
       Kernel.Tools.Metrics.CoreMetrics
       Kernel.Tools.Metrics.CoreMetrics.Types
       Kernel.Tools.Metrics.Init

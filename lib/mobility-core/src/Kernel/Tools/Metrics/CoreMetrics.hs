@@ -271,3 +271,20 @@ incrementSystemConfigsFailedCounter' operation = do
       cmContainer.systemConfigsFailedCounter
       operation
       P.incCounter
+
+addSelectToSendRequestLatencyImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Milliseconds ->
+  m ()
+addSelectToSendRequestLatencyImplementation operation latency = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  L.runIO $
+    P.withLabel
+      cmContainer.selectToSendRequestLatency
+      (operation, version.getDeploymentVersion)
+      (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))

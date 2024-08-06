@@ -44,6 +44,8 @@ type StreamMetric = P.Vector P.Label2 P.Counter
 
 type GenericLatencyMetric = P.Vector P.Label2 P.Histogram
 
+type SelectToSendRequestLatencyMetric = P.Vector P.Label2 P.Histogram
+
 type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
 
 type GenericCounter = P.Vector P.Label1 P.Counter
@@ -69,6 +71,7 @@ class CoreMetrics m where
   incrementSchedulerFailureCounter :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
   incrementSystemConfigsFailedCounter :: Text -> m ()
+  addSelectToSendRequestLatency :: Text -> Milliseconds -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -82,7 +85,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     schedulerFailureCounter :: SchedulerFailureMetric,
     genericCounter :: GenericCounter,
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
-    kvRedisMetricsContainer :: KVMetrics.KVMetricHandler
+    kvRedisMetricsContainer :: KVMetrics.KVMetricHandler,
+    selectToSendRequestLatency :: SelectToSendRequestLatencyMetric
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -99,7 +103,7 @@ registerCoreMetricsContainer = do
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
   kvRedisMetricsContainer <- KVMetrics.mkKVMetricHandler
-
+  selectToSendRequestLatency <- registerSelectToSendRequestMetrics
   return CoreMetricsContainer {..}
 
 registerDatastoresLatencyMetrics :: IO DatastoresLatencyMetric
@@ -189,3 +193,11 @@ registerSystemConfigsFailedCounter =
       P.counter info
   where
     info = P.Info "system_configs_failed_counter" ""
+
+registerSelectToSendRequestMetrics :: IO SelectToSendRequestLatencyMetric
+registerSelectToSendRequestMetrics =
+  P.register $
+    P.vector ("service", "version") $
+      P.histogram info P.defaultBuckets
+  where
+    info = P.Info "select_to_send_request_duration" ""
