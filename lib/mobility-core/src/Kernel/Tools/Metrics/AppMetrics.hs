@@ -1,5 +1,6 @@
 module Kernel.Tools.Metrics.AppMetrics where
 
+import Data.String.Conversions
 import Data.Time.Clock
 import qualified EulerHS.Language as L
 import Kernel.Prelude
@@ -8,8 +9,11 @@ import Kernel.Storage.Hedis.Queries as Hedis
 import Kernel.Tools.Metrics.CoreMetrics
 import qualified System.Environment as SE
 
-startToSelectRedisKey :: Text -> Text
-startToSelectRedisKey requestId = "start_to_select_redis_key_" <> requestId
+data LatencyAction = SELECT_TO_SEND_REQUEST
+  deriving (Show, Eq, Generic)
+
+genericLatencyRedisKey :: Text -> Text
+genericLatencyRedisKey txnId = "glk_" <> txnId
 
 shouldPushLatencyMetrics :: IO Bool
 shouldPushLatencyMetrics = fromMaybe False . (>>= readMaybe) <$> SE.lookupEnv "SHOULD_PUSH_LATENCY_METRICS"
@@ -17,37 +21,41 @@ shouldPushLatencyMetrics = fromMaybe False . (>>= readMaybe) <$> SE.lookupEnv "S
 redisKeyExpiryTime :: Int
 redisKeyExpiryTime = 300
 
-startSelectToSendRequestLatency ::
+startGenericLatencyMetrics ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
     HedisFlow m r,
     MonadReader r m
   ) =>
+  LatencyAction ->
   Text ->
   m ()
-startSelectToSendRequestLatency requestId = do
+startGenericLatencyMetrics action txnId = do
   shouldPush <- liftIO shouldPushLatencyMetrics
   when shouldPush $ do
-    handle (\(e :: SomeException) -> L.logError ("START_METRICS_PUSH_FAILED" :: Text) $ "Error in startSelectToSendRequestLatency: " <> show e) $ do
+    handle (\(e :: SomeException) -> L.logError ("START_METRICS_PUSH_FAILED" :: Text) $ "Error in startGenericRequestLatency: for action: " <> show action <> " txnId: " <> txnId <> " error: " <> show e) $ do
       startTime <- liftIO getCurrentTime
-      Hedis.setExp (startToSelectRedisKey requestId) startTime redisKeyExpiryTime
+      withCrossAppRedis $ Hedis.setExp (cs $ genericLatencyRedisKey txnId) startTime redisKeyExpiryTime
 
-finishSelectToSendRequestLatency ::
+finishGenericLatencyMetrics ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
     HedisFlow m r,
     MonadReader r m
   ) =>
+  LatencyAction ->
   Text ->
   m ()
-finishSelectToSendRequestLatency requestId = do
+finishGenericLatencyMetrics action txnId = do
   shouldPush <- liftIO shouldPushLatencyMetrics
   when shouldPush $ do
-    handle (\(e :: SomeException) -> L.logError ("FINISH_METRICS_PUSH_FAILED" :: Text) $ "Error in finishSelectToSendRequestLatency: " <> show e) $ do
+    handle (\(e :: SomeException) -> L.logError ("FINISH_METRICS_PUSH_FAILED" :: Text) $ "Error in finishGenericRequestLatency: for action: " <> show action <> " txnId: " <> txnId <> " error: " <> show e) $ do
       endTime <- liftIO getCurrentTime
-      startTime <- Hedis.withCrossAppRedis $ Hedis.safeGet (startToSelectRedisKey requestId)
+      startTime <- Hedis.withCrossAppRedis $ Hedis.safeGet (genericLatencyRedisKey txnId)
       case startTime of
         Just (a :: UTCTime) -> do
-          let latency = diffUTCTime endTime a & nominalDiffTimeToSeconds & (* 1000) & round
-          addSelectToSendRequestLatency requestId latency
-        Nothing -> pure ()
+          -- get diff in Seconds
+          let latency = diffUTCTime endTime a & nominalDiffTimeToSeconds & round
+          addGenericLatencyMetrics (show action) latency
+        Nothing -> do
+          pure ()
