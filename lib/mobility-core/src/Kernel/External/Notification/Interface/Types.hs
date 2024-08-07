@@ -74,6 +74,8 @@ data Category
   | TOLL_CROSSED
   | TRIP_UPDATED
   | FCM_CHAT_MESSAGE
+  | PAYOUT_REWARD
+  | PAYOUT_VPA_REMINDER
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
