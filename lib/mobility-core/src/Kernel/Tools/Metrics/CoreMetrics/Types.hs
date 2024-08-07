@@ -24,7 +24,7 @@ where
 import qualified EulerHS.KVConnector.Metrics as KVMetrics
 import EulerHS.Prelude as E
 import GHC.Records.Extra
-import Kernel.Types.Time (Milliseconds)
+import Kernel.Types.Time (Milliseconds, Seconds)
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError)
 
@@ -44,13 +44,14 @@ type StreamMetric = P.Vector P.Label2 P.Counter
 
 type GenericLatencyMetric = P.Vector P.Label2 P.Histogram
 
-type SelectToSendRequestLatencyMetric = P.Vector P.Label2 P.Histogram
-
 type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
 
 type GenericCounter = P.Vector P.Label1 P.Counter
 
 type SystemConfigsFailedCounter = P.Vector P.Label1 P.Counter
+
+newBuckets :: [Double]
+newBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 20, 25, 30, 40, 50]
 
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
@@ -71,7 +72,7 @@ class CoreMetrics m where
   incrementSchedulerFailureCounter :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
   incrementSystemConfigsFailedCounter :: Text -> m ()
-  addSelectToSendRequestLatency :: Text -> Milliseconds -> m ()
+  addGenericLatencyMetrics :: Text -> Seconds -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -86,7 +87,7 @@ data CoreMetricsContainer = CoreMetricsContainer
     genericCounter :: GenericCounter,
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
     kvRedisMetricsContainer :: KVMetrics.KVMetricHandler,
-    selectToSendRequestLatency :: SelectToSendRequestLatencyMetric
+    genericLatencyMetrics :: GenericLatencyMetric
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -103,7 +104,7 @@ registerCoreMetricsContainer = do
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
   kvRedisMetricsContainer <- KVMetrics.mkKVMetricHandler
-  selectToSendRequestLatency <- registerSelectToSendRequestMetrics
+  genericLatencyMetrics <- registerLatencyMetrics
   return CoreMetricsContainer {..}
 
 registerDatastoresLatencyMetrics :: IO DatastoresLatencyMetric
@@ -166,7 +167,7 @@ registerGenericLatencyMetrics :: IO GenericLatencyMetric
 registerGenericLatencyMetrics =
   P.register $
     P.vector ("operation", "version") $
-      P.histogram info P.defaultBuckets
+      P.histogram info newBuckets
   where
     info = P.Info "producer_operation_duration" ""
 
@@ -194,10 +195,10 @@ registerSystemConfigsFailedCounter =
   where
     info = P.Info "system_configs_failed_counter" ""
 
-registerSelectToSendRequestMetrics :: IO SelectToSendRequestLatencyMetric
-registerSelectToSendRequestMetrics =
+registerLatencyMetrics :: IO GenericLatencyMetric
+registerLatencyMetrics =
   P.register $
-    P.vector ("service", "version") $
-      P.histogram info P.defaultBuckets
+    P.vector ("Action", "version") $
+      P.histogram info newBuckets
   where
-    info = P.Info "select_to_send_request_duration" ""
+    info = P.Info "generic_app_latency_metrics" ""

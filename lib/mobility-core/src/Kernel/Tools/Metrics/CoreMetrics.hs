@@ -26,7 +26,7 @@ import EulerHS.Prelude as E
 import Kernel.Tools.Metrics.CoreMetrics.Types as Reexport
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Types.Error.BaseError.HTTPError (BaseException (..), HTTPException (..), IsBaseError (toMessage), IsHTTPError (toErrorCode, toHttpCode), IsHTTPException)
-import Kernel.Types.Time (Milliseconds, getMilliseconds)
+import Kernel.Types.Time (Milliseconds, Seconds, getMilliseconds)
 import Kernel.Utils.Servant.BaseUrl
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError (..), ResponseF (..))
@@ -272,19 +272,19 @@ incrementSystemConfigsFailedCounter' operation = do
       operation
       P.incCounter
 
-addSelectToSendRequestLatencyImplementation ::
+addGenericLatencyMetricsImplementation ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
     MonadReader r m
   ) =>
   Text ->
-  Milliseconds ->
+  Seconds ->
   m ()
-addSelectToSendRequestLatencyImplementation operation latency = do
+addGenericLatencyMetricsImplementation operation latency = do
   cmContainer <- asks (.coreMetrics)
   version <- asks (.version)
   L.runIO $
     P.withLabel
-      cmContainer.selectToSendRequestLatency
+      cmContainer.genericLatencyMetrics
       (operation, version.getDeploymentVersion)
-      (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
+      (`P.observe` fromIntegral latency)
