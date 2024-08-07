@@ -48,7 +48,7 @@ data TwillioSmsResp = TwillioSmsResp
     direction :: TwillioSmsDirection,
     errorCode :: Maybe Text,
     errorMessage :: Maybe Text,
-    from :: Text,
+    from :: Maybe Text,
     numSegments :: Text,
     sid :: Text,
     status :: TwillioSmsStatus,
