@@ -393,8 +393,8 @@ autoCompleteNew cfg AutoCompleteReq {..} = do
               lon' = readMaybe $ T.unpack lon
           case (lat', lon') of
             (Just latitude, Just longitude) -> return $ GoogleMaps.LatLngV2 {latitude = latitude, longitude = longitude}
-            _ -> error "Invalid location"
-        _ -> error "Invalid location"
+            _ -> throwError (InvalidRequest "Invalid location")
+        _ -> throwError (InvalidRequest "Invalid location")
 
 getPlaceDetails ::
   ( EncFlow m r,
