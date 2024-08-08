@@ -318,6 +318,7 @@ library
       Kernel.Tools.Slack
       Kernel.Tools.Slack.Internal
       Kernel.Tools.Slack.Middleware
+      Kernel.Tools.SystemEnv
       Kernel.Types.APISuccess
       Kernel.Types.App
       Kernel.Types.Base64
