@@ -27,6 +27,7 @@ module Kernel.Beam.Functions
     deleteWithKV,
     deleteWithDb, -- not used
     findAllWithKVAndConditionalDB,
+    findOneWithKVRedis,
   )
 where
 
@@ -219,6 +220,25 @@ findOneWithKV ::
   m (Maybe a)
 findOneWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   findOneInternal updatedMeshConfig fromTType' where'
+
+findOneWithKVRedis ::
+  forall table m r a.
+  ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
+    FromTType' (table Identity) a
+  ) =>
+  Where Postgres table ->
+  m (Maybe a)
+findOneWithKVRedis where' = do
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
+  dbConf' <- getReadDBConfigInternal (modelTableName @table)
+  result <- KV.findOneFromKvRedis dbConf' updatedMeshConfig where'
+  logQueryData "findOneWithKVRedis" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled meshConfig) (modelTableName @table)
+  case result of
+    Right (Just res) -> fromTType' res
+    Right Nothing -> pure Nothing
+    Left err -> throwError $ InternalError $ show err
 
 findOneWithKVScheduler ::
   forall table m r a.
