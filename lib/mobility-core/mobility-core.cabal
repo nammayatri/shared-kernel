@@ -370,6 +370,7 @@ library
       Kernel.Types.SlidingWindowLimiter
       Kernel.Types.SystemConfigs
       Kernel.Types.Time
+      Kernel.Types.TimeBound
       Kernel.Types.TimeRFC339
       Kernel.Types.Validation
       Kernel.Types.Value
