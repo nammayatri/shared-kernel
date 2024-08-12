@@ -28,7 +28,7 @@ import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow (HasCacConfig, HasCacheConfig)
 import Kernel.Types.Logging
 import Kernel.Types.Time
-import Kernel.Utils.IOLogging (HasLog, updateLogLevel)
+import Kernel.Utils.IOLogging (HasLog, updateLogLevelAndRawSql)
 import Kernel.Utils.Text
 
 withDynamicLogLevel ::
@@ -42,7 +42,7 @@ withDynamicLogLevel keyName fn = do
   where
     modifyEnv mbLogLevel env = do
       let logEnv = env.loggerEnv
-          updLogEnv = updateLogLevel mbLogLevel logEnv
+          updLogEnv = updateLogLevelAndRawSql mbLogLevel logEnv
       env{loggerEnv = updLogEnv}
 
 getDynamicLogLevelConfig ::
