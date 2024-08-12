@@ -60,7 +60,7 @@ import Kernel.Types.App
 import Kernel.Types.Flow
 import Kernel.Utils.Common
 import qualified Kernel.Utils.FlowLogging as L
-import Kernel.Utils.IOLogging (HasLog, appendLogTag, updateLogLevel)
+import Kernel.Utils.IOLogging (HasLog, appendLogTag, updateLogLevelAndRawSql)
 import Kernel.Utils.Shutdown
 import qualified Kernel.Utils.SignatureAuth as HttpSig
 import Network.HTTP.Types (Method, RequestHeaders)
@@ -244,7 +244,7 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
     modifyEnvR env mbLogLevel requestId = do
       let appEnv = env.appEnv
           updLogEnv = appendLogTag requestId appEnv.loggerEnv
-          updLogEnv' = updateLogLevel mbLogLevel updLogEnv
+          updLogEnv' = updateLogLevelAndRawSql mbLogLevel updLogEnv
       let requestId' = bool Nothing (Just requestId) appEnv.shouldLogRequestId
       newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
