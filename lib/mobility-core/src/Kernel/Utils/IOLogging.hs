@@ -24,7 +24,7 @@ module Kernel.Utils.IOLogging
     logOutputIO,
     appendLogTag,
     withLoggerEnv,
-    updateLogLevel,
+    updateLogLevelAndRawSql,
   )
 where
 
@@ -117,11 +117,11 @@ appendLogTag :: Text -> LoggerEnv -> LoggerEnv
 appendLogTag tag logEnv = do
   logEnv{tags = tag : logEnv.tags}
 
-updateLogLevel :: Maybe LogLevel -> LoggerEnv -> LoggerEnv
-updateLogLevel mbNewLogLevel logEnv =
+updateLogLevelAndRawSql :: Maybe LogLevel -> LoggerEnv -> LoggerEnv
+updateLogLevelAndRawSql mbNewLogLevel logEnv =
   maybe
     logEnv
-    (\newLogLevel -> logEnv{level = newLogLevel})
+    (\newLogLevel -> logEnv{level = newLogLevel, logRawSql = newLogLevel == DEBUG})
     mbNewLogLevel
 
 formatTags :: [Text] -> Text
