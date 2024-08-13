@@ -167,6 +167,27 @@ createPaymentIntent url apiKey paymentIntentReq = do
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) paymentIntentReq
   callStripeAPI url eulerClient "create-payment-intent" proxy
 
+type CancelPaymentIntentAPI =
+  "v1"
+    :> "payment_intents"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Capture "id" PaymentIntentId
+    :> "cancel"
+    :> Post '[JSON] PaymentIntentObject
+
+cancelPaymentIntent ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  PaymentIntentId ->
+  m PaymentIntentObject
+cancelPaymentIntent url apiKey paymentIntentId = do
+  let proxy = Proxy @CancelPaymentIntentAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) paymentIntentId
+  callStripeAPI url eulerClient "cancel-payment-intent" proxy
+
 type GetPaymentIntentAPI =
   "v1"
     :> "payment_intents"
