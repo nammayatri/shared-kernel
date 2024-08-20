@@ -265,6 +265,18 @@ createSetupIntent config customerId = do
       let use_stripe_sdk = True
       Stripe.SetupIntentReq {..}
 
+cancelPaymentIntent ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  StripeCfg ->
+  PaymentIntentId ->
+  m ()
+cancelPaymentIntent config paymentIntentId = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  void $ Stripe.cancelPaymentIntent url apiKey paymentIntentId
+
 updatePaymentMethodInIntent ::
   ( Metrics.CoreMetrics m,
     EncFlow m r
