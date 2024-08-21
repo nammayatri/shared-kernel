@@ -38,6 +38,7 @@ import Kernel.Types.Forkable
 import Kernel.Types.Logging
 import Kernel.Types.MonadGuid
 import Kernel.Types.Time
+import Kernel.Utils.FlowLogging
 import qualified Kernel.Utils.IOLogging as IOLogging
 import Kernel.Utils.Logging
 import Prometheus (MonadMonitor (..))
@@ -231,9 +232,13 @@ instance MonadMonitor (FlowR r) where
 instance MonadGuid (FlowR r) where
   generateGUIDText = FlowR L.generateGUID
 
-instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
+dummyLoggerConfig :: LoggerConfig
+dummyLoggerConfig = LoggerConfig ERROR False "/tmp/dummyLogger" False False False
+
+instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r, IOLogging.HasLog r) => Forkable (FlowR r) where
   fork tag f = do
     newLocalOptions <- newMVar mempty
+    loggerRt <- L.runIO $ getEulerLoggerRuntime Nothing dummyLoggerConfig
     shouldLogRequestId <- asks (.shouldLogRequestId)
     when (shouldLogRequestId && tag /= "ArtData") $ do
       requestId <- fromMaybe "" <$> asks (.requestId)
@@ -242,10 +247,17 @@ instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkabl
       let response = def {requestId = requestId, forkedTag = Just tag, timestamp = Just timestamp}
       liftIO $ pushToKafka kafkaConn (encode response) "ART-Logs" requestId
 
-    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
+    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions loggerRt newLocalOptions) . runReaderT (unFlowR $ handleExc f)
     where
       handleExc = try >=> (`whenLeft` err)
       err (e :: SomeException) = do
         logError $ "Thread " <> show tag <> " died with error: " <> makeLogSomeException e
         Metrics.incrementErrorCounter "FORKED_THREAD_ERROR" e
-      refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalOptions}
+      refreshLocalOptions loggerRt newLocalOptions flowRt =
+        flowRt
+          { R._optionsLocal = newLocalOptions,
+            R._coreRuntime =
+              (R._coreRuntime flowRt)
+                { R._loggerRuntime = loggerRt
+                }
+          }
