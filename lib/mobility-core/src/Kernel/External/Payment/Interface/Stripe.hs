@@ -271,11 +271,14 @@ cancelPaymentIntent ::
   ) =>
   StripeCfg ->
   PaymentIntentId ->
-  m ()
+  m CreatePaymentIntentResp
 cancelPaymentIntent config paymentIntentId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  void $ Stripe.cancelPaymentIntent url apiKey paymentIntentId
+  paymentIntentResp <- Stripe.cancelPaymentIntent url apiKey paymentIntentId
+  let clientSecret = paymentIntentResp.client_secret
+  let status = paymentIntentResp.status
+  return $ CreatePaymentIntentResp {..}
 
 updatePaymentMethodInIntent ::
   ( Metrics.CoreMetrics m,
@@ -290,6 +293,32 @@ updatePaymentMethodInIntent config paymentIntentId paymentMethodId = do
   apiKey <- decrypt config.apiKey
   let confirmPaymentIntentReq = Stripe.ConfirmPaymentIntentReq {payment_method = paymentMethodId}
   void $ Stripe.confirmPaymentIntent url apiKey paymentIntentId confirmPaymentIntentReq
+
+getCard ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  StripeCfg ->
+  PaymentMethodId ->
+  CustomerId ->
+  m CustomerCard
+getCard config paymentMethodId customerId = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  cardObjectResp <- Stripe.getCard url apiKey customerId paymentMethodId
+  let card = mkCard cardObjectResp
+  return card
+  where
+    mkCard :: Stripe.CardObject -> CustomerCard
+    mkCard cardObject =
+      CustomerCard
+        { cardId = cardObject.id,
+          expMonth = cardObject.exp_month,
+          expYear = cardObject.exp_year,
+          last4 = cardObject.last4,
+          brand = cardObject.brand,
+          country = cardObject.country
+        }
 
 getPaymentIntent ::
   ( Metrics.CoreMetrics m,
