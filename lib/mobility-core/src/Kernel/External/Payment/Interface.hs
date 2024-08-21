@@ -287,13 +287,25 @@ createSetupIntent config customerId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Setup Intent not supported."
   StripeConfig cfg -> Stripe.createSetupIntent cfg customerId
 
+getCard ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  PaymentMethodId ->
+  CustomerId ->
+  m CustomerCard
+getCard config cardId customerId = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Get Card not supported."
+  StripeConfig cfg -> Stripe.getCard cfg cardId customerId
+
 cancelPaymentIntent ::
   ( CoreMetrics m,
     EncFlow m r
   ) =>
   PaymentServiceConfig ->
   PaymentIntentId ->
-  m ()
+  m CreatePaymentIntentResp
 cancelPaymentIntent config paymentIntentId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Cancel Payment Intent not supported."
   StripeConfig cfg -> Stripe.cancelPaymentIntent cfg paymentIntentId
