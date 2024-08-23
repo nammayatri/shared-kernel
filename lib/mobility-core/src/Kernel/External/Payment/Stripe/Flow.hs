@@ -414,6 +414,7 @@ getCardList url apiKey customerId = do
       eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey)
   callStripeAPI url eulerClient "get-card-list" proxy
 
+---------------------------------------- PaymentMethod APIs ---------------------------------------
 type GetPaymentMethodListAPI =
   "v1"
     :> "customers"
@@ -455,6 +456,28 @@ detachPaymentMethod url apiKey paymentMethodId = do
   let proxy = Proxy @DetachPaymentMethodAPI
       eulerClient = Euler.client proxy paymentMethodId (mkBasicAuthData apiKey)
   callStripeAPI url eulerClient "detach-payment-method" proxy
+
+type ClonePaymentMethodAPI =
+  "v1"
+    :> "payment_methods"
+    :> MandatoryHeader "Stripe-Account" Text
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] ClonePaymentMethodReq
+    :> Post '[JSON] PaymentMethod
+
+clonePaymentMethod ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  ClonePaymentMethodReq ->
+  m PaymentMethod
+clonePaymentMethod url apiKey connectedAccountId clonePaymentMethodReq = do
+  let proxy = Proxy @ClonePaymentMethodAPI
+      eulerClient = Euler.client proxy connectedAccountId (mkBasicAuthData apiKey) clonePaymentMethodReq
+  callStripeAPI url eulerClient "create-payment-method" proxy
 
 -------------------------------------------- Ephemeral Keys APIs --------------------------------------------
 type CreateEphemeralKeysAPI =
