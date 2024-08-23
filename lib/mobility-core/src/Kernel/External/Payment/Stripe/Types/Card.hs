@@ -175,3 +175,18 @@ data CardPaymentMethod = CardPaymentMethod
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data ClonePaymentMethodReq = ClonePaymentMethodReq
+  { payment_method :: PaymentMethodId,
+    customer :: CustomerId
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, ToSchema)
+
+instance ToForm ClonePaymentMethodReq where
+  toForm ClonePaymentMethodReq {..} =
+    Form $
+      HM.fromList $
+        [ ("payment_method", [toQueryParam payment_method]),
+          ("customer", [toQueryParam customer])
+        ]

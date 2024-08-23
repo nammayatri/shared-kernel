@@ -212,18 +212,22 @@ createPaymentIntent ::
 createPaymentIntent config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  let paymentIntentReq = mkPaymentIntentReq req
+  -- Clone the payment method to the driver's connected account
+  let clonePaymentMethodReq = Stripe.ClonePaymentMethodReq {payment_method = req.paymentMethod, customer = req.customer}
+  clonedPMRes <- Stripe.clonePaymentMethod url apiKey req.driverAccountId clonePaymentMethodReq
+  -- use cloned paymentMethodId to create paymentIntent
+  let paymentIntentReq = mkPaymentIntentReq clonedPMRes.id req
   paymentIntentResp <- Stripe.createPaymentIntent url apiKey paymentIntentReq
   let paymentIntentId = paymentIntentResp.id
   let clientSecret = paymentIntentResp.client_secret
   let status = paymentIntentResp.status
   return $ CreatePaymentIntentResp {..}
   where
-    mkPaymentIntentReq :: CreatePaymentIntentReq -> Stripe.PaymentIntentReq
-    mkPaymentIntentReq CreatePaymentIntentReq {amount = amonutInUsd, ..} = do
+    mkPaymentIntentReq :: PaymentMethodId -> CreatePaymentIntentReq -> Stripe.PaymentIntentReq
+    mkPaymentIntentReq clonedPaymentMethodId CreatePaymentIntentReq {amount = amonutInUsd, ..} = do
       let application_fee_amount = usdToCents applicationFeeAmount
       let amountInCents = usdToCents amonutInUsd
-      let payment_method = paymentMethod
+      let payment_method = clonedPaymentMethodId
       let receipt_email = receiptEmail
       let on_behalf_of = driverAccountId
       let transfer_data = Stripe.TransferData {destination = driverAccountId}
