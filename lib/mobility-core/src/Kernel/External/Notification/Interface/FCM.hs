@@ -19,11 +19,10 @@ notifyPerson ::
   FCM.FCMConfig ->
   Interface.NotificationReq a b ->
   m () ->
-  Bool ->
   Maybe Text ->
   (FCM.FCMData a -> FCM.FCMData c) ->
   m ()
-notifyPerson config req action isMutable mbNotificationId iosModifier = do
+notifyPerson config req action mbNotificationId iosModifier = do
   let title = FCM.FCMNotificationTitle req.title
       body = FCM.FCMNotificationBody req.body
       notificationType = interfaceCategoryToFCMNotificationType req.category
@@ -42,7 +41,6 @@ notifyPerson config req action isMutable mbNotificationId iosModifier = do
     config
     (interfaceMessagePriorityToFCMMessagePriority <$> req.messagePriority)
     action
-    isMutable
     notificationData
     (FCM.FCMNotificationRecipient req.auth.recipientId (FCM.FCMRecipientToken <$> req.auth.fcmToken))
     iosModifier
