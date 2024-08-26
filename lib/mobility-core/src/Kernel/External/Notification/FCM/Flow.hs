@@ -62,15 +62,15 @@ import Servant.Client (ClientError (..), ResponseF (..))
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
 -- recipientId::FCMToken is an app's registration token
-createMessage :: FCMData a -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> Bool -> (FCMData a -> FCMData b) -> FCMMessage a b
-createMessage msgData recipientId priority isMutable iosModifier =
+createMessage :: FCMData a -> FCMRecipientToken -> Maybe FCMAndroidMessagePriority -> (FCMData a -> FCMData b) -> FCMMessage a b
+createMessage msgData recipientId priority iosModifier =
   def{fcmToken = Just recipientId,
       fcmAndroid = Just androidCfg,
       fcmApns = Just apnsCfg
      }
   where
     androidCfg = createAndroidConfig msgData priority
-    apnsCfg = createApnsConfig msgData isMutable iosModifier
+    apnsCfg = createApnsConfig msgData iosModifier
 
 -- | Android Notification details
 createAndroidConfig :: FCMData a -> Maybe FCMAndroidMessagePriority -> FCMAndroidConfig a
@@ -79,8 +79,8 @@ createAndroidConfig cfgData priority =
       fcmdPriority = priority
      }
 
-createApnsConfig :: FCMData a -> Bool -> (FCMData a -> FCMData b) -> FCMApnsConfig b
-createApnsConfig androidFcmData isMutable iosModifier =
+createApnsConfig :: FCMData a -> (FCMData a -> FCMData b) -> FCMApnsConfig b
+createApnsConfig androidFcmData iosModifier =
   def{fcmaPayload = Just apnsPayload,
       fcmaHeaders =
         Just
@@ -89,10 +89,10 @@ createApnsConfig androidFcmData isMutable iosModifier =
           )
      }
   where
-    apnsPayload = createApnsPayload androidFcmData isMutable iosModifier
+    apnsPayload = createApnsPayload androidFcmData iosModifier
 
-createApnsPayload :: forall a b. FCMData a -> Bool -> (FCMData a -> FCMData b) -> FCMApnPayload b
-createApnsPayload androidData isMutable iosModifier =
+createApnsPayload :: forall a b. FCMData a -> (FCMData a -> FCMData b) -> FCMApnPayload b
+createApnsPayload androidData iosModifier =
   def {fcmAps = Just fcmAps}
   where
     fcmAlert :: FCMAlert
@@ -102,12 +102,13 @@ createApnsPayload androidData isMutable iosModifier =
          }
     fcmAps :: FCMaps b
     fcmAps =
-      def{fcmAlert = Just fcmAlert,
+      def{fcmAlert = if androidData.fcmShowNotification == SHOW then Just fcmAlert else Nothing,
           fcmData = Just (iosModifier androidData),
           fcmCategory = Just androidData.fcmNotificationType,
-          fcmMutableContent = if isMutable then 1 else 0,
+          fcmMutableContent = 1,
           fcmSound = Just $ fromMaybe "" androidData.fcmNotificationJSON.fcmdSound,
-          fcmContentAvailable = 1
+          fcmContentAvailable = 1,
+          fcmBadge = if androidData.fcmShowNotification == DO_NOT_SHOW then Just 0 else Nothing
          }
     title :: Maybe FCMNotificationTitle
     title = androidData.fcmNotificationJSON.fcmdTitle
@@ -172,7 +173,7 @@ notifyPerson ::
   FCMData a ->
   FCMNotificationRecipient ->
   m ()
-notifyPerson config action msgData recipient = notifyPersonWithPriority config Nothing action True msgData recipient EulerHS.Prelude.id
+notifyPerson config action msgData recipient = notifyPersonWithPriority config Nothing action msgData recipient EulerHS.Prelude.id
 
 notifyPersonWithPriority ::
   ( CoreMetrics m,
@@ -184,18 +185,17 @@ notifyPersonWithPriority ::
   FCMConfig ->
   Maybe FCMAndroidMessagePriority ->
   m () ->
-  Bool ->
   FCMData a ->
   FCMNotificationRecipient ->
   (FCMData a -> FCMData b) ->
   m ()
-notifyPersonWithPriority config priority action isMutable msgData recipient iosModifier = do
+notifyPersonWithPriority config priority action msgData recipient iosModifier = do
   let tokenNotFound = "device token of a person " <> recipient.id <> " not found"
   case recipient.token of
     Nothing -> do
       logTagInfo "FCM" tokenNotFound
       pure ()
-    Just token -> sendMessage config (FCMRequest (createMessage msgData token priority isMutable iosModifier)) action recipient.id
+    Just token -> sendMessage config (FCMRequest (createMessage msgData token priority iosModifier)) action recipient.id
 
 -- | Google API interface
 type FCMSendMessageAPI a b =

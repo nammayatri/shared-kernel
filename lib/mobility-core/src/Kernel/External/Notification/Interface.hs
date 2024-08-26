@@ -30,7 +30,7 @@ import Kernel.Types.Error
 import Kernel.Types.Field
 import Kernel.Utils.Error.Throwing (throwError)
 
-notifyPerson' ::
+notifyPerson ::
   ( MonadFlow m,
     EncFlow m r,
     CoreMetrics m,
@@ -41,12 +41,11 @@ notifyPerson' ::
   NotificationServiceConfig ->
   NotificationReq a b ->
   m () ->
-  Bool ->
   m ()
-notifyPerson' serviceConfig req action isMutable = do
+notifyPerson serviceConfig req action = do
   notificationId <- generateGUID
   case serviceConfig of
-    FCMConfig cfg -> FCM.notifyPerson cfg req action isMutable (Just notificationId) EulerHS.Prelude.id
+    FCMConfig cfg -> FCM.notifyPerson cfg req action (Just notificationId) EulerHS.Prelude.id
     PayTMConfig cfg -> PayTM.notifyPerson cfg req
     GRPCConfig _ -> throwError $ InternalError "GRPC notification type not supported."
 
@@ -64,9 +63,8 @@ notifyPersonWithAllProviders ::
   NotficationServiceHandler m a c ->
   NotificationReq a b ->
   m () ->
-  Bool ->
   m ()
-notifyPersonWithAllProviders NotficationServiceHandler {..} req action isMutable = do
+notifyPersonWithAllProviders NotficationServiceHandler {..} req action = do
   serviceList <- getNotificationServiceList
   notificationId <- generateGUID
   callNotifPerson serviceList notificationId
@@ -76,35 +74,7 @@ notifyPersonWithAllProviders NotficationServiceHandler {..} req action isMutable
       fork ("notifying person with following service " <> show serviceProvider <> "for following notification id : " <> notificationId) $ do
         serviceProviderConfig <- getServiceConfig serviceProvider
         case serviceProviderConfig of
-          FCMConfig cfg -> FCM.notifyPerson cfg req action isMutable (Just notificationId) iosModifier
+          FCMConfig cfg -> FCM.notifyPerson cfg req action (Just notificationId) iosModifier
           PayTMConfig cfg -> PayTM.notifyPerson cfg req
           GRPCConfig cfg -> GRPC.notifyPerson cfg req notificationId
       callNotifPerson remaining notificationId
-
-notifyPerson ::
-  ( MonadFlow m,
-    EncFlow m r,
-    CoreMetrics m,
-    Redis.HedisFlow m r,
-    ToJSON a,
-    ToJSON b
-  ) =>
-  NotificationServiceConfig ->
-  NotificationReq a b ->
-  m () ->
-  m ()
-notifyPerson serviceConfig req action = notifyPerson' serviceConfig req action False
-
-notifyPersonWithMutableContent ::
-  ( MonadFlow m,
-    EncFlow m r,
-    CoreMetrics m,
-    Redis.HedisFlow m r,
-    ToJSON a,
-    ToJSON b
-  ) =>
-  NotificationServiceConfig ->
-  NotificationReq a b ->
-  m () ->
-  m ()
-notifyPersonWithMutableContent serviceConfig req action = notifyPerson' serviceConfig req action True
