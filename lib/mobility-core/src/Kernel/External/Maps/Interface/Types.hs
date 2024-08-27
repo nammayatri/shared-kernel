@@ -110,6 +110,7 @@ type GetRoutesResp = [RouteInfo]
 
 data RouteInfo = RouteInfo
   { duration :: Maybe Seconds,
+    staticDuration :: Maybe Seconds,
     distance :: Maybe Meters,
     distanceWithUnit :: Maybe Distance,
     boundingBox :: Maybe BoundingBoxWithoutCRS,
