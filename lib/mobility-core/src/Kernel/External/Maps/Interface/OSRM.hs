@@ -127,6 +127,7 @@ convertRouteToRouteInfo osrmRouteRoutes =
           { distance = Just $ Meters $ double2Int $ osrmRouteRoutes.distance,
             distanceWithUnit = Just $ Distance (toHighPrecDistance osrmRouteRoutes.distance) Meter,
             duration = Just $ Seconds $ double2Int $ osrmRouteRoutes.duration,
+            staticDuration = Nothing,
             points = map (.getLatLong) osrmRouteRoutes.geometry.coordinates,
             snappedWaypoints = map (\steps -> getLatLong $ head steps.geometry.coordinates) $ OSRM.steps $ head osrmRouteRoutes.legs,
             boundingBox = Nothing

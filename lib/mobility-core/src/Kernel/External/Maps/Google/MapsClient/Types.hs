@@ -254,7 +254,8 @@ data RouteV2 = RouteV2
   { legs :: [LegV2],
     viewport :: ViewPort,
     distanceMeters :: Int,
-    duration :: Text
+    duration :: Text,
+    staticDuration :: Maybe Text
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 

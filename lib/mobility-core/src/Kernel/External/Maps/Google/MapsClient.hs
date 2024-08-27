@@ -263,7 +263,7 @@ advancedDirectionsAPI url key origin destination mode intermediates isAvoidTolls
   let routeModifiers = GoogleMaps.RouteModifiers {avoidTolls = if isAvoidTolls then Just True else Nothing, avoidFerries = True}
       travelMode = mode
       req = GoogleMaps.AdvancedDirectionsReq {..}
-  callAPI url (advancedDirectionsClient key "routes.legs.*,routes.distanceMeters,routes.duration,routes.viewport.*" req) "advancedDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
+  callAPI url (advancedDirectionsClient key "routes.legs.*,routes.distanceMeters,routes.duration,routes.staticDuration.*,routes.viewport.*,routes.polyline.*,routes.routeLabels.*" req) "advancedDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError' url
 
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
