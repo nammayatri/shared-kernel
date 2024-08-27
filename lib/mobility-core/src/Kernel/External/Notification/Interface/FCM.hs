@@ -107,7 +107,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.FCM_CHAT_MESSAGE -> FCM.FCM_CHAT_MESSAGE
   Interface.PAYOUT_REWARD -> FCM.PAYOUT_REWARD
   Interface.PAYOUT_VPA_REMINDER -> FCM.PAYOUT_VPA_REMINDER
-  Interface.MULTICHAT_MESSAGE -> FCM.MULTICHAT_MESSAGE
+  Interface.TRIGGER_FCM -> FCM.TRIGGER_FCM
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case

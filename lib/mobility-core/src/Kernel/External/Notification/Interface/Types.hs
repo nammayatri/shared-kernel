@@ -76,7 +76,7 @@ data Category
   | FCM_CHAT_MESSAGE
   | PAYOUT_REWARD
   | PAYOUT_VPA_REMINDER
-  | MULTICHAT_MESSAGE
+  | TRIGGER_FCM
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
