@@ -1225,3 +1225,22 @@ instance IsHTTPError MerchantPNError where
     MerchantPNNotFound _ _ -> E500
 
 instance IsAPIError MerchantPNError
+
+data CoinError
+  = ConinInfoTranslationNotFound Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''EditLocationError
+
+instance IsBaseError CoinError where
+  toMessage = \case
+    ConinInfoTranslationNotFound lang -> Just "Coin info translation not found for " <> lang <> " language."
+
+instance IsHTTPError CoinError where
+  toErrorCode = \case
+    ConinInfoTranslationNotFound -> "COIN_INFO_TRANSLATION_NOT_FOUND"
+
+  toHttpCode = \case
+    ConinInfoTranslationNotFound -> E400
+
+instance IsAPIError CoinError
