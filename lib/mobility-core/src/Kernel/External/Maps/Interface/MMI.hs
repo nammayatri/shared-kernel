@@ -284,7 +284,8 @@ geocode mmiCfg GetPlaceNameReq {..} = do
           addressComponents = [reformateAddressResp res],
           plusCode = Just res.eLoc,
           location = LatLong {lat = 0.00, lon = 0.00},
-          placeId = Nothing
+          placeId = Nothing,
+          source = Nothing
         }
     reformateAddressResp aResp =
       AddressResp
