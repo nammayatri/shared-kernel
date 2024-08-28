@@ -232,8 +232,13 @@ showPriceWithRounding :: Price -> Text
 showPriceWithRounding price = case getAccuracy price.currency of
   0 -> KP.show @Text @Integer (round price.amount) <> " " <> KP.show price.currency
   accuracy -> KP.show @Text @Double (fromIntegral (round (price.amount.getHighPrecMoney * 10 ^ accuracy) :: Integer) / 10 ^ accuracy) <> " " <> KP.show price.currency
-  where
-    getAccuracy :: Currency -> Int
-    getAccuracy INR = 0
-    getAccuracy USD = 2
-    getAccuracy EUR = 2
+
+getAccuracy :: Currency -> Int
+getAccuracy INR = 0
+getAccuracy USD = 2
+getAccuracy EUR = 2
+
+showPriceWithRoundingWithoutCurrency :: Price -> Text
+showPriceWithRoundingWithoutCurrency price = case getAccuracy price.currency of
+  0 -> KP.show @Text @Integer (round price.amount)
+  accuracy -> KP.show @Text @Double (fromIntegral (round (price.amount.getHighPrecMoney * 10 ^ accuracy) :: Integer) / 10 ^ accuracy)
