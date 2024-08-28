@@ -622,15 +622,17 @@ $(makeLenses ''FCMaps)
 
 instance (ToJSON a) => ToJSON (FCMaps a) where
   toJSON FCMaps {..} =
-    object
-      [ "alert" .= fcmAlert,
-        "data" .= fcmData,
-        "category" .= fcmCategory,
-        "mutable-content" .= fcmMutableContent,
-        "sound" .= fcmSound,
-        "content-available" .= fcmContentAvailable,
-        "badge" .= fcmBadge
-      ]
+    object $
+      catMaybes
+        [ ("alert" .=) <$> fcmAlert,
+          ("data" .=) <$> fcmData,
+          ("category" .=) <$> fcmCategory,
+          ("sound" .=) <$> fcmSound,
+          ("badge" .=) <$> fcmBadge
+        ]
+        ++ [ "mutable-content" .= fcmMutableContent,
+             "content-available" .= fcmContentAvailable
+           ]
 
 instance (FromJSON a) => FromJSON (FCMaps a) where
   parseJSON = withObject "FCMaps" \o ->
