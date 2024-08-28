@@ -257,7 +257,8 @@ data PlaceName = PlaceName
     addressComponents :: [AddressResp],
     plusCode :: Maybe Text,
     location :: LatLong,
-    placeId :: Maybe Text
+    placeId :: Maybe Text,
+    source :: Maybe Text
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
