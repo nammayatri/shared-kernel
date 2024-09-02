@@ -67,6 +67,7 @@ dependencies:
   - filepath
   - hex-text
   - hspec
+  - xmlbf
   - http-api-data
   - http-client
   - regex-compat

@@ -41,7 +41,7 @@ versionToText Version {..} =
     <> maybe "" ("+" <>) build
 
 data DeviceType = IOS | ANDROID
-  deriving (Show, Eq, Ord, Generic, Read, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Eq, Ord, Generic, Read, ToJSON, FromJSON, ToSchema, ToParamSchema)
 
 data Device = Device
   { deviceType :: DeviceType,
@@ -81,3 +81,9 @@ instance FromHttpApiData Version where
   parseUrlPiece = textToVersion
 
 $(mkBeamInstancesForEnum ''DeviceType)
+
+instance FromHttpApiData DeviceType where
+  parseUrlPiece txt = case toLower (txt) of
+    "ios" -> Right IOS
+    "android" -> Right ANDROID
+    _ -> Left "Invalid DeviceType"

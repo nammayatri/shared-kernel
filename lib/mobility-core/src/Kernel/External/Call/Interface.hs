@@ -22,9 +22,19 @@ import EulerHS.Prelude
 import Kernel.External.Call.Exotel.Config as Reexport
 import qualified Kernel.External.Call.Interface.Exotel as Exotel
 import Kernel.External.Call.Interface.Types as Reexport
+import Kernel.External.Call.Twillio.Config as Reexport
 import Kernel.External.Call.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Types.Error (GenericError (InternalError))
+import Kernel.Utils.Error.Throwing (throwError)
+
+mkNotProvidedError :: Text -> CallService -> Text
+mkNotProvidedError functionName serviceName = "Function " <> functionName <> " is not provided by service " <> show serviceName
+
+throwNotProvidedError :: (MonadFlow m) => Text -> CallService -> m a
+throwNotProvidedError =
+  (throwError . InternalError) ... mkNotProvidedError
 
 initiateCall ::
   ( CoreMetrics m,
@@ -37,3 +47,4 @@ initiateCall ::
 initiateCall config req = do
   case config of
     ExotelConfig ec -> Exotel.initiateCall ec req
+    TwillioCallConfig _ -> throwNotProvidedError "initiateCall" TwillioCall

@@ -58,6 +58,7 @@ library
       Kernel.External.Call.Interface
       Kernel.External.Call.Interface.Exotel
       Kernel.External.Call.Interface.Types
+      Kernel.External.Call.Twillio.Config
       Kernel.External.Call.Types
       Kernel.External.Encryption
       Kernel.External.GoogleTranslate.API
@@ -423,6 +424,7 @@ library
       Kernel.Utils.Time
       Kernel.Utils.Validation
       Kernel.Utils.Version
+      Kernel.Utils.XML
   other-modules:
       Paths_mobility_core
   hs-source-dirs:
@@ -566,6 +568,7 @@ library
     , wai-app-static
     , wai-middleware-prometheus
     , warp
+    , xmlbf
   default-language: Haskell2010
 
 test-suite mobility-core-tests
@@ -726,4 +729,5 @@ test-suite mobility-core-tests
     , wai-app-static
     , wai-middleware-prometheus
     , warp
+    , xmlbf
   default-language: Haskell2010

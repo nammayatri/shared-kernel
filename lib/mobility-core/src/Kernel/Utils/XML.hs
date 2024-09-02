@@ -11,21 +11,17 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 
-module Kernel.External.Call.Types
-  ( module Kernel.External.Call.Types,
-  )
-where
+module Kernel.Utils.XML where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Data.Aeson
+import Data.OpenApi (ToSchema)
+import Kernel.Prelude
+import Xmlbf
 
-data CallService = Exotel | Knowlarity | TwillioCall
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+newtype XmlText = XmlText Text
+  deriving (Generic, Eq, Show, FromJSON, ToJSON, ToSchema)
 
-$(mkBeamInstancesForEnum ''CallService)
-
-derivePersistField "CallService"
+instance ToXml XmlText where
+  toXml (XmlText txt) = text txt
