@@ -11,21 +11,18 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Call.Types
-  ( module Kernel.External.Call.Types,
-  )
-where
+module Kernel.External.Call.Twillio.Config (TwillioCallCfg) where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.External.Encryption
+import Kernel.Prelude
 
-data CallService = Exotel | Knowlarity | TwillioCall
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
-
-$(mkBeamInstancesForEnum ''CallService)
-
-derivePersistField "CallService"
+data TwillioCallCfg = TwillioCallCfg
+  { apiKey :: EncryptedField 'AsEncrypted Text,
+    apiKeySecret :: EncryptedField 'AsEncrypted Text,
+    applicationSid :: Text,
+    accountSid :: Text,
+    pushCredentialSidAndroid :: Text,
+    pushCredentialSidIos :: Text
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
