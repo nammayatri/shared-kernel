@@ -72,3 +72,10 @@ instance FromHttpApiData LatLong where
 instance ToHttpApiData LatLong where
   toQueryParam :: LatLong -> Text
   toQueryParam LatLong {..} = show lat <> "," <> show lon
+
+data SourceDestinationMapping = OneToOne | ManyToMany
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema, Ord, Read)
+
+instance ToHttpApiData SourceDestinationMapping where
+  toUrlPiece OneToOne = "one-to-one"
+  toUrlPiece ManyToMany = "many-to-many"

@@ -66,6 +66,7 @@ data GetDistanceReq a b = GetDistanceReq
   { origin :: a,
     destination :: b,
     distanceUnit :: DistanceUnit,
+    sourceDestinationMapping :: Maybe SourceDestinationMapping,
     travelMode :: Maybe TravelMode
   }
   deriving (Generic, Show)
@@ -74,6 +75,7 @@ data GetDistancesReq a b = GetDistancesReq
   { origins :: NonEmpty a,
     destinations :: NonEmpty b,
     distanceUnit :: DistanceUnit,
+    sourceDestinationMapping :: Maybe SourceDestinationMapping,
     travelMode :: Maybe TravelMode
   }
   deriving (Generic, Show)

@@ -51,6 +51,7 @@ type TableAPI =
     :> MandatoryQueryParam "annotations" String
     :> MandatoryQueryParam "sources" SourcesList
     :> MandatoryQueryParam "destinations" DestinationsList
+    :> QueryParam "source_destination_mapping" Maps.SourceDestinationMapping
     :> Get '[JSON] OSRMTableResponse
 
 type RouteAPI =
@@ -233,11 +234,12 @@ callOsrmGetDistancesAPI ::
   PointsList ->
   SourcesList ->
   DestinationsList ->
+  Maybe Maps.SourceDestinationMapping ->
   m OSRMTableResponse
-callOsrmGetDistancesAPI osrmUrl pointsList sourcesList destinationsList =
+callOsrmGetDistancesAPI osrmUrl pointsList sourcesList destinationsList mbSourceDestinationMapping =
   do
     let eulerClient = Euler.client (Proxy @TableAPI)
-    callAPI osrmUrl (eulerClient pointsList "distance,duration" sourcesList destinationsList) "osrm-table" (Proxy @TableAPI)
+    callAPI osrmUrl (eulerClient pointsList "distance,duration" sourcesList destinationsList mbSourceDestinationMapping) "osrm-table" (Proxy @TableAPI)
     >>= fromEitherM (FailedToCallOsrmTableAPI . show)
 
 callOsrmRouteAPI ::

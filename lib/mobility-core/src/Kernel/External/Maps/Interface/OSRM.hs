@@ -64,8 +64,10 @@ getDistances osrmCfg request = do
   let pointsList = OSRM.PointsList $ map getCoordinates (toList request.origins) ++ map getCoordinates (toList request.destinations)
   let sourcesList = OSRM.SourcesList [0 .. (length request.origins - 1)]
   let destinationsList = OSRM.DestinationsList [(length request.origins) .. (length request.origins + length request.destinations - 1)]
-  response <- OSRM.callOsrmGetDistancesAPI osrmCfg.osrmUrl pointsList sourcesList destinationsList
-  getOSRMTable response request
+  response <- OSRM.callOsrmGetDistancesAPI osrmCfg.osrmUrl pointsList sourcesList destinationsList request.sourceDestinationMapping
+  case request.sourceDestinationMapping of
+    Just OneToOne -> getOSRMTableOneToOne response request
+    _ -> getOSRMTable response request
 
 getOSRMTable ::
   ( Metrics.CoreMetrics m,
@@ -103,6 +105,37 @@ getOSRMTable tableResponse request = do
         )
         []
         pairOfIndexSource
+
+getOSRMTableOneToOne ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasCoordinates a,
+    HasCoordinates b
+  ) =>
+  OSRM.OSRMTableResponse ->
+  GetDistancesReq a b ->
+  m (GetDistancesResp a b)
+getOSRMTableOneToOne tableResponse request = do
+  let pairOfIndexSourceDest = zip3 [0 .. (length request.origins - 1)] (NE.toList request.origins) (NE.toList $ request.destinations)
+  pure $
+    NE.fromList $
+      foldl
+        ( \mainList (indx, source, dest) -> do
+            let distance = Meters {getMeters = round $ tableResponse.distances !! 0 !! indx}
+            let resp =
+                  GetDistanceResp
+                    { origin = source,
+                      destination = dest,
+                      distance,
+                      distanceWithUnit = convertMetersToDistance request.distanceUnit distance,
+                      duration = Seconds {getSeconds = round $ tableResponse.durations !! 0 !! indx},
+                      status = "ok"
+                    }
+            let subList = [resp]
+            mainList ++ subList
+        )
+        []
+        pairOfIndexSourceDest
 
 getRoutes ::
   ( HasCallStack,
