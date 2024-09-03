@@ -182,9 +182,15 @@ snapToRoadWithFallback ::
   SnapToRoadReq ->
   m ([MapsService], Either String SnapToRoadResp)
 snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandler {..} req = do
-  prividersList <- getProvidersList
-  when (null prividersList) $ throwError $ InternalError "No maps serive provider configured"
-  callSnapToRoadWithFallback prividersList
+  providersList <- getProvidersList
+  when (null providersList) $ throwError $ InternalError "No maps service provider configured"
+  (servicesUsed, snapResponse) <- callSnapToRoadWithFallback providersList
+  case (snapResponse, mbMapServiceToRectifyDistantPointsFailure) of
+    (Right resp, _) -> return (servicesUsed, Right resp)
+    (Left err, Nothing) -> return (servicesUsed, Left err)
+    (Left _, Just mapServiceCfg) -> do
+      (rectificationServicesUsed, snapToRoadResponse) <- callSnapToRoadWithRectification mapServiceCfg providersList
+      return (servicesUsed ++ rectificationServicesUsed, snapToRoadResponse)
   where
     callSnapToRoadWithFallback [] = do
       logError $ "Snap to road failed with all the configured providers"
@@ -192,59 +198,67 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
     callSnapToRoadWithFallback (preferredProvider : restProviders) = do
       mapsConfig <- getProviderConfig preferredProvider
       preCheckPassed <- runPreCheck preferredProvider req
-      case (preCheckPassed, mbMapServiceToRectifyDistantPointsFailure) of
-        (False, Nothing) -> do
-          logDebug $ "Pre check failed for provider " <> show preferredProvider <> ". Points: " <> show req.points
-          callSnapToRoadWithFallback restProviders
-        (False, Just mapServiceCfg) -> do
-          droppedPointsThreshold <- asks (.droppedPointsThreshold)
-          maxStraightLineRectificationThreshold <- asks (.maxStraightLineRectificationThreshold)
-          let starightDistancePoints = getEverySnippetWhichIsNot (< droppedPointsThreshold) req.points
-          distanceRectified <-
-            mapM
-              ( \(x1, x2, dist) -> do
-                  if dist < maxStraightLineRectificationThreshold
-                    then pure (x1, dist)
-                    else do
-                      distanceRes <- getDistance mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR, distanceUnit = req.distanceUnit, sourceDestinationMapping = Nothing} :: GetDistanceReq LatLong LatLong)
-                      pure (x1, metersToHighPrecMeters distanceRes.distance)
-              )
-              starightDistancePoints
-          logDebug $ "Rectified distances: " <> show distanceRectified
-          let (pointsOutOfThreshold, distance) = foldl' (\(accPoints, accDis) (x1, dis) -> (accPoints <> [x1], accDis + dis)) ([], 0) distanceRectified
-          let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
-          logDebug $ "Split snap-to-road calls: " <> show splitSnapToRoadCalls
-          pointsRes <- try @_ @SomeException $ mapM (\section -> snapToRoad mapsConfig (req {points = section})) splitSnapToRoadCalls
-          logDebug $ "Snap-to-road results: " <> show pointsRes
-          case pointsRes of
-            Left _ -> do
-              (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
-              return (preferredProvider : servicesUsed, snapResponse)
-            Right results -> do
-              let (totalSectorsDistance, snappedPoints) = foldl' (\(accDis, snappedPoints') res -> (res.distance + accDis, snappedPoints' <> res.snappedPoints)) (0, []) results
-                  snappedResp =
-                    SnapToRoadResp
-                      { distance = totalSectorsDistance + distance,
-                        distanceWithUnit = convertHighPrecMetersToDistance req.distanceUnit $ totalSectorsDistance + distance,
-                        confidence = 1,
-                        snappedPoints = snappedPoints
-                      }
-              return ([preferredProvider, SelfTuned], Right snappedResp)
-        (True, _) -> do
+      if preCheckPassed
+        then do
           result <- try @_ @SomeException $ snapToRoad mapsConfig req
           case result of
-            Left _ -> do
+            Left err -> do
+              logError $ "Snap to road Pre Check failed with error : " <> show err <> " - Provider : " <> show preferredProvider
               (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
-              return (preferredProvider : servicesUsed, snapResponse)
+              return (servicesUsed ++ [preferredProvider], snapResponse)
             Right res -> do
               confidencethreshold <- getConfidenceThreshold
               postCheckPassed <- runPostCheck preferredProvider req res
-              when (not postCheckPassed) $ logError $ "Post check failed for provider " <> show preferredProvider
+              when (not postCheckPassed) $ logError $ "Snap to road Post Check failed - Povider : " <> show preferredProvider
+              when (res.confidence < confidencethreshold) $ logError $ "Snap to road Post Check failed due to Confidence : " <> show res.confidence <> " - Provider : " <> show preferredProvider
               if res.confidence < confidencethreshold || not postCheckPassed
                 then do
                   (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
-                  return (preferredProvider : servicesUsed, snapResponse)
+                  return (servicesUsed ++ [preferredProvider], snapResponse)
                 else return ([preferredProvider], Right res)
+        else do
+          (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
+          return (servicesUsed ++ [preferredProvider], snapResponse)
+
+    callSnapToRoadWithRectification _ [] = do
+      logError $ "Snap to road rectification failed with all the configured providers"
+      return ([], Left "Snap to road rectification failed with all the configured providers")
+    callSnapToRoadWithRectification mapServiceCfg (preferredProvider : restProviders) = do
+      mapsConfig <- getProviderConfig preferredProvider
+      droppedPointsThreshold <- asks (.droppedPointsThreshold)
+      maxStraightLineRectificationThreshold <- asks (.maxStraightLineRectificationThreshold)
+      let straightDistancePoints = getEverySnippetWhichIsNot (< droppedPointsThreshold) req.points
+      distanceRectified <-
+        mapM
+          ( \(x1, x2, dist) -> do
+              if dist < maxStraightLineRectificationThreshold
+                then pure (x1, dist)
+                else do
+                  distanceRes <- getDistance mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR, distanceUnit = req.distanceUnit} :: GetDistanceReq LatLong LatLong)
+                  pure (x1, metersToHighPrecMeters distanceRes.distance)
+          )
+          straightDistancePoints
+      logDebug $ "Rectified distances: " <> show distanceRectified
+      let (pointsOutOfThreshold, distance) = foldl' (\(accPoints, accDis) (x1, dis) -> (accPoints <> [x1], accDis + dis)) ([], 0) distanceRectified
+      let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
+      logDebug $ "Split snap-to-road calls: " <> show splitSnapToRoadCalls
+      pointsRes <- try @_ @SomeException $ mapM (\section -> snapToRoad mapsConfig (req {points = section})) splitSnapToRoadCalls
+      logDebug $ "Snap-to-road results: " <> show pointsRes
+      case pointsRes of
+        Right result -> do
+          let (totalSectorsDistance, snappedPoints) = foldl' (\(accDis, snappedPoints') res -> (res.distance + accDis, snappedPoints' <> res.snappedPoints)) (0, []) result
+          let snapToRoadResp =
+                SnapToRoadResp
+                  { distance = totalSectorsDistance + distance,
+                    distanceWithUnit = convertHighPrecMetersToDistance req.distanceUnit $ totalSectorsDistance + distance,
+                    confidence = 1,
+                    snappedPoints = snappedPoints
+                  }
+          return ([preferredProvider, SelfTuned], Right snapToRoadResp)
+        Left err -> do
+          logError $ "Snap to road rectification failed with error : " <> show err <> " - Provider : " <> show preferredProvider
+          (servicesUsed, snapResponse) <- callSnapToRoadWithRectification mapServiceCfg restProviders
+          return (servicesUsed ++ [preferredProvider, SelfTuned], snapResponse)
 
 snapToRoad ::
   ( EncFlow m r,
