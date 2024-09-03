@@ -78,6 +78,7 @@ data Category
   | PAYOUT_VPA_REMINDER
   | TRIGGER_FCM
   | POST_RIDE_SOS_ALERT
+  | REFERRAL_FLOW
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
