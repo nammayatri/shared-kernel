@@ -61,6 +61,7 @@ data City
   | Jaipur
   | Siliguri
   | Asansol
+  | Durgapur
   | Gangtok
   | Darjeeling
   | Davanagere
