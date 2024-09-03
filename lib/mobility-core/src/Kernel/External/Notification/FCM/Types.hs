@@ -169,6 +169,7 @@ data FCMNotificationType
   | PAYOUT_VPA_REMINDER
   | TRIGGER_FCM
   | POST_RIDE_SOS_ALERT
+  | REFERRAL_FLOW
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
