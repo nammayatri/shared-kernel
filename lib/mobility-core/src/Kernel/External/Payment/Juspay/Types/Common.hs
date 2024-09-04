@@ -158,7 +158,25 @@ data OrderData = OrderData
     additional_info :: Maybe AdditionalInfo,
     links :: Maybe LinkData,
     amount_refunded :: Maybe Double,
-    refunds :: Maybe [RefundsData]
+    refunds :: Maybe [RefundsData],
+    split_settlement_response :: Maybe SplitSettlementResponse
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data SplitSettlementResponse = SplitSettlementResponse
+  { split_details :: Maybe [SplitDetailsResponse],
+    split_applied :: Maybe Bool
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data SplitDetailsResponse = SplitDetailsResponse
+  { sub_vendor_id :: Maybe Text,
+    amount :: Maybe HighPrecMoney,
+    merchant_commission :: Maybe HighPrecMoney,
+    gateway_sub_account_id :: Maybe Text,
+    epg_txn_id :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
