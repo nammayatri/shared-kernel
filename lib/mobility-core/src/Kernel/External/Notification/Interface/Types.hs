@@ -77,6 +77,7 @@ data Category
   | PAYOUT_REWARD
   | PAYOUT_VPA_REMINDER
   | TRIGGER_FCM
+  | POST_RIDE_SOS_ALERT
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

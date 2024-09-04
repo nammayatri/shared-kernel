@@ -168,6 +168,7 @@ data FCMNotificationType
   | PAYOUT_REWARD
   | PAYOUT_VPA_REMINDER
   | TRIGGER_FCM
+  | POST_RIDE_SOS_ALERT
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
