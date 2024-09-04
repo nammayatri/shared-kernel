@@ -193,8 +193,21 @@ mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
           mandate_end_date = mandateEndDate,
           options_get_upi_deep_links = optionsGetUpiDeepLinks,
           metadata_expiry_in_mins = metadataExpiryInMins,
-          metadata_gateway_reference_id = metadataGatewayReferenceId
+          metadata_gateway_reference_id = metadataGatewayReferenceId,
+          split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails
         }
+
+mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
+mkSplitSettlementDetails splitDetails =
+  Juspay.SplitSettlementDetails
+    { marketplace = mkMarketplace splitDetails.marketplace,
+      mdr_borne_by = show splitDetails.mdrBorneBy,
+      vendor = mkVendor splitDetails.vendor
+    }
+  where
+    mkMarketplace Marketplace {..} = Juspay.Marketplace {..}
+    mkVendor vendor = Juspay.Vendor {split = mkSplit <$> vendor.split}
+    mkSplit split = Juspay.Split {amount = split.amount, merchant_commission = split.merchantCommission, sub_mid = split.subMid}
 
 orderStatus ::
   ( HasCallStack,
@@ -265,6 +278,7 @@ mkOrderStatusResp Juspay.OrderData {..} =
           amountRefunded = realToFrac <$> amount_refunded,
           payerVpa = payer_vpa,
           upi = castUpi <$> upi,
+          splitSettlementResponse = mkSplitSettlementResponse <$> split_settlement_response,
           ..
         }
 
@@ -286,7 +300,7 @@ mkExecutionReq MandateExecutionReq {..} merchantId =
     { merchantId,
       mandateId = mandateId,
       mandate = Juspay.MandateInfo {notificationId = notificationId, executionDate = show $ utcTimeToPOSIXSeconds executionDate},
-      order = Juspay.MandateOrder {orderId = orderId, orderAmount = show amount, orderCustomerId = customerId},
+      order = Juspay.MandateOrder {orderId = orderId, orderAmount = show amount, orderCustomerId = customerId, splitSettlementDetails = mkSplitSettlementDetails <$> splitSettlementDetails},
       format = "json"
     }
 
@@ -384,7 +398,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               payerVpa = justOrder.payer_vpa,
               upi = castUpi <$> justOrder.upi,
               refunds = maybe [] mkRefundsData justOrder.refunds,
-              amountRefunded = realToFrac <$> justOrder.amount_refunded
+              amountRefunded = realToFrac <$> justOrder.amount_refunded -- not adding split
             }
         Nothing -> do
           let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justOrder.metadata justOrder.links justOrder.additional_info
@@ -409,6 +423,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               amountRefunded = realToFrac <$> justOrder.amount_refunded,
               payerVpa = justOrder.payer_vpa,
               upi = castUpi <$> justOrder.upi,
+              splitSettlementResponse = mkSplitSettlementResponse <$> justOrder.split_settlement_response,
               ..
             }
     (Nothing, Just justMandate, _, _) ->
@@ -458,9 +473,26 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           amountRefunded = Nothing,
           payerVpa = justTransaction.payer_vpa,
           upi = castUpi <$> justTransaction.upi,
+          splitSettlementResponse = Nothing,
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp
+
+mkSplitSettlementResponse :: Juspay.SplitSettlementResponse -> SplitSettlementResponse
+mkSplitSettlementResponse Juspay.SplitSettlementResponse {..} =
+  SplitSettlementResponse
+    { splitDetails = split_details >>= (Just . map mkSplitDetailsResponse),
+      splitApplied = split_applied
+    }
+  where
+    mkSplitDetailsResponse Juspay.SplitDetailsResponse {..} =
+      SplitDetailsResponse
+        { subVendorId = sub_vendor_id,
+          merchantCommission = merchant_commission,
+          amount = amount,
+          gatewaySubAccountId = gateway_sub_account_id,
+          epgTxnId = epg_txn_id
+        }
 
 castSourceInfo :: Juspay.SourceInfo -> SourceInfo
 castSourceInfo source_info =

@@ -16,9 +16,13 @@
 module Kernel.External.Payment.Juspay.Types.CreateOrder where
 
 import Data.Aeson
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as DT
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
 import Kernel.Types.Price
+import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 data CreateOrderReq = CreateOrderReq
   { order_id :: Text,
@@ -41,9 +45,52 @@ data CreateOrderReq = CreateOrderReq
     mandate_end_date :: Maybe Text,
     metadata_gateway_reference_id :: Maybe Text,
     options_get_upi_deep_links :: Maybe Bool,
-    metadata_expiry_in_mins :: Maybe Int
+    metadata_expiry_in_mins :: Maybe Int,
+    split_settlement_details :: Maybe SplitSettlementDetails
   }
   deriving stock (Show, Eq, Generic)
+
+data Split = Split
+  { amount :: HighPrecMoney,
+    merchant_commission :: HighPrecMoney,
+    sub_mid :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+newtype Vendor = Vendor
+  { split :: [Split]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+data SplitSettlementDetails = SplitSettlementDetails
+  { marketplace :: Marketplace,
+    mdr_borne_by :: Text,
+    vendor :: Vendor
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance FromHttpApiData SplitSettlementDetails where
+  parseUrlPiece = parseHeader . DT.encodeUtf8
+  parseQueryParam = parseUrlPiece
+  parseHeader = left T.pack . eitherDecode . BSL.fromStrict
+
+instance ToHttpApiData SplitSettlementDetails where
+  toUrlPiece = DT.decodeUtf8 . toHeader
+  toQueryParam = toUrlPiece
+  toHeader = BSL.toStrict . encode
+
+data MBY = MARKETPLACE | VENDOR | ALL
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+newtype Marketplace = Marketplace
+  { amount :: HighPrecMoney
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
 
 jsonReqOptions :: Options
 jsonReqOptions =
@@ -58,6 +105,7 @@ jsonReqOptions =
         "metadata_remarks" -> "metadata.AXIS_BIZ:remarks"
         "metadata_gateway_reference_id" -> "metadata.JUSPAY:gateway_reference_id"
         "metadata_expiry_in_mins" -> "metadata.expiryInMins"
+        "split_settlement_details" -> "metadata.split_settlement_details"
         other -> other
     }
 
