@@ -324,7 +324,6 @@ instance ToHttpApiData City where
   toUrlPiece Chandigarh = "std:0172"
   toUrlPiece Jaipur = "std:0141"
   toUrlPiece Siliguri = "std:0353"
-  toUrlPiece Durgapur = "std:0342"
   toUrlPiece Asansol = "std:0341"
   toUrlPiece Durgapur = "std:0342"
   toUrlPiece Petrapole = "std:03215"
