@@ -62,6 +62,7 @@ data City
   | Siliguri
   | Asansol
   | Durgapur
+  | Petrapole
   | Gangtok
   | Darjeeling
   | Davanagere
@@ -140,6 +141,8 @@ instance FromJSON City where
   parseJSON (String "Asansol") = pure Asansol
   parseJSON (String "std:0342") = pure Durgapur
   parseJSON (String "Durgapur") = pure Durgapur
+  parseJSON (String "std:03215") = pure Petrapole
+  parseJSON (String "Petrapole") = pure Petrapole
   parseJSON (String "std:03592") = pure Gangtok
   parseJSON (String "Gangtok") = pure Gangtok
   parseJSON (String "std:0354") = pure Darjeeling
@@ -191,6 +194,7 @@ instance ToJSON City where
   toJSON Siliguri = String "std:0353"
   toJSON Asansol = String "std:0341"
   toJSON Durgapur = String "std:0342"
+  toJSON Petrapole = String "std:03215"
   toJSON Gangtok = String "std:03592"
   toJSON Darjeeling = String "std:0354"
   toJSON Davanagere = String "std:08192"
@@ -269,6 +273,8 @@ instance FromHttpApiData City where
       parseLowerCaseCity "asansol" = Right Asansol
       parseLowerCaseCity "std:0342" = Right Durgapur
       parseLowerCaseCity "durgapur" = Right Durgapur
+      parseLowerCaseCity "std:03215" = Right Petrapole
+      parseLowerCaseCity "petrapole" = Right Petrapole
       parseLowerCaseCity "std:03592" = Right Gangtok
       parseLowerCaseCity "gangtok" = Right Gangtok
       parseLowerCaseCity "std:0354" = Right Darjeeling
@@ -320,6 +326,8 @@ instance ToHttpApiData City where
   toUrlPiece Siliguri = "std:0353"
   toUrlPiece Durgapur = "std:0342"
   toUrlPiece Asansol = "std:0341"
+  toUrlPiece Durgapur = "std:0342"
+  toUrlPiece Petrapole = "std:03215"
   toUrlPiece Gangtok = "std:03592"
   toUrlPiece Darjeeling = "std:0354"
   toUrlPiece Davanagere = "std:08192"
