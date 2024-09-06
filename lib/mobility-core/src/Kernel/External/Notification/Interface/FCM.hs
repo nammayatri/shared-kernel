@@ -111,6 +111,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.PAYOUT_VPA_REMINDER -> FCM.PAYOUT_VPA_REMINDER
   Interface.TRIGGER_FCM -> FCM.TRIGGER_FCM
   Interface.POST_RIDE_SOS_ALERT -> FCM.POST_RIDE_SOS_ALERT
+  Interface.REFERRAL_FLOW -> FCM.REFERRAL_FLOW
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
