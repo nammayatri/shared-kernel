@@ -79,6 +79,7 @@ data Category
   | TRIGGER_FCM
   | POST_RIDE_SOS_ALERT
   | REFERRAL_FLOW
+  | FILE_UPLOADED
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
@@ -89,7 +90,9 @@ data SubCategory
   | ByDriver
   | ByAllocator
   | ByApplication
-  deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
+
+$(mkBeamInstancesForEnum ''SubCategory)
 
 data ShowNotification = SHOW | DO_NOT_SHOW
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)

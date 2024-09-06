@@ -234,7 +234,7 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
               if dist < maxStraightLineRectificationThreshold
                 then pure (x1, dist)
                 else do
-                  distanceRes <- getDistance mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR, distanceUnit = req.distanceUnit} :: GetDistanceReq LatLong LatLong)
+                  distanceRes <- getDistance mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR, distanceUnit = req.distanceUnit, sourceDestinationMapping = Nothing} :: GetDistanceReq LatLong LatLong)
                   pure (x1, metersToHighPrecMeters distanceRes.distance)
           )
           straightDistancePoints

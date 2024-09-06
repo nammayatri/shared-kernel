@@ -170,6 +170,7 @@ data FCMNotificationType
   | TRIGGER_FCM
   | POST_RIDE_SOS_ALERT
   | REFERRAL_FLOW
+  | FILE_UPLOADED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
