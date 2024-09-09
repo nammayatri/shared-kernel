@@ -103,12 +103,13 @@ payoutOrderStatus ::
   ) =>
   JuspayConfig ->
   Text ->
+  Maybe Expand ->
   m PayoutOrderStatusResp
-payoutOrderStatus config orderId' = do
+payoutOrderStatus config orderId' mbExpand = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  mkPayoutOrderStatusResp <$> Juspay.payoutOrderStatus url apiKey merchantId orderId'
+  mkPayoutOrderStatusResp <$> Juspay.payoutOrderStatus url apiKey merchantId orderId' mbExpand
   where
     mkPayoutOrderStatusResp Payout.PayoutOrderResp {..} = do
       CreatePayoutOrderResp

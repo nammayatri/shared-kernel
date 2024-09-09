@@ -13,6 +13,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wwarn=incomplete-record-updates #-}
 
 module Kernel.External.Payout.Interface.Types
@@ -21,10 +22,13 @@ module Kernel.External.Payout.Interface.Types
   )
 where
 
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payout.Juspay.Config as Juspay
 import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), PayoutOrderStatus (..))
 import Kernel.Prelude
+import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common hiding (Currency)
+import Servant.API (ToHttpApiData (..))
 
 data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -75,8 +79,21 @@ data CreatePayoutOrderResp = CreatePayoutOrderResp
   deriving (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-newtype PayoutOrderStatusReq = PayoutOrderStatusReq
-  { orderId :: Text
+data Expand = ExpandFulfillment | ExpandPayment | ExpandRefund
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema, Ord, Read)
+
+$(mkBeamInstancesForEnum ''Expand)
+
+derivePersistField "Expand"
+
+instance ToHttpApiData Expand where
+  toUrlPiece ExpandFulfillment = "fulfillment"
+  toUrlPiece ExpandPayment = "payment"
+  toUrlPiece ExpandRefund = "refund"
+
+data PayoutOrderStatusReq = PayoutOrderStatusReq
+  { orderId :: Text,
+    mbExpand :: Maybe Expand
   }
   deriving (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
