@@ -16,6 +16,7 @@ module Kernel.External.Payout.Juspay.Flow where
 
 import qualified Data.Text.Encoding as DT
 import EulerHS.Types as Euler
+import qualified Kernel.External.Payout.Interface.Types as Payout
 import Kernel.External.Payout.Juspay.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -55,6 +56,7 @@ type PayoutOrderStatusAPI =
   "payout" :> "merchant" :> "v1" :> "orders"
     :> Capture "orderId" Text
     :> BasicAuth "username-password" BasicAuthData
+    :> QueryParam "expand" Payout.Expand
     :> Header "x-merchantid" Text
     :> Get '[JSON] PayoutOrderStatusResp
 
@@ -64,9 +66,10 @@ payoutOrderStatus ::
   Text ->
   Text ->
   Text ->
+  Maybe Payout.Expand ->
   m PayoutOrderStatusResp
-payoutOrderStatus url apiKey merchantId orderId = do
+payoutOrderStatus url apiKey merchantId orderId mbExpand = do
   let proxy = Proxy @PayoutOrderStatusAPI
-      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId)
+      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) mbExpand (Just merchantId)
   callAPI url eulerClient "payout-order-status" proxy
     >>= fromEitherM (\err -> InternalError $ "Failed to call payout order status API: " <> show err)

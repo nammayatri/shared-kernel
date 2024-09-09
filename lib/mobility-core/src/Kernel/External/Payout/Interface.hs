@@ -41,4 +41,4 @@ payoutOrderStatus ::
   PayoutOrderStatusReq ->
   m PayoutOrderStatusResp
 payoutOrderStatus serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req.orderId
+  JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req.orderId req.mbExpand
