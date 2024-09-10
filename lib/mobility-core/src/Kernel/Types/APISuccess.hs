@@ -11,22 +11,40 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE OverloadedLists #-}
 
 module Kernel.Types.APISuccess (APISuccess (..)) where
 
-import Data.Aeson hiding (Success)
+import qualified Control.Lens as L
+import qualified Data.Aeson as A
 import Data.Aeson.Types (parseFail, typeMismatch)
-import Data.OpenApi (ToSchema)
+import Data.OpenApi
 import EulerHS.Prelude
 
-data APISuccess = Success deriving (Generic, Show, Eq, ToSchema)
+data APISuccess = Success deriving (Generic, Show, Eq)
 
-instance ToJSON APISuccess where
-  toJSON Success = object ["result" .= ("Success" :: Text)]
+-- Due to custom toJSON defined here, in the API response this guy goes as something else, and we use openAPI spec to generate frontend code, so toSchema should reflect same as its to json (especially if the object is used in API response)
+instance ToSchema APISuccess where
+  declareNamedSchema _ = do
+    doubleSchema <-
+      case A.decode "{\"enum\": [\"Success\"], \"type\": \"string\"}" of
+        Just res -> pure res
+        Nothing -> declareSchemaRef (Proxy :: Proxy APISuccess)
+    return $
+      NamedSchema (Just "APISuccess") $
+        mempty
+          & type_ L.?~ OpenApiObject
+          & properties
+            L..~ [ ("result", doubleSchema)
+                 ]
+          & required L..~ ["result"]
 
-instance FromJSON APISuccess where
-  parseJSON (Object obj) = do
-    result :: String <- obj .: "result"
+instance A.ToJSON APISuccess where
+  toJSON Success = A.object ["result" A..= ("Success" :: Text)]
+
+instance A.FromJSON APISuccess where
+  parseJSON (A.Object obj) = do
+    result :: String <- obj A..: "result"
     case result of
       "Success" -> pure Success
       _ -> parseFail "Expected \"Success\" in \"result\" field."
