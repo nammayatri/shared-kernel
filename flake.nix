@@ -62,6 +62,7 @@
         process-compose = { };
         packages.default = self'.packages.mobility-core;
         devShells.default = pkgs.mkShell {
+          name = "shared-kernel-shell";
           # cf. https://haskell.flake.page/devshell#composing-devshells
           inputsFrom = [
             config.haskellProjects.default.outputs.devShell
