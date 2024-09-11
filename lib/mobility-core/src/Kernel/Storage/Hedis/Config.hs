@@ -45,7 +45,8 @@ data HedisCfg = HedisCfg
 
 data HedisEnv = HedisEnv
   { hedisConnection :: Connection,
-    keyModifier :: KeyModifierFunc
+    keyModifier :: KeyModifierFunc,
+    commonRedisPrefix :: KeyModifierFunc
   }
   deriving (Generic)
 
@@ -61,16 +62,17 @@ defaultHedisCfg =
       connectTimeout = Nothing
     }
 
-withHedisEnv :: HedisCfg -> KeyModifierFunc -> (HedisEnv -> IO a) -> IO a
-withHedisEnv cfg keyModifier = C.bracket (connectHedis cfg keyModifier) disconnectHedis
+withHedisEnv :: HedisCfg -> KeyModifierFunc -> Text -> (HedisEnv -> IO a) -> IO a
+withHedisEnv cfg keyModifier commonRedisPrefix = C.bracket (connectHedis cfg keyModifier commonRedisPrefix) disconnectHedis
 
-connectHedisCluster :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
-connectHedisCluster cfg keyModifier = do
+connectHedisCluster :: HedisCfg -> KeyModifierFunc -> Text -> IO HedisEnv
+connectHedisCluster cfg keyModifier commonRedisPrefix = do
   conn <- connectCluster connectInfo
   return $
     HedisEnv
       { hedisConnection = conn,
-        keyModifier = keyModifier
+        keyModifier = (commonRedisPrefix <>) <$> keyModifier,
+        commonRedisPrefix = (commonRedisPrefix <>)
       }
   where
     connectInfo :: ConnectInfo
@@ -85,13 +87,14 @@ connectHedisCluster cfg keyModifier = do
           connectTimeout = cfg.connectTimeout
         }
 
-connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
-connectHedis cfg keyModifier = do
+connectHedis :: HedisCfg -> KeyModifierFunc -> Text -> IO HedisEnv
+connectHedis cfg keyModifier commonRedisPrefix = do
   conn <- checkedConnect connectInfo
   return $
     HedisEnv
       { hedisConnection = conn,
-        keyModifier = keyModifier
+        keyModifier = (commonRedisPrefix <>) <$> keyModifier,
+        commonRedisPrefix = (commonRedisPrefix <>)
       }
   where
     connectInfo :: ConnectInfo

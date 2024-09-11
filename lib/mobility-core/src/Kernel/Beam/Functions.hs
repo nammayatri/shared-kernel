@@ -34,6 +34,7 @@ where
 import Data.Aeson
 import Data.Default.Class
 import qualified Data.Serialize as Serialize
+import qualified Data.Text as Text
 import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
@@ -53,6 +54,7 @@ import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Logging (logDebug)
 import Sequelize
+import System.Environment (lookupEnv)
 import System.Random
 
 -- classes for converting from beam types to ttypes and vice versa
@@ -115,10 +117,14 @@ runInMasterDb m = do
   L.setOptionLocal MasterReadEnabled False
   pure res
 
-setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
+setMeshConfig :: (MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfig modelName mSchema meshConfig' = do
   schema <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
-  let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
+  mbRedisStream <- liftIO $ lookupEnv "REDIS_STREAM"
+  let redisStream = Text.pack $
+        case mbRedisStream of
+          Just rs -> rs
+          Nothing -> if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
   tables <- L.getOption KBT.Tables
   randomIntV <- L.runIO (randomRIO (1, 100) :: IO Int)
   case tables of
@@ -137,7 +143,7 @@ setMeshConfig modelName mSchema meshConfig' = do
       L.logDebug ("setMeshConfig" :: Text) $ "meshConfig for table: " <> modelName <> " : " <> show updatedMeshConfig
       pure updatedMeshConfig
 
-withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
+withUpdatedMeshConfig :: forall table m a. (MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   mkAction updatedMeshConfig
