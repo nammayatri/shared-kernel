@@ -193,7 +193,7 @@ mkRoute' req route = do
   if null route.legs
     then do
       logTagWarning "GoogleMapsDirections" ("Empty route.legs, " <> show req)
-      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] []
+      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] [] False
     else do
       when (length route.legs > 1) $
         logTagWarning "GoogleMapsDirections" ("More than one element in route.legs, " <> show req)
@@ -203,8 +203,9 @@ mkRoute' req route = do
           allSteps = foldl (\acc leg -> acc ++ leg.steps) [] route.legs
           polylinePoints = concatMap (\step -> decode step.polyline.encodedPolyline) allSteps
           totalStaticDuration = durationInS =<< route.staticDuration
+          isDefaultRoute = maybe False (any (== "DEFAULT_ROUTE")) route.routeLabels
       totalDuration <- durationInS route.duration & fromMaybeM (InternalError "No duration value provided in advanced directions API response")
-      return $ RouteInfo (Just totalDuration) totalStaticDuration (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints
+      return $ RouteInfo (Just totalDuration) totalStaticDuration (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints isDefaultRoute
   where
     mkBounds :: GoogleMaps.ViewPort -> BoundingBoxWithoutCRS
     mkBounds viewport =
@@ -227,7 +228,7 @@ mkRoute req route = do
   if null route.legs
     then do
       logTagWarning "GoogleMapsDirections" ("Empty route.legs, " <> show req)
-      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] []
+      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] [] False
     else do
       when (length route.legs > 1) $
         logTagWarning "GoogleMapsDirections" ("More than one element in route.legs, " <> show req)
@@ -240,7 +241,7 @@ mkRoute req route = do
       -- TODO: Fix snappedWayPoints: the waypoint passed in request which are snapped to road
       -- snappedWayPoints = (\step -> (LatLong step.start_location.lat step.start_location.lng, LatLong step.end_location.lat step.end_location.lng)) <$> steps
 
-      return $ RouteInfo (Just totalDuration) Nothing (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints
+      return $ RouteInfo (Just totalDuration) Nothing (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints False
   where
     mkBounds :: GoogleMaps.Bounds -> BoundingBoxWithoutCRS
     mkBounds gBound =
