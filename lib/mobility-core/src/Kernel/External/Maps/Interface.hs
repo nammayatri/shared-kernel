@@ -285,7 +285,8 @@ autoCompleteProvided = \case
 autoComplete ::
   ( EncFlow m r,
     Redis.HedisFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasShortDurationRetryCfg r c
   ) =>
   MapsServiceConfig ->
   AutoCompleteReq ->

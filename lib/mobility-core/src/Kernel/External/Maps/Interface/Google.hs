@@ -324,7 +324,8 @@ snapToRoad cfg SnapToRoadReq {..} = do
 
 autoComplete ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasShortDurationRetryCfg r c
   ) =>
   GoogleCfg ->
   AutoCompleteReq ->
