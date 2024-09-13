@@ -172,6 +172,7 @@ data FCMNotificationType
   | REFERRAL_FLOW
   | FILE_UPLOADED
   | SCHEDULED_RIDE_REMINDER
+  | DRIVER_HAS_REACHED_DESTINATION
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
