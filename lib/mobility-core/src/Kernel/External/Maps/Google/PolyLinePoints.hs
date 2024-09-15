@@ -17,6 +17,8 @@ module Kernel.External.Maps.Google.PolyLinePoints
     LatLong (..),
     encode,
     decode,
+    stringToCoords,
+    oneCoordEnc,
   )
 where
 

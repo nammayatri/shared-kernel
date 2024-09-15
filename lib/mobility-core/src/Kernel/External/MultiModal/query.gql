@@ -1,0 +1,62 @@
+query OTPPlan (
+    $from: InputCoordinates!,
+    $to: InputCoordinates!,
+    $date: String,
+    $time:String,
+    $transportModes: [TransportMode]
+){
+  plan(
+    from: $from,
+    to: $to,
+    date: $date,
+    time: $time,
+    transportModes: $transportModes
+  ) {
+    itineraries {
+      duration
+      legs {
+        pickupType
+        distance
+        mode
+        duration
+        startTime
+        endTime
+        from {
+          name
+          lat
+          lon
+          departureTime
+          arrivalTime
+          stop {
+            code
+          }
+        }
+        to {
+          name
+          lat
+          lon
+          departureTime
+          arrivalTime
+          stop {
+            code
+          }
+        }
+        route {
+          gtfsId
+          longName
+          shortName
+          agency {
+            gtfsId
+            name
+          }
+        }
+        legGeometry {
+          points
+        }
+        fareProducts {
+          id
+        }
+      }
+    }
+  }
+}

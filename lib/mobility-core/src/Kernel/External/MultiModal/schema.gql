@@ -1,0 +1,76 @@
+input InputCoordinates
+ {
+  lat: Float!
+  lon: Float!
+}
+
+input TransportMode {
+  mode: String!
+}
+
+type Plan {
+  itineraries: [Itinerary]!
+}
+
+type Itinerary {
+  duration: Float
+  legs: [Leg]!
+}
+
+type Leg {
+  distance: Float
+  duration: Float
+  legGeometry: Geometry
+  mode: String
+  startTime: Float
+  pickupType: String
+  endTime: Float
+  fareProducts: [FareProductUse]
+  from: Place!
+  to: Place!
+  route: Route
+}
+
+type Geometry {
+  points: String
+}
+
+type FareProductUse {
+  id: String!
+  product: FareProduct
+}
+
+type FareProduct {
+  id: String!
+  name: String!
+}
+
+type Place {
+  name: String
+  lat: Float!
+  lon: Float!
+  departureTime: Float!
+  arrivalTime: Float!
+}
+
+type Route {
+  agency: Agency
+  gtfsId: String!
+  longName: String
+  shortName: String
+}
+
+type Agency {
+  name: String!
+  gtfsId: String!
+}
+
+type Query {
+  plan(
+    from: InputCoordinates!
+    to: InputCoordinates!
+    transportModes: [TransportMode]
+    date: String
+    time: String
+  ): Plan!
+}
