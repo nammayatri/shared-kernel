@@ -87,6 +87,7 @@ dependencies:
   - hashable
   - lens
   - memory
+  - morpheus-graphql-client
   - network
   - parsec
   - passetto-client

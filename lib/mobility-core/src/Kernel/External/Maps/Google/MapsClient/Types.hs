@@ -23,6 +23,7 @@ import qualified Data.Text.Encoding as DT
 import Kernel.External.Maps.Google.PolyLinePoints (PolyLinePoints)
 import Kernel.Prelude
 import Kernel.Utils.Dhall (FromDhall)
+import qualified Kernel.Utils.JSON as JS
 import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData (toUrlPiece))
 
 data AutoCompleteResp = AutoCompleteResp
@@ -179,6 +180,26 @@ data Rectangle = Rectangle
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
+data TransitPreferencesV2 = TransitPreferencesV2
+  { allowedTravelModes :: Maybe [TransitTravelModeV2],
+    routingPreference :: Maybe TransitRoutingPreferenceV2
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
+
+data TransitDirectionsReq = TransitDirectionsReq
+  { origin :: WayPointV2,
+    destination :: WayPointV2,
+    routingPreference :: RoutingPreference,
+    travelMode :: Maybe ModeV2,
+    computeAlternativeRoutes :: Bool,
+    transitPreferences :: Maybe TransitPreferencesV2,
+    routeModifiers :: Maybe RouteModifiers,
+    arrivalTime :: Maybe String, -- yyyy-mm-ddThh:mm:ssZ
+    departureTime :: Maybe String
+  }
+  -----------remove null fields-----------
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
 data AdvancedDirectionsReq = AdvancedDirectionsReq
   { origin :: WayPointV2,
     destination :: WayPointV2,
@@ -197,12 +218,12 @@ newtype WayPointV2 = WayPointV2
     -- address :: Maybe Text --------if needed in future--------
     -----End of list of possible types for union field location_type.
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 newtype LocationV2 = LocationV2
   { latLng :: LatLngV2
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 data LatLngV2 = LatLngV2
   { latitude :: Double,
@@ -280,9 +301,52 @@ data StepV2 = StepV2
     endLocation :: LocationV2,
     polyline :: Polyline,
     startLocation :: LocationV2,
-    travelMode :: ModeV2
+    travelMode :: ModeV2,
+    transitDetails :: Maybe TransitDetailsV2
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data TransitDetailsV2 = TransitDetailsV2
+  { transitLine :: TransitLineV2,
+    stopDetails :: StopDetailsV2
+  }
+  deriving (Generic, FromJSON, ToJSON, ToSchema)
+
+data StopDetailsV2 = StopDetailsV2
+  { arrivalTime :: Text,
+    departureTime :: Text,
+    arrivalStop :: TransitStopV2,
+    departureStop :: TransitStopV2
+  }
+  deriving (Generic, FromJSON, ToJSON, ToSchema)
+
+data TransitStopV2 = TransitStopV2
+  { name :: Text,
+    location :: LocationV2
+  }
+  deriving (Generic, FromJSON, ToJSON, ToSchema)
+
+data TransitLineV2 = TransitLineV2
+  { agencies :: [AgencyV2],
+    vehicle :: VehicleV2
+  }
+  deriving (Generic, FromJSON, ToJSON, ToSchema)
+
+newtype AgencyV2 = AgencyV2
+  { name :: Text
+  }
+  deriving (Generic, FromJSON, ToJSON, ToSchema)
+
+newtype VehicleV2 = VehicleV2
+  { _type :: Text
+  }
+  deriving (Generic, ToSchema)
+
+instance FromJSON VehicleV2 where
+  parseJSON = genericParseJSON JS.stripPrefixUnderscoreIfAny
+
+instance ToJSON VehicleV2 where
+  toJSON = genericToJSON JS.stripPrefixUnderscoreIfAny
 
 newtype Polyline = Polyline
   { encodedPolyline :: PolyLinePoints
@@ -351,6 +415,21 @@ data ModeV2
 
 data RoutingPreference = ROUTING_PREFERENCE_UNSPECIFIED | TRAFFIC_UNAWARE | TRAFFIC_AWARE | TRAFFIC_AWARE_OPTIMAL
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema, FromDhall)
+
+data TransitTravelModeV2
+  = TRANSIT_TRAVEL_MODE_UNSPECIFIED
+  | BUS
+  | SUBWAY
+  | TRAIN
+  | LIGHT_RAIL
+  | RAIL
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data TransitRoutingPreferenceV2
+  = TRANSIT_ROUTING_PREFERENCE_UNSPECIFIED
+  | LESS_WALKING
+  | FEWER_TRANSFERS
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 instance ToHttpApiData Mode where
   toUrlPiece = T.toLower . show

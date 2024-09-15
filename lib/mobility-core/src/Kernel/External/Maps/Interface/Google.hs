@@ -16,6 +16,7 @@ module Kernel.External.Maps.Interface.Google
   ( module Reexport,
     getDistances,
     getRoutes,
+    getTransitRoutes,
     snapToRoad,
     autoComplete,
     getPlaceDetails,
@@ -38,6 +39,8 @@ import qualified Kernel.External.Maps.Google.RoadsClient as GoogleRoads
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
 import Kernel.External.Maps.Interface.Types as Types
 import Kernel.External.Maps.Types as Reexport
+import qualified Kernel.External.MultiModal.Types as MultiModalTypes
+import Kernel.External.MultiModal.Utils
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
@@ -182,6 +185,32 @@ getRoutes isAvoidToll cfg req = do
         FOOT -> GoogleMaps.WALK
         BICYCLE -> GoogleMaps.BICYCLE
         MOTORCYCLE -> GoogleMaps.TWO_WHEELER
+
+getTransitRoutes ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Log m
+  ) =>
+  GoogleCfg ->
+  GetTransitRoutesReq ->
+  m (Maybe MultiModalTypes.MultiModalResponse)
+getTransitRoutes cfg req = do
+  key <- decrypt cfg.googleKey
+  let googleMapsUrl = cfg.googleRouteConfig.url
+      computeAlternativeRoutes = cfg.googleRouteConfig.computeAlternativeRoutes
+      routePreference = cfg.googleRouteConfig.routePreference
+      origin = req.origin
+      destination = req.destination
+      travelMode = req.mode
+      arrivalTime = req.arrivalTime
+      departureTime = req.departureTime
+      transitPreferences = req.transitPreferences
+  result <- try @_ @SomeException $ GoogleMaps.transitDirectionsAPI googleMapsUrl key origin destination travelMode computeAlternativeRoutes routePreference transitPreferences arrivalTime departureTime
+  case result of
+    Right gRes -> do
+      pure $ Just $ convertGoogleToGeneric gRes
+    Left _ -> do
+      pure Nothing
 
 mkRoute' ::
   (MonadFlow m) =>

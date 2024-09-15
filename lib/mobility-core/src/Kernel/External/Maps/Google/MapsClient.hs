@@ -22,7 +22,9 @@ module Kernel.External.Maps.Google.MapsClient
     DistanceMatrixAPI,
     DirectionsAPI,
     AdvancedDirectionsAPI,
+    TransitDirectionsAPI,
     advancedDirectionsAPI,
+    transitDirectionsAPI,
     autoComplete,
     getPlaceDetails,
     getPlaceName,
@@ -53,6 +55,7 @@ type GoogleMapsAPI =
     :<|> DistanceMatrixAPI
     :<|> DirectionsAPI
     :<|> AdvancedDirectionsAPI
+    :<|> TransitDirectionsAPI
 
 type AutocompleteAPI =
   "place" :> "autocomplete" :> "json"
@@ -119,6 +122,13 @@ type AdvancedDirectionsAPI =
     :> ReqBody '[JSON] (GoogleMaps.AdvancedDirectionsReq)
     :> Post '[JSON] GoogleMaps.AdvancedDirectionsResp
 
+type TransitDirectionsAPI =
+  "directions" :> "v2" :> ":computeRoutes"
+    :> MandatoryHeader "X-Goog-Api-Key" Text
+    :> MandatoryHeader "X-Goog-FieldMask" Text
+    :> ReqBody '[JSON] (GoogleMaps.TransitDirectionsReq)
+    :> Post '[JSON] GoogleMaps.AdvancedDirectionsResp
+
 autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Language -> Maybe Bool -> Maybe LatLong -> Maybe Text -> EulerClient GoogleMaps.AutoCompleteResp
 autoCompleteV2Client :: Text -> Language -> GoogleMaps.AutoCompleteReqV2 -> EulerClient GoogleMaps.AutoCompleteRespV2
 getPlaceDetailsClient :: Maybe Text -> Text -> Text -> Text -> EulerClient GoogleMaps.GetPlaceDetailsResp
@@ -144,7 +154,12 @@ advancedDirectionsClient ::
   Text ->
   GoogleMaps.AdvancedDirectionsReq ->
   EulerClient GoogleMaps.AdvancedDirectionsResp
-autoCompleteClient :<|> autoCompleteV2Client :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient = client (Proxy :: Proxy GoogleMapsAPI)
+transitDirectionsClient ::
+  Text ->
+  Text ->
+  GoogleMaps.TransitDirectionsReq ->
+  EulerClient GoogleMaps.AdvancedDirectionsResp
+autoCompleteClient :<|> autoCompleteV2Client :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient :<|> transitDirectionsClient = client (Proxy :: Proxy GoogleMapsAPI)
 
 autoComplete ::
   ( CoreMetrics m,
@@ -244,6 +259,28 @@ directions url key origin destination mode waypoints isAvoidTolls = do
   let avoid = T.intercalate "|" $ catMaybes [avoidToll, Just "ferries"]
   callAPI url (directionsClient origin destination key (Just True) mode waypoints (Just avoid)) "directionsAPI" (Proxy :: Proxy GoogleMapsAPI)
     >>= checkGoogleMapsError url
+
+transitDirectionsAPI ::
+  ( CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  GoogleMaps.WayPointV2 ->
+  GoogleMaps.WayPointV2 ->
+  Maybe GoogleMaps.ModeV2 ->
+  Bool ->
+  GoogleMaps.RoutingPreference ->
+  Maybe GoogleMaps.TransitPreferencesV2 ->
+  Maybe String ->
+  Maybe String ->
+  m GoogleMaps.AdvancedDirectionsResp
+transitDirectionsAPI url key origin destination mode computeAlternativeRoutes routingPreference transitPreferences arrivalTime departureTime = do
+  let travelMode = mode
+      routeModifiers = Nothing
+      req = GoogleMaps.TransitDirectionsReq {..}
+  callAPI url (transitDirectionsClient key "routes.*" req) "transitDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
+    >>= checkGoogleMapsError' url
 
 advancedDirectionsAPI ::
   ( CoreMetrics m,

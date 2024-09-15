@@ -24,6 +24,7 @@ where
 import qualified Data.Text as T
 import Data.Time hiding (getCurrentTime, nominalDiffTimeToSeconds, secondsToNominalDiffTime)
 import qualified Data.Time as Time hiding (secondsToNominalDiffTime)
+import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.Time.Clock.System
 import EulerHS.Prelude
 import Kernel.Types.Time
@@ -119,6 +120,12 @@ utcToMilliseconds :: UTCTime -> Double
 utcToMilliseconds utcTime = fromIntegral $ div (systemSeconds systemTime * 1000000000 + fromIntegral (systemNanoseconds systemTime)) 1000000
   where
     systemTime = utcToSystemTime utcTime
+
+millisecondsToUTC :: Integer -> UTCTime
+millisecondsToUTC ms = posixSecondsToUTCTime (fromIntegral ms / 1000)
+
+parseISO8601UTC :: String -> Maybe UTCTime
+parseISO8601UTC = parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ"
 
 getCurrentTimestamp :: (Monad m, MonadTime m) => m Double
 getCurrentTimestamp = do
