@@ -28,9 +28,16 @@ module Kernel.External.Maps.Interface
     getPlaceDetails,
     getPlaceNameProvided,
     getPlaceName,
+    callGetPlaceNameWithFallback,
+    callAutoCompleteWithFallback,
+    callGetPlaceDetailsWithFallback,
+    callGetRoutesWithFallback,
+    callGetDistanceWithFallback,
+    callGetDistancesWithFallback,
   )
 where
 
+import qualified Data.Text as T
 import EulerHS.Prelude ((...))
 import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
@@ -339,3 +346,74 @@ getPlaceName serviceConfig req = case serviceConfig of
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
   MMIConfig cfg -> MMI.geocode cfg req
   NextBillionConfig _ -> throwNotProvidedError "getPlaceName" NextBillion
+
+-- Specific fallback functions using custom error types
+callGetPlaceNameWithFallback ::
+  MapsFlow m r =>
+  MapsCallHandler m ->
+  GetPlaceNameReq ->
+  m GetPlaceNameResp
+callGetPlaceNameWithFallback = callWithFallback getPlaceName PlaceNameError
+
+callAutoCompleteWithFallback ::
+  MapsFlow m r =>
+  MapsCallHandler m ->
+  AutoCompleteReq ->
+  m AutoCompleteResp
+callAutoCompleteWithFallback = callWithFallback autoComplete AutoCompleteError
+
+callGetPlaceDetailsWithFallback ::
+  MapsFlow m r =>
+  MapsCallHandler m ->
+  GetPlaceDetailsReq ->
+  m GetPlaceDetailsResp
+callGetPlaceDetailsWithFallback = callWithFallback getPlaceDetails PlaceDetailsError
+
+callGetRoutesWithFallback ::
+  MapsFlow m r =>
+  Bool ->
+  MapsCallHandler m ->
+  GetRoutesReq ->
+  m GetRoutesResp
+callGetRoutesWithFallback isAvoidToll = callWithFallback (getRoutes isAvoidToll) RoutesError
+
+callGetDistanceWithFallback ::
+  ( MapsFlow m r,
+    HasCoordinates a,
+    HasCoordinates b
+  ) =>
+  MapsCallHandler m ->
+  GetDistanceReq a b ->
+  m (GetDistanceResp a b)
+callGetDistanceWithFallback = callWithFallback getDistance DistanceError
+
+callGetDistancesWithFallback ::
+  ( MapsFlow m r,
+    HasCoordinates a,
+    HasCoordinates b
+  ) =>
+  MapsCallHandler m ->
+  GetDistancesReq a b ->
+  m (GetDistancesResp a b)
+callGetDistancesWithFallback = callWithFallback getDistances DistancesError
+
+-- Helper function to handle the fallback logic for all providers
+callWithFallback ::
+  (MapsFlow m r, Show MapsService) =>
+  (MapsServiceConfig -> req -> m resp) ->
+  MapsFallbackError ->
+  MapsCallHandler m ->
+  req ->
+  m resp
+callWithFallback fn errorType MapsCallHandler {..} req = do
+  providersList <- getMapsProvidersList
+  when (null providersList) $ throwError $ InternalError "No maps service provider configured"
+  callProviders providersList []
+  where
+    callProviders [] errors = throwError $ InternalError $ mapsErrorMessage errorType <> (if null errors then "" else " with errors: " <> T.intercalate ", " errors)
+    callProviders (preferredProvider : restProviders) errors = do
+      mapsConfig <- getMapsProviderConfig preferredProvider
+      result <- try @_ @SomeException $ withShortRetry $ fn mapsConfig req
+      case result of
+        Left e -> callProviders restProviders (errors <> [show preferredProvider <> ": Failed with error -> " <> show e])
+        Right res -> pure res -- Return the result on success
