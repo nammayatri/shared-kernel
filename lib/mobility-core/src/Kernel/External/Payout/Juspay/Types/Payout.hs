@@ -102,7 +102,7 @@ instance ToJSON BeneficiaryDetails where
 data TxnResponse = TxnResponse
   { status :: Text,
     requestId :: Maybe Text,
-    amount :: Double
+    amount :: Maybe Double
   }
   deriving (Show, Generic, ToSchema)
   deriving anyclass (FromJSON, ToJSON)
