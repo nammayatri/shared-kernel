@@ -58,7 +58,7 @@ whatsAppOTPApi GupShupCfg {..} SendOtpApiReq {..} = do
   userId <- decrypt userid
   password' <- decrypt password
   gupShupUrl <- parseBaseUrl url
-  Ex.whatsAppSendOtpAPI gupShupUrl userId password' sendTo otpCfg.method authScheme v otpCfg.msgType format var1 otpCfg.templateId
+  Ex.whatsAppSendOtpAPI gupShupUrl userId password' sendTo otpCfg.method authScheme v otpCfg.msgType format var1 otpCfg.templateId isTemplate
 
 whatsAppSendMessageWithTemplateIdAPI ::
   ( CoreMetrics m,
