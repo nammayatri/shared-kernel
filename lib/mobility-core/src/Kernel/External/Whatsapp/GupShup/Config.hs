@@ -26,7 +26,8 @@ data GupShupCfg = GupShupCfg
     v :: Text,
     url :: Text,
     format :: Text,
-    otpCfg :: GupShupOTPCfg
+    otpCfg :: GupShupOTPCfg,
+    isTemplate :: Maybe Bool
   }
   deriving (Show, Eq, Generic)
 
