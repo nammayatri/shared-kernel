@@ -140,6 +140,8 @@ instance L.MonadFlow (FlowR r) where
   runSafeFlow flow = FlowR $ L.runSafeFlow flow
   {-# INLINEABLE runKVDB #-}
   runKVDB cName act = FlowR $ L.runKVDB cName act
+  {-# INLINEABLE runKVDBWithReplica #-}
+  runKVDBWithReplica cName replica act = FlowR $ L.runKVDBWithReplica cName replica act
   {-# INLINEABLE runPubSub #-}
   runPubSub act = FlowR $ L.runPubSub act
   {-# INLINEABLE publish #-}
