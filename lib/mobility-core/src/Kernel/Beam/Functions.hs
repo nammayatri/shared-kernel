@@ -33,6 +33,7 @@ where
 
 import Data.Aeson
 import Data.Default.Class
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Serialize as Serialize
 import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
@@ -53,7 +54,6 @@ import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Logging (logDebug)
 import Sequelize
-import System.Random
 
 -- classes for converting from beam types to ttypes and vice versa
 class
@@ -117,25 +117,14 @@ runInMasterDb m = do
 
 setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfig modelName mSchema meshConfig' = do
-  schema <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
+  schema <- maybe (L.throwException $ InternalError "Schema not found in setMeshConfig") pure mSchema
   let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
-  tables <- L.getOption KBT.Tables
-  randomIntV <- L.runIO (randomRIO (1, 100) :: IO Int)
-  case tables of
-    Nothing -> L.throwException $ InternalError "Tables not found"
-    Just tables' -> do
-      let enableKVForWriteAlso = tables'.enableKVForWriteAlso
-          enableKVForRead = tables'.enableKVForRead
-          tableObject = find (\table' -> nameOfTable table' == modelName) enableKVForWriteAlso
-      updatedMeshConfig <- case tableObject of
-        Nothing -> pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
-        Just table' -> do
-          let redisTtl' = fromMaybe (meshConfig'.redisTtl) (table'.redisTtl)
-          if fromIntegral (percentEnable table') >= randomIntV
-            then pure $ meshConfig' {meshEnabled = True, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream, redisTtl = redisTtl'}
-            else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
-      L.logDebug ("setMeshConfig" :: Text) $ "meshConfig for table: " <> modelName <> " : " <> show updatedMeshConfig
-      pure updatedMeshConfig
+  tables' <- L.getOption KBT.Tables >>= maybe (L.throwException $ InternalError "Tables not found in setMeshConfig") pure
+  if modelName `elem` tables'.disableForKV
+    then pure $ meshConfig' {ecRedisDBStream = redisStream}
+    else do
+      let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
+      pure $ meshConfig' {meshEnabled = True, kvHardKilled = False, ecRedisDBStream = redisStream, redisTtl = redisTtl'}
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do
