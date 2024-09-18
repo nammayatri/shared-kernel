@@ -30,6 +30,7 @@ import Data.Aeson
 import Data.ByteString.Internal (ByteString)
 import Data.Fixed (Centi, Fixed (MkFixed))
 import Data.Generics.Labels ()
+import qualified Data.HashMap.Strict as HM
 import Data.OpenApi hiding (value)
 import Data.Text as T
 import qualified Data.Vector as V
@@ -57,7 +58,7 @@ import Kernel.Types.Logging as Common
 import Kernel.Types.MonadGuid as Common
 import Kernel.Types.Price as Common
 import Kernel.Types.Time as Common
-import Kernel.Utils.Dhall (FromDhall, Natural)
+import Kernel.Utils.Dhall (FromDhall)
 
 newtype IdObject = IdObject
   { id :: Text
@@ -65,26 +66,9 @@ newtype IdObject = IdObject
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
-data KVTable = KVTable
-  { nameOfTable :: Text,
-    percentEnable :: Natural,
-    redisTtl :: Maybe Integer
-  }
-  deriving (Generic, Eq, Show, ToJSON, FromJSON, FromDhall, Ord)
-
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be KVTable where
-  sqlValueSyntax = autoSqlValueSyntax
-
-instance BeamSqlBackend be => B.HasSqlEqualityCheck be KVTable
-
-instance FromBackendRow Postgres KVTable
-
-instance FromField KVTable where
-  fromField = fromFieldJSON
-
 data Tables = Tables
-  { enableKVForWriteAlso :: [KVTable],
-    enableKVForRead :: [Text],
+  { disableForKV :: [Text],
+    kvTablesTtl :: HM.HashMap Text Integer,
     useCAC :: [Text],
     useCACForFrontend :: Bool,
     readFromMasterDb :: [Text]
