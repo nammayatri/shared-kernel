@@ -80,6 +80,7 @@ data Category
   | POST_RIDE_SOS_ALERT
   | REFERRAL_FLOW
   | FILE_UPLOADED
+  | SCHEDULED_RIDE_REMINDER
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
