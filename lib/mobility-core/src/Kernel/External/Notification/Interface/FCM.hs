@@ -111,6 +111,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.POST_RIDE_SOS_ALERT -> FCM.POST_RIDE_SOS_ALERT
   Interface.REFERRAL_FLOW -> FCM.REFERRAL_FLOW
   Interface.FILE_UPLOADED -> FCM.FILE_UPLOADED
+  Interface.SCHEDULED_RIDE_REMINDER -> FCM.SCHEDULED_RIDE_REMINDER
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case

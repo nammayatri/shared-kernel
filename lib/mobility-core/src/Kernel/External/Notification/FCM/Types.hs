@@ -171,6 +171,7 @@ data FCMNotificationType
   | POST_RIDE_SOS_ALERT
   | REFERRAL_FLOW
   | FILE_UPLOADED
+  | SCHEDULED_RIDE_REMINDER
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
