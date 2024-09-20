@@ -231,6 +231,7 @@ data MerchantError
   | MerchantServiceConfigNotFound Text Text Text
   | MerchantOperatingCityNotFound Text
   | MerchantOperatingCityDoesNotExist Text
+  | MerchantDoesNotSupportCity Text Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''MerchantError
@@ -242,6 +243,7 @@ instance IsBaseError MerchantError where
   toMessage (MerchantServiceConfigNotFound merchantId serviceType service) = Just $ "MerchantServiceConfig for " <> serviceType <> " service " <> service <> " with merchantId \"" <> merchantId <> "\" not found."
   toMessage (MerchantOperatingCityNotFound merchantId) = Just $ "MerchantOperatingCity with merchantId \"" <> show merchantId <> "\" not found."
   toMessage (MerchantOperatingCityDoesNotExist searchKey) = Just $ "No merchant operating city matches passed data " <> show searchKey <> "."
+  toMessage (MerchantDoesNotSupportCity merchantId city) = Just $ "Merchant with merchantId \"" <> show merchantId <> "\" does not support the city " <> show city
 
 instance IsHTTPError MerchantError where
   toErrorCode = \case
@@ -251,6 +253,7 @@ instance IsHTTPError MerchantError where
     MerchantServiceConfigNotFound {} -> "MERCHANT_SERVICE_CONFIG_NOT_FOUND"
     MerchantOperatingCityNotFound _ -> "MERCHANT_OPERATING_CITY_NOT_FOUND"
     MerchantOperatingCityDoesNotExist _ -> "MERCHANT_OPERATING_CITY_DOES_NOT_EXIST"
+    MerchantDoesNotSupportCity _ _ -> "MERCHANT_DOES_NOT_SUPPORT_CITY"
 
   toHttpCode = \case
     MerchantNotFound _ -> E500
@@ -259,6 +262,7 @@ instance IsHTTPError MerchantError where
     MerchantServiceConfigNotFound {} -> E500
     MerchantOperatingCityNotFound _ -> E500
     MerchantOperatingCityDoesNotExist _ -> E400
+    MerchantDoesNotSupportCity _ _ -> E400
 
 instance IsAPIError MerchantError
 
