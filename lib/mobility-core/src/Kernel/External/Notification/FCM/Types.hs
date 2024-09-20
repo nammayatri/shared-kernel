@@ -175,6 +175,7 @@ data FCMNotificationType
   | DRIVER_HAS_REACHED_DESTINATION
   | CANCELLATION_RATE_NUDGE_DAILY
   | CANCELLATION_RATE_NUDGE_WEEKLY
+  | METRO_COIN_SUCCESS
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
