@@ -173,6 +173,8 @@ data FCMNotificationType
   | FILE_UPLOADED
   | SCHEDULED_RIDE_REMINDER
   | DRIVER_HAS_REACHED_DESTINATION
+  | CANCELLATION_RATE_NUDGE_DAILY
+  | CANCELLATION_RATE_NUDGE_WEEKLY
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
