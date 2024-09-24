@@ -16,6 +16,7 @@
 
 module Kernel.Types.Geofencing where
 
+import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Database.Beam as B
 import Database.Beam.Backend
@@ -44,9 +45,9 @@ fromFieldEnum' f mbValue = case mbValue of
 instance FromField GeoRestriction where
   fromField = fromFieldEnum'
 
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be GeoRestriction where
-  sqlValueSyntax Unrestricted = autoSqlValueSyntax Unrestricted
-  sqlValueSyntax (Regions regions) = autoSqlValueSyntax regions
+instance HasSqlValueSyntax be (V.Vector Text) => HasSqlValueSyntax be GeoRestriction where
+  sqlValueSyntax Unrestricted = sqlValueSyntax V.empty
+  sqlValueSyntax (Regions regions) = sqlValueSyntax (V.fromList regions)
 
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be GeoRestriction
 
