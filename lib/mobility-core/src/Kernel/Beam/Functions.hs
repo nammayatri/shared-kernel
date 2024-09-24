@@ -56,10 +56,7 @@ import Sequelize
 import System.Random
 
 -- classes for converting from beam types to ttypes and vice versa
-class
-  FromTType' t a
-    | t -> a
-  where
+class FromTType' t a where
   fromTType' :: (MonadFlow m, CacheFlow m r, EsqDBFlow m r) => t -> m (Maybe a)
 
 class
