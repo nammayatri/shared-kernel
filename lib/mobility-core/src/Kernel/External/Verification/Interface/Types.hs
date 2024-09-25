@@ -29,11 +29,11 @@ import Kernel.External.Verification.SafetyPortal.Types
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeVerificationCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
-data DriverBackgroundVerificationServiceConfig = SafetyPortalConfig SafetyPortal.SafetyPortalCfg
+newtype DriverBackgroundVerificationServiceConfig = SafetyPortalConfig SafetyPortal.SafetyPortalCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -62,8 +62,9 @@ instance ToJSON VerifyRCResp where
 instance FromJSON VerifyRCResp where
   parseJSON v = (AsyncResp <$> parseJSON v) <|> (SyncResp <$> parseJSON v)
 
-newtype VerifyAsyncResp = VerifyAsyncResp
-  { requestId :: Text
+data VerifyAsyncResp = VerifyAsyncResp
+  { requestId :: Text,
+    requestor :: VT.VerificationService
   }
   deriving stock (Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -126,9 +127,14 @@ data ExtractedDL = ExtractedDL
 
 -- not used in interface
 
-type GetTaskReq = Text
+data GetTaskReq = GetTaskReq
+  { workflowId :: Maybe Text,
+    requestId :: Text
+  }
+  deriving (Generic, FromJSON, ToJSON, Show)
 
-type GetTaskResp = Idfy.VerificationResponse
+data GetTaskResp = IdfyStatus Idfy.VerificationResponse | HyperVergeStatus VT.RCVerificationResponse
+  deriving (Generic, FromJSON, ToJSON, Show)
 
 data SearchAgentReq = SearchAgentreq
   { dl :: Maybe Text,
@@ -141,7 +147,7 @@ newtype SearchAgentResponse = SearchAgentResponse
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
-data VerifySdkDataReq = VerifySdkDataReq
+newtype VerifySdkDataReq = VerifySdkDataReq
   { transactionId :: Text
   }
   deriving (Generic, FromJSON, ToJSON, Show)
@@ -152,3 +158,9 @@ data VerifySdkDataResp = VerifySdkDataResp
     transactionId :: Maybe Text
   }
   deriving (Generic, FromJSON, ToJSON, Show)
+
+data RCRespWithRemPriorityList = RCRespWithRemPriorityList
+  { verifyRCResp :: VerifyRCResp,
+    remPriorityList :: [VT.VerificationService]
+  }
+  deriving (Show, Generic, FromJSON, ToJSON)
