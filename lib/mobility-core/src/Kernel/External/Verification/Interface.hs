@@ -22,6 +22,7 @@ module Kernel.External.Verification.Interface
     validateFaceImage,
     searchAgent,
     verifySdkResp,
+    getTask,
   )
 where
 
@@ -57,6 +58,7 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
 
 verifyRC ::
   ( EncFlow m r,
@@ -66,24 +68,21 @@ verifyRC ::
     EsqDBFlow m r,
     CacheFlow m r
   ) =>
+  (VerificationService -> m VerificationServiceConfig) ->
   [VerificationService] ->
-  VerificationServiceConfig ->
   VerifyRCReq ->
-  m VerifyRCResp
-verifyRC verificationProvidersPriorityList idfyServiceConfig req = do
-  when (null verificationProvidersPriorityList) $ throwError $ InternalError "No verification service provider configured"
+  m RCRespWithRemPriorityList
+verifyRC getServiceConfig verificationProvidersPriorityList req = do
+  when (null verificationProvidersPriorityList) $ throwError $ InternalError "No verification service provider configured or exhausted all service providers !!!!"
   verifyRCWithFallback verificationProvidersPriorityList
   where
-    verifyRCWithFallback [] = throwError $ InternalError "Not able to verify the RC with all the configured providers"
+    verifyRCWithFallback [] = throwError $ InternalError "Not able to verify the RC with all the configured providers !!!!!"
     verifyRCWithFallback (preferredProvider : restProviders) = do
-      cfg <- case preferredProvider of
-        Idfy -> pure idfyServiceConfig
-        GovtData -> pure GovtDataConfig {}
-        _ -> throwError $ InternalError "Not Implemented!"
-      result <- try @_ @SomeException $ verifyRC' cfg req
+      logDebug $ "Calling verifyRC for provider : " <> show preferredProvider
+      result <- try @_ @SomeException $ getServiceConfig preferredProvider >>= flip verifyRC' req
       case result of
         Left _ -> verifyRCWithFallback restProviders
-        Right res -> pure res
+        Right res -> return $ RCRespWithRemPriorityList res restProviders
 
 verifyRC' ::
   ( EncFlow m r,
@@ -101,6 +100,7 @@ verifyRC' serviceConfig req = case serviceConfig of
   GovtDataConfig -> GovtData.verifyRC req
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL cfg -> HyperVerge.verifyRCAsync cfg req
 
 validateImage ::
   ( EncFlow m r,
@@ -114,6 +114,7 @@ validateImage serviceConfig req = case serviceConfig of
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
 
 validateFaceImage ::
   ( CoreMetrics m,
@@ -127,6 +128,7 @@ validateFaceImage serviceConfig req = case serviceConfig of
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig cfg -> IS.validateFace cfg req
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
 
 extractRCImage ::
   ( EncFlow m r,
@@ -140,6 +142,7 @@ extractRCImage serviceConfig req = case serviceConfig of
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
   ( EncFlow m r,
@@ -153,6 +156,7 @@ extractDLImage serviceConfig req = case serviceConfig of
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
 
 searchAgent ::
   ( EncFlow m r,
@@ -176,3 +180,18 @@ verifySdkResp serviceConfig req = case serviceConfig of
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig cfg -> HyperVerge.verifySdkResp cfg req
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+
+getTask ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  GetTaskReq ->
+  m GetTaskResp
+getTask serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.getTask cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL cfg -> HyperVerge.getVerificationStatus cfg req

@@ -25,7 +25,7 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge
+data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge | HyperVergeRCDL
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 data DriverBackgroundVerificationService = SafetyPortal
