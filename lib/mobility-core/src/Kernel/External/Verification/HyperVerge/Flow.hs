@@ -67,8 +67,95 @@ validateHyperVergeSdkVerificationResponse :: (MonadThrow m, Log m) => HyperVerge
 validateHyperVergeSdkVerificationResponse resp = do
   logDebug $ "HyperVerge SDK Verification Response: " <> show resp
   case resp.statusCode of
-    Just 401 -> throwError $ HVUnauthorizedError
+    Just 401 -> throwError HVUnauthorizedError
     Just 400 -> throwError $ HVBadRequestError (fromMaybe "No Message found in resp or Failed to parse error !!!!" $ join (resp.result <&> (.error)))
     Just 422 -> throwError $ HVBadInputError (fromMaybe "No Message found in resp or Failed to parse error !!!!" $ join (resp.result <&> (.error)))
     Just 200 -> return resp
+    _ -> throwError $ HVError ("The response from HV is : " <> show resp)
+
+type VerifyRCAsyncAPI =
+  "v1"
+    :> "async"
+    :> "fetchDetailedRC"
+    :> Header "appId" Text
+    :> Header "appKey" Text
+    :> ReqBody '[JSON] HyperVergeTypes.VerifyRCAsyncReq
+    :> Post '[JSON] HyperVergeTypes.VerifyRCAsyncResp
+
+rcAsyncVerificationClient :: Maybe Text -> Maybe Text -> HyperVergeTypes.VerifyRCAsyncReq -> EulerClient HyperVergeTypes.VerifyRCAsyncResp
+rcAsyncVerificationClient = client (Proxy :: Proxy VerifyRCAsyncAPI)
+
+verifyRCAsync ::
+  ( HasCallStack,
+    EncFlow m r,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  HyperVergeTypes.HyperVergeVerificationCfg ->
+  HyperVergeTypes.VerifyRCAsyncReq ->
+  m HyperVergeTypes.VerifyRCAsyncResp
+verifyRCAsync cfg req = do
+  decrypt cfg.appKey >>= \key -> callAPI' (Just $ ManagerSelector $ DT.pack hyperVergeHttpManagerKey) cfg.url (rcAsyncVerificationClient (Just cfg.appId) (Just key) req) "HV-RC_ASYNC_VERIFICATION-API" (Proxy @VerifyRCAsyncAPI) >>= checkHyperVergeRCAsyncVerificationResp cfg.url
+
+checkHyperVergeRCAsyncVerificationResp ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  BaseUrl ->
+  Either ClientError HyperVergeTypes.VerifyRCAsyncResp ->
+  m HyperVergeTypes.VerifyRCAsyncResp
+checkHyperVergeRCAsyncVerificationResp url resp = fromEitherM (hyperVergeError url) resp >>= validateHyperVergeRCAsyncVerificationResponse
+
+validateHyperVergeRCAsyncVerificationResponse :: (MonadThrow m, Log m) => HyperVergeTypes.VerifyRCAsyncResp -> m HyperVergeTypes.VerifyRCAsyncResp
+validateHyperVergeRCAsyncVerificationResponse resp = do
+  logDebug $ "HyperVerge RC Verification Response: " <> show resp
+  case resp.statusCode of
+    401 -> throwError HVUnauthorizedError
+    400 -> throwError $ HVBadRequestError (fromMaybe "No Message found in resp or Failed to parse error !!!!" resp.error)
+    200 -> return resp
+    _ -> throwError $ HVError ("The response from HV is : " <> show resp)
+
+type GetVerificationStatusAPI =
+  "v1"
+    :> "async"
+    :> Header "appId" Text
+    :> Header "appKey" Text
+    :> Capture "workflowId" Text
+    :> MandatoryQueryParam "requestId" Text
+    :> Get '[JSON] HyperVergeTypes.GetVerificationStatusResp
+
+getVerificationStatusClient :: Maybe Text -> Maybe Text -> Text -> Text -> EulerClient HyperVergeTypes.GetVerificationStatusResp
+getVerificationStatusClient = client (Proxy :: Proxy GetVerificationStatusAPI)
+
+getVerificationStatus ::
+  ( HasCallStack,
+    EncFlow m r,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  HyperVergeTypes.HyperVergeVerificationCfg ->
+  Text ->
+  Text ->
+  m HyperVergeTypes.GetVerificationStatusResp
+getVerificationStatus cfg workflowId reqId = do
+  decrypt cfg.appKey >>= \key -> callAPI' (Just $ ManagerSelector $ DT.pack hyperVergeHttpManagerKey) cfg.url (getVerificationStatusClient (Just cfg.appId) (Just key) workflowId reqId) "HV-GET_VERIFICATION_RESULT-API" (Proxy @GetVerificationStatusAPI) >>= checkHyperVergeGetVerificationStatusResp cfg.url
+
+checkHyperVergeGetVerificationStatusResp ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  BaseUrl ->
+  Either ClientError HyperVergeTypes.GetVerificationStatusResp ->
+  m HyperVergeTypes.GetVerificationStatusResp
+checkHyperVergeGetVerificationStatusResp url resp = fromEitherM (hyperVergeError url) resp >>= validateHyperVergeGetVerificationStatusResp
+
+validateHyperVergeGetVerificationStatusResp :: (MonadThrow m, Log m) => HyperVergeTypes.GetVerificationStatusResp -> m HyperVergeTypes.GetVerificationStatusResp
+validateHyperVergeGetVerificationStatusResp resp = do
+  logDebug $ "HyperVerge getVerificationStatus Response: " <> show resp
+  case resp.statusCode of
+    401 -> throwError HVUnauthorizedError
+    400 -> throwError $ HVBadRequestError (fromMaybe "No Message found in resp or Failed to parse error !!!!" resp.message)
+    200 -> return resp
     _ -> throwError $ HVError ("The response from HV is : " <> show resp)

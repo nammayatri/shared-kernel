@@ -34,6 +34,7 @@ import Kernel.External.Verification.Idfy.Types as Reexport
 import qualified Kernel.External.Verification.Idfy.Types.Request as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import Kernel.External.Verification.Interface.Types
+import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
@@ -67,7 +68,7 @@ verifyDLAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyDLAsync apiKey accountId url idfyReq
-  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id}
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy}
 
 verifyRCAsync ::
   ( EncFlow m r,
@@ -87,7 +88,7 @@ verifyRCAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyRCAsync apiKey accountId url idfyReq
-  pure $ AsyncResp VerifyAsyncResp {requestId = idfySuccess.request_id}
+  pure $ AsyncResp VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy}
 
 validateImage ::
   ( EncFlow m r,
@@ -207,8 +208,6 @@ extractDLImage cfg req = do
               }
       }
 
--- not used in interface
-
 getTask ::
   ( EncFlow m r,
     CoreMetrics m
@@ -220,4 +219,4 @@ getTask cfg req = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
   accountId <- decrypt cfg.accountId
-  Idfy.getTask apiKey accountId url req
+  IdfyStatus <$> Idfy.getTask apiKey accountId url req.requestId
