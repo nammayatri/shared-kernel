@@ -24,6 +24,7 @@ import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), Cr
 import Kernel.External.Ticket.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
+import Kernel.Types.HideSecrets
 
 newtype IssueTicketServiceConfig = KaptureConfig Kapture.KaptureCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -42,6 +43,10 @@ data CreateTicketReq = CreateTicketReq
     classification :: Classification,
     rideDescription :: Maybe RideInfo
   }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
+
+instance HideSecrets CreateTicketReq where
+  hideSecrets = identity
 
 data RideInfo = RideInfo
   { rideShortId :: Text,
@@ -59,6 +64,7 @@ data RideInfo = RideInfo
     dropLocation :: Maybe Location,
     fare :: Maybe Money
   }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data Location = Location
   { lat :: Double,
@@ -71,6 +77,7 @@ data Location = Location
     areaCode :: Maybe Text,
     area :: Maybe Text
   }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data UpdateTicketReq = UpdateTicketReq
   { comment :: Text,
