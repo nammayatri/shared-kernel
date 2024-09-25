@@ -107,6 +107,7 @@ data CreateTicketResp = CreateTicketResp
     ticket :: TicketDetails
   }
   deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
 
 jsonOptions :: Options
 jsonOptions =
@@ -140,6 +141,7 @@ newtype AdditionalDetails = AdditionalDetails
   { issueDetails :: [IssueResp]
   }
   deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
 
 instance FromJSON AdditionalDetails where
   parseJSON = genericParseJSON constructorsWithSnakeCase
@@ -151,6 +153,7 @@ newtype IssueResp = IssueResp
   { issueId :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
 
 instance FromJSON IssueResp where
   parseJSON = genericParseJSON constructorsWithSnakeCase
@@ -162,6 +165,7 @@ newtype TicketDetails = TicketDetails
   { subStatus :: Text
   }
   deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
 
 instance FromJSON TicketDetails where
   parseJSON = genericParseJSON constructorsWithLowerCase
