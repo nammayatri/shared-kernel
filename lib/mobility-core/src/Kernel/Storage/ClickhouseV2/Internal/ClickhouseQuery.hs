@@ -45,6 +45,7 @@ instance (ClickhouseDb db, ClickhouseTable t, ClickhouseColumns a cols, Clickhou
       <> RawQuery (showClickhouseColumns @a @cols (Proxy @a) cols)
       <> " FROM "
       <> fromString tableName
+      <> " FINAL "
       <> toClickhouseQuery @(Where t) (q.whereQ cols)
       <> toClickhouseQuery @(GroupBy a gr) groupBy
       <> mkMaybeClause @(OrderBy ord) (q.orderByQ <&> ($ cols))
