@@ -16,6 +16,7 @@ module Kernel.Types.Beckn.ReqTypes where
 
 import qualified Control.Lens as L
 import Data.Aeson
+import Data.Aeson.Types
 import Data.OpenApi
 import Data.Typeable
 import EulerHS.Prelude hiding (fromList, (.~))
@@ -31,6 +32,33 @@ data BecknReq a = BecknReq
   deriving (Generic, Show, FromJSON, ToJSON, PrettyShow)
 
 instance ToSchema a => ToSchema (BecknReq a)
+
+data Empty = Empty deriving (ToSchema, Generic)
+
+instance {-# OVERLAPPING #-} ToJSON (BecknReq Empty) where
+  toJSON BecknReq {..} =
+    object ["context" .= context]
+
+instance {-# OVERLAPPING #-} FromJSON (BecknReq Empty) where
+  parseJSON (Object v) =
+    BecknReq <$> v .: "context" <*> pure Empty
+  parseJSON invalid =
+    prependFailure
+      "parsing BecknReq Empty failed, "
+      (typeMismatch "Object" invalid)
+
+instance {-# OVERLAPPING #-} ToSchema (BecknReq Empty) where
+  declareNamedSchema _ = do
+    contextSchema <- declareSchemaRef (Proxy :: Proxy Context)
+    return $
+      NamedSchema (Just "BecknReq Empty") $
+        mempty
+          & type_ L.?~ OpenApiObject
+          & properties
+            L..~ fromList
+              [ ("context", contextSchema)
+              ]
+          & required L..~ ["context"]
 
 data BecknCallbackReq a = BecknCallbackReq
   { context :: Context,
