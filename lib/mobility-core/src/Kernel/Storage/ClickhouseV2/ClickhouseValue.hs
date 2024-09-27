@@ -92,9 +92,11 @@ instance ClickhouseValue Bool where
   fromClickhouseValue (String "0") = pure False
   fromClickhouseValue (String "True") = pure True
   fromClickhouseValue (String "False") = pure False
+  fromClickhouseValue (String "TRUE") = pure True
+  fromClickhouseValue (String "FALSE") = pure False
   fromClickhouseValue (String "true") = pure True
   fromClickhouseValue (String "false") = pure False
-  fromClickhouseValue (String _) = fail "Supported format for Bool: 0, 1, false, true, False, True"
+  fromClickhouseValue (String str) = fail $ "Could not parse Bool value: " <> str <> "; Supported format for Bool: 0, 1, false, true, False, True, TRUE, FALSE"
   fromClickhouseValue _ = fail "Unexpected Null"
 
 instance ClickhouseValue Time.Day
