@@ -8,6 +8,7 @@ module Kernel.Types.TimeBound
   ( BoundedPeaks (..),
     TimeBound (..),
     findBoundedDomain,
+    timeBoundsOverlap,
   )
 where
 
@@ -114,3 +115,27 @@ findBoundedDomain domains localTime = do
         6 -> peaks.saturday
         7 -> peaks.sunday
         _ -> peaks.monday -- This case should never come.
+
+-- A helper function to check if two time intervals overlap
+overlaps :: (TimeOfDay, TimeOfDay) -> (TimeOfDay, TimeOfDay) -> Bool
+overlaps (start1, end1) (start2, end2) = not (end1 <= start2 || end2 <= start1)
+
+-- A function to check if any time intervals overlap in a list
+anyOverlap :: [(TimeOfDay, TimeOfDay)] -> [(TimeOfDay, TimeOfDay)] -> Bool
+anyOverlap xs ys = any (\x -> any (overlaps x) ys) xs
+
+-- A function to check if two TimeBounds overlap
+timeBoundsOverlap :: TimeBound -> TimeBound -> Bool
+timeBoundsOverlap Unbounded _ = True
+timeBoundsOverlap _ Unbounded = True
+timeBoundsOverlap (BoundedByWeekday bp1) (BoundedByWeekday bp2) =
+  anyOverlap (monday bp1) (monday bp2)
+    || anyOverlap (tuesday bp1) (tuesday bp2)
+    || anyOverlap (wednesday bp1) (wednesday bp2)
+    || anyOverlap (thursday bp1) (thursday bp2)
+    || anyOverlap (friday bp1) (friday bp2)
+    || anyOverlap (saturday bp1) (saturday bp2)
+    || anyOverlap (sunday bp1) (sunday bp2)
+timeBoundsOverlap (BoundedByDay bd1) (BoundedByDay bd2) =
+  any (\(d1, ts1) -> any (\(d2, ts2) -> d1 == d2 && anyOverlap ts1 ts2) bd2) bd1
+timeBoundsOverlap _ _ = False
