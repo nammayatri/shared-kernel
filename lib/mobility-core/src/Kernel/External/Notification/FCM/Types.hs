@@ -175,6 +175,7 @@ data FCMNotificationType
   | DRIVER_HAS_REACHED_DESTINATION
   | CANCELLATION_RATE_NUDGE_DAILY
   | CANCELLATION_RATE_NUDGE_WEEKLY
+  | USER_FAVOURITE_DRIVER
   | DRIVER_UNBLOCKED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
