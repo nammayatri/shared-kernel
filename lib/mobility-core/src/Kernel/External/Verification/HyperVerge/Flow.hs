@@ -61,7 +61,7 @@ checkHyperVergeSdkVerificationResponse ::
 checkHyperVergeSdkVerificationResponse url resp = fromEitherM (hyperVergeError url) resp >>= validateHyperVergeSdkVerificationResponse
 
 hyperVergeError :: BaseUrl -> ClientError -> ExternalAPICallError
-hyperVergeError = ExternalAPICallError (Just "HYPERVERGE_SDK_VERIFICATION_API_ERROR")
+hyperVergeError = ExternalAPICallError (Just "HYPERVERGE_API_ERROR")
 
 validateHyperVergeSdkVerificationResponse :: (MonadThrow m, Log m) => HyperVergeTypes.HyperVergeSdkVerificationRes -> m HyperVergeTypes.HyperVergeSdkVerificationRes
 validateHyperVergeSdkVerificationResponse resp = do
@@ -116,6 +116,50 @@ validateHyperVergeRCAsyncVerificationResponse resp = do
     200 -> return resp
     _ -> throwError $ HVError ("The response from HV is : " <> show resp)
 
+type VerifyDLAsyncAPI =
+  "v1"
+    :> "async"
+    :> "checkDL"
+    :> Header "appId" Text
+    :> Header "appKey" Text
+    :> ReqBody '[JSON] HyperVergeTypes.HyperVergeDLVerificationReq
+    :> Post '[JSON] HyperVergeTypes.HyperVergeDLVerificationResp
+
+dlAsyncVerificationClient :: Maybe Text -> Maybe Text -> HyperVergeTypes.HyperVergeDLVerificationReq -> EulerClient HyperVergeTypes.HyperVergeDLVerificationResp
+dlAsyncVerificationClient = client (Proxy :: Proxy VerifyDLAsyncAPI)
+
+verifyDLAsync ::
+  ( HasCallStack,
+    EncFlow m r,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  HyperVergeTypes.HyperVergeVerificationCfg ->
+  HyperVergeTypes.HyperVergeDLVerificationReq ->
+  m HyperVergeTypes.HyperVergeDLVerificationResp
+verifyDLAsync cfg req = do
+  logDebug $ "req is 1 : " <> show req
+  decrypt cfg.appKey >>= \key -> callAPI' (Just $ ManagerSelector $ DT.pack hyperVergeHttpManagerKey) cfg.url (dlAsyncVerificationClient (Just cfg.appId) (Just key) req) "HV-DL_ASYNC_VERIFICATION-API" (Proxy @VerifyDLAsyncAPI) >>= checkHyperVergeDLAsyncVerificationResp cfg.url
+
+checkHyperVergeDLAsyncVerificationResp ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  BaseUrl ->
+  Either ClientError HyperVergeTypes.HyperVergeDLVerificationResp ->
+  m HyperVergeTypes.HyperVergeDLVerificationResp
+checkHyperVergeDLAsyncVerificationResp url resp = fromEitherM (hyperVergeError url) resp >>= validateHyperVergeDLAsyncVerificationResponse
+
+validateHyperVergeDLAsyncVerificationResponse :: (MonadThrow m, Log m) => HyperVergeTypes.HyperVergeDLVerificationResp -> m HyperVergeTypes.HyperVergeDLVerificationResp
+validateHyperVergeDLAsyncVerificationResponse resp = do
+  logDebug $ "HyperVerge DL Verification Response: " <> show resp
+  case resp.statusCode of
+    401 -> throwError HVUnauthorizedError
+    400 -> throwError $ HVBadRequestError (fromMaybe "No Message found in resp or Failed to parse error !!!!" resp.error)
+    200 -> return resp
+    _ -> throwError $ HVError ("The response from HV is : " <> show resp)
+
 type GetVerificationStatusAPI =
   "v1"
     :> "async"
@@ -157,5 +201,5 @@ validateHyperVergeGetVerificationStatusResp resp = do
   case resp.statusCode of
     401 -> throwError HVUnauthorizedError
     400 -> throwError $ HVBadRequestError (fromMaybe "No Message found in resp or Failed to parse error !!!!" resp.message)
-    200 -> return resp
+    200 -> if isNothing resp.result then throwError (HVMissingPayloadError $ fromMaybe ("Unknown reason !!!!! Resp : " <> show resp) resp.message) else return resp
     _ -> throwError $ HVError ("The response from HV is : " <> show resp)

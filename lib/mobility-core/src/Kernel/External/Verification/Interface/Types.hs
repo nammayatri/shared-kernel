@@ -40,7 +40,8 @@ newtype DriverBackgroundVerificationServiceConfig = SafetyPortalConfig SafetyPor
 data VerifyDLAsyncReq = VerifyDLAsyncReq
   { dlNumber :: Text,
     driverId :: Text,
-    dateOfBirth :: UTCTime
+    dateOfBirth :: UTCTime,
+    returnState :: Maybe Bool -- DRHVTODO: handle in existing idfy requests.
   }
   deriving stock (Show, Generic)
 
@@ -133,8 +134,22 @@ data GetTaskReq = GetTaskReq
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
-data GetTaskResp = IdfyStatus Idfy.VerificationResponse | HyperVergeStatus VT.RCVerificationResponse
+data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface -- DRHVTODO: Handle this in existing code of hv webhook
   deriving (Generic, FromJSON, ToJSON, Show)
+
+data DLVerificationOutputInterface = DLVerificationOutputInterface
+  { driverName :: Maybe Text,
+    dob :: Maybe Text,
+    licenseNumber :: Maybe Text,
+    nt_validity_from :: Maybe Text,
+    nt_validity_to :: Maybe Text,
+    t_validity_from :: Maybe Text,
+    t_validity_to :: Maybe Text,
+    covs :: Maybe [Idfy.CovDetail],
+    status :: Maybe Text,
+    dateOfIssue :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
 
 data SearchAgentReq = SearchAgentreq
   { dl :: Maybe Text,

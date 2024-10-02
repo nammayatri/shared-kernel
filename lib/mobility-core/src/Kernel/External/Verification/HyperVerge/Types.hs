@@ -120,12 +120,12 @@ instance ToJSON VerifyRCAsyncReq where
 data VerifyRCAsyncResp = VerifyRCAsyncResp
   { status :: Text,
     statusCode :: Int,
-    metaData :: Maybe VerifyRCAsyncMetaData,
-    result :: Maybe VerifyRCAsyncResult,
+    metaData :: Maybe VerifyRCDLAsyncMetaData,
+    result :: Maybe VerifyRCDLAsyncResult,
     error :: Maybe Text,
     message :: Maybe Text
   }
-  deriving (Show, Eq, Generic, ToJSON)
+  deriving (Show, Eq, Generic)
 
 instance FromJSON VerifyRCAsyncResp where
   parseJSON = withObject "VerifyRCAsyncResp" $ \v -> do
@@ -137,15 +137,79 @@ instance FromJSON VerifyRCAsyncResp where
     message <- v .:? "message"
     return $ VerifyRCAsyncResp {..}
 
-newtype VerifyRCAsyncMetaData = VerifyRCAsyncMetaData
+instance ToJSON VerifyRCAsyncResp where
+  toJSON (VerifyRCAsyncResp {..}) =
+    object
+      [ "status" .= status,
+        "statusCode" .= statusCode,
+        "metadata" .= metaData,
+        "result" .= result,
+        "error" .= error,
+        "message" .= message
+      ]
+
+newtype VerifyRCDLAsyncMetaData = VerifyRCDLAsyncMetaData
   { requestId :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
-newtype VerifyRCAsyncResult = VerifyRCAsyncResult
+newtype VerifyRCDLAsyncResult = VerifyRCDLAsyncResult
   { actionStatus :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data HyperVergeDLVerificationReq = HyperVergeDLVerificationReq
+  { dlNumber :: Text,
+    dob :: Text,
+    returnState :: Bool
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON HyperVergeDLVerificationReq where
+  parseJSON = withObject "HyperVergeDLVerificationReq" $ \v -> do
+    dlNumber <- v .: "dlNumber"
+    dob <- v .: "dob"
+    returnState <- (== String "yes") <$> (v .: "returnState")
+    return HyperVergeDLVerificationReq {..}
+
+instance ToJSON HyperVergeDLVerificationReq where
+  toJSON (HyperVergeDLVerificationReq dlNumber dob returnState) =
+    object
+      [ "dlNumber" .= dlNumber,
+        "dob" .= dob,
+        "returnState" .= bool (String "no") (String "yes") returnState
+      ]
+
+data HyperVergeDLVerificationResp = HyperVergeDLVerificationResp
+  { status :: Text,
+    statusCode :: Int,
+    metaData :: Maybe VerifyRCDLAsyncMetaData,
+    result :: Maybe VerifyRCDLAsyncResult,
+    error :: Maybe Text,
+    message :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON HyperVergeDLVerificationResp where
+  parseJSON = withObject "HyperVergeDLVerificationResp" $ \v -> do
+    status <- v .: "status"
+    statusCode <- v .: "statusCode"
+    metaData <- v .:? "metadata"
+    result <- v .:? "result"
+    error <- v .:? "error"
+    message <- v .:? "message"
+    return HyperVergeDLVerificationResp {..}
+
+instance ToJSON HyperVergeDLVerificationResp where
+  toJSON HyperVergeDLVerificationResp {..} =
+    object
+      [ "status" .= status,
+        "statusCode" .= statusCode,
+        "metadata" .= metaData,
+        "result" .= result,
+        "error" .= error,
+        "message" .= message
+      ]
 
 data GetVerificationStatusResp = GetVerificationStatusResp
   { status :: Text,
@@ -165,23 +229,37 @@ data VerificationStatusResult = VerificationStatusResult
 data VerificationAPIResp = VerificationAPIResp
   { status :: Text,
     statusCode :: Text,
-    result :: VerificationResultData
+    result :: Maybe VerificationResultData,
+    error :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
-data VerificationResultData = VerificationResultData
+data VerificationResultData = RCVerificationResultData RCVerificationData | DLVerificationResultData DLVerificationData
+  deriving (Show, Eq, Generic, ToJSON)
+
+instance FromJSON VerificationResultData where
+  parseJSON v =
+    let tryParse :: (FromJSON a) => (a -> VerificationResultData) -> Result VerificationResultData
+        tryParse constructor = constructor <$> fromJSON v
+     in case tryParse RCVerificationResultData of
+          Success result -> return result
+          _ -> case tryParse DLVerificationResultData of
+            Success result -> return result
+            Error str -> fail $ "Could not parse VerificationResultData !!!! Message:" <> str
+
+data RCVerificationData = RCVerificationData
   { transactionId :: Text,
     resultData :: ResData,
     timestamp :: Integer
   }
   deriving (Show, Eq, Generic, ToJSON)
 
-instance FromJSON VerificationResultData where
-  parseJSON = withObject "VerificationResultData" $ \v -> do
+instance FromJSON RCVerificationData where
+  parseJSON = withObject "RCVerificationData" $ \v -> do
     transactionId <- v .: "transaction_id"
     resultData <- v .: "data"
     timestamp <- v .: "timestamp"
-    return $ VerificationResultData {..}
+    return $ RCVerificationData {..}
 
 data ResData = ResData
   { code :: Maybe Text,
@@ -193,6 +271,7 @@ data ResData = ResData
 data RCData = RCData
   { taxEndDate :: Maybe Text,
     financed :: Maybe Bool,
+    financier :: Maybe Text,
     permitData :: Maybe PermitData,
     documentType :: Maybe Text,
     ownerData :: Maybe OwnerData,
@@ -201,38 +280,70 @@ data RCData = RCData
     registeredAt :: Maybe Text,
     insuranceData :: Maybe InsuranceData,
     vehicleData :: Maybe VehicleData,
-    normsType :: Maybe Text
+    normsType :: Maybe Text,
+    nonUseStatus :: Maybe Text
   }
-  deriving (Show, Eq, Generic, ToJSON)
+  deriving (Show, Eq, Generic)
 
 instance FromJSON RCData where
   parseJSON = withObject "RCData" $ \v -> do
     taxEndDate <- v .:? "tax_end_date"
     financed <- v .:? "financed"
+    financier <- v .:? "financier"
     permitData <- v .:? "permit_data"
     documentType <- v .:? "documentType"
     ownerData <- v .:? "ownerData"
     issueDate <- v .:? "issueDate"
     expiryDate <- v .:? "expiryDate"
     registeredAt <- v .:? "registeredAt"
-    insuranceData <- v .:? "insauranceData"
+    insuranceData <- v .:? "insuranceData"
     vehicleData <- v .:? "vehicleData"
     normsType <- v .:? "normsType"
+    nonUseStatus <- v .:? "nonUseStatus"
     return $ RCData {..}
+
+instance ToJSON RCData where
+  toJSON (RCData {..}) =
+    object
+      [ "tax_end_date" .= taxEndDate,
+        "financed" .= financed,
+        "financier" .= financier,
+        "permit_data" .= permitData,
+        "documentType" .= documentType,
+        "ownerData" .= ownerData,
+        "issueDate" .= issueDate,
+        "expiryDate" .= expiryDate,
+        "registeredAt" .= registeredAt,
+        "insuranceData" .= insuranceData,
+        "vehicleData" .= vehicleData,
+        "normsType" .= normsType,
+        "nonUseStatus" .= nonUseStatus
+      ]
 
 data PermitData = PermitData
   { permitNumber :: Maybe Text,
     permitType :: Maybe Text,
+    issueDate :: Maybe Text,
     expiryDate :: Maybe Text
   }
-  deriving (Show, Eq, Generic, ToJSON)
+  deriving (Show, Eq, Generic)
 
 instance FromJSON PermitData where
   parseJSON = withObject "PermitData" $ \v -> do
     permitNumber <- v .:? "permit_number"
     permitType <- v .:? "type"
+    issueDate <- v .:? "issue_date"
     expiryDate <- v .:? "expiry_date"
     return $ PermitData {..}
+
+instance ToJSON PermitData where
+  toJSON (PermitData {..}) =
+    object
+      [ "permit_number" .= permitNumber,
+        "type" .= permitType,
+        "issue_date" .= issueDate,
+        "expiry_date" .= expiryDate
+      ]
 
 data OwnerData = OwnerData
   { serial :: Maybe Text,
@@ -269,7 +380,7 @@ data VehicleData = VehicleData
     sleeperCapacity :: Maybe Text,
     unladenWeight :: Maybe Text
   }
-  deriving (Show, Eq, Generic, ToJSON)
+  deriving (Show, Eq, Generic)
 
 instance FromJSON VehicleData where
   parseJSON = withObject "VehicleData" $ \v -> do
@@ -292,8 +403,101 @@ instance FromJSON VehicleData where
     unladenWeight <- v .:? "unladenWeight"
     return $ VehicleData {..}
 
+instance ToJSON VehicleData where
+  toJSON (VehicleData {..}) =
+    object
+      [ "category" .= category,
+        "color" .= color,
+        "wheelbase" .= wheelbase,
+        "manufactured_Date" .= manufacturedDate,
+        "categoryDescription" .= categoryDescription,
+        "chassisNumber" .= chassisNumber,
+        "engineNumber" .= engineNumber,
+        "makerDescription" .= makerDescription,
+        "makerModel" .= makerModel,
+        "bodyType" .= bodyType,
+        "fuelType" .= fuelType,
+        "cubicCapacity" .= cubicCapacity,
+        "grossWeight" .= grossWeight,
+        "numberOfCylinders" .= numberOfCylinders,
+        "seatingCapacity" .= seatingCapacity,
+        "sleeperCapacity" .= sleeperCapacity,
+        "unladenWeight" .= unladenWeight
+      ]
+
 data VerificationStatusMetaData = VerificationStatusMetaData
   { requestId :: Maybe Text,
     transactionId :: Maybe Text
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data DLVerificationData = DLVerificationData
+  { issue_date :: Maybe Text,
+    father :: Maybe Text,
+    name :: Maybe Text,
+    img :: Maybe Text,
+    blood_group :: Maybe Text,
+    dob :: Maybe Text,
+    dl_number :: Maybe Text,
+    validity :: Maybe DLValidityInfo,
+    cov_details :: Maybe [CovDetails],
+    address :: Maybe Text,
+    state :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON DLVerificationData where
+  parseJSON = withObject "DLVerificationData" $ \v -> do
+    issue_date <- v .:? "issue_date"
+    father <- v .:? "father/husband"
+    name <- v .:? "name"
+    img <- v .:? "img"
+    blood_group <- v .:? "blood_group"
+    dob <- v .:? "dob"
+    dl_number <- v .:? "dl_number"
+    validity <- v .:? "validity"
+    cov_details <- v .:? "cov_details"
+    address <- v .:? "address"
+    state <- v .:? "state"
+    return DLVerificationData {..}
+
+instance ToJSON DLVerificationData where
+  toJSON (DLVerificationData {..}) =
+    object
+      [ "issue_date" .= issue_date,
+        "father/husband" .= father,
+        "name" .= name,
+        "img" .= img,
+        "blood_group" .= blood_group,
+        "dob" .= dob,
+        "dl_number" .= dl_number,
+        "validity" .= validity,
+        "cov_details" .= cov_details,
+        "address" .= address,
+        "state" .= state
+      ]
+
+data DLValidityInfo = DLValidityInfo
+  { transport :: Maybe Text,
+    nonTransport :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON DLValidityInfo where
+  parseJSON = withObject "DLValidityInfo" $ \v -> do
+    transport <- v .:? "transport"
+    nonTransport <- v .:? "non-transport"
+    return DLValidityInfo {..}
+
+instance ToJSON DLValidityInfo where
+  toJSON (DLValidityInfo transport nonTransport) =
+    object
+      [ "transport" .= transport,
+        "non-transport" .= nonTransport
+      ]
+
+data CovDetails = CovDetails
+  { cov :: Text,
+    issue_date :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
