@@ -144,3 +144,7 @@ hoistMaybe = MaybeT . pure
   case maybeA of
     Just _ -> return maybeA
     Nothing -> funcB
+
+safeInit :: [a] -> [a]
+safeInit [] = []
+safeInit xs = init xs
