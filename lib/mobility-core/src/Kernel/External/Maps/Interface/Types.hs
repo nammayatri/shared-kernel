@@ -46,7 +46,10 @@ import qualified Kernel.External.Maps.NextBillion.Config as NextBillion
 import qualified Kernel.External.Maps.OSRM.Config as OSRM
 import Kernel.External.Maps.Types
 import Kernel.External.Types (Language)
+import Kernel.Storage.Hedis as Redis
+import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Utils.Common
 import Kernel.Utils.GenericPretty (PrettyShow)
 
 data SnapToRoadHandler m = SnapToRoadHandler
@@ -54,6 +57,30 @@ data SnapToRoadHandler m = SnapToRoadHandler
     getConfidenceThreshold :: m Double,
     getProviderConfig :: MapsService -> m MapsServiceConfig
   }
+
+data MapsCallHandler m = MapsCallHandler
+  { getMapsProvidersList :: m [MapsService],
+    getMapsProviderConfig :: MapsService -> m MapsServiceConfig
+  }
+
+type MapsFlow m r = (EncFlow m r, Redis.HedisFlow m r, CoreMetrics m, HasShortDurationRetryCfg r m, Log m)
+
+data MapsFallbackError
+  = PlaceNameError
+  | AutoCompleteError
+  | PlaceDetailsError
+  | RoutesError
+  | DistanceError
+  | DistancesError
+  deriving (Show, Eq, Generic)
+
+mapsErrorMessage :: MapsFallbackError -> Text
+mapsErrorMessage PlaceNameError = "Not able to get place name config for all the configured providers"
+mapsErrorMessage AutoCompleteError = "Not able to get autocomplete config for all the configured providers"
+mapsErrorMessage PlaceDetailsError = "Not able to get place details config for all the configured providers"
+mapsErrorMessage RoutesError = "Not able to get routes config for all the configured providers"
+mapsErrorMessage DistanceError = "Not able to get distance config for all the configured providers"
+mapsErrorMessage DistancesError = "Not able to get distances config for all the configured providers"
 
 data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg | NextBillionConfig NextBillion.NextBillionCfg
   deriving stock (Show, Eq, Generic)
