@@ -160,6 +160,8 @@ instance L.MonadFlow (FlowR r) where
   callHTTPUsingManager mgr url = FlowR . L.callHTTPUsingManager mgr url
   {-# INLINEABLE fork #-}
   fork (FlowR f) = FlowR $ L.fork f
+  {-# INLINEABLE forkAndWaitForResult #-}
+  forkAndWaitForResult (FlowR f) = FlowR $ L.forkAndWaitForResult f
 
 -- {-# INLINEABLE callAPIUsingManager #-}
 -- callAPIUsingManager f flow = FlowR $ L.callAPIUsingManager f flow
@@ -249,4 +251,18 @@ instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkabl
       err (e :: SomeException) = do
         logError $ "Thread " <> show tag <> " died with error: " <> makeLogSomeException e
         Metrics.incrementErrorCounter "FORKED_THREAD_ERROR" e
+      refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalOptions}
+
+  forkAndWaitForResult tag f = do
+    newLocalOptions <- newMVar mempty
+    FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
+    where
+      handleExc f' = do
+        res <- try f'
+        case res of
+          Right a -> return a
+          Left e -> do
+            logError $ "Fork and Wait Thread " <> show tag <> " died with error: " <> makeLogSomeException e
+            Metrics.incrementErrorCounter "FORKED_AND_WAIT_FOR_RESULT_THREAD_ERROR" e
+            liftIO $ throwIO e
       refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalOptions}
