@@ -19,4 +19,5 @@ import EulerHS.Types
 
 class Forkable m where
   fork :: Text -> m () -> m ()
-  forkAndWaitForResult :: Text -> m a -> m (Awaitable (Either Text a))
+  awaitableFork :: Text -> m a -> m (Awaitable (Either Text a))
+  forkMultiple :: [(Text, m ())] -> m ()
