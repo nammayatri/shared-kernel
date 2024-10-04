@@ -20,6 +20,8 @@ module Kernel.External.Verification.Interface.Idfy
     extractRCImage,
     extractDLImage,
     getTask,
+    convertDLOutputToDLVerificationOutput,
+    convertRCOutputToRCVerificationResponse,
   )
 where
 
@@ -34,9 +36,12 @@ import Kernel.External.Verification.Idfy.Types as Reexport
 import qualified Kernel.External.Verification.Idfy.Types.Request as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import Kernel.External.Verification.Interface.Types
+import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Types.Error (GenericError (InternalError))
+import Kernel.Utils.Error.Throwing
 
 buildIdfyRequest :: MonadGuid m => Text -> a -> m (Idfy.IdfyRequest a)
 buildIdfyRequest driverId a = do
@@ -67,7 +72,7 @@ verifyDLAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyDLAsync apiKey accountId url idfyReq
-  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id}
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy}
 
 verifyRCAsync ::
   ( EncFlow m r,
@@ -87,7 +92,7 @@ verifyRCAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyRCAsync apiKey accountId url idfyReq
-  pure $ AsyncResp VerifyAsyncResp {requestId = idfySuccess.request_id}
+  pure $ AsyncResp VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy}
 
 validateImage ::
   ( EncFlow m r,
@@ -207,8 +212,6 @@ extractDLImage cfg req = do
               }
       }
 
--- not used in interface
-
 getTask ::
   ( EncFlow m r,
     CoreMetrics m
@@ -220,4 +223,43 @@ getTask cfg req = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
   accountId <- decrypt cfg.accountId
-  Idfy.getTask apiKey accountId url req
+  resp <- Idfy.getTask apiKey accountId url req.requestId
+  let dlOutput = join $ resp.result <&> (.source_output)
+      rcOutput = join $ resp.result <&> (.extraction_output)
+  case (dlOutput, rcOutput) of
+    (Just op, Nothing) -> return $ DLResp (convertDLOutputToDLVerificationOutput op)
+    (Nothing, Just op) -> return $ RCResp (convertRCOutputToRCVerificationResponse op)
+    _ -> throwError $ InternalError ("Unrecognized response from getTesk api. Resp : " <> show resp)
+
+convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
+convertDLOutputToDLVerificationOutput DLVerificationOutput {..} =
+  DLVerificationOutputInterface
+    { driverName = name,
+      licenseNumber = id_number,
+      covs = cov_details,
+      dateOfIssue = date_of_issue,
+      ..
+    }
+
+convertRCOutputToRCVerificationResponse :: RCVerificationOutput -> VT.RCVerificationResponse
+convertRCOutputToRCVerificationResponse RCVerificationOutput {..} =
+  VT.RCVerificationResponse
+    { registrationDate = registration_date,
+      registrationNumber = registration_number,
+      fitnessUpto = fitness_upto,
+      insuranceValidity = insurance_validity,
+      vehicleClass = vehicle_class,
+      vehicleCategory = vehicle_category,
+      seatingCapacity = seating_capacity,
+      manufacturer = manufacturer,
+      permitValidityFrom = permit_validity_from,
+      permitValidityUpto = permit_validity_upto,
+      pucValidityUpto = puc_validity_upto,
+      manufacturerModel = manufacturer_model,
+      mYManufacturing = m_y_manufacturing,
+      colour = colour,
+      color = color,
+      fuelType = fuel_type,
+      bodyType = body_type,
+      status = status
+    }
