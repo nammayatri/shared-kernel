@@ -22,6 +22,7 @@ module Kernel.External.Maps.Types
 where
 
 import Control.Lens.Operators
+import Data.Default.Class
 import Data.Geospatial
 import Data.LineString
 import Data.OpenApi
@@ -48,7 +49,7 @@ data LatLong = LatLong
   { lat :: Double,
     lon :: Double
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema, PrettyShow, Ord, Read)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema, PrettyShow, Ord, Read, Default)
 
 instance HasSqlValueSyntax B.Value LatLong where
   sqlValueSyntax = autoSqlValueSyntax
