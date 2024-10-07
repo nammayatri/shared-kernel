@@ -11,17 +11,50 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
 
 module Kernel.Types.Beckn.Ack where
 
+import qualified Control.Lens as L
 import Data.Aeson
 import qualified Data.Aeson.Key as AesonKey (Key)
 import Data.Aeson.Types (unexpected)
-import Data.OpenApi (ToSchema)
+import qualified Data.HashMap.Strict.InsOrd as HMSIO
+import Data.OpenApi
 import EulerHS.Prelude
 
 data AckResponse = Ack
-  deriving (Generic, Show, ToSchema)
+  deriving (Generic, Show)
+
+instance ToSchema AckResponse where
+  declareNamedSchema _ = do
+    return $
+      NamedSchema (Just "AckResponse") $
+        mempty
+          & type_ L.?~ OpenApiObject
+          & properties
+            L..~ HMSIO.singleton "message" messageSchema
+          & required L..~ ["message"]
+    where
+      statusSchema =
+        (mempty :: Schema)
+          & type_ L.?~ OpenApiString
+          & enum_ L.?~ ["ACK"]
+          & Inline
+      ackSchema =
+        (mempty :: Schema)
+          & type_ L.?~ OpenApiObject
+          & properties
+            L..~ HMSIO.singleton "status" statusSchema
+          & required L..~ ["status"]
+          & Inline
+      messageSchema =
+        (mempty :: Schema)
+          & type_ L.?~ OpenApiObject
+          & properties
+            L..~ HMSIO.singleton "ack" ackSchema
+          & required L..~ ["ack"]
+          & Inline
 
 instance FromJSON AckResponse where
   parseJSON = withObject "Ack" $ \v -> do

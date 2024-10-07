@@ -155,6 +155,7 @@ dependencies:
   - concurrency
   - casing
   - slack-web
+  - insert-ordered-containers
 
 ghc-options:
   - -fwrite-ide-info
