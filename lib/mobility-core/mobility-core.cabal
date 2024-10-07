@@ -507,6 +507,7 @@ library
     , http-media
     , http-types
     , hw-kafka-client
+    , insert-ordered-containers
     , jwt
     , kleene
     , lattices
@@ -667,6 +668,7 @@ test-suite mobility-core-tests
     , http-media
     , http-types
     , hw-kafka-client
+    , insert-ordered-containers
     , jwt
     , kleene
     , lattices
