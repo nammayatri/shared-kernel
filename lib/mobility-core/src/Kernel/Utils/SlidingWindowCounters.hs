@@ -130,7 +130,7 @@ getkeysForLastPeriods :: SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) ->
 getkeysForLastPeriods swo utcTime keyModifier = map (makeSWKeyForTime swo utcTime keyModifier) [0 .. swo.period - 1]
 
 getkeysUptoThisPeriod :: SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> [Text]
-getkeysUptoThisPeriod swo utcTime keyModifier uptoPeriod = map (makeSWKeyForTime swo utcTime keyModifier) [0 .. swo.period - uptoPeriod]
+getkeysUptoThisPeriod swo utcTime keyModifier uptoPeriod = map (makeSWKeyForTime swo utcTime keyModifier) [0 .. uptoPeriod - 1]
 
 makeSWKeyForTime :: SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> Text
 makeSWKeyForTime SlidingWindowOptions {..} utcTime keyModifier periodMagnitude =
