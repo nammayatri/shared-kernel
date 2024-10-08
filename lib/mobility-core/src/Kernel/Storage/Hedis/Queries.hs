@@ -707,6 +707,17 @@ zRem key members = withLogTag "Redis" $ do
       pure (-1) -- Return -1 if there was an error
     Right items -> pure items
 
+zRem' :: (ToJSON member, HedisFlow m env) => Text -> [member] -> m ()
+zRem' key members = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  if migrating
+    then do
+      res <- withTimeRedis "RedisStandalone" "zRem" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zrem prefKey $ map (\val -> BSL.toStrict $ Ae.encode val) members)
+      whenLeft res (\err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_ZREM" $ show err)
+    else pure ()
+  res <- withTimeRedis "RedisCluster" "zRem" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.zrem prefKey $ map (\val -> BSL.toStrict $ Ae.encode val) members)
+  whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZREM" $ show err)
+
 xDel :: (HedisFlow m env) => Text -> [BS.ByteString] -> m Integer
 xDel key entryId = withLogTag "Redis" $ do
   migrating <- asks (.hedisMigrationStage)
@@ -779,3 +790,18 @@ sMembers :: (FromJSON a, HedisFlow m env) => Text -> m [a]
 sMembers key = withTimeRedis "RedisCluster" "sMembers" $ do
   res <- runWithPrefix key Hedis.smembers
   mapM (\a -> Error.fromMaybeM (HedisDecodeError $ cs a) . Ae.decode $ cs a) res
+
+ttl :: (HedisFlow m env) => Text -> m Integer
+ttl key = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "ttl" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.ttl prefKey)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_TTL" $ show err
+      Right expSec -> pure expSec
+  res <- withTimeRedis "RedisCluster" "ttl" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.ttl prefKey)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_TTL" $ show err
+      pure (-1) -- Returning -1 if there was an error
+    Right expSec -> pure expSec
