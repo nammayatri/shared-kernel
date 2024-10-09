@@ -12,6 +12,7 @@ import Kernel.External.MultiModal.OpenTripPlanner.Types
 import Kernel.External.MultiModal.Utils
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common hiding (id)
+import Servant.Client.Core (showBaseUrl)
 
 formatUtcDateTime :: UTCTime -> (String, String)
 formatUtcDateTime utcTime = (dateString, timeString)
@@ -39,7 +40,7 @@ getTransitRoutes cfg req = do
             lon = req.destination.location.latLng.longitude
           }
   let dateTime = req.departureTime <&> formatUtcDateTime
-  let planClient = fromString cfg.baseUrl
+  let planClient = fromString (showBaseUrl cfg.baseUrl)
   let transportModes' = req.transportModes
   resp <-
     liftIO $
