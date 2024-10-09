@@ -24,19 +24,19 @@ import qualified Kernel.Storage.ClickhouseV2.ClickhouseValue as CH
 import Kernel.Types.Common ()
 import Language.Haskell.TH
 
-mkClickhouseInstances :: Name -> Name -> Q [Dec]
-mkClickhouseInstances name selectModifier = do
+mkClickhouseInstances :: Name -> Q [Dec]
+mkClickhouseInstances name = do
   fields <- reifyFields name
   let fieldNames = fst <$> fields
   fromJSONValue <- mkFromJSONValue name fieldNames
   fromJSON <- mkFromJSON name fieldNames
-  isClickhouseTableInstance <- mkClickhouseTableInstance name fields selectModifier
+  isClickhouseTableInstance <- mkClickhouseTableInstance name fields
   pure [fromJSONValue, fromJSON, isClickhouseTableInstance]
 
 -- | Will generate string for simple testing in repl. Using: putStrLn testSplice
-mkClickhouseInstancesDebug :: Name -> Name -> Q [Dec]
-mkClickhouseInstancesDebug name selectModifier = do
-  decs <- mkClickhouseInstances name selectModifier
+mkClickhouseInstancesDebug :: Name -> Q [Dec]
+mkClickhouseInstancesDebug name = do
+  decs <- mkClickhouseInstances name
   testFunc <- mkTestSplice decs
   pure $ decs <> testFunc
 
@@ -61,8 +61,8 @@ reifyFields name = do
         _ -> fail $ nameStr <> " should be data type with one constructor"
     _ -> fail $ nameStr <> " should be type name"
 
-mkClickhouseTableInstance :: Name -> [(Name, Type)] -> Name -> Q Dec
-mkClickhouseTableInstance name fieldNames selectModifier = do
+mkClickhouseTableInstance :: Name -> [(Name, Type)] -> Q Dec
+mkClickhouseTableInstance name fieldNames = do
   let camelName = toLower (head $ nameBase name) : tail (nameBase name)
       fnN = mkName $ camelName <> "Table"
       fN = mkName "f"
@@ -74,8 +74,7 @@ mkClickhouseTableInstance name fieldNames selectModifier = do
       bodyExpr = RecConE nameC fieldExpressions
       tableModificationFunc = FunD 'CH.tableModification [Clause [] (NormalB $ VarE fnN) []]
       mapTableFunc = FunD 'CH.mapTable [Clause [VarP fN, VarP tN] (NormalB bodyExpr) []]
-      selectModifierFunc = FunD 'CH.getSelectModifier [Clause [WildP] (NormalB $ ConE selectModifier) []]
-  return $ InstanceD Nothing [] (ConT ''CH.ClickhouseTable `AppT` ConT name) [tableModificationFunc, mapTableFunc, selectModifierFunc]
+  return $ InstanceD Nothing [] (ConT ''CH.ClickhouseTable `AppT` ConT name) [tableModificationFunc, mapTableFunc]
 
 -- SPLICE:
 -- instance ClickhouseTable FooT where

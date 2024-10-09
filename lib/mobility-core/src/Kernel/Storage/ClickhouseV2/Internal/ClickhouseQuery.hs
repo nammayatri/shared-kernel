@@ -41,14 +41,10 @@ instance (ClickhouseDb db, ClickhouseTable t, ClickhouseColumns a cols, Clickhou
   toClickhouseQuery (Select cols groupBy q) = do
     -- should we add table name modifier?
     let tableName = dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)
-    let selectModifier = case getSelectModifier (Proxy @t) of
-          NO_SELECT_MODIFIER -> ""
-          SELECT_FINAL_MODIFIER -> " FINAL "
     "SELECT "
       <> RawQuery (showClickhouseColumns @a @cols (Proxy @a) cols)
       <> " FROM "
       <> fromString tableName
-      <> selectModifier
       <> toClickhouseQuery @(Where t) (q.whereQ cols)
       <> toClickhouseQuery @(GroupBy a gr) groupBy
       <> mkMaybeClause @(OrderBy ord) (q.orderByQ <&> ($ cols))
