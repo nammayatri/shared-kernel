@@ -197,7 +197,6 @@ data TransitDirectionsReq = TransitDirectionsReq
     arrivalTime :: Maybe String, -- yyyy-mm-ddThh:mm:ssZ
     departureTime :: Maybe String
   }
-  -----------remove null fields-----------
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
 data AdvancedDirectionsReq = AdvancedDirectionsReq
@@ -351,7 +350,7 @@ instance ToJSON VehicleV2 where
 newtype Polyline = Polyline
   { encodedPolyline :: PolyLinePoints
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
 
 newtype EncodedPointObject = EncodedPointObject {points :: PolyLinePoints}
   deriving stock (Generic)

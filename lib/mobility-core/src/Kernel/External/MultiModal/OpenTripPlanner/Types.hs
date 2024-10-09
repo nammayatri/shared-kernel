@@ -5,7 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Kernel.External.Maps.OpenTripPlanner.Types where
+module Kernel.External.MultiModal.OpenTripPlanner.Types where
 
 import Data.Morpheus.Client.CodeGen.Internal
 import EulerHS.Prelude hiding (id, product)

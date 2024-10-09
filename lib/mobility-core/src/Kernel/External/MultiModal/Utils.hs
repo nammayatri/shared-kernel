@@ -1,21 +1,48 @@
 module Kernel.External.MultiModal.Utils
   ( convertGoogleToGeneric,
     convertOTPToGeneric,
+    decode,
+    encode,
   )
 where
 
 import qualified Data.Char as Char
 import qualified Data.Text as T
-import EulerHS.Prelude
-import qualified Kernel.External.Maps.Google.MapsClient.Types as GT
-import qualified Kernel.External.Maps.OpenTripPlanner.Types as OTP
-import qualified Kernel.External.MultiModal.Common.Polyline as GP
-import Kernel.External.MultiModal.Types
-import Kernel.Prelude (read)
+import qualified Data.Text.Encoding as TE
+import EulerHS.Prelude (safeHead)
+import Kernel.External.Maps.Google.MapsClient.Types as GT
+import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
+import Kernel.External.MultiModal.Interface.Types
+import qualified Kernel.External.MultiModal.OpenTripPlanner.Types as OTP
+import Kernel.Prelude
 import Kernel.Utils.Time (millisecondsToUTC, parseISO8601UTC)
 
 extractDuration :: T.Text -> Int
 extractDuration t = read (filter Char.isDigit (T.unpack t)) :: Int
+
+makePairs :: [Double] -> [GT.LatLngV2]
+makePairs (d1 : d2 : ds) = GT.LatLngV2 d1 d2 : makePairs ds
+makePairs [] = []
+makePairs _ = []
+
+catPairs :: [GT.LatLngV2] -> [Double]
+catPairs [] = []
+catPairs (GT.LatLngV2 a b : xs) = a : b : catPairs xs
+
+addPair :: GT.LatLngV2 -> GT.LatLngV2 -> GT.LatLngV2
+addPair (GT.LatLngV2 x1 y1) (GT.LatLngV2 x2 y2) = GT.LatLngV2 (x1 + x2) (y1 + y2)
+
+subPair :: GT.LatLngV2 -> GT.LatLngV2 -> GT.LatLngV2
+subPair (GT.LatLngV2 x1 y1) (GT.LatLngV2 x2 y2) = GT.LatLngV2 (x1 - x2) (y1 - y2)
+
+adjDiff :: [GT.LatLngV2] -> [GT.LatLngV2]
+adjDiff p = zipWith subPair p (GT.LatLngV2 0 0 : p)
+
+decode :: T.Text -> [GT.LatLngV2]
+decode = scanl1 addPair . makePairs . stringToCoords . TE.encodeUtf8
+
+encode :: [GT.LatLngV2] -> T.Text
+encode = T.concat . fmap oneCoordEnc . catPairs . adjDiff
 
 convertGoogleToGeneric :: GT.AdvancedDirectionsResp -> MultiModalResponse
 convertGoogleToGeneric gResponse =
@@ -127,7 +154,7 @@ convertGoogleToGeneric gResponse =
       let leg1Start = leg1.startLocation
           leg2Start = leg2.startLocation
           leg2End = leg2.endLocation
-          encodedPolylineText = GP.encode [leg1Start.latLng, leg2Start.latLng, leg2End.latLng]
+          encodedPolylineText = encode [leg1Start.latLng, leg2Start.latLng, leg2End.latLng]
        in MultiModalLeg
             { distance = leg1.distance + leg2.distance,
               duration = leg1.duration + leg2.duration,

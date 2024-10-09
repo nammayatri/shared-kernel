@@ -1,26 +1,23 @@
-module Kernel.External.Maps.Interface.OpenTripPlanner (getTransitRoutes) where
+module Kernel.External.MultiModal.Interface.OpenTripPlanner (getTransitRoutes) where
 
 import Data.Morpheus.Client
   ( request,
     single,
   )
-import Data.Time.Format (defaultTimeLocale, formatTime, parseTimeM)
+import Data.Time.Format (defaultTimeLocale, formatTime)
 import EulerHS.Prelude hiding (id, product)
-import Kernel.External.Encryption
-import qualified Kernel.External.Maps.Interface.Types as TP
-import Kernel.External.Maps.OpenTripPlanner.Config
-import Kernel.External.Maps.OpenTripPlanner.Types
-import Kernel.External.MultiModal.Types
+import qualified Kernel.External.MultiModal.Interface.Types as TP
+import Kernel.External.MultiModal.OpenTripPlanner.Config
+import Kernel.External.MultiModal.OpenTripPlanner.Types
 import Kernel.External.MultiModal.Utils
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common hiding (id)
 
-convertDateTime :: String -> Maybe (String, String)
-convertDateTime input = do
-  time <- parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ" input :: Maybe UTCTime
-  let dateStr = formatTime defaultTimeLocale "%Y-%m-%d" time
-  let timeStr = formatTime defaultTimeLocale "%H:%M" time
-  return (dateStr, timeStr)
+formatUtcDateTime :: UTCTime -> (String, String)
+formatUtcDateTime utcTime = (dateString, timeString)
+  where
+    dateString = formatTime defaultTimeLocale "%Y-%m-%d" utcTime
+    timeString = formatTime defaultTimeLocale "%H:%M" utcTime
 
 getTransitRoutes ::
   ( EncFlow m r,
@@ -29,7 +26,7 @@ getTransitRoutes ::
   ) =>
   OTPCfg ->
   TP.GetTransitRoutesReq ->
-  m (Maybe MultiModalResponse)
+  m (Maybe TP.MultiModalResponse)
 getTransitRoutes cfg req = do
   let origin =
         InputCoordinates
@@ -41,7 +38,7 @@ getTransitRoutes cfg req = do
           { lat = req.destination.location.latLng.latitude,
             lon = req.destination.location.latLng.longitude
           }
-  let dateTime = req.arrivalTime >>= convertDateTime
+  let dateTime = req.departureTime <&> formatUtcDateTime
   let planClient = fromString cfg.baseUrl
   let transportModes' = req.transportModes
   resp <-

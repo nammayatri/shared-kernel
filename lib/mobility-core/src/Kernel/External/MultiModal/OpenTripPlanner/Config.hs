@@ -1,4 +1,4 @@
-module Kernel.External.Maps.OpenTripPlanner.Config where
+module Kernel.External.MultiModal.OpenTripPlanner.Config (OTPCfg) where
 
 import Kernel.Prelude
 
