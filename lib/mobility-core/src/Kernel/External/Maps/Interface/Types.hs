@@ -41,12 +41,9 @@ import qualified Debug.Trace as T
 import Deriving.Aeson
 import EulerHS.Prelude
 import qualified Kernel.External.Maps.Google.Config as Google
-import qualified Kernel.External.Maps.Google.MapsClient.Types as GT
 import qualified Kernel.External.Maps.MMI.Config as MMI
 import qualified Kernel.External.Maps.NextBillion.Config as NextBillion
 import qualified Kernel.External.Maps.OSRM.Config as OSRM
-import qualified Kernel.External.Maps.OpenTripPlanner.Config as OTP
-import qualified Kernel.External.Maps.OpenTripPlanner.Types as OTPTypes
 import Kernel.External.Maps.Types
 import Kernel.External.Types (Language)
 import Kernel.Types.Common
@@ -61,10 +58,6 @@ data SnapToRoadHandler m = SnapToRoadHandler
 data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg | NextBillionConfig NextBillion.NextBillionCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MapsServiceConfig
-
-data TransitServiceConfig = GoogleTransit Google.GoogleCfg | OTPTransit OTP.OTPCfg
-  deriving stock (Show, Eq, Generic)
-  deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] TransitServiceConfig
 
 data TravelMode = CAR | MOTORCYCLE | BICYCLE | FOOT
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
@@ -103,17 +96,6 @@ data GetRoutesReq = GetRoutesReq
   { waypoints :: NonEmpty LatLong,
     mode :: Maybe TravelMode, -- Defaults to CAR
     calcPoints :: Bool -- True (default) if points needs to be calculated
-  }
-  deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
-
-data GetTransitRoutesReq = GetTransitRoutesReq
-  { origin :: GT.WayPointV2,
-    destination :: GT.WayPointV2,
-    arrivalTime :: Maybe String,
-    departureTime :: Maybe String,
-    mode :: Maybe GT.ModeV2,
-    transitPreferences :: Maybe GT.TransitPreferencesV2,
-    transportModes :: Maybe [Maybe OTPTypes.TransportMode]
   }
   deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
 

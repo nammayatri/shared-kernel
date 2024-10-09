@@ -1,47 +1,24 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.MultiModal.Types where
+module Kernel.External.MultiModal.Types
+  ( module Kernel.External.MultiModal.Types,
+  )
+where
 
-import Data.Time (UTCTime)
+import Data.OpenApi hiding (name)
 import EulerHS.Prelude
-import qualified Kernel.External.Maps.Google.MapsClient.Types as GT
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
+import Kernel.Storage.Esqueleto (derivePersistField)
 
-newtype MultiModalResponse = MultiModalResponse {routes :: [MultiModalRoute]}
-  deriving (Generic)
+data MultiModalService = GoogleTransit | OTPTransit
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-data MultiModalRoute = MultiModalRoute
-  { distance :: Double,
-    duration :: Int,
-    legs :: [MultiModalLeg]
-  }
-  deriving (Generic)
+$(mkBeamInstancesForEnumAndList ''MultiModalService)
 
-data MutliModalStopDetails = MultiModalStopDetails
-  { stopCode :: Maybe String,
-    name :: Maybe Text
-  }
-  deriving (Show, Generic)
+availableMultiModalService :: [MultiModalService]
+availableMultiModalService = [GoogleTransit, OTPTransit]
 
-data MultiModalAgency = MultiModalAgency
-  { gtfsId :: Maybe Text,
-    name :: Text
-  }
-  deriving (Generic)
-
-data MultiModalLeg = MultiModalLeg
-  { distance :: Double,
-    duration :: Double,
-    polyline :: GT.Polyline,
-    mode :: String,
-    startLocation :: GT.LocationV2,
-    endLocation :: GT.LocationV2,
-    fromStopDetails :: Maybe MutliModalStopDetails,
-    toStopDetails :: Maybe MutliModalStopDetails,
-    agency :: Maybe MultiModalAgency,
-    fromArrivalTime :: Maybe UTCTime,
-    fromDepartureTime :: Maybe UTCTime,
-    toArrivalTime :: Maybe UTCTime,
-    toDepartureTime :: Maybe UTCTime
-  }
-  deriving (Generic)
+derivePersistField "MultiModalService"

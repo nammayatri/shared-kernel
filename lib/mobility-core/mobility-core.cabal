@@ -88,7 +88,6 @@ library
       Kernel.External.Maps.Interface.Google
       Kernel.External.Maps.Interface.MMI
       Kernel.External.Maps.Interface.NextBillion
-      Kernel.External.Maps.Interface.OpenTripPlanner
       Kernel.External.Maps.Interface.OSRM
       Kernel.External.Maps.Interface.Types
       Kernel.External.Maps.MMI.AutoSuggest
@@ -104,13 +103,17 @@ library
       Kernel.External.Maps.NextBillion.Config
       Kernel.External.Maps.NextBillion.Route
       Kernel.External.Maps.NextBillion.Types
-      Kernel.External.Maps.OpenTripPlanner.Config
-      Kernel.External.Maps.OpenTripPlanner.Types
       Kernel.External.Maps.OSRM.Config
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
       Kernel.External.Maps.Utils
-      Kernel.External.MultiModal.Common.Polyline
+      Kernel.External.MultiModal
+      Kernel.External.MultiModal.Interface
+      Kernel.External.MultiModal.Interface.Google
+      Kernel.External.MultiModal.Interface.OpenTripPlanner
+      Kernel.External.MultiModal.Interface.Types
+      Kernel.External.MultiModal.OpenTripPlanner.Config
+      Kernel.External.MultiModal.OpenTripPlanner.Types
       Kernel.External.MultiModal.Types
       Kernel.External.MultiModal.Utils
       Kernel.External.Notification

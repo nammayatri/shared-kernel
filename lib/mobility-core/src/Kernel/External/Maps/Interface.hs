@@ -19,7 +19,6 @@ module Kernel.External.Maps.Interface
     getDistances,
     getRoutesProvided,
     getRoutes,
-    getTransitRoutes,
     snapToRoadProvided,
     snapToRoad,
     snapToRoadWithFallback,
@@ -39,12 +38,10 @@ import qualified Kernel.External.Maps.Interface.Google as Google
 import qualified Kernel.External.Maps.Interface.MMI as MMI
 import qualified Kernel.External.Maps.Interface.NextBillion as NextBillion
 import qualified Kernel.External.Maps.Interface.OSRM as OSRM
-import qualified Kernel.External.Maps.Interface.OpenTripPlanner as OTP
 import Kernel.External.Maps.Interface.Types as Reexport
 import Kernel.External.Maps.MMI.Config as Reexport
 import Kernel.External.Maps.OSRM.Config as Reexport
 import Kernel.External.Maps.Types as Reexport
-import Kernel.External.MultiModal.Types
 import Kernel.Prelude
 import Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -127,18 +124,6 @@ getRoutes isAvoidToll serviceConfig req = case serviceConfig of
   OSRMConfig osrmCfg -> OSRM.getRoutes osrmCfg req
   MMIConfig cfg -> MMI.getRoutes cfg req
   NextBillionConfig cfg -> NextBillion.getRoutes cfg req
-
-getTransitRoutes ::
-  ( EncFlow m r,
-    CoreMetrics m,
-    Log m
-  ) =>
-  TransitServiceConfig ->
-  GetTransitRoutesReq ->
-  m (Maybe MultiModalResponse)
-getTransitRoutes serviceConfig req = case serviceConfig of
-  GoogleTransit cfg -> Google.getTransitRoutes cfg req
-  OTPTransit cfg -> OTP.getTransitRoutes cfg req
 
 snapToRoadProvided :: MapsService -> Bool
 snapToRoadProvided = \case
