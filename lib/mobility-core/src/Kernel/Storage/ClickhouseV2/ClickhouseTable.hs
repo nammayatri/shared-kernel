@@ -21,9 +21,6 @@ import Kernel.Prelude
 class (Typeable t, FromJSON (t Identity)) => ClickhouseTable (t :: (Type -> Type) -> Type) where
   tableModification :: FieldModifications t
   mapTable :: forall f g. (forall a. C f a -> C g a) -> t f -> t g
-  getSelectModifier :: Proxy t -> SelectModifier
-
-data SelectModifier = SELECT_FINAL_MODIFIER | NO_SELECT_MODIFIER
 
 -- | A type family that we use to "tag" columns in our table datatypes.
 type family Columnar (f :: Type -> Type) x where
