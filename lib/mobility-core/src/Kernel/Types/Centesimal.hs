@@ -56,7 +56,7 @@ toCentesimal = Centesimal . MkFixed . toInteger
 
 instance ToSchema Centesimal where
   declareNamedSchema _ = do
-    aSchema <- declareSchema (Proxy :: Proxy Text)
+    aSchema <- declareSchema (Proxy :: Proxy Centi)
     return $
       NamedSchema (Just "Centesimal") $
         aSchema
