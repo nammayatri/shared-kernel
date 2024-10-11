@@ -3,14 +3,16 @@ query OTPPlan (
     $to: InputCoordinates!,
     $date: String,
     $time:String,
-    $transportModes: [TransportMode]
+    $transportModes: [TransportMode],
+    $numItineraries: Int
 ){
   plan(
     from: $from,
     to: $to,
     date: $date,
     time: $time,
-    transportModes: $transportModes
+    transportModes: $transportModes,
+    numItineraries : $numItineraries
   ) {
     itineraries {
       duration

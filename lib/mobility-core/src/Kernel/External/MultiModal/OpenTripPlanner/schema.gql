@@ -51,6 +51,7 @@ type Place {
   lon: Float!
   departureTime: Float!
   arrivalTime: Float!
+  stop : Stop
 }
 
 type Route {
@@ -65,6 +66,10 @@ type Agency {
   gtfsId: String!
 }
 
+type Stop {
+  code : String
+}
+
 type Query {
   plan(
     from: InputCoordinates!
@@ -72,5 +77,6 @@ type Query {
     transportModes: [TransportMode]
     date: String
     time: String
+    numItineraries: Int
   ): Plan!
 }

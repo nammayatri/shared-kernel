@@ -42,6 +42,7 @@ getTransitRoutes cfg req = do
   let dateTime = req.departureTime <&> formatUtcDateTime
   let planClient = fromString (showBaseUrl cfg.baseUrl)
   let transportModes' = req.transportModes
+  let numItineraries' = Just 7
   resp <-
     liftIO $
       planClient
@@ -50,7 +51,8 @@ getTransitRoutes cfg req = do
             to = destination,
             date = fst <$> dateTime,
             time = snd <$> dateTime,
-            transportModes = transportModes'
+            transportModes = transportModes',
+            numItineraries = numItineraries'
           }
           >>= single
   case resp of

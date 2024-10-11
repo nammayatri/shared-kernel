@@ -38,7 +38,7 @@ instance ToJSON TransportMode where
 instance RequestType OTPPlan where
   type RequestArgs OTPPlan = OTPPlanArgs
   __name _ = "OTPPlan"
-  __query _ = "query OTPPlan (\n    $from: InputCoordinates!,\n    $to: InputCoordinates!,\n    $date: String,\n    $time:String,\n    $transportModes: [TransportMode]\n){\n  plan(\n    from: $from,\n    to: $to,\n    date: $date,\n    time: $time,\n    transportModes: $transportModes\n  ) {\n    itineraries {\n      duration\n      legs {\n        pickupType\n        distance\n        mode\n        duration\n        startTime\n        endTime\n        from {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n          }\n        }\n        to {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n          }\n        }\n        route {\n          gtfsId\n          longName\n          shortName\n          agency {\n            gtfsId\n            name\n          }\n        }\n        legGeometry {\n          points\n        }\n        fareProducts {\n          id\n        }\n      }\n    }\n  }\n}\n"
+  __query _ = "query OTPPlan (\n    $from: InputCoordinates!,\n    $to: InputCoordinates!,\n    $date: String,\n    $time:String,\n    $transportModes: [TransportMode],\n    $numItineraries: Int\n){\n  plan(\n    from: $from,\n    to: $to,\n    date: $date,\n    time: $time,\n    transportModes: $transportModes,\n    numItineraries : $numItineraries\n  ) {\n    itineraries {\n      duration\n      legs {\n        pickupType\n        distance\n        mode\n        duration\n        startTime\n        endTime\n        from {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n          }\n        }\n        to {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n          }\n        }\n        route {\n          gtfsId\n          longName\n          shortName\n          agency {\n            gtfsId\n            name\n          }\n        }\n        legGeometry {\n          points\n        }\n        fareProducts {\n          id\n        }\n      }\n    }\n  }\n}\n"
   __type _ = OPERATION_QUERY
 
 newtype OTPPlan = OTPPlan
@@ -179,16 +179,18 @@ data OTPPlanArgs = OTPPlanArgs
     to :: InputCoordinates,
     date :: Maybe String,
     time :: Maybe String,
-    transportModes :: Maybe [Maybe TransportMode]
+    transportModes :: Maybe [Maybe TransportMode],
+    numItineraries :: Maybe Int
   }
   deriving (Generic, Show, Eq)
 
 instance ToJSON OTPPlanArgs where
-  toJSON (OTPPlanArgs oTPPlanArgsFrom oTPPlanArgsTo oTPPlanArgsDate oTPPlanArgsTime oTPPlanArgsTransportModes) =
+  toJSON (OTPPlanArgs oTPPlanArgsFrom oTPPlanArgsTo oTPPlanArgsDate oTPPlanArgsTime oTPPlanArgsTransportModes oTPPlanArgsNumItineraries) =
     omitNulls
       [ "from" .= oTPPlanArgsFrom,
         "to" .= oTPPlanArgsTo,
         "date" .= oTPPlanArgsDate,
         "time" .= oTPPlanArgsTime,
-        "transportModes" .= oTPPlanArgsTransportModes
+        "transportModes" .= oTPPlanArgsTransportModes,
+        "numItineraries" .= oTPPlanArgsNumItineraries
       ]

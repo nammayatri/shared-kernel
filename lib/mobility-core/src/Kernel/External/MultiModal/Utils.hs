@@ -15,6 +15,7 @@ import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
 import Kernel.External.MultiModal.Interface.Types
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Types as OTP
 import Kernel.Prelude
+import qualified Kernel.Types.Distance as Distance
 import Kernel.Utils.Time (millisecondsToUTC, parseISO8601UTC)
 
 extractDuration :: T.Text -> Int
@@ -55,11 +56,18 @@ convertGoogleToGeneric gResponse =
     accumulateRoutes :: GT.RouteV2 -> [MultiModalRoute] -> [MultiModalRoute]
     accumulateRoutes gRoute genericRoutes =
       let routeDuration = extractDuration gRoute.duration
-          routeDistance = gRoute.distanceMeters
+          routeDistance =
+            Distance.Distance
+              { value =
+                  Distance.HighPrecDistance
+                    { getHighPrecDistance = toRational gRoute.distanceMeters
+                    },
+                unit = Distance.Meter
+              }
           gLegs = gRoute.legs
           routeLegs = adjustWalkingLegs $ mergeWalkingLegs $ foldr accumulateLegs [] gLegs
        in MultiModalRoute
-            { distance = fromIntegral routeDistance,
+            { distance = routeDistance,
               duration = routeDuration,
               legs = routeLegs
             } :
@@ -70,8 +78,15 @@ convertGoogleToGeneric gResponse =
        in genericLegs ++ foldr accumulateSteps [] gSteps
     accumulateSteps :: GT.StepV2 -> [MultiModalLeg] -> [MultiModalLeg]
     accumulateSteps gStep genericLegs =
-      let stepDistance = fromIntegral gStep.distanceMeters
-          stepDuration = extractDuration gStep.staticDuration
+      let stepDuration = extractDuration gStep.staticDuration
+          stepDistance =
+            Distance.Distance
+              { value =
+                  Distance.HighPrecDistance
+                    { getHighPrecDistance = toRational gStep.distanceMeters
+                    },
+                unit = Distance.Meter
+              }
           stepPolyline = GT.encodedPolyline gStep.polyline
           (stepTravelMode, genericAgency, fromStopDetails', toStopDetails', fromArrivalTime', fromDepartureTime', toArrivalTime', toDepartureTime') = case gStep.travelMode of
             GT.TRANSIT ->
@@ -156,7 +171,14 @@ convertGoogleToGeneric gResponse =
           leg2End = leg2.endLocation
           encodedPolylineText = encode [leg1Start.latLng, leg2Start.latLng, leg2End.latLng]
        in MultiModalLeg
-            { distance = leg1.distance + leg2.distance,
+            { distance =
+                Distance.Distance
+                  { value =
+                      Distance.HighPrecDistance
+                        { getHighPrecDistance = fromRational leg1.distance.value.getHighPrecDistance + fromRational leg2.distance.value.getHighPrecDistance
+                        },
+                    unit = leg1.distance.unit
+                  },
               duration = leg1.duration + leg2.duration,
               polyline = GT.Polyline {encodedPolyline = encodedPolylineText},
               mode = "WALK",
@@ -202,7 +224,14 @@ convertOTPToGeneric otpResponse =
               route =
                 MultiModalRoute
                   { duration = round duration,
-                    distance = distance,
+                    distance =
+                      Distance.Distance
+                        { value =
+                            Distance.HighPrecDistance
+                              { getHighPrecDistance = toRational distance
+                              },
+                          unit = Distance.Meter
+                        },
                     legs = legs
                   }
            in route : genericRoutes
@@ -258,7 +287,14 @@ convertOTPToGeneric otpResponse =
                       }
               leg =
                 MultiModalLeg
-                  { distance = distance,
+                  { distance =
+                      Distance.Distance
+                        { value =
+                            Distance.HighPrecDistance
+                              { getHighPrecDistance = toRational distance
+                              },
+                          unit = Distance.Meter
+                        },
                     duration = duration,
                     polyline =
                       GT.Polyline
