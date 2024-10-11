@@ -15,19 +15,20 @@ import qualified Kernel.External.Maps.Google.MapsClient.Types as GT
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Config as OTP
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Types as OTPTypes
 import qualified Kernel.Types.Distance as Distance
+import qualified Kernel.Types.Time as Time
 
 newtype MultiModalResponse = MultiModalResponse {routes :: [MultiModalRoute]}
   deriving (Show, Generic)
 
 data MultiModalRoute = MultiModalRoute
   { distance :: Distance.Distance,
-    duration :: Int,
+    duration :: Time.Seconds,
     legs :: [MultiModalLeg]
   }
   deriving (Show, Generic)
 
 data MultiModalStopDetails = MultiModalStopDetails
-  { stopCode :: Maybe String,
+  { stopCode :: Maybe Text,
     name :: Maybe Text
   }
   deriving (Show, Generic)
@@ -40,7 +41,7 @@ data MultiModalAgency = MultiModalAgency
 
 data MultiModalLeg = MultiModalLeg
   { distance :: Distance.Distance,
-    duration :: Double,
+    duration :: Time.Seconds,
     polyline :: GT.Polyline,
     mode :: String,
     startLocation :: GT.LocationV2,
