@@ -11,7 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-
 module Kernel.External.Verification.GovtData.Types where
 
 import Data.Time (UTCTime)
