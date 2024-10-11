@@ -16,6 +16,7 @@ import Kernel.External.MultiModal.Interface.Types
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Types as OTP
 import Kernel.Prelude
 import qualified Kernel.Types.Distance as Distance
+import qualified Kernel.Types.Time as Time
 import Kernel.Utils.Time (millisecondsToUTC, parseISO8601UTC)
 
 extractDuration :: T.Text -> Int
@@ -68,7 +69,7 @@ convertGoogleToGeneric gResponse =
           routeLegs = adjustWalkingLegs $ mergeWalkingLegs $ foldr accumulateLegs [] gLegs
        in MultiModalRoute
             { distance = routeDistance,
-              duration = routeDuration,
+              duration = Time.Seconds routeDuration,
               legs = routeLegs
             } :
           genericRoutes
@@ -123,7 +124,7 @@ convertGoogleToGeneric gResponse =
           (endLocationLat, endLocationLng) = (gStep.endLocation.latLng.latitude, gStep.endLocation.latLng.longitude)
        in MultiModalLeg
             { distance = stepDistance,
-              duration = fromIntegral stepDuration,
+              duration = Time.Seconds stepDuration,
               polyline =
                 GT.Polyline
                   { encodedPolyline = stepPolyline
@@ -179,7 +180,7 @@ convertGoogleToGeneric gResponse =
                         },
                     unit = leg1.distance.unit
                   },
-              duration = leg1.duration + leg2.duration,
+              duration = Time.Seconds $ leg1.duration.getSeconds + leg2.duration.getSeconds,
               polyline = GT.Polyline {encodedPolyline = encodedPolylineText},
               mode = "WALK",
               startLocation = leg1Start,
@@ -223,7 +224,7 @@ convertOTPToGeneric otpResponse =
               (legs, distance) = foldr accumulateLegs ([], 0.0) itinerary'.legs
               route =
                 MultiModalRoute
-                  { duration = round duration,
+                  { duration = Time.Seconds $ round duration,
                     distance =
                       Distance.Distance
                         { value =
@@ -262,7 +263,7 @@ convertOTPToGeneric otpResponse =
                   else
                     Just
                       MultiModalStopDetails
-                        { stopCode = fromStopCode,
+                        { stopCode = fmap T.pack fromStopCode,
                           name = startLocName
                         }
               toStopCode = case otpLeg'.to.stop of
@@ -274,7 +275,7 @@ convertOTPToGeneric otpResponse =
                   else
                     Just
                       MultiModalStopDetails
-                        { stopCode = toStopCode,
+                        { stopCode = fmap T.pack toStopCode,
                           name = endLocName
                         }
               genericAgency = case routeAgency of
@@ -295,7 +296,7 @@ convertOTPToGeneric otpResponse =
                               },
                           unit = Distance.Meter
                         },
-                    duration = duration,
+                    duration = Time.Seconds $ round duration,
                     polyline =
                       GT.Polyline
                         { encodedPolyline = encodedPolylineText
