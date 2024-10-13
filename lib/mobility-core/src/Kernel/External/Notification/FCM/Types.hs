@@ -177,6 +177,7 @@ data FCMNotificationType
   | CANCELLATION_RATE_NUDGE_WEEKLY
   | USER_FAVOURITE_DRIVER
   | DRIVER_UNBLOCKED
+  | POST_RIDE_SAFETY_CHECK
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 

@@ -83,6 +83,7 @@ data Category
   | SCHEDULED_RIDE_REMINDER
   | DRIVER_HAS_REACHED_DESTINATION
   | USER_FAVOURITE_DRIVER
+  | POST_RIDE_SAFETY_CHECK
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
