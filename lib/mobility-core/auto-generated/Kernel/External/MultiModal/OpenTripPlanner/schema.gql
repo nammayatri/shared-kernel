@@ -67,7 +67,8 @@ type Agency {
 }
 
 type Stop {
-  code : String
+  gtfsId: String!
+  code: String
 }
 
 type Query {
