@@ -24,76 +24,6 @@ instance ToJSON InputCoordinates where
         "lon" .= inputCoordinatesLon
       ]
 
-data Mode
-  = ModeAIRPLANE
-  | ModeBICYCLE
-  | ModeBUS
-  | ModeCABLE_CAR
-  | ModeCAR
-  | ModeCOACH
-  | ModeFERRY
-  | ModeFLEX
-  | ModeFUNICULAR
-  | ModeGONDOLA
-  | ModeRAIL
-  | ModeSCOOTER
-  | ModeSUBWAY
-  | ModeTRAM
-  | ModeCARPOOL
-  | ModeTAXI
-  | ModeTRANSIT
-  | ModeWALK
-  | ModeTROLLEYBUS
-  | ModeMONORAIL
-  deriving (Generic, Show, Eq)
-
-instance FromJSON Mode where
-  parseJSON = \case
-    "AIRPLANE" -> pure ModeAIRPLANE
-    "BICYCLE" -> pure ModeBICYCLE
-    "BUS" -> pure ModeBUS
-    "CABLE_CAR" -> pure ModeCABLE_CAR
-    "CAR" -> pure ModeCAR
-    "COACH" -> pure ModeCOACH
-    "FERRY" -> pure ModeFERRY
-    "FLEX" -> pure ModeFLEX
-    "FUNICULAR" -> pure ModeFUNICULAR
-    "GONDOLA" -> pure ModeGONDOLA
-    "RAIL" -> pure ModeRAIL
-    "SCOOTER" -> pure ModeSCOOTER
-    "SUBWAY" -> pure ModeSUBWAY
-    "TRAM" -> pure ModeTRAM
-    "CARPOOL" -> pure ModeCARPOOL
-    "TAXI" -> pure ModeTAXI
-    "TRANSIT" -> pure ModeTRANSIT
-    "WALK" -> pure ModeWALK
-    "TROLLEYBUS" -> pure ModeTROLLEYBUS
-    "MONORAIL" -> pure ModeMONORAIL
-    v -> invalidConstructorError v
-
-instance ToJSON Mode where
-  toJSON = \case
-    ModeAIRPLANE -> "AIRPLANE"
-    ModeBICYCLE -> "BICYCLE"
-    ModeBUS -> "BUS"
-    ModeCABLE_CAR -> "CABLE_CAR"
-    ModeCAR -> "CAR"
-    ModeCOACH -> "COACH"
-    ModeFERRY -> "FERRY"
-    ModeFLEX -> "FLEX"
-    ModeFUNICULAR -> "FUNICULAR"
-    ModeGONDOLA -> "GONDOLA"
-    ModeRAIL -> "RAIL"
-    ModeSCOOTER -> "SCOOTER"
-    ModeSUBWAY -> "SUBWAY"
-    ModeTRAM -> "TRAM"
-    ModeCARPOOL -> "CARPOOL"
-    ModeTAXI -> "TAXI"
-    ModeTRANSIT -> "TRANSIT"
-    ModeWALK -> "WALK"
-    ModeTROLLEYBUS -> "TROLLEYBUS"
-    ModeMONORAIL -> "MONORAIL"
-
 newtype TransportMode = TransportMode
   { mode :: String
   }
@@ -142,7 +72,7 @@ instance FromJSON OTPPlanPlanItineraries where
 data OTPPlanPlanItinerariesLegs = OTPPlanPlanItinerariesLegs
   { pickupType :: Maybe String,
     distance :: Maybe Double,
-    mode :: Maybe Mode,
+    mode :: Maybe String,
     duration :: Maybe Double,
     startTime :: Maybe Double,
     endTime :: Maybe Double,

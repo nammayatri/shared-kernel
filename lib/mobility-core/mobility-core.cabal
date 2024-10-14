@@ -113,6 +113,7 @@ library
       Kernel.External.MultiModal.Interface.OpenTripPlanner
       Kernel.External.MultiModal.Interface.Types
       Kernel.External.MultiModal.OpenTripPlanner.Config
+      Kernel.External.MultiModal.OpenTripPlanner.Types
       Kernel.External.MultiModal.Types
       Kernel.External.MultiModal.Utils
       Kernel.External.Notification
@@ -433,12 +434,10 @@ library
       Kernel.Utils.Validation
       Kernel.Utils.Version
       Kernel.Utils.XML
-      Kernel.External.MultiModal.OpenTripPlanner.Types
   other-modules:
       Paths_mobility_core
   hs-source-dirs:
       src
-      auto-generated
   default-extensions:
       ConstraintKinds
       DataKinds

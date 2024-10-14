@@ -46,25 +46,6 @@ decode = scanl1 addPair . makePairs . stringToCoords . TE.encodeUtf8
 encode :: [GT.LatLngV2] -> T.Text
 encode = T.concat . fmap oneCoordEnc . catPairs . adjDiff
 
-convertModeToGeneral :: OTP.Mode -> GeneralVehicleType
-convertModeToGeneral OTP.ModeBUS = Bus
-convertModeToGeneral OTP.ModeRAIL = MetroRail
-convertModeToGeneral OTP.ModeMONORAIL = MetroRail
-convertModeToGeneral OTP.ModeSUBWAY = MetroRail
-convertModeToGeneral OTP.ModeWALK = Walk
-convertModeToGeneral _ = Unspecified
-
-convertTransitVehicleToGeneral :: GT.TransitVehicleTypeV2 -> GeneralVehicleType
-convertTransitVehicleToGeneral GT.VEHICLE_TYPE_BUS = Bus
-convertTransitVehicleToGeneral GT.VEHICLE_TYPE_HEAVY_RAIL = MetroRail
-convertTransitVehicleToGeneral GT.VEHICLE_TYPE_HIGH_SPEED_TRAIN = MetroRail
-convertTransitVehicleToGeneral GT.VEHICLE_TYPE_LONG_DISTANCE_TRAIN = MetroRail
-convertTransitVehicleToGeneral GT.VEHICLE_TYPE_METRO_RAIL = MetroRail
-convertTransitVehicleToGeneral GT.VEHICLE_TYPE_MONORAIL = MetroRail
-convertTransitVehicleToGeneral GT.VEHICLE_TYPE_RAIL = MetroRail
-convertTransitVehicleToGeneral GT.VEHICLE_TYPE_SUBWAY = MetroRail
-convertTransitVehicleToGeneral _ = Unspecified
-
 convertGoogleToGeneric :: GT.AdvancedDirectionsResp -> MultiModalResponse
 convertGoogleToGeneric gResponse =
   let gRoutes = gResponse.routes
@@ -112,7 +93,7 @@ convertGoogleToGeneric gResponse =
             GT.TRANSIT ->
               case gStep.transitDetails of
                 Just details ->
-                  let travelM = convertTransitVehicleToGeneral details.transitLine.vehicle._type
+                  let travelM = T.unpack details.transitLine.vehicle._type
                       gAgency = safeHead details.transitLine.agencies
                       eName = details.stopDetails.arrivalStop.name
                       sName = details.stopDetails.departureStop.name
@@ -139,8 +120,8 @@ convertGoogleToGeneric gResponse =
                               }
                         Nothing -> Nothing
                    in (travelM, generAgency, Just fromDetails, Just toDetails, Nothing, fDepartureTime, tArrivalTime, Nothing)
-                Nothing -> (Unspecified, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
-            _ -> (Walk, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
+                Nothing -> ("TRANSIT", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
+            val -> (show val, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
           (startLocationLat, startLocationLng) = (gStep.startLocation.latLng.latitude, gStep.startLocation.latLng.longitude)
           (endLocationLat, endLocationLng) = (gStep.endLocation.latLng.latitude, gStep.endLocation.latLng.longitude)
        in MultiModalLeg
@@ -183,7 +164,7 @@ convertGoogleToGeneric gResponse =
       where
         mergeLeg currentLeg [] = [currentLeg]
         mergeLeg currentLeg (nextLeg : restLegs)
-          | currentLeg.mode == Walk && nextLeg.mode == Walk =
+          | currentLeg.mode == "WALK" && nextLeg.mode == "WALK" =
             mergeLeg (mergeTwoLegs currentLeg nextLeg) restLegs
           | otherwise = currentLeg : mergeLeg nextLeg restLegs
 
@@ -204,7 +185,7 @@ convertGoogleToGeneric gResponse =
                   },
               duration = Time.Seconds $ leg1.duration.getSeconds + leg2.duration.getSeconds,
               polyline = GT.Polyline {encodedPolyline = encodedPolylineText},
-              mode = Walk,
+              mode = "WALK",
               startLocation = leg1Start,
               endLocation = leg2End,
               fromStopDetails = leg1.fromStopDetails,
@@ -221,11 +202,11 @@ convertGoogleToGeneric gResponse =
     adjustWalkingLegs [leg] = [leg]
     adjustWalkingLegs (leg1 : leg2 : rest) =
       let adjustedLeg1 =
-            if leg1.mode == Walk && leg2.mode /= Walk
+            if leg1.mode == "WALK" && leg2.mode /= "WALK"
               then leg1{toStopDetails = leg2.fromStopDetails, toDepartureTime = leg2.fromDepartureTime, toArrivalTime = leg2.fromArrivalTime}
               else leg1
           adjustedLeg2 =
-            if leg2.mode == Walk && leg1.mode /= Walk
+            if leg2.mode == "WALK" && leg1.mode /= "WALK"
               then leg2{fromStopDetails = leg1.toStopDetails, fromDepartureTime = leg1.toDepartureTime, fromArrivalTime = leg1.toArrivalTime}
               else leg2
        in adjustedLeg1 : adjustWalkingLegs (adjustedLeg2 : rest)
@@ -266,7 +247,7 @@ convertOTPToGeneric otpResponse =
         Just otpLeg' ->
           let distance = fromMaybe 0.0 otpLeg'.distance
               duration = fromMaybe 0.0 otpLeg'.duration
-              mode = convertModeToGeneral $ fromMaybe OTP.ModeTRANSIT otpLeg'.mode
+              mode = fromMaybe "TRANSIT" otpLeg'.mode
               startLocName = fmap T.pack $ if fromMaybe "" otpLeg'.from.name == "Origin" then Nothing else otpLeg'.from.name
               endLocName = fmap T.pack $ if fromMaybe "" otpLeg'.to.name == "Destination" then Nothing else otpLeg'.to.name
               encodedPolylineText = T.pack $ maybe "" (\x -> fromMaybe "" x.points) otpLeg'.legGeometry
@@ -290,7 +271,7 @@ convertOTPToGeneric otpResponse =
                 Just x -> (x.code, Just x.gtfsId)
                 Nothing -> (Nothing, Nothing)
               fromStopDetails' =
-                if mode == Walk
+                if mode == "WALK"
                   then Nothing
                   else
                     Just
@@ -303,7 +284,7 @@ convertOTPToGeneric otpResponse =
                 Just x -> (x.code, Just x.gtfsId)
                 Nothing -> (Nothing, Nothing)
               toStopDetails' =
-                if mode == Walk
+                if mode == "WALK"
                   then Nothing
                   else
                     Just

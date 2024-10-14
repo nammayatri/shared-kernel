@@ -337,7 +337,7 @@ newtype AgencyV2 = AgencyV2
   deriving (Generic, FromJSON, ToJSON, ToSchema)
 
 newtype VehicleV2 = VehicleV2
-  { _type :: TransitVehicleTypeV2
+  { _type :: Text
   }
   deriving (Generic, ToSchema)
 
@@ -403,12 +403,6 @@ instance FromHttpApiData [Place] where
 data Mode = DRIVING | WALKING | BICYCLING
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
-instance ToHttpApiData Mode where
-  toUrlPiece = T.toLower . show
-
-instance FromHttpApiData Mode where
-  parseUrlPiece = left T.pack . eitherDecode .(\str -> "\"" <> str <> "\"") . BSL.fromStrict . DT.encodeUtf8 . T.toUpper
-
 data ModeV2
   = TRAVEL_MODE_UNSPECIFIED -- No travel mode specified. Defaults to DRIVE.
   | DRIVE --Travel by passenger car.
@@ -436,72 +430,11 @@ data TransitRoutingPreferenceV2
   | FEWER_TRANSFERS
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
-data TransitVehicleTypeV2
-  = VEHICLE_TYPE_TRANSIT_VEHICLE_TYPE_UNSPECIFIED
-  | VEHICLE_TYPE_BUS
-  | VEHICLE_TYPE_CABLE_CAR
-  | VEHICLE_TYPE_COMMUTER_TRAIN
-  | VEHICLE_TYPE_FERRY
-  | VEHICLE_TYPE_FUNICULAR
-  | VEHICLE_TYPE_GONDOLA_LIFT
-  | VEHICLE_TYPE_HEAVY_RAIL
-  | VEHICLE_TYPE_HIGH_SPEED_TRAIN
-  | VEHICLE_TYPE_INTERCITY_BUS
-  | VEHICLE_TYPE_LONG_DISTANCE_TRAIN
-  | VEHICLE_TYPE_METRO_RAIL
-  | VEHICLE_TYPE_MONORAIL
-  | VEHICLE_TYPE_OTHER
-  | VEHICLE_TYPE_RAIL
-  | VEHICLE_TYPE_SHARE_TAXI
-  | VEHICLE_TYPE_SUBWAY
-  | VEHICLE_TYPE_TRAM
-  | VEHICLE_TYPE_TROLLEYBUS
-  deriving (Eq, Show, Generic, ToSchema)
+instance ToHttpApiData Mode where
+  toUrlPiece = T.toLower . show
 
-instance ToJSON TransitVehicleTypeV2 where
-  toJSON = \case
-    VEHICLE_TYPE_TRANSIT_VEHICLE_TYPE_UNSPECIFIED -> "TRANSIT_VEHICLE_TYPE_UNSPECIFIED"
-    VEHICLE_TYPE_BUS -> "BUS"
-    VEHICLE_TYPE_CABLE_CAR -> "CABLE_CAR"
-    VEHICLE_TYPE_COMMUTER_TRAIN -> "COMMUTER_TRAIN"
-    VEHICLE_TYPE_FERRY -> "FERRY"
-    VEHICLE_TYPE_FUNICULAR -> "FUNICULAR"
-    VEHICLE_TYPE_GONDOLA_LIFT -> "GONDOLA_LIFT"
-    VEHICLE_TYPE_HEAVY_RAIL -> "HEAVY_RAIL"
-    VEHICLE_TYPE_HIGH_SPEED_TRAIN -> "HIGH_SPEED_TRAIN"
-    VEHICLE_TYPE_INTERCITY_BUS -> "INTERCITY_BUS"
-    VEHICLE_TYPE_LONG_DISTANCE_TRAIN -> "LONG_DISTANCE_TRAIN"
-    VEHICLE_TYPE_METRO_RAIL -> "METRO_RAIL"
-    VEHICLE_TYPE_MONORAIL -> "MONORAIL"
-    VEHICLE_TYPE_OTHER -> "OTHER"
-    VEHICLE_TYPE_RAIL -> "RAIL"
-    VEHICLE_TYPE_SHARE_TAXI -> "SHARE_TAXI"
-    VEHICLE_TYPE_SUBWAY -> "SUBWAY"
-    VEHICLE_TYPE_TRAM -> "TRAM"
-    VEHICLE_TYPE_TROLLEYBUS -> "TROLLEYBUS"
-
-instance FromJSON TransitVehicleTypeV2 where
-  parseJSON = \case
-    "TRANSIT_VEHICLE_TYPE_UNSPECIFIED" -> pure VEHICLE_TYPE_TRANSIT_VEHICLE_TYPE_UNSPECIFIED
-    "BUS" -> pure VEHICLE_TYPE_BUS
-    "CABLE_CAR" -> pure VEHICLE_TYPE_CABLE_CAR
-    "COMMUTER_TRAIN" -> pure VEHICLE_TYPE_COMMUTER_TRAIN
-    "FERRY" -> pure VEHICLE_TYPE_FERRY
-    "FUNICULAR" -> pure VEHICLE_TYPE_FUNICULAR
-    "GONDOLA_LIFT" -> pure VEHICLE_TYPE_GONDOLA_LIFT
-    "HEAVY_RAIL" -> pure VEHICLE_TYPE_HEAVY_RAIL
-    "HIGH_SPEED_TRAIN" -> pure VEHICLE_TYPE_HIGH_SPEED_TRAIN
-    "INTERCITY_BUS" -> pure VEHICLE_TYPE_INTERCITY_BUS
-    "LONG_DISTANCE_TRAIN" -> pure VEHICLE_TYPE_LONG_DISTANCE_TRAIN
-    "METRO_RAIL" -> pure VEHICLE_TYPE_METRO_RAIL
-    "MONORAIL" -> pure VEHICLE_TYPE_MONORAIL
-    "OTHER" -> pure VEHICLE_TYPE_OTHER
-    "RAIL" -> pure VEHICLE_TYPE_RAIL
-    "SHARE_TAXI" -> pure VEHICLE_TYPE_SHARE_TAXI
-    "SUBWAY" -> pure VEHICLE_TYPE_SUBWAY
-    "TRAM" -> pure VEHICLE_TYPE_TRAM
-    "TROLLEYBUS" -> pure VEHICLE_TYPE_TROLLEYBUS
-    v -> fail $ "Invalid TransitVehicleTypeV2: " <> show v
+instance FromHttpApiData Mode where
+  parseUrlPiece = left T.pack . eitherDecode .(\str -> "\"" <> str <> "\"") . BSL.fromStrict . DT.encodeUtf8 . T.toUpper
 
 data DepartureTime = Now | FutureTime UTCTime
 
