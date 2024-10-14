@@ -102,15 +102,14 @@ instance FromJSON OTPPlanPlanItinerariesLegsFrom where
   parseJSON =
     withObject "OTPPlanPlanItinerariesLegsFrom" (\v -> OTPPlanPlanItinerariesLegsFrom <$> v .:? "name" <*> v .: "lat" <*> v .: "lon" <*> v .: "departureTime" <*> v .: "arrivalTime" <*> v .:? "stop")
 
-data OTPPlanPlanItinerariesLegsFromStop = OTPPlanPlanItinerariesLegsFromStop
-  { code :: Maybe String,
-    gtfsId :: String
+newtype OTPPlanPlanItinerariesLegsFromStop = OTPPlanPlanItinerariesLegsFromStop
+  { code :: Maybe String
   }
   deriving (Generic, Show, Eq)
 
 instance FromJSON OTPPlanPlanItinerariesLegsFromStop where
   parseJSON =
-    withObject "OTPPlanPlanItinerariesLegsFromStop" (\v -> OTPPlanPlanItinerariesLegsFromStop <$> v .:? "code" <*> v .: "gtfsId")
+    withObject "OTPPlanPlanItinerariesLegsFromStop" (\v -> OTPPlanPlanItinerariesLegsFromStop <$> v .:? "code")
 
 data OTPPlanPlanItinerariesLegsTo = OTPPlanPlanItinerariesLegsTo
   { name :: Maybe String,
@@ -126,15 +125,14 @@ instance FromJSON OTPPlanPlanItinerariesLegsTo where
   parseJSON =
     withObject "OTPPlanPlanItinerariesLegsTo" (\v -> OTPPlanPlanItinerariesLegsTo <$> v .:? "name" <*> v .: "lat" <*> v .: "lon" <*> v .: "departureTime" <*> v .: "arrivalTime" <*> v .:? "stop")
 
-data OTPPlanPlanItinerariesLegsToStop = OTPPlanPlanItinerariesLegsToStop
-  { code :: Maybe String,
-    gtfsId :: String
+newtype OTPPlanPlanItinerariesLegsToStop = OTPPlanPlanItinerariesLegsToStop
+  { code :: Maybe String
   }
   deriving (Generic, Show, Eq)
 
 instance FromJSON OTPPlanPlanItinerariesLegsToStop where
   parseJSON =
-    withObject "OTPPlanPlanItinerariesLegsToStop" (\v -> OTPPlanPlanItinerariesLegsToStop <$> v .:? "code" <*> v .: "gtfsId")
+    withObject "OTPPlanPlanItinerariesLegsToStop" (\v -> OTPPlanPlanItinerariesLegsToStop <$> v .:? "code")
 
 data OTPPlanPlanItinerariesLegsRoute = OTPPlanPlanItinerariesLegsRoute
   { gtfsId :: String,

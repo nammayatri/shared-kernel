@@ -29,21 +29,13 @@ data MultiModalRoute = MultiModalRoute
 
 data MultiModalStopDetails = MultiModalStopDetails
   { stopCode :: Maybe Text,
-    name :: Maybe Text,
-    gtfsId :: Maybe Text
+    name :: Maybe Text
   }
   deriving (Show, Generic)
 
 data MultiModalAgency = MultiModalAgency
   { gtfsId :: Maybe Text,
     name :: Text
-  }
-  deriving (Show, Generic)
-
-data MultiModalRouteDetails = MultiModalRouteDetails
-  { gtfsId :: Maybe Text,
-    longName :: Maybe Text,
-    shortName :: Maybe Text
   }
   deriving (Show, Generic)
 
@@ -56,7 +48,6 @@ data MultiModalLeg = MultiModalLeg
     endLocation :: GT.LocationV2,
     fromStopDetails :: Maybe MultiModalStopDetails,
     toStopDetails :: Maybe MultiModalStopDetails,
-    routeDetails :: Maybe MultiModalRouteDetails,
     agency :: Maybe MultiModalAgency,
     fromArrivalTime :: Maybe UTCTime,
     fromDepartureTime :: Maybe UTCTime,

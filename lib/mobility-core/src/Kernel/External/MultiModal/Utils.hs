@@ -102,14 +102,12 @@ convertGoogleToGeneric gResponse =
                       fromDetails =
                         MultiModalStopDetails
                           { stopCode = Nothing,
-                            name = Just sName,
-                            gtfsId = Nothing
+                            name = Just sName
                           }
                       toDetails =
                         MultiModalStopDetails
                           { stopCode = Nothing,
-                            name = Just eName,
-                            gtfsId = Nothing
+                            name = Just eName
                           }
                       generAgency = case gAgency of
                         Just x ->
@@ -154,8 +152,7 @@ convertGoogleToGeneric gResponse =
               fromArrivalTime = fromArrivalTime',
               fromDepartureTime = fromDepartureTime',
               toArrivalTime = toArrivalTime',
-              toDepartureTime = toDepartureTime',
-              routeDetails = Nothing
+              toDepartureTime = toDepartureTime'
             } :
           genericLegs
     mergeWalkingLegs :: [MultiModalLeg] -> [MultiModalLeg]
@@ -194,8 +191,7 @@ convertGoogleToGeneric gResponse =
               fromArrivalTime = leg1.fromArrivalTime,
               fromDepartureTime = leg1.fromDepartureTime,
               toArrivalTime = leg2.toArrivalTime,
-              toDepartureTime = leg2.toDepartureTime,
-              routeDetails = leg1.routeDetails
+              toDepartureTime = leg2.toDepartureTime
             }
     adjustWalkingLegs :: [MultiModalLeg] -> [MultiModalLeg]
     adjustWalkingLegs [] = []
@@ -258,18 +254,9 @@ convertOTPToGeneric otpResponse =
               fromDepartureTime' = Just $ millisecondsToUTC $ round otpLeg'.from.departureTime
               toArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.to.arrivalTime
               toDepartureTime' = Just $ millisecondsToUTC $ round otpLeg'.to.departureTime
-              routeDetails = case otpLeg'.route of
-                Just route ->
-                  Just
-                    MultiModalRouteDetails
-                      { gtfsId = Just $ T.pack route.gtfsId,
-                        longName = fmap T.pack route.longName,
-                        shortName = fmap T.pack route.shortName
-                      }
+              fromStopCode = case otpLeg'.from.stop of
+                Just x -> x.code
                 Nothing -> Nothing
-              (fromStopCode, fromStopGtfsId) = case otpLeg'.from.stop of
-                Just x -> (x.code, Just x.gtfsId)
-                Nothing -> (Nothing, Nothing)
               fromStopDetails' =
                 if mode == "WALK"
                   then Nothing
@@ -277,12 +264,11 @@ convertOTPToGeneric otpResponse =
                     Just
                       MultiModalStopDetails
                         { stopCode = fmap T.pack fromStopCode,
-                          name = startLocName,
-                          gtfsId = fmap T.pack fromStopGtfsId
+                          name = startLocName
                         }
-              (toStopCode, toStopGtfsId) = case otpLeg'.to.stop of
-                Just x -> (x.code, Just x.gtfsId)
-                Nothing -> (Nothing, Nothing)
+              toStopCode = case otpLeg'.to.stop of
+                Just x -> x.code
+                Nothing -> Nothing
               toStopDetails' =
                 if mode == "WALK"
                   then Nothing
@@ -290,8 +276,7 @@ convertOTPToGeneric otpResponse =
                     Just
                       MultiModalStopDetails
                         { stopCode = fmap T.pack toStopCode,
-                          name = endLocName,
-                          gtfsId = fmap T.pack toStopGtfsId
+                          name = endLocName
                         }
               genericAgency = case routeAgency of
                 Nothing -> Nothing
@@ -327,7 +312,6 @@ convertOTPToGeneric otpResponse =
                                 longitude = startLng
                               }
                         },
-                    routeDetails = routeDetails,
                     endLocation =
                       GT.LocationV2
                         { latLng =

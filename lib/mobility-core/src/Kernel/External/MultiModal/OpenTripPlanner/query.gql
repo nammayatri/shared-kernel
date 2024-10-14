@@ -31,7 +31,6 @@ query OTPPlan (
           arrivalTime
           stop {
             code
-            gtfsId
           }
         }
         to {
@@ -42,7 +41,6 @@ query OTPPlan (
           arrivalTime
           stop {
             code
-            gtfsId
           }
         }
         route {
