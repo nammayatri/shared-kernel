@@ -29,7 +29,8 @@ data MultiModalRoute = MultiModalRoute
 
 data MultiModalStopDetails = MultiModalStopDetails
   { stopCode :: Maybe Text,
-    name :: Maybe Text
+    name :: Maybe Text,
+    gtfsId :: Maybe Text
   }
   deriving (Show, Generic)
 
@@ -39,15 +40,23 @@ data MultiModalAgency = MultiModalAgency
   }
   deriving (Show, Generic)
 
+data MultiModalRouteDetails = MultiModalRouteDetails
+  { gtfsId :: Maybe Text,
+    longName :: Maybe Text,
+    shortName :: Maybe Text
+  }
+  deriving (Show, Generic)
+
 data MultiModalLeg = MultiModalLeg
   { distance :: Distance.Distance,
     duration :: Time.Seconds,
     polyline :: GT.Polyline,
-    mode :: String,
+    mode :: GeneralVehicleType,
     startLocation :: GT.LocationV2,
     endLocation :: GT.LocationV2,
     fromStopDetails :: Maybe MultiModalStopDetails,
     toStopDetails :: Maybe MultiModalStopDetails,
+    routeDetails :: Maybe MultiModalRouteDetails,
     agency :: Maybe MultiModalAgency,
     fromArrivalTime :: Maybe UTCTime,
     fromDepartureTime :: Maybe UTCTime,
@@ -59,6 +68,13 @@ data MultiModalLeg = MultiModalLeg
 data MultiModalServiceConfig = GoogleTransitConfig Google.GoogleCfg | OTPTransitConfig OTP.OTPCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MultiModalServiceConfig
+
+data GeneralVehicleType
+  = Bus
+  | MetroRail
+  | Walk
+  | Unspecified
+  deriving (Show, Eq)
 
 data GetTransitRoutesReq = GetTransitRoutesReq
   { origin :: GT.WayPointV2,

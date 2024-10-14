@@ -172,6 +172,7 @@ ghc-options:
 library:
   source-dirs:
     - src
+    - auto-generated
 
 tests:
   mobility-core-tests:
