@@ -20,17 +20,18 @@ module Kernel.Storage.ClickhouseV2.Queries
   )
 where
 
+import qualified Control.Concurrent.MVar as M
 import qualified Data.Aeson as A
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import Database.ClickHouseDriver.HTTP
 import qualified EulerHS.Language as L
 import Kernel.Prelude
+import Kernel.Storage.Clickhouse.Config
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
 import Kernel.Storage.ClickhouseV2.ClickhouseTable
 import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns
 import Kernel.Storage.ClickhouseV2.Internal.ClickhouseQuery
--- import Kernel.Storage.ClickhouseV2.Internal.Types
 import Kernel.Utils.Common hiding (Limit, Offset)
 
 -- should we throw error if query fails?
@@ -64,5 +65,18 @@ runRawQuery db query = runClickhouse @db @a @m db (`runQuery` getJSON query.getR
 
 runClickhouse :: forall db a m. (MonadFlow m, HasClickhouseEnv db m, FromJSON a) => Proxy db -> (HttpConnection -> IO (Either String a)) -> m (Either String a)
 runClickhouse db action = do
-  con <- getClickhouseEnv db
-  L.runIO $ action con.connection
+  con' <- getClickhouseEnv db
+  con <- liftIO $ M.readMVar $ con'.connectionData
+  res <- L.runIO $ action con.connection
+  case res of
+    Left err -> do
+      if ((T.pack "ConnectionFailure") `T.isInfixOf` (T.pack err))
+        then do
+          logError $ "Clickhouse error: " <> T.pack err
+          ckhCfg <- getClickhouseCfg db
+          liftIO $ connectionHelper ckhCfg con'
+          con'' <- getClickhouseEnv db
+          con''' <- liftIO $ M.readMVar $ con''.connectionData
+          L.runIO $ action con'''.connection
+        else pure $ Left err
+    Right val -> pure $ Right val

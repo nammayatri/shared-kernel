@@ -27,20 +27,23 @@ class ClickhouseDb db
 
 class (ClickhouseDb db, MonadFlow m) => HasClickhouseEnv db m where
   getClickhouseEnv :: Proxy db -> m ClickhouseEnv
+  getClickhouseCfg :: Proxy db -> m ClickhouseCfg
 
 data APP_SERVICE_CLICKHOUSE
 
 instance ClickhouseDb APP_SERVICE_CLICKHOUSE
 
-instance (MonadFlow m, MonadReader r m, HasField "serviceClickhouseEnv" r ClickhouseEnv) => HasClickhouseEnv APP_SERVICE_CLICKHOUSE m where
+instance (MonadFlow m, MonadReader r m, HasField "serviceClickhouseEnv" r ClickhouseEnv, HasField "serviceClickhouseCfg" r ClickhouseCfg) => HasClickhouseEnv APP_SERVICE_CLICKHOUSE m where
   getClickhouseEnv _ = asks (.serviceClickhouseEnv)
+  getClickhouseCfg _ = asks (.serviceClickhouseCfg)
 
 data ATLAS_KAFKA
 
 instance ClickhouseDb ATLAS_KAFKA
 
-instance (MonadFlow m, MonadReader r m, HasField "kafkaClickhouseEnv" r ClickhouseEnv) => HasClickhouseEnv ATLAS_KAFKA m where
+instance (MonadFlow m, MonadReader r m, HasField "kafkaClickhouseEnv" r ClickhouseEnv, HasField "kafkaClickhouseCfg" r ClickhouseCfg) => HasClickhouseEnv ATLAS_KAFKA m where
   getClickhouseEnv _ = asks (.kafkaClickhouseEnv)
+  getClickhouseCfg _ = asks (.kafkaClickhouseCfg)
 
 -- data ClickhouseCfg = ClickhouseCfg
 --   { username :: Text,

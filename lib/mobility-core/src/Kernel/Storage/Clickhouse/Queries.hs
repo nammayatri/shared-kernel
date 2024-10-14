@@ -4,9 +4,11 @@ module Kernel.Storage.Clickhouse.Queries
     findOne,
     runRawQuery',
     findOneWithOrder,
+    retryClickhouseConnection,
   )
 where
 
+import qualified Control.Concurrent.MVar as M
 import Data.Text as T hiding (null)
 import Data.Typeable (typeRep)
 import Database.ClickHouseDriver.HTTP
@@ -53,9 +55,24 @@ __offset = addClause
 runClickhouse :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => (HttpConnection -> IO (Either String a)) -> ClickhouseDb -> m (Either String a)
 runClickhouse action db = do
   con <- case db of
-    APP_SERVICE_CLICKHOUSE -> asks (.serviceClickhouseEnv.connection)
-    ATLAS_KAFKA -> asks (.kafkaClickhouseEnv.connection)
-  L.runIO $ action con
+    APP_SERVICE_CLICKHOUSE -> do
+      conn' <- asks (.serviceClickhouseEnv)
+      conn <- liftIO $ M.readMVar $ conn'.connectionData
+      return conn.connection
+    ATLAS_KAFKA -> do
+      conn' <- asks (.kafkaClickhouseEnv)
+      conn <- liftIO $ M.readMVar $ conn'.connectionData
+      return conn.connection
+  res <- L.runIO $ action con
+  case res of
+    Left err -> do
+      if ((T.pack "ConnectionFailure") `T.isInfixOf` (T.pack err))
+        then do
+          logError $ "Clickhouse error: " <> T.pack err
+          retryClickhouseConnection db
+          L.runIO $ action con
+        else pure $ Left err
+    Right val -> pure $ Right val
 
 runRawQuery :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => String -> ClickhouseDb -> m (Either String a)
 runRawQuery query db = do
