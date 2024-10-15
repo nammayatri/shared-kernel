@@ -71,8 +71,35 @@ data CreateOrderReq = CreateOrderReq
     mandateEndDate :: Maybe Text,
     metadataGatewayReferenceId :: Maybe Text,
     optionsGetUpiDeepLinks :: Maybe Bool,
-    metadataExpiryInMins :: Maybe Int
+    metadataExpiryInMins :: Maybe Int,
+    splitSettlementDetails :: Maybe SplitSettlementDetails
   }
+
+data Split = Split
+  { amount :: HighPrecMoney,
+    merchantCommission :: HighPrecMoney,
+    subMid :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+newtype Vendor = Vendor
+  { split :: [Split]
+  }
+  deriving stock (Show, Eq, Generic)
+
+data SplitSettlementDetails = SplitSettlementDetails
+  { marketplace :: Marketplace,
+    mdrBorneBy :: MBY,
+    vendor :: Vendor
+  }
+  deriving stock (Show, Eq, Generic)
+
+data MBY = MARKETPLACE | VENDOR | ALL deriving stock (Show, Eq, Generic)
+
+newtype Marketplace = Marketplace
+  { amount :: HighPrecMoney
+  }
+  deriving stock (Show, Eq, Generic)
 
 newtype OrderStatusReq = OrderStatusReq
   { orderShortId :: Text
@@ -103,7 +130,8 @@ data OrderStatusResp
         amountRefunded :: Maybe HighPrecMoney,
         refunds :: [RefundsData],
         payerVpa :: Maybe Text,
-        upi :: Maybe Upi
+        upi :: Maybe Upi,
+        splitSettlementResponse :: Maybe SplitSettlementResponse
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -156,6 +184,23 @@ data OrderStatusResp
         responseMessage :: Maybe Text
       }
   | BadStatusResp
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data SplitSettlementResponse = SplitSettlementResponse
+  { splitDetails :: Maybe [SplitDetailsResponse],
+    splitApplied :: Maybe Bool
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data SplitDetailsResponse = SplitDetailsResponse
+  { subVendorId :: Maybe Text,
+    amount :: Maybe HighPrecMoney,
+    merchantCommission :: Maybe HighPrecMoney,
+    gatewaySubAccountId :: Maybe Text,
+    epgTxnId :: Maybe Text
+  }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
@@ -246,7 +291,8 @@ data MandateExecutionReq = MandateExecutionReq
     amount :: HighPrecMoney,
     customerId :: Text,
     mandateId :: Text,
-    executionDate :: UTCTime
+    executionDate :: UTCTime,
+    splitSettlementDetails :: Maybe SplitSettlementDetails
   }
 
 data MandateExecutionRes = MandateExecutionRes
