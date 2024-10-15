@@ -17,11 +17,34 @@ type Itinerary {
   legs: [Leg]!
 }
 
+enum Mode {
+    AIRPLANE
+    BICYCLE
+    BUS
+    CABLE_CAR
+    CAR
+    COACH
+    FERRY
+    FLEX
+    FUNICULAR
+    GONDOLA
+    RAIL
+    SCOOTER
+    SUBWAY
+    TRAM
+    CARPOOL
+    TAXI
+    TRANSIT
+    WALK
+    TROLLEYBUS
+    MONORAIL
+}
+
 type Leg {
   distance: Float
   duration: Float
   legGeometry: Geometry
-  mode: String
+  mode: Mode
   startTime: Float
   pickupType: String
   endTime: Float
