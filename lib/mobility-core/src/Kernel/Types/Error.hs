@@ -375,6 +375,24 @@ instance IsHTTPError QuoteError where
 
 instance IsAPIError QuoteError
 
+data ShouldNotHappenError
+  = ShouldNotHappen Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''ShouldNotHappenError
+
+instance IsBaseError ShouldNotHappenError where
+  toMessage = \case
+    ShouldNotHappen txt -> Just $ "This shouldn't have happened -" <> show txt
+
+instance IsHTTPError ShouldNotHappenError where
+  toErrorCode = \case
+    ShouldNotHappen _ -> "SHOULD_NOT_HAPPEN"
+  toHttpCode = \case
+    ShouldNotHappen _ -> E500
+
+instance IsAPIError ShouldNotHappenError
+
 data BookingError
   = BookingNotFound Text
   | BookingDoesNotExist Text
