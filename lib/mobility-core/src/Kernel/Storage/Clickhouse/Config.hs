@@ -16,11 +16,13 @@ type ClickhouseFlow m env =
   ( MonadReader env m,
     HasField "kafkaClickhouseEnv" env ClickhouseEnv,
     HasField "serviceClickhouseEnv" env ClickhouseEnv,
+    HasField "dashboardClickhouseEnv" env ClickhouseEnv,
     MonadIO m,
     C.MonadThrow m,
     Log m,
     HasField "serviceClickhouseCfg" env ClickhouseCfg,
-    HasField "kafkaClickhouseCfg" env ClickhouseCfg
+    HasField "kafkaClickhouseCfg" env ClickhouseCfg,
+    HasField "dashboardClickhouseCfg" env ClickhouseCfg
   )
 
 data ClickhouseCfg = ClickhouseCfg
