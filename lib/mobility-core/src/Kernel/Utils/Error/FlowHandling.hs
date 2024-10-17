@@ -15,8 +15,12 @@
 module Kernel.Utils.Error.FlowHandling
   ( withFlowHandler,
     withFlowHandler',
+    withDashboardFlowHandler,
+    withDashboardFlowHandler',
     withFlowHandlerAPI,
     withFlowHandlerAPI',
+    withDashboardFlowHandlerAPI,
+    withDashboardFlowHandlerAPI',
     withFlowHandlerBecknAPI,
     withFlowHandlerBecknAPI',
     apiHandler,
@@ -37,6 +41,7 @@ import GHC.Records.Extra
 import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Storage.Beam.SystemConfigs as BeamSC
+import Kernel.Storage.Clickhouse.Config
 import Kernel.Storage.Queries.SystemConfigs
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
@@ -72,6 +77,28 @@ withFlowHandler flow = do
         findById "kv_configs" >>= pure . decodeFromText' @Tables
           >>= maybe (incrementSystemConfigsFailedCounter ("kv_config_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT))) (\result' -> L.setOption KBT.Tables result' >> L.setOption KBT.KvConfigLastUpdatedTime now)
 
+withDashboardFlowHandler ::
+  ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
+    HasField "serviceClickhouseEnv" r ClickhouseEnv,
+    HasField "dashboardClickhouseCfg" r ClickhouseCfg,
+    HasField "dashboardClickhouseEnv" r ClickhouseEnv,
+    HasFlowHandlerR (FlowR r) r
+  ) =>
+  FlowR r a ->
+  FlowHandlerR r a
+withDashboardFlowHandler flow = do
+  (EnvR flowRt appEnv) <- ask
+  let newappEnv = appEnv{serviceClickhouseCfg = appEnv.dashboardClickhouseCfg, serviceClickhouseEnv = appEnv.dashboardClickhouseEnv}
+  liftIO . runFlowR flowRt newappEnv $ getAndSetKvConfigs >> flow
+  where
+    getAndSetKvConfigs = do
+      now <- getCurrentTime
+      kvConfigLastUpdatedTime <- L.getOption KBT.KvConfigLastUpdatedTime >>= maybe (L.setOption KBT.KvConfigLastUpdatedTime now >> pure now) pure
+      kvConfigUpdateFrequency <- L.getOption KBT.KvConfigUpdateFrequency >>= maybe (pure 10) pure
+      when (round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency) $
+        findById "kv_configs" >>= pure . decodeFromText' @Tables
+          >>= maybe (incrementSystemConfigsFailedCounter ("kv_config_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT))) (\result' -> L.setOption KBT.Tables result' >> L.setOption KBT.KvConfigLastUpdatedTime now)
+
 -- in case of normal flow use withFlowHandler' as it does not have any extra constraints
 withFlowHandler' ::
   FlowR r a ->
@@ -79,6 +106,19 @@ withFlowHandler' ::
 withFlowHandler' flow = do
   (EnvR flowRt appEnv) <- ask
   liftIO . runFlowR flowRt appEnv $ flow
+
+withDashboardFlowHandler' ::
+  ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
+    HasField "serviceClickhouseEnv" r ClickhouseEnv,
+    HasField "dashboardClickhouseCfg" r ClickhouseCfg,
+    HasField "dashboardClickhouseEnv" r ClickhouseEnv
+  ) =>
+  FlowR r a ->
+  FlowHandlerR r a
+withDashboardFlowHandler' flow = do
+  (EnvR flowRt appEnv) <- ask
+  let newappEnv = appEnv{serviceClickhouseCfg = appEnv.dashboardClickhouseCfg, serviceClickhouseEnv = appEnv.dashboardClickhouseEnv}
+  liftIO . runFlowR flowRt newappEnv $ flow
 
 withFlowHandlerAPI ::
   ( HasFlowHandlerR (FlowR r) r,
@@ -89,6 +129,19 @@ withFlowHandlerAPI ::
   FlowHandlerR r a
 withFlowHandlerAPI = withFlowHandler . apiHandler . handleIfUp
 
+withDashboardFlowHandlerAPI ::
+  ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
+    HasField "serviceClickhouseEnv" r ClickhouseEnv,
+    HasField "dashboardClickhouseCfg" r ClickhouseCfg,
+    HasField "dashboardClickhouseEnv" r ClickhouseEnv,
+    HasFlowHandlerR (FlowR r) r,
+    Metrics.CoreMetrics (FlowR r),
+    HasField "isShuttingDown" r (TMVar ())
+  ) =>
+  FlowR r a ->
+  FlowHandlerR r a
+withDashboardFlowHandlerAPI = withDashboardFlowHandler . apiHandler . handleIfUp
+
 -- created this for using it in mock-registry as it does not require any extra constraints
 withFlowHandlerAPI' ::
   ( Metrics.CoreMetrics (FlowR r),
@@ -98,6 +151,19 @@ withFlowHandlerAPI' ::
   FlowR r a ->
   FlowHandlerR r a
 withFlowHandlerAPI' = withFlowHandler' . apiHandler . handleIfUp
+
+withDashboardFlowHandlerAPI' ::
+  ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
+    HasField "serviceClickhouseEnv" r ClickhouseEnv,
+    HasField "dashboardClickhouseCfg" r ClickhouseCfg,
+    HasField "dashboardClickhouseEnv" r ClickhouseEnv,
+    Metrics.CoreMetrics (FlowR r),
+    HasField "isShuttingDown" r (TMVar ()),
+    Log (FlowR r)
+  ) =>
+  FlowR r a ->
+  FlowHandlerR r a
+withDashboardFlowHandlerAPI' = withDashboardFlowHandler' . apiHandler . handleIfUp
 
 withFlowHandlerBecknAPI ::
   ( HasFlowHandlerR (FlowR r) r,
