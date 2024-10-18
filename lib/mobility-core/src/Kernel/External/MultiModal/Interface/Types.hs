@@ -73,6 +73,7 @@ data GeneralVehicleType
   = Bus
   | MetroRail
   | Walk
+  | Car
   | Unspecified
   deriving (Show, Eq)
 
