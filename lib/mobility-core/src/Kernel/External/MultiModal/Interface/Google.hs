@@ -9,6 +9,7 @@ import Kernel.External.MultiModal.Utils
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
+import Kernel.Utils.Common
 
 formatUtcTime :: Maybe UTCTime -> Maybe String
 formatUtcTime Nothing = Nothing
@@ -37,5 +38,6 @@ getTransitRoutes cfg req = do
   case result of
     Right gRes -> do
       pure $ Just $ convertGoogleToGeneric gRes
-    Left _ -> do
+    Left err -> do
+      logDebug $ "Error occurred during Google getTransitRoutes:" <> show err
       pure Nothing

@@ -43,7 +43,9 @@ data MultiModalAgency = MultiModalAgency
 data MultiModalRouteDetails = MultiModalRouteDetails
   { gtfsId :: Maybe Text,
     longName :: Maybe Text,
-    shortName :: Maybe Text
+    shortName :: Maybe Text,
+    color :: Maybe Text, -- For metro
+    directionName :: Maybe Text -- For metro
   }
   deriving (Show, Generic)
 
@@ -73,6 +75,7 @@ data GeneralVehicleType
   = Bus
   | MetroRail
   | Walk
+  | Car
   | Unspecified
   deriving (Show, Eq)
 

@@ -56,6 +56,8 @@ getTransitRoutes cfg req = do
           }
           >>= single
   case resp of
-    Left _ -> pure Nothing
+    Left err -> do
+      logDebug $ "Error occurred during OpenTripPlanner getTransitRoutes:" <> show err
+      pure Nothing
     Right plan' ->
       pure $ Just $ convertOTPToGeneric plan'
