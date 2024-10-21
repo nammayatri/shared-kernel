@@ -52,6 +52,7 @@ convertModeToGeneral OTP.ModeRAIL = MetroRail
 convertModeToGeneral OTP.ModeMONORAIL = MetroRail
 convertModeToGeneral OTP.ModeSUBWAY = MetroRail
 convertModeToGeneral OTP.ModeWALK = Walk
+convertModeToGeneral OTP.ModeCAR = Car
 convertModeToGeneral _ = Unspecified
 
 convertTransitVehicleToGeneral :: GT.TransitVehicleTypeV2 -> GeneralVehicleType
