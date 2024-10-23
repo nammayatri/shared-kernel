@@ -217,7 +217,7 @@ createPaymentIntent config req = do
   clonedPMRes <- Stripe.clonePaymentMethod url apiKey req.driverAccountId clonePaymentMethodReq
   -- use cloned paymentMethodId to create paymentIntent
   let paymentIntentReq = mkPaymentIntentReq clonedPMRes.id req
-  paymentIntentResp <- Stripe.createPaymentIntent url apiKey paymentIntentReq
+  paymentIntentResp <- Stripe.createPaymentIntent url apiKey req.driverAccountId paymentIntentReq
   let paymentIntentId = paymentIntentResp.id
   let clientSecret = paymentIntentResp.client_secret
   let status = paymentIntentResp.status
@@ -229,8 +229,8 @@ createPaymentIntent config req = do
       let amountInCents = usdToCents amonutInUsd
       let payment_method = clonedPaymentMethodId
       let receipt_email = receiptEmail
-      let on_behalf_of = driverAccountId
-      let transfer_data = Stripe.TransferData {destination = driverAccountId}
+      let on_behalf_of = Nothing -- driverAccountId
+      let transfer_data = Nothing -- Stripe.TransferData {destination = driverAccountId}
       -- let automatic_payment_methods = Stripe.AutomaticPayementMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
       let confirm = True
       let description = Nothing
@@ -239,7 +239,7 @@ createPaymentIntent config req = do
       let confirmation_method = Stripe.AutomaticConfirmationMethod
       let use_stripe_sdk = True
       let return_url = showBaseUrl config.returnUrl
-      Stripe.PaymentIntentReq {amount = amountInCents, ..}
+      Stripe.PaymentIntentReq {amount = amountInCents, customer = Nothing, ..}
 
 createSetupIntent ::
   ( Metrics.CoreMetrics m,
@@ -274,12 +274,13 @@ cancelPaymentIntent ::
     EncFlow m r
   ) =>
   StripeCfg ->
+  Text ->
   PaymentIntentId ->
   m CreatePaymentIntentResp
-cancelPaymentIntent config paymentIntentId = do
+cancelPaymentIntent config connectedAccountId paymentIntentId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  paymentIntentResp <- Stripe.cancelPaymentIntent url apiKey paymentIntentId
+  paymentIntentResp <- Stripe.cancelPaymentIntent url apiKey connectedAccountId paymentIntentId
   let clientSecret = paymentIntentResp.client_secret
   let status = paymentIntentResp.status
   return $ CreatePaymentIntentResp {..}
@@ -344,34 +345,36 @@ capturePaymentIntent ::
     EncFlow m r
   ) =>
   StripeCfg ->
+  Text ->
   PaymentIntentId ->
   HighPrecMoney ->
   HighPrecMoney ->
   m ()
-capturePaymentIntent config paymentIntentId amount applicationFeeAmount = do
+capturePaymentIntent config connectedAccountId paymentIntentId amount applicationFeeAmount = do
   let url = config.url
   apiKey <- decrypt config.apiKey
   let amount_to_capture = usdToCents amount
   let application_fee_amount = usdToCents applicationFeeAmount
   let req = Stripe.CapturePaymentIntentReq {..}
-  void $ Stripe.capturePaymentIntent url apiKey paymentIntentId req
+  void $ Stripe.capturePaymentIntent url apiKey connectedAccountId paymentIntentId req
 
 updateAmountInPaymentIntent ::
   ( Metrics.CoreMetrics m,
     EncFlow m r
   ) =>
   StripeCfg ->
+  Text ->
   PaymentIntentId ->
   HighPrecMoney ->
   HighPrecMoney ->
   m ()
-updateAmountInPaymentIntent config paymentIntentId amount_ applicationFeeAmount = do
+updateAmountInPaymentIntent config connectedAccountId paymentIntentId amount_ applicationFeeAmount = do
   let url = config.url
   apiKey <- decrypt config.apiKey
   let amount = usdToCents amount_
   let application_fee_amount = usdToCents applicationFeeAmount
   let req = Stripe.IncrementAuthorizationReq {..}
-  void $ Stripe.incrementAuthorizationPaymentIntent url apiKey paymentIntentId req
+  void $ Stripe.incrementAuthorizationPaymentIntent url apiKey connectedAccountId paymentIntentId req
 
 mkAccountLinkReq :: StripeCfg -> Stripe.AccountId -> Stripe.AccountLinkReq
 mkAccountLinkReq config accountId =

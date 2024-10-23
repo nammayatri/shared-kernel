@@ -255,26 +255,28 @@ capturePaymentIntent ::
     EncFlow m r
   ) =>
   PaymentServiceConfig ->
+  Text ->
   PaymentIntentId ->
   HighPrecMoney ->
   HighPrecMoney ->
   m ()
-capturePaymentIntent config paymentIntentId amount applicationFeeAmount = case config of
+capturePaymentIntent config connectedAccountId paymentIntentId amount applicationFeeAmount = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Capture Payment Intent not supported."
-  StripeConfig cfg -> Stripe.capturePaymentIntent cfg paymentIntentId amount applicationFeeAmount
+  StripeConfig cfg -> Stripe.capturePaymentIntent cfg connectedAccountId paymentIntentId amount applicationFeeAmount
 
 updateAmountInPaymentIntent ::
   ( CoreMetrics m,
     EncFlow m r
   ) =>
   PaymentServiceConfig ->
+  Text ->
   PaymentIntentId ->
   HighPrecMoney ->
   HighPrecMoney ->
   m ()
-updateAmountInPaymentIntent config paymentIntentId amount applicationFeeAmount = case config of
+updateAmountInPaymentIntent config connectedAccountId paymentIntentId amount applicationFeeAmount = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Update Amount In Payment Intent not supported."
-  StripeConfig cfg -> Stripe.updateAmountInPaymentIntent cfg paymentIntentId amount applicationFeeAmount
+  StripeConfig cfg -> Stripe.updateAmountInPaymentIntent cfg connectedAccountId paymentIntentId amount applicationFeeAmount
 
 createSetupIntent ::
   ( CoreMetrics m,
@@ -304,8 +306,9 @@ cancelPaymentIntent ::
     EncFlow m r
   ) =>
   PaymentServiceConfig ->
+  Text ->
   PaymentIntentId ->
   m CreatePaymentIntentResp
-cancelPaymentIntent config paymentIntentId = case config of
+cancelPaymentIntent config connectedAccountId paymentIntentId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Cancel Payment Intent not supported."
-  StripeConfig cfg -> Stripe.cancelPaymentIntent cfg paymentIntentId
+  StripeConfig cfg -> Stripe.cancelPaymentIntent cfg connectedAccountId paymentIntentId
