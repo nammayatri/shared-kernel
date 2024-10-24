@@ -102,7 +102,7 @@ instance ClickhouseValue Bool where
 instance ClickhouseValue Time.Day
 
 instance ClickhouseValue UTCTime where
-  toClickhouseValue = String . Time.formatTime Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S%Q"
+  toClickhouseValue = String . Time.formatTime Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S"
   fromClickhouseValue (String str) = Time.parseTimeM @Except True Time.defaultTimeLocale "%Y-%m-%d %H:%M:%S%Q" str
   fromClickhouseValue (Number _) = fail "Unexpected Number"
   fromClickhouseValue Null = fail "Unexpected Null"
