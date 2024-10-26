@@ -84,7 +84,7 @@ data City
   | Nalgonda
   | Siddipet
   | Rourkela
-  | Bhubaneshwar
+  | Bhubaneswar
   | Cuttack
   | Puri
   | Warangal
@@ -202,8 +202,8 @@ instance FromJSON City where
   parseJSON (String "Siddipet") = pure Siddipet
   parseJSON (String "std:0661") = pure Rourkela
   parseJSON (String "Rourkela") = pure Rourkela
-  parseJSON (String "std:0674") = pure Bhubaneshwar
-  parseJSON (String "Bhubaneshwar") = pure Bhubaneshwar
+  parseJSON (String "std:0674") = pure Bhubaneswar
+  parseJSON (String "Bhubaneswar") = pure Bhubaneswar
   parseJSON (String "std:0671") = pure Cuttack
   parseJSON (String "Cuttack") = pure Cuttack
   parseJSON (String "std:06752") = pure Puri
@@ -267,7 +267,7 @@ instance ToJSON City where
   toJSON Nalgonda = String "std:08682"
   toJSON Siddipet = String "std:08457"
   toJSON Rourkela = String "std:0661"
-  toJSON Bhubaneshwar = String "std:0674"
+  toJSON Bhubaneswar = String "std:0674"
   toJSON Cuttack = String "std:0671"
   toJSON Puri = String "std:06752"
   toJSON Warangal = String "std:0870"
@@ -385,8 +385,8 @@ instance FromHttpApiData City where
       parseLowerCaseCity "siddipet" = Right Siddipet
       parseLowerCaseCity "std:0661" = Right Rourkela
       parseLowerCaseCity "rourkela" = Right Rourkela
-      parseLowerCaseCity "std:0674" = Right Bhubaneshwar
-      parseLowerCaseCity "bhubaneshwar" = Right Bhubaneshwar
+      parseLowerCaseCity "std:0674" = Right Bhubaneswar
+      parseLowerCaseCity "Bhubaneswar" = Right Bhubaneswar
       parseLowerCaseCity "std:0671" = Right Cuttack
       parseLowerCaseCity "cuttack" = Right Cuttack
       parseLowerCaseCity "std:06752" = Right Puri
@@ -450,7 +450,7 @@ instance ToHttpApiData City where
   toUrlPiece Nalgonda = "std:08682"
   toUrlPiece Siddipet = "std:08457"
   toUrlPiece Rourkela = "std:0661"
-  toUrlPiece Bhubaneshwar = "std:0674"
+  toUrlPiece Bhubaneswar = "std:0674"
   toUrlPiece Cuttack = "std:0671"
   toUrlPiece Puri = "std:06752"
   toUrlPiece Warangal = "std:0870"
