@@ -71,6 +71,23 @@ data City
   | Mangalore
   | Udupi
   | Gulbarga
+  | Vijayawada
+  | Vishakapatnam
+  | Guntur
+  | Tirupati
+  | Kurnool
+  | Khammam
+  | Karimnagar
+  | Nizamabad
+  | Mahbubnagar
+  | Suryapet
+  | Nalgonda
+  | Siddipet
+  | Rourkela
+  | Bhubaneshwar
+  | Cuttack
+  | Puri
+  | Warangal
   | AnyCity
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
@@ -159,6 +176,40 @@ instance FromJSON City where
   parseJSON (String "Udupi") = pure Udupi
   parseJSON (String "std:08472") = pure Gulbarga
   parseJSON (String "Gulbarga") = pure Gulbarga
+  parseJSON (String "std:0866") = pure Vijayawada
+  parseJSON (String "Vijayawada") = pure Vijayawada
+  parseJSON (String "std:0891") = pure Vishakapatnam
+  parseJSON (String "Vishakapatnam") = pure Vishakapatnam
+  parseJSON (String "std:0863") = pure Guntur
+  parseJSON (String "Guntur") = pure Guntur
+  parseJSON (String "std:0877") = pure Tirupati
+  parseJSON (String "Tirupati") = pure Tirupati
+  parseJSON (String "std:08518") = pure Kurnool
+  parseJSON (String "Kurnool") = pure Kurnool
+  parseJSON (String "std:08742") = pure Khammam
+  parseJSON (String "Khammam") = pure Khammam
+  parseJSON (String "std:08722") = pure Karimnagar
+  parseJSON (String "Karimnagar") = pure Karimnagar
+  parseJSON (String "std:08463") = pure Nizamabad
+  parseJSON (String "Nizamabad") = pure Nizamabad
+  parseJSON (String "std:08542") = pure Mahbubnagar
+  parseJSON (String "Mahbubnagar") = pure Mahbubnagar
+  parseJSON (String "std:08684") = pure Suryapet
+  parseJSON (String "Suryapet") = pure Suryapet
+  parseJSON (String "std:08682") = pure Nalgonda
+  parseJSON (String "Nalgonda") = pure Nalgonda
+  parseJSON (String "std:08457") = pure Siddipet
+  parseJSON (String "Siddipet") = pure Siddipet
+  parseJSON (String "std:0661") = pure Rourkela
+  parseJSON (String "Rourkela") = pure Rourkela
+  parseJSON (String "std:0674") = pure Bhubaneshwar
+  parseJSON (String "Bhubaneshwar") = pure Bhubaneshwar
+  parseJSON (String "std:0671") = pure Cuttack
+  parseJSON (String "Cuttack") = pure Cuttack
+  parseJSON (String "std:06752") = pure Puri
+  parseJSON (String "Puri") = pure Puri
+  parseJSON (String "std:0870") = pure Warangal
+  parseJSON (String "Warangal") = pure Warangal
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
@@ -203,6 +254,23 @@ instance ToJSON City where
   toJSON Mangalore = String "std:0824"
   toJSON Udupi = String "std:08200"
   toJSON Gulbarga = String "std:08472"
+  toJSON Vijayawada = String "std:0866"
+  toJSON Vishakapatnam = String "std:0891"
+  toJSON Guntur = String "std:0863"
+  toJSON Tirupati = String "std:0877"
+  toJSON Kurnool = String "std:08518"
+  toJSON Khammam = String "std:08742"
+  toJSON Karimnagar = String "std:08722"
+  toJSON Nizamabad = String "std:08463"
+  toJSON Mahbubnagar = String "std:08542"
+  toJSON Suryapet = String "std:08684"
+  toJSON Nalgonda = String "std:08682"
+  toJSON Siddipet = String "std:08457"
+  toJSON Rourkela = String "std:0661"
+  toJSON Bhubaneshwar = String "std:0674"
+  toJSON Cuttack = String "std:0671"
+  toJSON Puri = String "std:06752"
+  toJSON Warangal = String "std:0870"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -291,6 +359,40 @@ instance FromHttpApiData City where
       parseLowerCaseCity "udupi" = Right Udupi
       parseLowerCaseCity "std:08472" = Right Gulbarga
       parseLowerCaseCity "gulbarga" = Right Gulbarga
+      parseLowerCaseCity "std:0866" = Right Vijayawada
+      parseLowerCaseCity "vijayawada" = Right Vijayawada
+      parseLowerCaseCity "std:0891" = Right Vishakapatnam
+      parseLowerCaseCity "vishakapatnam" = Right Vishakapatnam
+      parseLowerCaseCity "std:0863" = Right Guntur
+      parseLowerCaseCity "guntur" = Right Guntur
+      parseLowerCaseCity "std:0877" = Right Tirupati
+      parseLowerCaseCity "tirupati" = Right Tirupati
+      parseLowerCaseCity "std:08518" = Right Kurnool
+      parseLowerCaseCity "kurnool" = Right Kurnool
+      parseLowerCaseCity "std:08742" = Right Khammam
+      parseLowerCaseCity "khammam" = Right Khammam
+      parseLowerCaseCity "std:08722" = Right Karimnagar
+      parseLowerCaseCity "karimnagar" = Right Karimnagar
+      parseLowerCaseCity "std:08463" = Right Nizamabad
+      parseLowerCaseCity "nizamabad" = Right Nizamabad
+      parseLowerCaseCity "std:08542" = Right Mahbubnagar
+      parseLowerCaseCity "mahbubnagar" = Right Mahbubnagar
+      parseLowerCaseCity "std:08684" = Right Suryapet
+      parseLowerCaseCity "suryapet" = Right Suryapet
+      parseLowerCaseCity "std:08682" = Right Nalgonda
+      parseLowerCaseCity "nalgonda" = Right Nalgonda
+      parseLowerCaseCity "std:08457" = Right Siddipet
+      parseLowerCaseCity "siddipet" = Right Siddipet
+      parseLowerCaseCity "std:0661" = Right Rourkela
+      parseLowerCaseCity "rourkela" = Right Rourkela
+      parseLowerCaseCity "std:0674" = Right Bhubaneshwar
+      parseLowerCaseCity "bhubaneshwar" = Right Bhubaneshwar
+      parseLowerCaseCity "std:0671" = Right Cuttack
+      parseLowerCaseCity "cuttack" = Right Cuttack
+      parseLowerCaseCity "std:06752" = Right Puri
+      parseLowerCaseCity "puri" = Right Puri
+      parseLowerCaseCity "std:0870" = Right Warangal
+      parseLowerCaseCity "warangal" = Right Warangal
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
@@ -335,4 +437,21 @@ instance ToHttpApiData City where
   toUrlPiece Mangalore = "std:0824"
   toUrlPiece Udupi = "std:08200"
   toUrlPiece Gulbarga = "std:08472"
+  toUrlPiece Vijayawada = "std:0866"
+  toUrlPiece Vishakapatnam = "std:0891"
+  toUrlPiece Guntur = "std:0863"
+  toUrlPiece Tirupati = "std:0877"
+  toUrlPiece Kurnool = "std:08518"
+  toUrlPiece Khammam = "std:08742"
+  toUrlPiece Karimnagar = "std:08722"
+  toUrlPiece Nizamabad = "std:08463"
+  toUrlPiece Mahbubnagar = "std:08542"
+  toUrlPiece Suryapet = "std:08684"
+  toUrlPiece Nalgonda = "std:08682"
+  toUrlPiece Siddipet = "std:08457"
+  toUrlPiece Rourkela = "std:0661"
+  toUrlPiece Bhubaneshwar = "std:0674"
+  toUrlPiece Cuttack = "std:0671"
+  toUrlPiece Puri = "std:06752"
+  toUrlPiece Warangal = "std:0870"
   toUrlPiece AnyCity = "*"
