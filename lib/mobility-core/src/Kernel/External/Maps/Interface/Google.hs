@@ -367,7 +367,7 @@ autoCompleteNew cfg AutoCompleteReq {..} = do
   let includedRegionCodes =
         case country of
           India -> ["in"]
-          France -> ["fr", "nl", "nld"]
+          France -> ["fr", "nl"]
           USA -> ["us", "pr", "vi", "gu", "mp"]
       includedPrimaryTypes = types_
       origin' = mkLatLngV2 <$> origin
