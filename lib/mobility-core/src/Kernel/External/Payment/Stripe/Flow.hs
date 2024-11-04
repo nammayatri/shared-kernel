@@ -150,6 +150,7 @@ getCustomer url apiKey customerId = do
 type CreatePaymentIntentAPI =
   "v1"
     :> "payment_intents"
+    :> MandatoryHeader "Stripe-Account" Text
     :> BasicAuth "secretkey-password" BasicAuthData
     :> ReqBody '[FormUrlEncoded] PaymentIntentReq
     :> Post '[JSON] PaymentIntentObject
@@ -160,16 +161,18 @@ createPaymentIntent ::
   ) =>
   BaseUrl ->
   Text ->
+  Text ->
   PaymentIntentReq ->
   m PaymentIntentObject
-createPaymentIntent url apiKey paymentIntentReq = do
+createPaymentIntent url apiKey connectedAccountId paymentIntentReq = do
   let proxy = Proxy @CreatePaymentIntentAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) paymentIntentReq
+      eulerClient = Euler.client proxy connectedAccountId (mkBasicAuthData apiKey) paymentIntentReq
   callStripeAPI url eulerClient "create-payment-intent" proxy
 
 type CancelPaymentIntentAPI =
   "v1"
     :> "payment_intents"
+    :> MandatoryHeader "Stripe-Account" Text
     :> BasicAuth "secretkey-password" BasicAuthData
     :> Capture "id" PaymentIntentId
     :> "cancel"
@@ -181,11 +184,12 @@ cancelPaymentIntent ::
   ) =>
   BaseUrl ->
   Text ->
+  Text ->
   PaymentIntentId ->
   m PaymentIntentObject
-cancelPaymentIntent url apiKey paymentIntentId = do
+cancelPaymentIntent url apiKey connectedAccountId paymentIntentId = do
   let proxy = Proxy @CancelPaymentIntentAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) paymentIntentId
+      eulerClient = Euler.client proxy connectedAccountId (mkBasicAuthData apiKey) paymentIntentId
   callStripeAPI url eulerClient "cancel-payment-intent" proxy
 
 type GetPaymentIntentAPI =
@@ -234,6 +238,7 @@ confirmPaymentIntent url apiKey paymentIntentId confirmPaymentIntentReq = do
 type CapturePaymentIntentAPI =
   "v1"
     :> "payment_intents"
+    :> MandatoryHeader "Stripe-Account" Text
     :> Capture "id" PaymentIntentId
     :> "capture"
     :> BasicAuth "secretkey-password" BasicAuthData
@@ -246,17 +251,19 @@ capturePaymentIntent ::
   ) =>
   BaseUrl ->
   Text ->
+  Text ->
   PaymentIntentId ->
   CapturePaymentIntentReq ->
   m PaymentIntentObject
-capturePaymentIntent url apiKey paymentIntentId capturePaymentIntentReq = do
+capturePaymentIntent url apiKey connectedAccountId paymentIntentId capturePaymentIntentReq = do
   let proxy = Proxy @CapturePaymentIntentAPI
-      eulerClient = Euler.client proxy paymentIntentId (mkBasicAuthData apiKey) capturePaymentIntentReq
+      eulerClient = Euler.client proxy connectedAccountId paymentIntentId (mkBasicAuthData apiKey) capturePaymentIntentReq
   callStripeAPI url eulerClient "capture-payment-intent" proxy
 
 type IncrementAuthorizationPaymentIntentAPI =
   "v1"
     :> "payment_intents"
+    :> MandatoryHeader "Stripe-Account" Text
     :> Capture "id" PaymentIntentId
     :> "increment_authorization"
     :> BasicAuth "secretkey-password" BasicAuthData
@@ -269,12 +276,13 @@ incrementAuthorizationPaymentIntent ::
   ) =>
   BaseUrl ->
   Text ->
+  Text ->
   PaymentIntentId ->
   IncrementAuthorizationReq ->
   m PaymentIntentObject
-incrementAuthorizationPaymentIntent url apiKey paymentIntentId incrementAuthorizationReq = do
+incrementAuthorizationPaymentIntent url apiKey connectedAccountId paymentIntentId incrementAuthorizationReq = do
   let proxy = Proxy @IncrementAuthorizationPaymentIntentAPI
-      eulerClient = Euler.client proxy paymentIntentId (mkBasicAuthData apiKey) incrementAuthorizationReq
+      eulerClient = Euler.client proxy connectedAccountId paymentIntentId (mkBasicAuthData apiKey) incrementAuthorizationReq
   callStripeAPI url eulerClient "increment-authorization-payment-intent" proxy
 
 -------------------------------------------- Setup Intent APIs --------------------------------------------

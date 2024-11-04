@@ -29,7 +29,7 @@ data PaymentIntentReq = PaymentIntentReq
     currency :: Currency,
     -- automatic_payment_methods :: AutomaticPayementMethods,
     confirm :: Bool,
-    customer :: CustomerId,
+    customer :: Maybe CustomerId,
     description :: Maybe Text,
     payment_method :: PaymentMethodId,
     receipt_email :: Maybe Text,
@@ -37,10 +37,10 @@ data PaymentIntentReq = PaymentIntentReq
     application_fee_amount :: Int,
     capture_method :: CaptureMethod,
     confirmation_method :: ConfirmationMethod,
-    on_behalf_of :: AccountId,
+    on_behalf_of :: Maybe AccountId,
     use_stripe_sdk :: Bool,
     return_url :: Text,
-    transfer_data :: TransferData
+    transfer_data :: Maybe TransferData
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -55,19 +55,19 @@ instance ToForm PaymentIntentReq where
           -- ("automatic_payment_methods[enabled]", [toQueryParam (automatic_payment_methods.enabled)]),
           -- ("automatic_payment_methods[allow_redirects]", [toQueryParam (automatic_payment_methods.allow_redirects)]),
           ("confirm", [toQueryParam confirm]),
-          ("customer", [toQueryParam customer]),
           ("payment_method", [toQueryParam payment_method]),
           ("application_fee_amount", [toQueryParam application_fee_amount]),
           ("capture_method", [toQueryParam capture_method]),
           ("confirmation_method", [toQueryParam confirmation_method]),
-          ("on_behalf_of", [toQueryParam on_behalf_of]),
           ("use_stripe_sdk", [toQueryParam use_stripe_sdk]),
-          ("return_url", [toQueryParam return_url]),
-          ("transfer_data[destination]", [toQueryParam transfer_data.destination])
+          ("return_url", [toQueryParam return_url])
         ]
         <> maybeToForm "description" description
         <> maybeToForm "receipt_email" receipt_email
         <> maybeToForm "setup_future_usage" setup_future_usage
+        <> maybeToForm "transfer_data[destination]" (destination <$> transfer_data)
+        <> maybeToForm "on_behalf_of" on_behalf_of
+        <> maybeToForm "customer" customer
     where
       maybeToForm :: ToHttpApiData a => Text -> Maybe a -> HM.HashMap Text [Text]
       maybeToForm key = maybe HM.empty (\value -> HM.singleton key [toQueryParam value])
