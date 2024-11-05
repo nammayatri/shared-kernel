@@ -26,7 +26,8 @@ data GoogleCfg = GoogleCfg
     useAdvancedDirections :: Bool,
     googleRouteConfig :: GoogleRouteConfig,
     googlePlaceNewUrl :: BaseUrl,
-    useNewPlaces :: Bool
+    useNewPlaces :: Bool,
+    googleAutocompleteParams :: Maybe [Text]
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 

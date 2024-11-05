@@ -24,6 +24,7 @@ data MMICfg = MMICfg
     mmiAuthSecret :: EncryptedField 'AsEncrypted Text,
     mmiApiKey :: EncryptedField 'AsEncrypted Text,
     mmiKeyUrl :: BaseUrl,
-    mmiNonKeyUrl :: BaseUrl
+    mmiNonKeyUrl :: BaseUrl,
+    mmiAutocompleteParams :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)

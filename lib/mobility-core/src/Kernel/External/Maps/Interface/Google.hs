@@ -365,10 +365,13 @@ autoCompleteNew cfg AutoCompleteReq {..} = do
   let mapsUrl = cfg.googlePlaceNewUrl
   key <- decrypt cfg.googleKey
   let includedRegionCodes =
-        case country of
-          India -> ["in"]
-          France -> ["fr", "nl"]
-          USA -> ["us", "pr", "vi", "gu", "mp"]
+        case cfg.googleAutocompleteParams of
+          Just params -> params
+          Nothing ->
+            case country of
+              India -> ["in"]
+              France -> ["fr", "nl"]
+              USA -> ["us", "pr", "vi", "gu", "mp"]
       includedPrimaryTypes = types_
       origin' = mkLatLngV2 <$> origin
   center <- buildLatLng location
