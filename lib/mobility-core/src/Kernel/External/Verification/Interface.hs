@@ -58,7 +58,7 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL cfg -> HyperVerge.verifyDLAsync cfg req
 
 verifyRC ::
   ( EncFlow m r,
@@ -188,10 +188,11 @@ getTask ::
   ) =>
   VerificationServiceConfig ->
   GetTaskReq ->
+  (Text -> Maybe Text -> Text -> m ()) ->
   m GetTaskResp
-getTask serviceConfig req = case serviceConfig of
-  IdfyConfig cfg -> Idfy.getTask cfg req
+getTask serviceConfig req updateResp = case serviceConfig of
+  IdfyConfig cfg -> Idfy.getTask cfg req updateResp
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  HyperVergeVerificationConfigRCDL cfg -> HyperVerge.getVerificationStatus cfg req
+  HyperVergeVerificationConfigRCDL cfg -> HyperVerge.getVerificationStatus cfg req updateResp

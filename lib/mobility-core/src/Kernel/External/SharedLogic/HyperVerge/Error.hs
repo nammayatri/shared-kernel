@@ -25,7 +25,7 @@ data HyperVergeError
   | HVBadRequestError Text
   | HVError Text
   | HVBadInputError Text
-  | HVMissingPayloadError
+  | HVMissingPayloadError Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''HyperVergeError
@@ -36,7 +36,7 @@ instance IsBaseError HyperVergeError where
     HVBadRequestError msg -> Just $ "Bad Request with message: " <> msg
     HVError msg -> Just $ "HyperVerge Error with message: " <> msg
     HVBadInputError msg -> Just $ "Bad Input with message: " <> msg
-    HVMissingPayloadError -> Just "Missing payload in a 200 Hyperverge Response !!!!!"
+    HVMissingPayloadError msg -> Just $ "Missing payload in a 200 Hyperverge Response !!!!! Due to : " <> msg
 
 instance IsHTTPError HyperVergeError where
   toErrorCode = \case
@@ -44,13 +44,13 @@ instance IsHTTPError HyperVergeError where
     HVBadRequestError _ -> "HV_BAD_REQUEST"
     HVError _ -> "HV_ERROR"
     HVBadInputError _ -> "HV_BAD_INPUT"
-    HVMissingPayloadError -> "HV_MISSING_PAYLOAD_ERROR"
+    HVMissingPayloadError _ -> "HV_MISSING_PAYLOAD_ERROR"
 
   toHttpCode = \case
     HVUnauthorizedError -> E401
     HVBadRequestError _ -> E400
     HVError _ -> E400
     HVBadInputError _ -> E400
-    HVMissingPayloadError -> E400
+    HVMissingPayloadError _ -> E400
 
 instance IsAPIError HyperVergeError
