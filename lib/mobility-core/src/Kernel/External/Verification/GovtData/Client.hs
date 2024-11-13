@@ -49,7 +49,6 @@ verifyRC req = do
           pucValidityUpto = Nothing,
           manufacturerModel = res.manufacturerModel,
           mYManufacturing = Nothing,
-          colour = Nothing,
           color = Nothing,
           fuelType = res.fuelType,
           bodyType = res.bodyType,

@@ -64,7 +64,6 @@ data RCVerificationResponse = RCVerificationResponse
     pucValidityUpto :: Maybe Text,
     manufacturerModel :: Maybe Text,
     mYManufacturing :: Maybe Text,
-    colour :: Maybe Text,
     color :: Maybe Text,
     fuelType :: Maybe Text,
     bodyType :: Maybe Text,
