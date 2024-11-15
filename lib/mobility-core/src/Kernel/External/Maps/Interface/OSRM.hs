@@ -146,7 +146,7 @@ getRoutes ::
   GetRoutesReq ->
   m GetRoutesResp
 getRoutes osrmCfg request = do
-  response <- OSRM.callOsrmRouteAPI osrmCfg.osrmUrl $ OSRM.PointsList {getPointsList = NE.take 2 request.waypoints}
+  response <- OSRM.callOsrmRouteAPI osrmCfg.osrmUrl $ OSRM.PointsList {getPointsList = request.waypoints}
   getOSRMRoute response
 
 convertRouteToRouteInfo :: (Log m, MonadThrow m) => OSRM.OSRMRouteRoutes -> m RouteInfo
