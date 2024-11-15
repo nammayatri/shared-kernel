@@ -178,6 +178,7 @@ data FCMNotificationType
   | USER_FAVOURITE_DRIVER
   | DRIVER_UNBLOCKED
   | POST_RIDE_SAFETY_CHECK
+  | DRIVER_STOP_DETECTED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
