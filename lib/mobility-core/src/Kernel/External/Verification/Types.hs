@@ -21,15 +21,22 @@ where
 
 import Data.Aeson as A
 import Data.OpenApi
+import qualified Data.Text as T
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
+import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 data DriverBackgroundVerificationService = SafetyPortal
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, ToSchema)
+
+instance FromJSON DriverBackgroundVerificationService where -- remove this instance once you add more constructors to AadhaarVerificationService type.
+  parseJSON (A.String val) = maybe (fail ("failed to parse String " <> show val <> " in DriverBackgroundVerificationService type")) pure (KP.readMaybe $ T.unpack val)
+  parseJSON (A.Array _) = pure SafetyPortal
+  parseJSON e = fail $ "unexpected type, expected String for AadhaarVerificationService" <> show e
 
 $(mkBeamInstancesForEnumAndList ''VerificationService)
 $(mkBeamInstancesForEnumAndList ''DriverBackgroundVerificationService)
