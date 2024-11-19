@@ -337,7 +337,7 @@ autoComplete cfg AutoCompleteReq {..} = do
       case result of
         Right res -> return res
         Left err -> do
-          logTagWarning "GoogleMapsAutoComplete" ("New Places API failed, falling back to old places API, " <> show AutoCompleteReq {..} <> " error is: " <> show err)
+          logTagError "GoogleMapsAutoComplete" ("New Places API failed, falling back to old places API, " <> show AutoCompleteReq {..} <> " error is: " <> show err)
           autoCompleteOld
     else autoCompleteOld
   where
@@ -373,11 +373,8 @@ autoCompleteNew cfg AutoCompleteReq {..} = do
       origin' = mkLatLngV2 <$> origin
   center <- buildLatLng location
   let radiusInM = (maybe radius (toInteger . distanceToMeters) radiusWithUnit)
-  let circle = GoogleMaps.Circle {center = center, radius = fromIntegral radiusInM}
-      (locationBias, locationRestriction) = case strictbounds of
-        Nothing -> (Just $ GoogleMaps.LocationBias circle, Nothing)
-        Just True -> (Nothing, Just $ GoogleMaps.LocationRestriction circle)
-        Just False -> (Just $ GoogleMaps.LocationBias circle, Nothing)
+      circle = GoogleMaps.Circle {center = center, radius = fromIntegral radiusInM}
+      (locationBias, locationRestriction) = getLocationBiasAndLocationRestriction radiusInM circle
   let req = GoogleMaps.AutoCompleteReqV2 {input, sessionToken, origin = origin', locationBias, locationRestriction, includedPrimaryTypes, includedRegionCodes}
   res <- GoogleMaps.autoCompleteV2 mapsUrl key language req
   let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
@@ -397,6 +394,12 @@ autoCompleteNew cfg AutoCompleteReq {..} = do
             (Just latitude, Just longitude) -> return $ GoogleMaps.LatLngV2 {latitude = latitude, longitude = longitude}
             _ -> throwError (InvalidRequest "Invalid location")
         _ -> throwError (InvalidRequest "Invalid location")
+
+    getLocationBiasAndLocationRestriction radiusInM circle
+      | radiusInM > 50000 = (Nothing, Nothing) -- when radius in metres is > 50000 api will give bad request
+      | strictbounds == Just True = (Nothing, Just $ GoogleMaps.LocationRestriction circle)
+      | strictbounds == Just False = (Just $ GoogleMaps.LocationBias circle, Nothing)
+      | otherwise = (Just $ GoogleMaps.LocationBias circle, Nothing)
 
 getPlaceDetails ::
   ( EncFlow m r,

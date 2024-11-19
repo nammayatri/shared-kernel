@@ -43,12 +43,18 @@ data Prediction = Prediction
 newtype AutoCompleteRespV2 = AutoCompleteRespV2
   { suggestions :: [Suggestion]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Generic, ToJSON, ToSchema)
+
+instance FromJSON AutoCompleteRespV2 where
+  parseJSON (Object v) = do
+    suggestionsValue <- v .:? "suggestions" .!= []
+    return $ AutoCompleteRespV2 suggestionsValue
+  parseJSON _ = fail "Expected an object for AutoCompleteRespV2"
 
 newtype Suggestion = Suggestion
   { placePrediction :: PlacePrediction
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data PlacePrediction = PlacePrediction
   { text :: PlaceText,
@@ -56,12 +62,12 @@ data PlacePrediction = PlacePrediction
     types :: Maybe [Text],
     distanceMeters :: Maybe Int
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 newtype PlaceText = PlaceText
   { text :: Text
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data GetPlaceDetailsResp = GetPlaceDetailsResp
   { status :: Text,
