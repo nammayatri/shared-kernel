@@ -115,16 +115,22 @@ runInMasterDb m = do
   L.setOptionLocal MasterReadEnabled False
   pure res
 
+allowedSchema :: [Text]
+allowedSchema = ["atlas_driver_offer_bpp", "atlas_app"]
+
 setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfig modelName mSchema meshConfig' = do
   schema <- maybe (L.throwException $ InternalError "Schema not found in setMeshConfig") pure mSchema
-  let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
-  tables' <- L.getOption KBT.Tables >>= maybe (L.throwException $ InternalError "Tables not found in setMeshConfig") pure
-  if modelName `elem` tables'.disableForKV
-    then pure $ meshConfig' {ecRedisDBStream = redisStream}
+  if schema `notElem` allowedSchema
+    then pure meshConfig'
     else do
-      let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
-      pure $ meshConfig' {meshEnabled = True, kvHardKilled = False, ecRedisDBStream = redisStream, redisTtl = redisTtl'}
+      let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
+      tables' <- L.getOption KBT.Tables >>= maybe (L.throwException $ InternalError "Tables not found in setMeshConfig") pure
+      if modelName `elem` tables'.disableForKV
+        then pure $ meshConfig' {ecRedisDBStream = redisStream}
+        else do
+          let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
+          pure $ meshConfig' {meshEnabled = True, kvHardKilled = False, ecRedisDBStream = redisStream, redisTtl = redisTtl'}
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do
