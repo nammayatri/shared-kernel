@@ -131,7 +131,7 @@ setMeshConfig modelName mSchema meshConfig' = do
         then pure $ meshConfig' {ecRedisDBStream = redisStream}
         else do
           let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
-          let shardModValue' = maybe meshConfig'.shardModValue (HM.lookupDefault meshConfig'.shardModValue modelName) tables'.tableShardModValue
+          let shardModValue' = HM.lookupDefault meshConfig'.shardModValue modelName tables'.tableShardModValue
           pure $ meshConfig' {meshEnabled = True, kvHardKilled = False, ecRedisDBStream = redisStream, redisTtl = redisTtl', shardModValue = shardModValue'}
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a

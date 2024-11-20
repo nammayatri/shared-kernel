@@ -72,9 +72,20 @@ data Tables = Tables
     useCAC :: [Text],
     useCACForFrontend :: Bool,
     readFromMasterDb :: [Text],
-    tableShardModValue :: Maybe (HM.HashMap Text Int)
+    tableShardModValue :: HM.HashMap Text Int
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
+
+defaultTableData :: Tables
+defaultTableData =
+  Tables
+    { disableForKV = [],
+      kvTablesTtl = HM.empty,
+      useCAC = [],
+      useCACForFrontend = False,
+      readFromMasterDb = [],
+      tableShardModValue = HM.empty
+    }
 
 data KafkaProperties = KafkaProperties
   { propName :: Text,
