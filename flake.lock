@@ -370,15 +370,16 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1732110296,
-        "narHash": "sha256-Wj3mUMfm3BDENJl7FZShxeZPTyU8L2FSgGE/JsMEwjg=",
+        "lastModified": 1732106337,
+        "narHash": "sha256-n/VQYVYp1uDaJQhOerf8kNMTW7oQJP0WT1lq1wy12Cw=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "cd0e8d3ec24ef58bf12e672e62d47044baeaba14",
+        "rev": "4532801333a1fd4067c13d7acfbe489b59cc9b3e",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
+        "ref": "backend/table-level-sharding",
         "repo": "euler-hs",
         "type": "github"
       }
@@ -841,16 +842,16 @@
     "hedis": {
       "flake": false,
       "locked": {
-        "lastModified": 1730967537,
-        "narHash": "sha256-RDF/G/ptWazyFxCQOv+fTTQVV4hzDxTV630rnmhH3i4=",
+        "lastModified": 1715851947,
+        "narHash": "sha256-R1ykEbhpCXDJ3N309PccIIhAZysKWPS305ECZ7EoF6g=",
         "ref": "refs/heads/master",
-        "rev": "5547eb306006243f57d54e8ebb5225a055d40e73",
-        "revCount": 741,
+        "rev": "b04adb840be7119f391afbf009cbbc02135175c0",
+        "revCount": 736,
         "type": "git",
         "url": "https://github.com/juspay/hedis"
       },
       "original": {
-        "rev": "5547eb306006243f57d54e8ebb5225a055d40e73",
+        "rev": "b04adb840be7119f391afbf009cbbc02135175c0",
         "type": "git",
         "url": "https://github.com/juspay/hedis"
       }

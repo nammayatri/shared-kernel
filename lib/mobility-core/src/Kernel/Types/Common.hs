@@ -71,7 +71,8 @@ data Tables = Tables
     kvTablesTtl :: HM.HashMap Text Integer,
     useCAC :: [Text],
     useCACForFrontend :: Bool,
-    readFromMasterDb :: [Text]
+    readFromMasterDb :: [Text],
+    tableShardModValue :: Maybe (HM.HashMap Text Int)
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
