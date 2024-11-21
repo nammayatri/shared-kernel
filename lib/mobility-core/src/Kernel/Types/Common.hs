@@ -72,7 +72,8 @@ data Tables = Tables
     useCAC :: [Text],
     useCACForFrontend :: Bool,
     readFromMasterDb :: [Text],
-    tableShardModValue :: HM.HashMap Text Int
+    tableShardModValue :: HM.HashMap Text Int,
+    tableRedisKeyPrefix :: HM.HashMap Text Text
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
@@ -84,7 +85,8 @@ defaultTableData =
       useCAC = [],
       useCACForFrontend = False,
       readFromMasterDb = [],
-      tableShardModValue = HM.empty
+      tableShardModValue = HM.empty,
+      tableRedisKeyPrefix = HM.empty
     }
 
 data KafkaProperties = KafkaProperties
