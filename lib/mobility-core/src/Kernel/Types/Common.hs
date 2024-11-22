@@ -71,9 +71,23 @@ data Tables = Tables
     kvTablesTtl :: HM.HashMap Text Integer,
     useCAC :: [Text],
     useCACForFrontend :: Bool,
-    readFromMasterDb :: [Text]
+    readFromMasterDb :: [Text],
+    tableShardModValue :: HM.HashMap Text Int,
+    tableRedisKeyPrefix :: HM.HashMap Text Text
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
+
+defaultTableData :: Tables
+defaultTableData =
+  Tables
+    { disableForKV = [],
+      kvTablesTtl = HM.empty,
+      useCAC = [],
+      useCACForFrontend = False,
+      readFromMasterDb = [],
+      tableShardModValue = HM.empty,
+      tableRedisKeyPrefix = HM.empty
+    }
 
 data KafkaProperties = KafkaProperties
   { propName :: Text,
