@@ -210,8 +210,8 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
               confidencethreshold <- getConfidenceThreshold
               postCheckPassed <- runPostCheck preferredProvider req res
               when (not postCheckPassed) $ logError $ "Snap to road Post Check failed - Povider : " <> show preferredProvider
-              when (res.confidence < confidencethreshold) $ logError $ "Snap to road Post Check failed due to Confidence : " <> show res.confidence <> " - Provider : " <> show preferredProvider
-              if res.confidence < confidencethreshold || not postCheckPassed
+              when (res.confidence < confidencethreshold || res.confidence > 1) $ logError $ "Snap to road Post Check failed due to Confidence : " <> show res.confidence <> " - Provider : " <> show preferredProvider
+              if res.confidence < confidencethreshold || res.confidence > 1 || not postCheckPassed
                 then do
                   (servicesUsed, snapResponse) <- callSnapToRoadWithFallback restProviders
                   return (servicesUsed ++ [preferredProvider], snapResponse)
