@@ -90,9 +90,9 @@ getKafkaTopic mSchema model = do
     "atlas_bap_dashboard" -> pure ("aad-sessionizer-" <> topicName)
     r -> pure (r <> "-sessionizer-" <> topicName)
 
-getKeyForKafka :: Text -> Int -> Text -> Text
-getKeyForKafka redisKeyPrefix shardModValue pKeyText = do
-  let shard = getShardedHashTag redisKeyPrefix shardModValue pKeyText
+getKeyForKafka :: (Int, Int) -> Text -> Text
+getKeyForKafka tableShardModRange pKeyText = do
+  let shard = getShardedHashTag tableShardModRange pKeyText
   pKeyText <> shard
 
 -- commenting in case we need it in future

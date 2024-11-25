@@ -99,7 +99,7 @@ meshConfig =
       redisTtl = 18000,
       kvHardKilled = True,
       cerealEnabled = False,
-      shardModValue = 128,
+      tableShardModRange = (0, 128),
       redisKeyPrefix = ""
     }
 
@@ -132,9 +132,9 @@ setMeshConfig modelName mSchema meshConfig' = do
         then pure $ meshConfig' {ecRedisDBStream = redisStream}
         else do
           let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
-          let shardModValue' = HM.lookupDefault meshConfig'.shardModValue modelName tables'.tableShardModValue
+          let tableShardModRange' = HM.lookupDefault (0, tables'.defaultShardMod) modelName tables'.tableShardModRange
           let redisKeyPrefix' = HM.lookupDefault meshConfig'.redisKeyPrefix modelName tables'.tableRedisKeyPrefix
-          pure $ meshConfig' {meshEnabled = True, kvHardKilled = False, ecRedisDBStream = redisStream, redisTtl = redisTtl', shardModValue = shardModValue', redisKeyPrefix = redisKeyPrefix'}
+          pure $ meshConfig' {meshEnabled = True, kvHardKilled = False, ecRedisDBStream = redisStream, redisTtl = redisTtl', tableShardModRange = tableShardModRange', redisKeyPrefix = redisKeyPrefix'}
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do
@@ -536,7 +536,7 @@ updateInternal updatedMeshConfig setClause whereClause = do
           topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
           let mappings = getMappings res'
           handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update:  " <> show e <> "in topic" <> topicName) $
-            mapM_ (\object' -> void $ pushToKafka (replaceMappings (toJSON object') mappings) topicName (getKeyForKafka updatedMeshConfig.redisKeyPrefix updatedMeshConfig.shardModValue $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')) res'
+            mapM_ (\object' -> void $ pushToKafka (replaceMappings (toJSON object') mappings) topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')) res'
           logDebug $
             "Updated rows DB: " <> show res'
     Left err -> throwError $ InternalError $ show err
@@ -561,7 +561,7 @@ updateOneInternal updatedMeshConfig setClause whereClause = do
             topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
             let newObject = replaceMappings (toJSON object') (getMappings [object'])
             handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update: " <> show e <> "in topic" <> topicName) $
-              void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.redisKeyPrefix updatedMeshConfig.shardModValue $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')
+              void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')
             logDebug $
               "Updated row DB: " <> show obj
     Left err -> throwError $ InternalError $ show err
@@ -586,7 +586,7 @@ createInternal updatedMeshConfig toTType a = do
           topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
           let newObject = replaceMappings (toJSON tType) (getMappings [tType])
           handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while create: " <> show e <> "in topic" <> topicName) $
-            void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.redisKeyPrefix updatedMeshConfig.shardModValue $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix tType)
+            void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix tType)
           logDebug $
             "Created row in DB: " <> show tType
     Left err -> throwError $ InternalError $ show err
