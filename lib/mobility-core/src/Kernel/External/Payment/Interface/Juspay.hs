@@ -28,6 +28,7 @@ module Kernel.External.Payment.Interface.Juspay
     mandateResume,
     autoRefund,
     mandateNotificationStatus,
+    verifyVPA,
   )
 where
 
@@ -737,3 +738,32 @@ parseRetargetAndRetryData metaData linkData additionalInfo = do
     getFieldData retargetInfoFromMetaData retargetInfoFromLinkData retargetInfoFromAdditionalInfo func = do
       listToMaybe $ mapMaybe (>>= func) [retargetInfoFromMetaData, retargetInfoFromLinkData, retargetInfoFromAdditionalInfo]
     getBoolValue = (\val -> readMaybe val :: Maybe Bool) . T.unpack
+
+verifyVPA ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  VerifyVPAReq ->
+  m VerifyVPAResp
+verifyVPA config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  mkVerifyVpaResp <$> Juspay.verifyVPA url apiKey (mkVerifyVpaRequest req merchantId)
+  where
+    mkVerifyVpaRequest request merchantId =
+      Juspay.VerifyVPAReq
+        { vpa = request.vpa,
+          order_id = request.orderId,
+          merchant_id = merchantId,
+          customer_id = request.customerId
+        }
+
+mkVerifyVpaResp :: Juspay.VerifyVPAResp -> VerifyVPAResp
+mkVerifyVpaResp Juspay.VerifyVPAResp {..} = do
+  VerifyVPAResp
+    { vpa,
+      status = show status,
+      customerName = customer_name
+    }

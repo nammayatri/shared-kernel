@@ -548,3 +548,19 @@ data CustomerCard = CustomerCard
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 type CustomerCardListResp = [CustomerCard]
+
+data VerifyVPAReq = VerifyVPAReq
+  { vpa :: Text,
+    customerId :: Maybe Text,
+    orderId :: Maybe Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data VerifyVPAResp = VerifyVPAResp
+  { vpa :: Text,
+    status :: Text,
+    customerName :: Maybe Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)

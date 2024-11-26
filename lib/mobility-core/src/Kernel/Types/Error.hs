@@ -1243,3 +1243,21 @@ instance IsHTTPError MerchantPNError where
     MerchantPNNotFound _ _ -> E500
 
 instance IsAPIError MerchantPNError
+
+data PayoutConfigError
+  = PayoutConfigNotFound Text Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''PayoutConfigError
+
+instance IsBaseError PayoutConfigError where
+  toMessage = \case
+    PayoutConfigNotFound merchantOperatingCityId vehicleCategory -> Just $ "Payout for merchantOperatingCityId \"" <> show merchantOperatingCityId <> " and Vehicle category " <> show vehicleCategory <> "\" not found. "
+
+instance IsHTTPError PayoutConfigError where
+  toErrorCode = \case
+    PayoutConfigNotFound _ _ -> "PAYOUT_CONFIG_NOT_FOUND"
+  toHttpCode = \case
+    PayoutConfigNotFound _ _ -> E500
+
+instance IsAPIError PayoutConfigError

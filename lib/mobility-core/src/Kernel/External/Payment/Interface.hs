@@ -309,3 +309,14 @@ cancelPaymentIntent ::
 cancelPaymentIntent config paymentIntentId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Cancel Payment Intent not supported."
   StripeConfig cfg -> Stripe.cancelPaymentIntent cfg paymentIntentId
+
+verifyVPA ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  VerifyVPAReq ->
+  m VerifyVPAResp
+verifyVPA config req = case config of
+  JuspayConfig cfg -> Juspay.verifyVPA cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Verify VPA not supported."
