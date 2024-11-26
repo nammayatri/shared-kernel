@@ -72,7 +72,8 @@ data Tables = Tables
     useCAC :: [Text],
     useCACForFrontend :: Bool,
     readFromMasterDb :: [Text],
-    tableShardModValue :: HM.HashMap Text Int,
+    defaultShardMod :: Int,
+    tableShardModRange :: HM.HashMap Text (Int, Int),
     tableRedisKeyPrefix :: HM.HashMap Text Text
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
@@ -85,7 +86,8 @@ defaultTableData =
       useCAC = [],
       useCACForFrontend = False,
       readFromMasterDb = [],
-      tableShardModValue = HM.empty,
+      defaultShardMod = 128,
+      tableShardModRange = HM.empty,
       tableRedisKeyPrefix = HM.empty
     }
 
