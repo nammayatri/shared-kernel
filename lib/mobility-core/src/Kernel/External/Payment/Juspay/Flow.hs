@@ -339,3 +339,22 @@ autoRefund url apiKey orderId req = do
           }
   callAPI url (eulerClient orderId basicAuthData req) "order-refund" (Proxy @AutoRefundAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call order refund API: " <> show err)
+
+type VerifyVPAAPI =
+  "v2"
+    :> "upi"
+    :> "verify-vpa"
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[JSON] VerifyVPAReq
+    :> Post '[JSON] VerifyVPAResp
+
+verifyVPA ::
+  (Metrics.CoreMetrics m, MonadFlow m) =>
+  BaseUrl ->
+  Text ->
+  VerifyVPAReq ->
+  m VerifyVPAResp
+verifyVPA url apiKey req = do
+  let eulerClient = Euler.client (Proxy @VerifyVPAAPI) (mkBasicAuthData apiKey) req
+  callAPI url eulerClient "verify-vpa" (Proxy @VerifyVPAAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call verify VPA API: " <> show err)

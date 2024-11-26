@@ -254,3 +254,34 @@ data RefundsData = RefundsData
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data VerifyVPAReq = VerifyVPAReq
+  { vpa :: Text,
+    merchant_id :: Text,
+    customer_id :: Maybe Text,
+    order_id :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype MandateDetails = MandateDetails
+  { is_handle_supported :: Bool
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data VPAStatus = VALID | INVALID
+  deriving (Eq, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
+
+derivePersistField "VPAStatus"
+
+$(mkBeamInstancesForEnum ''VPAStatus)
+
+data VerifyVPAResp = VerifyVPAResp
+  { vpa :: Text,
+    status :: VPAStatus,
+    mandate_details :: Maybe MandateDetails,
+    customer_name :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
