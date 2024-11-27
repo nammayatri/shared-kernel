@@ -17,5 +17,6 @@ module Kernel.Storage.ClickhouseV2 (module Reexport) where
 import Kernel.Storage.ClickhouseV2.ClickhouseDb as Reexport
 import Kernel.Storage.ClickhouseV2.ClickhouseTable as Reexport
 import Kernel.Storage.ClickhouseV2.ClickhouseValue as Reexport
+import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns ()
 import Kernel.Storage.ClickhouseV2.Operators as Reexport
 import Kernel.Storage.ClickhouseV2.Queries as Reexport

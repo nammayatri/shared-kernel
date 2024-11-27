@@ -14,12 +14,21 @@
 
 module Kernel.Storage.ClickhouseV2.Internal.Types where
 
+import qualified Data.Aeson.Types as A
 import Data.Kind (Constraint)
 import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
 import Kernel.Storage.ClickhouseV2.ClickhouseTable
 import Kernel.Storage.ClickhouseV2.ClickhouseValue
+
+data Select a db table cols gr ord where
+  Select :: (ClickhouseTable table, ClickhouseColumns a cols) => cols -> GroupBy a gr -> Q db table cols ord subsel -> Select a db table cols gr ord
+
+class ClickhouseColumns (a :: IsAggregated) cols where
+  type ColumnsType a cols
+  showClickhouseColumns :: Proxy a -> cols -> String
+  parseColumns :: Proxy a -> cols -> A.Value -> Either String (ColumnsType a cols)
 
 data IsAggregated = AGG | NOT_AGG
 
@@ -128,9 +137,9 @@ instance (ClickhouseTable t, C5 ClickhouseValue v1 v2 v3 v4 v5) => IsOrderColumn
 
 instance (ClickhouseTable t, C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => IsOrderColumns (T6 (Column a t) v1 v2 v3 v4 v5 v6)
 
-data Q db table cols ord = (ClickhouseDb db) =>
+data Q db table cols ord subsel = (ClickhouseDb db) =>
   Q
-  { tableQ :: Columns 'NOT_AGG table,
+  { tableQ :: AvailableColumns subsel db table,
     whereQ :: cols -> Where table,
     limitQ :: Maybe Limit,
     offsetQ :: Maybe Offset,
@@ -143,8 +152,22 @@ newtype Limit = Limit Int
 
 data Order = Asc | Desc
 
-data AllColumns db table where
-  AllColumns :: (ClickhouseDb db, ClickhouseTable table) => Columns 'NOT_AGG table -> AllColumns db table
+data UseSubSelect = SUB_SELECT | NO_SUB_SELECT
+
+-- columns that are available to select
+data AvailableColumns (subsel :: UseSubSelect) db table where
+  AllColumns :: (ClickhouseDb db, ClickhouseTable table) => Columns 'NOT_AGG table -> AvailableColumns 'NO_SUB_SELECT db table
+  -- AllColumns2 :: (ClickhouseDb db, ClickhouseTable table) => Columns 'NOT_AGG table -> AvailableColumns subsel db table
+  SubSelectColumns :: (ClickhouseDb db, ClickhouseTable table) => Select a db table cols gr ord -> AvailableColumns 'SUB_SELECT db table
+
+-- SubSelectColumns2 :: (ClickhouseDb db, ClickhouseTable table) => Select a db table cols gr ord -> AvailableColumns subsel db table
+
+-- test :: AvailableColumns 'SUB_SELECT db table -> Bool
+-- test cols = case cols of
+--   -- AllColumns a -> True
+--   AllColumns2 _a -> True
+--   SubSelectColumns _b -> False
+--   SubSelectColumns2 _b -> False
 
 showColumn :: Column a t v -> String
 showColumn (Column column) = getFieldModification column

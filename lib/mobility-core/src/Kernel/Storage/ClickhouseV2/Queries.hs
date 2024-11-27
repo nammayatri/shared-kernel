@@ -30,8 +30,9 @@ import Kernel.Prelude
 import Kernel.Storage.Clickhouse.Config
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
 import Kernel.Storage.ClickhouseV2.ClickhouseTable
-import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns
+-- import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns ()
 import Kernel.Storage.ClickhouseV2.Internal.ClickhouseQuery
+import Kernel.Storage.ClickhouseV2.Internal.Types
 import Kernel.Utils.Common hiding (Limit, Offset)
 
 -- should we throw error if query fails?

@@ -27,7 +27,7 @@ import Kernel.Prelude
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
 import Kernel.Storage.ClickhouseV2.ClickhouseTable
 import Kernel.Storage.ClickhouseV2.ClickhouseValue
-import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns
+-- import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns
 import Kernel.Storage.ClickhouseV2.Internal.Types
 import Kernel.Utils.JSON (camelToSnakeCase)
 

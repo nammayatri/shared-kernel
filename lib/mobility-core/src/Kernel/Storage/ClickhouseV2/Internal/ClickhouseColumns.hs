@@ -11,6 +11,8 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+-- TODO remove
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns where
 
@@ -23,18 +25,31 @@ import Kernel.Storage.ClickhouseV2.ClickhouseTable
 import Kernel.Storage.ClickhouseV2.ClickhouseValue
 import Kernel.Storage.ClickhouseV2.Internal.Types
 
-data Select a db table cols gr ord where
-  Select :: (ClickhouseTable table, ClickhouseColumns a cols) => cols -> GroupBy a gr -> Q db table cols ord -> Select a db table cols gr ord
+-- data Select a db table cols gr ord where
+--   Select :: (ClickhouseTable table, ClickhouseColumns a cols) => cols -> GroupBy a gr -> Q db table cols ord -> Select a db table cols gr ord
 
-class ClickhouseColumns (a :: IsAggregated) cols where
-  type ColumnsType a cols
-  showClickhouseColumns :: Proxy a -> cols -> String
-  parseColumns :: Proxy a -> cols -> A.Value -> Either String (ColumnsType a cols)
+-- class ClickhouseColumns (a :: IsAggregated) cols where
+--   type ColumnsType a cols
+--   showClickhouseColumns :: Proxy a -> cols -> String
+--   parseColumns :: Proxy a -> cols -> A.Value -> Either String (ColumnsType a cols)
 
-instance (FromJSON (ColumnsType 'NOT_AGG (Columns 'NOT_AGG t)), ClickhouseTable t) => ClickhouseColumns 'NOT_AGG (Columns 'NOT_AGG t) where
-  type ColumnsType 'NOT_AGG (Columns 'NOT_AGG t) = t Identity
+instance (FromJSON (ColumnsType 'NOT_AGG (AvailableColumns 'NO_SUB_SELECT db t)), ClickhouseTable t) => ClickhouseColumns 'NOT_AGG (AvailableColumns 'NO_SUB_SELECT db t) where
+  type ColumnsType 'NOT_AGG (AvailableColumns 'NO_SUB_SELECT db t) = t Identity
   showClickhouseColumns _ _ = "*"
   parseColumns _ _ = eitherResult . A.fromJSON
+
+-- instance (FromJSON (ColumnsType 'NOT_AGG (Columns 'NOT_AGG t)), ClickhouseTable t) => ClickhouseColumns 'NOT_AGG (AvailableColumns 'SUB_SELECT db t) where
+--   type ColumnsType 'NOT_AGG (AvailableColumns 'SUB_SELECT db t) = t Identity
+--   showClickhouseColumns _ _ = "*"
+--   parseColumns _ _ = eitherResult . A.fromJSON
+
+-- ClickhouseColumns 'NOT_AGG (AvailableColumns db table)
+
+-- instance (FromJSON (ColumnsType 'NOT_AGG (Columns 'NOT_AGG t)), ClickhouseTable t) => ClickhouseColumns 'NOT_AGG (AvailableColumns db t) where
+
+-- type ColumnsType 'NOT_AGG (Columns 'NOT_AGG t) = t Identity
+-- showClickhouseColumns _ _ = "*"
+-- parseColumns _ _ = eitherResult . A.fromJSON
 
 -- should be all AGG columns or all NOT_AGG columns
 instance (ClickhouseValue v) => ClickhouseColumns a (Column a t v) where
