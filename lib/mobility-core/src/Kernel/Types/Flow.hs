@@ -270,7 +270,6 @@ logRequestIdForFork tag = do
 
 handleForkExecutionMultiple :: (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => [(Text, FlowR r ())] -> FlowR r ()
 handleForkExecutionMultiple tagAndFunction = forM_ tagAndFunction $ \(tag, f) -> do
-  logRequestIdForFork tag
   handleForkExecution tag f
 
 handleForkExecution :: (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => Text -> FlowR r () -> FlowR r ()

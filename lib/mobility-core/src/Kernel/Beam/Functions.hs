@@ -28,6 +28,7 @@ module Kernel.Beam.Functions
     deleteWithDb, -- not used
     findAllWithKVAndConditionalDB,
     findOneWithKVRedis,
+    logQueryData,
   )
 where
 
@@ -39,7 +40,7 @@ import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
 import qualified EulerHS.KVConnector.Flow as KV
-import EulerHS.KVConnector.Types (DBCommandVersion (..), KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
+import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log, V1)
@@ -233,7 +234,6 @@ findOneWithKVRedis where' = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findOneFromKvRedis dbConf' updatedMeshConfig where'
-  logQueryData "findOneWithKVRedis" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled meshConfig) (modelTableName @table)
   case result of
     Right (Just res) -> fromTType' res
     Right Nothing -> pure Nothing
@@ -467,7 +467,6 @@ findOneInternal ::
 findOneInternal updatedMeshConfig fromTType where' = do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
-  logQueryData "findOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right (Just res) -> fromTType res
     Right Nothing -> pure Nothing
@@ -483,7 +482,6 @@ findAllInternal ::
 findAllInternal updatedMeshConfig fromTType where' = do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
-  logQueryData "findAllInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right res -> do
       res' <- mapM fromTType res
@@ -503,7 +501,6 @@ findAllWithOptionsInternal ::
 findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mbOffset = do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
-  logQueryData "findAllWithOptionsInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right res -> do
       res' <- mapM fromTType res
@@ -527,7 +524,6 @@ updateInternal ::
 updateInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
-  logQueryData "updateInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1 setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right res' -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -551,7 +547,6 @@ updateOneInternal ::
 updateOneInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
-  logQueryData "updateOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1 setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right obj -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -577,7 +572,6 @@ createInternal updatedMeshConfig toTType a = do
   let tType = toTType a
   dbConf' <- getMasterDBConfig
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
-  void $ logQueryData "createInternal" ("Nothing" :: Text) ("Nothing" :: Text) (show tType) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -600,7 +594,6 @@ deleteInternal ::
 deleteInternal updatedMeshConfig whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
-  logQueryData "deleteInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) ("Nothing" :: Text) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled

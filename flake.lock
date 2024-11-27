@@ -370,11 +370,11 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1732601713,
-        "narHash": "sha256-Y4aSFQ8KLDdvqBh6mAxTHG6uSNMjRAx5XMY/LyJn4pA=",
+        "lastModified": 1732689486,
+        "narHash": "sha256-geIUi3MO2l91Ww3lPwztyVdt3gYf4bvqUKopQYfeXxU=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "1b2226e1d760f1ff194e0b3d9a15823e4c2e67fd",
+        "rev": "1d1f4490d5188d0fc07111d4a9be9e8bcb7dfc32",
         "type": "github"
       },
       "original": {
@@ -2013,15 +2013,16 @@
       "locked": {
         "lastModified": 1669960992,
         "narHash": "sha256-o0WEbygbbfIYPonyY6ui1HcbaJcFdngjBhnjWbe65zs=",
+        "owner": "arjunkathuria",
+        "repo": "tinylog",
         "rev": "08d3b6066cd2f883e183b7cd01809d1711092d33",
-        "revCount": 78,
-        "type": "git",
-        "url": "https://gitlab.com/arjunkathuria/tinylog.git"
+        "type": "gitlab"
       },
       "original": {
+        "owner": "arjunkathuria",
+        "repo": "tinylog",
         "rev": "08d3b6066cd2f883e183b7cd01809d1711092d33",
-        "type": "git",
-        "url": "https://gitlab.com/arjunkathuria/tinylog.git"
+        "type": "gitlab"
       }
     },
     "treefmt-nix": {
