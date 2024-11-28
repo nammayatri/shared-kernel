@@ -370,15 +370,16 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1732689486,
-        "narHash": "sha256-geIUi3MO2l91Ww3lPwztyVdt3gYf4bvqUKopQYfeXxU=",
+        "lastModified": 1733215642,
+        "narHash": "sha256-dcgGMU4WzjJ3cf+MrbzDd/qmi2FdCN5njS07YaZtrTg=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "1d1f4490d5188d0fc07111d4a9be9e8bcb7dfc32",
+        "rev": "e762f7a220689f8183ba7a91d62d3dc15607c7ab",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
+        "ref": "fix/db-expired-connection",
         "repo": "euler-hs",
         "type": "github"
       }
