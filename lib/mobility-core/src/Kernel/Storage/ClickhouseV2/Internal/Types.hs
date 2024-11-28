@@ -23,7 +23,7 @@ import Kernel.Storage.ClickhouseV2.ClickhouseTable
 import Kernel.Storage.ClickhouseV2.ClickhouseValue
 
 data Select a db table cols gr ord where
-  Select :: (ClickhouseTable table, ClickhouseColumns a cols) => cols -> GroupBy a gr -> Q db table cols ord subsel -> Select a db table cols gr ord
+  Select :: (ClickhouseTable table, ClickhouseColumns a cols) => cols -> GroupBy a gr -> Q db table cols ord acols -> Select a db table cols gr ord
 
 class ClickhouseColumns (a :: IsAggregated) cols where
   type ColumnsType a cols
@@ -137,9 +137,9 @@ instance (ClickhouseTable t, C5 ClickhouseValue v1 v2 v3 v4 v5) => IsOrderColumn
 
 instance (ClickhouseTable t, C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => IsOrderColumns (T6 (Column a t) v1 v2 v3 v4 v5 v6)
 
-data Q db table cols ord subsel = (ClickhouseDb db) =>
+data Q db table cols ord acols = (ClickhouseDb db) =>
   Q
-  { tableQ :: AvailableColumns subsel db table,
+  { tableQ :: AvailableColumns db table acols,
     whereQ :: cols -> Where table,
     limitQ :: Maybe Limit,
     offsetQ :: Maybe Offset,
@@ -152,22 +152,30 @@ newtype Limit = Limit Int
 
 data Order = Asc | Desc
 
-data UseSubSelect = SUB_SELECT | NO_SUB_SELECT
+class HasAvailableColumns (cols :: Type) where
+  type AvailableColumnsType cols
+  availableColumnsValue :: cols -> AvailableColumnsType cols
 
--- columns that are available to select
-data AvailableColumns (subsel :: UseSubSelect) db table where
-  AllColumns :: (ClickhouseDb db, ClickhouseTable table) => Columns 'NOT_AGG table -> AvailableColumns 'NO_SUB_SELECT db table
-  -- AllColumns2 :: (ClickhouseDb db, ClickhouseTable table) => Columns 'NOT_AGG table -> AvailableColumns subsel db table
-  SubSelectColumns :: (ClickhouseDb db, ClickhouseTable table) => Select a db table cols gr ord -> AvailableColumns 'SUB_SELECT db table
+instance HasAvailableColumns (AllColumns db table) where
+  type AvailableColumnsType (AllColumns db table) = Columns 'NOT_AGG table
+  availableColumnsValue (AllColumns cols) = cols
 
--- SubSelectColumns2 :: (ClickhouseDb db, ClickhouseTable table) => Select a db table cols gr ord -> AvailableColumns subsel db table
+instance HasAvailableColumns (SubSelectColumns db table subcols) where
+  type AvailableColumnsType (SubSelectColumns db table subcols) = subcols
+  availableColumnsValue (SubSelectColumns (Select subcols _ _)) = subcols
 
--- test :: AvailableColumns 'SUB_SELECT db table -> Bool
--- test cols = case cols of
---   -- AllColumns a -> True
---   AllColumns2 _a -> True
---   SubSelectColumns _b -> False
---   SubSelectColumns2 _b -> False
+data AvailableColumns db table acols where
+  AvailableColumns :: (ClickhouseDb db, ClickhouseTable table, HasAvailableColumns acols) => acols -> AvailableColumns db table acols
+
+data AllColumns db table where
+  AllColumns :: (ClickhouseDb db, ClickhouseTable table) => Columns 'NOT_AGG table -> AllColumns db table
+
+data SubSelectColumns db table subcols where
+  SubSelectColumns :: (ClickhouseDb db, ClickhouseTable table) => Select a db table subcols gr ord -> SubSelectColumns db table subcols
+
+type AvailableAllColumns db table = AvailableColumns db table (AllColumns db table)
+
+type AvailableSubSelectColumns db table subcols = AvailableColumns db table (SubSelectColumns db table subcols)
 
 showColumn :: Column a t v -> String
 showColumn (Column column) = getFieldModification column

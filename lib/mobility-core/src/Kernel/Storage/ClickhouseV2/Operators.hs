@@ -70,14 +70,19 @@ isNull column = Is column NullTerm
 isNotNull :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table (Maybe value) -> Clause table
 isNotNull column = Is column NotNullTerm
 
-select :: forall db table ord. ClickhouseTable table => Q db table (AvailableColumns 'NO_SUB_SELECT db table) ord 'NO_SUB_SELECT -> Select 'NOT_AGG db table (AvailableColumns 'NO_SUB_SELECT db table) NotGrouped ord
+select ::
+  forall db table ord.
+  ClickhouseTable table =>
+  Q db table (AvailableAllColumns db table) ord (AllColumns db table) ->
+  Select 'NOT_AGG db table (AvailableAllColumns db table) NotGrouped ord
 select q = Select q.tableQ NotGrouped q
 
--- Select :: cols -> GroupBy a gr -> Q db table cols ord -> Select a db table cols gr ord
--- q.tableQ :: AvailableColumns db table
--- q :: Q db table (AvailableColumns db table) ord
-
-select_ :: forall a db table cols gr ord subsel. (ClickhouseTable table, ClickhouseColumns a cols) => (AvailableColumns subsel db table -> (cols, GroupBy a gr)) -> Q db table cols ord subsel -> Select a db table cols gr ord
+select_ ::
+  forall a db table cols gr ord acols.
+  (ClickhouseTable table, ClickhouseColumns a cols) =>
+  (AvailableColumns db table acols -> (cols, GroupBy a gr)) ->
+  Q db table cols ord acols ->
+  Select a db table cols gr ord
 select_ colsClause q = do
   let (cols, gr) = colsClause q.tableQ
   Select cols gr q
@@ -89,7 +94,12 @@ limit_ limitVal q = q {limitQ = Just $ Limit limitVal}
 offset_ :: Int -> Q db table cols ord subsel -> Q db table cols ord subsel
 offset_ offsetVal q = q {offsetQ = Just $ Offset offsetVal}
 
-orderBy_ :: forall db table cols ord subsel. ClickhouseTable table => (AvailableColumns subsel db table -> cols -> OrderBy ord) -> Q db table cols NotOrdered subsel -> Q db table cols ord subsel
+orderBy_ ::
+  forall db table cols ord acols.
+  ClickhouseTable table =>
+  (AvailableColumns db table acols -> cols -> OrderBy ord) ->
+  Q db table cols NotOrdered acols ->
+  Q db table cols ord acols
 orderBy_ orderByClause q = q {orderByQ = Just $ orderByClause (tableQ q)}
 
 asc :: forall ord. IsOrderColumns ord => ord -> OrderBy ord
@@ -111,10 +121,14 @@ all_ ::
   forall db table.
   (ClickhouseDb db, ClickhouseTable table) =>
   FieldModifications table ->
-  AvailableColumns 'NO_SUB_SELECT db table
-all_ tableMod = AllColumns (mkTableColumns @table tableMod)
+  AvailableAllColumns db table
+all_ tableMod = AvailableColumns $ AllColumns (mkTableColumns @table tableMod)
 
-filter_ :: ClickhouseDb db => (AvailableColumns subsel db table -> cols -> Clause table) -> AvailableColumns subsel db table -> Q db table cols NotOrdered subsel
+filter_ ::
+  ClickhouseDb db =>
+  (AvailableColumns db table acols -> cols -> Clause table) ->
+  AvailableColumns db table acols ->
+  Q db table cols NotOrdered acols
 filter_ filterClause table =
   Q
     { tableQ = table,
