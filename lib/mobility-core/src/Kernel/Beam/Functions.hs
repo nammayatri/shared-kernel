@@ -28,17 +28,19 @@ module Kernel.Beam.Functions
     deleteWithDb, -- not used
     findAllWithKVAndConditionalDB,
     findOneWithKVRedis,
+    logQueryData,
   )
 where
 
 import Data.Aeson
 import Data.Default.Class
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Serialize as Serialize
 import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
 import qualified EulerHS.KVConnector.Flow as KV
-import EulerHS.KVConnector.Types (DBCommandVersion (..), KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
+import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log, V1)
@@ -53,7 +55,6 @@ import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Logging (logDebug)
 import Sequelize
-import System.Random
 
 -- classes for converting from beam types to ttypes and vice versa
 class
@@ -98,7 +99,9 @@ meshConfig =
       kvRedis = "KVRedis",
       redisTtl = 18000,
       kvHardKilled = True,
-      cerealEnabled = False
+      cerealEnabled = False,
+      tableShardModRange = (0, 128),
+      redisKeyPrefix = ""
     }
 
 runInReplica :: (L.MonadFlow m, Log m) => m a -> m a
@@ -115,27 +118,24 @@ runInMasterDb m = do
   L.setOptionLocal MasterReadEnabled False
   pure res
 
+allowedSchema :: [Text]
+allowedSchema = ["atlas_driver_offer_bpp", "atlas_app"]
+
 setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfig modelName mSchema meshConfig' = do
-  schema <- maybe (L.throwException $ InternalError "Schema not found") pure mSchema
-  let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
-  tables <- L.getOption KBT.Tables
-  randomIntV <- L.runIO (randomRIO (1, 100) :: IO Int)
-  case tables of
-    Nothing -> L.throwException $ InternalError "Tables not found"
-    Just tables' -> do
-      let enableKVForWriteAlso = tables'.enableKVForWriteAlso
-          enableKVForRead = tables'.enableKVForRead
-          tableObject = find (\table' -> nameOfTable table' == modelName) enableKVForWriteAlso
-      updatedMeshConfig <- case tableObject of
-        Nothing -> pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
-        Just table' -> do
-          let redisTtl' = fromMaybe (meshConfig'.redisTtl) (table'.redisTtl)
-          if fromIntegral (percentEnable table') >= randomIntV
-            then pure $ meshConfig' {meshEnabled = True, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream, redisTtl = redisTtl'}
-            else pure $ meshConfig' {meshEnabled = False, kvHardKilled = modelName `notElem` enableKVForRead, ecRedisDBStream = redisStream}
-      L.logDebug ("setMeshConfig" :: Text) $ "meshConfig for table: " <> modelName <> " : " <> show updatedMeshConfig
-      pure updatedMeshConfig
+  schema <- maybe (L.throwException $ InternalError "Schema not found in setMeshConfig") pure mSchema
+  if schema `notElem` allowedSchema
+    then pure meshConfig'
+    else do
+      let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
+      tables' <- L.getOption KBT.Tables >>= maybe (L.throwException $ InternalError "Tables not found in setMeshConfig") pure
+      if modelName `elem` tables'.disableForKV
+        then pure $ meshConfig' {ecRedisDBStream = redisStream}
+        else do
+          let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
+          let tableShardModRange' = HM.lookupDefault (0, tables'.defaultShardMod) modelName tables'.tableShardModRange
+          let redisKeyPrefix' = HM.lookupDefault meshConfig'.redisKeyPrefix modelName tables'.tableRedisKeyPrefix
+          pure $ meshConfig' {meshEnabled = True, kvHardKilled = False, ecRedisDBStream = redisStream, redisTtl = redisTtl', tableShardModRange = tableShardModRange', redisKeyPrefix = redisKeyPrefix'}
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do
@@ -234,7 +234,6 @@ findOneWithKVRedis where' = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findOneFromKvRedis dbConf' updatedMeshConfig where'
-  logQueryData "findOneWithKVRedis" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled meshConfig) (modelTableName @table)
   case result of
     Right (Just res) -> fromTType' res
     Right Nothing -> pure Nothing
@@ -468,7 +467,6 @@ findOneInternal ::
 findOneInternal updatedMeshConfig fromTType where' = do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
-  logQueryData "findOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right (Just res) -> fromTType res
     Right Nothing -> pure Nothing
@@ -484,7 +482,6 @@ findAllInternal ::
 findAllInternal updatedMeshConfig fromTType where' = do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
-  logQueryData "findAllInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right res -> do
       res' <- mapM fromTType res
@@ -504,7 +501,6 @@ findAllWithOptionsInternal ::
 findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mbOffset = do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
-  logQueryData "findAllWithOptionsInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And where')) ("Nothing" :: Text) (show result) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right res -> do
       res' <- mapM fromTType res
@@ -528,7 +524,6 @@ updateInternal ::
 updateInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
-  logQueryData "updateInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1 setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right res' -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -537,7 +532,7 @@ updateInternal updatedMeshConfig setClause whereClause = do
           topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
           let mappings = getMappings res'
           handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update:  " <> show e <> "in topic" <> topicName) $
-            mapM_ (\object' -> void $ pushToKafka (replaceMappings (toJSON object') mappings) topicName (getKeyForKafka $ getLookupKeyByPKey object')) res'
+            mapM_ (\object' -> void $ pushToKafka (replaceMappings (toJSON object') mappings) topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')) res'
           logDebug $
             "Updated rows DB: " <> show res'
     Left err -> throwError $ InternalError $ show err
@@ -552,7 +547,6 @@ updateOneInternal ::
 updateOneInternal updatedMeshConfig setClause whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
-  logQueryData "updateOneInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) (show $ jsonKeyValueUpdates V1 setClause) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right obj -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -562,7 +556,7 @@ updateOneInternal updatedMeshConfig setClause whereClause = do
             topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
             let newObject = replaceMappings (toJSON object') (getMappings [object'])
             handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update: " <> show e <> "in topic" <> topicName) $
-              void $ pushToKafka newObject topicName (getKeyForKafka $ getLookupKeyByPKey object')
+              void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')
             logDebug $
               "Updated row DB: " <> show obj
     Left err -> throwError $ InternalError $ show err
@@ -578,7 +572,6 @@ createInternal updatedMeshConfig toTType a = do
   let tType = toTType a
   dbConf' <- getMasterDBConfig
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
-  void $ logQueryData "createInternal" ("Nothing" :: Text) ("Nothing" :: Text) (show tType) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case result of
     Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -587,7 +580,7 @@ createInternal updatedMeshConfig toTType a = do
           topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
           let newObject = replaceMappings (toJSON tType) (getMappings [tType])
           handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while create: " <> show e <> "in topic" <> topicName) $
-            void $ pushToKafka newObject topicName (getKeyForKafka $ getLookupKeyByPKey tType)
+            void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix tType)
           logDebug $
             "Created row in DB: " <> show tType
     Left err -> throwError $ InternalError $ show err
@@ -601,7 +594,6 @@ deleteInternal ::
 deleteInternal updatedMeshConfig whereClause = do
   dbConf <- getMasterDBConfig
   res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
-  logQueryData "deleteInternal" (show $ getFieldsAndValuesFromClause meshModelTableEntityDescriptor (And whereClause)) ("Nothing" :: Text) (show res) (meshEnabled updatedMeshConfig) (modelTableName @table)
   case res of
     Right _ -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
