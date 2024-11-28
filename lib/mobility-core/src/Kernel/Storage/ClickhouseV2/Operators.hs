@@ -80,11 +80,11 @@ select q = Select q.tableQ NotGrouped q
 select_ ::
   forall a db table cols gr ord acols.
   (ClickhouseTable table, ClickhouseColumns a cols) =>
-  (AvailableColumns db table acols -> (cols, GroupBy a gr)) ->
+  (AvailableColumnsType acols -> (cols, GroupBy a gr)) ->
   Q db table cols ord acols ->
   Select a db table cols gr ord
 select_ colsClause q = do
-  let (cols, gr) = colsClause q.tableQ
+  let (cols, gr) = colsClause (getAvailableColumnsValue q.tableQ)
   Select cols gr q
 
 -- FIXME Integer
@@ -97,10 +97,10 @@ offset_ offsetVal q = q {offsetQ = Just $ Offset offsetVal}
 orderBy_ ::
   forall db table cols ord acols.
   ClickhouseTable table =>
-  (AvailableColumns db table acols -> cols -> OrderBy ord) ->
+  (AvailableColumnsType acols -> cols -> OrderBy ord) ->
   Q db table cols NotOrdered acols ->
   Q db table cols ord acols
-orderBy_ orderByClause q = q {orderByQ = Just $ orderByClause (tableQ q)}
+orderBy_ orderByClause q = q {orderByQ = Just $ orderByClause $ getAvailableColumnsValue (tableQ q)}
 
 asc :: forall ord. IsOrderColumns ord => ord -> OrderBy ord
 asc = OrderBy Asc
@@ -126,13 +126,13 @@ all_ tableMod = AvailableColumns $ AllColumns (mkTableColumns @table tableMod)
 
 filter_ ::
   ClickhouseDb db =>
-  (AvailableColumns db table acols -> cols -> Clause table) ->
+  (AvailableColumnsType acols -> cols -> Clause table) ->
   AvailableColumns db table acols ->
   Q db table cols NotOrdered acols
 filter_ filterClause table =
   Q
     { tableQ = table,
-      whereQ = Where . filterClause table,
+      whereQ = Where . filterClause (getAvailableColumnsValue table),
       limitQ = Nothing,
       offsetQ = Nothing,
       orderByQ = Nothing

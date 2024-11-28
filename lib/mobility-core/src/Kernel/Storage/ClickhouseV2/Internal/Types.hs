@@ -164,6 +164,11 @@ instance HasAvailableColumns (SubSelectColumns db table subcols) where
   type AvailableColumnsType (SubSelectColumns db table subcols) = subcols
   availableColumnsValue (SubSelectColumns (Select subcols _ _)) = subcols
 
+getAvailableColumnsValue ::
+  AvailableColumns db table acols ->
+  AvailableColumnsType acols
+getAvailableColumnsValue (AvailableColumns acols) = availableColumnsValue acols
+
 data AvailableColumns db table acols where
   AvailableColumns :: (ClickhouseDb db, ClickhouseTable table, HasAvailableColumns acols) => acols -> AvailableColumns db table acols
 
