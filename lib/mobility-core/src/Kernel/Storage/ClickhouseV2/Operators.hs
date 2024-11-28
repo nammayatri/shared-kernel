@@ -73,9 +73,9 @@ isNotNull column = Is column NotNullTerm
 select ::
   forall db table ord.
   ClickhouseTable table =>
-  Q db table (AvailableAllColumns db table) ord (AllColumns db table) ->
-  Select 'NOT_AGG db table (AvailableAllColumns db table) NotGrouped ord
-select q = Select q.tableQ NotGrouped q
+  Q db table (Columns 'NOT_AGG table) ord (AllColumns db table) ->
+  Select 'NOT_AGG db table (Columns 'NOT_AGG table) NotGrouped ord
+select q = Select (getAvailableColumnsValue q.tableQ) NotGrouped q
 
 select_ ::
   forall a db table cols gr ord acols.
@@ -123,6 +123,14 @@ all_ ::
   FieldModifications table ->
   AvailableAllColumns db table
 all_ tableMod = AvailableColumns $ AllColumns (mkTableColumns @table tableMod)
+
+subSelect_ ::
+  forall a db table subcols gr ord.
+  (ClickhouseDb db, ClickhouseTable table) =>
+  Select a db table subcols gr ord ->
+  AvailableSubSelectColumns db table subcols
+-- Select a db table cols gr ord
+subSelect_ = AvailableColumns . SubSelectColumns
 
 filter_ ::
   ClickhouseDb db =>

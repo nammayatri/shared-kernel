@@ -160,6 +160,7 @@ instance HasAvailableColumns (AllColumns db table) where
   type AvailableColumnsType (AllColumns db table) = Columns 'NOT_AGG table
   availableColumnsValue (AllColumns cols) = cols
 
+-- perhaps we need to remove Grouped flag from sub columns?
 instance HasAvailableColumns (SubSelectColumns db table subcols) where
   type AvailableColumnsType (SubSelectColumns db table subcols) = subcols
   availableColumnsValue (SubSelectColumns (Select subcols _ _)) = subcols

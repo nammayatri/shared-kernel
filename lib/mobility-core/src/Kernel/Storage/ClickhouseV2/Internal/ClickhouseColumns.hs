@@ -33,23 +33,10 @@ import Kernel.Storage.ClickhouseV2.Internal.Types
 --   showClickhouseColumns :: Proxy a -> cols -> String
 --   parseColumns :: Proxy a -> cols -> A.Value -> Either String (ColumnsType a cols)
 
-instance (FromJSON (ColumnsType 'NOT_AGG (AvailableColumns db t (AllColumns db t))), ClickhouseTable t) => ClickhouseColumns 'NOT_AGG (AvailableColumns db t (AllColumns db t)) where
-  type ColumnsType 'NOT_AGG (AvailableColumns db t (AllColumns db t)) = t Identity
+instance (FromJSON (ColumnsType 'NOT_AGG (Columns 'NOT_AGG t)), ClickhouseTable t) => ClickhouseColumns 'NOT_AGG (Columns 'NOT_AGG t) where
+  type ColumnsType 'NOT_AGG (Columns 'NOT_AGG t) = t Identity
   showClickhouseColumns _ _ = "*"
   parseColumns _ _ = eitherResult . A.fromJSON
-
--- instance (FromJSON (ColumnsType 'NOT_AGG (Columns 'NOT_AGG t)), ClickhouseTable t) => ClickhouseColumns 'NOT_AGG (AvailableColumns 'SUB_SELECT db t) where
---   type ColumnsType 'NOT_AGG (AvailableColumns 'SUB_SELECT db t) = t Identity
---   showClickhouseColumns _ _ = "*"
---   parseColumns _ _ = eitherResult . A.fromJSON
-
--- ClickhouseColumns 'NOT_AGG (AvailableColumns db table)
-
--- instance (FromJSON (ColumnsType 'NOT_AGG (Columns 'NOT_AGG t)), ClickhouseTable t) => ClickhouseColumns 'NOT_AGG (AvailableColumns db t) where
-
--- type ColumnsType 'NOT_AGG (Columns 'NOT_AGG t) = t Identity
--- showClickhouseColumns _ _ = "*"
--- parseColumns _ _ = eitherResult . A.fromJSON
 
 -- should be all AGG columns or all NOT_AGG columns
 instance (ClickhouseValue v) => ClickhouseColumns a (Column a t v) where
