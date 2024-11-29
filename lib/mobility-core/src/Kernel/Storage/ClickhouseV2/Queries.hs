@@ -29,7 +29,6 @@ import qualified EulerHS.Language as L
 import Kernel.Prelude
 import Kernel.Storage.Clickhouse.Config
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
-import Kernel.Storage.ClickhouseV2.ClickhouseTable
 -- import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns ()
 import Kernel.Storage.ClickhouseV2.Internal.ClickhouseQuery
 import Kernel.Storage.ClickhouseV2.Internal.Types
@@ -37,12 +36,13 @@ import Kernel.Utils.Common hiding (Limit, Offset)
 
 -- should we throw error if query fails?
 findAll ::
-  forall a db t m cols gr ord.
-  (HasClickhouseEnv db m, ClickhouseTable t, ClickhouseColumns a cols, ClickhouseQuery gr, ClickhouseQuery ord) =>
-  Select a db t cols gr ord ->
+  forall a db t m cols gr ord acols.
+  -- (HasClickhouseEnv db m, ClickhouseTable t, ClickhouseColumns a cols, ClickhouseQuery gr, ClickhouseQuery ord) =>
+  (HasClickhouseEnv db m, ClickhouseQuery (Select a db t cols gr ord acols)) =>
+  Select a db t cols gr ord acols ->
   m [ColumnsType a cols]
 findAll selectClause@(Select cols _ _) = do
-  let rawQuery = toClickhouseQuery @(Select a db t cols gr ord) selectClause
+  let rawQuery = toClickhouseQuery @(Select a db t cols gr ord acols) selectClause
   logDebug $ "clickhouse raw query v2: " <> T.pack rawQuery.getRawQuery
   resJSON <- runRawQuery @db @A.Value @m (Proxy @db) rawQuery
   case resJSON of

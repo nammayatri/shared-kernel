@@ -22,8 +22,8 @@ import Kernel.Storage.ClickhouseV2.ClickhouseDb
 import Kernel.Storage.ClickhouseV2.ClickhouseTable
 import Kernel.Storage.ClickhouseV2.ClickhouseValue
 
-data Select a db table cols gr ord where
-  Select :: (ClickhouseTable table, ClickhouseColumns a cols) => cols -> GroupBy a gr -> Q db table cols ord acols -> Select a db table cols gr ord
+data Select a db table cols gr ord acols where
+  Select :: (ClickhouseTable table, ClickhouseColumns a cols) => cols -> GroupBy a gr -> Q db table cols ord acols -> Select a db table cols gr ord acols
 
 class ClickhouseColumns (a :: IsAggregated) cols where
   type ColumnsType a cols
@@ -177,7 +177,7 @@ data AllColumns db table where
   AllColumns :: (ClickhouseDb db, ClickhouseTable table) => Columns 'NOT_AGG table -> AllColumns db table
 
 data SubSelectColumns db table subcols where
-  SubSelectColumns :: (ClickhouseDb db, ClickhouseTable table) => Select a db table subcols gr ord -> SubSelectColumns db table subcols
+  SubSelectColumns :: (ClickhouseDb db, ClickhouseTable table) => Select a db table subcols gr ord acols -> SubSelectColumns db table subcols
 
 type AvailableAllColumns db table = AvailableColumns db table (AllColumns db table)
 

@@ -37,25 +37,33 @@ newtype RawQuery = RawQuery {getRawQuery :: String}
 class ClickhouseQuery expr where
   toClickhouseQuery :: expr -> RawQuery
 
-instance (ClickhouseDb db, ClickhouseTable t, ClickhouseColumns a cols, ClickhouseQuery gr, ClickhouseQuery ord) => ClickhouseQuery (Select a db t cols gr ord) where
+instance
+  ( ClickhouseDb db,
+    ClickhouseTable t,
+    ClickhouseColumns a cols,
+    ClickhouseQuery gr,
+    ClickhouseQuery ord,
+    ClickhouseQuery (AvailableColumns db t acols)
+  ) =>
+  ClickhouseQuery (Select a db t cols gr ord acols)
+  where
   toClickhouseQuery (Select cols groupBy q) = do
     -- should we add table name modifier?
-    let tableName = dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)
+    -- let tableName = dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)
     let selectModifier = case getSelectModifier (Proxy @t) of
           NO_SELECT_MODIFIER -> ""
           SELECT_FINAL_MODIFIER -> " FINAL "
     "SELECT "
       <> RawQuery (showClickhouseColumns @a @cols (Proxy @a) cols)
       <> " FROM "
-      <> fromString tableName
+      -- <> fromString tableName
+      <> toClickhouseQuery @(AvailableColumns db t acols) q.tableQ
       <> selectModifier
       <> toClickhouseQuery @(Where t) (q.whereQ cols)
       <> toClickhouseQuery @(GroupBy a gr) groupBy
       <> mkMaybeClause @(OrderBy ord) (q.orderByQ <&> ($ cols))
       <> mkMaybeClause @Limit q.limitQ
       <> mkMaybeClause @Offset q.offsetQ
-    where
-      dropTSuffix str = take (length str - 1) str
 
 mkMaybeClause :: forall expr. ClickhouseQuery expr => Maybe expr -> RawQuery
 mkMaybeClause = maybe mempty (toClickhouseQuery @expr)
@@ -141,3 +149,15 @@ instance ClickhouseTable t => ClickhouseQuery (T5 (Column a t) v1 v2 v3 v4 v5) w
 
 instance ClickhouseTable t => ClickhouseQuery (T6 (Column a t) v1 v2 v3 v4 v5 v6) where
   toClickhouseQuery (c1, c2, c3, c4, c5, c6) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6]
+
+instance ClickhouseTable t => ClickhouseQuery (AvailableAllColumns db t) where
+  toClickhouseQuery _ = do
+    let tableName = dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)
+    fromString tableName
+    where
+      dropTSuffix str = take (length str - 1) str
+
+-- FIXME couldn't add constraint for internal types
+-- maybe add some intermediate class?
+-- instance ClickhouseQuery (AvailableSubSelectColumns db t subcols) where
+--   toClickhouseQuery (AvailableColumns (SubSelectColumns subSelect)) = addBrackets . toClickhouseQuery $ subSelect

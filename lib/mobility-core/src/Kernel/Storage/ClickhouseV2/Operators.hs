@@ -74,7 +74,7 @@ select ::
   forall db table ord.
   ClickhouseTable table =>
   Q db table (Columns 'NOT_AGG table) ord (AllColumns db table) ->
-  Select 'NOT_AGG db table (Columns 'NOT_AGG table) NotGrouped ord
+  Select 'NOT_AGG db table (Columns 'NOT_AGG table) NotGrouped ord (AllColumns db table)
 select q = Select (getAvailableColumnsValue q.tableQ) NotGrouped q
 
 select_ ::
@@ -82,7 +82,7 @@ select_ ::
   (ClickhouseTable table, ClickhouseColumns a cols) =>
   (AvailableColumnsType acols -> (cols, GroupBy a gr)) ->
   Q db table cols ord acols ->
-  Select a db table cols gr ord
+  Select a db table cols gr ord acols
 select_ colsClause q = do
   let (cols, gr) = colsClause (getAvailableColumnsValue q.tableQ)
   Select cols gr q
@@ -125,9 +125,9 @@ all_ ::
 all_ tableMod = AvailableColumns $ AllColumns (mkTableColumns @table tableMod)
 
 subSelect_ ::
-  forall a db table subcols gr ord.
+  forall a db table subcols gr ord acols.
   (ClickhouseDb db, ClickhouseTable table) =>
-  Select a db table subcols gr ord ->
+  Select a db table subcols gr ord acols ->
   AvailableSubSelectColumns db table subcols
 -- Select a db table cols gr ord
 subSelect_ = AvailableColumns . SubSelectColumns
