@@ -144,7 +144,20 @@ filter_ ::
 filter_ filterClause table =
   Q
     { tableQ = table,
-      whereQ = Where . filterClause (getAvailableColumnsValue table),
+      whereQ = Just $ Where . filterClause (getAvailableColumnsValue table),
+      limitQ = Nothing,
+      offsetQ = Nothing,
+      orderByQ = Nothing
+    }
+
+emptyFilter ::
+  ClickhouseDb db =>
+  AvailableColumns db table acols ->
+  Q db table cols NotOrdered acols
+emptyFilter table =
+  Q
+    { tableQ = table,
+      whereQ = Nothing,
       limitQ = Nothing,
       offsetQ = Nothing,
       orderByQ = Nothing
@@ -193,7 +206,7 @@ infix 4 ==..
 -- If there are multiple rows with equal 'val' being the maximum, which of the associated 'arg' is returned is not deterministic
 argMax ::
   (ClickhouseTable t, ClickhouseValue v1, ClickhouseValue v2) =>
-  Column a t v1 -> -- 'arg'
-  Column a t v2 -> -- 'val'
-  Column a t v1
+  Column 'NOT_AGG t v1 -> -- 'arg'
+  Column 'NOT_AGG t v2 -> -- 'val'
+  Column 'AGG t v1
 argMax = ArgMax

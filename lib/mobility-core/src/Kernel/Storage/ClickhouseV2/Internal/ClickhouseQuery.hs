@@ -61,7 +61,7 @@ instance
       -- <> fromString tableName
       <> toClickhouseQuery @(AvailableColumns db t acols) q.tableQ
       <> selectModifier
-      <> toClickhouseQuery @(Where t) (q.whereQ cols)
+      <> mkMaybeClause @(Where t) (q.whereQ <&> ($ cols))
       <> toClickhouseQuery @(GroupBy a gr) groupBy
       <> mkMaybeClause @(OrderBy ord) (q.orderByQ <&> ($ cols))
       <> mkMaybeClause @Limit q.limitQ

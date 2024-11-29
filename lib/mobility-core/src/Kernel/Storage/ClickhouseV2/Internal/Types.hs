@@ -61,7 +61,7 @@ data Column (a :: IsAggregated) t v where
   ValColumn :: (ClickhouseTable t, ClickhouseValue v) => v -> Column a t v
   If :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
   EqColumn :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
-  ArgMax :: (ClickhouseTable t, ClickhouseValue v1, ClickhouseValue v2) => Column a t v1 -> Column a t v2 -> Column a t v1
+  ArgMax :: (ClickhouseTable t, ClickhouseValue v1, ClickhouseValue v2) => Column 'NOT_AGG t v1 -> Column 'NOT_AGG t v2 -> Column 'AGG t v1
 
 mkTableColumns :: ClickhouseTable t => FieldModifications t -> Columns 'NOT_AGG t
 mkTableColumns = mapTable Column
@@ -179,7 +179,7 @@ instance (ClickhouseTable t, C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => IsOrderCol
 data Q db table cols ord acols = (ClickhouseDb db) =>
   Q
   { tableQ :: AvailableColumns db table acols,
-    whereQ :: cols -> Where table,
+    whereQ :: Maybe (cols -> Where table),
     limitQ :: Maybe Limit,
     offsetQ :: Maybe Offset,
     orderByQ :: Maybe (cols -> OrderBy ord)
@@ -199,7 +199,6 @@ instance HasAvailableColumns (AllColumns db table) where
   type AvailableColumnsType (AllColumns db table) = Columns 'NOT_AGG table
   availableColumnsValue (AllColumns cols) = cols
 
--- perhaps we need to remove Grouped flag from sub columns?
 instance HasAvailableColumns (SubSelectColumns db table subcols) where
   type AvailableColumnsType (SubSelectColumns db table subcols) = ResetGroupColumnsType subcols
   availableColumnsValue (SubSelectColumns (Select subcols _ _)) = resetGroupColumns subcols
