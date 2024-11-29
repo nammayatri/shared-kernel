@@ -128,7 +128,8 @@ subSelect_ ::
   forall a db table subcols gr ord acols.
   ( ClickhouseDb db,
     ClickhouseTable table,
-    ClickhouseQuery (Select a db table subcols gr ord acols)
+    ClickhouseQuery (Select a db table subcols gr ord acols),
+    ResetGroupColumns subcols
   ) =>
   Select a db table subcols gr ord acols ->
   AvailableSubSelectColumns db table subcols
@@ -187,3 +188,12 @@ if_ = If
 (==..) = EqColumn
 
 infix 4 ==..
+
+-- | Calculates the 'arg' value for a maximum 'val' value.
+-- If there are multiple rows with equal 'val' being the maximum, which of the associated 'arg' is returned is not deterministic
+argMax ::
+  (ClickhouseTable t, ClickhouseValue v1, ClickhouseValue v2) =>
+  Column a t v1 -> -- 'arg'
+  Column a t v2 -> -- 'val'
+  Column a t v1
+argMax = ArgMax

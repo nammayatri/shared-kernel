@@ -49,6 +49,7 @@ instance {-# OVERLAPPING #-} (ClickhouseValue v, Num v) => ClickhouseNum (Maybe 
 data Column (a :: IsAggregated) t v where
   Column :: (ClickhouseTable t) => FieldModification t v -> Column 'NOT_AGG t v -- initial column
   Group :: (ClickhouseTable t, ClickhouseValue v) => Column 'NOT_AGG t v -> Column 'AGG t v -- column from groupBy clause
+  ResetGroup :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column 'NOT_AGG t v -- required for subqueries
   Sum :: (ClickhouseTable t, ClickhouseNum v) => Column 'NOT_AGG t v -> Column 'AGG t v
   Count :: (ClickhouseTable t, ClickhouseValue v, ClickhouseValue Int) => Column 'NOT_AGG t v -> Column 'AGG t Int
   Distinct :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -- should not be used in where clause
@@ -60,6 +61,7 @@ data Column (a :: IsAggregated) t v where
   ValColumn :: (ClickhouseTable t, ClickhouseValue v) => v -> Column a t v
   If :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
   EqColumn :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+  ArgMax :: (ClickhouseTable t, ClickhouseValue v1, ClickhouseValue v2) => Column a t v1 -> Column a t v2 -> Column a t v1
 
 mkTableColumns :: ClickhouseTable t => FieldModifications t -> Columns 'NOT_AGG t
 mkTableColumns = mapTable Column
@@ -114,6 +116,35 @@ instance (ClickhouseTable t, C5 ClickhouseValue v1 v2 v3 v4 v5) => IsGroupColumn
 instance (ClickhouseTable t, C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => IsGroupColumns (T6 (Column 'NOT_AGG t) v1 v2 v3 v4 v5 v6) where
   type GroupColumnsType (T6 (Column 'NOT_AGG t) v1 v2 v3 v4 v5 v6) = (T6 (Column 'AGG t) v1 v2 v3 v4 v5 v6)
   groupColumns (c1, c2, c3, c4, c5, c6) = (Group @t @v1 c1, Group @t @v2 c2, Group @t @v3 c3, Group @t @v4 c4, Group @t @v5 c5, Group @t @v6 c6)
+
+-- we need to reset group columns for subqueries, thus we can group twice, first time in subquery, second time in main query
+class ResetGroupColumns cols where
+  type ResetGroupColumnsType cols
+  resetGroupColumns :: cols -> ResetGroupColumnsType cols
+
+instance (ClickhouseTable t, ClickhouseValue v) => ResetGroupColumns (Column a t v) where
+  type ResetGroupColumnsType (Column a t v) = Column 'NOT_AGG t v
+  resetGroupColumns = ResetGroup @t @v
+
+instance (ClickhouseTable t, C2 ClickhouseValue v1 v2) => ResetGroupColumns (T2 (Column a t) v1 v2) where
+  type ResetGroupColumnsType (T2 (Column a t) v1 v2) = (T2 (Column 'NOT_AGG t) v1 v2)
+  resetGroupColumns (c1, c2) = (ResetGroup @t @v1 c1, ResetGroup @t @v2 c2)
+
+instance (ClickhouseTable t, C3 ClickhouseValue v1 v2 v3) => ResetGroupColumns (T3 (Column a t) v1 v2 v3) where
+  type ResetGroupColumnsType (T3 (Column a t) v1 v2 v3) = (T3 (Column 'NOT_AGG t) v1 v2 v3)
+  resetGroupColumns (c1, c2, c3) = (ResetGroup @t @v1 c1, ResetGroup @t @v2 c2, ResetGroup @t @v3 c3)
+
+instance (ClickhouseTable t, C4 ClickhouseValue v1 v2 v3 v4) => ResetGroupColumns (T4 (Column a t) v1 v2 v3 v4) where
+  type ResetGroupColumnsType (T4 (Column a t) v1 v2 v3 v4) = (T4 (Column 'NOT_AGG t) v1 v2 v3 v4)
+  resetGroupColumns (c1, c2, c3, c4) = (ResetGroup @t @v1 c1, ResetGroup @t @v2 c2, ResetGroup @t @v3 c3, ResetGroup @t @v4 c4)
+
+instance (ClickhouseTable t, C5 ClickhouseValue v1 v2 v3 v4 v5) => ResetGroupColumns (T5 (Column a t) v1 v2 v3 v4 v5) where
+  type ResetGroupColumnsType (T5 (Column a t) v1 v2 v3 v4 v5) = (T5 (Column 'NOT_AGG t) v1 v2 v3 v4 v5)
+  resetGroupColumns (c1, c2, c3, c4, c5) = (ResetGroup @t @v1 c1, ResetGroup @t @v2 c2, ResetGroup @t @v3 c3, ResetGroup @t @v4 c4, ResetGroup @t @v5 c5)
+
+instance (ClickhouseTable t, C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => ResetGroupColumns (T6 (Column a t) v1 v2 v3 v4 v5 v6) where
+  type ResetGroupColumnsType (T6 (Column a t) v1 v2 v3 v4 v5 v6) = (T6 (Column 'NOT_AGG t) v1 v2 v3 v4 v5 v6)
+  resetGroupColumns (c1, c2, c3, c4, c5, c6) = (ResetGroup @t @v1 c1, ResetGroup @t @v2 c2, ResetGroup @t @v3 c3, ResetGroup @t @v4 c4, ResetGroup @t @v5 c5, ResetGroup @t @v6 c6)
 
 data NotGrouped
 
@@ -170,8 +201,8 @@ instance HasAvailableColumns (AllColumns db table) where
 
 -- perhaps we need to remove Grouped flag from sub columns?
 instance HasAvailableColumns (SubSelectColumns db table subcols) where
-  type AvailableColumnsType (SubSelectColumns db table subcols) = subcols
-  availableColumnsValue (SubSelectColumns (Select subcols _ _)) = subcols
+  type AvailableColumnsType (SubSelectColumns db table subcols) = ResetGroupColumnsType subcols
+  availableColumnsValue (SubSelectColumns (Select subcols _ _)) = resetGroupColumns subcols
 
 getAvailableColumnsValue ::
   AvailableColumns db table acols ->
@@ -185,7 +216,7 @@ data AllColumns db table where
   AllColumns :: (ClickhouseDb db, ClickhouseTable table) => Columns 'NOT_AGG table -> AllColumns db table
 
 data SubSelectColumns db table subcols where
-  SubSelectColumns :: (ClickhouseDb db, ClickhouseTable table, ClickhouseQuery (Select a db table subcols gr ord acols)) => Select a db table subcols gr ord acols -> SubSelectColumns db table subcols
+  SubSelectColumns :: (ClickhouseDb db, ClickhouseTable table, ClickhouseQuery (Select a db table subcols gr ord acols), ResetGroupColumns subcols) => Select a db table subcols gr ord acols -> SubSelectColumns db table subcols
 
 type AvailableAllColumns db table = AvailableColumns db table (AllColumns db table)
 
@@ -194,6 +225,7 @@ type AvailableSubSelectColumns db table subcols = AvailableColumns db table (Sub
 showColumn :: Column a t v -> String
 showColumn (Column column) = getFieldModification column
 showColumn (Group column) = showColumn column
+showColumn (ResetGroup column) = showColumn column -- should we change this for subqueries?
 showColumn (Sum column) = "SUM" <> addBrackets' (showColumn column)
 showColumn (Count column) = "COUNT" <> addBrackets' (showColumn column)
 showColumn (Distinct column) = "DISTINCT" <> addBrackets' (showColumn column)
@@ -205,6 +237,7 @@ showColumn (TimeDiff column1 column2) = "timeDiff" <> addBrackets' (showColumn c
 showColumn (ValColumn v) = valToString . toClickhouseValue $ v
 showColumn (If cond v1 v2) = "if" <> addBrackets' (showColumn cond <> ", " <> showColumn v1 <> ", " <> showColumn v2)
 showColumn (EqColumn column1 column2) = addBrackets' $ showColumn column1 <> "=" <> showColumn column2
+showColumn (ArgMax arg value) = addBrackets' $ showColumn arg <> ", " <> showColumn value
 
 addBrackets' :: String -> String
 addBrackets' rq = "(" <> rq <> ")"
