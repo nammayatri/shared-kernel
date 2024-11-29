@@ -11,6 +11,8 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Kernel.Storage.ClickhouseV2.Internal.Types where
 
@@ -29,6 +31,12 @@ class ClickhouseColumns (a :: IsAggregated) cols where
   type ColumnsType a cols
   showClickhouseColumns :: Proxy a -> cols -> String
   parseColumns :: Proxy a -> cols -> A.Value -> Either String (ColumnsType a cols)
+
+newtype RawQuery = RawQuery {getRawQuery :: String}
+  deriving newtype (IsString, Semigroup, Monoid)
+
+class ClickhouseQuery expr where
+  toClickhouseQuery :: expr -> RawQuery
 
 data IsAggregated = AGG | NOT_AGG
 
@@ -177,7 +185,7 @@ data AllColumns db table where
   AllColumns :: (ClickhouseDb db, ClickhouseTable table) => Columns 'NOT_AGG table -> AllColumns db table
 
 data SubSelectColumns db table subcols where
-  SubSelectColumns :: (ClickhouseDb db, ClickhouseTable table) => Select a db table subcols gr ord acols -> SubSelectColumns db table subcols
+  SubSelectColumns :: (ClickhouseDb db, ClickhouseTable table, ClickhouseQuery (Select a db table subcols gr ord acols)) => Select a db table subcols gr ord acols -> SubSelectColumns db table subcols
 
 type AvailableAllColumns db table = AvailableColumns db table (AllColumns db table)
 

@@ -126,7 +126,10 @@ all_ tableMod = AvailableColumns $ AllColumns (mkTableColumns @table tableMod)
 
 subSelect_ ::
   forall a db table subcols gr ord acols.
-  (ClickhouseDb db, ClickhouseTable table) =>
+  ( ClickhouseDb db,
+    ClickhouseTable table,
+    ClickhouseQuery (Select a db table subcols gr ord acols)
+  ) =>
   Select a db table subcols gr ord acols ->
   AvailableSubSelectColumns db table subcols
 -- Select a db table cols gr ord

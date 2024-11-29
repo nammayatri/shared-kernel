@@ -11,8 +11,10 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+-- {-# LANGUAGE DerivingStrategies #-}
+-- {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+-- TODO remove
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Storage.ClickhouseV2.Internal.ClickhouseQuery
   ( ClickhouseQuery (toClickhouseQuery),
@@ -31,11 +33,11 @@ import Kernel.Storage.ClickhouseV2.ClickhouseValue
 import Kernel.Storage.ClickhouseV2.Internal.Types
 import Kernel.Utils.JSON (camelToSnakeCase)
 
-newtype RawQuery = RawQuery {getRawQuery :: String}
-  deriving newtype (IsString, Semigroup, Monoid)
+-- newtype RawQuery = RawQuery {getRawQuery :: String}
+--   deriving newtype (IsString, Semigroup, Monoid)
 
-class ClickhouseQuery expr where
-  toClickhouseQuery :: expr -> RawQuery
+-- class ClickhouseQuery expr where
+--   toClickhouseQuery :: expr -> RawQuery
 
 instance
   ( ClickhouseDb db,
@@ -157,7 +159,5 @@ instance ClickhouseTable t => ClickhouseQuery (AvailableAllColumns db t) where
     where
       dropTSuffix str = take (length str - 1) str
 
--- FIXME couldn't add constraint for internal types
--- maybe add some intermediate class?
--- instance ClickhouseQuery (AvailableSubSelectColumns db t subcols) where
---   toClickhouseQuery (AvailableColumns (SubSelectColumns subSelect)) = addBrackets . toClickhouseQuery $ subSelect
+instance ClickhouseQuery (AvailableSubSelectColumns db t subcols) where
+  toClickhouseQuery (AvailableColumns (SubSelectColumns subSelect)) = addBrackets . toClickhouseQuery $ subSelect
