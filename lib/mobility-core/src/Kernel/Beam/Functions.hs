@@ -29,6 +29,7 @@ module Kernel.Beam.Functions
     findAllWithKVAndConditionalDB,
     findOneWithKVRedis,
     logQueryData,
+    findAllFromKvRedis,
   )
 where
 
@@ -311,6 +312,26 @@ findAllWithKVAndConditionalDB where' orderBy = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
+  case result of
+    Right res -> do
+      res' <- mapM fromTType' res
+      pure $ catMaybes res'
+    Left err -> throwError $ InternalError $ show err
+
+findAllFromKvRedis ::
+  forall table m r a.
+  ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
+    FromTType' (table Identity) a
+  ) =>
+  Where Postgres table ->
+  Maybe (OrderBy table) ->
+  m [a]
+findAllFromKvRedis where' orderBy = do
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
+  dbConf' <- getReadDBConfigInternal (modelTableName @table)
+  result <- KV.findAllFromKvRedis dbConf' updatedMeshConfig where' orderBy
   case result of
     Right res -> do
       res' <- mapM fromTType' res
