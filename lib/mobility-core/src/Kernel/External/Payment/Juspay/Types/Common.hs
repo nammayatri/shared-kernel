@@ -143,6 +143,7 @@ data OrderData = OrderData
     status :: TransactionStatus,
     payment_method_type :: Maybe Text,
     payment_method :: Maybe Text,
+    payment_gateway_response :: Maybe PaymentGatewayResponse,
     resp_message :: Maybe Text,
     resp_code :: Maybe Text,
     gateway_reference_id :: Maybe Text,
@@ -177,6 +178,18 @@ data SplitDetailsResponse = SplitDetailsResponse
     merchant_commission :: Maybe HighPrecMoney,
     gateway_sub_account_id :: Maybe Text,
     epg_txn_id :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentGatewayResponse = PaymentGatewayResponse
+  { resp_code :: Maybe Text,
+    rrn :: Maybe Text,
+    created :: Maybe UTCTime,
+    epg_txn_id :: Maybe Text,
+    resp_message :: Maybe Text,
+    auth_id_code :: Maybe Text,
+    txn_id :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

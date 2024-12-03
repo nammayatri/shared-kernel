@@ -115,6 +115,7 @@ data OrderStatusResp
         transactionStatus :: TransactionStatus,
         paymentMethodType :: Maybe Text,
         paymentMethod :: Maybe Text,
+        paymentGatewayResponse :: Maybe PaymentGatewayResponse,
         respMessage :: Maybe Text,
         respCode :: Maybe Text,
         gatewayReferenceId :: Maybe Text,
@@ -238,6 +239,17 @@ data MandateNotificationRes = MandateNotificationRes
 data SourceInfo = SourceInfo
   { sourceAmount :: Maybe HighPrecMoney,
     txnDate :: Maybe UTCTime
+  }
+  deriving (Eq, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
+
+data PaymentGatewayResponse = PaymentGatewayResponse
+  { txnId :: Maybe Text,
+    rrn :: Maybe Text,
+    respMessage :: Maybe Text,
+    respCode :: Maybe Text,
+    epgTxnId :: Maybe Text,
+    created :: Maybe UTCTime,
+    authIdCode :: Maybe Text
   }
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
 

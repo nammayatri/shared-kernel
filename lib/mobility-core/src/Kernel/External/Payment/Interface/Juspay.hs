@@ -267,6 +267,19 @@ mkOrderStatusResp Juspay.OrderData {..} =
           transactionStatus = status,
           paymentMethodType = payment_method_type,
           paymentMethod = payment_method,
+          paymentGatewayResponse =
+            payment_gateway_response
+              <&> ( \pgResp ->
+                      PaymentGatewayResponse
+                        { respCode = pgResp.resp_code,
+                          rrn = pgResp.rrn,
+                          created = pgResp.created,
+                          epgTxnId = pgResp.epg_txn_id,
+                          respMessage = pgResp.resp_message,
+                          authIdCode = pgResp.auth_id_code,
+                          txnId = pgResp.txn_id
+                        }
+                  ),
           respMessage = resp_message,
           respCode = resp_code,
           gatewayReferenceId = gateway_reference_id,
@@ -412,6 +425,19 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               transactionStatus = justOrder.status,
               paymentMethodType = justOrder.payment_method_type,
               paymentMethod = justOrder.payment_method,
+              paymentGatewayResponse =
+                justOrder.payment_gateway_response
+                  <&> ( \pgResp ->
+                          PaymentGatewayResponse
+                            { respCode = pgResp.resp_code,
+                              rrn = pgResp.rrn,
+                              created = pgResp.created,
+                              epgTxnId = pgResp.epg_txn_id,
+                              respMessage = pgResp.resp_message,
+                              authIdCode = pgResp.auth_id_code,
+                              txnId = pgResp.txn_id
+                            }
+                      ),
               respMessage = justOrder.resp_message,
               respCode = justOrder.resp_code,
               gatewayReferenceId = justOrder.gateway_reference_id,
@@ -462,6 +488,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           transactionStatus = justTransaction.status,
           paymentMethodType = Nothing,
           paymentMethod = Nothing,
+          paymentGatewayResponse = Nothing,
           respMessage = Nothing,
           respCode = Nothing,
           gatewayReferenceId = Nothing,
