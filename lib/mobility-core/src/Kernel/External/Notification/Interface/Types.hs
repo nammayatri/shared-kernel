@@ -85,6 +85,8 @@ data Category
   | USER_FAVOURITE_DRIVER
   | POST_RIDE_SAFETY_CHECK
   | DRIVER_STOP_DETECTED
+  | TO_METRO_COINS
+  | FROM_METRO_COINS
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

@@ -116,6 +116,8 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.USER_FAVOURITE_DRIVER -> FCM.USER_FAVOURITE_DRIVER
   Interface.POST_RIDE_SAFETY_CHECK -> FCM.POST_RIDE_SAFETY_CHECK
   Interface.DRIVER_STOP_DETECTED -> FCM.DRIVER_STOP_DETECTED
+  Interface.TO_METRO_COINS -> FCM.TO_METRO_COINS
+  Interface.FROM_METRO_COINS -> FCM.FROM_METRO_COINS
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
