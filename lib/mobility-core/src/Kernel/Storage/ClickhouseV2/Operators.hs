@@ -19,7 +19,7 @@ import Kernel.Prelude
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
 import Kernel.Storage.ClickhouseV2.ClickhouseTable
 import Kernel.Storage.ClickhouseV2.ClickhouseValue
-import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns
+import Kernel.Storage.ClickhouseV2.Internal.ClickhouseColumns ()
 import Kernel.Storage.ClickhouseV2.Internal.Types
 
 (==.) :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table value -> value -> Clause table
@@ -70,23 +70,37 @@ isNull column = Is column NullTerm
 isNotNull :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table (Maybe value) -> Clause table
 isNotNull column = Is column NotNullTerm
 
-select :: forall db table ord. ClickhouseTable table => Q db table (Columns 'NOT_AGG table) ord -> Select 'NOT_AGG db table (Columns 'NOT_AGG table) NotGrouped ord
-select q = Select q.tableQ NotGrouped q
+select ::
+  forall db table ord.
+  ClickhouseTable table =>
+  Q db table (Columns 'NOT_AGG table) ord (AllColumns db table) ->
+  Select 'NOT_AGG db table (Columns 'NOT_AGG table) NotGrouped ord (AllColumns db table)
+select q = Select (getAvailableColumnsValue q.tableQ) NotGrouped q
 
-select_ :: forall a db table cols gr ord. (ClickhouseTable table, ClickhouseColumns a cols) => (Columns 'NOT_AGG table -> (cols, GroupBy a gr)) -> Q db table cols ord -> Select a db table cols gr ord
+select_ ::
+  forall a db table cols gr ord acols.
+  (ClickhouseTable table, ClickhouseColumns a cols) =>
+  (AvailableColumnsType acols -> (cols, GroupBy a gr)) ->
+  Q db table cols ord acols ->
+  Select a db table cols gr ord acols
 select_ colsClause q = do
-  let (cols, gr) = colsClause q.tableQ
+  let (cols, gr) = colsClause (getAvailableColumnsValue q.tableQ)
   Select cols gr q
 
 -- FIXME Integer
-limit_ :: Int -> Q db table cols ord -> Q db table cols ord
+limit_ :: Int -> Q db table cols ord subsel -> Q db table cols ord subsel
 limit_ limitVal q = q {limitQ = Just $ Limit limitVal}
 
-offset_ :: Int -> Q db table cols ord -> Q db table cols ord
+offset_ :: Int -> Q db table cols ord subsel -> Q db table cols ord subsel
 offset_ offsetVal q = q {offsetQ = Just $ Offset offsetVal}
 
-orderBy_ :: forall db table cols ord. ClickhouseTable table => (Columns 'NOT_AGG table -> cols -> OrderBy ord) -> Q db table cols NotOrdered -> Q db table cols ord
-orderBy_ orderByClause q = q {orderByQ = Just $ orderByClause (tableQ q)}
+orderBy_ ::
+  forall db table cols ord acols.
+  ClickhouseTable table =>
+  (AvailableColumnsType acols -> cols -> OrderBy ord) ->
+  Q db table cols NotOrdered acols ->
+  Q db table cols ord acols
+orderBy_ orderByClause q = q {orderByQ = Just $ orderByClause $ getAvailableColumnsValue (tableQ q)}
 
 asc :: forall ord. IsOrderColumns ord => ord -> OrderBy ord
 asc = OrderBy Asc
@@ -107,14 +121,44 @@ all_ ::
   forall db table.
   (ClickhouseDb db, ClickhouseTable table) =>
   FieldModifications table ->
-  AllColumns db table
-all_ tableMod = AllColumns (mkTableColumns @table tableMod)
+  (AvailableAllColumns db table, SubQueryLevel)
+all_ tableMod = (AvailableColumns $ AllColumns (mkTableColumns @table tableMod), 0)
 
-filter_ :: (Columns 'NOT_AGG table -> cols -> Clause table) -> AllColumns db table -> Q db table cols NotOrdered
-filter_ filterClause (AllColumns table) =
+subSelect_ ::
+  forall a db table subcols gr ord acols.
+  ( ClickhouseDb db,
+    ClickhouseTable table,
+    ClickhouseQuery (Select a db table subcols gr ord acols),
+    MkSubColumns subcols
+  ) =>
+  Select a db table subcols gr ord acols ->
+  (AvailableSubSelectColumns db table subcols, SubQueryLevel)
+subSelect_ s@(Select _cols _gr q) = (AvailableColumns . SubSelectColumns $ s, q.subQueryLevelQ + 1)
+
+filter_ ::
+  ClickhouseDb db =>
+  (AvailableColumnsType acols -> cols -> Clause table) ->
+  (AvailableColumns db table acols, SubQueryLevel) ->
+  Q db table cols NotOrdered acols
+filter_ filterClause (table, level) =
   Q
     { tableQ = table,
-      whereQ = Where . filterClause table,
+      subQueryLevelQ = level,
+      whereQ = Just $ Where . filterClause (getAvailableColumnsValue table),
+      limitQ = Nothing,
+      offsetQ = Nothing,
+      orderByQ = Nothing
+    }
+
+emptyFilter ::
+  ClickhouseDb db =>
+  (AvailableColumns db table acols, SubQueryLevel) ->
+  Q db table cols NotOrdered acols
+emptyFilter (table, level) =
+  Q
+    { tableQ = table,
+      subQueryLevelQ = level,
+      whereQ = Nothing,
       limitQ = Nothing,
       offsetQ = Nothing,
       orderByQ = Nothing
@@ -158,3 +202,12 @@ if_ = If
 (==..) = EqColumn
 
 infix 4 ==..
+
+-- | Calculates the 'arg' value for a maximum 'val' value.
+-- If there are multiple rows with equal 'val' being the maximum, which of the associated 'arg' is returned is not deterministic
+argMax ::
+  (ClickhouseTable t, ClickhouseValue v1, ClickhouseValue v2) =>
+  Column 'NOT_AGG t v1 -> -- 'arg'
+  Column 'NOT_AGG t v2 -> -- 'val'
+  Column 'AGG t v1
+argMax = ArgMax
