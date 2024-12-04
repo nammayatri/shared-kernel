@@ -157,4 +157,34 @@ if_ = If
 (==..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
 (==..) = EqColumn
 
+(&&..) :: ClickhouseTable t => Column a t Bool -> Column a t Bool -> Column a t Bool
+(&&..) = AndColumn
+
+(||..) :: ClickhouseTable t => Column a t Bool -> Column a t Bool -> Column a t Bool
+(||..) = OrColumn
+
+(>..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+(>..) = Greater
+
+(<..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+(<..) = Less
+
+(>=..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+(>=..) = GreaterOrEqual
+
+(<=..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+(<=..) = LessOrEqual
+
 infix 4 ==..
+
+infix 3 &&..
+
+infix 3 ||..
+
+infix 4 >..
+
+infix 4 <..
+
+infix 4 >=..
+
+infix 4 <=..

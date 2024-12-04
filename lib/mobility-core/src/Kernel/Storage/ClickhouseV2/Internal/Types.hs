@@ -43,6 +43,12 @@ data Column (a :: IsAggregated) t v where
   ValColumn :: (ClickhouseTable t, ClickhouseValue v) => v -> Column a t v
   If :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
   EqColumn :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+  AndColumn :: (ClickhouseTable t, ClickhouseValue Bool) => Column a t Bool -> Column a t Bool -> Column a t Bool
+  OrColumn :: (ClickhouseTable t, ClickhouseValue Bool) => Column a t Bool -> Column a t Bool -> Column a t Bool
+  GreaterOrEqual :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+  LessOrEqual :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+  Greater :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+  Less :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
 
 mkTableColumns :: ClickhouseTable t => FieldModifications t -> Columns 'NOT_AGG t
 mkTableColumns = mapTable Column
@@ -160,6 +166,12 @@ showColumn (TimeDiff column1 column2) = "timeDiff" <> addBrackets' (showColumn c
 showColumn (ValColumn v) = valToString . toClickhouseValue $ v
 showColumn (If cond v1 v2) = "if" <> addBrackets' (showColumn cond <> ", " <> showColumn v1 <> ", " <> showColumn v2)
 showColumn (EqColumn column1 column2) = addBrackets' $ showColumn column1 <> "=" <> showColumn column2
+showColumn (AndColumn column1 column2) = addBrackets' $ showColumn column1 <> " AND " <> showColumn column2
+showColumn (OrColumn column1 column2) = addBrackets' $ showColumn column1 <> " OR " <> showColumn column2
+showColumn (GreaterOrEqual column1 column2) = addBrackets' $ showColumn column1 <> ">=" <> showColumn column2
+showColumn (LessOrEqual column1 column2) = addBrackets' $ showColumn column1 <> "<=" <> showColumn column2
+showColumn (Greater column1 column2) = addBrackets' $ showColumn column1 <> ">" <> showColumn column2
+showColumn (Less column1 column2) = addBrackets' $ showColumn column1 <> "<" <> showColumn column2
 
 addBrackets' :: String -> String
 addBrackets' rq = "(" <> rq <> ")"
