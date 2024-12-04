@@ -179,6 +179,8 @@ data FCMNotificationType
   | DRIVER_UNBLOCKED
   | POST_RIDE_SAFETY_CHECK
   | DRIVER_STOP_DETECTED
+  | TO_METRO_COINS
+  | FROM_METRO_COINS
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
