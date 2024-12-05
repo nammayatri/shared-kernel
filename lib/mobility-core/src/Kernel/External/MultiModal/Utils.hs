@@ -52,6 +52,7 @@ convertModeToGeneral OTP.ModeRAIL = MetroRail
 convertModeToGeneral OTP.ModeMONORAIL = MetroRail
 convertModeToGeneral OTP.ModeSUBWAY = MetroRail
 convertModeToGeneral OTP.ModeWALK = Walk
+convertModeToGeneral OTP.ModeCAR = Car
 convertModeToGeneral _ = Unspecified
 
 convertTransitVehicleToGeneral :: GT.TransitVehicleTypeV2 -> GeneralVehicleType
@@ -279,12 +280,15 @@ convertOTPToGeneric otpResponse =
               toDepartureTime' = Just $ millisecondsToUTC $ round otpLeg'.to.departureTime
               routeDetails = case otpLeg'.route of
                 Just route ->
-                  Just
-                    MultiModalRouteDetails
-                      { gtfsId = Just $ T.pack route.gtfsId,
-                        longName = fmap T.pack route.longName,
-                        shortName = fmap T.pack route.shortName
-                      }
+                  let (color, directionName) = maybe (Nothing, Nothing) splitRoute (fmap T.pack route.longName)
+                   in Just
+                        MultiModalRouteDetails
+                          { gtfsId = Just $ T.pack route.gtfsId,
+                            longName = fmap T.pack route.longName,
+                            shortName = fmap T.pack route.shortName,
+                            color = color,
+                            directionName = directionName
+                          }
                 Nothing -> Nothing
               (fromStopCode, fromStopGtfsId) = case otpLeg'.from.stop of
                 Just x -> (x.code, Just x.gtfsId)
@@ -362,3 +366,7 @@ convertOTPToGeneric otpResponse =
                     toDepartureTime = toDepartureTime'
                   }
            in (leg : genericLegs, genericDistance + distance)
+    splitRoute :: Text -> (Maybe Text, Maybe Text)
+    splitRoute input = case T.splitOn "_" input of
+      [firstPart, secondPart] -> (Just firstPart, Just secondPart)
+      _ -> (Nothing, Nothing)
