@@ -29,14 +29,28 @@ import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.OpenApi (ToSchema)
 import Data.Text as T
-import Data.Text.Conversions
-import EulerHS.Prelude
+import Data.Text.Conversions (FromText (..))
+import EulerHS.Prelude hiding (fromStrict)
 import Kernel.External.Call.Exotel.Types (ExotelAccountSID)
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.JSON
 import Kernel.Utils.TH
 import Web.FormUrlEncoded (ToForm, toForm)
 import Web.Internal.HttpApiData
+
+data SMSType = TRANSACTIONAL | PROMOTIONAL | TRANSACTIONAL_OPT_IN
+  deriving (Generic, FromJSON, ToJSON, Show, Eq)
+
+data PriorityType = NORMAL | HIGH
+  deriving (Generic, FromJSON, ToJSON, Show, Eq)
+
+instance ToHttpApiData SMSType where
+  toUrlPiece = T.toLower . show
+  toQueryParam = toUrlPiece
+
+instance ToHttpApiData PriorityType where
+  toUrlPiece = T.toLower . show
+  toQueryParam = toUrlPiece
 
 type OtpTemplate = Text
 
@@ -55,9 +69,13 @@ data SubmitSmsReq = SubmitSmsReq
     to :: Text,
     -- Mobile number to which SMS has to be sent. Preferably in E.164 format. If not set, our system will try to match it with a
     -- country and route the SMS
-    body :: Text
+    body :: Text,
     -- 	String; Content of your SMS; Max Length of the body cannot exceed
     -- 2000 characters
+    smsType :: SMSType,
+    -- String; Type of sms
+    priority :: PriorityType
+    -- String: normal or high
   }
   deriving (Generic, Eq, Show)
 
@@ -65,7 +83,9 @@ instance ToForm SubmitSmsReq where
   toForm SubmitSmsReq {..} =
     [ ("From", toQueryParam from),
       ("To", toQueryParam to),
-      ("Body", toQueryParam body)
+      ("Body", toQueryParam body),
+      ("SMSType", toQueryParam smsType),
+      ("Priority", toQueryParam priority)
     ]
 
 -- | SMS direction
