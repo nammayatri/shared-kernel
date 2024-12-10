@@ -370,11 +370,11 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1733209116,
-        "narHash": "sha256-SBNA5q16n4L3H8wTs6i9aSjSKUamWdPWp2bOXBZobE4=",
+        "lastModified": 1733813522,
+        "narHash": "sha256-bK8/dUsyH/y5+Z8ssgjIW60Uo6nouGHtsOppbsgGSXM=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "896a634222967245f6eb18ef8439aa324cd88ff4",
+        "rev": "9b89705853d12834e38e0c78501cf26db14b19e6",
         "type": "github"
       },
       "original": {
