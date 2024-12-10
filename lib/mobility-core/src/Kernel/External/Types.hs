@@ -67,6 +67,8 @@ instance ToHttpApiData Language where
 
 type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r)
 
+type VerificationFlow m r = (MonadFlow m, CacheFlow m r, EsqDBFlow m r, MonadReader r m, EncFlow m r)
+
 data SchedulerType = RedisBased | DbBased deriving (Show, Enum, Eq, Read, Generic, FromDhall)
 
 type HasSchedulerName r = HasField "schedulerSetName" r Text
