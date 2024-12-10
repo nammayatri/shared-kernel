@@ -181,6 +181,7 @@ data FCMNotificationType
   | DRIVER_STOP_DETECTED
   | TO_METRO_COINS
   | FROM_METRO_COINS
+  | MARKETING_EVENTS
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 

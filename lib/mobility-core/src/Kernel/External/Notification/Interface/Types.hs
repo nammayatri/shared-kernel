@@ -87,6 +87,7 @@ data Category
   | DRIVER_STOP_DETECTED
   | TO_METRO_COINS
   | FROM_METRO_COINS
+  | MARKETING_EVENTS
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
