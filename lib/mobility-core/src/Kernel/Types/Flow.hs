@@ -14,19 +14,19 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -Wwarn=missing-methods #-}
 
 module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR) where
 
 import Control.Monad.IO.Unlift
 import Data.Aeson
 import Data.Default.Class
+import qualified Data.Map.Strict as M
 import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
 import Kernel.Beam.Lib.UtilsTH
-import Kernel.Prelude
+import Kernel.Prelude hiding (forM_, mapM_)
 import Kernel.Storage.Beam.SystemConfigs
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Hedis.Config
@@ -160,6 +160,8 @@ instance L.MonadFlow (FlowR r) where
   callHTTPUsingManager mgr url = FlowR . L.callHTTPUsingManager mgr url
   {-# INLINEABLE fork #-}
   fork (FlowR f) = FlowR $ L.fork f
+  {-# INLINEABLE awaitableFork #-}
+  awaitableFork (FlowR f) = FlowR $ L.awaitableFork f
 
 -- {-# INLINEABLE callAPIUsingManager #-}
 -- callAPIUsingManager f flow = FlowR $ L.callAPIUsingManager f flow
@@ -235,18 +237,47 @@ instance MonadGuid (FlowR r) where
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
   fork tag f = do
     newLocalOptions <- newMVar mempty
-    shouldLogRequestId <- asks (.shouldLogRequestId)
-    when (shouldLogRequestId && tag /= "ArtData") $ do
-      requestId <- fromMaybe "" <$> asks (.requestId)
-      kafkaConn <- asks (.kafkaProducerForART)
-      timestamp <- getCurrentTime
-      let response = def {requestId = requestId, forkedTag = Just tag, timestamp = Just timestamp}
-      liftIO $ pushToKafka kafkaConn (encode response) "ART-Logs" requestId
+    logRequestIdForFork tag
+    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleForkExecution tag f)
 
-    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
+  forkMultiple tagAndFunction = do
+    newLocalOptions <- newMVar mempty
+    FlowR $ ReaderT $ L.forkFlow "multiple-Forks" . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleForkExecutionMultiple tagAndFunction)
+
+  awaitableFork tag f = do
+    newLocalOptions <- newMVar mempty
+    FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
     where
-      handleExc = try >=> (`whenLeft` err)
-      err (e :: SomeException) = do
-        logError $ "Thread " <> show tag <> " died with error: " <> makeLogSomeException e
-        Metrics.incrementErrorCounter "FORKED_THREAD_ERROR" e
-      refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalOptions}
+      handleExc f' = do
+        res <- try f'
+        case res of
+          Right a -> return a
+          Left e -> do
+            logError $ "awaitableFork Thread " <> show tag <> " died with error: " <> makeLogSomeException e
+            Metrics.incrementErrorCounter "AWAITABLE_FORK_THREAD_ERROR" e
+            liftIO $ throwIO e
+
+logRequestIdForFork :: (Log (FlowR r), HasARTFlow r, Metrics.CoreMetrics (FlowR r)) => Text -> FlowR r ()
+logRequestIdForFork tag = do
+  shouldLogRequestId <- asks (.shouldLogRequestId)
+  when (shouldLogRequestId && tag /= "ArtData") $ do
+    requestId <- fromMaybe "" <$> asks (.requestId)
+    kafkaConn <- asks (.kafkaProducerForART)
+    timestamp <- getCurrentTime
+    let response = def {requestId = requestId, forkedTag = Just tag, timestamp = Just timestamp}
+    liftIO $ pushToKafka kafkaConn (encode response) "ART-Logs" requestId
+
+handleForkExecutionMultiple :: (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => [(Text, FlowR r ())] -> FlowR r ()
+handleForkExecutionMultiple tagAndFunction = forM_ tagAndFunction $ \(tag, f) -> do
+  logRequestIdForFork tag
+  handleForkExecution tag f
+
+handleForkExecution :: (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => Text -> FlowR r () -> FlowR r ()
+handleForkExecution tag f = try f >>= (`whenLeft` err)
+  where
+    err (e :: SomeException) = do
+      logError $ "Thread " <> tag <> " died with error: " <> makeLogSomeException e
+      Metrics.incrementErrorCounter "FORKED_THREAD_ERROR" e
+
+refreshLocalOptions :: MVar (M.Map Text Any) -> R.FlowRuntime -> R.FlowRuntime
+refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalOptions}
