@@ -27,6 +27,7 @@ module Kernel.Beam.Functions
     deleteWithKV,
     deleteWithDb, -- not used
     findAllWithKVAndConditionalDB,
+    findAllWithKVAndConditionalDBWithOptions,
     findOneWithKVRedis,
     logQueryData,
     findAllFromKvRedis,
@@ -312,6 +313,31 @@ findAllWithKVAndConditionalDB where' orderBy = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
+  case result of
+    Right res -> do
+      res' <- mapM fromTType' res
+      pure $ catMaybes res'
+    Left err -> throwError $ InternalError $ show err
+
+-- This function should be only used when you want data from kv only (order by will work in case of kv also) if present
+-- and fall back to db if not present in kv then all three params orderby limit and offset will also work.
+
+findAllWithKVAndConditionalDBWithOptions ::
+  forall table m r a.
+  ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
+    FromTType' (table Identity) a
+  ) =>
+  Where Postgres table ->
+  Maybe (OrderBy table) ->
+  Maybe Int ->
+  Maybe Int ->
+  m [a]
+findAllWithKVAndConditionalDBWithOptions where' orderBy mbLimit mbOffset = do
+  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
+  dbConf' <- getReadDBConfigInternal (modelTableName @table)
+  result <- KV.findAllWithKVAndConditionalDBWithOptionsInternal dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
   case result of
     Right res -> do
       res' <- mapM fromTType' res
