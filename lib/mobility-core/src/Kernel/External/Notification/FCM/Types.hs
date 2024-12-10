@@ -181,6 +181,7 @@ data FCMNotificationType
   | DRIVER_STOP_DETECTED
   | TO_METRO_COINS
   | FROM_METRO_COINS
+  | ISSUE_BREACH_EXTRA_FARE_MITIGATION
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
