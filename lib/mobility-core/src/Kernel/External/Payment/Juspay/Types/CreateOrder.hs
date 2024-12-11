@@ -72,10 +72,21 @@ data CreateOrderResp = CreateOrderResp
     id :: Text,
     order_id :: Text,
     payment_links :: Maybe PaymentLinks,
-    sdk_payload :: SDKPayload
+    sdk_payload :: SDKPayload,
+    sdk_payload_json :: Maybe Value
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+  deriving anyclass (ToJSON, ToSchema)
+
+instance FromJSON CreateOrderResp where
+  parseJSON = withObject "CreateOrderResp" $ \v -> do
+    status <- v .: "status"
+    order_id <- v .: "order_id"
+    id <- v .: "id"
+    payment_links <- v .: "payment_links"
+    sdk_payload <- v .: "sdk_payload"
+    sdk_payload_json <- v .: "sdk_payload"
+    return (CreateOrderResp status id order_id payment_links sdk_payload sdk_payload_json)
 
 data PaymentLinks = PaymentLinks
   { web :: Maybe BaseUrl,
