@@ -79,8 +79,29 @@ pointWithinBoundingBox (LatLong lat lon) (BoundingBox (LatLong topLeftLat topLef
 
 -- Check if a line segment is within the bounding box
 lineSegmentWithinBoundingBox :: LineSegment -> BoundingBox -> Bool
-lineSegmentWithinBoundingBox (LineSegment startPoint endPoint) boundingBox =
-  pointWithinBoundingBox startPoint boundingBox && pointWithinBoundingBox endPoint boundingBox
+lineSegmentWithinBoundingBox lineSegment@(LineSegment startPoint endPoint) boundingBox@(BoundingBox topLeft topRight bottomLeft bottomRight) = do
+  let startPointCheck = pointWithinBoundingBox startPoint boundingBox
+  let endPointCheck = pointWithinBoundingBox endPoint boundingBox
+
+  -- If both points are within the bounding box, return True
+  (startPointCheck && endPointCheck)
+    || ( do
+           -- Create line segments for each side of the bounding box
+           let boundingBoxEdges =
+                 [ LineSegment topLeft topRight, -- Top edge
+                   LineSegment topLeft bottomLeft, -- Left edge
+                   LineSegment bottomLeft bottomRight, -- Bottom edge
+                   LineSegment bottomRight topRight -- Right edge
+                 ]
+
+           -- Early return as soon as an intersection is found
+           let checkIntersections [] = False
+               checkIntersections (edge : remainingEdges) = do
+                 let intersects = doIntersect lineSegment edge
+                 intersects || checkIntersections remainingEdges
+
+           checkIntersections boundingBoxEdges
+       )
 
 -- Check if any line between two route points passes through intersection points
 doRouteIntersectWithLine :: RoutePoints -> LineSegment -> Bool
