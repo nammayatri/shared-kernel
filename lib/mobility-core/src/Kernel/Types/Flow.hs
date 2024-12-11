@@ -14,7 +14,8 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -Wwarn=missing-methods #-}
+
+-- {-# OPTIONS_GHC -Wwarn=missing-methods #-}
 
 module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR) where
 
@@ -245,7 +246,7 @@ instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkabl
     newLocalOptions <- newMVar mempty
     FlowR $ ReaderT $ L.forkFlow "multiple-Forks" . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleForkExecutionMultiple tagAndFunction)
 
-  awaitableFork tag f = do
+  awaitableFork1 tag f = do
     newLocalOptions <- newMVar mempty
     FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
     where
