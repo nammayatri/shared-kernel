@@ -182,6 +182,7 @@ data FCMNotificationType
   | TO_METRO_COINS
   | FROM_METRO_COINS
   | ISSUE_BREACH_EXTRA_FARE_MITIGATION
+  | MARKETING_EVENTS
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
