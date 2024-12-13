@@ -14,7 +14,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -Wwarn=missing-methods #-}
 
 module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR) where
 
