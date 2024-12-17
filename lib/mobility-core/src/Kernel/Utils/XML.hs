@@ -11,12 +11,10 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wno-unused-imports #-}
 
 module Kernel.Utils.XML where
 
 import Data.Aeson
-import Data.OpenApi (ToSchema)
 import Kernel.Prelude
 import Xmlbf
 
