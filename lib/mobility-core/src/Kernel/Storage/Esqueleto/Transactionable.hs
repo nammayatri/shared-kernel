@@ -14,9 +14,11 @@
 
 module Kernel.Storage.Esqueleto.Transactionable where
 
+import qualified Data.Pool as DP
 import Database.Esqueleto.Experimental (runSqlPool)
 import Database.Persist.Postgresql (runSqlPoolNoTransaction)
-import Kernel.Prelude
+import qualified EulerHS.Types as ET
+import Kernel.Prelude hiding (either)
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Esqueleto.DTypeBuilder
 import Kernel.Storage.Esqueleto.Logger
@@ -24,6 +26,7 @@ import Kernel.Storage.Esqueleto.SqlDB
 import Kernel.Types.Logging
 import Kernel.Types.Time (getCurrentTime)
 import Kernel.Utils.IOLogging (LoggerEnv)
+import Kernel.Utils.Logging (logError)
 
 type Transactionable m = Transactionable' SelectSqlDB m
 
@@ -76,7 +79,10 @@ runTransactionIO logEnv dbEnv (SqlDB run) = do
         SqlDBEnv
           { currentTime = now
           }
-  runLoggerIO logEnv $ runSqlPool (runReaderT run sqlDBEnv) dbEnv.connPool
+  runLoggerIO logEnv
+    . withLogTag "DB QUERY"
+    . destroyAllConnAndRetryIfExpired dbEnv
+    $ runSqlPool (runReaderT run sqlDBEnv) dbEnv.connPool
 
 runInReplica :: (EsqDBReplicaFlow m r, MonadThrow m, Log m) => SelectSqlDB a -> m a
 runInReplica (SelectSqlDB m) = do
@@ -104,4 +110,25 @@ runNoTransactionIO logEnv dbEnv (SqlDB run) = do
         SqlDBEnv
           { currentTime = now
           }
-  runLoggerIO logEnv $ runSqlPoolNoTransaction (runReaderT run sqlDBEnv) dbEnv.connPool Nothing
+  runLoggerIO logEnv
+    . withLogTag "DB QUERY NO TRANSACTION"
+    . destroyAllConnAndRetryIfExpired dbEnv
+    $ runSqlPoolNoTransaction (runReaderT run sqlDBEnv) dbEnv.connPool Nothing
+
+destroyAllConnAndRetryIfExpired :: EsqDBEnv -> LoggerIO a -> LoggerIO a
+destroyAllConnAndRetryIfExpired dbEnv action =
+  catch @_ @SomeException action $ \e -> do
+    let res = transformException e
+    logError $ "Transformed ERROR response: " <> show res
+    case res of
+      ET.DBError (ET.SQLError (ET.PostgresError (ET.PostgresSqlError "" ET.PostgresFatalError "" "" ""))) _ -> do
+        liftIO $ DP.destroyAllResources dbEnv.connPool
+        action
+      _ -> throwIO e
+
+transformException :: SomeException -> ET.DBError
+transformException e =
+  maybe
+    (ET.DBError ET.UnrecognizedError $ show e)
+    (ET.postgresErrorToDbError (show e))
+    $ fromException e
