@@ -457,6 +457,16 @@ hGet key field =
       Nothing -> pure Nothing
       Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
+hmGet :: (FromJSON a, HedisFlow m env) => Text -> [Text] -> m [Maybe a]
+hmGet key fields =
+  withTimeRedis "RedisCluster" "hmGet" $ do
+    listBS <- runWithPrefix key (`Hedis.hmget` map cs fields)
+    mapM decodeBS listBS
+  where
+    decodeBS :: (FromJSON a, HedisFlow m env) => Maybe BS.ByteString -> m (Maybe a)
+    decodeBS Nothing = pure Nothing
+    decodeBS (Just bs) = Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+
 hDel :: HedisFlow m env => Text -> [Text] -> m ()
 hDel key fields = withTimeRedis "RedisCluster" "hDel" $ runWithPrefix_ key (`Hedis.hdel` map cs fields)
 
