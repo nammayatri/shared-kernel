@@ -13,7 +13,6 @@
 -}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 -- |
 -- Module      : FCM.Flow
@@ -243,16 +242,16 @@ sendMessage config fcmMsg action toWhom = fork desc $ do
     fcm = "FCM"
 
     handleFcmError :: MonadFlow m => FcmError -> m () -> m ()
-    handleFcmError (FcmError (Just (ErrorRes _ _ _ (Just details)))) action =
-      mapM_ (`handleDetail` action) details
+    handleFcmError (FcmError (Just (ErrorRes _ _ _ (Just details)))) action' =
+      mapM_ (`handleDetail` action') details
     handleFcmError _ _ = pure ()
 
     handleDetail :: MonadFlow m => ErrorDetail -> m () -> m ()
-    handleDetail (ErrorDetail (Just errorCode)) action =
+    handleDetail (ErrorDetail (Just errorCode)) action' =
       case errorCode of
         "UNREGISTERED" -> do
           logTagError fcm $ "Error while sending message to person with id " <> toWhom <> " : " <> "device token is unregistered and errorCode is : " <> show errorCode
-          action
+          action'
         _ -> logTagError fcm $ "Error while sending message to person with id " <> toWhom <> " : " <> "unknown error code " <> show errorCode
     handleDetail _ _ = pure ()
 

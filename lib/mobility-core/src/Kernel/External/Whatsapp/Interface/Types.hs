@@ -14,7 +14,6 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.External.Whatsapp.Interface.Types
   ( module Kernel.External.Whatsapp.Interface.Types,

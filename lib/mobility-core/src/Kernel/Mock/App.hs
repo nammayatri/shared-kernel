@@ -14,12 +14,13 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeApplications #-}
-{-# OPTIONS_GHC -Wwarn=missing-methods #-}
 
 module Kernel.Mock.App where
 
+import qualified Control.Concurrent.MVar as M
 import qualified Control.Monad.Catch as C
 import Control.Monad.IO.Unlift
+import qualified EulerHS.Types as ET
 import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Common
 import Kernel.Utils.IOLogging
@@ -63,6 +64,7 @@ instance CoreMetrics (MockM e) where
   incrementSchedulerFailureCounter _ = return ()
   incrementGenericMetrics _ = return ()
   incrementSystemConfigsFailedCounter _ = return ()
+  addGenericLatencyMetrics _ _ = return ()
 
 instance MonadTime (MockM e) where
   getCurrentTime = liftIO getCurrentTime
@@ -76,6 +78,8 @@ instance (HasLog e) => Log (MockM e) where
 
 instance (HasLog e) => Forkable (MockM e) where
   fork = mockFork
+  forkMultiple tagAndFunction = forM_ tagAndFunction $ \(tag, f) -> mockFork tag f -- it works with multiple threads unlike forkMultiple @(FlowR r), which creates only one thread
+  awaitableFork = mockAwaitableFork
 
 instance MonadGuid (MockM e) where
   generateGUIDText = liftIO generateGUIDTextIO
@@ -86,3 +90,15 @@ mockFork tag action = void $
     forkFinally action $ \case
       Left se -> logOutput ERROR $ show se
       Right _ -> pure ()
+
+mockAwaitableFork :: (HasLog e) => Text -> MockM e a -> MockM e (ET.Awaitable (Either Text a))
+mockAwaitableFork tag action = do
+  awaitableMVar <- liftIO M.newEmptyMVar
+  void . withLogTag tag $
+    forkFinally action $ \case
+      Left se -> do
+        logOutput ERROR $ show se
+        liftIO $ M.putMVar awaitableMVar $ Left $ show se
+      Right res -> do
+        liftIO $ M.putMVar awaitableMVar $ Right res
+  pure $ ET.Awaitable awaitableMVar
