@@ -94,6 +94,9 @@ limit_ limitVal q = q {limitQ = Just $ Limit limitVal}
 offset_ :: Int -> Q db table cols ord subsel -> Q db table cols ord subsel
 offset_ offsetVal q = q {offsetQ = Just $ Offset offsetVal}
 
+selectModifierOverride :: SelectModifier -> Q db table cols ord subsel -> Q db table cols ord subsel
+selectModifierOverride selectModifier q = q {selectModifierOverrideQ = Just selectModifier}
+
 orderBy_ ::
   forall db table cols ord acols.
   ClickhouseTable table =>
@@ -147,7 +150,8 @@ filter_ filterClause (table, level) =
       whereQ = Just $ Where . filterClause (getAvailableColumnsValue table),
       limitQ = Nothing,
       offsetQ = Nothing,
-      orderByQ = Nothing
+      orderByQ = Nothing,
+      selectModifierOverrideQ = Nothing
     }
 
 emptyFilter ::
@@ -161,7 +165,8 @@ emptyFilter (table, level) =
       whereQ = Nothing,
       limitQ = Nothing,
       offsetQ = Nothing,
-      orderByQ = Nothing
+      orderByQ = Nothing,
+      selectModifierOverrideQ = Nothing
     }
 
 sum_ :: (ClickhouseTable table, ClickhouseNum value) => Column 'NOT_AGG table value -> Column 'AGG table value
