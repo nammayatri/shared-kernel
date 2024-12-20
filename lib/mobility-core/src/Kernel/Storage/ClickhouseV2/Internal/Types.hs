@@ -184,7 +184,8 @@ data Q db table cols ord acols = (ClickhouseDb db) =>
     whereQ :: Maybe (cols -> Where table),
     limitQ :: Maybe Limit,
     offsetQ :: Maybe Offset,
-    orderByQ :: Maybe (cols -> OrderBy ord)
+    orderByQ :: Maybe (cols -> OrderBy ord),
+    selectModifierOverrideQ :: Maybe SelectModifier
   }
 
 newtype Offset = Offset Int
