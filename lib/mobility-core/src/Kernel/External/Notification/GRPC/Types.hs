@@ -21,6 +21,7 @@
 
 module Kernel.External.Notification.GRPC.Types where
 
+import Data.Aeson.TH
 import Data.Time (UTCTime)
 import EulerHS.Prelude
 import Kernel.Types.Time (Seconds)
@@ -63,4 +64,6 @@ data GrpcNotificationData a = GrpcNotificationData
     notificationId :: Text
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (PrettyShow, FromJSON, ToJSON)
+  deriving anyclass (PrettyShow)
+
+$(deriveJSON defaultOptions {omitNothingFields = True} ''GrpcNotificationData)
