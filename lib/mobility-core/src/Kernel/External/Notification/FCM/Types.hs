@@ -183,6 +183,9 @@ data FCMNotificationType
   | FROM_METRO_COINS
   | ISSUE_BREACH_EXTRA_FARE_MITIGATION
   | MARKETING_EVENTS
+  | WMB_TRIP_ASSIGNED
+  | WMB_TRIP_STARTED
+  | WMB_TRIP_FINISHED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
