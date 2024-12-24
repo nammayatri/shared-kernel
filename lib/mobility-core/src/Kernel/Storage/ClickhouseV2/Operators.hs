@@ -173,6 +173,9 @@ count_ = Count
 distinct :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v
 distinct = Distinct
 
+max :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v
+max = Max
+
 (+.) :: (ClickhouseTable t, ClickhouseNum v) => Column a t v -> Column a t v -> Column a t v
 (+.) = Add
 
