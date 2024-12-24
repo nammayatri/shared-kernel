@@ -186,6 +186,7 @@ data FCMNotificationType
   | WMB_TRIP_ASSIGNED
   | WMB_TRIP_STARTED
   | WMB_TRIP_FINISHED
+  | DRIVER_REQUEST_REJECTED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
