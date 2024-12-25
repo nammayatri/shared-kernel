@@ -104,6 +104,7 @@ data Category
   | WMB_TRIP_ASSIGNED
   | WMB_TRIP_STARTED
   | WMB_TRIP_FINISHED
+  | FLEET_CONSENT
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
