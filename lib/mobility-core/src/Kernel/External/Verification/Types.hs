@@ -27,7 +27,7 @@ import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge
+data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge | HyperVergeRCDL
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 data DriverBackgroundVerificationService = SafetyPortal
@@ -64,7 +64,6 @@ data RCVerificationResponse = RCVerificationResponse
     pucValidityUpto :: Maybe Text,
     manufacturerModel :: Maybe Text,
     mYManufacturing :: Maybe Text,
-    colour :: Maybe Text,
     color :: Maybe Text,
     fuelType :: Maybe Text,
     bodyType :: Maybe Text,
