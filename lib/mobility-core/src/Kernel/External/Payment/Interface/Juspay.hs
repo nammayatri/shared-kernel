@@ -11,7 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 
 module Kernel.External.Payment.Interface.Juspay
   ( module Reexport,
@@ -729,8 +728,8 @@ parseRetargetAndRetryData metaData linkData additionalInfo = do
   let retargetInfoFromMetaData = metaData >>= (.juspay_internal_retarget_configs)
       retargetInfoFromAdditionalInfo = additionalInfo >>= (.retarget_payment_info)
       retargetInfoFromLinkData = linkData >>= (.retarget_payment_links)
-      functionsToCalls = [Juspay.retarget_payment_link, Juspay.is_retargeted_order, Juspay.retarget_payment_link_expiry, Juspay.retarget_done_count, Juspay.max_retarget_limit]
-      [retargetLink, isRetargetedOrder, retargetPaymentLinkExpiry, _, _] = map (getFieldData retargetInfoFromMetaData retargetInfoFromLinkData retargetInfoFromAdditionalInfo) functionsToCalls
+      functionsToCalls = (Juspay.retarget_payment_link, Juspay.is_retargeted_order, Juspay.retarget_payment_link_expiry, Juspay.retarget_done_count, Juspay.max_retarget_limit)
+      (retargetLink, isRetargetedOrder, retargetPaymentLinkExpiry, _, _) = mapTuple5 (getFieldData retargetInfoFromMetaData retargetInfoFromLinkData retargetInfoFromAdditionalInfo) functionsToCalls
       retargetPaymentLinkExpiryTime = (\val -> readMaybe val :: Maybe UTCTime) . T.unpack =<< retargetPaymentLinkExpiry
       isRetriedOrder = (metaData >>= (.is_retried_order)) E.<|> (additionalInfo >>= (.mandate_retry_info) >>= (.is_retried_order))
   (getBoolValue =<< isRetriedOrder, retargetLink, retargetPaymentLinkExpiryTime, getBoolValue =<< isRetargetedOrder)
@@ -738,6 +737,9 @@ parseRetargetAndRetryData metaData linkData additionalInfo = do
     getFieldData retargetInfoFromMetaData retargetInfoFromLinkData retargetInfoFromAdditionalInfo func = do
       listToMaybe $ mapMaybe (>>= func) [retargetInfoFromMetaData, retargetInfoFromLinkData, retargetInfoFromAdditionalInfo]
     getBoolValue = (\val -> readMaybe val :: Maybe Bool) . T.unpack
+
+    mapTuple5 :: (a -> b) -> (a, a, a, a, a) -> (b, b, b, b, b)
+    mapTuple5 f (a1, a2, a3, a4, a5) = (f a1, f a2, f a3, f a4, f a5)
 
 verifyVPA ::
   ( Metrics.CoreMetrics m,
