@@ -15,6 +15,7 @@
 module Kernel.External.Notification.GRPC.Flow where
 
 import Data.Maybe
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.UUID as UU
 import EulerHS.Prelude
@@ -38,7 +39,11 @@ notifyPerson cfg notificationData = do
   maxShards <- asks (.maxNotificationShards)
   let idToShardNumber uuidTxt = fromIntegral ((\(a, b) -> a + b) (UU.toWords64 uuidTxt)) `mod` (fromIntegral maxShards :: Integer)
       shardId :: Integer = idToShardNumber . fromJust $ UU.fromText notificationData.streamId
-  void $ Hedis.withCrossAppRedis $ Hedis.xAddExp ("notification:client-" <> notificationData.streamId <> ":{" <> (show shardId) <> "}") "*" (buildFieldValue notificationData now) cfg.streamExpirationTime
+  let notificationStreamId =
+        case T.splitOn "-" notificationData.streamId of
+          [startUuid, midOneUuid, _, _] -> T.intercalate "-" [startUuid, midOneUuid]
+          _ -> notificationData.streamId
+  void $ Hedis.withCrossAppRedis $ Hedis.xAddExp ("N" <> notificationStreamId <> "{" <> (show shardId) <> "}") "*" (buildFieldValue notificationData now) cfg.streamExpirationTime
   where
     buildFieldValue notifData createdAt =
       [ ("entity.id", TE.encodeUtf8 notifData.entityId),
