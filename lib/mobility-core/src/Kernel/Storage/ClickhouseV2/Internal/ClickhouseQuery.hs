@@ -40,7 +40,7 @@ instance
   ClickhouseQuery (Select a db t cols gr ord acols)
   where
   toClickhouseQuery (Select cols groupBy q) = do
-    let selectModifier = case getSelectModifier (Proxy @t) of
+    let selectModifier = case fromMaybe (getSelectModifier (Proxy @t)) q.selectModifierOverrideQ of
           NO_SELECT_MODIFIER -> ""
           SELECT_FINAL_MODIFIER -> " FINAL "
     "SELECT "

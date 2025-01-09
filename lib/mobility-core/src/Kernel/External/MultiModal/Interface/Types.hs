@@ -23,6 +23,8 @@ newtype MultiModalResponse = MultiModalResponse {routes :: [MultiModalRoute]}
 data MultiModalRoute = MultiModalRoute
   { distance :: Distance.Distance,
     duration :: Time.Seconds,
+    startTime :: Maybe UTCTime,
+    endTime :: Maybe UTCTime,
     legs :: [MultiModalLeg]
   }
   deriving (Show, Generic)
@@ -43,7 +45,8 @@ data MultiModalAgency = MultiModalAgency
 data MultiModalRouteDetails = MultiModalRouteDetails
   { gtfsId :: Maybe Text,
     longName :: Maybe Text,
-    shortName :: Maybe Text
+    shortName :: Maybe Text,
+    color :: Maybe Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 

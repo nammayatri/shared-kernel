@@ -14,6 +14,8 @@ type Plan {
 
 type Itinerary {
   duration: Float
+  startTime: Float
+  endTime: Float
   legs: [Leg]!
 }
 
@@ -82,6 +84,7 @@ type Route {
   gtfsId: String!
   longName: String
   shortName: String
+  color: String
 }
 
 type Agency {

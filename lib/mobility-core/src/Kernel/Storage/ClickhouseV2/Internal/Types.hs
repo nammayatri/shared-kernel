@@ -53,6 +53,7 @@ data Column (a :: IsAggregated) t v where
   Sum :: (ClickhouseTable t, ClickhouseNum v) => Column 'NOT_AGG t v -> Column 'AGG t v
   Count :: (ClickhouseTable t, ClickhouseValue v, ClickhouseValue Int) => Column 'NOT_AGG t v -> Column 'AGG t Int
   Distinct :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -- should not be used in where clause
+  Max :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v
   Add :: (ClickhouseTable t, ClickhouseNum v) => Column a t v -> Column a t v -> Column a t v
   CoerceNum :: (ClickhouseTable t, ClickhouseNum v1, ClickhouseNum v2) => Column a t v1 -> Column a t v2
   ToDate :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Time.Day) => Column a t DateTime -> Column a t Time.Day -- FIXME create some generic constructor for different clickhouse functions
@@ -183,7 +184,8 @@ data Q db table cols ord acols = (ClickhouseDb db) =>
     whereQ :: Maybe (cols -> Where table),
     limitQ :: Maybe Limit,
     offsetQ :: Maybe Offset,
-    orderByQ :: Maybe (cols -> OrderBy ord)
+    orderByQ :: Maybe (cols -> OrderBy ord),
+    selectModifierOverrideQ :: Maybe SelectModifier
   }
 
 newtype Offset = Offset Int
@@ -229,6 +231,7 @@ showColumn (SubColumn _column n l) = getColumnSynonym n l
 showColumn (Sum column) = "SUM" <> addBrackets' (showColumn column)
 showColumn (Count column) = "COUNT" <> addBrackets' (showColumn column)
 showColumn (Distinct column) = "DISTINCT" <> addBrackets' (showColumn column)
+showColumn (Max column) = "MAX" <> addBrackets' (showColumn column)
 showColumn (Add column1 column2) = addBrackets' (showColumn column1 <> "+" <> showColumn column2)
 showColumn (CoerceNum column) = showColumn column
 showColumn (ToDate column) = "toDate" <> addBrackets' (showColumn column)

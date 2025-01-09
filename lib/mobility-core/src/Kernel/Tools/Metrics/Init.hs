@@ -13,10 +13,6 @@
 -}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-identities #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use head" #-}
 
 module Kernel.Tools.Metrics.Init where
 
@@ -142,7 +138,7 @@ observeSeconds ::
   IO ()
 observeSeconds mbVersionLabel handler method status start end requiredHeaders = do
   let latency :: Double
-      latency = fromRational $ toRational (toNanoSecs (end `diffTimeSpec` start) % 1000000000)
+      latency = fromRational (toNanoSecs (end `diffTimeSpec` start) % 1000000000)
   case mbVersionLabel of
     Nothing -> do
       Prom.withLabel

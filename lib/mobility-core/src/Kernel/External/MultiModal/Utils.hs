@@ -89,7 +89,9 @@ convertGoogleToGeneric gResponse =
        in MultiModalRoute
             { distance = routeDistance,
               duration = Time.Seconds routeDuration,
-              legs = routeLegs
+              legs = routeLegs,
+              startTime = Nothing,
+              endTime = Nothing
             } :
           genericRoutes
     accumulateLegs :: GT.LegV2 -> [MultiModalLeg] -> [MultiModalLeg]
@@ -256,7 +258,9 @@ convertOTPToGeneric otpResponse =
                               },
                           unit = Distance.Meter
                         },
-                    legs = legs
+                    legs = legs,
+                    startTime = (millisecondsToUTC . round) <$> itinerary'.startTime,
+                    endTime = (millisecondsToUTC . round) <$> itinerary'.endTime
                   }
            in route : genericRoutes
     accumulateLegs :: Maybe OTP.OTPPlanPlanItinerariesLegs -> ([MultiModalLeg], Double) -> ([MultiModalLeg], Double)
@@ -283,7 +287,8 @@ convertOTPToGeneric otpResponse =
                     MultiModalRouteDetails
                       { gtfsId = Just $ T.pack route.gtfsId,
                         longName = fmap T.pack route.longName,
-                        shortName = fmap T.pack route.shortName
+                        shortName = fmap T.pack route.shortName,
+                        color = fmap T.pack route.color
                       }
                 Nothing -> Nothing
               (fromStopCode, fromStopGtfsId) = case otpLeg'.from.stop of

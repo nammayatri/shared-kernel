@@ -13,7 +13,6 @@
 -}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.External.IncidentReport.Interface.Types
   ( module Reexport,
