@@ -30,6 +30,11 @@ module Kernel.Beam.Functions
     findOneWithKVRedis,
     logQueryData,
     findAllFromKvRedis,
+    createWithKVWithOptions,
+    createWithKVSchedulerWithOptions,
+    updateWithKVWithOptions,
+    updateWithKVSchedulerWithOptions,
+    updateOneWithKVWithOptions,
   )
 where
 
@@ -102,7 +107,8 @@ meshConfig =
       kvHardKilled = True,
       cerealEnabled = False,
       tableShardModRange = (0, 128),
-      redisKeyPrefix = ""
+      redisKeyPrefix = "",
+      forceDrainToDB = False
     }
 
 runInReplica :: (L.MonadFlow m, Log m) => m a -> m a
@@ -415,6 +421,18 @@ updateWithKV ::
 updateWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   updateInternal updatedMeshConfig setClause whereClause
 
+updateWithKVWithOptions ::
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
+  Maybe Integer ->
+  Bool ->
+  [Set Postgres table] ->
+  Where Postgres table ->
+  m ()
+updateWithKVWithOptions ttl forceDrain setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+  let updatedMeshConfig' = updatedMeshConfig {redisTtl = fromMaybe (redisTtl updatedMeshConfig) ttl, forceDrainToDB = forceDrain}
+  updateInternal updatedMeshConfig' setClause whereClause
+
 updateWithKVScheduler ::
   forall table m r.
   (BeamTableFlow table m, EsqDBFlow m r) =>
@@ -423,6 +441,18 @@ updateWithKVScheduler ::
   m ()
 updateWithKVScheduler setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   updateInternal updatedMeshConfig setClause whereClause
+
+updateWithKVSchedulerWithOptions ::
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
+  Maybe Integer ->
+  Bool ->
+  [Set Postgres table] ->
+  Where Postgres table ->
+  m ()
+updateWithKVSchedulerWithOptions ttl forceDrain setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+  let updatedMeshConfig' = updatedMeshConfig {redisTtl = fromMaybe (redisTtl updatedMeshConfig) ttl, forceDrainToDB = forceDrain}
+  updateInternal updatedMeshConfig' setClause whereClause
 
 -- updateOne --
 
@@ -434,6 +464,18 @@ updateOneWithKV ::
   m ()
 updateOneWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   updateOneInternal updatedMeshConfig setClause whereClause
+
+updateOneWithKVWithOptions ::
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
+  Maybe Integer ->
+  Bool ->
+  [Set Postgres table] ->
+  Where Postgres table ->
+  m ()
+updateOneWithKVWithOptions ttl forceDrain setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+  let updatedMeshConfig' = updatedMeshConfig {redisTtl = fromMaybe (redisTtl updatedMeshConfig) ttl, forceDrainToDB = forceDrain}
+  updateOneInternal updatedMeshConfig' setClause whereClause
 
 -- create --
 
@@ -448,6 +490,20 @@ createWithKV ::
 createWithKV a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   createInternal updatedMeshConfig toTType' a
 
+createWithKVWithOptions ::
+  forall table m r a.
+  ( BeamTableFlow table m,
+    EsqDBFlow m r,
+    ToTType' (table Identity) a
+  ) =>
+  Maybe Integer ->
+  Bool ->
+  a ->
+  m ()
+createWithKVWithOptions ttl forceDrain a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+  let updatedMeshConfig' = updatedMeshConfig {redisTtl = fromMaybe (redisTtl updatedMeshConfig) ttl, forceDrainToDB = forceDrain}
+  createInternal updatedMeshConfig' toTType' a
+
 createWithKVScheduler ::
   forall table m r a.
   ( BeamTableFlow table m,
@@ -458,6 +514,20 @@ createWithKVScheduler ::
   m ()
 createWithKVScheduler a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   createInternal updatedMeshConfig toTType'' a
+
+createWithKVSchedulerWithOptions ::
+  forall table m r a.
+  ( BeamTableFlow table m,
+    EsqDBFlow m r,
+    ToTType'' (table Identity) a
+  ) =>
+  Maybe Integer ->
+  Bool ->
+  a ->
+  m ()
+createWithKVSchedulerWithOptions ttl forceDrain a = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+  let updatedMeshConfig' = updatedMeshConfig {redisTtl = fromMaybe (redisTtl updatedMeshConfig) ttl, forceDrainToDB = forceDrain}
+  createInternal updatedMeshConfig' toTType'' a
 
 -- delete --
 
