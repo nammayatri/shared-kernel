@@ -115,6 +115,7 @@ data OrderStatusResp
         transactionStatus :: TransactionStatus,
         paymentMethodType :: Maybe Text,
         paymentMethod :: Maybe Text,
+        paymentGatewayResponse :: Maybe PaymentGatewayResponse,
         respMessage :: Maybe Text,
         respCode :: Maybe Text,
         gatewayReferenceId :: Maybe Text,
@@ -131,6 +132,7 @@ data OrderStatusResp
         refunds :: [RefundsData],
         payerVpa :: Maybe Text,
         upi :: Maybe Upi,
+        card :: Maybe CardInfo,
         splitSettlementResponse :: Maybe SplitSettlementResponse
       }
   | MandateOrderStatusResp
@@ -213,6 +215,13 @@ data Upi = Upi
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data CardInfo = CardInfo
+  { lastFourDigits :: Maybe Text,
+    cardType :: Maybe Text
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 -- notification request --
 data MandateNotificationReq = MandateNotificationReq
   { amount :: HighPrecMoney,
@@ -238,6 +247,17 @@ data MandateNotificationRes = MandateNotificationRes
 data SourceInfo = SourceInfo
   { sourceAmount :: Maybe HighPrecMoney,
     txnDate :: Maybe UTCTime
+  }
+  deriving (Eq, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
+
+data PaymentGatewayResponse = PaymentGatewayResponse
+  { txnId :: Maybe Text,
+    rrn :: Maybe Text,
+    respMessage :: Maybe Text,
+    respCode :: Maybe Text,
+    epgTxnId :: Maybe Text,
+    created :: Maybe UTCTime,
+    authIdCode :: Maybe Text
   }
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -442,7 +462,7 @@ data AutoRefundResp = AutoRefundResp
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data RefundsData = RefundsData
-  { idAssignedByServiceProvider :: Text,
+  { idAssignedByServiceProvider :: Maybe Text,
     amount :: HighPrecMoney,
     status :: RefundStatus,
     errorMessage :: Maybe Text,

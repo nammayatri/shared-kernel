@@ -266,6 +266,19 @@ mkOrderStatusResp Juspay.OrderData {..} =
           transactionStatus = status,
           paymentMethodType = payment_method_type,
           paymentMethod = payment_method,
+          paymentGatewayResponse =
+            payment_gateway_response
+              <&> ( \pgResp ->
+                      PaymentGatewayResponse
+                        { respCode = pgResp.resp_code,
+                          rrn = pgResp.rrn,
+                          created = pgResp.created,
+                          epgTxnId = pgResp.epg_txn_id,
+                          respMessage = pgResp.resp_message,
+                          authIdCode = pgResp.auth_id_code,
+                          txnId = pgResp.txn_id
+                        }
+                  ),
           respMessage = resp_message,
           respCode = resp_code,
           gatewayReferenceId = gateway_reference_id,
@@ -278,12 +291,16 @@ mkOrderStatusResp Juspay.OrderData {..} =
           amountRefunded = realToFrac <$> amount_refunded,
           payerVpa = payer_vpa,
           upi = castUpi <$> upi,
+          card = castCard <$> card,
           splitSettlementResponse = mkSplitSettlementResponse <$> split_settlement_response,
           ..
         }
 
 castUpi :: Juspay.Upi -> Upi
 castUpi Juspay.Upi {..} = Upi {payerApp = payer_app, payerAppName = payer_app_name, txnFlowType = txn_flow_type, payerVpa = payer_vpa}
+
+castCard :: Juspay.CardInfo -> CardInfo
+castCard Juspay.CardInfo {..} = CardInfo {cardType = card_type, lastFourDigits = last_four_digits}
 
 mkNotificationReq :: MandateNotificationReq -> Juspay.MandateNotificationReq
 mkNotificationReq mandateNotificationReq =
@@ -411,6 +428,19 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               transactionStatus = justOrder.status,
               paymentMethodType = justOrder.payment_method_type,
               paymentMethod = justOrder.payment_method,
+              paymentGatewayResponse =
+                justOrder.payment_gateway_response
+                  <&> ( \pgResp ->
+                          PaymentGatewayResponse
+                            { respCode = pgResp.resp_code,
+                              rrn = pgResp.rrn,
+                              created = pgResp.created,
+                              epgTxnId = pgResp.epg_txn_id,
+                              respMessage = pgResp.resp_message,
+                              authIdCode = pgResp.auth_id_code,
+                              txnId = pgResp.txn_id
+                            }
+                      ),
               respMessage = justOrder.resp_message,
               respCode = justOrder.resp_code,
               gatewayReferenceId = justOrder.gateway_reference_id,
@@ -423,6 +453,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               amountRefunded = realToFrac <$> justOrder.amount_refunded,
               payerVpa = justOrder.payer_vpa,
               upi = castUpi <$> justOrder.upi,
+              card = castCard <$> justOrder.card,
               splitSettlementResponse = mkSplitSettlementResponse <$> justOrder.split_settlement_response,
               ..
             }
@@ -461,6 +492,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           transactionStatus = justTransaction.status,
           paymentMethodType = Nothing,
           paymentMethod = Nothing,
+          paymentGatewayResponse = Nothing,
           respMessage = Nothing,
           respCode = Nothing,
           gatewayReferenceId = Nothing,
@@ -473,6 +505,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           amountRefunded = Nothing,
           payerVpa = justTransaction.payer_vpa,
           upi = castUpi <$> justTransaction.upi,
+          card = castCard <$> justTransaction.card,
           splitSettlementResponse = Nothing,
           ..
         }
