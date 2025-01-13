@@ -143,6 +143,7 @@ data OrderData = OrderData
     status :: TransactionStatus,
     payment_method_type :: Maybe Text,
     payment_method :: Maybe Text,
+    payment_gateway_response :: Maybe PaymentGatewayResponse,
     resp_message :: Maybe Text,
     resp_code :: Maybe Text,
     gateway_reference_id :: Maybe Text,
@@ -154,6 +155,7 @@ data OrderData = OrderData
     bank_error_code :: Maybe Text,
     bank_error_message :: Maybe Text,
     upi :: Maybe Upi,
+    card :: Maybe CardInfo,
     metadata :: Maybe MetaData,
     additional_info :: Maybe AdditionalInfo,
     links :: Maybe LinkData,
@@ -181,6 +183,18 @@ data SplitDetailsResponse = SplitDetailsResponse
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data PaymentGatewayResponse = PaymentGatewayResponse
+  { resp_code :: Maybe Text,
+    rrn :: Maybe Text,
+    created :: Maybe UTCTime,
+    epg_txn_id :: Maybe Text,
+    resp_message :: Maybe Text,
+    auth_id_code :: Maybe Text,
+    txn_id :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data MandateData = MandateData
   { mandate_status :: MandateStatus,
     start_date :: Text,
@@ -197,6 +211,13 @@ data Upi = Upi
     payer_app_name :: Maybe Text,
     payer_vpa :: Maybe Text,
     txn_flow_type :: Maybe Text
+  }
+  deriving stock (Show, Generic, Read, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CardInfo = CardInfo
+  { card_type :: Maybe Text,
+    last_four_digits :: Maybe Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -244,7 +265,7 @@ data MandateRetryInfo = MandateRetryInfo
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data RefundsData = RefundsData
-  { id :: Text,
+  { id :: Maybe Text,
     amount :: Double,
     status :: RefundStatus,
     error_message :: Maybe Text,
