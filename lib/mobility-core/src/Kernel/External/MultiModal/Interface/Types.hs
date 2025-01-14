@@ -40,7 +40,7 @@ data MultiModalAgency = MultiModalAgency
   { gtfsId :: Maybe Text,
     name :: Text
   }
-  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data MultiModalRouteDetails = MultiModalRouteDetails
   { gtfsId :: Maybe Text,
@@ -59,12 +59,13 @@ data MultiModalLeg = MultiModalLeg
     endLocation :: GT.LocationV2,
     fromStopDetails :: Maybe MultiModalStopDetails,
     toStopDetails :: Maybe MultiModalStopDetails,
-    routeDetails :: Maybe MultiModalRouteDetails,
+    routeDetails :: [MultiModalRouteDetails],
     agency :: Maybe MultiModalAgency,
     fromArrivalTime :: Maybe UTCTime,
     fromDepartureTime :: Maybe UTCTime,
     toArrivalTime :: Maybe UTCTime,
-    toDepartureTime :: Maybe UTCTime
+    toDepartureTime :: Maybe UTCTime,
+    frequency :: Maybe Time.Seconds
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
