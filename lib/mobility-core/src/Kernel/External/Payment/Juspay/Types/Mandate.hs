@@ -76,7 +76,7 @@ data MandateOrder = MandateOrder
   { orderId :: Text,
     orderAmount :: Text,
     orderCustomerId :: Text,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: SplitSettlementDetails
   }
 
 data MandateInfo = MandateInfo
@@ -94,20 +94,16 @@ data MandateExecutionReq = MandateExecutionReq
 
 instance ToForm MandateExecutionReq where
   toForm MandateExecutionReq {..} =
-    let params =
-          [ ("order.order_id", toQueryParam (orderId order)),
-            ("order.amount", toQueryParam (orderAmount order)),
-            ("order.customer_id", toQueryParam (orderCustomerId order)),
-            ("mandate_id", toQueryParam mandateId),
-            ("mandate.notification_id", toQueryParam (notificationId mandate)),
-            ("mandate.execution_date", toQueryParam (executionDate mandate)),
-            ("merchant_id", toQueryParam merchantId),
-            ("format", toQueryParam format)
-          ]
-        splitSettleParam = case splitSettlementDetails order of
-          Just details -> [("order.metadata.split_settlement_details" :: Text, toQueryParam details)]
-          Nothing -> []
-     in toForm (params ++ splitSettleParam)
+    [ ("order.order_id", toQueryParam (orderId order)),
+      ("order.amount", toQueryParam (orderAmount order)),
+      ("order.customer_id", toQueryParam (orderCustomerId order)),
+      ("mandate_id", toQueryParam mandateId),
+      ("mandate.notification_id", toQueryParam (notificationId mandate)),
+      ("mandate.execution_date", toQueryParam (executionDate mandate)),
+      ("merchant_id", toQueryParam merchantId),
+      ("format", toQueryParam format),
+      ("order.metadata.split_settlement_details", toQueryParam (splitSettlementDetails order))
+    ]
 
 data MandateExecutionRes = MandateExecutionRes
   { order_id :: Text,

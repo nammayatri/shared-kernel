@@ -46,7 +46,7 @@ data CreateOrderReq = CreateOrderReq
     metadata_gateway_reference_id :: Maybe Text,
     options_get_upi_deep_links :: Maybe Bool,
     metadata_expiry_in_mins :: Maybe Int,
-    split_settlement_details :: Maybe SplitSettlementDetails
+    split_settlement_details :: SplitSettlementDetails
   }
   deriving stock (Show, Eq, Generic)
 
