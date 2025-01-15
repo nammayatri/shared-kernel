@@ -7,8 +7,13 @@ module Kernel.External.MultiModal.Utils
 where
 
 import qualified Data.Char as Char
+import qualified Data.HashMap.Strict as HM
+import Data.List (nub, sort)
+import qualified Data.Map as Map
+import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import Data.Time.Clock
 import EulerHS.Prelude (safeHead)
 import Kernel.External.Maps.Google.MapsClient.Types as GT
 import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
@@ -178,7 +183,7 @@ convertGoogleToGeneric gResponse =
               fromDepartureTime = fromDepartureTime',
               toArrivalTime = toArrivalTime',
               toDepartureTime = toDepartureTime',
-              routeDetails = Nothing
+              routeDetails = Nothing --[]
             } :
           genericLegs
     mergeWalkingLegs :: [MultiModalLeg] -> [MultiModalLeg]
@@ -234,21 +239,89 @@ convertGoogleToGeneric gResponse =
               else leg2
        in adjustedLeg1 : adjustWalkingLegs (adjustedLeg2 : rest)
 
-convertOTPToGeneric :: OTP.OTPPlan -> MultiModalResponse
-convertOTPToGeneric otpResponse =
+convertOTPToGeneric :: OTP.OTPPlan -> Distance.Meters -> [GeneralVehicleType] -> Int -> MultiModalResponse
+convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs =
   let itineraries = otpResponse.plan.itineraries
-      genericRoutes = foldr accumulateItineraries [] itineraries
+      (genericRoutes, frequencyMap) = foldr accumulateItineraries ([], HM.empty) itineraries
+      --mergedRoutes = map mergeConsecutiveMetroLegs genericRoutes
+      updatedRoutes = map (updateRouteFrequency frequencyMap) genericRoutes
+      filteredRoutes = map (removeShortWalkLegs minimumWalkDistance) updatedRoutes
+      filteredByPermissibleModes = filter (hasOnlyPermissibleModes permissibleModes) filteredRoutes
+      filteredByMaxPublicTransport = filter (withinMaxAllowedPublicTransportModes maxAllowedPublicTransportLegs) filteredByPermissibleModes
+      finalRoutes = uniqueRoutes filteredByMaxPublicTransport
    in MultiModalResponse
-        { routes = genericRoutes
+        { routes = finalRoutes
         }
   where
-    accumulateItineraries :: Maybe OTP.OTPPlanPlanItineraries -> [MultiModalRoute] -> [MultiModalRoute]
-    accumulateItineraries itinerary genericRoutes =
+    removeShortWalkLegs :: Distance.Meters -> MultiModalRoute -> MultiModalRoute
+    removeShortWalkLegs threshold route =
+      let filteredLegs = filter (\leg -> not (leg.mode == Walk && getLegDistance leg < thresholdValue)) route.legs
+          thresholdValue = fromIntegral $ Distance.getMeters threshold -- Convert threshold to Double for comparison
+       in route {legs = filteredLegs}
+
+    getLegDistance :: MultiModalLeg -> Double
+    getLegDistance leg = fromRational $ leg.distance.value.getHighPrecDistance
+
+    -- Filter routes to include only those with permissible modes
+    hasOnlyPermissibleModes :: [GeneralVehicleType] -> MultiModalRoute -> Bool
+    hasOnlyPermissibleModes permissibleModesInRoute route =
+      all (\leg -> leg.mode `elem` permissibleModesInRoute) route.legs
+
+    -- Filter routes with at most a specified number of legs of Public Transport Type: [Bus, MetroRail]
+    withinMaxAllowedPublicTransportModes :: Int -> MultiModalRoute -> Bool
+    withinMaxAllowedPublicTransportModes maxAllowed route =
+      let publicTransportLegs = filter (\leg -> leg.mode `elem` [Bus, MetroRail, Subway]) route.legs
+       in length publicTransportLegs <= maxAllowed
+
+    -- -- Merge consecutive MetroRail legs in a route
+    -- mergeConsecutiveMetroLegs :: MultiModalRoute -> MultiModalRoute
+    -- mergeConsecutiveMetroLegs route =
+    --   let mergedLegs = mergeMetroLegs route.legs
+    --    in route {legs = mergedLegs}
+
+    -- -- Recursive function to merge consecutive MetroRail legs
+    -- mergeMetroLegs :: [MultiModalLeg] -> [MultiModalLeg]
+    -- mergeMetroLegs [] = []
+    -- mergeMetroLegs [leg] = [leg] -- Single leg, no merging needed
+    -- mergeMetroLegs (leg1 : leg2 : rest)
+    --   | leg1.mode == MetroRail && leg2.mode == MetroRail && leg1.agency == leg2.agency =
+    --     let leg1Start = leg1.startLocation
+    --         leg2Start = leg2.startLocation
+    --         leg2End = leg2.endLocation
+    --         encodedPolylineText = encode [leg1Start.latLng, leg2Start.latLng, leg2End.latLng]
+    --         mergedLeg =
+    --           MultiModalLeg
+    --             { distance =
+    --                 Distance.Distance
+    --                   { value =
+    --                       Distance.HighPrecDistance
+    --                         { getHighPrecDistance = fromRational leg1.distance.value.getHighPrecDistance + fromRational leg2.distance.value.getHighPrecDistance
+    --                         },
+    --                     unit = leg1.distance.unit
+    --                   },
+    --               duration = Time.Seconds $ leg1.duration.getSeconds + leg2.duration.getSeconds,
+    --               polyline = GT.Polyline {encodedPolyline = encodedPolylineText},
+    --               mode = MetroRail,
+    --               startLocation = leg1.startLocation,
+    --               endLocation = leg2.endLocation,
+    --               fromStopDetails = leg1.fromStopDetails,
+    --               toStopDetails = leg2.toStopDetails,
+    --               routeDetails = leg1.routeDetails ++ leg2.routeDetails,
+    --               agency = leg1.agency,
+    --               fromArrivalTime = min <$> leg1.fromArrivalTime <*> leg2.fromArrivalTime,
+    --               fromDepartureTime = min <$> leg1.fromDepartureTime <*> leg2.fromDepartureTime,
+    --               toArrivalTime = max <$> leg1.toArrivalTime <*> leg2.toArrivalTime,
+    --               toDepartureTime = max <$> leg1.toDepartureTime <*> leg2.toDepartureTime
+    --             }
+    --      in mergeMetroLegs (mergedLeg : rest) -- Add merged leg and continue
+    --   | otherwise = leg1 : mergeMetroLegs (leg2 : rest) -- Keep leg1, process the rest
+    accumulateItineraries :: Maybe OTP.OTPPlanPlanItineraries -> ([MultiModalRoute], HM.HashMap T.Text [UTCTime]) -> ([MultiModalRoute], HM.HashMap T.Text [UTCTime])
+    accumulateItineraries itinerary (genericRoutes, freqMap) =
       case itinerary of
-        Nothing -> genericRoutes
+        Nothing -> (genericRoutes, freqMap)
         Just itinerary' ->
           let duration = fromMaybe 0.0 itinerary'.duration
-              (legs, distance) = foldr accumulateLegs ([], 0.0) itinerary'.legs
+              (legs, distance, updatedFreqMap) = foldr accumulateLegs ([], 0.0, freqMap) itinerary'.legs
               route =
                 MultiModalRoute
                   { duration = Time.Seconds $ round duration,
@@ -264,11 +337,12 @@ convertOTPToGeneric otpResponse =
                     startTime = (millisecondsToUTC . round) <$> itinerary'.startTime,
                     endTime = (millisecondsToUTC . round) <$> itinerary'.endTime
                   }
-           in route : genericRoutes
-    accumulateLegs :: Maybe OTP.OTPPlanPlanItinerariesLegs -> ([MultiModalLeg], Double) -> ([MultiModalLeg], Double)
-    accumulateLegs otpLeg (genericLegs, genericDistance) =
+           in (route : genericRoutes, updatedFreqMap)
+
+    accumulateLegs :: Maybe OTP.OTPPlanPlanItinerariesLegs -> ([MultiModalLeg], Double, HM.HashMap T.Text [UTCTime]) -> ([MultiModalLeg], Double, HM.HashMap T.Text [UTCTime])
+    accumulateLegs otpLeg (genericLegs, genericDistance, updatedFreqMap) =
       case otpLeg of
-        Nothing -> (genericLegs, genericDistance)
+        Nothing -> (genericLegs, genericDistance, updatedFreqMap)
         Just otpLeg' ->
           let distance = fromMaybe 0.0 otpLeg'.distance
               duration = fromMaybe 0.0 otpLeg'.duration
@@ -279,6 +353,7 @@ convertOTPToGeneric otpResponse =
               (startLat, startLng) = (otpLeg'.from.lat, otpLeg'.from.lon)
               (endLat, endLng) = (otpLeg'.to.lat, otpLeg'.to.lon)
               routeAgency = otpLeg'.route
+              maybeLongName = otpLeg'.route >>= \r -> r.longName
               fromArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.from.arrivalTime
               fromDepartureTime' = Just $ millisecondsToUTC $ round otpLeg'.from.departureTime
               toArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.to.arrivalTime
@@ -290,7 +365,8 @@ convertOTPToGeneric otpResponse =
                       { gtfsId = Just $ T.pack route.gtfsId,
                         longName = fmap T.pack route.longName,
                         shortName = fmap T.pack route.shortName,
-                        color = fmap T.pack route.color
+                        color = fmap T.pack route.color,
+                        frequency = Nothing
                       }
                 Nothing -> Nothing
               (fromStopCode, fromStopGtfsId, fromStopPlatformCode) = case otpLeg'.from.stop of
@@ -329,6 +405,14 @@ convertOTPToGeneric otpResponse =
                       { gtfsId = (\x -> Just $ T.pack x.gtfsId) =<< ag.agency,
                         name = maybe "" (\x -> T.pack x.name) ag.agency
                       }
+
+              -- Update the frequency map only if longName exists
+              newFreqMap = case (maybeLongName, fromArrivalTime') of
+                (Just longName, Just time) ->
+                  let key = T.pack longName
+                   in HM.insertWith (\new old -> nub (new ++ old)) key [time] updatedFreqMap
+                _ -> updatedFreqMap
+
               leg =
                 MultiModalLeg
                   { distance =
@@ -370,4 +454,58 @@ convertOTPToGeneric otpResponse =
                     toArrivalTime = toArrivalTime',
                     toDepartureTime = toDepartureTime'
                   }
-           in (leg : genericLegs, genericDistance + distance)
+           in (leg : genericLegs, genericDistance + distance, newFreqMap)
+
+    -- Update frequency of each leg in a route using the frequencyMap
+    updateRouteFrequency :: HM.HashMap T.Text [UTCTime] -> MultiModalRoute -> MultiModalRoute
+    updateRouteFrequency freqMap route =
+      let updatedLegs = map updateLegFrequency route.legs
+       in route {legs = updatedLegs}
+      where
+        updateLegFrequency :: MultiModalLeg -> MultiModalLeg
+        updateLegFrequency leg =
+          --let updatedRouteDetails = map (updateDetailsFrequency freqMap) (routeDetails leg)
+          let updatedRouteDetails = updateDetailsFrequency freqMap <$> leg.routeDetails
+           in leg {routeDetails = updatedRouteDetails}
+
+        updateDetailsFrequency :: HM.HashMap T.Text [UTCTime] -> MultiModalRouteDetails -> MultiModalRouteDetails
+        updateDetailsFrequency frequencyMap details =
+          case longName details of
+            Just longName ->
+              let key = longName
+                  timestamps = sort $ HM.lookupDefault [] key frequencyMap
+                  frequency = case timestamps of
+                    (t1 : t2 : _) -> Just $ Time.Seconds $ round $ diffUTCTime t2 t1
+                    _ -> Nothing
+               in details {frequency = frequency}
+            Nothing -> details
+
+    -- Function to get the sequence combination for a route
+    getSequenceCombination :: MultiModalRoute -> T.Text
+    getSequenceCombination route =
+      let sequenceCombination = mapMaybe getLongNameFromLeg (route.legs)
+       in T.intercalate "-" sequenceCombination
+      where
+        getLongNameFromLeg :: MultiModalLeg -> Maybe T.Text
+        getLongNameFromLeg leg =
+          case routeDetails leg of
+            Just details -> longName details
+            Nothing -> Nothing
+
+    -- Function to filter routes with unique sequence combinations
+    uniqueRoutes :: [MultiModalRoute] -> [MultiModalRoute]
+    uniqueRoutes routes =
+      let -- Create a map that tracks sequence combinations
+          seenCombinations = Map.empty
+          -- Filter routes based on unique sequence combinations
+          (newUniqueRoutes, _) =
+            foldl
+              ( \(accRoutes, seen) route ->
+                  let seqComb = getSequenceCombination route
+                   in if Map.member seqComb seen
+                        then (accRoutes, seen)
+                        else (accRoutes ++ [route], Map.insert seqComb () seen)
+              )
+              ([], seenCombinations)
+              routes
+       in newUniqueRoutes
