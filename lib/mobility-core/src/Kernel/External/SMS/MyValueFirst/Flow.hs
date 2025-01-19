@@ -49,17 +49,15 @@ sendOTPApi ::
   Text ->
   Text ->
   Text ->
-  Text ->
   m SubmitSmsRes
-sendOTPApi url username password otpSmsTemplate phoneNumber sender = do
+sendOTPApi url token otpSmsTemplate phoneNumber sender = do
   submitSms
     url
     SubmitSms
-      { username = username,
-        password = password,
-        from = sender,
+      { from = sender,
         to = phoneNumber,
-        text = otpSmsTemplate
+        text = otpSmsTemplate,
+        token = token
       }
 
 sendSms ::
@@ -73,15 +71,17 @@ sendSms ::
 sendSms smsCfg smsTemplate phoneNumber = do
   let smsCred = smsCfg.credConfig
       url = smsCfg.url
-  submitSms
-    url
-    SubmitSms
-      { username = smsCred.username,
-        password = smsCred.password,
-        from = smsCfg.sender,
-        to = phoneNumber,
-        text = smsTemplate
-      }
+  case smsCred.token of
+    Just token -> do
+      submitSms
+        url
+        SubmitSms
+          { from = smsCfg.sender,
+            to = phoneNumber,
+            text = smsTemplate,
+            token = token
+          }
+    Nothing -> throwError $ InternalError "token is null"
 
 checkSmsResult :: (Log m, MonadThrow m) => SubmitSmsRes -> m ()
 checkSmsResult =
