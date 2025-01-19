@@ -20,6 +20,7 @@ import Kernel.Prelude
 data MyValueFirstCfg = MyValueFirstCfg
   { username :: EncryptedField 'AsEncrypted Text,
     password :: EncryptedField 'AsEncrypted Text,
-    url :: BaseUrl
+    url :: BaseUrl,
+    token :: EncryptedField 'AsEncrypted Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
