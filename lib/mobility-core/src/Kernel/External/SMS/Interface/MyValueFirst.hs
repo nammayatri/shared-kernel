@@ -42,9 +42,8 @@ sendOTP smsCfg SendSMSReq {..} = do
       otpSmsTemp = smsBody
       phone = phoneNumber
       senderName = sender
-  username <- decrypt smsCfg.username
-  password <- decrypt smsCfg.password
-  res <- MVF.sendOTPApi urlAddress username password otpSmsTemp phone senderName
+  token <- decrypt smsCfg.token
+  res <- MVF.sendOTPApi urlAddress token otpSmsTemp phone senderName
 
   return $ returnSmsResultMVF res
 
