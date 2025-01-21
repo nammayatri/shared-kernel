@@ -15,7 +15,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR) where
+module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR, logRequestIdForFork) where
 
 import Control.Monad.IO.Unlift
 import Data.Aeson
@@ -237,7 +237,7 @@ instance MonadGuid (FlowR r) where
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
   fork tag f = do
     newLocalOptions <- newMVar mempty
-    logRequestIdForFork tag
+    -- logRequestIdForFork tag
     FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleForkExecution tag f)
 
   forkMultiple tagAndFunction = do
