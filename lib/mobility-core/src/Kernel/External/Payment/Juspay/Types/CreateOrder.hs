@@ -46,7 +46,7 @@ data CreateOrderReq = CreateOrderReq
     metadata_gateway_reference_id :: Maybe Text,
     options_get_upi_deep_links :: Maybe Bool,
     metadata_expiry_in_mins :: Maybe Int,
-    split_settlement_details :: SplitSettlementDetails
+    split_settlement_details :: Maybe SplitSettlementDetails
   }
   deriving stock (Show, Eq, Generic)
 
@@ -110,10 +110,10 @@ jsonReqOptions =
     }
 
 instance FromJSON CreateOrderReq where
-  parseJSON = genericParseJSON jsonReqOptions
+  parseJSON = genericParseJSON jsonReqOptions {omitNothingFields = True}
 
 instance ToJSON CreateOrderReq where
-  toJSON = genericToJSON jsonReqOptions
+  toJSON = genericToJSON jsonReqOptions {omitNothingFields = True}
 
 data CreateOrderResp = CreateOrderResp
   { status :: TransactionStatus,
