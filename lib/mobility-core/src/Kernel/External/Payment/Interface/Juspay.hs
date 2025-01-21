@@ -194,17 +194,11 @@ mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
           options_get_upi_deep_links = optionsGetUpiDeepLinks,
           metadata_expiry_in_mins = metadataExpiryInMins,
           metadata_gateway_reference_id = metadataGatewayReferenceId,
-          split_settlement_details = mkSplitSettlementDetails splitSettlementDetails amount
+          split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails
         }
 
-mkSplitSettlementDetails :: Maybe SplitSettlementDetails -> HighPrecMoney -> Juspay.SplitSettlementDetails
-mkSplitSettlementDetails Nothing amount =
-  Juspay.SplitSettlementDetails
-    { marketplace = Juspay.Marketplace {amount = amount},
-      mdr_borne_by = "MARKETPLACE",
-      vendor = Juspay.Vendor {split = []}
-    }
-mkSplitSettlementDetails (Just splitDetails) _ =
+mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
+mkSplitSettlementDetails splitDetails =
   Juspay.SplitSettlementDetails
     { marketplace = mkMarketplace splitDetails.marketplace,
       mdr_borne_by = show splitDetails.mdrBorneBy,
@@ -323,7 +317,7 @@ mkExecutionReq MandateExecutionReq {..} merchantId =
     { merchantId,
       mandateId = mandateId,
       mandate = Juspay.MandateInfo {notificationId = notificationId, executionDate = show $ utcTimeToPOSIXSeconds executionDate},
-      order = Juspay.MandateOrder {orderId = orderId, orderAmount = show amount, orderCustomerId = customerId, splitSettlementDetails = mkSplitSettlementDetails splitSettlementDetails amount},
+      order = Juspay.MandateOrder {orderId = orderId, orderAmount = show amount, orderCustomerId = customerId, splitSettlementDetails = mkSplitSettlementDetails <$> splitSettlementDetails},
       format = "json"
     }
 
