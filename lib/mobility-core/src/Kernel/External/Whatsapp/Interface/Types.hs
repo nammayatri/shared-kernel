@@ -75,6 +75,10 @@ data SendWhatsAppMessageWithTemplateIdApIReq = SendWhatsAppMessageWithTemplateId
     var1 :: Maybe Text,
     var2 :: Maybe Text,
     var3 :: Maybe Text,
+    var4 :: Maybe Text,
+    var5 :: Maybe Text,
+    var6 :: Maybe Text,
+    var7 :: Maybe Text,
     ctaButtonUrl :: Maybe Text,
     containsUrlButton :: Maybe Bool
   }
