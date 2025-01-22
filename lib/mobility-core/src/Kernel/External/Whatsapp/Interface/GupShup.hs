@@ -73,4 +73,4 @@ whatsAppSendMessageWithTemplateIdAPI GupShupCfg {..} SendWhatsAppMessageWithTemp
   userId <- decrypt userid
   password' <- decrypt password
   gupShupUrl <- parseBaseUrl url
-  Ex.whatsAppSendMessageWithTemplateIdAPI gupShupUrl userId password' sendTo otpCfg.method authScheme v otpCfg.msgType format var1 var2 var3 ctaButtonUrl containsUrlButton templateId
+  Ex.whatsAppSendMessageWithTemplateIdAPI gupShupUrl userId password' sendTo otpCfg.method authScheme v otpCfg.msgType format var1 var2 var3 var4 var5 var6 var7 ctaButtonUrl containsUrlButton templateId
