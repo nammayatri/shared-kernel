@@ -65,7 +65,7 @@ camelCaseToSnakeCase =
 validateAllDigitWithMinLength :: Int -> Text -> Bool
 validateAllDigitWithMinLength minLength str = validateLength && validateAllDigits (T.unpack str)
   where
-    validateLength = T.length str == minLength
+    validateLength = T.length str >= minLength
     validateAllDigits (x : xs) = fromEnum x <= 57 && fromEnum x >= 48 && validateAllDigits xs
     validateAllDigits [] = True
 
