@@ -95,6 +95,7 @@ type Agency {
 type Stop {
   gtfsId: String!
   code: String
+  platformCode: String
 }
 
 type Query {

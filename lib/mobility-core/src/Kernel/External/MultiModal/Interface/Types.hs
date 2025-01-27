@@ -31,6 +31,7 @@ data MultiModalRoute = MultiModalRoute
 
 data MultiModalStopDetails = MultiModalStopDetails
   { stopCode :: Maybe Text,
+    platformCode :: Maybe Text,
     name :: Maybe Text,
     gtfsId :: Maybe Text
   }

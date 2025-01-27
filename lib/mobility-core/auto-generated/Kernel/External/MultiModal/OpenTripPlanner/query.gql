@@ -16,6 +16,8 @@ query OTPPlan (
   ) {
     itineraries {
       duration
+      startTime
+      endTime
       legs {
         pickupType
         distance
@@ -32,6 +34,7 @@ query OTPPlan (
           stop {
             code
             gtfsId
+            platformCode
           }
         }
         to {
@@ -43,12 +46,14 @@ query OTPPlan (
           stop {
             code
             gtfsId
+            platformCode
           }
         }
         route {
           gtfsId
           longName
           shortName
+          color
           agency {
             gtfsId
             name
