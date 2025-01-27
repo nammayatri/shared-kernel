@@ -50,7 +50,7 @@ convertModeToGeneral :: OTP.Mode -> GeneralVehicleType
 convertModeToGeneral OTP.ModeBUS = Bus
 convertModeToGeneral OTP.ModeRAIL = MetroRail
 convertModeToGeneral OTP.ModeMONORAIL = MetroRail
-convertModeToGeneral OTP.ModeSUBWAY = MetroRail
+convertModeToGeneral OTP.ModeSUBWAY = Subway
 convertModeToGeneral OTP.ModeWALK = Walk
 convertModeToGeneral _ = Unspecified
 
@@ -62,7 +62,7 @@ convertTransitVehicleToGeneral GT.VEHICLE_TYPE_LONG_DISTANCE_TRAIN = MetroRail
 convertTransitVehicleToGeneral GT.VEHICLE_TYPE_METRO_RAIL = MetroRail
 convertTransitVehicleToGeneral GT.VEHICLE_TYPE_MONORAIL = MetroRail
 convertTransitVehicleToGeneral GT.VEHICLE_TYPE_RAIL = MetroRail
-convertTransitVehicleToGeneral GT.VEHICLE_TYPE_SUBWAY = MetroRail
+convertTransitVehicleToGeneral GT.VEHICLE_TYPE_SUBWAY = Subway
 convertTransitVehicleToGeneral _ = Unspecified
 
 convertGoogleToGeneric :: GT.AdvancedDirectionsResp -> MultiModalResponse

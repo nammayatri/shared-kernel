@@ -76,6 +76,7 @@ data GeneralVehicleType
   = Bus
   | MetroRail
   | Walk
+  | Subway
   | Unspecified
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
