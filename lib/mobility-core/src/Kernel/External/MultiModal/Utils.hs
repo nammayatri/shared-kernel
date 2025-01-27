@@ -124,13 +124,15 @@ convertGoogleToGeneric gResponse =
                         MultiModalStopDetails
                           { stopCode = Nothing,
                             name = Just sName,
-                            gtfsId = Nothing
+                            gtfsId = Nothing,
+                            platformCode = Nothing
                           }
                       toDetails =
                         MultiModalStopDetails
                           { stopCode = Nothing,
                             name = Just eName,
-                            gtfsId = Nothing
+                            gtfsId = Nothing,
+                            platformCode = Nothing
                           }
                       generAgency = case gAgency of
                         Just x ->
@@ -291,9 +293,9 @@ convertOTPToGeneric otpResponse =
                         color = fmap T.pack route.color
                       }
                 Nothing -> Nothing
-              (fromStopCode, fromStopGtfsId) = case otpLeg'.from.stop of
-                Just x -> (x.code, Just x.gtfsId)
-                Nothing -> (Nothing, Nothing)
+              (fromStopCode, fromStopGtfsId, fromStopPlatformCode) = case otpLeg'.from.stop of
+                Just x -> (x.code, Just x.gtfsId, x.platformCode)
+                Nothing -> (Nothing, Nothing, Nothing)
               fromStopDetails' =
                 if mode == Walk
                   then Nothing
@@ -302,11 +304,12 @@ convertOTPToGeneric otpResponse =
                       MultiModalStopDetails
                         { stopCode = fmap T.pack fromStopCode,
                           name = startLocName,
-                          gtfsId = fmap T.pack fromStopGtfsId
+                          gtfsId = fmap T.pack fromStopGtfsId,
+                          platformCode = fmap T.pack fromStopPlatformCode
                         }
-              (toStopCode, toStopGtfsId) = case otpLeg'.to.stop of
-                Just x -> (x.code, Just x.gtfsId)
-                Nothing -> (Nothing, Nothing)
+              (toStopCode, toStopGtfsId, toStopPlatformCode) = case otpLeg'.to.stop of
+                Just x -> (x.code, Just x.gtfsId, x.platformCode)
+                Nothing -> (Nothing, Nothing, Nothing)
               toStopDetails' =
                 if mode == Walk
                   then Nothing
@@ -315,7 +318,8 @@ convertOTPToGeneric otpResponse =
                       MultiModalStopDetails
                         { stopCode = fmap T.pack toStopCode,
                           name = endLocName,
-                          gtfsId = fmap T.pack toStopGtfsId
+                          gtfsId = fmap T.pack toStopGtfsId,
+                          platformCode = fmap T.pack toStopPlatformCode
                         }
               genericAgency = case routeAgency of
                 Nothing -> Nothing
