@@ -82,7 +82,8 @@ connectHedisCluster cfg keyModifier = do
           connectDatabase = cfg.connectDatabase,
           connectMaxConnections = cfg.connectMaxConnections,
           connectMaxIdleTime = cfg.connectMaxIdleTime,
-          connectTimeout = cfg.connectTimeout
+          connectTimeout = cfg.connectTimeout,
+          connectReadOnly = True
         }
 
 connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv

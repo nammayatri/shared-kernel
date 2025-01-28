@@ -13,7 +13,7 @@
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
     euler-hs = {
-      url = "github:nammayatri/euler-hs";
+      url = "github:nammayatri/euler-hs/enh/zone-aware-replica-usage";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.haskell-flake.follows = "haskell-flake";
     };
