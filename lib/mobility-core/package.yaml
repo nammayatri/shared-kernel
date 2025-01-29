@@ -89,6 +89,7 @@ dependencies:
   - memory
   - morpheus-graphql-client
   - network
+  - network-uri
   - parsec
   - passetto-client
   - random-strings
@@ -155,6 +156,8 @@ dependencies:
   - sequelize
   - concurrency
   - casing
+  - cassava
+  - split
   - slack-web
   - insert-ordered-containers
 
