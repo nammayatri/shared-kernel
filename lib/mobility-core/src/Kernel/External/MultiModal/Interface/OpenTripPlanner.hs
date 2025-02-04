@@ -42,7 +42,10 @@ getTransitRoutes cfg req = do
   let dateTime = req.departureTime <&> formatUtcDateTime
   let planClient = fromString (showBaseUrl cfg.baseUrl)
   let transportModes' = req.transportModes
-  let numItineraries' = Just 7
+  let numItineraries' = Just 25
+  let minimumWalkDistance = req.minimumWalkDistance
+  let permissibleModes = req.permissibleModes
+  let maxAllowedPublicTransportLegs = req.maxAllowedPublicTransportLegs
   resp <-
     liftIO $
       planClient
@@ -58,4 +61,4 @@ getTransitRoutes cfg req = do
   case resp of
     Left _ -> pure Nothing
     Right plan' ->
-      pure $ Just $ convertOTPToGeneric plan'
+      pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs
