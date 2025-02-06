@@ -27,6 +27,8 @@ module Kernel.External.Verification.Idfy.Client
   )
 where
 
+import qualified Data.Aeson as DA
+import qualified Data.Text as DT
 import EulerHS.Prelude
 import qualified EulerHS.Types as T
 import Kernel.External.Verification.Idfy.Auth
@@ -36,7 +38,9 @@ import Kernel.External.Verification.Idfy.Types.Request
 import Kernel.External.Verification.Idfy.Types.Response
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.Common
+import Kernel.Types.Error (IdfyCallError (..))
 import Kernel.Utils.Common hiding (Error)
+import qualified Kernel.Utils.Text as KUT
 import Servant (Get, Header, JSON, Post, ReqBody, (:>))
 
 type VerifyDLAPI =
@@ -184,7 +188,7 @@ type GetTaskAPI =
     :> Header "api-key" ApiKey
     :> Header "account-id" AccountId
     :> MandatoryQueryParam "request_id" Text
-    :> Get '[JSON] VerificationResponse
+    :> Get '[JSON] DA.Value
 
 getTaskApi :: Proxy GetTaskAPI
 getTaskApi = Proxy
@@ -197,8 +201,10 @@ getTask ::
   AccountId ->
   BaseUrl ->
   Text ->
-  m VerificationResponse
-getTask apiKey accountId url request_id = callIdfyAPI url task "getTask" getTaskApi
+  m (VerificationResponse, Text)
+getTask apiKey accountId url request_id = do
+  (resp :: DA.Value) <- callIdfyAPI url task "getTask" getTaskApi
+  convertValueToRespType resp <&> (,KUT.encodeToText resp)
   where
     task =
       T.client
@@ -206,6 +212,10 @@ getTask apiKey accountId url request_id = callIdfyAPI url task "getTask" getTask
         (Just apiKey)
         (Just accountId)
         request_id
+    convertValueToRespType :: (MonadThrow m, Log m) => DA.Value -> m VerificationResponse
+    convertValueToRespType rsp = case DA.fromJSON rsp of
+      DA.Error err -> throwError $ IdfyCallError ("Could not parse Idfy getTask resp. Reason: " <> DT.pack err <> "Resp: " <> show rsp)
+      DA.Success pyload -> return pyload
 
 callIdfyAPI :: CallAPI env api res
 callIdfyAPI = callApiUnwrappingApiError (identity @IdfyError) (Just $ T.ManagerSelector idfyHttpManagerKey) (Just "IDFY_ERROR") Nothing
