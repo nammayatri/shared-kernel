@@ -39,7 +39,8 @@ data HedisCfg = HedisCfg
     connectDatabase :: Integer,
     connectMaxConnections :: Int,
     connectMaxIdleTime :: NominalDiffTime,
-    connectTimeout :: Maybe NominalDiffTime
+    connectTimeout :: Maybe NominalDiffTime,
+    connectReadOnly :: Bool
   }
   deriving (Generic, Show, FromDhall)
 
@@ -58,7 +59,8 @@ defaultHedisCfg =
       connectDatabase = 0,
       connectMaxConnections = 50,
       connectMaxIdleTime = 30,
-      connectTimeout = Nothing
+      connectTimeout = Nothing,
+      connectReadOnly = False
     }
 
 withHedisEnv :: HedisCfg -> KeyModifierFunc -> (HedisEnv -> IO a) -> IO a
@@ -82,7 +84,8 @@ connectHedisCluster cfg keyModifier = do
           connectDatabase = cfg.connectDatabase,
           connectMaxConnections = cfg.connectMaxConnections,
           connectMaxIdleTime = cfg.connectMaxIdleTime,
-          connectTimeout = cfg.connectTimeout
+          connectTimeout = cfg.connectTimeout,
+          connectReadOnly = cfg.connectReadOnly
         }
 
 connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv

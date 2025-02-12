@@ -38,7 +38,7 @@ prepareRedisClusterConnection KSHC.HedisCfg {..} = do
           connectAuth = connectAuth,
           connectDatabase = connectDatabase,
           connectMaxConnections = connectMaxConnections,
-          connectReadOnly = False,
+          connectReadOnly = connectReadOnly,
           connectMaxIdleTime = connectMaxIdleTime,
           connectTimeout = connectTimeout
         }
