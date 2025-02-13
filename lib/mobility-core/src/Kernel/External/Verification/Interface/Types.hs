@@ -123,7 +123,8 @@ newtype ExtractDLImageResp = ExtractDLImageResp
 
 data ExtractedDL = ExtractedDL
   { dlNumber :: Maybe Text,
-    nameOnCard :: Maybe Text
+    nameOnCard :: Maybe Text,
+    dateOfBirth :: Maybe Text
   }
   deriving stock (Show, Generic)
 

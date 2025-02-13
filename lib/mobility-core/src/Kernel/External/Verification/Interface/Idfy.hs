@@ -209,7 +209,8 @@ extractDLImage cfg req = do
           resp.result <&> \result -> do
             ExtractedDL
               { dlNumber = result.extraction_output.id_number,
-                nameOnCard = result.extraction_output.name_on_card
+                nameOnCard = result.extraction_output.name_on_card,
+                dateOfBirth = result.extraction_output.date_of_birth
               }
       }
 
