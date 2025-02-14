@@ -67,3 +67,11 @@ data GrpcNotificationData a = GrpcNotificationData
   deriving anyclass (PrettyShow)
 
 $(deriveJSON defaultOptions {omitNothingFields = True} ''GrpcNotificationData)
+
+data NotificationMessage = NotificationMessage
+  { streamId :: Text,
+    timestamp :: UTCTime
+  }
+  deriving (Show, Generic)
+
+instance ToJSON NotificationMessage
