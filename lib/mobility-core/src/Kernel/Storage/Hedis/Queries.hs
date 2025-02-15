@@ -856,15 +856,15 @@ ttl key = withLogTag "Redis" $ do
       pure (-1) -- Returning -1 if there was an error
     Right expSec -> pure expSec
 
-publish :: (HedisFlow m env) => Text -> Text -> m ()
+publish :: (HedisFlow m env, ToJSON a) => Text -> a -> m ()
 publish channel message = withLogTag "Redis" $ do
   migrating <- asks (.hedisMigrationStage)
+  let encodedMessage = BSL.toStrict $ Ae.encode message
   when migrating $ do
     res <- withTimeRedis "RedisStandalone" "publish" $
       try @_ @SomeException $
         runWithPrefix'_ channel $ \prefChannel ->
-          Hedis.publish prefChannel (BSL.toStrict $ Ae.encode message)
-
+          Hedis.publish prefChannel encodedMessage
     whenLeft res $ \err ->
       withLogTag "STANDALONE" $
         logTagInfo "FAILED_TO_PUBLISH" (show err)
@@ -872,7 +872,7 @@ publish channel message = withLogTag "Redis" $ do
   res <- withTimeRedis "RedisCluster" "publish" $
     try @_ @SomeException $
       runWithPrefix_ channel $ \prefChannel ->
-        Hedis.publish prefChannel (BSL.toStrict $ Ae.encode message)
+        Hedis.publish prefChannel encodedMessage
   whenLeft res $ \err ->
     withLogTag "CLUSTER" $
       logTagInfo "FAILED_TO_PUBLISH" (show err)
