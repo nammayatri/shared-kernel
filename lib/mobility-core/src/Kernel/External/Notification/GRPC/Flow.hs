@@ -43,7 +43,8 @@ notifyPerson cfg notificationData = do
         case T.splitOn "-" notificationData.streamId of
           [startUuid, midOneUuid, _, _] -> T.intercalate "-" [startUuid, midOneUuid]
           _ -> notificationData.streamId
-  _ <- Hedis.withCrossAppRedis $ Hedis.publish "active-notification" notificationStreamId
+  let object = NotificationMessage notificationStreamId now
+  _ <- Hedis.withCrossAppRedis $ Hedis.publish "active-notification" object
   void $ Hedis.withCrossAppRedis $ Hedis.xAddExp ("N" <> notificationStreamId <> "{" <> (show shardId) <> "}") "*" (buildFieldValue notificationData now) cfg.streamExpirationTime
   where
     buildFieldValue notifData createdAt =
