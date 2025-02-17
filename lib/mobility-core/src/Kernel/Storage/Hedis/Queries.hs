@@ -563,6 +563,22 @@ zAdd key members = withLogTag "Redis" $ do
   res <- withTimeRedis "RedisCluster" "zAdd" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.zadd prefKey $ map (\(score, member) -> (score, BSL.toStrict $ Ae.encode member)) members)
   whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZADD" $ show err)
 
+zIncrBy ::
+  (ToJSON member, HedisFlow m env) =>
+  Text ->
+  Integer ->
+  member ->
+  m ()
+zIncrBy key increment member = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  if migrating
+    then do
+      res <- withTimeRedis "RedisStandalone" "zIncrBy" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zincrby prefKey increment (BSL.toStrict $ Ae.encode member))
+      whenLeft res (\err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_ZINCRBY" $ show err)
+    else pure ()
+  res <- withTimeRedis "RedisCluster" "zIncrBy" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.zincrby prefKey increment (BSL.toStrict $ Ae.encode member))
+  whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZINCRBY" $ show err)
+
 xInfoGroups ::
   (HedisFlow m env) =>
   Text -> -- Stream key
@@ -724,6 +740,19 @@ zRange key start end = withLogTag "Redis" $ do
   case res of
     Left err -> do
       withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZRANGE" $ show err
+      pure [] -- Return an empty list if there was an error
+    Right items -> pure items
+
+zRangeWithScores :: (HedisFlow m env) => Text -> Integer -> Integer -> m [(BS.ByteString, Double)]
+zRangeWithScores key start end = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "zRangeWithScores" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.zrangeWithscores prefKey start end)
+    whenLeft res (withLogTag "STANDALONE" . logTagInfo "FAILED_TO_ZRANGE_WITH_SCORES" . show)
+  res <- withTimeRedis "RedisCluster" "zRangeWithScores" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.zrangeWithscores prefKey start end)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZRANGE_WITH_SCORES" $ show err
       pure [] -- Return an empty list if there was an error
     Right items -> pure items
 
