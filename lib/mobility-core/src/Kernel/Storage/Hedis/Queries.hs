@@ -23,7 +23,6 @@ import qualified Data.Text as T
 import qualified Data.Text as Text
 import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
-import qualified Database.Redis.Cluster as Cluster
 import EulerHS.Prelude (whenLeft)
 import GHC.Records.Extra
 import Kernel.Prelude
@@ -85,36 +84,6 @@ runHedisTransaction action = do
     TxSuccess a -> return a
 
 ----------------------------------------------------
-
-modifyMasterOnlyConnection :: Hedis.Connection -> Hedis.Connection
-modifyMasterOnlyConnection (Hedis.ClusteredConnection connInfo (Cluster.Connection mvar infoMap clusterCfg)) =
-  Hedis.ClusteredConnection connInfo (Cluster.Connection mvar infoMap (clusterCfg {Cluster.useMasterOnly = Just True}))
-modifyMasterOnlyConnection nonClustered = nonClustered -- If it's NonClusteredConnection, return it unchanged
-
-withMasterRedis ::
-  (HedisFlow m env) => m f -> m f
-withMasterRedis f = do
-  local
-    ( \env ->
-        env{hedisEnv =
-              (env.hedisEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisEnv))
-                },
-            hedisClusterEnv =
-              (env.hedisClusterEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisClusterEnv))
-                },
-            hedisNonCriticalEnv =
-              (env.hedisNonCriticalEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisNonCriticalEnv))
-                },
-            hedisNonCriticalClusterEnv =
-              (env.hedisNonCriticalClusterEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisNonCriticalClusterEnv))
-                }
-           }
-    )
-    f
 
 -- Just remove key modifier, so it won't modify the key with app prefixes
 withCrossAppRedis ::

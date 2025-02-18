@@ -370,16 +370,15 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1739352016,
-        "narHash": "sha256-L9AQrN+aACTGCBYazyHcGJSNplePbzMd5rICO56FyRM=",
+        "lastModified": 1737446700,
+        "narHash": "sha256-e5G3uZltQmkFZ8pBUorqUjMiLEuIYu9JW59HYYvJL+E=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "63d56eb128296fc135f64b6f614986d31f1d09f9",
+        "rev": "69d6077ed953ce562feddeb8f99210163a5f23f3",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
-        "ref": "backend/hedis-upgrade-for-zone-aware-replica-usage",
         "repo": "euler-hs",
         "type": "github"
       }
@@ -842,18 +841,18 @@
     "hedis": {
       "flake": false,
       "locked": {
-        "lastModified": 1739351500,
-        "narHash": "sha256-8tz0dr5kTaHcsNwmSJw2HyUTRZn/ho0s7tlUWSkSYbQ=",
-        "owner": "nammayatri",
-        "repo": "hedis",
-        "rev": "c8f6434fd4076dfb6b769831c3fde6e2600ccbe9",
-        "type": "github"
+        "lastModified": 1730967537,
+        "narHash": "sha256-RDF/G/ptWazyFxCQOv+fTTQVV4hzDxTV630rnmhH3i4=",
+        "ref": "refs/heads/master",
+        "rev": "5547eb306006243f57d54e8ebb5225a055d40e73",
+        "revCount": 741,
+        "type": "git",
+        "url": "https://github.com/juspay/hedis"
       },
       "original": {
-        "owner": "nammayatri",
-        "ref": "enh/zone-aware-replica-usage",
-        "repo": "hedis",
-        "type": "github"
+        "rev": "5547eb306006243f57d54e8ebb5225a055d40e73",
+        "type": "git",
+        "url": "https://github.com/juspay/hedis"
       }
     },
     "hnix-store-core": {
