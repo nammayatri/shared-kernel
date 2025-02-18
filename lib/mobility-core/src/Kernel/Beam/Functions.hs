@@ -35,6 +35,7 @@ module Kernel.Beam.Functions
     updateWithKVWithOptions,
     updateWithKVSchedulerWithOptions,
     updateOneWithKVWithOptions,
+    getReplicaDbConfig,
   )
 where
 
