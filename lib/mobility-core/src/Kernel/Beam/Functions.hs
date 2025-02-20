@@ -35,6 +35,7 @@ module Kernel.Beam.Functions
     updateWithKVWithOptions,
     updateWithKVSchedulerWithOptions,
     updateOneWithKVWithOptions,
+    getReplicaBeamConfig,
   )
 where
 
@@ -171,6 +172,14 @@ getMasterBeamConfig = do
   case conn of
     Right conn' -> pure conn'
     Left _ -> L.throwException $ InternalError "MasterDb Beam Config not found"
+
+getReplicaBeamConfig :: (HasCallStack, L.MonadFlow m) => m (SqlConn Pg)
+getReplicaBeamConfig = do
+  dbConf <- getReplicaDbConfig
+  conn <- L.getOrInitSqlConn dbConf
+  case conn of
+    Right conn' -> pure conn'
+    Left _ -> L.throwException $ InternalError "ReplicaDb Beam Config not found"
 
 getLocationDbBeamConfig :: (HasCallStack, L.MonadFlow m) => m (SqlConn Pg)
 getLocationDbBeamConfig = do
