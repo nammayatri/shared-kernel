@@ -814,3 +814,50 @@ data FCMResponse = FCMResponse
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMResponse)
 
 $(mkBeamInstancesForEnum ''FCMOverlayAction)
+
+data LiveActivityReq = LiveActivityReq {
+  liveActivityToken :: Text, -- live activity token
+  liveActivityReqType :: Text, -- request to be update, end, start
+  liveActivityNotificationType :: Text, -- notification type , SEARCH_CANCELLED, RIDE_CANCELLED
+  liveActivityContentState :: Text, -- live activity content state
+  timestamp :: Text -- timestamp
+} deriving (Show, Eq, Generic)
+
+data ApnsAPIRequest = ApnsAPIRequest {
+  message :: Message 
+} deriving (Generic , ToJSON, FromJSON)
+
+data Message = Message {
+  token :: FCMRecipientToken,
+  apns :: Apns
+} deriving (Generic , ToJSON, FromJSON)
+
+data Apns = Apns {
+  live_activity_token :: Text,
+  headers :: ApnsHeaders,
+  payload :: Payload
+} deriving (Generic , ToJSON, FromJSON)
+
+data ApnsHeaders = ApnsHeaders {
+  apns_priority :: Text
+} deriving (Generic , ToJSON, FromJSON)
+
+data Payload = Payload {
+  aps :: Aps
+} deriving (Generic , ToJSON, FromJSON)
+
+data Aps = Aps {
+  timestamp :: Text,
+  content_available :: Int,
+  event :: Text,
+  content_state :: Text
+} deriving (Generic , ToJSON, FromJSON)
+
+-- newtype ApnsReqBody a b = ApnsReqBody
+--   { apnsReqBody :: ApnsLiveActivityMessage a b
+--   }
+
+-- data ApnsLiveActivityMessage a b = ApnsLiveActivityMessage {
+--   token :: a,
+--   req :: b
+-- }
