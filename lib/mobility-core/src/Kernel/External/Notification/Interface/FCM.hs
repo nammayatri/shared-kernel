@@ -18,11 +18,12 @@ notifyPerson ::
   ) =>
   FCM.FCMConfig ->
   Interface.NotificationReq a b ->
+  Maybe FCM.LiveActivityReq ->
   m () ->
   Maybe Text ->
   (FCM.FCMData a -> FCM.FCMData c) ->
   m ()
-notifyPerson config req action mbNotificationId iosModifier = do
+notifyPerson config req liveAcitvityRequest action mbNotificationId iosModifier = do
   let title = FCM.FCMNotificationTitle req.title
       body = FCM.FCMNotificationBody req.body
       notificationType = interfaceCategoryToFCMNotificationType req.category
@@ -37,6 +38,10 @@ notifyPerson config req action mbNotificationId iosModifier = do
             fcmOverlayNotificationJSON = Nothing,
             fcmNotificationId = mbNotificationId
           }
+      apnsData = liveAcitvityRequest
+  case apnsData of 
+    (Just reqLive) -> do FCM.updateLiveActivity config (FCM.FCMNotificationRecipient req.auth.recipientId (FCM.FCMRecipientToken <$> req.auth.fcmToken)) reqLive
+    _ -> pure ()
   FCM.notifyPersonWithPriority
     config
     (interfaceMessagePriorityToFCMMessagePriority <$> req.messagePriority)

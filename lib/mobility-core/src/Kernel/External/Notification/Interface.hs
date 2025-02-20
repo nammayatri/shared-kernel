@@ -22,6 +22,7 @@ import qualified Kernel.External.Notification.Interface.FCM as FCM
 import qualified Kernel.External.Notification.Interface.GRPC as GRPC
 import qualified Kernel.External.Notification.Interface.PayTM as PayTM
 import Kernel.External.Notification.Interface.Types as Reexport
+import Kernel.External.Notification.FCM.Types (LiveActivityReq)
 import Kernel.External.Notification.Types as Reexport
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -40,12 +41,14 @@ notifyPerson ::
   ) =>
   NotificationServiceConfig ->
   NotificationReq a b ->
+  Maybe LiveActivityReq ->
   m () ->
   m ()
-notifyPerson serviceConfig req action = do
+notifyPerson serviceConfig req liveAcitvityRequest action = do
   notificationId <- generateGUID
+
   case serviceConfig of
-    FCMConfig cfg -> FCM.notifyPerson cfg req action (Just notificationId) EulerHS.Prelude.id
+    FCMConfig cfg -> FCM.notifyPerson cfg req liveAcitvityRequest action (Just notificationId) EulerHS.Prelude.id
     PayTMConfig cfg -> PayTM.notifyPerson cfg req
     GRPCConfig _ -> throwError $ InternalError "GRPC notification type not supported."
 
@@ -62,9 +65,10 @@ notifyPersonWithAllProviders ::
   ) =>
   NotficationServiceHandler m a c ->
   NotificationReq a b ->
+  Maybe LiveActivityReq ->
   m () ->
   m ()
-notifyPersonWithAllProviders NotficationServiceHandler {..} req action = do
+notifyPersonWithAllProviders NotficationServiceHandler {..} req liveAcitvityRequest action = do
   serviceList <- getNotificationServiceList
   notificationId <- generateGUID
   callNotifPerson serviceList notificationId
@@ -74,7 +78,7 @@ notifyPersonWithAllProviders NotficationServiceHandler {..} req action = do
       fork ("notifying person with following service " <> show serviceProvider <> "for following notification id : " <> notificationId) $ do
         serviceProviderConfig <- getServiceConfig serviceProvider
         case serviceProviderConfig of
-          FCMConfig cfg -> FCM.notifyPerson cfg req action (Just notificationId) iosModifier
+          FCMConfig cfg -> FCM.notifyPerson cfg req liveAcitvityRequest action (Just notificationId) iosModifier
           PayTMConfig cfg -> PayTM.notifyPerson cfg req
           GRPCConfig cfg -> GRPC.notifyPerson cfg req notificationId
       callNotifPerson remaining notificationId
