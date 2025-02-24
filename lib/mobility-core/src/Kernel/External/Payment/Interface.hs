@@ -320,3 +320,8 @@ verifyVPA ::
 verifyVPA config req = case config of
   JuspayConfig cfg -> Juspay.verifyVPA cfg req
   StripeConfig _ -> throwError $ InternalError "Stripe Verify VPA not supported."
+
+isSplitEnabled :: PaymentServiceConfig -> Bool
+isSplitEnabled = \case
+  JuspayConfig cfg -> fromMaybe False cfg.isSplitEnabled
+  StripeConfig _ -> False
