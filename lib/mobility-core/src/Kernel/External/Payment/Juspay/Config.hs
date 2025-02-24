@@ -26,7 +26,8 @@ data JuspayCfg = JuspayCfg
     merchantId :: Text,
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text,
-    gatewayReferenceId :: Maybe Text
+    gatewayReferenceId :: Maybe Text,
+    isSplitEnabled :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
