@@ -92,6 +92,22 @@ data City
   | Bidar
   | Srinagar
   | AnyCity
+  | Alapuzha
+  | Idukki
+  | Kasarkode
+  | Wayanad
+  | Kannur
+  | Kottayam
+  | Palakkad
+  | Kolam
+  | Pathanamthitta
+  | Shillong
+  | Cherrapunji
+  | Pulwama
+  | Jammu
+  | Anantnag
+  | Berhampur
+  | Bardhaman
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
 
@@ -219,6 +235,38 @@ instance FromJSON City where
   parseJSON (String "Bidar") = pure Bidar
   parseJSON (String "std:0194") = pure Srinagar
   parseJSON (String "Srinagar") = pure Srinagar
+  parseJSON (String "std:0477") = pure Alapuzha
+  parseJSON (String "Alapuzha") = pure Alapuzha
+  parseJSON (String "std:04863") = pure Idukki
+  parseJSON (String "Idukki") = pure Idukki
+  parseJSON (String "std:4994") = pure Kasarkode
+  parseJSON (String "Kasarkode") = pure Kasarkode
+  parseJSON (String "std:4936") = pure Wayanad
+  parseJSON (String "Wayanad") = pure Wayanad
+  parseJSON (String "std:497") = pure Kannur
+  parseJSON (String "Kannur") = pure Kannur
+  parseJSON (String "std:0481") = pure Kottayam
+  parseJSON (String "Kottayam") = pure Kottayam
+  parseJSON (String "std:0491") = pure Palakkad
+  parseJSON (String "Palakkad") = pure Palakkad
+  parseJSON (String "std:474") = pure Kolam
+  parseJSON (String "Kolam") = pure Kolam
+  parseJSON (String "std:468") = pure Pathanamthitta
+  parseJSON (String "Pathanamthitta") = pure Pathanamthitta
+  parseJSON (String "std:0364") = pure Shillong
+  parseJSON (String "Shillong") = pure Shillong
+  parseJSON (String "std:03637") = pure Cherrapunji
+  parseJSON (String "Cherrapunji") = pure Cherrapunji
+  parseJSON (String "std:01933") = pure Pulwama
+  parseJSON (String "Pulwama") = pure Pulwama
+  parseJSON (String "std:0191") = pure Jammu
+  parseJSON (String "Jammu") = pure Jammu
+  parseJSON (String "std:01932") = pure Anantnag
+  parseJSON (String "Anantnag") = pure Anantnag
+  parseJSON (String "std:0680") = pure Berhampur
+  parseJSON (String "Berhampur") = pure Berhampur
+  parseJSON (String "std:0343") = pure Bardhaman
+  parseJSON (String "Bardhaman") = pure Bardhaman
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
@@ -283,6 +331,22 @@ instance ToJSON City where
   toJSON Pudukkottai = String "std:04322"
   toJSON Bidar = String "std:8482"
   toJSON Srinagar = String "std:0194"
+  toJSON Alapuzha = String "std:0477"
+  toJSON Idukki = String "std:04863"
+  toJSON Kasarkode = String "std:4994"
+  toJSON Wayanad = String "std:4936"
+  toJSON Kannur = String "std:497"
+  toJSON Kottayam = String "std:0481"
+  toJSON Palakkad = String "std:0491"
+  toJSON Kolam = String "std:474"
+  toJSON Pathanamthitta = String "std:468"
+  toJSON Shillong = String "std:0364"
+  toJSON Cherrapunji = String "std:03637"
+  toJSON Pulwama = String "std:01933"
+  toJSON Jammu = String "std:0191"
+  toJSON Anantnag = String "std:01932"
+  toJSON Berhampur = String "std:0680"
+  toJSON Bardhaman = String "std:0343"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -411,6 +475,38 @@ instance FromHttpApiData City where
       parseLowerCaseCity "bidar" = Right Bidar
       parseLowerCaseCity "std:0194" = Right Srinagar
       parseLowerCaseCity "srinagar" = Right Srinagar
+      parseLowerCaseCity "std:0477" = Right Alapuzha
+      parseLowerCaseCity "alapuzha" = Right Alapuzha
+      parseLowerCaseCity "std:04863" = Right Idukki
+      parseLowerCaseCity "idukki" = Right Idukki
+      parseLowerCaseCity "std:4994" = Right Kasarkode
+      parseLowerCaseCity "kasarkode" = Right Kasarkode
+      parseLowerCaseCity "std:4936" = Right Wayanad
+      parseLowerCaseCity "wayanad" = Right Wayanad
+      parseLowerCaseCity "std:497" = Right Kannur
+      parseLowerCaseCity "kannur" = Right Kannur
+      parseLowerCaseCity "std:0481" = Right Kottayam
+      parseLowerCaseCity "kottayam" = Right Kottayam
+      parseLowerCaseCity "std:0491" = Right Palakkad
+      parseLowerCaseCity "palakkad" = Right Palakkad
+      parseLowerCaseCity "std:474" = Right Kolam
+      parseLowerCaseCity "kolam" = Right Kolam
+      parseLowerCaseCity "std:468" = Right Pathanamthitta
+      parseLowerCaseCity "pathanamthitta" = Right Pathanamthitta
+      parseLowerCaseCity "std:0364" = Right Shillong
+      parseLowerCaseCity "shillong" = Right Shillong
+      parseLowerCaseCity "std:03637" = Right Cherrapunji
+      parseLowerCaseCity "cherrapunji" = Right Cherrapunji
+      parseLowerCaseCity "std:01933" = Right Pulwama
+      parseLowerCaseCity "pulwama" = Right Pulwama
+      parseLowerCaseCity "std:0191" = Right Jammu
+      parseLowerCaseCity "jammu" = Right Jammu
+      parseLowerCaseCity "std:01932" = Right Anantnag
+      parseLowerCaseCity "anantnag" = Right Anantnag
+      parseLowerCaseCity "std:0680" = Right Berhampur
+      parseLowerCaseCity "berhampur" = Right Berhampur
+      parseLowerCaseCity "std:0343" = Right Bardhaman
+      parseLowerCaseCity "bardhaman" = Right Bardhaman
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
@@ -475,4 +571,20 @@ instance ToHttpApiData City where
   toUrlPiece Pudukkottai = "std:04322"
   toUrlPiece Bidar = "std:8482"
   toUrlPiece Srinagar = "std:0194"
+  toUrlPiece Alapuzha = "std:0477"
+  toUrlPiece Idukki = "std:04863"
+  toUrlPiece Kasarkode = "std:4994"
+  toUrlPiece Wayanad = "std:4936"
+  toUrlPiece Kannur = "std:497"
+  toUrlPiece Kottayam = "std:0481"
+  toUrlPiece Palakkad = "std:0491"
+  toUrlPiece Kolam = "std:474"
+  toUrlPiece Pathanamthitta = "std:468"
+  toUrlPiece Shillong = "std:0364"
+  toUrlPiece Cherrapunji = "std:03637"
+  toUrlPiece Pulwama = "std:01933"
+  toUrlPiece Jammu = "std:0191"
+  toUrlPiece Anantnag = "std:01932"
+  toUrlPiece Berhampur = "std:0680"
+  toUrlPiece Bardhaman = "std:0343"
   toUrlPiece AnyCity = "*"
