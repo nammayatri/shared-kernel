@@ -19,9 +19,11 @@
 module Kernel.Storage.ClickhouseV2.ClickhouseValue where
 
 import qualified Data.Aeson as A
+import Data.ByteString as BS
 import Data.Coerce (coerce)
 import qualified Data.Scientific as Sci
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Types.Common (Centesimal, Currency, HighPrecMeters, HighPrecMoney)
@@ -140,6 +142,11 @@ instance ClickhouseValue Text where
   fromClickhouseValue (String str) = pure . T.pack $ str
   fromClickhouseValue (Number _) = fail "Unexpected Number"
   fromClickhouseValue Null = fail "Unexpected Null"
+
+instance ClickhouseValue A.Value where
+  fromClickhouseValue (String str) = Except . A.eitherDecode . BS.fromStrict . TE.encodeUtf8 . T.pack $ str
+  fromClickhouseValue _ = fail "String expected"
+  toClickhouseValue = String . T.unpack . TE.decodeUtf8 . BS.toStrict . A.encode
 
 instance ClickhouseValue a => ClickhouseValue (Maybe a) where
   toClickhouseValue (Just a) = coerce @(Value a) @(Value (Maybe a)) (toClickhouseValue a)
