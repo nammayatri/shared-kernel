@@ -206,6 +206,9 @@ timeDiff = TimeDiff
 if_ :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
 if_ = If
 
+case_ :: (ClickhouseTable t, ClickhouseValue v) => NonEmpty (Column a t Bool, Column a t v) -> Column a t v -> Column a t v
+case_ = Case
+
 (==..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
 (==..) = EqColumn
 
@@ -227,19 +230,11 @@ if_ = If
 (<=..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
 (<=..) = LessOrEqual
 
-infix 4 ==..
+infix 4 ==.., >.., <.., >=.., <=..
 
-infix 3 &&..
+infixr 3 &&..
 
-infix 3 ||..
-
-infix 4 >..
-
-infix 4 <..
-
-infix 4 >=..
-
-infix 4 <=..
+infixr 2 ||..
 
 -- | Calculates the 'arg' value for a maximum 'val' value.
 -- If there are multiple rows with equal 'val' being the maximum, which of the associated 'arg' is returned is not deterministic
