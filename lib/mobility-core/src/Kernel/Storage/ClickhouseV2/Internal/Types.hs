@@ -84,7 +84,7 @@ data Clause table where
   Val :: (ClickhouseTable table, ClickhouseValue Bool) => Bool -> Clause table
 
 data Term value where
-  In :: ClickhouseValue value => [value] -> Term value
+  In :: ClickhouseValue value => NonEmpty value -> Term value
   NullTerm :: ClickhouseValue value => Term (Maybe value)
   NotNullTerm :: ClickhouseValue value => Term (Maybe value)
   Eq :: ClickhouseValue value => value -> Term value
