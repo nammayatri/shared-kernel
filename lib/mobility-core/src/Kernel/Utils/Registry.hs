@@ -33,6 +33,7 @@ import Kernel.Types.Registry
 import qualified Kernel.Types.Registry.API as API
 import qualified Kernel.Types.Registry.Routes as Registry
 import Kernel.Utils.Common
+import Kernel.Utils.Servant.SignatureAuth
 
 registryLookup ::
   ( CoreMetrics m,
@@ -40,9 +41,10 @@ registryLookup ::
   ) =>
   BaseUrl ->
   SimpleLookupRequest ->
+  Text ->
   m (Maybe Subscriber)
-registryLookup registryUrl request =
-  registryFetch registryUrl (toLookupReq request)
+registryLookup registryUrl request selfSubId =
+  registryFetch registryUrl (toLookupReq request) selfSubId
     >>= \case
       [] -> pure Nothing
       -- These are temporary changes as there is bug in ONDC registry. They are sending multiple entries irrespective of ukId So we added traversal at our end.
@@ -70,9 +72,10 @@ registryFetch ::
   ) =>
   BaseUrl ->
   API.LookupRequest ->
+  Text ->
   m [Subscriber]
-registryFetch registryUrl request = do
-  callAPI registryUrl (T.client Registry.lookupAPI request) "lookup" Registry.lookupAPI
+registryFetch registryUrl request selfSubId = do
+  callAPI' (Just (T.ManagerSelector (getHttpManagerKey selfSubId))) registryUrl (T.client Registry.lookupAPI request) "lookup" Registry.lookupAPI
     >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
 
 checkBlacklisted ::
