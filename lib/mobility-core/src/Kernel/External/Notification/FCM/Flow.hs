@@ -40,30 +40,30 @@ module Kernel.External.Notification.FCM.Flow
     ApnsLiveActivityAPI,
     apnsLiveActivityAPI,
     updateLiveActivity,
-    createApnsLiveActivtyPayload
+    createApnsLiveActivityPayload,
   )
 where
 
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
+import Data.Text (pack)
 import qualified Data.Text as T'
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Base64 as B64
+import Data.Time.Clock.POSIX (getPOSIXTime)
 import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
 import Kernel.External.Notification.FCM.Error
 import Kernel.External.Notification.FCM.Types
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.APISuccess (APISuccess)
 import Kernel.Types.Common
 import Kernel.Utils.Common
 import qualified Kernel.Utils.JWT as JWT
 import Servant
 import Servant.Client (ClientError (..), ResponseF (..))
-import Kernel.Types.APISuccess (APISuccess)
-import Data.Time.Clock.POSIX (getPOSIXTime)
-
 
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
@@ -338,16 +338,22 @@ updateLiveActivity config recipient apnsReq = do
     Nothing -> do
       logTagInfo "FCM" tokenNotFound
       pure ()
-    Just token -> do 
-        currentTime <- liftIO getPOSIXTime
-        currentTime <- logDebug "Current Time" currentTime
-        let 
-            apnsReqTimeStamp = show $ currentTime
-        sendLiveActivityApns config (createApnsLiveActivtyPayload token apnsReq apnsReqTimeStamp) recipient.id
-      -- // sendMessage config (FCMRequest (createMessage msgData token priority iosModifier)) action recipient.id
+    Just token -> do
+      currentTime <- liftIO getPOSIXTime
+      -- currentTime <- logDebug "Current Time" currentTime
+      let currentTimeInt = floor currentTime :: Int -- Convert POSIXTime to Int
+          apnsReqTimeStamp = pack (show currentTimeInt)
+          apnsDismissalDate =
+            if liveActivityReqType apnsReq == "end"
+              then Just (currentTimeInt + 600) -- Set dismissal date 10 mins later
+              else Nothing
 
-sendLiveActivityApns :: 
-   ( CoreMetrics m,
+      sendLiveActivityApns config (createApnsLiveActivityPayload token apnsReq apnsReqTimeStamp apnsDismissalDate) recipient.id
+
+-- // sendMessage config (FCMRequest (createMessage msgData token priority iosModifier)) action recipient.id
+
+sendLiveActivityApns ::
+  ( CoreMetrics m,
     Redis.HedisFlow m r,
     MonadFlow m
   ) =>
@@ -378,30 +384,38 @@ type ApnsLiveActivityAPI req =
 apnsLiveActivityAPI :: Proxy (ApnsLiveActivityAPI a)
 apnsLiveActivityAPI = Proxy
 
-createApnsLiveActivtyPayload :: FCMRecipientToken -> LiveActivityReq-> Text -> ApnsAPIRequest
-createApnsLiveActivtyPayload token apnsReq apnsReqTimeStamp = 
-  let 
-      apnsReqLiveActivityToken = apnsReq.liveActivityToken
-      apnsReqLiveActivity =  apnsReq.liveActivityReqType
-      apnsContentState =  apnsReq.liveActivityContentState
-      apnsPayload' = ApnsAPIRequest {
-        message = Message {
-          token = token,
-          apns = Apns {
-            live_activity_token = apnsReqLiveActivityToken,
-            headers = ApnsHeaders {
-              apns_priority = "5"
-            },
-            payload = Payload {
-              aps =  Aps {
-                timestamp =  apnsReqTimeStamp,
-                content_available = 1,
-                event = apnsReqLiveActivity,
-                content_state = apnsContentState
-              }
-            }
+createApnsLiveActivityPayload :: FCMRecipientToken -> LiveActivityReq -> Text -> Maybe Int -> ApnsAPIRequest
+createApnsLiveActivityPayload token apnsReq apnsReqTimeStamp apnsDismissalDate =
+  let apnsReqLiveActivityToken = liveActivityToken apnsReq
+      apnsReqEvent = liveActivityReqType apnsReq
+      apnsContentState = liveActivityContentState apnsReq
+      apnsPriority = liveActivityPriority apnsReq
+
+      apnsPayload' =
+        ApnsAPIRequest
+          { message =
+              Message
+                { token = token,
+                  apns =
+                    Apns
+                      { live_activity_token = apnsReqLiveActivityToken,
+                        headers =
+                          ApnsHeaders
+                            { apns_priority = apnsPriority
+                            },
+                        payload =
+                          Payload
+                            { aps =
+                                Aps
+                                  { timestamp = apnsReqTimeStamp,
+                                    content_available = 1,
+                                    event = apnsReqEvent,
+                                    content_state = apnsContentState,
+                                    alert = Alert {},
+                                    dismissal_date = apnsDismissalDate
+                                  }
+                            }
+                      }
+                }
           }
-        }
-      }
-  in
-  apnsPayload'
+   in apnsPayload'
