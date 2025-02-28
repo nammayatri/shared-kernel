@@ -26,6 +26,7 @@ import Data.Aeson
 import Data.Aeson.Casing
 import Data.Aeson.TH
 import Data.Aeson.Types
+import Data.Char (toLower)
 import Data.Default.Class
 import Data.OpenApi (ToSchema)
 import qualified Database.Beam as B
@@ -40,6 +41,10 @@ import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON
 import Kernel.Utils.TH
 import Kernel.Utils.Text (decodeFromText, encodeToText)
+
+-- Convert camelCase to kebab-case (e.g., "contentAvailable" → "content-available")
+kebabCase :: String -> String
+kebabCase = intercalate "-" . words . map (\c -> if c == '_' then ' ' else toLower c)
 
 data FCMConfig = FCMConfig
   { fcmUrl :: BaseUrl,
@@ -814,3 +819,69 @@ data FCMResponse = FCMResponse
 $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMResponse)
 
 $(mkBeamInstancesForEnum ''FCMOverlayAction)
+
+data LiveActivityReq = LiveActivityReq
+  { liveActivityToken :: Text, -- live activity token
+    liveActivityReqType :: Text, -- request to be update, end, start
+    liveActivityNotificationType :: Text, -- notification type , SEARCH_CANCELLED, RIDE_CANCELLED
+    liveActivityContentState :: Text, -- live activity content state
+    liveActivityPriority :: Text, -- live activity content state
+    -- dismissalDate :: Maybe POSIXTime, --dismissal date for ending live activity
+    timestamp :: Text -- timestamp
+  }
+  deriving (Show, Eq, Generic)
+
+data ApnsAPIRequest = ApnsAPIRequest
+  { message :: Message
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+data Message = Message
+  { token :: FCMRecipientToken,
+    apns :: Apns
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+data Apns = Apns
+  { live_activity_token :: Text,
+    headers :: ApnsHeaders,
+    payload :: Payload
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+data ApnsHeaders = ApnsHeaders
+  { apns_priority :: Text
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+$(deriveJSON defaultOptions {fieldLabelModifier = kebabCase, omitNothingFields = True} ''ApnsHeaders)
+
+data Payload = Payload
+  { aps :: Aps
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+data Alert = Alert
+  {}
+  deriving (Generic, ToJSON, FromJSON)
+
+data Aps = Aps
+  { timestamp :: Text,
+    content_available :: Int,
+    event :: Text,
+    content_state :: Text,
+    dismissal_date :: Maybe Int,
+    alert :: Alert
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+$(deriveJSON defaultOptions {fieldLabelModifier = kebabCase, omitNothingFields = True} ''Aps)
+
+-- newtype ApnsReqBody a b = ApnsReqBody
+--   { apnsReqBody :: ApnsLiveActivityMessage a b
+--   }
+
+-- data ApnsLiveActivityMessage a b = ApnsLiveActivityMessage {
+--   token :: a,
+--   req :: b
+-- }
