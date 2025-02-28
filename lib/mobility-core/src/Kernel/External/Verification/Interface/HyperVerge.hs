@@ -137,7 +137,9 @@ getVerificationStatus cfg rqst@InterfaceTypes.GetTaskReq {..} updateResp = do
                   color = apiData.color,
                   fuelType = apiData.fuel_descr,
                   bodyType = apiData.body_type,
-                  status = Just status
+                  status = Just status,
+                  grossVehicleWeight = apiData.vehicle_gross_weight,
+                  unladdenWeight = apiData.unladen_weight
                 }
         Just (HyperVergeTypes.DLVerificationResultData HyperVergeTypes.DLVerificationData {..}) -> do
           let ((transporterValidFrom, transporterValidTo), (nonTransportValidFrom, nonTransportValidTo)) = flip (maybe ((Nothing, Nothing), (Nothing, Nothing))) validity $ (\HyperVergeTypes.DLValidityInfo {..} -> TE.both (maybe (Nothing, Nothing) (\d -> (listToMaybe d, listToMaybe $ reverse d)) . (T.splitOn " " <$>)) (transport, nonTransport))
@@ -202,6 +204,8 @@ getVerificationStatus cfg rqst@InterfaceTypes.GetTaskReq {..} updateResp = do
                   color = Nothing,
                   fuelType = Nothing,
                   bodyType = Nothing,
-                  status = Just "failure"
+                  status = Just "failure",
+                  grossVehicleWeight = Nothing,
+                  unladdenWeight = Nothing
                 }
         _ -> throwError $ InternalError ("Unknown Workflow!!!!!!!. workflowId : " <> show workflowId)

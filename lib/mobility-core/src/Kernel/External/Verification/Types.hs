@@ -67,6 +67,8 @@ data RCVerificationResponse = RCVerificationResponse
     color :: Maybe Text,
     fuelType :: Maybe Text,
     bodyType :: Maybe Text,
-    status :: Maybe Text
+    status :: Maybe Text,
+    grossVehicleWeight :: Maybe Float,
+    unladdenWeight :: Maybe Float
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
