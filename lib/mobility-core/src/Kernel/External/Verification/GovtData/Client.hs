@@ -52,5 +52,7 @@ verifyRC req = do
           color = Nothing,
           fuelType = res.fuelType,
           bodyType = res.bodyType,
-          status = Nothing
+          status = Nothing,
+          grossVehicleWeight = Nothing,
+          unladdenWeight = Nothing
         }
