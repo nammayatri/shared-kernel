@@ -26,6 +26,7 @@ module Kernel.External.Verification.Interface.Idfy
 where
 
 import Control.Applicative ((<|>))
+import qualified Data.Aeson as A
 import qualified Data.Text as T
 import Data.Time.Format
 import Kernel.External.Encryption
@@ -264,5 +265,11 @@ convertRCOutputToRCVerificationResponse RCVerificationOutput {..} =
       color = color <|> colour,
       fuelType = fuel_type,
       bodyType = body_type,
-      status = status
+      status = status,
+      grossVehicleWeight = gross_vehicle_weight >>= convertValueToFloat,
+      unladdenWeight = unladden_weight >>= convertValueToFloat
     }
+
+convertValueToFloat :: A.Value -> Maybe Float
+convertValueToFloat (A.String val) = readMaybe (T.unpack val)
+convertValueToFloat _ = Nothing
