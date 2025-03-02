@@ -137,7 +137,7 @@ setMeshConfig modelName mSchema meshConfig' = do
     else do
       let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
       tables' <- L.getOption KBT.Tables >>= maybe (L.throwException $ InternalError "Tables not found in setMeshConfig") pure
-      if modelName `elem` tables'.disableForKV
+      if modelName `elem` tables'.disableForKV || allTablesDisabled tables' == Just True
         then pure $ meshConfig' {ecRedisDBStream = redisStream}
         else do
           let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
