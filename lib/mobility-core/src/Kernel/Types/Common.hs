@@ -73,7 +73,8 @@ data Tables = Tables
     readFromMasterDb :: [Text],
     defaultShardMod :: Int,
     tableShardModRange :: HM.HashMap Text (Int, Int),
-    tableRedisKeyPrefix :: HM.HashMap Text Text
+    tableRedisKeyPrefix :: HM.HashMap Text Text,
+    allTablesDisabled :: Maybe Bool
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
@@ -87,7 +88,8 @@ defaultTableData =
       readFromMasterDb = [],
       defaultShardMod = 128,
       tableShardModRange = HM.empty,
-      tableRedisKeyPrefix = HM.empty
+      tableRedisKeyPrefix = HM.empty,
+      allTablesDisabled = Just True
     }
 
 data KafkaProperties = KafkaProperties
