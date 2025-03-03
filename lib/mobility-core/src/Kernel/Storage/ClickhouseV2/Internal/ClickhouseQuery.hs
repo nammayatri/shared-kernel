@@ -73,7 +73,7 @@ instance (ClickhouseTable t) => ClickhouseQuery (Clause t) where
   toClickhouseQuery (Val b) = RawQuery $ C.toLower <$> show @String @Bool b
 
 instance ClickhouseValue value => ClickhouseQuery (Term value) where
-  toClickhouseQuery (In valList) = " IN " <> (addBrackets . intercalate "," . (valToClickhouseQuery @value <$>) $ valList)
+  toClickhouseQuery (In valList) = " IN " <> (addBrackets . intercalate "," . (valToClickhouseQuery @value <$>) $ toList valList)
   toClickhouseQuery (Eq term) = "=" <> valToClickhouseQuery @value term
   toClickhouseQuery NullTerm = " IS NULL"
   toClickhouseQuery NotNullTerm = " IS NOT NULL"

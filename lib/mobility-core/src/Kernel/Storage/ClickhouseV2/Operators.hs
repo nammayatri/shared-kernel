@@ -14,6 +14,7 @@
 
 module Kernel.Storage.ClickhouseV2.Operators where
 
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
@@ -62,7 +63,8 @@ valColumn :: forall a t v. (ClickhouseTable t, ClickhouseValue v) => v -> Column
 valColumn = ValColumn
 
 in_ :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table value -> [value] -> Clause table
-in_ column values = column `Is` In values
+in_ _column [] = val_ False
+in_ column (value1 : values) = column `Is` In (value1 NE.:| values)
 
 isNull :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table (Maybe value) -> Clause table
 isNull column = Is column NullTerm
@@ -206,6 +208,9 @@ timeDiff = TimeDiff
 if_ :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
 if_ = If
 
+case_ :: (ClickhouseTable t, ClickhouseValue v) => NonEmpty (Column a t Bool, Column a t v) -> Column a t v -> Column a t v
+case_ = Case
+
 (==..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
 (==..) = EqColumn
 
@@ -227,19 +232,11 @@ if_ = If
 (<=..) :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
 (<=..) = LessOrEqual
 
-infix 4 ==..
+infix 4 ==.., >.., <.., >=.., <=..
 
-infix 3 &&..
+infixr 3 &&..
 
-infix 3 ||..
-
-infix 4 >..
-
-infix 4 <..
-
-infix 4 >=..
-
-infix 4 <=..
+infixr 2 ||..
 
 -- | Calculates the 'arg' value for a maximum 'val' value.
 -- If there are multiple rows with equal 'val' being the maximum, which of the associated 'arg' is returned is not deterministic
