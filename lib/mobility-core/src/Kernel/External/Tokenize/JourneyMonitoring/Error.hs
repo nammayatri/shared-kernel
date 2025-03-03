@@ -19,6 +19,7 @@ module Kernel.External.Tokenize.JourneyMonitoring.Error where
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 
 data JourneyMonitoringError
   = JMUnauthorizedError
@@ -42,3 +43,5 @@ instance IsHTTPError JourneyMonitoringError where
     JMError _ -> E400
 
 instance IsAPIError JourneyMonitoringError
+
+mkOpenAPIError ''JourneyMonitoringError

@@ -23,6 +23,7 @@ import Kernel.External.SMS.MyValueFirst.Types (SubmitSmsRes, submitSmsResToText)
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromResponse))
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 import Kernel.Utils.Servant.BaseUrl
 import Network.HTTP.Types (Header, Status (statusCode))
 import Network.HTTP.Types.Header (HeaderName)
@@ -75,6 +76,8 @@ instance IsHTTPError AuthError where
 
 instance IsAPIError AuthError
 
+mkOpenAPIError ''AuthError
+
 data HeaderError
   = MissingHeader HeaderName
   | InvalidHeader HeaderName Text
@@ -94,6 +97,8 @@ instance IsHTTPError HeaderError where
   toHttpCode _ = E400
 
 instance IsAPIError HeaderError
+
+mkOpenAPIError ''HeaderError
 
 data SignatureError
   = SignatureVerificationFailure [Header]
@@ -117,6 +122,8 @@ instance IsHTTPError SignatureError where
 
 instance IsAPIError SignatureError
 
+mkOpenAPIError ''SignatureError
+
 data AuthPIError = NotAnExecutor deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''AuthPIError
@@ -129,6 +136,8 @@ instance IsHTTPError AuthPIError where
   toHttpCode NotAnExecutor = E403
 
 instance IsAPIError AuthPIError
+
+mkOpenAPIError ''AuthPIError
 
 data VehicleError
   = VehicleNotFound Text
@@ -155,6 +164,8 @@ instance IsHTTPError VehicleError where
     VehicleAlreadyLinked -> E400
 
 instance IsAPIError VehicleError
+
+mkOpenAPIError ''VehicleError
 
 data PersonError
   = PersonNotFound Text
@@ -202,6 +213,8 @@ instance IsHTTPError PersonError where
 
 instance IsAPIError PersonError
 
+mkOpenAPIError ''PersonError
+
 data TransporterError
   = TransporterConfigNotFound Text
   | TransporterConfigDoesNotExist Text
@@ -222,6 +235,8 @@ instance IsHTTPError TransporterError where
     TransporterConfigDoesNotExist _ -> E400
 
 instance IsAPIError TransporterError
+
+mkOpenAPIError ''TransporterError
 
 data MerchantError
   = MerchantNotFound Text
@@ -261,6 +276,8 @@ instance IsHTTPError MerchantError where
 
 instance IsAPIError MerchantError
 
+mkOpenAPIError ''MerchantError
+
 data ExophoneError
   = ExophoneNotFound Text
   | ExophoneDoesNotExist Text
@@ -282,6 +299,8 @@ instance IsHTTPError ExophoneError where
 
 instance IsAPIError ExophoneError
 
+mkOpenAPIError ''ExophoneError
+
 data LocationError = LocationNotFound
   deriving (Eq, Show, IsBecknAPIError)
 
@@ -295,6 +314,8 @@ instance IsHTTPError LocationError where
   toHttpCode LocationNotFound = E500
 
 instance IsAPIError LocationError
+
+mkOpenAPIError ''LocationError
 
 data GenericError
   = InternalError Text
@@ -317,6 +338,8 @@ instance IsHTTPError GenericError where
     InvalidRequest _ -> E400
 
 instance IsAPIError GenericError
+
+mkOpenAPIError ''GenericError
 
 data SearchRequestError
   = SearchRequestNotFound Text
@@ -343,6 +366,8 @@ instance IsHTTPError SearchRequestError where
     SearchRequestExpired -> E400
 
 instance IsAPIError SearchRequestError
+
+mkOpenAPIError ''SearchRequestError
 
 data QuoteError
   = QuoteNotFound Text
@@ -374,6 +399,8 @@ instance IsHTTPError QuoteError where
 
 instance IsAPIError QuoteError
 
+mkOpenAPIError ''QuoteError
+
 data ShouldNotHappenError
   = ShouldNotHappen Text
   deriving (Eq, Show, IsBecknAPIError)
@@ -391,6 +418,8 @@ instance IsHTTPError ShouldNotHappenError where
     ShouldNotHappen _ -> E500
 
 instance IsAPIError ShouldNotHappenError
+
+-- mkOpenAPIError ''ShouldNotHappenError -- E500
 
 data BookingError
   = BookingNotFound Text
@@ -429,6 +458,8 @@ instance IsHTTPError BookingError where
     BookingBppOrderIdNotFound -> E500
 
 instance IsAPIError BookingError
+
+mkOpenAPIError ''BookingError
 
 data RideError
   = RideNotFound Text
@@ -473,6 +504,8 @@ instance IsHTTPError RideError where
 
 instance IsAPIError RideError
 
+mkOpenAPIError ''RideError
+
 data DatabaseError
   = SQLRequestError Text Text
   | SQLResultError Text
@@ -495,6 +528,8 @@ instance IsHTTPError DatabaseError where
   toHttpCode _ = E500
 
 instance IsAPIError DatabaseError
+
+mkOpenAPIError ''DatabaseError
 
 data ContextError
   = UnsupportedCoreVer
@@ -527,6 +562,8 @@ externalAPICallErrorMessage baseUrl clientErr =
       <> ": "
       <> show clientErr
 
+mkOpenAPIError ''ContextError
+
 data ExternalAPICallError = ExternalAPICallError
   { errCode :: Maybe Text,
     baseUrl :: BaseUrl,
@@ -544,6 +581,8 @@ instance IsHTTPError ExternalAPICallError where
 
 instance IsAPIError ExternalAPICallError
 
+-- mkOpenAPIError ''ExternalAPICallError -- E500
+
 data HealthCheckError
   = ServiceUnavailable
   deriving (Eq, Show, IsBecknAPIError)
@@ -557,6 +596,8 @@ instance IsHTTPError HealthCheckError where
   toHttpCode ServiceUnavailable = E503
 
 instance IsAPIError HealthCheckError
+
+mkOpenAPIError ''HealthCheckError
 
 data ServerError
   = ServerUnavailable
@@ -590,6 +631,8 @@ instance IsHTTPError RedisError where
 
 instance IsAPIError RedisError
 
+-- mkOpenAPIError ''RedisError -- E500
+
 data SMSError
   = SMSError SubmitSmsRes
   | SMSInvalidNumber
@@ -612,6 +655,8 @@ instance IsHTTPError SMSError where
     SMSInvalidNumber -> E400
 
 instance IsAPIError SMSError
+
+mkOpenAPIError ''SMSError
 
 data SpecialZoneError
   = OtpNotFoundForSpecialZoneBooking Text
@@ -644,6 +689,8 @@ instance IsHTTPError SpecialZoneError where
 
 instance IsAPIError SpecialZoneError
 
+mkOpenAPIError ''SpecialZoneError
+
 data GoogleMapsCallError = GoogleMapsInvalidRequest | GoogleMapsCallError Text
   deriving (Eq, Show, IsBecknAPIError)
 
@@ -664,6 +711,8 @@ instance IsHTTPError GoogleMapsCallError where
 
 instance IsAPIError GoogleMapsCallError
 
+mkOpenAPIError ''GoogleMapsCallError
+
 data GoogleTranslateCallError = GoogleTranslateInvalidRequest
   deriving (Eq, Show, IsBecknAPIError)
 
@@ -677,6 +726,8 @@ instance IsHTTPError GoogleTranslateCallError where
   toHttpCode GoogleTranslateInvalidRequest = E400
 
 instance IsAPIError GoogleTranslateCallError
+
+mkOpenAPIError ''GoogleTranslateCallError
 
 data GupShupError
   = GupShupInvalidRequest
@@ -722,6 +773,8 @@ instance FromResponse GupShupError where
     _ -> Just GupShupNotConfigured
 
 instance IsAPIError GupShupError
+
+mkOpenAPIError ''GupShupError
 
 data TwillioError
   = TwillioBadRequest
@@ -791,6 +844,8 @@ instance IsHTTPError AgencyDisabled where
 
 instance IsAPIError AgencyDisabled
 
+mkOpenAPIError ''AgencyDisabled
+
 data ExotelError
   = ExotelNotConfigured
   | ExotelBadRequest
@@ -842,6 +897,8 @@ instance IsHTTPError ExotelError where
 
 instance IsAPIError ExotelError
 
+mkOpenAPIError ''ExotelError
+
 data KafkaError
   = KafkaUnableToBuildTools Kafka.KafkaError
   | KafkaUnableToReleaseTools Kafka.KafkaError
@@ -873,6 +930,8 @@ instance IsHTTPError KafkaError where
 
 instance IsAPIError KafkaError
 
+-- mkOpenAPIError ''KafkaError -- E500
+
 data CallStatusError
   = CallStatusDoesNotExist
   | CallStatusFieldNotPresent Text
@@ -891,6 +950,8 @@ instance IsHTTPError CallStatusError where
   toHttpCode (CallStatusFieldNotPresent _) = E500
 
 instance IsAPIError CallStatusError
+
+mkOpenAPIError ''CallStatusError
 
 data ServiceabilityError
   = RideNotServiceable
@@ -912,6 +973,8 @@ instance IsHTTPError ServiceabilityError where
     RideNotServiceableInState _ -> E400
 
 instance IsAPIError ServiceabilityError
+
+mkOpenAPIError ''ServiceabilityError
 
 data IdfyCallError
   = IdfyBadRequest
@@ -964,6 +1027,8 @@ instance IsHTTPError IdfyCallError where
 
 instance IsAPIError IdfyCallError
 
+mkOpenAPIError ''IdfyCallError
+
 data VersionError = VersionUnexpectedVersion Text
   deriving (Eq, Show, IsBecknAPIError)
 
@@ -977,6 +1042,8 @@ instance IsHTTPError VersionError where
   toHttpCode (VersionUnexpectedVersion _) = E400
 
 instance IsAPIError VersionError
+
+mkOpenAPIError ''VersionError
 
 data MMIError
   = MMINotConfigured
@@ -1021,6 +1088,8 @@ instance IsHTTPError MMIError where
 
 instance IsAPIError MMIError
 
+mkOpenAPIError ''MMIError
+
 data MerchantMessageError
   = MerchantMessageNotFound Text Text
   deriving (Eq, Show, IsBecknAPIError)
@@ -1052,6 +1121,8 @@ instance IsHTTPError SosError where
   toHttpCode _ = E400
 
 instance IsAPIError SosError
+
+mkOpenAPIError ''SosError
 
 data PaymentOrderError
   = PaymentOrderNotFound Text
@@ -1087,6 +1158,8 @@ instance IsHTTPError PaymentOrderError where
     PaymentOrderDoesNotExist _ -> E400
 
 instance IsAPIError PaymentOrderError
+
+mkOpenAPIError ''PaymentOrderError
 
 data DriverFeeError
   = DriverFeeNotFound Text
@@ -1133,6 +1206,8 @@ instance IsHTTPError TicketError where
 
 instance IsAPIError TicketError
 
+mkOpenAPIError ''TicketError
+
 data OsrmError
   = FailedToCallOsrmRouteAPI Text
   | FailedToCallOsrmTableAPI Text
@@ -1158,6 +1233,8 @@ instance IsHTTPError OsrmError where
     FailedToCallOsrmMatchAPI _ -> E400
 
 instance IsAPIError OsrmError
+
+mkOpenAPIError ''OsrmError
 
 data EditLocationError
   = PickupOrDropLocationNotFound
@@ -1190,6 +1267,8 @@ instance IsHTTPError EditLocationError where
 
 instance IsAPIError EditLocationError
 
+mkOpenAPIError ''EditLocationError
+
 data NextBillionError
   = FailedToCallNextBillionRouteAPI Text
   deriving (Eq, Show, IsBecknAPIError)
@@ -1208,6 +1287,8 @@ instance IsHTTPError NextBillionError where
 
 instance IsAPIError NextBillionError
 
+mkOpenAPIError ''NextBillionError
+
 data RideRelatedNotificationError
   = RideRelatedNotificationConfigNotFound Text
   deriving (Eq, Show, IsBecknAPIError)
@@ -1224,6 +1305,8 @@ instance IsHTTPError RideRelatedNotificationError where
     RideRelatedNotificationConfigNotFound _ -> E500
 
 instance IsAPIError RideRelatedNotificationError
+
+mkOpenAPIError ''RideRelatedNotificationError
 
 data MerchantPNError
   = MerchantPNNotFound Text Text
@@ -1243,6 +1326,8 @@ instance IsHTTPError MerchantPNError where
 
 instance IsAPIError MerchantPNError
 
+mkOpenAPIError ''MerchantPNError
+
 data PayoutConfigError
   = PayoutConfigNotFound Text Text
   deriving (Eq, Show, IsBecknAPIError)
@@ -1260,3 +1345,5 @@ instance IsHTTPError PayoutConfigError where
     PayoutConfigNotFound _ _ -> E500
 
 instance IsAPIError PayoutConfigError
+
+mkOpenAPIError ''PayoutConfigError

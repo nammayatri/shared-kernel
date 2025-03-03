@@ -399,6 +399,9 @@ library
       Kernel.Utils.Error.DB
       Kernel.Utils.Error.FlowHandling
       Kernel.Utils.Error.Hierarchy
+      Kernel.Utils.Error.OpenApi
+      Kernel.Utils.Error.OpenApi.Example
+      Kernel.Utils.Error.TH
       Kernel.Utils.Error.Throwing
       Kernel.Utils.Example
       Kernel.Utils.FlowLogging
@@ -552,6 +555,8 @@ library
     , servant
     , servant-client
     , servant-client-core
+    , servant-exceptions
+    , servant-exceptions-server
     , servant-multipart
     , servant-multipart-api
     , servant-multipart-client
@@ -715,6 +720,8 @@ test-suite mobility-core-tests
     , servant
     , servant-client
     , servant-client-core
+    , servant-exceptions
+    , servant-exceptions-server
     , servant-multipart
     , servant-multipart-api
     , servant-multipart-client

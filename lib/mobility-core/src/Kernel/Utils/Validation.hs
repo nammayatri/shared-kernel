@@ -27,6 +27,7 @@ import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Logging
 import Kernel.Types.Predicate
 import Kernel.Types.Validation
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 import Kernel.Utils.Error.Throwing
 
 newtype RequestValidationFailure = RequestValidationFailure [ValidationDescription]
@@ -40,6 +41,8 @@ instance IsAPIError RequestValidationFailure where
   toPayload (RequestValidationFailure failures) = toJSON failures
 
 instanceExceptionWithParent 'HTTPException ''RequestValidationFailure
+
+mkOpenAPIError ''RequestValidationFailure -- there is payload also
 
 runRequestValidation ::
   (MonadThrow m, Log m) =>
