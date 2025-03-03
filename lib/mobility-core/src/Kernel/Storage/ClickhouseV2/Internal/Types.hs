@@ -61,6 +61,7 @@ data Column (a :: IsAggregated) t v where
   TimeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
   ValColumn :: (ClickhouseTable t, ClickhouseValue v) => v -> Column a t v
   If :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
+  Case :: (ClickhouseTable t, ClickhouseValue v) => NonEmpty (Column a t Bool, Column a t v) -> Column a t v -> Column a t v -- only boolean conditions available for now
   EqColumn :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
   ArgMax :: (ClickhouseTable t, ClickhouseValue v1, ClickhouseValue v2) => Column 'NOT_AGG t v1 -> Column 'NOT_AGG t v2 -> Column 'AGG t v1
   AndColumn :: (ClickhouseTable t, ClickhouseValue Bool) => Column a t Bool -> Column a t Bool -> Column a t Bool
@@ -83,7 +84,7 @@ data Clause table where
   Val :: (ClickhouseTable table, ClickhouseValue Bool) => Bool -> Clause table
 
 data Term value where
-  In :: ClickhouseValue value => [value] -> Term value
+  In :: ClickhouseValue value => NonEmpty value -> Term value
   NullTerm :: ClickhouseValue value => Term (Maybe value)
   NotNullTerm :: ClickhouseValue value => Term (Maybe value)
   Eq :: ClickhouseValue value => value -> Term value
@@ -245,6 +246,7 @@ showColumn (ToHour column) = "toHour" <> addBrackets' (showColumn column)
 showColumn (TimeDiff column1 column2) = "timeDiff" <> addBrackets' (showColumn column1 <> ", " <> showColumn column2)
 showColumn (ValColumn v) = valToString . toClickhouseValue $ v
 showColumn (If cond v1 v2) = "if" <> addBrackets' (showColumn cond <> ", " <> showColumn v1 <> ", " <> showColumn v2)
+showColumn (Case whenThen else_) = addBrackets' $ "CASE " <> concat (fmap (\(when_, then_) -> "WHEN " <> showColumn when_ <> " THEN " <> showColumn then_ <> " ") whenThen) <> "ELSE " <> showColumn else_ <> " END"
 showColumn (EqColumn column1 column2) = addBrackets' $ showColumn column1 <> "=" <> showColumn column2
 showColumn (ArgMax arg value) = "argMax" <> addBrackets' (showColumn arg <> ", " <> showColumn value)
 showColumn (AndColumn column1 column2) = addBrackets' $ showColumn column1 <> " AND " <> showColumn column2
