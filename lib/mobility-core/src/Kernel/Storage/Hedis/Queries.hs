@@ -435,7 +435,7 @@ withWaitOnLockRedisWithExpiry key timeout recursionTimeOut func = do
   uuid <- T.pack <$> liftIO (RS.randomString (RS.onlyAlphaNum RS.randomASCII) 10)
   let keyE = "recursion timeout for:" <> uuid
   setExp keyE True recursionTimeOut
-  withWaitOnLockRedisWithExpiry' keyE key timeout func
+  withMasterRedis $ withWaitOnLockRedisWithExpiry' keyE key timeout func
 
 withWaitOnLockRedisWithExpiry' :: (HedisFlow m env, MonadMask m) => Text -> Text -> ExpirationTime -> m () -> m ()
 withWaitOnLockRedisWithExpiry' recursionTimedOutKey key timeout func = do
