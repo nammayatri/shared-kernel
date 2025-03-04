@@ -36,6 +36,7 @@ module Kernel.Beam.Functions
     updateWithKVSchedulerWithOptions,
     updateOneWithKVWithOptions,
     getReplicaBeamConfig,
+    runInMasterRedis,
   )
 where
 
@@ -46,6 +47,7 @@ import qualified Data.Serialize as Serialize
 import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
+import EulerHS.Extra.Monitoring.Types (UseMasterRedis (..))
 import qualified EulerHS.KVConnector.Flow as KV
 import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
 import EulerHS.KVConnector.Utils
@@ -117,6 +119,13 @@ runInReplica m = do
   L.setOptionLocal ReplicaEnabled True
   res <- m
   L.setOptionLocal ReplicaEnabled False
+  pure res
+
+runInMasterRedis :: (L.MonadFlow m, Log m) => m a -> m a
+runInMasterRedis m = do
+  L.setOptionLocal UseMasterRedis True
+  res <- m
+  L.setOptionLocal UseMasterRedis False
   pure res
 
 runInMasterDb :: (L.MonadFlow m, Log m) => m a -> m a
