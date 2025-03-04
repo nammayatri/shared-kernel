@@ -157,5 +157,11 @@ addErrorReferencesToResponseSchema :: NonEmpty O.Reference -> Maybe (O.Reference
 addErrorReferencesToResponseSchema (errorReference NE.:| []) Nothing = Just $ O.Ref errorReference
 addErrorReferencesToResponseSchema errorReferences Nothing =
   Just $ O.Inline $ mempty @O.Schema & O.oneOf L.?~ (O.Ref <$> NE.toList errorReferences)
-addErrorReferencesToResponseSchema errorReferences (Just responseSchema) =
-  Just $ O.Inline $ mempty @O.Schema & O.oneOf L.?~ (responseSchema : (O.Ref <$> NE.toList errorReferences))
+addErrorReferencesToResponseSchema errorReferences (Just responseSchema) = do
+  -- if schema consists only from `oneOf` clause then we put our references to list (avoid nested object)
+  -- else we create `oneOf` clause
+  case responseSchema of
+    O.Inline inlineResponseSchema | (inlineResponseSchema & O.oneOf L..~ Nothing) == mempty -> do
+      let existingSchemas = fromMaybe [] $ inlineResponseSchema L.^. O.oneOf
+      Just $ O.Inline $ mempty @O.Schema & O.oneOf L.?~ (existingSchemas <> (O.Ref <$> NE.toList errorReferences)) -- FIXME should we remove duplicates also?
+    _ -> Just $ O.Inline $ mempty @O.Schema & O.oneOf L.?~ (responseSchema : (O.Ref <$> NE.toList errorReferences))
