@@ -106,6 +106,7 @@ data Category
   | WMB_TRIP_STARTED
   | WMB_TRIP_FINISHED
   | FLEET_CONSENT
+  | SAFETY_ALERT_RIDE_STOPPAGE
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

@@ -188,6 +188,7 @@ data FCMNotificationType
   | WMB_TRIP_FINISHED
   | FLEET_CONSENT
   | DRIVER_REQUEST_REJECTED
+  | SAFETY_ALERT_RIDE_STOPPAGE
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 

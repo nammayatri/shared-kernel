@@ -137,6 +137,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.WMB_TRIP_STARTED -> FCM.WMB_TRIP_STARTED
   Interface.WMB_TRIP_FINISHED -> FCM.WMB_TRIP_FINISHED
   Interface.FLEET_CONSENT -> FCM.FLEET_CONSENT
+  Interface.SAFETY_ALERT_RIDE_STOPPAGE -> FCM.SAFETY_ALERT_RIDE_STOPPAGE
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
