@@ -13,6 +13,7 @@ import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import Servant
+import Servant.Client
 import Servant.OpenApi
 
 data Throws (es :: [Type])
@@ -21,6 +22,11 @@ instance HasServer api ctx => HasServer (Throws es :> api) ctx where
   type ServerT (Throws es :> api) m = ServerT api m
   route _ ctx subserver = route (Proxy @api) ctx subserver
   hoistServerWithContext _ ctxp hst serv = hoistServerWithContext (Proxy @api) ctxp hst serv
+
+instance HasClient m api => HasClient m (Throws es :> api) where
+  type Client m (Throws es :> api) = Client m api
+  clientWithRoute mp _ req = clientWithRoute mp (Proxy @api) req
+  hoistClientMonad mp _ hst cli = hoistClientMonad mp (Proxy @api) hst cli
 
 instance
   SanitizedUrl (sub :: Type) =>
