@@ -15,16 +15,16 @@ import Kernel.Utils.Monitoring.Prometheus.Servant
 import Servant
 import Servant.OpenApi
 
-data Throws (e :: Type) -- FIXME data Throws (e :: [Type])
+data Throws (es :: [Type])
 
-instance HasServer api ctx => HasServer (Throws e :> api) ctx where
-  type ServerT (Throws e :> api) m = ServerT api m
+instance HasServer api ctx => HasServer (Throws es :> api) ctx where
+  type ServerT (Throws es :> api) m = ServerT api m
   route _ ctx subserver = route (Proxy @api) ctx subserver
   hoistServerWithContext _ ctxp hst serv = hoistServerWithContext (Proxy @api) ctxp hst serv
 
 instance
   SanitizedUrl (sub :: Type) =>
-  SanitizedUrl (Throws r :> sub)
+  SanitizedUrl (Throws es :> sub)
   where
   getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy sub)
 
@@ -33,8 +33,6 @@ data ErrorSchema = ErrorSchema
     errorSchema :: O.Schema,
     errorReference :: O.Reference
   }
-
-data OpenApiErrorList (list :: [Type])
 
 class
   ( Typeable e,
@@ -89,7 +87,7 @@ data ErrorInfo = ErrorInfo
     errorMessage :: Maybe Text
   }
 
-instance (HasOpenApi api, HasErrorInfoList es) => HasOpenApi (Throws (OpenApiErrorList es) :> api) where
+instance (HasOpenApi api, HasErrorInfoList es) => HasOpenApi (Throws es :> api) where
   toOpenApi _ = do
     let errorInfoList = mkErrorInfoList (Proxy @es)
         apiOpenApi = toOpenApi (Proxy @api)
