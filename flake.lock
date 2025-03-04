@@ -370,16 +370,15 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1740461572,
-        "narHash": "sha256-kTcrUDW99AoGSPB8OxP4VKK/CJCWJRdT/4hncjnAS0s=",
+        "lastModified": 1741173147,
+        "narHash": "sha256-ksarQpBsANKu35mwK5iSvEZK9L7INyZlBelU39HkMZA=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "9aabd552e31847cede4aea1a1b20cf26ec6f4f1b",
+        "rev": "1e5873dfe47eae540df4ffe975c8a1e17c27c423",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
-        "ref": "backend/hedis-upgrade-for-zone-aware-replica-usage",
         "repo": "euler-hs",
         "type": "github"
       }
