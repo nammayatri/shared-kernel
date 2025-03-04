@@ -555,8 +555,6 @@ library
     , servant
     , servant-client
     , servant-client-core
-    , servant-exceptions
-    , servant-exceptions-server
     , servant-multipart
     , servant-multipart-api
     , servant-multipart-client
@@ -720,8 +718,6 @@ test-suite mobility-core-tests
     , servant
     , servant-client
     , servant-client-core
-    , servant-exceptions
-    , servant-exceptions-server
     , servant-multipart
     , servant-multipart-api
     , servant-multipart-client

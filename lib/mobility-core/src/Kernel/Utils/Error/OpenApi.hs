@@ -1,8 +1,3 @@
--- TODO remove
-{-# LANGUAGE EmptyDataDeriving #-}
--- TODO remove
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Kernel.Utils.Error.OpenApi where
 
 import qualified Control.Lens as L
@@ -18,9 +13,14 @@ import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import Servant
-import Servant.Exception (Throws, ToServantErr (..))
-import Servant.Exception.Server ()
 import Servant.OpenApi
+
+data Throws (e :: Type) -- FIXME data Throws (e :: [Type])
+
+instance HasServer api ctx => HasServer (Throws e :> api) ctx where
+  type ServerT (Throws e :> api) m = ServerT api m
+  route _ ctx subserver = route (Proxy @api) ctx subserver
+  hoistServerWithContext _ ctxp hst serv = hoistServerWithContext (Proxy @api) ctxp hst serv
 
 instance
   SanitizedUrl (sub :: Type) =>
@@ -35,15 +35,6 @@ data ErrorSchema = ErrorSchema
   }
 
 data OpenApiErrorList (list :: [Type])
-  deriving (Show, Generic)
-
-instance ToJSON (OpenApiErrorList err)
-
-instance Typeable err => Exception (OpenApiErrorList err)
-
--- TODO remove (do not use Throws at all)
-instance Typeable err => ToServantErr (OpenApiErrorList err) where
-  status = error "TODO"
 
 class
   ( Typeable e,

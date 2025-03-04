@@ -98,8 +98,6 @@ dependencies:
   - servant-client-core
   - servant-server
   - servant-openapi3
-  - servant-exceptions # TODO remove this dependency
-  - servant-exceptions-server # TODO remove this dependency
   - singletons-th
   - text
   - wai

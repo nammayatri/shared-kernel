@@ -1,5 +1,3 @@
--- TODO remove
-{-# LANGUAGE EmptyDataDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.Utils.Error.TH (mkOpenAPIError, mkOpenAPIErrorDebug) where

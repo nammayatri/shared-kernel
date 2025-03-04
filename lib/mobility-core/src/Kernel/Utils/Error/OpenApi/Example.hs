@@ -6,7 +6,6 @@ import Data.Time.Clock
 import Data.Typeable (typeRep)
 import Kernel.Prelude
 import qualified Network.HTTP.Types as HTTP
-import Servant.Exception.Server ()
 
 class OpenApiExample a where
   mkOpenApiExample :: Int -> a
