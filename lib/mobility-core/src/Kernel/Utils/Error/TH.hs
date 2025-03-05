@@ -25,18 +25,34 @@ mkOpenAPIError name = do
       _ -> fail $ nameStr <> " should be data type or newtype"
     _ -> fail $ nameStr <> " should be type name"
 
-  concat <$> forM typeCons \con -> case con of
-    NormalC conName conTypes -> do
-      paramsExp <- forM (zip conTypes [(1 :: Int) ..]) \((_bang, conType), i) -> do
-        pure $ VarE 'OE.mkOpenApiExample `AppTypeE` conType `AppE` LitE (IntegerL $ toInteger i)
-      let conNameStr = nameBase conName
-          conTypeName = TH.mkName $ conNameStr <> "T"
-          conDataTypeDec = DataD [] conTypeName [] Nothing [] []
-          typeInstanceDec = TySynInstD $ TySynEqn Nothing (ConT ''O.ErrorInfoType `AppT` ConT conTypeName) (ConT typeName)
-          funcInstanceDec = FunD 'O.mkErrExample [Clause [WildP] (NormalB $ appendE $ ConE (TH.mkName conNameStr) NE.:| paramsExp) []]
-          instanceDec = InstanceD Nothing [] (ConT ''O.HasErrorInfo `AppT` ConT conTypeName) [typeInstanceDec, funcInstanceDec]
-      pure [conDataTypeDec, instanceDec]
-    _ -> fail $ nameStr <> " should contain normal constructors"
+  concat <$> forM typeCons \con -> do
+    conName <- case con of
+      NormalC conName _ -> pure conName
+      RecC conName _ -> pure conName
+      _ -> fail $ nameStr <> " should contain normal or record constructors"
+
+    let conNameStr = nameBase conName
+        conTypeName = TH.mkName $ conNameStr <> "T"
+        conDataTypeDec = DataD [] conTypeName [] Nothing [] []
+        typeInstanceDec = TySynInstD $ TySynEqn Nothing (ConT ''O.ErrorInfoType `AppT` ConT conTypeName) (ConT typeName)
+        mkParamExp conType i = VarE 'OE.mkOpenApiExample `AppTypeE` conType `AppE` LitE (IntegerL $ toInteger i)
+
+    funcBody <- case con of
+      NormalC _ bangTypes -> do
+        let paramsExp =
+              (zip bangTypes [(1 :: Int) ..]) <&> \((_bang, conType), i) -> do
+                mkParamExp conType i
+        pure $ appendE $ ConE (TH.mkName conNameStr) NE.:| paramsExp
+      RecC _ varBangTypes -> do
+        let fieldsExp =
+              (zip varBangTypes [(1 :: Int) ..]) <&> \((recName, _bang, conType), i) -> do
+                (recName, mkParamExp conType i)
+        pure $ RecConE (TH.mkName conNameStr) fieldsExp
+      _ -> fail $ nameStr <> " should contain normal or record constructors"
+
+    let funcInstanceDec = FunD 'O.mkErrExample [Clause [WildP] (NormalB funcBody) []]
+        instanceDec = InstanceD Nothing [] (ConT ''O.HasErrorInfo `AppT` ConT conTypeName) [typeInstanceDec, funcInstanceDec]
+    pure [conDataTypeDec, instanceDec]
 
 appendE :: NE.NonEmpty TH.Exp -> TH.Exp
 appendE = foldl1 AppE
