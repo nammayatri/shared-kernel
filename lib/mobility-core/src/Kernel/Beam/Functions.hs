@@ -37,6 +37,7 @@ module Kernel.Beam.Functions
     updateOneWithKVWithOptions,
     getReplicaBeamConfig,
     runInMasterRedis,
+    runInMasterDbAndRedis,
   )
 where
 
@@ -133,6 +134,15 @@ runInMasterDb m = do
   L.setOptionLocal MasterReadEnabled True
   res <- m
   L.setOptionLocal MasterReadEnabled False
+  pure res
+
+runInMasterDbAndRedis :: (L.MonadFlow m, Log m) => m a -> m a
+runInMasterDbAndRedis m = do
+  L.setOptionLocal MasterReadEnabled True
+  L.setOptionLocal UseMasterRedis True
+  res <- m
+  L.setOptionLocal MasterReadEnabled False
+  L.setOptionLocal UseMasterRedis False
   pure res
 
 allowedSchema :: [Text]
