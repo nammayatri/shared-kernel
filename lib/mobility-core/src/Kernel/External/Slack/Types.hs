@@ -21,6 +21,7 @@
 
 module Kernel.External.Slack.Types where
 
+-- import Kernel.Utils.Error.TH (mkOpenAPIError)
 import Data.Aeson.Types
 import Data.OpenApi
 import EulerHS.Prelude hiding (state)
@@ -82,3 +83,5 @@ instance IsBecknAPIError Error where
   toType _ = DOMAIN_ERROR -- only to satisfy current tests, FIXME maybe
 
 instanceExceptionWithParent 'HTTPException ''Error
+
+-- mkOpenAPIError ''Error -- FIXME Error should contain normal constructors

@@ -73,3 +73,14 @@ mkToHttpInstanceForEnum name = do
       toQueryParam = toUrlPiece
       toHeader = BSL.toStrict . encode
     |]
+
+mkTestSplice :: [TH.Dec] -> TH.Q [TH.Dec]
+mkTestSplice decs = do
+  let fnName = TH.mkName "testSplice"
+  let fnSig = TH.SigD fnName (TH.ConT ''String)
+  let fnBody = TH.FunD fnName [TH.Clause [] (TH.NormalB . TH.LitE . TH.StringL $ TH.pprint decs) []]
+  return [fnSig, fnBody]
+
+-- SPLICE:
+-- testSplice :: String
+-- testSplice = "<all code from declarations splice here>"

@@ -19,6 +19,7 @@ module Kernel.External.Verification.Idfy.Types.Error where
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromResponse))
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 import Network.HTTP.Types (Status (statusCode))
 import Servant.Client (ResponseF (responseStatusCode))
 import Prelude
@@ -90,3 +91,5 @@ instance IsHTTPError IdfyError where
     IdfyBadGateway -> E500
 
 instance IsAPIError IdfyError
+
+mkOpenAPIError ''IdfyError

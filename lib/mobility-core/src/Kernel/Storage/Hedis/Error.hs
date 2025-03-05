@@ -42,3 +42,5 @@ instance IsHTTPError HedisError where
   toHttpCode _ = E500
 
 instance IsAPIError HedisError
+
+-- mkOpenAPIError ''HedisError -- E500

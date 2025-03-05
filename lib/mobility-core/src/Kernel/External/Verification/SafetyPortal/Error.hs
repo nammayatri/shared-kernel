@@ -19,6 +19,7 @@ module Kernel.External.Verification.SafetyPortal.Error where
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromResponse))
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 import Network.HTTP.Types (Status (statusCode))
 import Servant.Client (ResponseF (responseStatusCode))
 import Prelude
@@ -46,3 +47,5 @@ instance IsHTTPError SafetyPortalError where
     SafetyPortalBadRequest -> E400
 
 instance IsAPIError SafetyPortalError
+
+mkOpenAPIError ''SafetyPortalError
