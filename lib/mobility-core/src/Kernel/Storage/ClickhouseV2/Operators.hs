@@ -174,6 +174,9 @@ emptyFilter (table, level) =
 sum_ :: (ClickhouseTable table, ClickhouseNum value) => Column 'NOT_AGG table value -> Column 'AGG table value
 sum_ = Sum
 
+avg_ :: (ClickhouseTable table, ClickhouseNum value) => Column 'NOT_AGG table value -> Column 'AGG table value
+avg_ = Avg
+
 count_ :: (ClickhouseTable table, ClickhouseValue value, ClickhouseValue Int) => Column 'NOT_AGG table value -> Column 'AGG table Int
 count_ = Count
 
