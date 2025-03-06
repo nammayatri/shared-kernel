@@ -51,6 +51,7 @@ data Column (a :: IsAggregated) t v where
   Group :: (ClickhouseTable t, ClickhouseValue v) => Column 'NOT_AGG t v -> Column 'AGG t v -- column from groupBy clause
   SubColumn :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> ColumnNumber -> SubQueryLevel -> Column 'NOT_AGG t v -- column synonym will be generated based on these two guys SubQueryLevel and ColumnNumber
   Sum :: (ClickhouseTable t, ClickhouseNum v) => Column 'NOT_AGG t v -> Column 'AGG t v
+  Avg :: (ClickhouseTable t, ClickhouseNum v) => Column 'NOT_AGG t v -> Column 'AGG t v
   Count :: (ClickhouseTable t, ClickhouseValue v, ClickhouseValue Int) => Column 'NOT_AGG t v -> Column 'AGG t Int
   Distinct :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -- should not be used in where clause
   Max :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v
@@ -237,6 +238,7 @@ showColumn (Group column) = showColumn column
 showColumn (SubColumn _column n l) = getColumnSynonym n l
 showColumn (Sum column) = "SUM" <> addBrackets' (showColumn column)
 showColumn (Count column) = "COUNT" <> addBrackets' (showColumn column)
+showColumn (Avg column) = "AVG" <> addBrackets' (showColumn column)
 showColumn (Distinct column) = "DISTINCT" <> addBrackets' (showColumn column)
 showColumn (Max column) = "MAX" <> addBrackets' (showColumn column)
 showColumn (Add column1 column2) = addBrackets' (showColumn column1 <> "+" <> showColumn column2)
