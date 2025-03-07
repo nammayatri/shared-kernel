@@ -21,13 +21,13 @@
 
 module Kernel.External.Slack.Types where
 
--- import Kernel.Utils.Error.TH (mkOpenAPIError)
-import Data.Aeson.Types
+import Data.Aeson.Types hiding (Error)
 import Data.OpenApi
 import EulerHS.Prelude hiding (state)
 import Kernel.Types.Error.BaseError.HTTPError hiding (Error)
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse
 import Kernel.Utils.Dhall (FromDhall)
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 import Kernel.Utils.JSON
 
 data SlackConfig = SlackConfig
@@ -84,4 +84,4 @@ instance IsBecknAPIError Error where
 
 instanceExceptionWithParent 'HTTPException ''Error
 
--- mkOpenAPIError ''Error -- FIXME Error should contain normal constructors
+mkOpenAPIError ''Error

@@ -4,7 +4,8 @@ import qualified Control.Lens as L
 import qualified Data.Aeson as A
 import qualified Data.HashMap.Strict.InsOrd as HM
 import qualified Data.IntMap as M
-import Data.List.NonEmpty as NE
+import Data.List (nub)
+import qualified Data.List.NonEmpty as NE
 import qualified Data.OpenApi as O
 import qualified Data.Text as T
 import Data.Typeable (typeRep)
@@ -161,7 +162,20 @@ addErrorReferencesToResponseSchema errorReferences (Just responseSchema) = do
   -- if schema consists only from `oneOf` clause then we put our references to list (avoid nested object)
   -- else we create `oneOf` clause
   case responseSchema of
+    O.Ref existingRef -> do
+      addErrorSchemasToExistingSchemas [O.Ref existingRef] [existingRef]
     O.Inline inlineResponseSchema | (inlineResponseSchema & O.oneOf L..~ Nothing) == mempty -> do
       let existingSchemas = fromMaybe [] $ inlineResponseSchema L.^. O.oneOf
-      Just $ O.Inline $ mempty @O.Schema & O.oneOf L.?~ (existingSchemas <> (O.Ref <$> NE.toList errorReferences)) -- FIXME should we remove duplicates also?
-    _ -> Just $ O.Inline $ mempty @O.Schema & O.oneOf L.?~ (responseSchema : (O.Ref <$> NE.toList errorReferences))
+      let existingRefs =
+            catMaybes $
+              existingSchemas <&> \existingSchema -> case existingSchema of
+                O.Ref existingReference -> Just existingReference
+                O.Inline _ -> Nothing
+      addErrorSchemasToExistingSchemas existingSchemas existingRefs
+    _ -> Just $ O.Inline $ mempty @O.Schema & O.oneOf L.?~ (responseSchema : (O.Ref <$> nub (NE.toList errorReferences)))
+  where
+    addErrorSchemasToExistingSchemas existingSchemas existingRefs = do
+      let filteredErrorReferences = NE.filter (`notElem` existingRefs) $ NE.nub errorReferences
+      case filteredErrorReferences of
+        [] -> Just responseSchema
+        _ -> Just $ O.Inline $ mempty @O.Schema & O.oneOf L.?~ (existingSchemas <> (O.Ref <$> filteredErrorReferences))
