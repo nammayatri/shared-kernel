@@ -480,6 +480,19 @@ hSetExp key field value expirationTime = withLogTag "Redis" $ do
           Hedis.expire prefKey (toInteger expirationTime)
   whenLeft clusterRes (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_HSETEXP" $ show err)
 
+safeHGet :: (FromJSON a, HedisFlow m env) => Text -> Text -> m (Maybe a)
+safeHGet key field =
+  withTimeRedis "RedisCluster" "safeHGet" $ do
+    maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
+    case maybeBS of
+      Nothing -> pure Nothing
+      Just bs -> case Ae.decode $ BSL.fromStrict bs of
+        Just a -> return $ Just a
+        Nothing -> do
+          logTagError "REDIS" $ "Decode Failure for hash key:" <> key <> ", field:" <> field <> ", with value:" <> cs bs
+          hDel key [field]
+          return Nothing
+
 hGet :: (FromJSON a, HedisFlow m env) => Text -> Text -> m (Maybe a)
 hGet key field =
   withTimeRedis "RedisCluster" "hGet" $ do
