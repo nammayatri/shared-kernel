@@ -256,8 +256,14 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
   where
     removeShortWalkLegs :: Distance.Meters -> MultiModalRoute -> MultiModalRoute
     removeShortWalkLegs threshold route =
-      let filteredLegs = filter (\leg -> not (leg.mode == Walk && getLegDistance leg < thresholdValue)) route.legs
-          thresholdValue = fromIntegral $ Distance.getMeters threshold -- Convert threshold to Double for comparison
+      let thresholdValue = fromIntegral $ Distance.getMeters threshold -- Convert threshold to Double for comparison
+          legsWithIndices = zip [0 ..] route.legs -- Pair each leg with its index
+          totalLegs = length route.legs
+          filteredLegs =
+            [ leg
+              | (index, leg) <- legsWithIndices,
+                not (leg.mode == Walk && getLegDistance leg < thresholdValue && index /= 0 && index /= totalLegs - 1)
+            ]
        in route {legs = filteredLegs}
 
     getLegDistance :: MultiModalLeg -> Double
