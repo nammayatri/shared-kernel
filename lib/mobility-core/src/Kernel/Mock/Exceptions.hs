@@ -18,6 +18,7 @@ module Kernel.Mock.Exceptions where
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 
 newtype OrderError = OrderNotFound Text
   deriving (Show, IsBecknAPIError, Typeable)
@@ -34,3 +35,5 @@ instance IsHTTPError OrderError where
   toHttpCode _ = E500
 
 instance IsAPIError OrderError
+
+mkOpenAPIError ''OrderError -- E500

@@ -22,6 +22,7 @@ import EulerHS.Prelude hiding (Type, words)
 import qualified Kernel.Storage.ClickhouseV2.ClickhouseTable as CH
 import qualified Kernel.Storage.ClickhouseV2.ClickhouseValue as CH
 import Kernel.Types.Common ()
+import Kernel.Utils.TH (mkTestSplice)
 import Language.Haskell.TH
 
 mkClickhouseInstances :: Name -> Name -> Q [Dec]
@@ -154,14 +155,3 @@ mkFromJSONValue name fieldNames = do
 --                   "bar2" -> getFieldModification (bar1 driverEdaKafkaTTable)
 --                   "bar3" -> getFieldModification (bar1 driverEdaKafkaTTable)
 --                   a -> a}
-
-mkTestSplice :: [Dec] -> Q [Dec]
-mkTestSplice decs = do
-  let fnName = mkName "testSplice"
-  let fnSig = SigD fnName (ConT ''String)
-  let fnBody = FunD fnName [Clause [] (NormalB . LitE . StringL $ pprint decs) []]
-  return [fnSig, fnBody]
-
--- SPLICE:
--- testSplice :: String
--- testSplice = "<all code from declarations splice here>"

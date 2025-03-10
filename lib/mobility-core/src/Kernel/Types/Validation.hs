@@ -16,6 +16,7 @@ module Kernel.Types.Validation where
 
 import qualified Data.Either.Validation as V
 import EulerHS.Prelude
+import qualified Kernel.Utils.Error.OpenApi.Example as OE
 
 type Validation = V.Validation [ValidationDescription] ()
 
@@ -24,5 +25,12 @@ data ValidationDescription = ValidationDescription
     expectation :: Text
   }
   deriving (Generic, ToJSON, Show)
+
+instance OE.OpenApiExample ValidationDescription where
+  mkOpenApiExample i =
+    ValidationDescription
+      { fieldName = ["field#" <> show i, "subfield#" <> show i],
+        expectation = OE.mkOpenApiExample @Text i
+      }
 
 type Validate a = a -> Validation

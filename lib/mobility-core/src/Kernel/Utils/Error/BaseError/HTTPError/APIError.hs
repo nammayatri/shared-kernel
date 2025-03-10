@@ -41,6 +41,8 @@ instance IsHTTPError APICallError where
 
 instance IsAPIError APICallError
 
+-- mkOpenAPIError ''APICallError -- E500
+
 callOwnAPI ::
   Maybe ET.ManagerSelector ->
   Maybe Text ->

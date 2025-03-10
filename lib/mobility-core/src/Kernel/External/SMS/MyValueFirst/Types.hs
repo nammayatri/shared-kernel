@@ -19,6 +19,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import EulerHS.Prelude hiding (encodeUtf8, fromStrict, toStrict)
 import Kernel.Types.Servant
+import qualified Kernel.Utils.Error.OpenApi.Example as OE
 import Servant
 
 data SubmitSms = SubmitSms
@@ -44,6 +45,9 @@ data SubmitSmsRes
   | UnknownError
   | AuthorizationFailure
   deriving (Generic, FromJSON, ToJSON, Show, Eq)
+
+instance OE.OpenApiExample SubmitSmsRes where
+  mkOpenApiExample _i = MissingSender
 
 instance MimeUnrender PlainText_ISO_8859_1 SubmitSmsRes where
   mimeUnrender _ = Right . parseSubmitSmsRes . T.decodeLatin1 . toStrict

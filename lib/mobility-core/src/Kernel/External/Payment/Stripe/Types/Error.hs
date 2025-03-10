@@ -25,6 +25,8 @@ import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromResponse))
+import qualified Kernel.Utils.Error.OpenApi.Example as OE
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 import Kernel.Utils.JSON
 import Servant.Client (ResponseF (responseBody))
 import qualified Text.Show
@@ -73,6 +75,13 @@ data StripeErrorInfo = StripeErrorInfo
     errorMessage :: Maybe Text
   }
   deriving (Eq, Generic)
+
+instance OE.OpenApiExample StripeErrorInfo where
+  mkOpenApiExample i =
+    StripeErrorInfo
+      { errorCode = Just $ OE.mkOpenApiExample @Text i,
+        errorMessage = Just $ OE.mkOpenApiExample @Text i
+      }
 
 instance Show StripeErrorInfo where
   show (StripeErrorInfo code msg) =
@@ -129,3 +138,5 @@ instance IsHTTPError StripeError where
     SomethingWentWrong _ -> E500
 
 instance IsAPIError StripeError
+
+mkOpenAPIError ''StripeError

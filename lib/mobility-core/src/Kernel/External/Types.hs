@@ -24,6 +24,7 @@ import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Types.Common
 import Kernel.Utils.Dhall
+import qualified Kernel.Utils.Error.OpenApi.Example as OE
 import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
@@ -39,6 +40,9 @@ data Language
   | ODIA
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema, Enum, Bounded)
   deriving (PrettyShow) via Showable Language
+
+instance OE.OpenApiExample Language where
+  mkOpenApiExample _i = ENGLISH
 
 $(mkBeamInstancesForEnumAndList ''Language)
 

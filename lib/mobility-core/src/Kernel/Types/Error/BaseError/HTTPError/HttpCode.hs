@@ -94,3 +94,20 @@ isInternalError = \case
   E500 -> True
   E501 -> True
   E503 -> True
+
+httpCodeToCode :: HttpCode -> Int
+httpCodeToCode = \case
+  E400 -> 400
+  E401 -> 401
+  E402 -> 402
+  E403 -> 403
+  E404 -> 404
+  E409 -> 409
+  E412 -> 412
+  E413 -> 413
+  E415 -> 415
+  E422 -> 422
+  E429 -> 429
+  E500 -> 500
+  E501 -> 501
+  E503 -> 503

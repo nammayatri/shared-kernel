@@ -42,3 +42,5 @@ instance IsHTTPError TokenizationError where
     ExpiryNotFound _ -> E500
 
 instance IsAPIError TokenizationError
+
+-- mkOpenAPIError ''TokenizationError -- E500
