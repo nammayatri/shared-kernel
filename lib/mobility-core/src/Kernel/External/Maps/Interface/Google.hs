@@ -324,8 +324,7 @@ snapToRoad cfg SnapToRoadReq {..} = do
 
 autoComplete ::
   ( EncFlow m r,
-    CoreMetrics m,
-    HasShortDurationRetryCfg r c
+    CoreMetrics m
   ) =>
   GoogleCfg ->
   AutoCompleteReq ->
@@ -349,7 +348,7 @@ autoComplete cfg AutoCompleteReq {..} = do
               India -> "country:in"
               France -> "country:fr"
               USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
-      res <- withShortRetry $ GoogleMaps.autoComplete mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
+      res <- GoogleMaps.autoComplete mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
       let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
       let predictions = map (\prediction -> Prediction {placeId = prediction.place_id, distance = prediction.distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> prediction.distance_meters, types = prediction.types, description = prediction.description}) res.predictions
       return $ AutoCompleteResp predictions
