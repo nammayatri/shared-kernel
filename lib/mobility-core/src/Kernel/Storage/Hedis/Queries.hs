@@ -12,7 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.Storage.Hedis.Queries where
+module Kernel.Storage.Hedis.Queries (module Reexport, module Kernel.Storage.Hedis.Queries) where
 
 import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
@@ -21,7 +21,7 @@ import Data.String.Conversions
 import Data.Text hiding (concatMap, map, null)
 import qualified Data.Text as T
 import qualified Data.Text as Text
-import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
+import Database.Redis as Reexport (GeoBy (..), GeoFrom (..), Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
 import EulerHS.Prelude (whenLeft)
@@ -918,3 +918,41 @@ publish channel message = withLogTag "Redis" $ do
   whenLeft res $ \err ->
     withLogTag "CLUSTER" $
       logTagInfo "FAILED_TO_PUBLISH" (show err)
+
+geoAdd :: (HedisFlow m env) => Text -> [(Double, Double, BS.ByteString)] -> m Integer
+geoAdd key geoInfo = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "geoAdd" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.geoadd prefKey geoInfo)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_GEOADD" $ show err
+      Right items -> pure items
+  res <- withTimeRedis "RedisCluster" "geoAdd" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.geoadd prefKey geoInfo)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_GEOADD" $ show err
+      pure (-1) -- Return -1 if there was an error
+    Right items -> pure items
+
+geoSearch ::
+  (HedisFlow m env) =>
+  Text ->
+  -- | Search origin: either a member or coordinates.
+  Hedis.GeoFrom ->
+  -- | Search shape: radius or bounding box.
+  Hedis.GeoBy ->
+  -- | Search results.
+  m [BS.ByteString]
+geoSearch key from by = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "geosearch" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.geosearch prefKey from by)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_GEOSEARCH" $ show err
+      Right items -> pure items
+  res <- withTimeRedis "RedisCluster" "geosearch" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.geosearch prefKey from by)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_GEOSEARCH" $ show err
+      pure [] -- Return an empty list if there was an error
+    Right items -> pure items
