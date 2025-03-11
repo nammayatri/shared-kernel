@@ -918,3 +918,41 @@ publish channel message = withLogTag "Redis" $ do
   whenLeft res $ \err ->
     withLogTag "CLUSTER" $
       logTagInfo "FAILED_TO_PUBLISH" (show err)
+
+geoAdd :: (HedisFlow m env) => Text -> [(Double, Double, BS.ByteString)] -> m Integer
+geoAdd key geoInfo = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "geoAdd" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.geoadd prefKey geoInfo)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_GEOADD" $ show err
+      Right items -> pure items
+  res <- withTimeRedis "RedisCluster" "geoAdd" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.geoadd prefKey geoInfo)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_GEOADD" $ show err
+      pure (-1) -- Return -1 if there was an error
+    Right items -> pure items
+
+geoSearch ::
+  (HedisFlow m env) =>
+  Text ->
+  -- | Search origin: either a member or coordinates.
+  Hedis.GeoFrom ->
+  -- | Search shape: radius or bounding box.
+  Hedis.GeoBy ->
+  -- | Search results.
+  m [BS.ByteString]
+geoSearch key from by = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "geoAdd" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.geosearch prefKey from by)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_GEOADD" $ show err
+      Right items -> pure items
+  res <- withTimeRedis "RedisCluster" "geoAdd" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.geosearch prefKey from by)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_GEOADD" $ show err
+      pure [] -- Return an empty list if there was an error
+    Right items -> pure items
