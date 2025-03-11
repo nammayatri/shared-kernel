@@ -37,6 +37,10 @@ module Kernel.External.Notification.FCM.Flow
     parseFCMAccount,
     createAndroidNotificationWithIcon,
     createAndroidOverlayNotification,
+    ApnsLiveActivityAPI,
+    apnsLiveActivityAPI,
+    updateLiveActivity,
+    createApnsLiveActivtyPayload
   )
 where
 
@@ -57,6 +61,7 @@ import Kernel.Utils.Common
 import qualified Kernel.Utils.JWT as JWT
 import Servant
 import Servant.Client (ClientError (..), ResponseF (..))
+import Data.Time.Clock.POSIX (getPOSIXTime)
 
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
@@ -315,3 +320,99 @@ refreshToken config fcmAcc = do
       pure $ Right token
   where
     fcmTag = "FCM"
+
+updateLiveActivity ::
+  ( CoreMetrics m,
+    Redis.HedisFlow m r,
+    MonadFlow m
+  ) =>
+  FCMConfig ->
+  FCMNotificationRecipient ->
+  LiveActivityReq ->
+  m ()
+updateLiveActivity config recipient apnsReq = do
+  let tokenNotFound = "device token of a person " <> recipient.id <> " not found"
+  case recipient.token of
+    Nothing -> do
+      logTagInfo "FCM" tokenNotFound
+      pure ()
+    Just token -> do 
+        currentTime <- liftIO getPOSIXTime
+        let 
+            currentTimeInt = floor currentTime :: Int
+            apnsReqTimeStamp = currentTimeInt
+        sendLiveActivityApns config (createApnsLiveActivtyPayload token apnsReq apnsReqTimeStamp) recipient.id
+
+sendLiveActivityApns :: 
+   ( CoreMetrics m,
+    Redis.HedisFlow m r,
+    MonadFlow m
+  ) =>
+  FCMConfig ->
+  ApnsAPIRequest ->
+  Text ->
+  m ()
+sendLiveActivityApns config apnsApiRequest toWhom = do
+  authToken <- getTokenText config
+  case authToken of
+    Right token -> do
+      let fcmUrl = config.fcmUrl
+      res <- callAPI fcmUrl (callAPNS (Just $ FCMAuthToken token) apnsApiRequest) "sendAPNSPayload" apnsLiveActivityAPI
+      case res of
+        Right _ -> logTagInfo apns $ "APNS sent successfully to a person with id " <> toWhom
+        Left _ -> logTagInfo apns "APNS WAS NOT SEND"
+    Left err -> logTagError apns $ "AuthToken error while sending apns to person with id " <> toWhom <> " : " <> show err
+  where
+    callAPNS token req = void $ ET.client apnsLiveActivityAPI token req
+    apns = "APNS"
+
+-- | Google API interface
+type ApnsLiveActivityAPI req =
+  Header "Authorization" FCMAuthToken
+    :> ReqBody '[JSON] req
+    :> Post '[JSON] ResponseType -- APNS Response
+
+data ResponseType = ResponseType {
+  name :: Text
+} deriving(Show, Generic,ToJSON, FromJSON)
+
+apnsLiveActivityAPI :: Proxy (ApnsLiveActivityAPI a)
+apnsLiveActivityAPI = Proxy
+
+createApnsLiveActivtyPayload :: FCMRecipientToken -> LiveActivityReq -> Int -> ApnsAPIRequest
+createApnsLiveActivtyPayload receipentToken apnsReq apnsReqTimeStamp = 
+  let 
+      apnsReqToken = apnsReq.liveActivityToken
+      apnsReqLiveActivity =  apnsReq.liveActivityReqType
+      apnsContentState =  apnsReq.liveActivityContentState
+      apnsReqDismissalDate = case apnsReq.liveActivityReqType of 
+                                "end" -> Just $ apnsReqTimeStamp + 600 
+                                _ -> Nothing 
+      liveActivityApnsPriority = apnsReq.liveActivityApnsPriority                          
+      apnsPayload' = ApnsAPIRequest {
+
+        message = Message {
+          token = receipentToken,
+          apns = Apns {
+            live_activity_token = 
+              apnsReqToken
+            ,  headers = ApnsHeaders {
+                apns_priority = liveActivityApnsPriority
+              }
+            , payload = Payload {
+                aps =  Aps {
+                    timestamp =  apnsReqTimeStamp,
+                    content_available = 1,
+                    event = apnsReqLiveActivity,
+                    content_state = apnsContentState,
+                    alert = Just $ Alert {
+                      title = Just "LIVE"
+                    },
+                    dismissal_date = apnsReqDismissalDate
+                  }
+            }
+          }
+        }
+      }
+  in
+  apnsPayload'

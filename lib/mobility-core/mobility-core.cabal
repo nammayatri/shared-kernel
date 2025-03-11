@@ -434,6 +434,7 @@ library
       Kernel.Utils.Version
       Kernel.Utils.XML
       Kernel.External.MultiModal.OpenTripPlanner.Types
+      Kernel.Types.SharedRedisKeys
   other-modules:
       Paths_mobility_core
   hs-source-dirs:
