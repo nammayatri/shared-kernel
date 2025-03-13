@@ -138,6 +138,7 @@ library
       Kernel.External.Payment.Juspay.Flow
       Kernel.External.Payment.Juspay.Types
       Kernel.External.Payment.Juspay.Types.Common
+      Kernel.External.Payment.Juspay.Types.CreateCustomer
       Kernel.External.Payment.Juspay.Types.CreateOrder
       Kernel.External.Payment.Juspay.Types.Mandate
       Kernel.External.Payment.Juspay.Types.Offer

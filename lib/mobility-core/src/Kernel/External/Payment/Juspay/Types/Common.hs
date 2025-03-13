@@ -22,6 +22,8 @@ import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common
 
+type CustomerId = Text
+
 data PaymentStatus
   = ORDER_SUCCEEDED
   | ORDER_REFUNDED

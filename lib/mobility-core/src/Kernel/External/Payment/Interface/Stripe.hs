@@ -143,13 +143,19 @@ createCustomer config req = do
   let customerReq = mkCustomerReq req
   customerResp <- Stripe.createCustomer url apiKey customerReq
   let customerId = customerResp.id
+  let clientAuthToken = Nothing
+  let clientAuthTokenExpiry = Nothing
   return $ CreateCustomerResp {..}
   where
     mkCustomerReq :: CreateCustomerReq -> Stripe.CustomerReq
     mkCustomerReq CreateCustomerReq {..} = do
-      let payment_method = Nothing
-      let source = Nothing
-      Stripe.CustomerReq {..}
+      Stripe.CustomerReq
+        { email = fromMaybe "User@gmail.com" email,
+          name = fromMaybe "User" name,
+          payment_method = Nothing,
+          source = Nothing,
+          phone = phone
+        }
 
 createEphemeralKeys ::
   ( Metrics.CoreMetrics m,

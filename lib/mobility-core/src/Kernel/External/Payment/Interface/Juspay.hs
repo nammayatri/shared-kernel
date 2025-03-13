@@ -15,6 +15,8 @@
 module Kernel.External.Payment.Interface.Juspay
   ( module Reexport,
     createOrder,
+    createCustomer,
+    getCustomer,
     orderStatus,
     orderStatusWebhook,
     offerList,
@@ -44,6 +46,7 @@ import Kernel.External.Payment.Interface.Types
 import Kernel.External.Payment.Juspay.Config as Reexport
 import qualified Kernel.External.Payment.Juspay.Flow as Juspay
 import qualified Kernel.External.Payment.Juspay.Types as Juspay
+import qualified Kernel.External.Payment.Juspay.Types.CreateCustomer as Customer
 import qualified Kernel.External.Payment.Juspay.Webhook as Juspay
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -66,6 +69,62 @@ createOrder config req = do
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreateOrderReq config.returnUrl merchantId req
   Juspay.createOrder url apiKey merchantId orderReq
+
+createCustomer ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  CreateCustomerReq ->
+  m CreateCustomerResp
+createCustomer config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  createCustomerReq <- mkcreateCustomerReq req
+  creatCustomerRespo <- Juspay.createCustomer url apiKey merchantId createCustomerReq
+  return $ mkCreateCustomerRes creatCustomerRespo
+  where
+    mkcreateCustomerReq :: MonadTime m => CreateCustomerReq -> m Juspay.CreateCustomerRequest
+    mkcreateCustomerReq CreateCustomerReq {..} =
+      do
+        return
+          Juspay.CreateCustomerRequest
+            { object_reference_id = fromMaybe "" objectReferenceId,
+              mobile_number = fromMaybe "" phone,
+              email_address = email,
+              first_name = name,
+              last_name = lastName,
+              mobile_country_code = mobileCountryCode,
+              options_get_client_auth_token = optionsGetClientAuthToken
+            }
+    mkCreateCustomerRes Juspay.CreateCustomerResp {..} =
+      CreateCustomerResp
+        { customerId = object_reference_id,
+          clientAuthToken = Customer.client_auth_token <$> juspay,
+          clientAuthTokenExpiry = Customer.client_auth_token_expiry <$> juspay
+        }
+
+getCustomer ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  CustomerId ->
+  m CreateCustomerResp
+getCustomer config customerId = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  creatCustomerRespo <- Juspay.getCustomer url apiKey merchantId customerId
+  return $ mkCreateCustomerRes creatCustomerRespo
+  where
+    mkCreateCustomerRes Juspay.CreateCustomerResp {..} =
+      CreateCustomerResp
+        { customerId = object_reference_id,
+          clientAuthToken = Customer.client_auth_token <$> juspay,
+          clientAuthTokenExpiry = Customer.client_auth_token_expiry <$> juspay
+        }
 
 mandateNotification ::
   ( Metrics.CoreMetrics m,

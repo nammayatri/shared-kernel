@@ -180,8 +180,19 @@ createCustomer ::
   CreateCustomerReq ->
   m CreateCustomerResp
 createCustomer config req = case config of
-  JuspayConfig _ -> throwError $ InternalError "Juspay Create Customer not supported."
+  JuspayConfig cfg -> Juspay.createCustomer cfg req
   StripeConfig cfg -> Stripe.createCustomer cfg req
+
+getCustomer ::
+  ( CoreMetrics m,
+    EncFlow m r
+  ) =>
+  PaymentServiceConfig ->
+  CustomerId ->
+  m CreateCustomerResp
+getCustomer config customerId = case config of
+  JuspayConfig cfg -> Juspay.getCustomer cfg customerId
+  StripeConfig _ -> throwError $ InternalError "Juspay Get Account not supported."
 
 createEphemeralKeys ::
   ( CoreMetrics m,
