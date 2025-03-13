@@ -515,15 +515,21 @@ data ConnectAccountResp = ConnectAccountResp
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data CreateCustomerReq = CreateCustomerReq
-  { email :: Text,
-    name :: Text,
-    phone :: Maybe Text
+  { email :: Maybe Text,
+    name :: Maybe Text,
+    lastName :: Maybe Text,
+    phone :: Maybe Text,
+    objectReferenceId :: Maybe Text,
+    mobileCountryCode :: Maybe Text,
+    optionsGetClientAuthToken :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-newtype CreateCustomerResp = CreateCustomerResp
-  { customerId :: CustomerId
+data CreateCustomerResp = CreateCustomerResp
+  { customerId :: CustomerId,
+    clientAuthToken :: Maybe Text,
+    clientAuthTokenExpiry :: Maybe UTCTime
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

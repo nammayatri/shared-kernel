@@ -28,6 +28,48 @@ import Servant hiding (throwError)
 
 -- https://docs.juspay.in/payment-page/ios/base-sdk-integration/order-status-api
 
+type CreateCustomerAPI =
+  "customers"
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> ReqBody '[JSON] CreateCustomerRequest
+    :> Post '[JSON] CreateCustomerResp
+
+createCustomer ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  CreateCustomerRequest ->
+  m CreateCustomerResp
+createCustomer url apiKey merchantId req = do
+  let proxy = Proxy @CreateCustomerAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
+  callJuspayAPI url eulerClient "create-customer" proxy
+
+type GetCustomerAPI =
+  "customers"
+    :> Capture "id" CustomerId
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> Get '[JSON] CreateCustomerResp
+
+getCustomer ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  CustomerId ->
+  m CreateCustomerResp
+getCustomer url apiKey merchantId customerId = do
+  let proxy = Proxy @GetCustomerAPI
+      eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) (Just merchantId)
+  callJuspayAPI url eulerClient "get-customer" proxy
+
 type CreateOrderAPI =
   "session"
     :> BasicAuth "username-password" BasicAuthData

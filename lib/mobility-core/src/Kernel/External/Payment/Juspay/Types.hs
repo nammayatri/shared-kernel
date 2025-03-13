@@ -18,6 +18,7 @@ module Kernel.External.Payment.Juspay.Types
 where
 
 import Kernel.External.Payment.Juspay.Types.Common as Reexport
+import Kernel.External.Payment.Juspay.Types.CreateCustomer as Reexport
 import Kernel.External.Payment.Juspay.Types.CreateOrder as Reexport
 import Kernel.External.Payment.Juspay.Types.Mandate as Reexport
 import Kernel.External.Payment.Juspay.Types.Offer as Reexport
