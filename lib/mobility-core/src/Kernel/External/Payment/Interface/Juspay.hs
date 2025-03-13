@@ -15,6 +15,7 @@
 module Kernel.External.Payment.Interface.Juspay
   ( module Reexport,
     createOrder,
+    createCustomer,
     orderStatus,
     orderStatusWebhook,
     offerList,
@@ -66,6 +67,39 @@ createOrder config req = do
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreateOrderReq config.returnUrl merchantId req
   Juspay.createOrder url apiKey merchantId orderReq
+
+createCustomer ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  CreateCustomerReq ->
+  m CreateCustomerResp
+createCustomer config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  createCustomerReq <- mkcreateCustomerReq req
+  creatCustomerRespo <- Juspay.createCustomer url apiKey merchantId createCustomerReq
+  return $ mkCreateCustomerRes creatCustomerRespo
+  where
+    mkcreateCustomerReq :: MonadTime m => CreateCustomerReq -> m Juspay.CreateCustomerRequest
+    mkcreateCustomerReq CreateCustomerReq {..} =
+      do
+        return
+          Juspay.CreateCustomerRequest
+            { object_reference_id = fromMaybe "" objectReferenceId,
+              mobile_number = fromMaybe "" phone,
+              email_address = email,
+              first_name = name,
+              last_name = lastName,
+              mobile_country_code = mobileCountryCode,
+              options_get_client_auth_token = optionsGetClientAuthToken
+            }
+    mkCreateCustomerRes Juspay.CreateCustomerResp {..} =
+      CreateCustomerResp
+        { customerId = object_reference_id
+        }
 
 mandateNotification ::
   ( Metrics.CoreMetrics m,

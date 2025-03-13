@@ -180,7 +180,7 @@ createCustomer ::
   CreateCustomerReq ->
   m CreateCustomerResp
 createCustomer config req = case config of
-  JuspayConfig _ -> throwError $ InternalError "Juspay Create Customer not supported."
+  JuspayConfig cfg -> Juspay.createCustomer cfg req
   StripeConfig cfg -> Stripe.createCustomer cfg req
 
 createEphemeralKeys ::

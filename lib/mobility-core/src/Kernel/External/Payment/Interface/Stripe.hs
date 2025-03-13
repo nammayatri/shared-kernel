@@ -147,9 +147,13 @@ createCustomer config req = do
   where
     mkCustomerReq :: CreateCustomerReq -> Stripe.CustomerReq
     mkCustomerReq CreateCustomerReq {..} = do
-      let payment_method = Nothing
-      let source = Nothing
-      Stripe.CustomerReq {..}
+      Stripe.CustomerReq
+        { email = fromMaybe "" email,
+          name = fromMaybe "" name,
+          payment_method = Nothing,
+          source = Nothing,
+          phone = phone
+        }
 
 createEphemeralKeys ::
   ( Metrics.CoreMetrics m,

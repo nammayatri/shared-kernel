@@ -101,6 +101,16 @@ newtype Marketplace = Marketplace
   }
   deriving stock (Show, Eq, Generic)
 
+data CreateCustomerRequest = CreateCustomerRequest
+  { objectReferenceId :: Text,
+    mobileNumber :: Text,
+    emailAddress :: Maybe Text,
+    firstName :: Maybe Text,
+    lastName :: Maybe Text,
+    mobileCountryCode :: Maybe Text,
+    optionsGetClientAuthToken :: Maybe Bool
+  }
+
 newtype OrderStatusReq = OrderStatusReq
   { orderShortId :: Text
   }
@@ -515,14 +525,18 @@ data ConnectAccountResp = ConnectAccountResp
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data CreateCustomerReq = CreateCustomerReq
-  { email :: Text,
-    name :: Text,
-    phone :: Maybe Text
+  { email :: Maybe Text,
+    name :: Maybe Text,
+    lastName :: Maybe Text,
+    phone :: Maybe Text,
+    objectReferenceId :: Maybe Text,
+    mobileCountryCode :: Maybe Text,
+    optionsGetClientAuthToken :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-newtype CreateCustomerResp = CreateCustomerResp
+data CreateCustomerResp = CreateCustomerResp
   { customerId :: CustomerId
   }
   deriving stock (Show, Eq, Generic)
