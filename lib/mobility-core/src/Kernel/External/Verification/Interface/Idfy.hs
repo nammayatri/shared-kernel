@@ -123,6 +123,7 @@ validateImage cfg req = do
     VehiclePermit -> return validationNotAvailable
     VehicleInsurance -> return validationNotAvailable
     VehicleFitnessCertificate -> return validationNotAvailable
+    VehicleNOC -> return validationNotAvailable
   where
     validationNotAvailable =
       ValidateImageResp
@@ -151,6 +152,7 @@ getDocType VehiclePUC = "ind_puc" -- fix these
 getDocType VehiclePermit = "ind_permit"
 getDocType VehicleInsurance = "ind_insurance"
 getDocType VehicleFitnessCertificate = "ind_fitness_certificate"
+getDocType VehicleNOC = "ind_vehicle_noc"
 
 getImageType :: Text -> ImageType
 getImageType "ind_driving_license" = DriverLicense
@@ -159,6 +161,7 @@ getImageType "ind_puc" = VehiclePUC
 getImageType "ind_permit" = VehiclePermit
 getImageType "ind_insurance" = VehicleInsurance
 getImageType "ind_fitness_certificate" = VehicleFitnessCertificate
+getImageType "ind_vehicle_noc" = VehicleNOC
 getImageType _ = VehicleRegistrationCertificate
 
 extractRCImage ::
