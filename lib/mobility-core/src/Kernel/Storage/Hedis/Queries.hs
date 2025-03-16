@@ -21,7 +21,7 @@ import Data.String.Conversions
 import Data.Text hiding (concatMap, map, null)
 import qualified Data.Text as T
 import qualified Data.Text as Text
-import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..))
+import Database.Redis (Queued, Redis, RedisTx, Reply, TxResult (..),RedisResult)
 import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
 import EulerHS.Prelude (whenLeft)
@@ -381,6 +381,11 @@ delByPattern :: HedisFlow m env => Text -> m ()
 delByPattern ptrn = withTimeRedis "RedisCluster" "delByPattern" $ do
   runWithPrefix_ ptrn $ \prefKey ->
     Hedis.eval @_ @_ @Reply "for i, name in ipairs(redis.call('KEYS', ARGV[1])) do redis.call('DEL', name); end" ["0"] [prefKey]
+
+eval ::(RedisResult a, HedisFlow m env) => Text -> [Text] -> [Text] -> m a
+eval script keys args = do
+  nKeys <- mapM buildKey keys
+  runHedis $ Hedis.eval (cs script) nKeys (map cs args)
 
 tryLockRedis :: HedisFlow m env => Text -> ExpirationTime -> m Bool
 tryLockRedis key timeout = setNxExpire (buildLockResourceName key) timeout ()
