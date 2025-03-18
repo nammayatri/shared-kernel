@@ -11,21 +11,16 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Call.Types
-  ( module Kernel.External.Call.Types,
-  )
-where
+module Kernel.External.Call.TataClickToCall.Config where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.External.Encryption
+import Kernel.Prelude
 
-data CallService = Exotel | Knowlarity | TwillioCall | TataClickToCall
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
-
-$(mkBeamInstancesForEnum ''CallService)
-
-derivePersistField "CallService"
+data TataClickToCallCfg = TataClickToCallCfg
+  { caller_id :: Text,
+    get_call_id :: Int,
+    apiKey :: EncryptedField 'AsEncrypted Text,
+    url :: BaseUrl
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
