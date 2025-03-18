@@ -399,6 +399,9 @@ library
       Kernel.Utils.Error.DB
       Kernel.Utils.Error.FlowHandling
       Kernel.Utils.Error.Hierarchy
+      Kernel.Utils.Error.OpenApi
+      Kernel.Utils.Error.OpenApi.Example
+      Kernel.Utils.Error.TH
       Kernel.Utils.Error.Throwing
       Kernel.Utils.Example
       Kernel.Utils.FlowLogging

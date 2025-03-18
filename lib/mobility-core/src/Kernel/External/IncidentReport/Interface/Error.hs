@@ -19,6 +19,7 @@ module Kernel.External.IncidentReport.Interface.Error where
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 
 data IncidentReportError
   = FailedToCallIncidentReportAPI Text
@@ -41,3 +42,5 @@ instance IsHTTPError IncidentReportError where
     FailedToCallIncidentReportUpdateAPI _ -> E400
 
 instance IsAPIError IncidentReportError
+
+mkOpenAPIError ''IncidentReportError

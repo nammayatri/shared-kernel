@@ -19,6 +19,7 @@ module Kernel.External.SharedLogic.HyperVerge.Error where
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 
 data HyperVergeError
   = HVUnauthorizedError
@@ -54,3 +55,5 @@ instance IsHTTPError HyperVergeError where
     HVMissingPayloadError _ -> E400
 
 instance IsAPIError HyperVergeError
+
+mkOpenAPIError ''HyperVergeError

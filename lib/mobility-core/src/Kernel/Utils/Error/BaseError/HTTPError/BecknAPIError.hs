@@ -31,6 +31,8 @@ data BecknAPICallError = BecknAPICallError Text Error
 
 instanceExceptionWithParent 'HTTPException ''BecknAPICallError
 
+-- mkOpenAPIError ''BecknAPICallError -- E500
+
 instance IsBaseError BecknAPICallError where
   toMessage (BecknAPICallError action Error {..}) =
     Just $

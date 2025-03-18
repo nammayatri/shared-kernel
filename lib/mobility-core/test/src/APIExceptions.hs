@@ -45,6 +45,8 @@ instance IsBecknAPIError SomeAPIError
 
 instanceExceptionWithParent 'HTTPException ''SomeAPIError
 
+-- mkOpenAPIError ''SomeAPIError -- E500
+
 data SomeBecknAPIError = SomeBecknAPIError deriving (Show)
 
 instance IsBaseError SomeBecknAPIError
@@ -58,6 +60,8 @@ instance IsBecknAPIError SomeBecknAPIError where
   toType SomeBecknAPIError = INTERNAL_ERROR
 
 instanceExceptionWithParent 'HTTPException ''SomeBecknAPIError
+
+-- mkOpenAPIError ''SomeBecknAPIError -- E500
 
 instance Metrics.CoreMetrics IO where
   addRequestLatency _ _ _ _ = return ()

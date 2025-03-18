@@ -19,6 +19,7 @@ module Kernel.External.Verification.InternalScripts.Error where
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromResponse))
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 import Network.HTTP.Types (Status (statusCode))
 import Servant.Client (ResponseF (responseStatusCode))
 import Prelude
@@ -54,3 +55,5 @@ instance IsHTTPError FaceVerificationError where
     PoorImageQuality -> E422
 
 instance IsAPIError FaceVerificationError
+
+mkOpenAPIError ''FaceVerificationError

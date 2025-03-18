@@ -21,6 +21,7 @@ import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromResponse))
+import Kernel.Utils.Error.TH (mkOpenAPIError)
 import Servant.Client (ResponseF (responseBody))
 
 newtype GridlineErrorResp = GridlineErrorResp
@@ -129,3 +130,5 @@ instance IsHTTPError GridlineError where
     SomethingWentWrong -> E500
 
 instance IsAPIError GridlineError
+
+mkOpenAPIError ''GridlineError
