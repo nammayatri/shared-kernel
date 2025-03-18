@@ -57,7 +57,11 @@ library
       Kernel.External.Call.Exotel.Types
       Kernel.External.Call.Interface
       Kernel.External.Call.Interface.Exotel
+      Kernel.External.Call.Interface.TataClickToCall
       Kernel.External.Call.Interface.Types
+      Kernel.External.Call.TataClickToCall.Client
+      Kernel.External.Call.TataClickToCall.Config
+      Kernel.External.Call.TataClickToCall.Types
       Kernel.External.Call.Twillio.Config
       Kernel.External.Call.Types
       Kernel.External.Encryption
