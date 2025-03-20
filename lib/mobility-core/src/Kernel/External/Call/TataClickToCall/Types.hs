@@ -28,7 +28,6 @@ import Data.Aeson.TH
 import Data.Aeson.Types
 import qualified Data.Text as T
 import Kernel.Prelude hiding (showBaseUrl)
-import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.JSON
 import Web.FormUrlEncoded (FromForm, ToForm)
 import Web.Internal.HttpApiData
@@ -48,36 +47,34 @@ data ClickToCallConnectRequest = ClickToCallConnectRequest
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToForm, FromForm)
 
--- API Response (Adjust based on Tata's response format)
-data ClickToCallResponse = ClickToCallResponse
-  { success :: Bool,
-    message :: Text,
-    call_id :: Maybe Text
-  }
-  deriving (Show, Generic)
-
-instance ToJSON ClickToCallResponse
-
-instance FromJSON ClickToCallResponse
-
--- | Overall call status
-data TataClickToCallStatus
-  = QUEUED
-  | RINGING
-  | IN_PROGRESS
-  | COMPLETED
-  | FAILED
-  | BUSY
-  | NO_ANSWER
-  | CANCELED
-  | INVALID_STATUS
-  | CONNECTED
+data ClickToCallStatus
+  = -- The call is ready and waiting in line before going out
+    QUEUED
+  | -- The call is ringing
+    RINGING
+  | -- The call was answered and is currently in progress
+    IN_PROGRESS
+  | -- The call was answered and has ended normally
+    COMPLETED
+  | -- The call could not be completed as dialled, most likely
+    -- because the phone number was non-existent
+    FAILED
+  | -- The caller received a busy signal
+    BUSY
+  | -- The call ended without being answered
+    NO_ANSWER
+  | -- The call is canceled
+    CANCELED
+  | -- Invalid call status
+    INVALID_STATUS
+  | -- Knowlarity status
+    CONNECTED
   | NOT_CONNECTED
   | MISSED
   | ATTEMPTED
   deriving (Show, Eq, Read, Generic, ToSchema, ToParamSchema)
 
-instance FromHttpApiData TataClickToCallStatus where
+instance FromHttpApiData ClickToCallStatus where
   parseUrlPiece status =
     pure case T.toLower status of
       "queued" -> QUEUED
@@ -93,6 +90,17 @@ instance FromHttpApiData TataClickToCallStatus where
       "missed" -> MISSED
       _ -> INVALID_STATUS
 
-$(deriveJSON constructorsWithHyphensToLowerOptions ''TataClickToCallStatus)
+$(deriveJSON constructorsWithHyphensToLowerOptions ''ClickToCallStatus)
 
-derivePersistField "TataClickToCallStatus"
+-- API Response (Adjust based on Tata's response format)
+data ClickToCallResponse = ClickToCallResponse
+  { success :: Bool,
+    message :: Text,
+    call_id :: Maybe Text,
+    callStatus :: ClickToCallStatus
+  }
+  deriving (Show, Generic)
+
+instance ToJSON ClickToCallResponse
+
+instance FromJSON ClickToCallResponse

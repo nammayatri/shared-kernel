@@ -42,7 +42,7 @@ initiateCall config InitiateCallReq {..} = do
   return $
     InitiateCallResp
       { callId = fromMaybe T.empty (getField @"call_id" res),
-        callStatus = Interface.QUEUED
+        callStatus = clickToCallStatusToInterfaceStatus res.callStatus
       }
   where
     getTataClickToCallReq =
@@ -52,3 +52,19 @@ initiateCall config InitiateCallReq {..} = do
           caller_id = config.caller_id,
           get_call_id = config.get_call_id
         }
+
+clickToCallStatusToInterfaceStatus :: TataClickToCall.ClickToCallStatus -> Interface.CallStatus
+clickToCallStatusToInterfaceStatus = \case
+  TataClickToCall.QUEUED -> Interface.QUEUED
+  TataClickToCall.RINGING -> Interface.RINGING
+  TataClickToCall.IN_PROGRESS -> Interface.IN_PROGRESS
+  TataClickToCall.COMPLETED -> Interface.COMPLETED
+  TataClickToCall.FAILED -> Interface.FAILED
+  TataClickToCall.BUSY -> Interface.BUSY
+  TataClickToCall.NO_ANSWER -> Interface.NO_ANSWER
+  TataClickToCall.CANCELED -> Interface.CANCELED
+  TataClickToCall.CONNECTED -> Interface.CONNECTED
+  TataClickToCall.NOT_CONNECTED -> Interface.NOT_CONNECTED
+  TataClickToCall.MISSED -> Interface.MISSED
+  TataClickToCall.ATTEMPTED -> Interface.ATTEMPTED
+  TataClickToCall.INVALID_STATUS -> Interface.INVALID_STATUS

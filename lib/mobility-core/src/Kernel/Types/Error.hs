@@ -16,6 +16,7 @@
 
 module Kernel.Types.Error where
 
+import qualified Data.Text as T
 import EulerHS.Prelude
 import EulerHS.Types (KVDBReply)
 import qualified Kafka.Types as Kafka
@@ -1271,6 +1272,7 @@ data ClickToCallError
   | ClickToCallConflict
   | ClickToCallTooManyRequests
   | ClickToCallServerError
+  | ClickToCallGenericError Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''ClickToCallError
@@ -1284,7 +1286,8 @@ instance FromResponse ClickToCallError where
     404 -> Just ClickToCallNotFound
     409 -> Just ClickToCallConflict
     429 -> Just ClickToCallTooManyRequests
-    _ -> Just ClickToCallServerError
+    500 -> Just ClickToCallServerError
+    _ -> Just (ClickToCallGenericError ("Unexpected status code: " <> T.pack (show $ statusCode $ responseStatusCode resp)))
 
 instance IsBaseError ClickToCallError where
   toMessage = \case
@@ -1297,6 +1300,7 @@ instance IsBaseError ClickToCallError where
     ClickToCallConflict -> Just "You might be trying to update the same resource concurrently."
     ClickToCallTooManyRequests -> Just "You are calling our APIs more frequently than we allow."
     ClickToCallServerError -> Just "Something went wrong on our end. Please try again."
+    ClickToCallGenericError msg -> Just ("ClickToCall encountered an unexpected error: " <> msg)
 
 instance IsHTTPError ClickToCallError where
   toErrorCode = \case
@@ -1309,5 +1313,6 @@ instance IsHTTPError ClickToCallError where
     ClickToCallConflict -> "CLICKTOCALL_CONFLICT"
     ClickToCallTooManyRequests -> "CLICKTOCALL_TOO_MANY_REQUESTS"
     ClickToCallServerError -> "CLICKTOCALL_SERVER_ERROR"
+    ClickToCallGenericError msg -> "CLICKTOCALL_GENERIC_ERROR: " <> msg
 
 instance IsAPIError ClickToCallError
