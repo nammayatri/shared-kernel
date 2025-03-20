@@ -15,6 +15,7 @@
 module Kernel.External.Call.TataClickToCall.Client where
 
 import Data.Maybe
+import qualified Data.Text as T
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import Kernel.External.Call.TataClickToCall.Config
@@ -45,22 +46,8 @@ tataInitiateCall ::
   m ClickToCallResponse
 tataInitiateCall tataClickToCallCfg req = do
   apiKey_ <- decrypt tataClickToCallCfg.apiKey
-  logDebug $ "logging tataClickToCallCfg apiKey_   " <> show apiKey_
-  logDebug $ "logging tataClickToCallCfg caller_id_   " <> show tataClickToCallCfg.caller_id
-  withLogTag "TataClickToCall" $ do
-    let authorizationToken = Just ("Bearer " <> apiKey_)
-    callTataClickToCallAPI
-      tataClickToCallCfg.url
-      (callClickToCall authorizationToken)
-      "tataInitiateCall"
-      tataClickToCallAPI
-  where
-    callClickToCall authorizationToken = ET.client tataClickToCallAPI authorizationToken req
-
-callTataClickToCallAPI :: CallAPI env api a
-callTataClickToCallAPI =
-  callApiUnwrappingApiError
-    (identity @ClickToCallError)
-    Nothing
-    (Just "CLICKTOCALL_NOT_AVAILABLE")
-    Nothing
+  logDebug $ "logging tataClickToCallCfg request_ " <> show req
+  let eulerClient = ET.client (Proxy @TataClickToCallAPI)
+  response <- callAPI tataClickToCallCfg.url (eulerClient (Just $ "Bearer " <> apiKey_) req) "tataInitiateCall" (Proxy @TataClickToCallAPI) >>= fromEitherM (ClickToCallGenericError . T.pack . show)
+  when (response.success == False) (logError $ "logging tataClickToCallCfg response_ " <> show response)
+  return response
