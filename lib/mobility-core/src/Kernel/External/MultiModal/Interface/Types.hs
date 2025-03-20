@@ -24,6 +24,7 @@ import Kernel.Utils.TH (mkHttpInstancesForEnum)
 
 newtype MultiModalResponse = MultiModalResponse {routes :: [MultiModalRoute]}
   deriving (Show, Generic)
+  deriving newtype (FromJSON, ToJSON, ToSchema)
 
 data MultiModalRoute = MultiModalRoute
   { distance :: Distance.Distance,
@@ -33,6 +34,7 @@ data MultiModalRoute = MultiModalRoute
     legs :: [MultiModalLeg]
   }
   deriving (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data MultiModalStopDetails = MultiModalStopDetails
   { stopCode :: Maybe Text,
