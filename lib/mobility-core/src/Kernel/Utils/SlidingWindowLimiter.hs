@@ -29,7 +29,7 @@ checkSlidingWindowLimit ::
     HasFlowEnv m r '["apiRateLimitOptions" ::: APIRateLimitOptions]
   ) =>
   Text ->
-  m ()
+  m Int
 checkSlidingWindowLimit key = do
   limitOptions <- asks (.apiRateLimitOptions)
   checkSlidingWindowLimitWithOptions key limitOptions
@@ -40,24 +40,26 @@ checkSlidingWindowLimitWithOptions ::
   ) =>
   Text ->
   APIRateLimitOptions ->
-  m ()
+  m Int
 checkSlidingWindowLimitWithOptions key APIRateLimitOptions {..} = do
-  unlessM (slidingWindowLimiter key limit limitResetTimeInSec) $
+  (res, remainingAttempts) <- slidingWindowLimiter key limit limitResetTimeInSec
+  unless res $
     throwError $ HitsLimitError limitResetTimeInSec
+  return remainingAttempts
 
 -- Sliding window rate limiter.
 -- Returns True if limit is not exceed and further
 -- actions should be allowed. False otherwise.
 
-slidingWindowLimiter :: (Redis.HedisFlow m r, MonadTime m) => Text -> Int -> Int -> m Bool
+slidingWindowLimiter :: (Redis.HedisFlow m r, MonadTime m) => Text -> Int -> Int -> m (Bool, Int)
 slidingWindowLimiter key frameHitsLim frameLen = do
   currTime <- getCurrentTime
   hits <- fromMaybe [] <$> Redis.get key
-  let (filtHits, ret) = slidingWindowLimiterPure currTime hits frameHitsLim frameLen
+  let ((filtHits, ret), remainingAttempts) = slidingWindowLimiterPure currTime hits frameHitsLim frameLen
   when ret $ Redis.setExp key filtHits frameLen
-  return ret
+  return (ret, remainingAttempts)
 
-slidingWindowLimiterPure :: UTCTime -> [Integer] -> Int -> Int -> ([Integer], Bool)
+slidingWindowLimiterPure :: UTCTime -> [Integer] -> Int -> Int -> (([Integer], Bool), Int)
 slidingWindowLimiterPure currTime hits frameHitsLim frameLen = do
   -- How it works:
   -- We convert UTCTime value to Integer and `div` it by frameLen to
@@ -73,7 +75,7 @@ slidingWindowLimiterPure currTime hits frameHitsLim frameLen = do
       prevFrameWeight = 1 - (fromIntegral (getTimeWithinFrame currTime) :: Double) / frameLen'
       currFrameHitsLen = length $ filter (currFrameHitsFilter currFrame) filtHits
       res = floor (fromIntegral prevFrameHitsLen * prevFrameWeight) + currFrameHitsLen < frameHitsLim
-  (if res then currFrame : filtHits else filtHits, res)
+  ((if res then currFrame : filtHits else filtHits, res), (frameHitsLim - (floor (fromIntegral prevFrameHitsLen * prevFrameWeight) + currFrameHitsLen)))
   where
     frameLen' :: Num a => a
     frameLen' = fromIntegral frameLen

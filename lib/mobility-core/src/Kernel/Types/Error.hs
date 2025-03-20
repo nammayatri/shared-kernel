@@ -16,6 +16,7 @@
 
 module Kernel.Types.Error where
 
+import qualified Data.Aeson as A
 import EulerHS.Prelude
 import EulerHS.Types (KVDBReply)
 import qualified Kafka.Types as Kafka
@@ -31,7 +32,7 @@ import Servant.Client (BaseUrl, ClientError, ResponseF (responseStatusCode))
 -- TODO: sort out proper codes, namings and usages for Unauthorized and AccessDenied
 data AuthError
   = Unauthorized
-  | InvalidAuthData
+  | InvalidAuthData Int
   | TokenExpired
   | TokenIsNotVerified
   | TokenNotFound Text
@@ -56,7 +57,7 @@ instance IsBaseError AuthError where
 instance IsHTTPError AuthError where
   toErrorCode = \case
     Unauthorized -> "UNAUTHORIZED"
-    InvalidAuthData -> "INVALID_AUTH_DATA"
+    InvalidAuthData _ -> "INVALID_AUTH_DATA"
     TokenExpired -> "TOKEN_EXPIRED"
     TokenIsNotVerified -> "TOKEN_IS_NOT_VERIFIED"
     TokenNotFound _ -> "TOKEN_NOT_FOUND"
@@ -73,7 +74,10 @@ instance IsHTTPError AuthError where
     HitsLimitError _ -> E429
     _ -> E400
 
-instance IsAPIError AuthError
+instance IsAPIError AuthError where
+  toPayload = \case
+    InvalidAuthData remainingAttempts -> A.toJSON remainingAttempts
+    _ -> A.toJSON (0 :: Int)
 
 data HeaderError
   = MissingHeader HeaderName

@@ -41,24 +41,24 @@ frame2 = posixSecondsToUTCTime $ secondsToNominalDiffTime (fromIntegral frameLen
 
 emptyList :: TestTree
 emptyList = testCase "Empty list" $ do
-  slidingWindowLimiterPure frame0 [] hitsLimit frameLen @?= ([0], True)
-  slidingWindowLimiterPure frame1 [] hitsLimit frameLen @?= ([1], True)
-  slidingWindowLimiterPure frame2 [] hitsLimit frameLen @?= ([2], True)
+  slidingWindowLimiterPure frame0 [] hitsLimit frameLen @?= (([0], True), 4)
+  slidingWindowLimiterPure frame1 [] hitsLimit frameLen @?= (([1], True), 4)
+  slidingWindowLimiterPure frame2 [] hitsLimit frameLen @?= (([2], True), 4)
 
 successful :: TestTree
 successful = testCase "Successful tests" $ do
-  slidingWindowLimiterPure frame0 [0, 0] hitsLimit frameLen @?= ([0, 0, 0], True)
-  slidingWindowLimiterPure frame1 [0, 0, 0] hitsLimit frameLen @?= ([1, 0, 0, 0], True)
-  slidingWindowLimiterPure frame1 [0, 0, 0, 0] hitsLimit frameLen @?= ([1, 0, 0, 0, 0], True)
-  slidingWindowLimiterPure frame1Late [0, 0, 0, 0, 1] hitsLimit frameLen @?= ([1, 0, 0, 0, 0, 1], True)
-  slidingWindowLimiterPure frame2 [0, 0, 1, 1, 0, 0, 1] hitsLimit frameLen @?= ([2, 1, 1, 1], True)
+  slidingWindowLimiterPure frame0 [0, 0] hitsLimit frameLen @?= (([0, 0, 0], True), 2)
+  slidingWindowLimiterPure frame1 [0, 0, 0] hitsLimit frameLen @?= (([1, 0, 0, 0], True), 2)
+  slidingWindowLimiterPure frame1 [0, 0, 0, 0] hitsLimit frameLen @?= (([1, 0, 0, 0, 0], True), 1)
+  slidingWindowLimiterPure frame1Late [0, 0, 0, 0, 1] hitsLimit frameLen @?= (([1, 0, 0, 0, 0, 1], True), 3)
+  slidingWindowLimiterPure frame2 [0, 0, 1, 1, 0, 0, 1] hitsLimit frameLen @?= (([2, 1, 1, 1], True), 2)
 
 failing :: TestTree
 failing = testCase "Failing tests" $ do
-  slidingWindowLimiterPure frame0 [0, 0, 0, 0] hitsLimit frameLen @?= ([0, 0, 0, 0], False)
-  slidingWindowLimiterPure frame1 [0, 0, 0, 0, 1] hitsLimit frameLen @?= ([0, 0, 0, 0, 1], False)
-  slidingWindowLimiterPure frame1 [0, 0, 0, 0, 1, 1, 1, 1] hitsLimit frameLen @?= ([0, 0, 0, 0, 1, 1, 1, 1], False)
-  slidingWindowLimiterPure frame2 [0, 0, 1, 1, 0, 2, 1, 1] hitsLimit frameLen @?= ([1, 1, 2, 1, 1], False)
+  slidingWindowLimiterPure frame0 [0, 0, 0, 0] hitsLimit frameLen @?= (([0, 0, 0, 0], False), 0)
+  slidingWindowLimiterPure frame1 [0, 0, 0, 0, 1] hitsLimit frameLen @?= (([0, 0, 0, 0, 1], False), 0)
+  slidingWindowLimiterPure frame1 [0, 0, 0, 0, 1, 1, 1, 1] hitsLimit frameLen @?= (([0, 0, 0, 0, 1, 1, 1, 1], False), -3)
+  slidingWindowLimiterPure frame2 [0, 0, 1, 1, 0, 2, 1, 1] hitsLimit frameLen @?= (([1, 1, 2, 1, 1], False), 0)
 
 slidingWindowLimiterTests :: TestTree
 slidingWindowLimiterTests =
