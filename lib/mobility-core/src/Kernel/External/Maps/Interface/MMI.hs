@@ -239,7 +239,7 @@ snapToRoad mmiCfg req = do
 
   let listOfSnappedPoints = sortOn (.waypoint_index) $ catMaybes $ resp.results.snappedPoints
   let listOfPoints = getPoints listOfSnappedPoints
-  let dist = getRouteLinearLength listOfPoints
+  let dist = getRouteLinearLength listOfPoints req.calculateDistanceFrom
   pure
     SnapToRoadResp
       { distance = dist,
