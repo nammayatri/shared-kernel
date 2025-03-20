@@ -176,7 +176,8 @@ instance ToSchema GeospatialGeometry where
 
 data SnapToRoadReq = SnapToRoadReq
   { points :: [LatLong],
-    distanceUnit :: DistanceUnit
+    distanceUnit :: DistanceUnit,
+    calculateDistanceFrom :: Maybe LatLong
   }
   deriving stock (Generic)
   deriving (Show)

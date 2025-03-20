@@ -16,7 +16,7 @@ module Kernel.Utils.CalculateDistance where
 
 import EulerHS.Prelude hiding (id, state)
 import Kernel.External.Maps.Types
-import Kernel.Prelude (atan2)
+import Kernel.Prelude (atan2, tail)
 import Kernel.Types.Common (HighPrecMeters (..))
 
 distanceBetweenInMeters :: LatLong -> LatLong -> HighPrecMeters
@@ -65,6 +65,29 @@ everySnippetIs _ _ = True
 deg2Rad :: Double -> Double
 deg2Rad degree = degree * pi / 180
 
-getRouteLinearLength :: [LatLong] -> HighPrecMeters
-getRouteLinearLength pts@(_ : t) = sum $ zipWith distanceBetweenInMeters pts t
-getRouteLinearLength _ = 0
+getRouteLinearLength :: [LatLong] -> Maybe LatLong -> HighPrecMeters
+getRouteLinearLength [] _ = 0
+getRouteLinearLength [_] _ = 0
+getRouteLinearLength pts Nothing = sum $ zipWith distanceBetweenInMeters pts (tail pts)
+getRouteLinearLength pts (Just refPoint) = do
+  let (nearestPointIdx, _) = findNearestPointFromEnd
+      remainingPoints = case nearestPointIdx of
+        Just idx -> drop idx pts
+        Nothing -> []
+
+  if null remainingPoints || length remainingPoints < 2
+    then 0
+    else sum $ zipWith distanceBetweenInMeters remainingPoints (tail remainingPoints)
+  where
+    findNearestPointFromEnd = go Nothing Nothing (reverse pts) (length pts - 1)
+
+    go prevIdx prevDist [] _ = (prevIdx, prevDist)
+    go prevIdx prevDist (p : ps) idx =
+      let currDist = distanceBetweenInMeters p refPoint
+       in case prevDist of
+            Nothing -> go (Just idx) (Just currDist) ps (idx - 1)
+            -- If distance increased, we've passed the nearest point, so return previous
+            Just dist ->
+              if currDist > dist
+                then (prevIdx, prevDist)
+                else go (Just idx) (Just currDist) ps (idx - 1)

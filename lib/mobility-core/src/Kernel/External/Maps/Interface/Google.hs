@@ -313,7 +313,7 @@ snapToRoad cfg SnapToRoadReq {..} = do
   key <- decrypt cfg.googleKey
   res <- GoogleRoads.snapToRoad roadsUrl key points
   let pts = map (.location) res.snappedPoints
-  let dist = getRouteLinearLength pts
+  let dist = getRouteLinearLength pts calculateDistanceFrom
   pure
     SnapToRoadResp
       { distance = dist,
