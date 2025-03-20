@@ -34,6 +34,7 @@ import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error
+import Kernel.Utils.CalculateDistance (getRouteLinearLength)
 import Kernel.Utils.Common
 
 callOsrmMatch ::
@@ -44,11 +45,15 @@ callOsrmMatch ::
   OSRMCfg ->
   SnapToRoadReq ->
   m SnapToRoadResp
-callOsrmMatch osrmCfg (SnapToRoadReq wps distanceUnit) = do
+callOsrmMatch osrmCfg (SnapToRoadReq wps distanceUnit calculateDistanceFrom) = do
   let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
   res <- OSRM.callOsrmMatchAPI osrmCfg.osrmUrl mbRadius (OSRM.PointsList wps)
   (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
-  pure $ SnapToRoadResp dist (convertHighPrecMetersToDistance distanceUnit dist) conf interpolatedPts
+  pure $ case calculateDistanceFrom of
+    Just _ -> do
+      let dist' = getRouteLinearLength interpolatedPts calculateDistanceFrom
+      SnapToRoadResp dist' (convertHighPrecMetersToDistance distanceUnit dist') conf interpolatedPts
+    Nothing -> SnapToRoadResp dist (convertHighPrecMetersToDistance distanceUnit dist) conf interpolatedPts
 
 getDistances ::
   ( HasCallStack,

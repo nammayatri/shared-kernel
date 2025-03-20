@@ -34,7 +34,7 @@ testLinearLengthCalculationDuringStop =
     checkTolerance 3.0 lenghtDuringStop realLenghtDuringStop -- 300%
 
 lenghtDuringStop, realLenghtDuringStop :: HighPrecMeters
-lenghtDuringStop = getRouteLinearLength pointsDuringStop
+lenghtDuringStop = getRouteLinearLength pointsDuringStop Nothing
 realLenghtDuringStop = distanceBetweenInMeters (head pointsDuringStop) (last pointsDuringStop)
 
 distanceCalculation :: TestTree
@@ -46,7 +46,7 @@ distanceCalculation =
     ]
 
 linearLength, manuallyCalculatedLength :: HighPrecMeters
-linearLength = getRouteLinearLength realRoute
+linearLength = getRouteLinearLength realRoute Nothing
 manuallyCalculatedLength = 16930 -- may be not very accurate
 
 realRoute :: [LatLong]
