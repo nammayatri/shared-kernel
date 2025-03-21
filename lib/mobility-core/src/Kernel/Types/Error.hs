@@ -16,6 +16,7 @@
 
 module Kernel.Types.Error where
 
+import qualified Data.Text as T
 import EulerHS.Prelude
 import EulerHS.Types (KVDBReply)
 import qualified Kafka.Types as Kafka
@@ -1260,3 +1261,58 @@ instance IsHTTPError PayoutConfigError where
     PayoutConfigNotFound _ _ -> E500
 
 instance IsAPIError PayoutConfigError
+
+data ClickToCallError
+  = ClickToCallNotConfigured
+  | ClickToCallBadRequest
+  | ClickToCallUnauthorized
+  | ClickToCallPaymentRequired
+  | ClickToCallAccessDenied
+  | ClickToCallNotFound
+  | ClickToCallConflict
+  | ClickToCallTooManyRequests
+  | ClickToCallServerError
+  | ClickToCallGenericError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''ClickToCallError
+
+instance FromResponse ClickToCallError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just ClickToCallBadRequest
+    401 -> Just ClickToCallUnauthorized
+    402 -> Just ClickToCallPaymentRequired
+    403 -> Just ClickToCallAccessDenied
+    404 -> Just ClickToCallNotFound
+    409 -> Just ClickToCallConflict
+    429 -> Just ClickToCallTooManyRequests
+    500 -> Just ClickToCallServerError
+    _ -> Just (ClickToCallGenericError ("Unexpected status code: " <> T.pack (show $ statusCode $ responseStatusCode resp)))
+
+instance IsBaseError ClickToCallError where
+  toMessage = \case
+    ClickToCallNotConfigured -> Just "Tata ClickToCall env variables aren't properly set."
+    ClickToCallBadRequest -> Just "Something in your header or request body was malformed."
+    ClickToCallUnauthorized -> Just "Necessary credentials were either missing or invalid."
+    ClickToCallPaymentRequired -> Just "The action is not available on your plan, or you have exceeded usage limits for your current plan."
+    ClickToCallAccessDenied -> Just "Your credentials are valid, but you don't have access to the requested resource."
+    ClickToCallNotFound -> Just "The object you're requesting doesn't exist."
+    ClickToCallConflict -> Just "You might be trying to update the same resource concurrently."
+    ClickToCallTooManyRequests -> Just "You are calling our APIs more frequently than we allow."
+    ClickToCallServerError -> Just "Something went wrong on our end. Please try again."
+    ClickToCallGenericError msg -> Just ("ClickToCall encountered an unexpected error: " <> msg)
+
+instance IsHTTPError ClickToCallError where
+  toErrorCode = \case
+    ClickToCallNotConfigured -> "CLICKTOCALL_NOT_CONFIGURED"
+    ClickToCallBadRequest -> "CLICKTOCALL_BAD_REQUEST"
+    ClickToCallUnauthorized -> "CLICKTOCALL_UNAUTHORIZED"
+    ClickToCallPaymentRequired -> "CLICKTOCALL_PAYMENT_REQUIRED"
+    ClickToCallAccessDenied -> "CLICKTOCALL_ACCESS_DENIED"
+    ClickToCallNotFound -> "CLICKTOCALL_NOT_FOUND"
+    ClickToCallConflict -> "CLICKTOCALL_CONFLICT"
+    ClickToCallTooManyRequests -> "CLICKTOCALL_TOO_MANY_REQUESTS"
+    ClickToCallServerError -> "CLICKTOCALL_SERVER_ERROR"
+    ClickToCallGenericError msg -> "CLICKTOCALL_GENERIC_ERROR: " <> msg
+
+instance IsAPIError ClickToCallError
