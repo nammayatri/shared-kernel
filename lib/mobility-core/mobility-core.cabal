@@ -246,6 +246,11 @@ library
       Kernel.External.Verification.SafetyPortal.Error
       Kernel.External.Verification.SafetyPortal.Types
       Kernel.External.Verification.Types
+      Kernel.External.Weather.Interface
+      Kernel.External.Weather.Interface.OpenWeatherMap
+      Kernel.External.Weather.OpenWeatherMap.API
+      Kernel.External.Weather.OpenWeatherMap.Config
+      Kernel.External.Weather.Types
       Kernel.External.Whatsapp.GupShup.Config
       Kernel.External.Whatsapp.GupShup.Flow
       Kernel.External.Whatsapp.Interface
