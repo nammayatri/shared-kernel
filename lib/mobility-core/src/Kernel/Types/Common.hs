@@ -56,8 +56,8 @@ import Kernel.Types.GuidLike as Common
 import Kernel.Types.Logging as Common
 import Kernel.Types.MonadGuid as Common
 import Kernel.Types.Price as Common
-import Kernel.Types.Time as Common
 import Kernel.Types.SharedRedisKeys as Common
+import Kernel.Types.Time as Common
 import Kernel.Utils.Dhall (FromDhall)
 
 newtype IdObject = IdObject

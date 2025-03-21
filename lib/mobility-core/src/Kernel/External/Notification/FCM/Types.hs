@@ -36,11 +36,11 @@ import EulerHS.Prelude hiding (id)
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Kernel.Types.App
+import qualified Kernel.Utils.Common as Common
 import Kernel.Utils.GenericPretty
 import Kernel.Utils.JSON
 import Kernel.Utils.TH
 import Kernel.Utils.Text (decodeFromText, encodeToText)
-import qualified Kernel.Utils.Common as Common
 
 data FCMConfig = FCMConfig
   { fcmUrl :: BaseUrl,
@@ -817,17 +817,19 @@ $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMResponse)
 
 $(mkBeamInstancesForEnum ''FCMOverlayAction)
 
-data LiveActivityReq = LiveActivityReq {
-  liveActivityToken :: Text, -- live activity token
-  liveActivityReqType :: Text, -- request to be update, end, start
-  liveActivityNotificationType :: Text, -- notification type , SEARCH_CANCELLED, RIDE_CANCELLED
-  liveActivityContentState :: LiveActivityContentState ,-- live activity content state
-  liveActivityApnsPriority :: Text
-} deriving (Show, Eq, Generic , ToJSON, FromJSON)
+data LiveActivityReq = LiveActivityReq
+  { liveActivityToken :: Text, -- live activity token
+    liveActivityReqType :: Text, -- request to be update, end, start
+    liveActivityNotificationType :: Text, -- notification type , SEARCH_CANCELLED, RIDE_CANCELLED
+    liveActivityContentState :: LiveActivityContentState, -- live activity content state
+    liveActivityApnsPriority :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
-data ApnsAPIRequest = ApnsAPIRequest {
-  message :: Message 
-} deriving (Generic , Eq, Show)
+data ApnsAPIRequest = ApnsAPIRequest
+  { message :: Message
+  }
+  deriving (Generic, Eq, Show)
 
 instance ToJSON ApnsAPIRequest where
   toJSON = genericToJSON $ defaultOptions {omitNothingFields = True}
@@ -835,11 +837,11 @@ instance ToJSON ApnsAPIRequest where
 instance FromJSON ApnsAPIRequest where
   parseJSON = genericParseJSON defaultOptions {omitNothingFields = True}
 
-
-data Message = Message {
-  token :: FCMRecipientToken,
-  apns :: Apns
-} deriving (Generic , Eq , Show)
+data Message = Message
+  { token :: FCMRecipientToken,
+    apns :: Apns
+  }
+  deriving (Generic, Eq, Show)
 
 instance ToJSON Message where
   toJSON = genericToJSON $ defaultOptions {omitNothingFields = True}
@@ -847,11 +849,12 @@ instance ToJSON Message where
 instance FromJSON Message where
   parseJSON = genericParseJSON defaultOptions {omitNothingFields = True}
 
-data Apns = Apns {
-  live_activity_token :: Text,
-  headers :: ApnsHeaders,
-  payload :: Payload
-} deriving (Generic , Eq , Show)
+data Apns = Apns
+  { live_activity_token :: Text,
+    headers :: ApnsHeaders,
+    payload :: Payload
+  }
+  deriving (Generic, Eq, Show)
 
 instance ToJSON Apns where
   toJSON = genericToJSON $ defaultOptions {omitNothingFields = True}
@@ -859,10 +862,10 @@ instance ToJSON Apns where
 instance FromJSON Apns where
   parseJSON = genericParseJSON defaultOptions {omitNothingFields = True}
 
-
-data ApnsHeaders = ApnsHeaders {
-  apns_priority :: Text
-} deriving (Generic , Eq , Show )
+data ApnsHeaders = ApnsHeaders
+  { apns_priority :: Text
+  }
+  deriving (Generic, Eq, Show)
 
 jsonApnsHeadersData :: Options
 jsonApnsHeadersData =
@@ -878,9 +881,10 @@ instance ToJSON ApnsHeaders where
 instance FromJSON ApnsHeaders where
   parseJSON = genericParseJSON jsonApnsHeadersData
 
-data Payload = Payload {
-  aps :: Aps
-} deriving (Generic , Eq, Show)
+data Payload = Payload
+  { aps :: Aps
+  }
+  deriving (Generic, Eq, Show)
 
 instance ToJSON Payload where
   toJSON = genericToJSON $ defaultOptions {omitNothingFields = True}
@@ -888,15 +892,15 @@ instance ToJSON Payload where
 instance FromJSON Payload where
   parseJSON = genericParseJSON defaultOptions {omitNothingFields = True}
 
-data Aps = Aps {
-  timestamp :: Int,
-  alert :: Maybe Alert,
-  dismissal_date :: Maybe Int,
-  content_available :: Int,
-  event :: Text,
-  content_state :: LiveActivityContentState
-} deriving (Generic , Eq , Show )
-
+data Aps = Aps
+  { timestamp :: Int,
+    alert :: Maybe Alert,
+    dismissal_date :: Maybe Int,
+    content_available :: Int,
+    event :: Text,
+    content_state :: LiveActivityContentState
+  }
+  deriving (Generic, Eq, Show)
 
 instance ToJSON Aps where
   toJSON = genericToJSON jsonApsData
@@ -914,9 +918,10 @@ jsonApsData =
         other -> other
     }
 
-data Alert = Alert {
-  title :: Maybe Text
-} deriving (Show, Eq, Generic)
+data Alert = Alert
+  { title :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
 
 instance ToJSON Alert where
   toJSON = genericToJSON $ defaultOptions {omitNothingFields = True}
@@ -924,30 +929,32 @@ instance ToJSON Alert where
 instance FromJSON Alert where
   parseJSON = genericParseJSON defaultOptions {omitNothingFields = True}
 
+data LiveActivityContentState = LiveActivityContentState
+  { driverInfo :: Maybe DriverInfo,
+    bookingInfo :: Maybe BookingInfo,
+    activityStatus :: Text, -- searching , arriving , waiting , onRide , rideCompleted , reallocated
+    timerDuration :: Maybe Common.BatchConfig,
+    customMessage :: Maybe Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
-data LiveActivityContentState = LiveActivityContentState {
-  driverInfo :: Maybe DriverInfo,
-  bookingInfo :: Maybe BookingInfo,
-  activityStatus :: Text, -- searching , arriving , waiting , onRide , rideCompleted , reallocated
-  timerDuration :: Maybe Common.BatchConfig,
-  customMessage :: Maybe Text
-} deriving (Eq , Show , Generic, ToJSON, FromJSON)
+data DriverInfo = DriverInfo
+  { rideOtp :: Maybe Text,
+    driverName :: Maybe Text,
+    distanceLeft :: Maybe Text,
+    totalDistance :: Maybe Text,
+    driverNumber :: Maybe Text,
+    driverProfile :: Maybe Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
-data DriverInfo = DriverInfo {
-   rideOtp:: Maybe Text,
-   driverName::Maybe Text,
-   distanceLeft:: Maybe Text,
-   totalDistance :: Maybe Text,
-   driverNumber:: Maybe Text,
-   driverProfile:: Maybe Text
-} deriving (Eq , Show , Generic, ToJSON, FromJSON)
-
-data BookingInfo = BookingInfo {
-    vehicleName :: Maybe Text,
+data BookingInfo = BookingInfo
+  { vehicleName :: Maybe Text,
     vehicleNumber :: Maybe Text,
     vehicleVariant :: Maybe Text,
     vehicleColor :: Maybe Text,
     source :: Maybe Text,
     destination :: Maybe Text,
     estimatedFare :: Maybe Text
-  } deriving (Eq , Show , Generic, ToJSON, FromJSON)
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON)

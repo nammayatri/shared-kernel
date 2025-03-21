@@ -18,11 +18,11 @@ module Kernel.External.Notification.Interface
 where
 
 import EulerHS.Prelude
+import Kernel.External.Notification.FCM.Types (LiveActivityReq)
 import qualified Kernel.External.Notification.Interface.FCM as FCM
 import qualified Kernel.External.Notification.Interface.GRPC as GRPC
 import qualified Kernel.External.Notification.Interface.PayTM as PayTM
 import Kernel.External.Notification.Interface.Types as Reexport
-import Kernel.External.Notification.FCM.Types (LiveActivityReq)
 import Kernel.External.Notification.Types as Reexport
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)

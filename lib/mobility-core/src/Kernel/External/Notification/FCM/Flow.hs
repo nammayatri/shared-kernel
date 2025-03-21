@@ -40,7 +40,7 @@ module Kernel.External.Notification.FCM.Flow
     ApnsLiveActivityAPI,
     apnsLiveActivityAPI,
     updateLiveActivity,
-    createApnsLiveActivtyPayload
+    createApnsLiveActivtyPayload,
   )
 where
 
@@ -50,6 +50,7 @@ import Data.Default.Class
 import qualified Data.Text as T'
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Base64 as B64
+import Data.Time.Clock.POSIX (getPOSIXTime)
 import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
 import Kernel.External.Notification.FCM.Error
@@ -61,7 +62,6 @@ import Kernel.Utils.Common
 import qualified Kernel.Utils.JWT as JWT
 import Servant
 import Servant.Client (ClientError (..), ResponseF (..))
-import Data.Time.Clock.POSIX (getPOSIXTime)
 
 -- | Create FCM message
 -- Note that data should be formed as key-value pairs list
@@ -336,15 +336,14 @@ updateLiveActivity config recipient apnsReq = do
     Nothing -> do
       logTagInfo "FCM" tokenNotFound
       pure ()
-    Just token -> do 
-        currentTime <- liftIO getPOSIXTime
-        let 
-            currentTimeInt = floor currentTime :: Int
-            apnsReqTimeStamp = currentTimeInt
-        sendLiveActivityApns config (createApnsLiveActivtyPayload token apnsReq apnsReqTimeStamp) recipient.id
+    Just token -> do
+      currentTime <- liftIO getPOSIXTime
+      let currentTimeInt = floor currentTime :: Int
+          apnsReqTimeStamp = currentTimeInt
+      sendLiveActivityApns config (createApnsLiveActivtyPayload token apnsReq apnsReqTimeStamp) recipient.id
 
-sendLiveActivityApns :: 
-   ( CoreMetrics m,
+sendLiveActivityApns ::
+  ( CoreMetrics m,
     Redis.HedisFlow m r,
     MonadFlow m
   ) =>
@@ -372,47 +371,53 @@ type ApnsLiveActivityAPI req =
     :> ReqBody '[JSON] req
     :> Post '[JSON] ResponseType -- APNS Response
 
-data ResponseType = ResponseType {
-  name :: Text
-} deriving(Show, Generic,ToJSON, FromJSON)
+data ResponseType = ResponseType
+  { name :: Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 apnsLiveActivityAPI :: Proxy (ApnsLiveActivityAPI a)
 apnsLiveActivityAPI = Proxy
 
 createApnsLiveActivtyPayload :: FCMRecipientToken -> LiveActivityReq -> Int -> ApnsAPIRequest
-createApnsLiveActivtyPayload receipentToken apnsReq apnsReqTimeStamp = 
-  let 
-      apnsReqToken = apnsReq.liveActivityToken
-      apnsReqLiveActivity =  apnsReq.liveActivityReqType
-      apnsContentState =  apnsReq.liveActivityContentState
-      apnsReqDismissalDate = case apnsReq.liveActivityReqType of 
-                                "end" -> Just $ apnsReqTimeStamp + 600 
-                                _ -> Nothing 
-      liveActivityApnsPriority = apnsReq.liveActivityApnsPriority                          
-      apnsPayload' = ApnsAPIRequest {
-
-        message = Message {
-          token = receipentToken,
-          apns = Apns {
-            live_activity_token = 
-              apnsReqToken
-            ,  headers = ApnsHeaders {
-                apns_priority = liveActivityApnsPriority
-              }
-            , payload = Payload {
-                aps =  Aps {
-                    timestamp =  apnsReqTimeStamp,
-                    content_available = 1,
-                    event = apnsReqLiveActivity,
-                    content_state = apnsContentState,
-                    alert = Just $ Alert {
-                      title = Just "LIVE"
-                    },
-                    dismissal_date = apnsReqDismissalDate
-                  }
-            }
+createApnsLiveActivtyPayload receipentToken apnsReq apnsReqTimeStamp =
+  let apnsReqToken = apnsReq.liveActivityToken
+      apnsReqLiveActivity = apnsReq.liveActivityReqType
+      apnsContentState = apnsReq.liveActivityContentState
+      apnsReqDismissalDate = case apnsReq.liveActivityReqType of
+        "end" -> Just $ apnsReqTimeStamp + 600
+        _ -> Nothing
+      liveActivityApnsPriority = apnsReq.liveActivityApnsPriority
+      apnsPayload' =
+        ApnsAPIRequest
+          { message =
+              Message
+                { token = receipentToken,
+                  apns =
+                    Apns
+                      { live_activity_token =
+                          apnsReqToken,
+                        headers =
+                          ApnsHeaders
+                            { apns_priority = liveActivityApnsPriority
+                            },
+                        payload =
+                          Payload
+                            { aps =
+                                Aps
+                                  { timestamp = apnsReqTimeStamp,
+                                    content_available = 1,
+                                    event = apnsReqLiveActivity,
+                                    content_state = apnsContentState,
+                                    alert =
+                                      Just $
+                                        Alert
+                                          { title = Just "LIVE"
+                                          },
+                                    dismissal_date = apnsReqDismissalDate
+                                  }
+                            }
+                      }
+                }
           }
-        }
-      }
-  in
-  apnsPayload'
+   in apnsPayload'

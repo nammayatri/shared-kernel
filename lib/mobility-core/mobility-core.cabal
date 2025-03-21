@@ -377,6 +377,7 @@ library
       Kernel.Types.Registry.Routes
       Kernel.Types.Registry.Subscriber
       Kernel.Types.Servant
+      Kernel.Types.SharedRedisKeys
       Kernel.Types.SlidingWindowCounters
       Kernel.Types.SlidingWindowLimiter
       Kernel.Types.SystemConfigs
@@ -435,7 +436,6 @@ library
       Kernel.Utils.Version
       Kernel.Utils.XML
       Kernel.External.MultiModal.OpenTripPlanner.Types
-      Kernel.Types.SharedRedisKeys
   other-modules:
       Paths_mobility_core
   hs-source-dirs:
