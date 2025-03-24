@@ -17,6 +17,7 @@ module Kernel.External.Payment.Juspay.Types.CreateCustomer where
 
 import Data.Aeson
 import Kernel.Prelude
+import Web.FormUrlEncoded (ToForm)
 
 data CreateCustomerRequest = CreateCustomerRequest
   { object_reference_id :: Text,
@@ -43,6 +44,28 @@ instance FromJSON CreateCustomerRequest where
 
 instance ToJSON CreateCustomerRequest where
   toJSON = genericToJSON jsonOptionsCCR
+
+data GetCustomerReq = GetCustomerReq
+  { options_get_client_auth_token :: Bool
+  }
+  deriving (Show, Generic)
+  deriving anyclass (ToSchema)
+
+jsonOptionsGCR :: Options
+jsonOptionsGCR =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "options_get_client_auth_token" -> "options.get_client_auth_token"
+        other -> other
+    }
+
+instance FromJSON GetCustomerReq where
+  parseJSON = genericParseJSON jsonOptionsGCR
+
+instance ToJSON GetCustomerReq where
+  toJSON = genericToJSON jsonOptionsGCR
+
+instance ToForm GetCustomerReq
 
 data CreateCustomerResp = CreateCustomerResp
   { last_name :: Maybe Text,
