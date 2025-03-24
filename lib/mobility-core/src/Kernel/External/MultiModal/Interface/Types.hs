@@ -102,6 +102,15 @@ $(mkHttpInstancesForEnum ''GeneralVehicleType)
 
 $(mkBeamInstancesForEnumAndList ''GeneralVehicleType)
 
+data SortingType
+  = Fastest
+  | Minimum_Transits
+  deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON, Read, ToSchema, ToParamSchema)
+
+$(mkHttpInstancesForEnum ''SortingType)
+
+$(mkBeamInstancesForEnumAndList ''SortingType)
+
 data GetTransitRoutesReq = GetTransitRoutesReq
   { origin :: GT.WayPointV2,
     destination :: GT.WayPointV2,
@@ -112,6 +121,7 @@ data GetTransitRoutesReq = GetTransitRoutesReq
     transportModes :: Maybe [Maybe OTPTypes.TransportMode],
     minimumWalkDistance :: Distance.Meters,
     permissibleModes :: [GeneralVehicleType],
-    maxAllowedPublicTransportLegs :: Int
+    maxAllowedPublicTransportLegs :: Int,
+    sortingType :: SortingType
   }
   deriving (Generic, ToJSON, FromJSON, Show, ToSchema)

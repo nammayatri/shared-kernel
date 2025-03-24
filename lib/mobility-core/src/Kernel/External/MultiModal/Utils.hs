@@ -8,7 +8,7 @@ where
 
 import qualified Data.Char as Char
 import qualified Data.HashMap.Strict as HM
-import Data.List (nub, sort)
+import Data.List (nub, sort, sortBy)
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Text as T
@@ -239,8 +239,8 @@ convertGoogleToGeneric gResponse =
               else leg2
        in adjustedLeg1 : adjustWalkingLegs (adjustedLeg2 : rest)
 
-convertOTPToGeneric :: OTP.OTPPlan -> Distance.Meters -> [GeneralVehicleType] -> Int -> MultiModalResponse
-convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs =
+convertOTPToGeneric :: OTP.OTPPlan -> Distance.Meters -> [GeneralVehicleType] -> Int -> SortingType -> MultiModalResponse
+convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType =
   let itineraries = otpResponse.plan.itineraries
       (genericRoutes, frequencyMap) = foldr accumulateItineraries ([], HM.empty) itineraries
       mergedRoutes = map mergeConsecutiveMetroLegs genericRoutes
@@ -249,11 +249,20 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
       filteredRoutes = map (removeShortWalkLegs minimumWalkDistance) updatedRoutes
       filteredByPermissibleModes = filter (hasOnlyPermissibleModes permissibleModes) filteredRoutes
       filteredByMaxPublicTransport = filter (withinMaxAllowedPublicTransportModes maxAllowedPublicTransportLegs) filteredByPermissibleModes
-      finalRoutes = uniqueRoutes filteredByMaxPublicTransport
+      sortedRoutes = case sortingType of
+        Fastest -> sortRoutesByDuration filteredByMaxPublicTransport
+        Minimum_Transits -> sortRoutesByNumberOfLegs filteredByMaxPublicTransport
+      finalRoutes = uniqueRoutes sortedRoutes
    in MultiModalResponse
         { routes = finalRoutes
         }
   where
+    sortRoutesByDuration :: [MultiModalRoute] -> [MultiModalRoute]
+    sortRoutesByDuration = sortBy (\r1 r2 -> compare (r1.duration.getSeconds) (r2.duration.getSeconds))
+
+    sortRoutesByNumberOfLegs :: [MultiModalRoute] -> [MultiModalRoute]
+    sortRoutesByNumberOfLegs = sortBy (\r1 r2 -> compare (length r1.legs) (length r2.legs))
+
     removeShortWalkLegs :: Distance.Meters -> MultiModalRoute -> MultiModalRoute
     removeShortWalkLegs threshold route =
       let thresholdValue = fromIntegral $ Distance.getMeters threshold -- Convert threshold to Double for comparison
