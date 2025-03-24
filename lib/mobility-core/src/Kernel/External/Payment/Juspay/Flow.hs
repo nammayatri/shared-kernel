@@ -54,6 +54,7 @@ type GetCustomerAPI =
     :> Capture "id" CustomerId
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> ReqBody '[FormUrlEncoded] GetCustomerReq
     :> Get '[JSON] CreateCustomerResp
 
 getCustomer ::
@@ -64,10 +65,11 @@ getCustomer ::
   Text ->
   Text ->
   CustomerId ->
+  GetCustomerReq ->
   m CreateCustomerResp
-getCustomer url apiKey merchantId customerId = do
+getCustomer url apiKey merchantId customerId req = do
   let proxy = Proxy @GetCustomerAPI
-      eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) (Just merchantId)
+      eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) (Just merchantId) req
   callJuspayAPI url eulerClient "get-customer" proxy
 
 type CreateOrderAPI =
