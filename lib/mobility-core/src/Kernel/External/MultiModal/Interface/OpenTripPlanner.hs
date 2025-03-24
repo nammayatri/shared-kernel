@@ -46,6 +46,7 @@ getTransitRoutes cfg req = do
   let minimumWalkDistance = req.minimumWalkDistance
   let permissibleModes = req.permissibleModes
   let maxAllowedPublicTransportLegs = req.maxAllowedPublicTransportLegs
+  let sortingType = req.sortingType
   resp <-
     liftIO $
       planClient
@@ -61,4 +62,4 @@ getTransitRoutes cfg req = do
   case resp of
     Left _ -> pure Nothing
     Right plan' ->
-      pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs
+      pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType
