@@ -116,7 +116,7 @@ getCustomer config customerId = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  creatCustomerRespo <- Juspay.getCustomer url apiKey merchantId customerId
+  creatCustomerRespo <- Juspay.getCustomer url apiKey merchantId customerId mkGetCustomerReq
   return $ mkCreateCustomerRes creatCustomerRespo
   where
     mkCreateCustomerRes Juspay.CreateCustomerResp {..} =
@@ -124,6 +124,10 @@ getCustomer config customerId = do
         { customerId = object_reference_id,
           clientAuthToken = Customer.client_auth_token <$> juspay,
           clientAuthTokenExpiry = Customer.client_auth_token_expiry <$> juspay
+        }
+    mkGetCustomerReq =
+      Juspay.GetCustomerReq
+        { options_get_client_auth_token = True
         }
 
 mandateNotification ::
