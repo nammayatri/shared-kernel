@@ -192,7 +192,7 @@ getCustomer ::
   m CreateCustomerResp
 getCustomer config customerId = case config of
   JuspayConfig cfg -> Juspay.getCustomer cfg customerId
-  StripeConfig _ -> throwError $ InternalError "Juspay Get Account not supported."
+  StripeConfig _ -> throwError $ InternalError "Stripe Get Customer not supported."
 
 createEphemeralKeys ::
   ( CoreMetrics m,
