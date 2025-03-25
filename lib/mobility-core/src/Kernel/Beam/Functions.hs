@@ -640,7 +640,7 @@ updateInternal ::
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
-updateInternal updatedMeshConfig setClause whereClause = do
+updateInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
   dbConf <- getMasterDBConfig
   res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
   case res of
@@ -663,7 +663,7 @@ updateOneInternal ::
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
-updateOneInternal updatedMeshConfig setClause whereClause = do
+updateOneInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
   dbConf <- getMasterDBConfig
   res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
   case res of
@@ -710,7 +710,7 @@ deleteInternal ::
   MeshConfig ->
   Where Postgres table ->
   m ()
-deleteInternal updatedMeshConfig whereClause = do
+deleteInternal updatedMeshConfig whereClause = runInMasterRedis $ do
   dbConf <- getMasterDBConfig
   res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
   case res of
