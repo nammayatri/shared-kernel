@@ -50,7 +50,7 @@ createCustomer url apiKey merchantId req = do
   callJuspayAPI url eulerClient "create-customer" proxy
 
 type GetCustomerAPI =
-  "customers"
+  "v2" :> "customers"
     :> Capture "id" CustomerId
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
