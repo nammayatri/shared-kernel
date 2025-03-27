@@ -55,7 +55,7 @@ type GetCustomerAPI =
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
     :> ReqBody '[FormUrlEncoded] GetCustomerReq
-    :> Get '[JSON] CreateCustomerResp
+    :> Post '[JSON] CreateCustomerResp
 
 getCustomer ::
   ( Metrics.CoreMetrics m,
