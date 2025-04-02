@@ -28,7 +28,7 @@ import Network.Socket (HostName)
 type HedisFlow m env =
   (MonadTime m, MonadClock m, CoreMetrics m, MonadCatch m, MonadReader env m, HedisFlowEnv env, MonadIO m, C.MonadThrow m, Log m)
 
-type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool)
+type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, HasField "ltsHedisEnv" env HedisEnv)
 
 type KeyModifierFunc = (Text -> Text)
 
