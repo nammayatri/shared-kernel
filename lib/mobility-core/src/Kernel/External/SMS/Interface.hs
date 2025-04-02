@@ -21,8 +21,10 @@ module Kernel.External.SMS.Interface
 where
 
 import EulerHS.Prelude
+import Kernel.External.SMS.DigoEngage.Config as Reexport
 import Kernel.External.SMS.ExotelSms.Config as Reexport
 import Kernel.External.SMS.GupShup.Config as Reexport
+import qualified Kernel.External.SMS.Interface.DigoEngageSms as DigoEngageSms
 import qualified Kernel.External.SMS.Interface.ExotelSms as ExotelSms
 import qualified Kernel.External.SMS.Interface.GupShup as GupShup
 import qualified Kernel.External.SMS.Interface.MyValueFirst as MyValueFirst
@@ -59,11 +61,13 @@ sendSMS' ::
   SmsServiceConfig ->
   SendSMSReq ->
   m SendSMSRes
-sendSMS' serviceConfig req = case serviceConfig of
-  ExotelSmsConfig cfg -> ExotelSms.sendOTP cfg req
-  MyValueFirstConfig cfg -> MyValueFirst.sendOTP cfg req
-  GupShupConfig cfg -> GupShup.sendOTP cfg req
-  TwillioSmsConfig cfg -> TwillioSms.sendOTP cfg req
+sendSMS' serviceConfig req = do
+  case serviceConfig of
+    ExotelSmsConfig cfg -> ExotelSms.sendOTP cfg req
+    MyValueFirstConfig cfg -> MyValueFirst.sendOTP cfg req
+    GupShupConfig cfg -> GupShup.sendOTP cfg req
+    TwillioSmsConfig cfg -> TwillioSms.sendOTP cfg req
+    DigoEngageSmsConfig cfg -> DigoEngageSms.sendOTP cfg req
 
 checkSmsResult ::
   (Log m, MonadThrow m) => SendSMSRes -> m ()
