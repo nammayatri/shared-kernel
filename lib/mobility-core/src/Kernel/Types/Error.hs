@@ -1316,3 +1316,54 @@ instance IsHTTPError ClickToCallError where
     ClickToCallGenericError msg -> "CLICKTOCALL_GENERIC_ERROR: " <> msg
 
 instance IsAPIError ClickToCallError
+
+data DigoEngageError
+  = DigoEngageInvalidRequest
+  | DigoEngageNotConfigured
+  | DigoEngageUserIdNotFound
+  | DigoEngageInvalidPhoneNumber
+  | DigoEngageUnauthorized
+  | DigoEngageWrongMethodService
+  | DigoEngageInterNationalPhoneNumber
+  | DigoEngageTooManyRequests
+  | DigoEngageUnknownServerError
+  | DigoEngageValidationError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''DigoEngageError
+
+instance IsBaseError DigoEngageError where
+  toMessage = \case
+    DigoEngageInvalidRequest -> Just "Invalid request to DigoEngage."
+    DigoEngageNotConfigured -> Just "DigoEngage env variables aren't properly set."
+    DigoEngageUserIdNotFound -> Just "DigoEngage Authentication Failed as userid X does not exist."
+    DigoEngageInvalidPhoneNumber -> Just "The phone number XXXXX is not a valid phone number."
+    DigoEngageUnauthorized -> Just "Authentication failed due to invalid userId or password."
+    DigoEngageWrongMethodService -> Just "The method is not supported."
+    DigoEngageInterNationalPhoneNumber -> Just "The INTERNATIONAL_PHONE service is disabled for you. Kindly get the service enabled before using this action"
+    DigoEngageTooManyRequests -> Just "The phone number has already been marked as requested"
+    DigoEngageUnknownServerError -> Just "An unknown exception has occurred. Please retry the request after some time."
+    DigoEngageValidationError msg -> Just ("Error: " <> msg)
+
+instance IsHTTPError DigoEngageError where
+  toErrorCode = \case
+    DigoEngageNotConfigured -> "DIGOENGAGE_NOT_CONFIGURED"
+    DigoEngageInvalidRequest -> "DIGOENGAGE_INVALID_REQUEST"
+    DigoEngageUserIdNotFound -> "DIGOENGAGE_USER_NOT_FOUND"
+    DigoEngageInvalidPhoneNumber -> "DIGOENGAGE_INVALID_PHONE_NUMBER"
+    DigoEngageUnauthorized -> "DIGOENGAGE_AUTHENTICATION_FAILED"
+    DigoEngageWrongMethodService -> "DIGOENGAGE_WRONG_METHOD_SERVICE"
+    DigoEngageInterNationalPhoneNumber -> "DIGOENGAGE_INTERNATIONAL_PHONE_DISABLED"
+    DigoEngageTooManyRequests -> "DIGOENGAGE_TOO_MANY_REQUEST_FOR_SAME"
+    DigoEngageUnknownServerError -> "DIGOENGAGE_UNKNOWN_ERROR"
+    DigoEngageValidationError msg -> "DIGOENGAGE_ERROR: " <> msg
+
+instance FromResponse DigoEngageError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just DigoEngageInvalidRequest
+    401 -> Just DigoEngageUnauthorized
+    500 -> Just DigoEngageUnknownServerError
+    404 -> Just DigoEngageUserIdNotFound
+    _ -> Just DigoEngageNotConfigured
+
+instance IsAPIError DigoEngageError
