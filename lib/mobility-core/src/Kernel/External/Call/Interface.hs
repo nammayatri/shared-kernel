@@ -21,7 +21,9 @@ where
 import EulerHS.Prelude
 import Kernel.External.Call.Exotel.Config as Reexport
 import qualified Kernel.External.Call.Interface.Exotel as Exotel
+import qualified Kernel.External.Call.Interface.TataClickToCall as TataClickToCall
 import Kernel.External.Call.Interface.Types as Reexport
+import Kernel.External.Call.TataClickToCall.Config as Reexport
 import Kernel.External.Call.Twillio.Config as Reexport
 import Kernel.External.Call.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -47,4 +49,5 @@ initiateCall ::
 initiateCall config req = do
   case config of
     ExotelConfig ec -> Exotel.initiateCall ec req
+    TataClickToCallConfig ec -> TataClickToCall.initiateCall ec req
     TwillioCallConfig _ -> throwNotProvidedError "initiateCall" TwillioCall
