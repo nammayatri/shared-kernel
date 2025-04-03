@@ -179,6 +179,7 @@ convertGoogleToGeneric gResponse =
                         }
                   },
               agency = genericAgency,
+              serviceTypes = [],
               fromArrivalTime = fromArrivalTime',
               fromDepartureTime = fromDepartureTime',
               toArrivalTime = toArrivalTime',
@@ -219,6 +220,7 @@ convertGoogleToGeneric gResponse =
               fromStopDetails = leg1.fromStopDetails,
               toStopDetails = leg2.toStopDetails,
               agency = Nothing,
+              serviceTypes = [],
               fromArrivalTime = leg1.fromArrivalTime,
               fromDepartureTime = leg1.fromDepartureTime,
               toArrivalTime = leg2.toArrivalTime,
@@ -331,6 +333,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                   mode = leg1.mode,
                   startLocation = leg1.startLocation,
                   endLocation = leg2.endLocation,
+                  serviceTypes = [],
                   fromStopDetails = leg1.fromStopDetails,
                   toStopDetails = leg2.toStopDetails,
                   routeDetails = leg1.routeDetails ++ leg2.routeDetails,
@@ -491,6 +494,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                               }
                         },
                     routeDetails = routeDetails,
+                    serviceTypes = [],
                     endLocation =
                       GT.LocationV2
                         { latLng =
