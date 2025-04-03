@@ -53,7 +53,7 @@ data WebhookDetails = WebhookDetails
     url :: Maybe BaseUrl,
     customHeader :: Maybe Text
   }
-  deriving (Show, Generic, ToSchema)
+  deriving (Show, Generic, ToSchema, Eq)
   deriving anyclass (FromJSON, ToJSON)
 
 data AdditionalInfo = AdditionalInfo
