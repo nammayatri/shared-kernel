@@ -28,8 +28,7 @@ data SmsSessionConfig = SmsSessionConfig
 data SmsCredConfig = SmsCredConfig
   { username :: Text, -- FIXME? Do we need to reuse Servant's one?
     password :: Text, -- idem
-    otpHash :: Text,
-    token :: Maybe Text
+    otpHash :: Text
   }
   deriving (Generic, FromDhall)
 

@@ -26,7 +26,8 @@ import Servant
 type ServiceAPI =
   "smpp"
     :> "sendsms"
-    :> Header "Authorization" Text
+    :> MandatoryQueryParam "username" Text
+    :> MandatoryQueryParam "password" Text
     :> MandatoryQueryParam "from" Text
     :> MandatoryQueryParam "to" Text
     :> MandatoryQueryParam "text" Text
@@ -36,4 +37,4 @@ serviceAPI :: Proxy ServiceAPI
 serviceAPI = Proxy
 
 submitSms :: SubmitSms -> ET.EulerClient SubmitSmsRes
-submitSms SubmitSms {..} = ET.client serviceAPI (Just $ "Bearer " <> token) from to text
+submitSms SubmitSms {..} = ET.client serviceAPI username password from to text
