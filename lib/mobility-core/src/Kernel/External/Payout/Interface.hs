@@ -25,7 +25,8 @@ import Kernel.Utils.Common
 
 createPayoutOrder ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasFlowEnv m r '["selfUIUrl" ::: BaseUrl]
   ) =>
   PayoutServiceConfig ->
   CreatePayoutOrderReq ->
