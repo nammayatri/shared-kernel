@@ -60,6 +60,8 @@ getTransitRoutes cfg req = do
           }
           >>= single
   case resp of
-    Left _ -> pure Nothing
+    Left err -> do
+      logError $ "Error in getTransitRoutes: " <> show err
+      pure Nothing
     Right plan' ->
       pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType
