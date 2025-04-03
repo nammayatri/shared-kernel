@@ -52,7 +52,7 @@ sendOTPApi
   gupShupSmsCfg =
     callAPI
       gupShupSmsCfg.url
-      (callGupShup "SendMessage" 1.1 gupShupUserId gupShupPassword phoneNumber otpSmsTemplate "TEXT" "plain" "json" gupShupSender gupShupTemplateId)
+      (callGupShup "SendMessage" 1.1 gupShupUserId gupShupPassword phoneNumber otpSmsTemplate "TEXT" "plain" "json" gupShupTemplateId gupShupSender)
       "sendOTPApi"
       API.gupShupConnectAPI
       >>= checkGupShupOptError gupShupSmsCfg.url
