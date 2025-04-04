@@ -18,7 +18,7 @@ import Data.Time.Clock
 import EulerHS.Prelude (safeHead)
 import Kernel.External.Maps.Google.MapsClient.Types as GT
 import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
-import Kernel.External.MultiModal.Interface.Types
+import Kernel.External.MultiModal.Interface.Types as MIT
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Types as OTP
 import Kernel.Prelude
 import qualified Kernel.Types.Distance as Distance
@@ -391,7 +391,8 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                       [_prefix, middle, _suffix] -> Just $ T.pack middle
                       _ -> Nothing
                   extractServiceType Nothing = Nothing
-              maybeLongName = otpLeg'.route >>= \r -> r.longName
+              -- maybeLongName = otpLeg'.route >>= \r -> r.longName
+              gtfsId' = otpLeg'.route >>= \r -> Just r.gtfsId
               fromArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.from.arrivalTime
               fromDepartureTime' = Just $ millisecondsToUTC $ round otpLeg'.from.departureTime
               toArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.to.arrivalTime
@@ -469,9 +470,9 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                 Nothing -> []
 
               -- Update the frequency map only if longName exists
-              newFreqMap = case (maybeLongName, fromArrivalTime') of
-                (Just longName, Just time) ->
-                  let key = T.pack longName
+              newFreqMap = case (gtfsId', fromArrivalTime') of
+                (Just gtfsId'', Just time) ->
+                  let key = T.pack gtfsId''
                    in HM.insertWith (\new old -> nub (new ++ old)) key [time] updatedFreqMap
                 _ -> updatedFreqMap
 
@@ -533,9 +534,9 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
 
         updateDetailsFrequency :: HM.HashMap T.Text [UTCTime] -> MultiModalRouteDetails -> MultiModalRouteDetails
         updateDetailsFrequency frequencyMap details =
-          case longName details of
-            Just longName ->
-              let key = longName
+          case details.gtfsId of
+            Just gtfsId ->
+              let key = gtfsId
                   timestamps = sort $ HM.lookupDefault [] key frequencyMap
                   frequency = case timestamps of
                     (t1 : t2 : _) -> Just $ Time.Seconds $ round $ diffUTCTime t2 t1
@@ -547,7 +548,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
     getSequenceCombination :: MultiModalRoute -> T.Text
     getSequenceCombination route =
       --let sequenceCombination = mapMaybe (\leg -> leg.routeDetails >>= (.longName)) (route.legs)
-      let sequenceCombination = mapMaybe (listToMaybe . mapMaybe longName . routeDetails) (route.legs)
+      let sequenceCombination = mapMaybe (listToMaybe . mapMaybe (.gtfsId) . routeDetails) (route.legs)
        in T.intercalate "-" sequenceCombination
 
     -- Function to filter routes with unique sequence combinations
