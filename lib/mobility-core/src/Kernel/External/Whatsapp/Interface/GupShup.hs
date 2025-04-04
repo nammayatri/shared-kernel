@@ -26,9 +26,11 @@ import Kernel.External.Whatsapp.GupShup.Config
 import qualified Kernel.External.Whatsapp.GupShup.Flow as Ex
 import Kernel.External.Whatsapp.Interface.Types as IT
 import Kernel.External.Whatsapp.Types as Reexport
-import Kernel.Prelude
+import Kernel.Prelude hiding (length, map)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Types.Error
+import Kernel.Utils.Common
 
 whatsAppOptApi ::
   ( CoreMetrics m,
@@ -73,4 +75,28 @@ whatsAppSendMessageWithTemplateIdAPI GupShupCfg {..} SendWhatsAppMessageWithTemp
   userId <- decrypt userid
   password' <- decrypt password
   gupShupUrl <- parseBaseUrl url
-  Ex.whatsAppSendMessageWithTemplateIdAPI gupShupUrl userId password' sendTo otpCfg.method authScheme v otpCfg.msgType format var1 var2 var3 var4 var5 var6 var7 ctaButtonUrl containsUrlButton templateId
+
+  when (length variables > 7) $
+    throwError (InvalidRequest "Too many variables, maximum allowed is 7")
+
+  let padded = variables ++ replicate (7 - min 7 (length variables)) Nothing
+  (var1, var2, var3, var4, var5, var6, var7) <- case padded of
+    [v1, v2, v3, v4, v5, v6, v7] -> pure (v1, v2, v3, v4, v5, v6, v7)
+    _ -> throwError (InvalidRequest "Invalid request")
+  Ex.whatsAppSendMessageWithTemplateIdAPI
+    gupShupUrl
+    userId
+    password'
+    sendTo
+    otpCfg.method authScheme v otpCfg.msgType
+    format
+    var1
+    var2
+    var3
+    var4
+    var5
+    var6
+    var7
+    ctaButtonUrl
+    containsUrlButton
+    templateId
