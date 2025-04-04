@@ -258,9 +258,14 @@ library
       Kernel.External.Verification.Types
       Kernel.External.Whatsapp.GupShup.Config
       Kernel.External.Whatsapp.GupShup.Flow
+      Kernel.External.Whatsapp.GupShup.Types
       Kernel.External.Whatsapp.Interface
       Kernel.External.Whatsapp.Interface.GupShup
+      Kernel.External.Whatsapp.Interface.TataCommunications
       Kernel.External.Whatsapp.Interface.Types
+      Kernel.External.Whatsapp.TataCommunications.Config
+      Kernel.External.Whatsapp.TataCommunications.Flow
+      Kernel.External.Whatsapp.TataCommunications.Types
       Kernel.External.Whatsapp.Types
       Kernel.InternalAPI.Auth.API
       Kernel.InternalAPI.Auth.Client

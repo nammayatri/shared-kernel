@@ -23,14 +23,16 @@ where
 import EulerHS.Prelude
 import Kernel.External.Whatsapp.GupShup.Config as Reexport
 import qualified Kernel.External.Whatsapp.Interface.GupShup as GupShup
+import qualified Kernel.External.Whatsapp.Interface.TataCommunications as TataCommunications
 import Kernel.External.Whatsapp.Interface.Types as Reexport
+import Kernel.External.Whatsapp.TataCommunications.Config as Reexport
 import Kernel.External.Whatsapp.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
 
-whatsAppOptApi :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> OptApiReq -> m OptApiResp
+whatsAppOptApi :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> OptApiReq -> m (Maybe OptApiResp)
 whatsAppOptApi WhatsappHandler {..} req = do
   prividersPriorityList <- getProvidersPriorityList
   when (null prividersPriorityList) $ throwError $ InternalError "No whatsapp serive provider configured"
@@ -50,9 +52,14 @@ whatsAppOptApi' ::
   ) =>
   WhatsappServiceConfig ->
   OptApiReq ->
-  m OptApiResp
+  m (Maybe OptApiResp)
 whatsAppOptApi' serviceConfig req = case serviceConfig of
-  GupShupConfig cfg -> GupShup.whatsAppOptApi cfg req
+  GupShupConfig cfg -> do
+    res <- GupShup.whatsAppOptApi cfg req
+    pure $ Just res
+  TataCommunicationsConfig _ -> do
+    logDebug $ "Skipping WhatsApp opt-in API call for Tata Communications as it is not required."
+    pure Nothing
 
 whatsAppOtpApi :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendOtpApiReq -> m SendOtpApiResp
 whatsAppOtpApi WhatsappHandler {..} req = do
@@ -77,6 +84,7 @@ whatsAppOtpApi' ::
   m SendOtpApiResp
 whatsAppOtpApi' serviceConfig req = case serviceConfig of
   GupShupConfig cfg -> GupShup.whatsAppOTPApi cfg req
+  TataCommunicationsConfig cfg -> TataCommunications.whatsAppOTPApi cfg req
 
 whatsAppSendMessageWithTemplateIdAPI :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendWhatsAppMessageWithTemplateIdApIReq -> m SendOtpApiResp
 whatsAppSendMessageWithTemplateIdAPI WhatsappHandler {..} req = do
@@ -104,3 +112,4 @@ whatsAppSendMessageWithTemplateIdAPI' ::
   m SendOtpApiResp
 whatsAppSendMessageWithTemplateIdAPI' serviceConfig req = case serviceConfig of
   GupShupConfig cfg -> GupShup.whatsAppSendMessageWithTemplateIdAPI cfg req
+  TataCommunicationsConfig cfg -> TataCommunications.whatsAppSendMessageWithTemplateIdAPI cfg req
