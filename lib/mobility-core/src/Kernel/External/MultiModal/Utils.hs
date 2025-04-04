@@ -9,6 +9,7 @@ where
 import qualified Data.Char as Char
 import qualified Data.HashMap.Strict as HM
 import Data.List (nub, sort, sortBy)
+import Data.List.Split (splitOn)
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Text as T
@@ -333,7 +334,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                   mode = leg1.mode,
                   startLocation = leg1.startLocation,
                   endLocation = leg2.endLocation,
-                  serviceTypes = [],
+                  serviceTypes = nub (leg1.serviceTypes ++ leg2.serviceTypes),
                   fromStopDetails = leg1.fromStopDetails,
                   toStopDetails = leg2.toStopDetails,
                   routeDetails = leg1.routeDetails ++ leg2.routeDetails,
@@ -383,6 +384,13 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
               (startLat, startLng) = (otpLeg'.from.lat, otpLeg'.from.lon)
               (endLat, endLng) = (otpLeg'.to.lat, otpLeg'.to.lon)
               routeAgency = otpLeg'.route
+              serviceTypes = maybe [] (mapMaybe extractServiceType) (otpLeg'.route >>= \r -> r.trips)
+                where
+                  extractServiceType (Just trip) =
+                    case splitOn "-" (T.unpack $ gtfsIdtoDomainCode $ T.pack trip.gtfsId) of
+                      [_prefix, middle, _suffix] -> Just $ T.pack middle
+                      _ -> Nothing
+                  extractServiceType Nothing = Nothing
               maybeLongName = otpLeg'.route >>= \r -> r.longName
               fromArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.from.arrivalTime
               fromDepartureTime' = Just $ millisecondsToUTC $ round otpLeg'.from.departureTime
@@ -494,7 +502,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                               }
                         },
                     routeDetails = routeDetails,
-                    serviceTypes = [],
+                    serviceTypes = serviceTypes,
                     endLocation =
                       GT.LocationV2
                         { latLng =
@@ -559,3 +567,8 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
               ([], seenCombinations)
               routes
        in newUniqueRoutes
+
+gtfsIdtoDomainCode :: Text -> Text
+gtfsIdtoDomainCode gtfsId = case break (== ':') $ T.unpack gtfsId of
+  (_, ':' : code) -> T.pack code
+  _ -> gtfsId

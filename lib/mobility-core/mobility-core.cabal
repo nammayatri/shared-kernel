@@ -561,6 +561,7 @@ library
     , servant-server
     , singletons-th
     , slack-web
+    , split
     , stm
     , string-conversions
     , tasty
@@ -724,6 +725,7 @@ test-suite mobility-core-tests
     , servant-server
     , singletons-th
     , slack-web
+    , split
     , stm
     , string-conversions
     , tasty
