@@ -26,9 +26,11 @@ import Kernel.External.Whatsapp.GupShup.Config
 import qualified Kernel.External.Whatsapp.GupShup.Flow as Ex
 import Kernel.External.Whatsapp.Interface.Types as IT
 import Kernel.External.Whatsapp.Types as Reexport
-import Kernel.Prelude
+import Kernel.Prelude hiding (length, map)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Types.Error
+import Kernel.Utils.Common
 
 whatsAppOptApi ::
   ( CoreMetrics m,
@@ -73,4 +75,27 @@ whatsAppSendMessageWithTemplateIdAPI GupShupCfg {..} SendWhatsAppMessageWithTemp
   userId <- decrypt userid
   password' <- decrypt password
   gupShupUrl <- parseBaseUrl url
-  Ex.whatsAppSendMessageWithTemplateIdAPI gupShupUrl userId password' sendTo otpCfg.method authScheme v otpCfg.msgType format var1 var2 var3 var4 var5 var6 var7 ctaButtonUrl containsUrlButton templateId
+
+  let vars = take 7 (variables ++ repeat Nothing)
+  case vars of
+    [var1, var2, var3, var4, var5, var6, var7] -> do
+      when (length variables > 7) $
+        throwError (InvalidRequest "Too many variables, maximum allowed is 7")
+      Ex.whatsAppSendMessageWithTemplateIdAPI
+        gupShupUrl
+        userId
+        password'
+        sendTo
+        otpCfg.method authScheme v otpCfg.msgType
+        format
+        var1
+        var2
+        var3
+        var4
+        var5
+        var6
+        var7
+        ctaButtonUrl
+        containsUrlButton
+        templateId
+    _ -> throwError (InvalidRequest "Invalid Request")
