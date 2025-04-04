@@ -1367,3 +1367,62 @@ instance FromResponse DigoEngageError where
     _ -> Just DigoEngageNotConfigured
 
 instance IsAPIError DigoEngageError
+
+data TataCommunicationsWhatsappError
+  = TataCommunicationsWhatsappInvalidRequest
+  | TataCommunicationsWhatsappNotConfigured
+  | TataCommunicationsWhatsappUserIdNotFound
+  | TataCommunicationsWhatsappInvalidPhoneNumber
+  | TataCommunicationsWhatsappUnauthorized
+  | TataCommunicationsWhatsappWrongMethodService
+  | TataCommunicationsWhatsappInterNationalPhoneNumber
+  | TataCommunicationsWhatsappTooManyRequests
+  | TataCommunicationsWhatsapPermissionDenied
+  | TataCommunicationsWhatsapServiceUnavailable
+  | TataCommunicationsWhatsappUnknownServerError
+  | TataCommunicationsWhatsappGenericError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''TataCommunicationsWhatsappError
+
+instance IsBaseError TataCommunicationsWhatsappError where
+  toMessage = \case
+    TataCommunicationsWhatsappInvalidRequest -> Just "Invalid request to TataCommunicationsWhatsap."
+    TataCommunicationsWhatsappNotConfigured -> Just "TataCommunicationsWhatsap env variables aren't properly set."
+    TataCommunicationsWhatsappUserIdNotFound -> Just "TataCommunicationsWhatsap Authentication Failed as userid X does not exist."
+    TataCommunicationsWhatsappInvalidPhoneNumber -> Just "The phone number XXXXX is not a valid phone number."
+    TataCommunicationsWhatsappUnauthorized -> Just "Your access token has expired."
+    TataCommunicationsWhatsappWrongMethodService -> Just "The method is not supported."
+    TataCommunicationsWhatsappInterNationalPhoneNumber -> Just "The INTERNATIONAL_PHONE service is disabled for you. Kindly get the service enabled before using this action"
+    TataCommunicationsWhatsappTooManyRequests -> Just "The phone number has already been marked as requested"
+    TataCommunicationsWhatsapPermissionDenied -> Just "Permission is either not granted or has been removed."
+    TataCommunicationsWhatsapServiceUnavailable -> Just "Temporary due to downtime or due to being overloaded."
+    TataCommunicationsWhatsappUnknownServerError -> Just "An unknown exception has occurred. Please retry the request after some time."
+    TataCommunicationsWhatsappGenericError msg -> Just ("Error: " <> msg)
+
+instance IsHTTPError TataCommunicationsWhatsappError where
+  toErrorCode = \case
+    TataCommunicationsWhatsappNotConfigured -> "TATA_COMMUNICATIONS_WHATSAPP_NOT_CONFIGURED"
+    TataCommunicationsWhatsappInvalidRequest -> "TATA_COMMUNICATIONS_WHATSAPP_INVALID_REQUEST"
+    TataCommunicationsWhatsappUserIdNotFound -> "TATA_COMMUNICATIONS_WHATSAPP_USER_NOT_FOUND"
+    TataCommunicationsWhatsappInvalidPhoneNumber -> "TATA_COMMUNICATIONS_WHATSAPP_INVALID_PHONE_NUMBER"
+    TataCommunicationsWhatsappUnauthorized -> "TATA_COMMUNICATIONS_WHATSAPP_AUTHENTICATION_FAILED"
+    TataCommunicationsWhatsappWrongMethodService -> "TATA_COMMUNICATIONS_WHATSAPP_WRONG_METHOD_SERVICE"
+    TataCommunicationsWhatsappInterNationalPhoneNumber -> "TATA_COMMUNICATIONS_WHATSAPP_INTERNATIONAL_PHONE_DISABLED"
+    TataCommunicationsWhatsappTooManyRequests -> "TATA_COMMUNICATIONS_WHATSAPP_TOO_MANY_REQUEST_FOR_SAME"
+    TataCommunicationsWhatsapPermissionDenied -> "TATA_COMMUNICATIONS_WHATSAPP_PERMISSION_DENIED"
+    TataCommunicationsWhatsapServiceUnavailable -> "TATA_COMMUNICATIONS_WHATSAPP_SERVICE_UNAVAILABLE"
+    TataCommunicationsWhatsappUnknownServerError -> "TATA_COMMUNICATIONS_WHATSAPP_UNKNOWN_ERROR"
+    TataCommunicationsWhatsappGenericError msg -> "TATA_COMMUNICATIONS_WHATSAPP_ERROR: " <> msg
+
+instance FromResponse TataCommunicationsWhatsappError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just TataCommunicationsWhatsappInvalidRequest
+    401 -> Just TataCommunicationsWhatsappUnauthorized
+    403 -> Just TataCommunicationsWhatsapPermissionDenied
+    500 -> Just TataCommunicationsWhatsappUnknownServerError
+    503 -> Just TataCommunicationsWhatsapServiceUnavailable
+    404 -> Just TataCommunicationsWhatsappUserIdNotFound
+    _ -> Just TataCommunicationsWhatsappNotConfigured
+
+instance IsAPIError TataCommunicationsWhatsappError

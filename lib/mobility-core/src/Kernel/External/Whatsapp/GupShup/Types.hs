@@ -15,36 +15,19 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Whatsapp.Interface.Types
-  ( module Kernel.External.Whatsapp.Interface.Types,
+module Kernel.External.Whatsapp.GupShup.Types
+  ( module Kernel.External.Whatsapp.GupShup.Types,
   )
 where
 
 import Deriving.Aeson
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
-import qualified Kernel.External.Whatsapp.GupShup.Config as GupShup
-import qualified Kernel.External.Whatsapp.TataCommunications.Config as TataCommunications
-import qualified Kernel.External.Whatsapp.Types as T
+import qualified Kernel.External.Whatsapp.Interface.Types as IT
 import Kernel.Prelude
 import Kernel.Utils.JSON
 
-data WhatsappServiceConfig = GupShupConfig GupShup.GupShupCfg | TataCommunicationsConfig TataCommunications.TataCommunicationsCfg
-  deriving stock (Show, Eq, Generic)
-  deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] WhatsappServiceConfig
-
-data OptApiMethods = OPT_IN | OPT_OUT
-  deriving (Show, Eq, Read, Ord, Generic, ToSchema, FromJSON, ToJSON, Enum)
-
-$(mkBeamInstancesForEnum ''OptApiMethods)
-
-data WhatsappHandler m = WhatsappHandler
-  { getProvidersPriorityList :: m [T.WhatsappService],
-    getProviderConfig :: T.WhatsappService -> m WhatsappServiceConfig
-  }
-
 data OptApiReq = OptApiReq
   { phoneNumber :: Text,
-    method :: OptApiMethods
+    method :: IT.OptApiMethods
   }
   deriving (Generic, Show)
 
@@ -73,7 +56,13 @@ type SendWhatsAppMessageApiResp = OptApiResp
 data SendWhatsAppMessageWithTemplateIdApIReq = SendWhatsAppMessageWithTemplateIdApIReq
   { sendTo :: Text,
     templateId :: Text,
-    variables :: [Maybe Text],
+    var1 :: Maybe Text,
+    var2 :: Maybe Text,
+    var3 :: Maybe Text,
+    var4 :: Maybe Text,
+    var5 :: Maybe Text,
+    var6 :: Maybe Text,
+    var7 :: Maybe Text,
     ctaButtonUrl :: Maybe Text,
     containsUrlButton :: Maybe Bool
   }
