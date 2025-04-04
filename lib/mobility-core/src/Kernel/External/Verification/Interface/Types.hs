@@ -149,7 +149,8 @@ data DLVerificationOutputInterface = DLVerificationOutputInterface
     t_validity_to :: Maybe Text,
     covs :: Maybe [Idfy.CovDetail],
     status :: Maybe Text,
-    dateOfIssue :: Maybe Text
+    dateOfIssue :: Maybe Text,
+    message :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
 
