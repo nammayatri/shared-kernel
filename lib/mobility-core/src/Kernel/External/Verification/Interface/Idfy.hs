@@ -246,6 +246,7 @@ convertDLOutputToDLVerificationOutput DLVerificationOutput {..} =
       licenseNumber = id_number,
       covs = cov_details,
       dateOfIssue = date_of_issue,
+      message = Nothing,
       ..
     }
 
