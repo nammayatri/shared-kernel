@@ -52,6 +52,9 @@ query OTPPlan (
         route {
           gtfsId
           longName
+          trips {
+            gtfsId
+          }
           shortName
           color
           agency {
