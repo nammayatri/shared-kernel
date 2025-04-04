@@ -23,7 +23,9 @@ where
 import EulerHS.Prelude
 import Kernel.External.Whatsapp.GupShup.Config as Reexport
 import qualified Kernel.External.Whatsapp.Interface.GupShup as GupShup
+import qualified Kernel.External.Whatsapp.Interface.TataCommunications as TataCommunications
 import Kernel.External.Whatsapp.Interface.Types as Reexport
+import Kernel.External.Whatsapp.TataCommunications.Config as Reexport
 import Kernel.External.Whatsapp.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
@@ -53,6 +55,7 @@ whatsAppOptApi' ::
   m OptApiResp
 whatsAppOptApi' serviceConfig req = case serviceConfig of
   GupShupConfig cfg -> GupShup.whatsAppOptApi cfg req
+  _ -> throwError (InvalidRequest "Unsupported Whatsapp provider in whatsAppOptApi'")
 
 whatsAppOtpApi :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendOtpApiReq -> m SendOtpApiResp
 whatsAppOtpApi WhatsappHandler {..} req = do
@@ -77,6 +80,7 @@ whatsAppOtpApi' ::
   m SendOtpApiResp
 whatsAppOtpApi' serviceConfig req = case serviceConfig of
   GupShupConfig cfg -> GupShup.whatsAppOTPApi cfg req
+  TataCommunicationsConfig cfg -> TataCommunications.whatsAppOTPApi cfg req
 
 whatsAppSendMessageWithTemplateIdAPI :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendWhatsAppMessageWithTemplateIdApIReq -> m SendOtpApiResp
 whatsAppSendMessageWithTemplateIdAPI WhatsappHandler {..} req = do
@@ -104,3 +108,4 @@ whatsAppSendMessageWithTemplateIdAPI' ::
   m SendOtpApiResp
 whatsAppSendMessageWithTemplateIdAPI' serviceConfig req = case serviceConfig of
   GupShupConfig cfg -> GupShup.whatsAppSendMessageWithTemplateIdAPI cfg req
+  TataCommunicationsConfig cfg -> TataCommunications.whatsAppSendMessageWithTemplateIdAPI cfg req
