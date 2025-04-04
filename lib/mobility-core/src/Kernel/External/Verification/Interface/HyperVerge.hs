@@ -182,7 +182,8 @@ getVerificationStatus cfg rqst@InterfaceTypes.GetTaskReq {..} updateResp = do
                   t_validity_to = Nothing,
                   covs = Nothing,
                   status = Just "id_not_found",
-                  dateOfIssue = Nothing
+                  dateOfIssue = Nothing,
+                  message = Nothing
                 }
         Just "RCVerification" ->
           return $
