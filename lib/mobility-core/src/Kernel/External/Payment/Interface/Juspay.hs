@@ -66,8 +66,9 @@ createOrder ::
 createOrder config req = do
   let url = config.url
       merchantId = config.merchantId
+      clientId = fromMaybe merchantId config.pseudoClientId
   apiKey <- decrypt config.apiKey
-  orderReq <- mkCreateOrderReq config.returnUrl merchantId req
+  orderReq <- mkCreateOrderReq config.returnUrl clientId merchantId req
   Juspay.createOrder url apiKey merchantId orderReq
 
 createCustomer ::
@@ -231,8 +232,8 @@ mandateRevoke config req = do
   void $ Juspay.mandateRevoke url apiKey merchantId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
   return Success
 
-mkCreateOrderReq :: MonadTime m => BaseUrl -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
-mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
+mkCreateOrderReq :: MonadTime m => BaseUrl -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
+mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
   do
     return
       Juspay.CreateOrderReq
@@ -250,7 +251,7 @@ mkCreateOrderReq returnUrl clientId CreateOrderReq {..} =
           mandate_max_amount = show <$> mandateMaxAmount,
           mandate_frequency = mandateFrequency,
           create_mandate = createMandate,
-          metadata_mandate_name = if isJust createMandate then Just (toUpper clientId) else Nothing,
+          metadata_mandate_name = if isJust createMandate then Just (toUpper merchantId) else Nothing,
           metadata_remarks = ("Amount to be paid now is Rs " <>) . show . double2Int . realToFrac $ amount,
           mandate_start_date = mandateStartDate,
           mandate_end_date = mandateEndDate,
