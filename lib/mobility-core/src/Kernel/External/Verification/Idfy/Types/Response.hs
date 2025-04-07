@@ -29,6 +29,10 @@ type RCExtractResponse = IdfyResponse (ExtractionOutput RCExtractionOutput)
 
 type DLExtractResponse = IdfyResponse (ExtractionOutput DLExtractionOutput)
 
+type PanExtractionResponse = IdfyResponse (ExtractionOutput PanExtractionOutput)
+
+type GSTExtractionResponse = IdfyResponse (ExtractionOutput GSTExtractionOutput)
+
 type VerificationResponse = IdfyResponse IdfyResult
 
 type VerificationResponseList = [IdfyResponse IdfyResult]
@@ -291,4 +295,50 @@ instance FromJSON RCExtractionOutput where
   parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
 
 instance ToJSON RCExtractionOutput where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data PanExtractionOutput = PanExtractionOutput
+  { age :: Maybe Int,
+    date_of_birth :: Maybe Text,
+    date_of_issue :: Maybe Text,
+    fathers_name :: Maybe Text,
+    id_number :: Maybe Text,
+    is_scanned :: Maybe Bool,
+    minor :: Maybe Bool,
+    name_on_card :: Maybe Text,
+    pan_type :: Maybe Text
+  }
+  deriving (Show, Generic)
+
+instance ToSchema PanExtractionOutput where
+  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions stripPrefixUnderscoreIfAny
+
+instance FromJSON PanExtractionOutput where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON PanExtractionOutput where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data GSTExtractionOutput = GSTExtractionOutput
+  { address :: Maybe Text,
+    constitution_of_business :: Maybe Text,
+    date_of_liability :: Maybe Text,
+    gstin :: Maybe Text,
+    is_provisional :: Maybe Bool,
+    legal_name :: Maybe Text,
+    pan_number :: Maybe Text,
+    trade_name :: Maybe Text,
+    type_of_registration :: Maybe Text,
+    valid_from :: Maybe Text,
+    valid_upto :: Maybe Text
+  }
+  deriving (Show, Generic)
+
+instance ToSchema GSTExtractionOutput where
+  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions stripPrefixUnderscoreIfAny
+
+instance FromJSON GSTExtractionOutput where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON GSTExtractionOutput where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny

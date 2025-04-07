@@ -19,6 +19,8 @@ module Kernel.External.Verification.Interface
     validateImage,
     extractRCImage,
     extractDLImage,
+    extractPanImage,
+    extractGSTImage,
     validateFaceImage,
     searchAgent,
     verifySdkResp,
@@ -153,6 +155,34 @@ extractDLImage ::
   m ExtractDLImageResp
 extractDLImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractDLImage cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+
+extractPanImage ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  ExtractPanImage ->
+  m ExtractedPanImageResp
+extractPanImage serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.extractPanImage cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+
+extractGSTImage ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  ExtractGSTImage ->
+  m ExtractedGSTImageResp
+extractGSTImage serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.extractGSTImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
