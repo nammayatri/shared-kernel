@@ -21,6 +21,7 @@ data GupShupCfg = GupShupCfg
   { userName :: EncryptedField 'AsEncrypted Text,
     password :: EncryptedField 'AsEncrypted Text,
     url :: BaseUrl,
-    templateId :: EncryptedField 'AsEncrypted Text
+    templateId :: EncryptedField 'AsEncrypted Text,
+    entityId :: EncryptedField 'AsEncrypted Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

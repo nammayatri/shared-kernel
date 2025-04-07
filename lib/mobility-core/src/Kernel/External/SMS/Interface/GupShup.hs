@@ -42,7 +42,8 @@ sendOTP gupShupCfg SendSMSReq {..} = do
   gupShupUserId <- decrypt gupShupCfg.userName
   gupShupPassword <- decrypt gupShupCfg.password
   gupShupTemplateId <- decrypt gupShupCfg.templateId
-  res <- GF.sendOTPApi gupShupOtpSmsTemplate gupShupPhoneNumber gupShupUserId gupShupPassword gupShupTemplateId sender gupShupCfg
+  gupShupEntityId <- decrypt gupShupCfg.entityId
+  res <- GF.sendOTPApi gupShupOtpSmsTemplate gupShupPhoneNumber gupShupUserId gupShupPassword gupShupEntityId gupShupTemplateId sender gupShupCfg
   return $ returnSmsResultGupShup res.response.status
 
 returnSmsResultGupShup :: Text -> IT.SendSMSRes
