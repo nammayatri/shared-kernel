@@ -18,11 +18,15 @@ module Kernel.External.Verification.Idfy.Client
     validateImage,
     extractRCImage,
     extractDLImage,
+    extractPanImage,
+    extractGSTImage,
     getTask,
     VerifyDLAPI,
     VerifyRCAPI,
     ValidateImage,
     ExtractDLImage,
+    ExtractPanImage,
+    ExtractGSTImage,
     ExtractRCAPI,
   )
 where
@@ -179,6 +183,62 @@ extractDLImage apiKey accountId url req = callIdfyAPI url task "extractDLImage" 
     task =
       T.client
         extractDLAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type ExtractPanImage =
+  "v3" :> "tasks" :> "sync" :> "extract" :> "ind_pan"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] ImageExtractRequest
+    :> Post '[JSON] PanExtractionResponse
+
+extractPanAPI :: Proxy ExtractPanImage
+extractPanAPI = Proxy
+
+extractPanImage ::
+  ( MonadFlow m,
+    CoreMetrics m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  ImageExtractRequest ->
+  m PanExtractionResponse
+extractPanImage apiKey accountId url req = callIdfyAPI url task "extractPanImage" extractPanAPI
+  where
+    task =
+      T.client
+        extractPanAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type ExtractGSTImage =
+  "v3" :> "tasks" :> "sync" :> "extract" :> "ind_gst_certificate"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] ImageExtractRequest
+    :> Post '[JSON] GSTExtractionResponse
+
+extractGSTAPI :: Proxy ExtractGSTImage
+extractGSTAPI = Proxy
+
+extractGSTImage ::
+  ( MonadFlow m,
+    CoreMetrics m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  ImageExtractRequest ->
+  m GSTExtractionResponse
+extractGSTImage apiKey accountId url req = callIdfyAPI url task "extractGSTImage" extractGSTAPI
+  where
+    task =
+      T.client
+        extractGSTAPI
         (Just apiKey)
         (Just accountId)
         req
