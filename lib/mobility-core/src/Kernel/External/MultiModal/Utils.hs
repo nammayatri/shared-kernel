@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Kernel.External.MultiModal.Utils
   ( convertGoogleToGeneric,
     convertOTPToGeneric,
@@ -15,6 +17,7 @@ import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Data.Time.Clock
+import qualified Debug.Trace as DT
 import EulerHS.Prelude (safeHead)
 import Kernel.External.Maps.Google.MapsClient.Types as GT
 import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
@@ -252,6 +255,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
       filteredRoutes = map (removeShortWalkLegs minimumWalkDistance) updatedRoutes
       filteredByPermissibleModes = filter (hasOnlyPermissibleModes permissibleModes) filteredRoutes
       filteredByMaxPublicTransport = filter (withinMaxAllowedPublicTransportModes maxAllowedPublicTransportLegs) filteredByPermissibleModes
+      !_string = DT.trace $ "Filtered by max public transport: " <> show filteredByMaxPublicTransport <> " " <> show maxAllowedPublicTransportLegs <> " " <> show permissibleModes <> " " <> show sortingType <> " " <> show otpResponse <> " " <> show itineraries <> " " <> show genericRoutes <> " " <> show frequencyMap <> " " <> show mergedRoutes <> " " <> show orderedRoutes <> " " <> show updatedRoutes <> " " <> show filteredRoutes <> " " <> show filteredByPermissibleModes
       sortedRoutes = case sortingType of
         Fastest -> sortRoutesByDuration filteredByMaxPublicTransport
         Minimum_Transits -> sortRoutesByNumberOfLegs filteredByMaxPublicTransport
