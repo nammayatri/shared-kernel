@@ -19,6 +19,8 @@ module Kernel.External.Verification.Interface.Idfy
     validateImage,
     extractRCImage,
     extractDLImage,
+    extractPanImage,
+    extractGSTImage,
     getTask,
     convertDLOutputToDLVerificationOutput,
     convertRCOutputToRCVerificationResponse,
@@ -216,6 +218,52 @@ extractDLImage cfg req = do
                 nameOnCard = result.extraction_output.name_on_card,
                 dateOfBirth = result.extraction_output.date_of_birth
               }
+      }
+
+extractPanImage ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  IdfyCfg ->
+  ExtractPanImage ->
+  m ExtractedPanImageResp
+extractPanImage cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.ExtractRequest
+          { document1 = req.image1,
+            document2 = req.image2
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  resp <- Idfy.extractPanImage apiKey accountId url idfyReq
+  pure
+    ExtractedPanImageResp
+      { extractedPan = resp.result >>= (\x -> pure x.extraction_output)
+      }
+
+extractGSTImage ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  IdfyCfg ->
+  ExtractGSTImage ->
+  m ExtractedGSTImageResp
+extractGSTImage cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.ExtractRequest
+          { document1 = req.image1,
+            document2 = req.image2
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  resp <- Idfy.extractGSTImage apiKey accountId url idfyReq
+  pure
+    ExtractedGSTImageResp
+      { extractedGST = resp.result >>= (\x -> pure x.extraction_output)
       }
 
 getTask ::
