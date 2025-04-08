@@ -115,12 +115,14 @@ createPayoutOrder config req = do
       appBaseUrl <- asks (.selfUIUrl)
       password_ <- decrypt config.password
       dynamicWebhookUrl <- config.dynamicWebhookUrl & fromMaybeM (InvalidRequest "Dynamic webhook URL not found")
-      let url = appBaseUrl {baseUrlPath = baseUrlPath appBaseUrl <> (T.unpack dynamicWebhookUrl)}
-          username :: Text = TE.decodeUtf8 (B64.encode $ TE.encodeUtf8 config.username)
+      let baseUrl = appBaseUrl {baseUrlPath = baseUrlPath appBaseUrl <> (T.unpack dynamicWebhookUrl)}
+          url = showBaseUrl baseUrl
+      let username :: Text = TE.decodeUtf8 (B64.encode $ TE.encodeUtf8 config.username)
           customHeaderList = [("X-MerchantId", config.merchantId)] :: [(Text, Text)]
           customHeader :: Text = TE.decodeUtf8 $ BL.toStrict $ A.encode $ HM.fromList customHeaderList
           password :: Text = TE.decodeUtf8 (B64.encode $ TE.encodeUtf8 password_)
-      logDebug $ "WebhookDetails: username: " <> show username <> " dynamicWebhookUrl: " <> show dynamicWebhookUrl <> " header: " <> show customHeader <> " webhookUrl: " <> show url
+      logDebug $ "WebhookDetailsUnparsed : " <> " username: " <> show config.username <> " password_: " <> show password_ <> " url: " <> show baseUrl
+      logDebug $ "WebhookDetails: username: " <> show username <> " dynamicWebhookUrl: " <> show dynamicWebhookUrl <> " password: " <> show password <> " header: " <> show customHeader <> " webhookUrl: " <> show url
       return $ Payout.WebhookDetails {username = Just username, password = Just password, customHeader = Just customHeader, url = Just url}
 
 payoutOrderStatus ::
