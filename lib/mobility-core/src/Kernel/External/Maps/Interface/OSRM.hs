@@ -47,7 +47,7 @@ callOsrmMatch ::
   m SnapToRoadResp
 callOsrmMatch osrmCfg (SnapToRoadReq wps distanceUnit calculateDistanceFrom) = do
   let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
-  res <- OSRM.callOsrmMatchAPI osrmCfg.osrmUrl mbRadius (OSRM.PointsList wps)
+  res <- OSRM.callOsrmMatchAPI osrmCfg.osrmUrl mbRadius CAR (OSRM.PointsList wps)
   (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
   pure $ case calculateDistanceFrom of
     Just _ -> do
@@ -69,7 +69,7 @@ getDistances osrmCfg request = do
   let pointsList = OSRM.PointsList $ map getCoordinates (toList request.origins) ++ map getCoordinates (toList request.destinations)
   let sourcesList = OSRM.SourcesList [0 .. (length request.origins - 1)]
   let destinationsList = OSRM.DestinationsList [(length request.origins) .. (length request.origins + length request.destinations - 1)]
-  response <- OSRM.callOsrmGetDistancesAPI osrmCfg.osrmUrl pointsList sourcesList destinationsList request.sourceDestinationMapping
+  response <- OSRM.callOsrmGetDistancesAPI osrmCfg.osrmUrl (fromMaybe CAR request.travelMode) pointsList sourcesList destinationsList request.sourceDestinationMapping
   case request.sourceDestinationMapping of
     Just OneToOne -> getOSRMTableOneToOne response request
     _ -> getOSRMTable response request
@@ -151,7 +151,7 @@ getRoutes ::
   GetRoutesReq ->
   m GetRoutesResp
 getRoutes osrmCfg request = do
-  response <- OSRM.callOsrmRouteAPI osrmCfg.osrmUrl $ OSRM.PointsList {getPointsList = NE.toList request.waypoints}
+  response <- OSRM.callOsrmRouteAPI osrmCfg.osrmUrl (fromMaybe CAR request.mode) $ OSRM.PointsList {getPointsList = NE.toList request.waypoints}
   getOSRMRoute response
 
 convertRouteToRouteInfo :: (Log m, MonadThrow m) => OSRM.OSRMRouteRoutes -> m RouteInfo
