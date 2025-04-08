@@ -50,7 +50,7 @@ $(mkBeamInstancesForEnum ''PayoutOrderStatus)
 data WebhookDetails = WebhookDetails
   { username :: Maybe Text,
     password :: Maybe Text,
-    url :: Maybe BaseUrl,
+    url :: Maybe Text,
     customHeader :: Maybe Text
   }
   deriving (Show, Generic, ToSchema, Eq)
