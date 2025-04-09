@@ -46,7 +46,7 @@ import Servant hiding (throwError)
 createPayoutOrder ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
-    HasFlowEnv m r '["selfUIUrl" ::: BaseUrl]
+    HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   JuspayConfig ->
   CreatePayoutOrderReq ->
@@ -112,7 +112,7 @@ createPayoutOrder config req = do
         }
 
     mkDynamicWebhookDetails = do
-      appBaseUrl <- asks (.selfUIUrl)
+      appBaseUrl <- asks (.selfBaseUrl)
       password_ <- decrypt config.password
       dynamicWebhookUrl <- config.dynamicWebhookUrl & fromMaybeM (InvalidRequest "Dynamic webhook URL not found")
       let baseUrl = appBaseUrl {baseUrlPath = baseUrlPath appBaseUrl <> (T.unpack dynamicWebhookUrl)}
