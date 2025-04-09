@@ -51,6 +51,17 @@ orderStatus serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.orderStatus cfg req
   StripeConfig _ -> throwError $ InternalError "Stripe Order Status not supported."
 
+updateOrder ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  PaymentServiceConfig ->
+  OrderUpdateReq ->
+  m OrderUpdateResp
+updateOrder serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.updateOrder cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Update Order not supported."
+
 offerList ::
   ( EncFlow m r,
     CoreMetrics m
