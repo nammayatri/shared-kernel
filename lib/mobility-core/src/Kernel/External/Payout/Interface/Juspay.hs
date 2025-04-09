@@ -22,7 +22,6 @@ module Kernel.External.Payout.Interface.Juspay
 where
 
 import qualified Data.Aeson as A
-import qualified "base64-bytestring" Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
@@ -117,13 +116,10 @@ createPayoutOrder config req = do
       dynamicWebhookUrl <- config.dynamicWebhookUrl & fromMaybeM (InvalidRequest "Dynamic webhook URL not found")
       let baseUrl = appBaseUrl {baseUrlPath = baseUrlPath appBaseUrl <> (T.unpack dynamicWebhookUrl)}
           url = showBaseUrl baseUrl
-      let username :: Text = TE.decodeUtf8 (B64.encode $ TE.encodeUtf8 config.username)
-          customHeaderList = [("X-MerchantId", config.merchantId)] :: [(Text, Text)]
+      let customHeaderList = [("X-MerchantId", config.merchantId)] :: [(Text, Text)]
           customHeader :: Text = TE.decodeUtf8 $ BL.toStrict $ A.encode $ HM.fromList customHeaderList
-          password :: Text = TE.decodeUtf8 (B64.encode $ TE.encodeUtf8 password_)
-      logDebug $ "WebhookDetailsUnparsed : " <> " username: " <> show config.username <> " password_: " <> show password_ <> " url: " <> show baseUrl
-      logDebug $ "WebhookDetails: username: " <> show username <> " dynamicWebhookUrl: " <> show dynamicWebhookUrl <> " password: " <> show password <> " header: " <> show customHeader <> " webhookUrl: " <> show url
-      return $ Payout.WebhookDetails {username = Just username, password = Just password, customHeader = Just customHeader, url = Just url}
+      logDebug $ "WebhookDetails: username: " <> show config.username <> " dynamicWebhookUrl: " <> show dynamicWebhookUrl <> " password: " <> show password_ <> " header: " <> show customHeader <> " webhookUrl: " <> show url
+      return $ Payout.WebhookDetails {username = Just config.username, password = Just password_, customHeader = Just customHeader, url = Just url}
 
 payoutOrderStatus ::
   ( Metrics.CoreMetrics m,
