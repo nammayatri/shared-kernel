@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE PackageImports #-}
 
 module Kernel.External.Payout.Interface.Juspay
   ( module Reexport,
@@ -21,6 +22,10 @@ module Kernel.External.Payout.Interface.Juspay
 where
 
 import qualified Data.Aeson as A
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Kernel.External.Encryption
 import Kernel.External.Payout.Interface.Types
 import Kernel.External.Payout.Juspay.Config as Reexport
@@ -30,11 +35,16 @@ import qualified Kernel.External.Payout.Juspay.Types.Payout as Payout
 import qualified Kernel.External.Payout.Juspay.Webhook as Juspay
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.Common
+import Kernel.Types.Error
+import Kernel.Types.Field
+import Kernel.Utils.Error.Throwing (fromMaybeM)
 import Servant hiding (throwError)
 
 createPayoutOrder ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   JuspayConfig ->
   CreatePayoutOrderReq ->
@@ -47,6 +57,9 @@ createPayoutOrder config req = do
   mkCreatePayoutOrderResp <$> Juspay.createPayoutOrder url apiKey merchantId orderReq
   where
     mkCreatePayoutOrderReq CreatePayoutOrderReq {..} = do
+      webhookDetails <- case isDynamicWebhookRequired of
+        True -> Just <$> mkDynamicWebhookDetails
+        False -> pure Nothing
       return $
         Juspay.CreatePayoutOrderReq
           { amount = realToFrac amount,
@@ -69,7 +82,7 @@ createPayoutOrder config req = do
                       additionalInfo =
                         Just $
                           Payout.AdditionalInfo
-                            { webhookDetails = Nothing,
+                            { webhookDetails = webhookDetails,
                               remark = Just remark,
                               isRetriable = Nothing,
                               attemptThreshold = Nothing
@@ -95,6 +108,16 @@ createPayoutOrder config req = do
         { amount = realToFrac amount,
           ..
         }
+
+    mkDynamicWebhookDetails = do
+      appBaseUrl <- asks (.selfBaseUrl)
+      password_ <- decrypt config.password
+      dynamicWebhookUrl <- config.dynamicWebhookUrl & fromMaybeM (InvalidRequest "Dynamic webhook URL not found")
+      let baseUrl = appBaseUrl {baseUrlPath = baseUrlPath appBaseUrl <> (T.unpack dynamicWebhookUrl)}
+          url = showBaseUrl baseUrl
+      let customHeaderList = [("X-MerchantId", config.merchantId)] :: [(Text, Text)]
+          customHeader :: Text = TE.decodeUtf8 $ BL.toStrict $ A.encode $ HM.fromList customHeaderList
+      return $ Payout.WebhookDetails {username = Just config.username, password = Just password_, customHeader = Just customHeader, url = Just url}
 
 payoutOrderStatus ::
   ( Metrics.CoreMetrics m,
