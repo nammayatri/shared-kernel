@@ -123,6 +123,29 @@ getCurrentDate = do
       formattedDate = formatTime defaultTimeLocale dateFormat currentTime
   return $ encodeToText formattedDate
 
+type OrderUpdateAPI =
+  "orders"
+    :> Capture "orderId" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> ReqBody '[FormUrlEncoded] OrderUpdateReq
+    :> Post '[JSON] OrderUpdateResp
+
+updateOrder ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Text ->
+  OrderUpdateReq ->
+  m OrderUpdateResp
+updateOrder url apiKey merchantId orderId req = do
+  let proxy = Proxy @OrderUpdateAPI
+      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) req
+  callJuspayAPI url eulerClient "update-order" proxy
+
 type OfferListAPI =
   "offers"
     :> "list"
