@@ -11,19 +11,24 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.External.Payment.Juspay.Types
-  ( module Reexport,
-  )
-where
+module Kernel.External.Payment.Juspay.Types.UpdateOrder where
 
-import Kernel.External.Payment.Juspay.Types.Common as Reexport
-import Kernel.External.Payment.Juspay.Types.CreateCustomer as Reexport
-import Kernel.External.Payment.Juspay.Types.CreateOrder as Reexport
-import Kernel.External.Payment.Juspay.Types.Mandate as Reexport
-import Kernel.External.Payment.Juspay.Types.Offer as Reexport
-import Kernel.External.Payment.Juspay.Types.UpdateOrder as Reexport
-import Kernel.External.Payment.Juspay.Types.Webhook as Reexport
-  ( OrderAndNotificationStatusContent (..),
-    WebhookReq (..),
-  )
+import Data.Aeson
+import Kernel.Prelude
+import Kernel.Utils.Common
+import Web.FormUrlEncoded
+
+data OrderUpdateReq = OrderUpdateReq
+  { amount :: HighPrecMoney
+  }
+  deriving (Show, Generic)
+  deriving anyclass (ToSchema, FromJSON, ToJSON, ToForm)
+
+data OrderUpdateResp = OrderUpdateResp
+  { order_id :: Maybe Text,
+    amount :: Maybe HighPrecMoney
+  }
+  deriving (Show, Generic)
+  deriving anyclass (ToSchema, FromJSON, ToJSON)

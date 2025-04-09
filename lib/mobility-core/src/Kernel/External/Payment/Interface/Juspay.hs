@@ -18,6 +18,7 @@ module Kernel.External.Payment.Interface.Juspay
     createCustomer,
     getCustomer,
     orderStatus,
+    updateOrder,
     orderStatusWebhook,
     offerList,
     offerApply,
@@ -71,6 +72,34 @@ createOrder config req = do
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreateOrderReq config.returnUrl clientId merchantId req
   Juspay.createOrder url apiKey merchantId (Just routingId) orderReq
+
+updateOrder ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  OrderUpdateReq ->
+  m OrderUpdateResp
+updateOrder config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  updateOrderReq <- mkUpdateOrderReq req
+  updateOrderRes <- Juspay.updateOrder url apiKey merchantId req.orderShortId updateOrderReq
+  return $ mkUpdateOrderRes updateOrderRes
+  where
+    mkUpdateOrderReq :: MonadTime m => OrderUpdateReq -> m Juspay.OrderUpdateReq
+    mkUpdateOrderReq OrderUpdateReq {..} =
+      do
+        return
+          Juspay.OrderUpdateReq
+            { amount = amount
+            }
+    mkUpdateOrderRes Juspay.OrderUpdateResp {..} =
+      OrderUpdateResp
+        { orderId = order_id,
+          amount
+        }
 
 createCustomer ::
   ( Metrics.CoreMetrics m,

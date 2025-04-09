@@ -536,6 +536,20 @@ data CreateCustomerResp = CreateCustomerResp
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data OrderUpdateReq = OrderUpdateReq
+  { amount :: HighPrecMoney,
+    orderShortId :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data OrderUpdateResp = OrderUpdateResp
+  { orderId :: Maybe Text,
+    amount :: Maybe HighPrecMoney
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data CreatePaymentIntentReq = CreatePaymentIntentReq
   { amount :: HighPrecMoney,
     applicationFeeAmount :: HighPrecMoney,
