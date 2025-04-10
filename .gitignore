@@ -41,4 +41,5 @@ result
 # Non-Nix bans
 Makefile
 *.sh
+!cli-tools/gql/code-gen.sh
 
