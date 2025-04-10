@@ -7,6 +7,7 @@ data OTPQuery = NORMAL | MULTI_SEARCH
 
 data OTPCfg = OTPCfg
   { baseUrl :: BaseUrl,
-    queryType :: Maybe OTPQuery
+    queryType :: Maybe OTPQuery,
+    nightMode :: Maybe Bool
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

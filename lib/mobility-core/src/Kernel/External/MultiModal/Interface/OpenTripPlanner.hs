@@ -39,7 +39,11 @@ getTransitRoutes cfg req = do
           { lat = req.destination.location.latLng.latitude,
             lon = req.destination.location.latLng.longitude
           }
-  let dateTime = req.departureTime <&> formatUtcDateTime
+  let dateTime' = req.departureTime <&> formatUtcDateTime
+  dateTime <-
+    case cfg.nightMode of
+      Just True -> Just . formatUtcDateTime . addUTCTime 43200 <$> getCurrentTime
+      _ -> pure dateTime'
   let planClient = fromString (showBaseUrl cfg.baseUrl)
   let transportModes' = req.transportModes
   let numItineraries' = Just 50
