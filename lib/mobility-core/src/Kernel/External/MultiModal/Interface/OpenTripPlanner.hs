@@ -46,7 +46,7 @@ getTransitRoutes cfg req = do
       _ -> pure dateTime'
   let planClient = fromString (showBaseUrl cfg.baseUrl)
   let transportModes' = req.transportModes
-  let numItineraries' = Just 50
+  let numItineraries' = Just $ fromMaybe 50 cfg.numItineraries
   let minimumWalkDistance = req.minimumWalkDistance
   let permissibleModes = req.permissibleModes
   let maxAllowedPublicTransportLegs = req.maxAllowedPublicTransportLegs
@@ -54,10 +54,8 @@ getTransitRoutes cfg req = do
   let queryType = fromMaybe NORMAL cfg.queryType
   case queryType of
     NORMAL -> do
-      resp <-
-        liftIO $
-          planClient
-            `request` OTPPlanArgs
+      let otpReq =
+            OTPPlanArgs
               { from = origin,
                 to = destination,
                 date = fst <$> dateTime,
@@ -65,19 +63,21 @@ getTransitRoutes cfg req = do
                 transportModes = transportModes',
                 numItineraries = numItineraries'
               }
+      resp <-
+        liftIO $
+          planClient
+            `request` otpReq
               >>= single
       case resp of
         Left err -> do
           logError $ "Error in getTransitRoutes: " <> show err
           pure Nothing
         Right plan' -> do
-          logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req
+          logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req <> " , GQLReq => " <> show otpReq
           pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType
     MULTI_SEARCH -> withLogTag "MULTI_SEARCH" $ do
-      resp <-
-        liftIO $
-          planClient
-            `request` MultiModePlanArgs
+      let otpReq =
+            MultiModePlanArgs
               { from = origin,
                 to = destination,
                 date = fst <$> dateTime,
@@ -91,13 +91,17 @@ getTransitRoutes cfg req = do
                 bestTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeTRANSIT, Just ModeWALK],
                 bestItineraries = 10
               }
+      resp <-
+        liftIO $
+          planClient
+            `request` otpReq
               >>= single
       case resp of
         Left err -> do
           logError $ "Error in getTransitRoutes: " <> show err
           pure Nothing
         Right plan -> do
-          logInfo $ "OTP plan log: " <> show plan <> " " <> show req
+          logInfo $ "OTP plan log: " <> show plan <> " " <> show req <> " , GQLReq => " <> show otpReq
           let allPlans = combinePlans plan
           pure $ Just $ convertOTPToGeneric allPlans minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType
 

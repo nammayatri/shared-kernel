@@ -10,6 +10,7 @@ module Kernel.External.MultiModal.OpenTripPlanner.Types where
 import Data.Morpheus.Client.CodeGen.Internal
 import EulerHS.Prelude hiding (id, product)
 import Kernel.Prelude (ToSchema)
+import Prelude (Show (..))
 
 data InputCoordinates = InputCoordinates
   { lat :: Double,
@@ -45,7 +46,30 @@ data Mode
   | ModeWALK
   | ModeTROLLEYBUS
   | ModeMONORAIL
-  deriving (Generic, Show, Eq)
+  deriving (Generic, Eq)
+
+instance Show Mode where
+  show = \case
+    ModeAIRPLANE -> "AIRPLANE"
+    ModeBICYCLE -> "BICYCLE"
+    ModeBUS -> "BUS"
+    ModeCABLE_CAR -> "CABLE_CAR"
+    ModeCAR -> "CAR"
+    ModeCOACH -> "COACH"
+    ModeFERRY -> "FERRY"
+    ModeFLEX -> "FLEX"
+    ModeFUNICULAR -> "FUNICULAR"
+    ModeGONDOLA -> "GONDOLA"
+    ModeRAIL -> "RAIL"
+    ModeSCOOTER -> "SCOOTER"
+    ModeSUBWAY -> "SUBWAY"
+    ModeTRAM -> "TRAM"
+    ModeCARPOOL -> "CARPOOL"
+    ModeTAXI -> "TAXI"
+    ModeTRANSIT -> "TRANSIT"
+    ModeWALK -> "WALK"
+    ModeTROLLEYBUS -> "TROLLEYBUS"
+    ModeMONORAIL -> "MONORAIL"
 
 instance FromJSON Mode where
   parseJSON = \case
