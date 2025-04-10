@@ -281,3 +281,90 @@ instance ToJSON OTPPlanArgs where
         "transportModes" .= oTPPlanArgsTransportModes,
         "numItineraries" .= oTPPlanArgsNumItineraries
       ]
+
+instance RequestType MultiModePlan where
+  type RequestArgs MultiModePlan = MultiModePlanArgs
+  __name _ = "MultiModePlan"
+  __query _ = "query MultiModePlan(\n  $from: InputCoordinates!,\n  $to: InputCoordinates!,\n  $date: String, \n  $time: String,\n  $metroTransportModes: [TransportMode]!,\n  $metroItineraries: Int!\n  $subwayTransportModes: [TransportMode]!,\n  $subwayItineraries: Int!\n  $busTransportModes: [TransportMode]!,\n  $busItineraries: Int!\n  $bestTransportModes: [TransportMode]!,\n  $bestItineraries: Int!\n) {\n  metro: plan(\n    from: $from,\n    to:   $to,\n    date: $date, \n    time: $time,\n    transportModes: $metroTransportModes,\n    numItineraries: $metroItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  subway: plan(\n    from: $from,\n    to:   $to,\n    date: $date, \n    time: $time,\n    transportModes: $subwayTransportModes,\n    numItineraries: $subwayItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  bus: plan(\n    from: $from,\n    to:   $to,\n    date: $date, \n    time: $time,\n    transportModes: $busTransportModes,\n    numItineraries: $busItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  best: plan(\n    from: $from,\n    to:   $to,\n    date: $date, \n    time: $time,\n    transportModes: $bestTransportModes,\n    numItineraries: $bestItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n}\n\nfragment ItineraryFields on Itinerary {\n  duration\n  startTime\n  endTime\n  legs {\n    pickupType\n    distance\n    mode\n    duration\n    startTime\n    endTime\n    from { \n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    to { \n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    route {\n      gtfsId\n      longName\n      trips {\n        gtfsId\n      }\n      shortName\n      color\n      agency {\n        gtfsId\n        name\n      }\n    }\n    legGeometry {\n      points\n    }\n    fareProducts {\n      id\n    }\n  }\n}\n"
+  __type _ = OPERATION_QUERY
+
+data MultiModePlanArgs = MultiModePlanArgs
+  { from :: InputCoordinates,
+    to :: InputCoordinates,
+    date :: Maybe String,
+    time :: Maybe String,
+    metroTransportModes :: [Maybe TransportMode],
+    metroItineraries :: Int,
+    subwayTransportModes :: [Maybe TransportMode],
+    subwayItineraries :: Int,
+    busTransportModes :: [Maybe TransportMode],
+    busItineraries :: Int,
+    bestTransportModes :: [Maybe TransportMode],
+    bestItineraries :: Int
+  }
+  deriving (Generic, Show, Eq)
+
+instance ToJSON MultiModePlanArgs where
+  toJSON (MultiModePlanArgs multiModePlanArgsFrom multiModePlanArgsTo multiModePlanArgsDate multiModePlanArgsTime multiModePlanArgsMetroTransportModes multiModePlanArgsMetroItineraries multiModePlanArgsSubwayTransportModes multiModePlanArgsSubwayItineraries multiModePlanArgsBusTransportModes multiModePlanArgsBusItineraries multiModePlanArgsBestTransportModes multiModePlanArgsBestItineraries) =
+    omitNulls
+      [ "from" .= multiModePlanArgsFrom,
+        "to" .= multiModePlanArgsTo,
+        "date" .= multiModePlanArgsDate,
+        "time" .= multiModePlanArgsTime,
+        "metroTransportModes" .= multiModePlanArgsMetroTransportModes,
+        "metroItineraries" .= multiModePlanArgsMetroItineraries,
+        "subwayTransportModes" .= multiModePlanArgsSubwayTransportModes,
+        "subwayItineraries" .= multiModePlanArgsSubwayItineraries,
+        "busTransportModes" .= multiModePlanArgsBusTransportModes,
+        "busItineraries" .= multiModePlanArgsBusItineraries,
+        "bestTransportModes" .= multiModePlanArgsBestTransportModes,
+        "bestItineraries" .= multiModePlanArgsBestItineraries
+      ]
+
+data MultiModePlan = MultiModePlan
+  { metro :: MultiModePlanMetro,
+    subway :: MultiModePlanSubway,
+    bus :: MultiModePlanBus,
+    best :: MultiModePlanBest
+  }
+  deriving (Generic, Show, Eq)
+
+instance FromJSON MultiModePlan where
+  parseJSON =
+    withObject "MultiModePlan" (\v -> MultiModePlan <$> v .: "metro" <*> v .: "subway" <*> v .: "bus" <*> v .: "best")
+
+newtype MultiModePlanMetro = MultiModePlanMetro
+  { itineraries :: [Maybe OTPPlanPlanItineraries]
+  }
+  deriving (Generic, Show, Eq)
+
+instance FromJSON MultiModePlanMetro where
+  parseJSON =
+    withObject "MultiModePlanMetro" (\v -> MultiModePlanMetro <$> v .: "itineraries")
+
+newtype MultiModePlanSubway = MultiModePlanSubway
+  { itineraries :: [Maybe OTPPlanPlanItineraries]
+  }
+  deriving (Generic, Show, Eq)
+
+instance FromJSON MultiModePlanSubway where
+  parseJSON =
+    withObject "MultiModePlanSubway" (\v -> MultiModePlanSubway <$> v .: "itineraries")
+
+newtype MultiModePlanBus = MultiModePlanBus
+  { itineraries :: [Maybe OTPPlanPlanItineraries]
+  }
+  deriving (Generic, Show, Eq)
+
+instance FromJSON MultiModePlanBus where
+  parseJSON =
+    withObject "MultiModePlanBus" (\v -> MultiModePlanBus <$> v .: "itineraries")
+
+newtype MultiModePlanBest = MultiModePlanBest
+  { itineraries :: [Maybe OTPPlanPlanItineraries]
+  }
+  deriving (Generic, Show, Eq)
+
+instance FromJSON MultiModePlanBest where
+  parseJSON =
+    withObject "MultiModePlanBest" (\v -> MultiModePlanBest <$> v .: "itineraries")
