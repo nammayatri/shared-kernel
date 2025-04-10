@@ -2,7 +2,11 @@ module Kernel.External.MultiModal.OpenTripPlanner.Config where
 
 import Kernel.Prelude
 
+data OTPQuery = NORMAL | MULTI_SEARCH
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
 data OTPCfg = OTPCfg
-  { baseUrl :: BaseUrl
+  { baseUrl :: BaseUrl,
+    queryType :: Maybe OTPQuery
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
