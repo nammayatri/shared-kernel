@@ -388,7 +388,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
               (startLat, startLng) = (otpLeg'.from.lat, otpLeg'.from.lon)
               (endLat, endLng) = (otpLeg'.to.lat, otpLeg'.to.lon)
               routeAgency = otpLeg'.route
-              serviceTypes = maybe [] (mapMaybe extractServiceType) (otpLeg'.route >>= \r -> r.trips)
+              serviceTypes = nub $ maybe [] (mapMaybe extractServiceType) (otpLeg'.route >>= \r -> r.trips)
                 where
                   extractServiceType (Just trip) =
                     case splitOn "-" (T.unpack $ gtfsIdtoDomainCode $ T.pack trip.gtfsId) of
