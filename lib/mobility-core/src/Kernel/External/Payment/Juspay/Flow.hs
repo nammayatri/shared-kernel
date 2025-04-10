@@ -123,6 +123,34 @@ getCurrentDate = do
       formattedDate = formatTime defaultTimeLocale dateFormat currentTime
   return $ encodeToText formattedDate
 
+type OrderUpdateAPI =
+  "orders"
+    :> Capture "orderId" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> ReqBody '[FormUrlEncoded] OrderUpdateReq
+    :> Post '[JSON] OrderUpdateResp
+
+updateOrder ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Text ->
+  OrderUpdateReq ->
+  m OrderUpdateResp
+updateOrder url apiKey merchantId orderId req = do
+  let eulerClient = Euler.client (Proxy @OrderUpdateAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient orderId basicAuthData (Just merchantId) req) "update-order" (Proxy @OrderUpdateAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call update order API: " <> show err)
+
 type OfferListAPI =
   "offers"
     :> "list"
