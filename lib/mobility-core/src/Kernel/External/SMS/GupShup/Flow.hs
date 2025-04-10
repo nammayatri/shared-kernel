@@ -39,6 +39,8 @@ sendOTPApi ::
   Text ->
   Text ->
   Text ->
+  Text ->
+  Text ->
   GupShupCfg ->
   m SubmitSmsRes
 sendOTPApi
@@ -46,11 +48,13 @@ sendOTPApi
   phoneNumber
   gupShupUserId
   gupShupPassword
+  gupShupEntityId
   gupShupTemplateId
+  gupShupSender
   gupShupSmsCfg =
     callAPI
       gupShupSmsCfg.url
-      (callGupShup "SendMessage" 1.1 gupShupUserId gupShupPassword phoneNumber otpSmsTemplate "TEXT" "plain" "json" gupShupTemplateId)
+      (callGupShup "SendMessage" 1.1 gupShupUserId gupShupPassword phoneNumber otpSmsTemplate "TEXT" "plain" "json" gupShupEntityId gupShupTemplateId gupShupSender)
       "sendOTPApi"
       API.gupShupConnectAPI
       >>= checkGupShupOptError gupShupSmsCfg.url

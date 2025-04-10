@@ -21,6 +21,7 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import EulerHS.Prelude ((...))
 import qualified EulerHS.Types as Euler
+import qualified Kernel.External.Maps.Interface.Types as Maps
 import qualified Kernel.External.Maps.Types as Maps
 import Kernel.Prelude hiding (unlines)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -32,10 +33,26 @@ import Servant hiding (throwError)
 
 -- types
 
+data OSRMProfile = Driving | Walking | Bicycling
+  deriving (Show, Eq)
+
+instance ToHttpApiData OSRMProfile where
+  toUrlPiece Driving = "driving"
+  toUrlPiece Walking = "foot"
+  toUrlPiece Bicycling = "bicycle"
+
+-- Convert from Maps.TravelMode to OSRMProfile
+toOSRMProfile :: Maps.TravelMode -> OSRMProfile
+toOSRMProfile = \case
+  Maps.CAR -> Driving
+  Maps.MOTORCYCLE -> Driving
+  Maps.BICYCLE -> Bicycling
+  Maps.FOOT -> Walking
+
 type MatchAPI =
   "match"
     :> "v1"
-    :> "driving"
+    :> Capture "profile" OSRMProfile
     :> Capture "coordinates" PointsList
     :> MandatoryQueryParam "overview" Text
     :> MandatoryQueryParam "steps" AlwaysTrue
@@ -46,7 +63,7 @@ type MatchAPI =
 type TableAPI =
   "table"
     :> "v1"
-    :> "driving"
+    :> Capture "profile" OSRMProfile
     :> Capture "coordinates" PointsList
     :> MandatoryQueryParam "annotations" String
     :> MandatoryQueryParam "sources" SourcesList
@@ -57,7 +74,7 @@ type TableAPI =
 type RouteAPI =
   "route"
     :> "v1"
-    :> "driving"
+    :> Capture "profile" OSRMProfile
     :> Capture "coordinates" PointsList
     :> MandatoryQueryParam "geometries" GeometryRespType
     :> MandatoryQueryParam "alternatives" Bool
@@ -207,13 +224,15 @@ callOsrmMatchAPI ::
   ) =>
   BaseUrl ->
   Maybe Int ->
+  Maps.TravelMode -> -- Changed from Text to TravelMode
   PointsList ->
   m MatchResp
-callOsrmMatchAPI osrmUrl mbRadius pointsList = do
+callOsrmMatchAPI osrmUrl mbRadius travelMode pointsList = do
   let pointsNum = length pointsList.getPointsList
       radiuses = flip fmap mbRadius $ \r -> RadiusesList $ replicate pointsNum r
+      profile = toOSRMProfile travelMode
   let eulerClient = Euler.client (Proxy @MatchAPI)
-  callAPI osrmUrl (eulerClient pointsList "full" AlwaysTrue radiuses GeoJson) "osrm-match" (Proxy @MatchAPI)
+  callAPI osrmUrl (eulerClient profile pointsList "full" AlwaysTrue radiuses GeoJson) "osrm-match" (Proxy @MatchAPI)
     >>= fromEitherM (FailedToCallOsrmMatchAPI . show)
 
 getResultOneRouteExpected :: (Log m, MonadThrow m) => MatchResp -> m (HighPrecMeters, Double, [Maps.LatLong])
@@ -231,15 +250,17 @@ callOsrmGetDistancesAPI ::
     MonadFlow m
   ) =>
   BaseUrl ->
+  Maps.TravelMode -> -- Changed from Text to TravelMode
   PointsList ->
   SourcesList ->
   DestinationsList ->
   Maybe Maps.SourceDestinationMapping ->
   m OSRMTableResponse
-callOsrmGetDistancesAPI osrmUrl pointsList sourcesList destinationsList mbSourceDestinationMapping =
+callOsrmGetDistancesAPI osrmUrl travelMode pointsList sourcesList destinationsList mbSourceDestinationMapping =
   do
     let eulerClient = Euler.client (Proxy @TableAPI)
-    callAPI osrmUrl (eulerClient pointsList "distance,duration" sourcesList destinationsList mbSourceDestinationMapping) "osrm-table" (Proxy @TableAPI)
+        profile = toOSRMProfile travelMode
+    callAPI osrmUrl (eulerClient profile pointsList "distance,duration" sourcesList destinationsList mbSourceDestinationMapping) "osrm-table" (Proxy @TableAPI)
     >>= fromEitherM (FailedToCallOsrmTableAPI . show)
 
 callOsrmRouteAPI ::
@@ -248,9 +269,11 @@ callOsrmRouteAPI ::
     MonadFlow m
   ) =>
   BaseUrl ->
+  Maps.TravelMode -> -- Changed from Text to TravelMode
   PointsList ->
   m OSRMRouteResponse
-callOsrmRouteAPI osrmUrl pointsList = do
+callOsrmRouteAPI osrmUrl travelMode pointsList = do
   let eulerClient = Euler.client (Proxy @RouteAPI)
-  callAPI osrmUrl (eulerClient pointsList GeoJson True True) "osrm-route" (Proxy @RouteAPI)
+      profile = toOSRMProfile travelMode
+  callAPI osrmUrl (eulerClient profile pointsList GeoJson True True) "osrm-route" (Proxy @RouteAPI)
     >>= fromEitherM (FailedToCallOsrmRouteAPI . show)

@@ -33,7 +33,9 @@ type ServiceAPI =
     :> MandatoryQueryParam "msg_type" Text
     :> MandatoryQueryParam "auth_scheme" Text
     :> MandatoryQueryParam "format" Text
+    :> MandatoryQueryParam "principalEntityId" Text
     :> MandatoryQueryParam "dltTemplateId" Text
+    :> MandatoryQueryParam "mask" Text
     :> Get '[JSON] SubmitSmsRes
 
 gupShupConnectAPI :: Proxy ServiceAPI

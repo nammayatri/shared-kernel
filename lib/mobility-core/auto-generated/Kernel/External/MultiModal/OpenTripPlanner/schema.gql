@@ -85,6 +85,11 @@ type Route {
   longName: String
   shortName: String
   color: String
+  trips: [Trip]
+}
+
+type Trip {
+  gtfsId: String!
 }
 
 type Agency {

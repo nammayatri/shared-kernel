@@ -108,7 +108,7 @@ instance ToJSON TransportMode where
 instance RequestType OTPPlan where
   type RequestArgs OTPPlan = OTPPlanArgs
   __name _ = "OTPPlan"
-  __query _ = "query OTPPlan (\n    $from: InputCoordinates!,\n    $to: InputCoordinates!,\n    $date: String,\n    $time:String,\n    $transportModes: [TransportMode],\n    $numItineraries: Int\n){\n  plan(\n    from: $from,\n    to: $to,\n    date: $date,\n    time: $time,\n    transportModes: $transportModes,\n    numItineraries : $numItineraries\n  ) {\n    itineraries {\n      duration\n      startTime\n      endTime\n      legs {\n        pickupType\n        distance\n        mode\n        duration\n        startTime\n        endTime\n        from {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n            gtfsId\n            platformCode\n          }\n        }\n        to {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n            gtfsId\n            platformCode\n          }\n        }\n        route {\n          gtfsId\n          longName\n          shortName\n          color\n          agency {\n            gtfsId\n            name\n          }\n        }\n        legGeometry {\n          points\n        }\n        fareProducts {\n          id\n        }\n      }\n    }\n  }\n}\n"
+  __query _ = "query OTPPlan (\n    $from: InputCoordinates!,\n    $to: InputCoordinates!,\n    $date: String,\n    $time:String,\n    $transportModes: [TransportMode],\n    $numItineraries: Int\n){\n  plan(\n    from: $from,\n    to: $to,\n    date: $date,\n    time: $time,\n    transportModes: $transportModes,\n    numItineraries : $numItineraries\n  ) {\n    itineraries {\n      duration\n      startTime\n      endTime\n      legs {\n        pickupType\n        distance\n        mode\n        duration\n        startTime\n        endTime\n        from {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n            gtfsId\n            platformCode\n          }\n        }\n        to {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n            gtfsId\n            platformCode\n          }\n        }\n        route {\n          gtfsId\n          longName\n          trips {\n            gtfsId\n          }\n          shortName\n          color\n          agency {\n            gtfsId\n            name\n          }\n        }\n        legGeometry {\n          points\n        }\n        fareProducts {\n          id\n        }\n      }\n    }\n  }\n}\n"
   __type _ = OPERATION_QUERY
 
 newtype OTPPlan = OTPPlan
@@ -213,6 +213,7 @@ instance FromJSON OTPPlanPlanItinerariesLegsToStop where
 data OTPPlanPlanItinerariesLegsRoute = OTPPlanPlanItinerariesLegsRoute
   { gtfsId :: String,
     longName :: Maybe String,
+    trips :: Maybe [Maybe OTPPlanPlanItinerariesLegsRouteTrips],
     shortName :: Maybe String,
     color :: Maybe String,
     agency :: Maybe OTPPlanPlanItinerariesLegsRouteAgency
@@ -221,7 +222,16 @@ data OTPPlanPlanItinerariesLegsRoute = OTPPlanPlanItinerariesLegsRoute
 
 instance FromJSON OTPPlanPlanItinerariesLegsRoute where
   parseJSON =
-    withObject "OTPPlanPlanItinerariesLegsRoute" (\v -> OTPPlanPlanItinerariesLegsRoute <$> v .: "gtfsId" <*> v .:? "longName" <*> v .:? "shortName" <*> v .:? "color" <*> v .:? "agency")
+    withObject "OTPPlanPlanItinerariesLegsRoute" (\v -> OTPPlanPlanItinerariesLegsRoute <$> v .: "gtfsId" <*> v .:? "longName" <*> v .:? "trips" <*> v .:? "shortName" <*> v .:? "color" <*> v .:? "agency")
+
+newtype OTPPlanPlanItinerariesLegsRouteTrips = OTPPlanPlanItinerariesLegsRouteTrips
+  { gtfsId :: String
+  }
+  deriving (Generic, Show, Eq)
+
+instance FromJSON OTPPlanPlanItinerariesLegsRouteTrips where
+  parseJSON =
+    withObject "OTPPlanPlanItinerariesLegsRouteTrips" (\v -> OTPPlanPlanItinerariesLegsRouteTrips <$> v .: "gtfsId")
 
 data OTPPlanPlanItinerariesLegsRouteAgency = OTPPlanPlanItinerariesLegsRouteAgency
   { gtfsId :: String,

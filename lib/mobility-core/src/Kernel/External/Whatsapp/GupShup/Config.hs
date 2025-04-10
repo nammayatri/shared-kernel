@@ -40,7 +40,8 @@ instance ToJSON GupShupCfg where
 data GupShupOTPCfg = GupShupOTPCfg
   { msgType :: Text,
     method :: Text,
-    templateId :: Text
+    templateId :: Text,
+    entityId :: Text
   }
   deriving (Show, Eq, Generic)
 

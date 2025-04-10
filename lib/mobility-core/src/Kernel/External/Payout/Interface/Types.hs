@@ -56,7 +56,8 @@ data CreatePayoutOrderReq = CreatePayoutOrderReq
     orderType :: Text,
     remark :: Text,
     customerName :: Text,
-    customerVpa :: Text
+    customerVpa :: Text,
+    isDynamicWebhookRequired :: Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

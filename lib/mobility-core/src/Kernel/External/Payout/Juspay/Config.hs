@@ -24,7 +24,8 @@ data JuspayConfig = JuspayConfig
     merchantId :: Text,
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text,
-    gatewayReferenceId :: Maybe Text
+    gatewayReferenceId :: Maybe Text,
+    dynamicWebhookUrl :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

@@ -157,6 +157,7 @@ dependencies:
   - casing
   - slack-web
   - insert-ordered-containers
+  - split
 
 ghc-options:
   - -fwrite-ide-info

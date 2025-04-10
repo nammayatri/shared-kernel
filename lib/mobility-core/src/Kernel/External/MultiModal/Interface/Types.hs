@@ -78,6 +78,7 @@ data MultiModalLeg = MultiModalLeg
     fromStopDetails :: Maybe MultiModalStopDetails,
     toStopDetails :: Maybe MultiModalStopDetails,
     routeDetails :: [MultiModalRouteDetails],
+    serviceTypes :: [Text],
     agency :: Maybe MultiModalAgency,
     fromArrivalTime :: Maybe UTCTime,
     fromDepartureTime :: Maybe UTCTime,
