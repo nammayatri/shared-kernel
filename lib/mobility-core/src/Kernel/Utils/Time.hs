@@ -24,7 +24,7 @@ where
 import qualified Data.Text as T
 import Data.Time hiding (getCurrentTime, nominalDiffTimeToSeconds, secondsToNominalDiffTime)
 import qualified Data.Time as Time hiding (secondsToNominalDiffTime)
-import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
+import Data.Time.Clock.POSIX (posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 import Data.Time.Clock.System
 import EulerHS.Prelude
 import Kernel.Types.Time
@@ -152,3 +152,6 @@ utcTimeToDiffTime = timeOfDayToTime . localTimeOfDay . zonedTimeToLocalTime . ut
 
 utcTimeToText :: UTCTime -> Text
 utcTimeToText = T.pack . formatTime defaultTimeLocale "%FT%T%z"
+
+utcToEpochSeconds :: UTCTime -> Seconds
+utcToEpochSeconds = nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds
