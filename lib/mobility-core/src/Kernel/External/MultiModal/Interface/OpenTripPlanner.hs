@@ -74,7 +74,7 @@ getTransitRoutes cfg req = do
           pure Nothing
         Right plan' -> do
           logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req <> " , GQLReq => " <> show otpReq
-          pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType
+          pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
     MULTI_SEARCH -> withLogTag "MULTI_SEARCH" $ do
       let otpReq =
             MultiModePlanArgs
@@ -103,7 +103,7 @@ getTransitRoutes cfg req = do
         Right plan -> do
           logInfo $ "OTP plan log: " <> show plan <> " " <> show req <> " , GQLReq => " <> show otpReq
           let allPlans = combinePlans plan
-          pure $ Just $ convertOTPToGeneric allPlans minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType
+          pure $ Just $ convertOTPToGeneric allPlans minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
 
 modeToTransportMode :: Mode -> TransportMode
 modeToTransportMode = TransportMode . show

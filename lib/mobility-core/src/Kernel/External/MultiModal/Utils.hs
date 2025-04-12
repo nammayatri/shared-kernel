@@ -17,15 +17,17 @@ import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Debug.Trace as DT
-import EulerHS.Prelude (safeHead)
+import EulerHS.Prelude (liftA2, liftA3, safeHead)
+import GHC.Float (int2Double)
 import Kernel.External.Maps.Google.MapsClient.Types as GT
 import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
 import Kernel.External.MultiModal.Interface.Types
+import Kernel.External.MultiModal.OpenTripPlanner.Config (MultiModalWeightedSortCfg (..), validateWeightedSortCfg)
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Types as OTP
 import Kernel.Prelude
 import qualified Kernel.Types.Distance as Distance
 import qualified Kernel.Types.Time as Time
-import Kernel.Utils.Time (millisecondsToUTC, parseISO8601UTC)
+import Kernel.Utils.Time (millisecondsToUTC, parseISO8601UTC, utcToEpochSeconds)
 
 extractDuration :: T.Text -> Int
 extractDuration t = read (filter Char.isDigit (T.unpack t)) :: Int
@@ -99,7 +101,8 @@ convertGoogleToGeneric gResponse =
               duration = Time.Seconds routeDuration,
               legs = routeLegs,
               startTime = Nothing,
-              endTime = Nothing
+              endTime = Nothing,
+              relevanceScore = Nothing
             } :
           genericRoutes
     accumulateLegs :: GT.LegV2 -> [MultiModalLeg] -> [MultiModalLeg]
@@ -244,8 +247,8 @@ convertGoogleToGeneric gResponse =
               else leg2
        in adjustedLeg1 : adjustWalkingLegs (adjustedLeg2 : rest)
 
-convertOTPToGeneric :: OTP.OTPPlan -> Distance.Meters -> [GeneralVehicleType] -> Int -> SortingType -> MultiModalResponse
-convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType =
+convertOTPToGeneric :: OTP.OTPPlan -> Distance.Meters -> [GeneralVehicleType] -> Int -> SortingType -> MultiModalWeightedSortCfg -> MultiModalResponse
+convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType relevanceSortCfg =
   let itineraries = otpResponse.plan.itineraries
       (genericRoutes, frequencyMap) = foldr accumulateItineraries ([], HM.empty) itineraries
       mergedRoutes = map mergeConsecutiveMetroLegs genericRoutes
@@ -257,7 +260,11 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
       !_string = DT.trace $ "Filtered by max public transport: " <> show filteredByMaxPublicTransport <> " " <> show maxAllowedPublicTransportLegs <> " " <> show permissibleModes <> " " <> show sortingType <> " " <> show otpResponse <> " " <> show itineraries <> " " <> show genericRoutes <> " " <> show frequencyMap <> " " <> show mergedRoutes <> " " <> show orderedRoutes <> " " <> show updatedRoutes <> " " <> show filteredRoutes <> " " <> show filteredByPermissibleModes
       sortedRoutes = case sortingType of
         Fastest -> sortRoutesByDuration filteredByMaxPublicTransport
-        Minimum_Transits -> sortRoutesByNumberOfLegs filteredByMaxPublicTransport
+        MinimumTransits -> sortRoutesByNumberOfLegs filteredByMaxPublicTransport
+        MostRelevant ->
+          if validateWeightedSortCfg relevanceSortCfg
+            then sortByRelevance $ addRelevanceScore relevanceSortCfg filteredByMaxPublicTransport
+            else filteredByMaxPublicTransport
       finalRoutes = uniqueRoutes sortedRoutes
    in MultiModalResponse
         { routes = finalRoutes
@@ -268,6 +275,107 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
 
     sortRoutesByNumberOfLegs :: [MultiModalRoute] -> [MultiModalRoute]
     sortRoutesByNumberOfLegs = sortBy (\r1 r2 -> compare (length r1.legs) (length r2.legs))
+
+    sortByRelevance :: [MultiModalRoute] -> [MultiModalRoute]
+    sortByRelevance = sortBy relevanceComparator
+
+    relevanceComparator :: MultiModalRoute -> MultiModalRoute -> Ordering
+    relevanceComparator r1 r2 =
+      case (r1.relevanceScore, r2.relevanceScore) of
+        (Just score1, Just score2) -> compare score1 score2
+        (Nothing, Nothing) -> EQ
+        (Just _, Nothing) -> LT
+        (Nothing, Just _) -> GT
+
+    calculateRouteDuration :: MultiModalRoute -> Maybe Time.Seconds
+    calculateRouteDuration route = Just route.duration
+
+    getArrivalTime :: MultiModalRoute -> Maybe UTCTime
+    getArrivalTime route = route.endTime
+
+    getTransfers :: MultiModalRoute -> Maybe Int
+    getTransfers route = do
+      case (filter (\leg -> leg.mode == Walk) route.legs) of
+        [] -> Nothing
+        legs -> Just . pred $ length legs
+
+    calculateNormalizerData :: [MultiModalRoute] -> Maybe NormalizerData
+    calculateNormalizerData [] = Nothing
+    calculateNormalizerData (firstRoute : routes) = do
+      let maxDuration = calculateRouteDuration firstRoute
+          minDuration = maxDuration
+          maxArrivalTime = getArrivalTime firstRoute
+          minArrivalTime = maxArrivalTime
+          maxTransfers = getTransfers firstRoute
+          minTransfers = maxTransfers
+          normalizerDataInit = NormalizerData {..}
+      Just $ getData normalizerDataInit
+      where
+        getData normalizerDataInit =
+          foldr
+            ( \route normalizerData -> do
+                let routeDur = calculateRouteDuration route
+                    routeAT = getArrivalTime route
+                    routeTf = getTransfers route
+                    maxDuration = liftA2 max routeDur normalizerData.maxDuration
+                    minDuration = liftA2 min routeDur normalizerData.minDuration
+                    maxArrivalTime = liftA2 max routeAT normalizerData.maxArrivalTime
+                    minArrivalTime = liftA2 min routeAT normalizerData.minArrivalTime
+                    maxTransfers = liftA2 max routeTf normalizerData.maxTransfers
+                    minTransfers = liftA2 min routeTf normalizerData.minTransfers
+                NormalizerData {..}
+            )
+            normalizerDataInit
+            routes
+
+    normalize :: Int -> Int -> Int -> Maybe Double
+    normalize x minVal maxVal = do
+      if maxVal < minVal || x < minVal || x > maxVal
+        then Nothing
+        else
+          if maxVal - minVal == 0
+            then Just 0
+            else Just $ int2Double (x - minVal) / int2Double (maxVal - minVal)
+
+    normalizeSeconds :: Time.Seconds -> Time.Seconds -> Time.Seconds -> Maybe Double
+    normalizeSeconds x minVal maxVal = normalize x.getSeconds minVal.getSeconds maxVal.getSeconds
+
+    normalizeUTCTime :: UTCTime -> UTCTime -> UTCTime -> Maybe Double
+    normalizeUTCTime x minVal maxVal = do
+      let maxVal' = utcToEpochSeconds maxVal
+          minVal' = utcToEpochSeconds minVal
+          x' = utcToEpochSeconds x
+      normalizeSeconds x' minVal' maxVal'
+
+    maxDouble :: Double
+    maxDouble = int2Double maxBound
+
+    calculateRelevanceScore :: MultiModalWeightedSortCfg -> NormalizerData -> MultiModalRoute -> Double
+    calculateRelevanceScore weight NormalizerData {..} route =
+      let routeDur = calculateRouteDuration route
+          routeAT = getArrivalTime route
+          routeTf = getTransfers route
+          normDur :: Maybe Double = join $ liftA3 normalizeSeconds routeDur minDuration maxDuration
+          normAT :: Maybe Double = join $ liftA3 normalizeUTCTime routeAT minArrivalTime maxArrivalTime
+          normTf :: Maybe Double = join $ liftA3 normalize routeTf minTransfers maxTransfers
+          durScore = maybe maxDouble (* weight.duration) normDur
+          aTScore = maybe maxDouble (* weight.arrivalTime) normAT
+          tfScore = maybe maxDouble (* weight.transfers) normTf
+       in durScore + aTScore + tfScore
+
+    addRelevanceScore :: MultiModalWeightedSortCfg -> [MultiModalRoute] -> [MultiModalRoute]
+    addRelevanceScore weight routes = do
+      maybe
+        routes
+        ( \normData -> do
+            map
+              ( \route ->
+                  let relevanceScore = calculateRelevanceScore weight normData route
+                   in route {relevanceScore = Just relevanceScore}
+              )
+              routes
+        )
+        (calculateNormalizerData routes)
 
     removeShortWalkLegs :: Distance.Meters -> MultiModalRoute -> MultiModalRoute
     removeShortWalkLegs threshold route =
@@ -369,7 +477,8 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                         },
                     legs = legs,
                     startTime = (millisecondsToUTC . round) <$> itinerary'.startTime,
-                    endTime = (millisecondsToUTC . round) <$> itinerary'.endTime
+                    endTime = (millisecondsToUTC . round) <$> itinerary'.endTime,
+                    relevanceScore = Nothing
                   }
            in (route : genericRoutes, updatedFreqMap)
 
