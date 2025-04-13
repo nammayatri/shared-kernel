@@ -395,7 +395,6 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                       [_prefix, middle, _suffix] -> Just $ T.pack middle
                       _ -> Nothing
                   extractServiceType Nothing = Nothing
-              maybeLongName = otpLeg'.route >>= \r -> r.longName
               fromArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.from.arrivalTime
               fromDepartureTime' = Just $ millisecondsToUTC $ round otpLeg'.from.departureTime
               toArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.to.arrivalTime
@@ -472,10 +471,10 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                   ]
                 Nothing -> []
 
-              -- Update the frequency map only if longName exists
-              newFreqMap = case (maybeLongName, fromArrivalTime') of
-                (Just longName, Just time) ->
-                  let key = T.pack longName
+              -- Update the frequency map only if fromStopCode and toStopCode exists
+              newFreqMap = case (fromStopCode, toStopCode, fromArrivalTime') of
+                (Just fromStopCode', Just toStopCode', Just time) ->
+                  let key = T.pack fromStopCode' <> "-" <> T.pack toStopCode'
                    in HM.insertWith (\new old -> nub (new ++ old)) key [time] updatedFreqMap
                 _ -> updatedFreqMap
 
@@ -537,21 +536,20 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
 
         updateDetailsFrequency :: HM.HashMap T.Text [UTCTime] -> MultiModalRouteDetails -> MultiModalRouteDetails
         updateDetailsFrequency frequencyMap details =
-          case longName details of
-            Just longName ->
-              let key = longName
+          case (details.fromStopDetails >>= (.stopCode), details.toStopDetails >>= (.stopCode)) of
+            (Just fromStopCode, Just toStopCode) ->
+              let key = fromStopCode <> "-" <> toStopCode
                   timestamps = sort $ HM.lookupDefault [] key frequencyMap
                   frequency = case timestamps of
                     (t1 : t2 : _) -> Just $ Time.Seconds $ round $ diffUTCTime t2 t1
                     _ -> Nothing
                in details {frequency = frequency}
-            Nothing -> details
+            _ -> details
 
     -- Function to get the sequence combination for a route
     getSequenceCombination :: MultiModalRoute -> T.Text
     getSequenceCombination route =
-      --let sequenceCombination = mapMaybe (\leg -> leg.routeDetails >>= (.longName)) (route.legs)
-      let sequenceCombination = mapMaybe (listToMaybe . mapMaybe longName . routeDetails) (route.legs)
+      let sequenceCombination = concatMap (mapMaybe (\r -> (\f t -> f <> "-" <> t) <$> (r.fromStopDetails >>= (.stopCode)) <*> (r.toStopDetails >>= (.stopCode))) . (.routeDetails)) route.legs
        in T.intercalate "-" sequenceCombination
 
     -- Function to filter routes with unique sequence combinations
