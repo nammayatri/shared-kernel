@@ -10,7 +10,7 @@ where
 
 import qualified Data.Char as Char
 import qualified Data.HashMap.Strict as HM
-import Data.List (nub, sortBy)
+import Data.List (nub, partition, sortBy)
 import Data.List.Split (splitOn)
 import qualified Data.Map as Map
 import Data.Maybe
@@ -263,7 +263,10 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
         MinimumTransits -> sortRoutesByNumberOfLegs filteredByMaxPublicTransport
         MostRelevant ->
           if validateWeightedSortCfg relevanceSortCfg
-            then sortByRelevance $ addRelevanceScore relevanceSortCfg filteredByMaxPublicTransport
+            then
+              let (onlyWalkItineraries, otherItineraries) = partition (\r -> all (\leg -> leg.mode == Walk) r.legs) filteredByMaxPublicTransport
+                  sortedItineraries = sortByRelevance $ addRelevanceScore relevanceSortCfg otherItineraries
+               in sortedItineraries <> onlyWalkItineraries
             else filteredByMaxPublicTransport
       finalRoutes = uniqueRoutes sortedRoutes
    in MultiModalResponse
@@ -348,7 +351,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
       normalizeSeconds x' minVal' maxVal'
 
     maxDouble :: Double
-    maxDouble = int2Double maxBound
+    maxDouble = 5
 
     calculateRelevanceScore :: MultiModalWeightedSortCfg -> NormalizerData -> MultiModalRoute -> Double
     calculateRelevanceScore weight NormalizerData {..} route =
