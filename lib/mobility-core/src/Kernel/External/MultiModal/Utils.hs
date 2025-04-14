@@ -295,7 +295,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
 
     getTransfers :: MultiModalRoute -> Maybe Int
     getTransfers route = do
-      case (filter (\leg -> leg.mode == Walk) route.legs) of
+      case (filter (\leg -> leg.mode /= Walk) route.legs) of
         [] -> Nothing
         legs -> Just . pred $ length legs
 
