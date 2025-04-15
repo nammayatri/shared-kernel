@@ -101,8 +101,9 @@ newtype Marketplace = Marketplace
   }
   deriving stock (Show, Eq, Generic)
 
-newtype OrderStatusReq = OrderStatusReq
-  { orderShortId :: Text
+data OrderStatusReq = OrderStatusReq
+  { orderShortId :: Text,
+    personId :: Maybe Text
   }
 
 data OrderStatusResp
@@ -299,7 +300,7 @@ data MandatePauseReq = MandatePauseReq {mandateId :: Text, pauseStartDate :: UTC
 
 data MandateResumeReq = MandateResumeReq {mandateId :: Text, resumeDate :: UTCTime}
 
-newtype MandateRevokeReq = MandateRevokeReq {mandateId :: Text}
+data MandateRevokeReq = MandateRevokeReq {mandateId :: Text, personId :: Maybe Text}
 
 type MandateRevokeRes = APISuccess
 
@@ -432,6 +433,7 @@ data OfferNotifyReq = OfferNotifyReq
   { mandateId :: Text,
     orderShortId :: Text,
     transactionUUID :: Text,
+    personId :: Maybe Text,
     transactionStatus :: TransactionStatus,
     offers :: [OfferNotifyOffer]
   }
