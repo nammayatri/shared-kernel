@@ -112,8 +112,14 @@ src/
 
 4. Build the library:
    ```bash
+   # Choose one of the following commands:
    cabal build
+   # or
+   nix build
+   # or
+   cabal repl all
    ```
+   
 
 5. Run tests:
    ```bash
@@ -129,21 +135,6 @@ src/
 - Put utility functions in `src/Kernel/Utils/`
 - Define common types in `src/Kernel/Types/`
 
-### Common Tasks
-
-1. Adding new database tables:
-   ```bash
-   # Add table definition in src/Kernel/Beam/Types/
-   # Run code generation
-   cabal run mobility-core -- generate-db-types
-   ```
-
-2. Adding new external service integration:
-   ```bash
-   # Create new module in src/Kernel/External/
-   # Add configuration in src/Kernel/External/Config/
-   # Add types in src/Kernel/External/Types/
-   ```
 
 ### Code Quality
 
@@ -154,7 +145,7 @@ The project uses:
 
 ## Contributing
 
-Please read the [Namma Yatri Contributing Guidelines](https://github.com/nammayatri/nammayatri/blob/main/CONTRIBUTING.md) before submitting changes.
+Please read the [Namma Yatri Contributing Guidelines](https://github.com/nammayatri/nammayatri/blob/main/docs/CONTRIBUTING.md.md) before submitting changes.
 
 Key points:
 - Follow the existing code style
