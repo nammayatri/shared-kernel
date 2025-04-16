@@ -41,7 +41,9 @@ sendOTP gupShupCfg SendSMSReq {..} = do
   let gupShupPhoneNumber = phoneNumber
   gupShupUserId <- decrypt gupShupCfg.userName
   gupShupPassword <- decrypt gupShupCfg.password
-  gupShupTemplateId <- decrypt gupShupCfg.templateId
+  gupShupTemplateId <- case templateId of
+    Just templateId' -> pure templateId'
+    Nothing -> decrypt gupShupCfg.templateId
   gupShupEntityId <- decrypt gupShupCfg.entityId
   res <- GF.sendOTPApi gupShupOtpSmsTemplate gupShupPhoneNumber gupShupUserId gupShupPassword gupShupEntityId gupShupTemplateId sender gupShupCfg
   return $ returnSmsResultGupShup res.response.status
