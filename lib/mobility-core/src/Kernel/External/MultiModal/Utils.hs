@@ -300,7 +300,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
     getTransfers route = do
       case (filter (\leg -> leg.mode /= Walk) route.legs) of
         [] -> Nothing
-        legs -> Just $ length legs
+        legs -> Just . pred $ length legs
 
     calculateNormalizerData :: [MultiModalRoute] -> Maybe NormalizerData
     calculateNormalizerData [] = Nothing
