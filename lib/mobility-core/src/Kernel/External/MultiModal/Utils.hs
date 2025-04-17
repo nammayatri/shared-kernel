@@ -18,7 +18,6 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Debug.Trace as DT
 import EulerHS.Prelude (liftA2, liftA3, safeHead)
-import GHC.Float (int2Double)
 import Kernel.External.Maps.Google.MapsClient.Types as GT
 import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
 import Kernel.External.MultiModal.Interface.Types
@@ -298,9 +297,9 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
 
     getTransfers :: MultiModalRoute -> Maybe Int
     getTransfers route = do
-      case (filter (\leg -> leg.mode /= Walk) route.legs) of
+      case filter (\leg -> leg.mode /= Walk) route.legs of
         [] -> Nothing
-        legs -> Just . pred $ length legs
+        legs -> Just $ length legs
 
     calculateNormalizerData :: [MultiModalRoute] -> Maybe NormalizerData
     calculateNormalizerData [] = Nothing
@@ -309,8 +308,8 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
           minDuration = maxDuration
           maxArrivalTime = getArrivalTime firstRoute
           minArrivalTime = maxArrivalTime
-          maxTransfers = getTransfers firstRoute
-          minTransfers = maxTransfers
+          maxTransfers = Just 5 -- hardcoded, to reduce skewness in score because of transfers
+          minTransfers = getTransfers firstRoute
           normalizerDataInit = NormalizerData {..}
       Just $ getData normalizerDataInit
       where
@@ -331,14 +330,14 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
             normalizerDataInit
             routes
 
-    normalize :: Int -> Int -> Int -> Maybe Double
+    normalize :: (Num a, Ord a, Eq a, Integral a) => a -> a -> a -> Maybe Double
     normalize x minVal maxVal = do
       if maxVal < minVal || x < minVal || x > maxVal
         then Nothing
         else
-          if maxVal - minVal == 0
+          if maxVal == minVal
             then Just 0
-            else Just $ int2Double (x - minVal) / int2Double (maxVal - minVal)
+            else Just $ fromIntegral (x - minVal) / fromIntegral (maxVal - minVal)
 
     normalizeSeconds :: Time.Seconds -> Time.Seconds -> Time.Seconds -> Maybe Double
     normalizeSeconds x minVal maxVal = normalize x.getSeconds minVal.getSeconds maxVal.getSeconds
