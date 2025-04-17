@@ -23,6 +23,7 @@ import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Utils.Common (callAPI, fromEitherM)
+import Kernel.Utils.Logging (logDebug)
 import Servant hiding (throwError)
 
 mkBasicAuthData :: Text -> BasicAuthData
@@ -49,6 +50,7 @@ createPayoutOrder ::
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
 createPayoutOrder url apiKey merchantId routingId req = do
+  logDebug $ "CreatePayoutOrder: routingId: " <> show routingId
   let proxy = Proxy @CreatePayoutOrderAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
   callAPI url eulerClient "create-payout-order" proxy
@@ -73,6 +75,7 @@ payoutOrderStatus ::
   Maybe Payout.Expand ->
   m PayoutOrderStatusResp
 payoutOrderStatus url apiKey merchantId routingId orderId mbExpand = do
+  logDebug $ "PayoutOrderStatus: routingId: " <> show routingId
   let proxy = Proxy @PayoutOrderStatusAPI
       eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) mbExpand (Just merchantId) (Just routingId)
   callAPI url eulerClient "payout-order-status" proxy

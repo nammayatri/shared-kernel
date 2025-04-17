@@ -24,6 +24,7 @@ import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Utils.Common (CallAPI', callAPI, encodeToText, fromEitherM)
+import Kernel.Utils.Logging (logDebug)
 import Servant hiding (throwError)
 
 -- https://docs.juspay.in/payment-page/ios/base-sdk-integration/order-status-api
@@ -49,6 +50,7 @@ createCustomer ::
 createCustomer url apiKey merchantId routingId req = do
   let proxy = Proxy @CreateCustomerAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
+  logDebug $ "CreateCustomer: routingId: " <> show routingId
   callJuspayAPI url eulerClient "create-customer" proxy
 
 type GetCustomerAPI =
@@ -74,6 +76,7 @@ getCustomer ::
 getCustomer url apiKey merchantId routingId customerId req = do
   let proxy = Proxy @GetCustomerAPI
       eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
+  logDebug $ "GetCustomer: routingId: " <> show routingId
   callJuspayAPI url eulerClient "get-customer" proxy
 
 type CreateOrderAPI =
@@ -97,6 +100,7 @@ createOrder ::
 createOrder url apiKey merchantId routingId req = do
   let proxy = Proxy @CreateOrderAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
+  logDebug $ "CreateOrder: routingId: " <> show routingId
   callJuspayAPI url eulerClient "create-order" proxy
 
 type OrderStatusAPI =
@@ -119,6 +123,7 @@ orderStatus ::
   Text ->
   m OrderStatusResp
 orderStatus url apiKey merchantId routingId orderId = do
+  logDebug $ "OrderStatus: routingId: " <> show routingId
   version <- getCurrentDate
   let proxy = Proxy @OrderStatusAPI
       eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) version
@@ -176,6 +181,7 @@ offerList ::
 offerList url apiKey merchantId routingId req = do
   let proxy = Proxy @OfferListAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
+  logDebug $ "OfferList: routingId: " <> show routingId
   callJuspayAPI url eulerClient "offer-list" proxy
 
 type OfferApplyAPI =
@@ -200,6 +206,7 @@ offerApply ::
 offerApply url apiKey merchantId routingId req = do
   let proxy = Proxy @OfferApplyAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
+  logDebug $ "OfferApply: routingId: " <> show routingId
   callJuspayAPI url eulerClient "offer-apply" proxy
 
 type OfferNotifyAPI =
@@ -226,6 +233,7 @@ offerNotify ::
 offerNotify url apiKey merchantId routingId mandateId req = do
   let proxy = Proxy @OfferNotifyAPI
       eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
+  logDebug $ "OfferNotify: routingId: " <> show routingId
   callJuspayAPI url eulerClient "offer-notify" proxy
 
 callJuspayAPI :: CallAPI' m api res res
@@ -335,6 +343,7 @@ mandateRevoke ::
   MandateRevokeReq ->
   m MandateRevokeRes
 mandateRevoke url apiKey merchantId routingId mandateId req = do
+  logDebug $ "MandateRevoke: routingId: " <> show routingId
   let eulerClient = Euler.client (Proxy @MandateRevokeAPI)
   let basicAuthData =
         BasicAuthData
