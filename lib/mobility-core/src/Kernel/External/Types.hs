@@ -21,10 +21,12 @@ import Data.OpenApi
 import Database.Beam
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
+import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Types.Common
 import Kernel.Utils.Dhall
 import Kernel.Utils.GenericPretty (PrettyShow, Showable (Showable))
+import Kernel.Utils.Servant.Client
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 data Language
@@ -65,7 +67,7 @@ instance ToHttpApiData Language where
   toUrlPiece TELUGU = "te"
   toUrlPiece ODIA = "or"
 
-type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r)
+type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r, HasShortDurationRetryCfg r m, CoreMetrics m, Log m)
 
 type VerificationFlow m r = (MonadFlow m, CacheFlow m r, EsqDBFlow m r, MonadReader r m, EncFlow m r)
 
