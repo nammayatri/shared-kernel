@@ -188,6 +188,7 @@ data FCMNotificationType
   | WMB_TRIP_FINISHED
   | FLEET_CONSENT
   | DRIVER_REQUEST_REJECTED
+  | EKD_LIVE_CALL_FEEDBACK
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 

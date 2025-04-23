@@ -106,6 +106,7 @@ data Category
   | WMB_TRIP_STARTED
   | WMB_TRIP_FINISHED
   | FLEET_CONSENT
+  | EKD_LIVE_CALL_FEEDBACK
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
