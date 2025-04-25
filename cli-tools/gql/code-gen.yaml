@@ -1,0 +1,9 @@
+client:
+  - name: OpenTripPlanner API # Name of the service
+    source: ../../lib/mobility-core/auto-generated/Kernel/External/MultiModal/OpenTripPlanner/ # root folder for haskell source files
+    schema: schema.gql
+    includes:
+      - path: query-2.gql # list of gql sources
+
+# reference: https://morpheusgraphql.com/code-gen
+# morpheus build ./  will generate two files Schema.hs and Query.hs Combine these two files to one

@@ -39,30 +39,76 @@ getTransitRoutes cfg req = do
           { lat = req.destination.location.latLng.latitude,
             lon = req.destination.location.latLng.longitude
           }
-  let dateTime = req.departureTime <&> formatUtcDateTime
+  let dateTime' = req.departureTime <&> formatUtcDateTime
+  dateTime <-
+    case cfg.nightMode of
+      Just True -> Just . formatUtcDateTime . addUTCTime 43200 <$> getCurrentTime
+      _ -> pure dateTime'
   let planClient = fromString (showBaseUrl cfg.baseUrl)
   let transportModes' = req.transportModes
-  let numItineraries' = Just 50
+  let numItineraries' = Just $ fromMaybe 50 cfg.numItineraries
   let minimumWalkDistance = req.minimumWalkDistance
   let permissibleModes = req.permissibleModes
   let maxAllowedPublicTransportLegs = req.maxAllowedPublicTransportLegs
   let sortingType = req.sortingType
-  resp <-
-    liftIO $
-      planClient
-        `request` OTPPlanArgs
-          { from = origin,
-            to = destination,
-            date = fst <$> dateTime,
-            time = snd <$> dateTime,
-            transportModes = transportModes',
-            numItineraries = numItineraries'
-          }
-          >>= single
-  case resp of
-    Left err -> do
-      logError $ "Error in getTransitRoutes: " <> show err
-      pure Nothing
-    Right plan' -> do
-      logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req
-      pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType
+  let queryType = fromMaybe NORMAL cfg.queryType
+  case queryType of
+    NORMAL -> do
+      let otpReq =
+            OTPPlanArgs
+              { from = origin,
+                to = destination,
+                date = fst <$> dateTime,
+                time = snd <$> dateTime,
+                transportModes = transportModes',
+                numItineraries = numItineraries'
+              }
+      resp <-
+        liftIO $
+          planClient
+            `request` otpReq
+              >>= single
+      case resp of
+        Left err -> do
+          logError $ "Error in getTransitRoutes: " <> show err
+          pure Nothing
+        Right plan' -> do
+          logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req <> " , GQLReq => " <> show otpReq
+          pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
+    MULTI_SEARCH -> withLogTag "MULTI_SEARCH" $ do
+      let otpReq =
+            MultiModePlanArgs
+              { from = origin,
+                to = destination,
+                date = fst <$> dateTime,
+                time = snd <$> dateTime,
+                metroTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeRAIL, Just ModeWALK],
+                metroItineraries = 5,
+                subwayTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeSUBWAY, Just ModeWALK],
+                subwayItineraries = 5,
+                busTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeBUS, Just ModeWALK],
+                busItineraries = 10,
+                bestTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeTRANSIT, Just ModeWALK],
+                bestItineraries = 10
+              }
+      resp <-
+        liftIO $
+          planClient
+            `request` otpReq
+              >>= single
+      case resp of
+        Left err -> do
+          logError $ "Error in getTransitRoutes: " <> show err
+          pure Nothing
+        Right plan -> do
+          logInfo $ "OTP plan log: " <> show plan <> " " <> show req <> " , GQLReq => " <> show otpReq
+          let allPlans = combinePlans plan
+          pure $ Just $ convertOTPToGeneric allPlans minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
+
+modeToTransportMode :: Mode -> TransportMode
+modeToTransportMode = TransportMode . show
+
+combinePlans :: MultiModePlan -> OTPPlan
+combinePlans res = do
+  let itineraries = res.metro.itineraries <> res.subway.itineraries <> res.bus.itineraries <> res.best.itineraries
+  OTPPlan {plan = OTPPlanPlan {..}}

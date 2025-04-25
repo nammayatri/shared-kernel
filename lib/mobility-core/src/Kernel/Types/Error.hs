@@ -16,6 +16,7 @@
 
 module Kernel.Types.Error where
 
+import qualified Data.Text as T
 import EulerHS.Prelude
 import EulerHS.Types (KVDBReply)
 import qualified Kafka.Types as Kafka
@@ -1260,3 +1261,168 @@ instance IsHTTPError PayoutConfigError where
     PayoutConfigNotFound _ _ -> E500
 
 instance IsAPIError PayoutConfigError
+
+data ClickToCallError
+  = ClickToCallNotConfigured
+  | ClickToCallBadRequest
+  | ClickToCallUnauthorized
+  | ClickToCallPaymentRequired
+  | ClickToCallAccessDenied
+  | ClickToCallNotFound
+  | ClickToCallConflict
+  | ClickToCallTooManyRequests
+  | ClickToCallServerError
+  | ClickToCallGenericError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''ClickToCallError
+
+instance FromResponse ClickToCallError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just ClickToCallBadRequest
+    401 -> Just ClickToCallUnauthorized
+    402 -> Just ClickToCallPaymentRequired
+    403 -> Just ClickToCallAccessDenied
+    404 -> Just ClickToCallNotFound
+    409 -> Just ClickToCallConflict
+    429 -> Just ClickToCallTooManyRequests
+    500 -> Just ClickToCallServerError
+    _ -> Just (ClickToCallGenericError ("Unexpected status code: " <> T.pack (show $ statusCode $ responseStatusCode resp)))
+
+instance IsBaseError ClickToCallError where
+  toMessage = \case
+    ClickToCallNotConfigured -> Just "Tata ClickToCall env variables aren't properly set."
+    ClickToCallBadRequest -> Just "Something in your header or request body was malformed."
+    ClickToCallUnauthorized -> Just "Necessary credentials were either missing or invalid."
+    ClickToCallPaymentRequired -> Just "The action is not available on your plan, or you have exceeded usage limits for your current plan."
+    ClickToCallAccessDenied -> Just "Your credentials are valid, but you don't have access to the requested resource."
+    ClickToCallNotFound -> Just "The object you're requesting doesn't exist."
+    ClickToCallConflict -> Just "You might be trying to update the same resource concurrently."
+    ClickToCallTooManyRequests -> Just "You are calling our APIs more frequently than we allow."
+    ClickToCallServerError -> Just "Something went wrong on our end. Please try again."
+    ClickToCallGenericError msg -> Just ("ClickToCall encountered an unexpected error: " <> msg)
+
+instance IsHTTPError ClickToCallError where
+  toErrorCode = \case
+    ClickToCallNotConfigured -> "CLICKTOCALL_NOT_CONFIGURED"
+    ClickToCallBadRequest -> "CLICKTOCALL_BAD_REQUEST"
+    ClickToCallUnauthorized -> "CLICKTOCALL_UNAUTHORIZED"
+    ClickToCallPaymentRequired -> "CLICKTOCALL_PAYMENT_REQUIRED"
+    ClickToCallAccessDenied -> "CLICKTOCALL_ACCESS_DENIED"
+    ClickToCallNotFound -> "CLICKTOCALL_NOT_FOUND"
+    ClickToCallConflict -> "CLICKTOCALL_CONFLICT"
+    ClickToCallTooManyRequests -> "CLICKTOCALL_TOO_MANY_REQUESTS"
+    ClickToCallServerError -> "CLICKTOCALL_SERVER_ERROR"
+    ClickToCallGenericError msg -> "CLICKTOCALL_GENERIC_ERROR: " <> msg
+
+instance IsAPIError ClickToCallError
+
+data DigoEngageError
+  = DigoEngageInvalidRequest
+  | DigoEngageNotConfigured
+  | DigoEngageUserIdNotFound
+  | DigoEngageInvalidPhoneNumber
+  | DigoEngageUnauthorized
+  | DigoEngageWrongMethodService
+  | DigoEngageInterNationalPhoneNumber
+  | DigoEngageTooManyRequests
+  | DigoEngageUnknownServerError
+  | DigoEngageValidationError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''DigoEngageError
+
+instance IsBaseError DigoEngageError where
+  toMessage = \case
+    DigoEngageInvalidRequest -> Just "Invalid request to DigoEngage."
+    DigoEngageNotConfigured -> Just "DigoEngage env variables aren't properly set."
+    DigoEngageUserIdNotFound -> Just "DigoEngage Authentication Failed as userid X does not exist."
+    DigoEngageInvalidPhoneNumber -> Just "The phone number XXXXX is not a valid phone number."
+    DigoEngageUnauthorized -> Just "Authentication failed due to invalid userId or password."
+    DigoEngageWrongMethodService -> Just "The method is not supported."
+    DigoEngageInterNationalPhoneNumber -> Just "The INTERNATIONAL_PHONE service is disabled for you. Kindly get the service enabled before using this action"
+    DigoEngageTooManyRequests -> Just "The phone number has already been marked as requested"
+    DigoEngageUnknownServerError -> Just "An unknown exception has occurred. Please retry the request after some time."
+    DigoEngageValidationError msg -> Just ("Error: " <> msg)
+
+instance IsHTTPError DigoEngageError where
+  toErrorCode = \case
+    DigoEngageNotConfigured -> "DIGOENGAGE_NOT_CONFIGURED"
+    DigoEngageInvalidRequest -> "DIGOENGAGE_INVALID_REQUEST"
+    DigoEngageUserIdNotFound -> "DIGOENGAGE_USER_NOT_FOUND"
+    DigoEngageInvalidPhoneNumber -> "DIGOENGAGE_INVALID_PHONE_NUMBER"
+    DigoEngageUnauthorized -> "DIGOENGAGE_AUTHENTICATION_FAILED"
+    DigoEngageWrongMethodService -> "DIGOENGAGE_WRONG_METHOD_SERVICE"
+    DigoEngageInterNationalPhoneNumber -> "DIGOENGAGE_INTERNATIONAL_PHONE_DISABLED"
+    DigoEngageTooManyRequests -> "DIGOENGAGE_TOO_MANY_REQUEST_FOR_SAME"
+    DigoEngageUnknownServerError -> "DIGOENGAGE_UNKNOWN_ERROR"
+    DigoEngageValidationError msg -> "DIGOENGAGE_ERROR: " <> msg
+
+instance FromResponse DigoEngageError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just DigoEngageInvalidRequest
+    401 -> Just DigoEngageUnauthorized
+    500 -> Just DigoEngageUnknownServerError
+    404 -> Just DigoEngageUserIdNotFound
+    _ -> Just DigoEngageNotConfigured
+
+instance IsAPIError DigoEngageError
+
+data TataCommunicationsWhatsappError
+  = TataCommunicationsWhatsappInvalidRequest
+  | TataCommunicationsWhatsappNotConfigured
+  | TataCommunicationsWhatsappUserIdNotFound
+  | TataCommunicationsWhatsappInvalidPhoneNumber
+  | TataCommunicationsWhatsappUnauthorized
+  | TataCommunicationsWhatsappWrongMethodService
+  | TataCommunicationsWhatsappInterNationalPhoneNumber
+  | TataCommunicationsWhatsappTooManyRequests
+  | TataCommunicationsWhatsapPermissionDenied
+  | TataCommunicationsWhatsapServiceUnavailable
+  | TataCommunicationsWhatsappUnknownServerError
+  | TataCommunicationsWhatsappGenericError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''TataCommunicationsWhatsappError
+
+instance IsBaseError TataCommunicationsWhatsappError where
+  toMessage = \case
+    TataCommunicationsWhatsappInvalidRequest -> Just "Invalid request to TataCommunicationsWhatsap."
+    TataCommunicationsWhatsappNotConfigured -> Just "TataCommunicationsWhatsap env variables aren't properly set."
+    TataCommunicationsWhatsappUserIdNotFound -> Just "TataCommunicationsWhatsap Authentication Failed as userid X does not exist."
+    TataCommunicationsWhatsappInvalidPhoneNumber -> Just "The phone number XXXXX is not a valid phone number."
+    TataCommunicationsWhatsappUnauthorized -> Just "Your access token has expired."
+    TataCommunicationsWhatsappWrongMethodService -> Just "The method is not supported."
+    TataCommunicationsWhatsappInterNationalPhoneNumber -> Just "The INTERNATIONAL_PHONE service is disabled for you. Kindly get the service enabled before using this action"
+    TataCommunicationsWhatsappTooManyRequests -> Just "The phone number has already been marked as requested"
+    TataCommunicationsWhatsapPermissionDenied -> Just "Permission is either not granted or has been removed."
+    TataCommunicationsWhatsapServiceUnavailable -> Just "Temporary due to downtime or due to being overloaded."
+    TataCommunicationsWhatsappUnknownServerError -> Just "An unknown exception has occurred. Please retry the request after some time."
+    TataCommunicationsWhatsappGenericError msg -> Just ("Error: " <> msg)
+
+instance IsHTTPError TataCommunicationsWhatsappError where
+  toErrorCode = \case
+    TataCommunicationsWhatsappNotConfigured -> "TATA_COMMUNICATIONS_WHATSAPP_NOT_CONFIGURED"
+    TataCommunicationsWhatsappInvalidRequest -> "TATA_COMMUNICATIONS_WHATSAPP_INVALID_REQUEST"
+    TataCommunicationsWhatsappUserIdNotFound -> "TATA_COMMUNICATIONS_WHATSAPP_USER_NOT_FOUND"
+    TataCommunicationsWhatsappInvalidPhoneNumber -> "TATA_COMMUNICATIONS_WHATSAPP_INVALID_PHONE_NUMBER"
+    TataCommunicationsWhatsappUnauthorized -> "TATA_COMMUNICATIONS_WHATSAPP_AUTHENTICATION_FAILED"
+    TataCommunicationsWhatsappWrongMethodService -> "TATA_COMMUNICATIONS_WHATSAPP_WRONG_METHOD_SERVICE"
+    TataCommunicationsWhatsappInterNationalPhoneNumber -> "TATA_COMMUNICATIONS_WHATSAPP_INTERNATIONAL_PHONE_DISABLED"
+    TataCommunicationsWhatsappTooManyRequests -> "TATA_COMMUNICATIONS_WHATSAPP_TOO_MANY_REQUEST_FOR_SAME"
+    TataCommunicationsWhatsapPermissionDenied -> "TATA_COMMUNICATIONS_WHATSAPP_PERMISSION_DENIED"
+    TataCommunicationsWhatsapServiceUnavailable -> "TATA_COMMUNICATIONS_WHATSAPP_SERVICE_UNAVAILABLE"
+    TataCommunicationsWhatsappUnknownServerError -> "TATA_COMMUNICATIONS_WHATSAPP_UNKNOWN_ERROR"
+    TataCommunicationsWhatsappGenericError msg -> "TATA_COMMUNICATIONS_WHATSAPP_ERROR: " <> msg
+
+instance FromResponse TataCommunicationsWhatsappError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just TataCommunicationsWhatsappInvalidRequest
+    401 -> Just TataCommunicationsWhatsappUnauthorized
+    403 -> Just TataCommunicationsWhatsapPermissionDenied
+    500 -> Just TataCommunicationsWhatsappUnknownServerError
+    503 -> Just TataCommunicationsWhatsapServiceUnavailable
+    404 -> Just TataCommunicationsWhatsappUserIdNotFound
+    _ -> Just TataCommunicationsWhatsappNotConfigured
+
+instance IsAPIError TataCommunicationsWhatsappError

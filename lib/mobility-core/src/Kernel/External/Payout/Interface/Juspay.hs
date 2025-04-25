@@ -53,9 +53,10 @@ createPayoutOrder ::
 createPayoutOrder config req = do
   let url = config.url
       merchantId = config.merchantId
+      routingId = Just req.customerId
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreatePayoutOrderReq req
-  mkCreatePayoutOrderResp <$> Juspay.createPayoutOrder url apiKey merchantId orderReq
+  mkCreatePayoutOrderResp <$> Juspay.createPayoutOrder url apiKey merchantId routingId orderReq
   where
     mkCreatePayoutOrderReq CreatePayoutOrderReq {..} = do
       webhookDetails <- case isDynamicWebhookRequired of
@@ -127,13 +128,15 @@ payoutOrderStatus ::
   ) =>
   JuspayConfig ->
   Text ->
+  Maybe Text ->
   Maybe Expand ->
   m PayoutOrderStatusResp
-payoutOrderStatus config orderId' mbExpand = do
+payoutOrderStatus config orderId' personId mbExpand = do
   let url = config.url
       merchantId = config.merchantId
+      routingId = personId
   apiKey <- decrypt config.apiKey
-  mkPayoutOrderStatusResp <$> Juspay.payoutOrderStatus url apiKey merchantId orderId' mbExpand
+  mkPayoutOrderStatusResp <$> Juspay.payoutOrderStatus url apiKey merchantId routingId orderId' mbExpand
   where
     mkPayoutOrderStatusResp Payout.PayoutOrderResp {..} = do
       CreatePayoutOrderResp

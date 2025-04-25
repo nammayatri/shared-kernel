@@ -22,6 +22,7 @@ import Kernel.External.Payment.Juspay.Types.CreateCustomer as Reexport
 import Kernel.External.Payment.Juspay.Types.CreateOrder as Reexport
 import Kernel.External.Payment.Juspay.Types.Mandate as Reexport
 import Kernel.External.Payment.Juspay.Types.Offer as Reexport
+import Kernel.External.Payment.Juspay.Types.UpdateOrder as Reexport
 import Kernel.External.Payment.Juspay.Types.Webhook as Reexport
   ( OrderAndNotificationStatusContent (..),
     WebhookReq (..),

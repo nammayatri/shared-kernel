@@ -36,6 +36,7 @@ type CreatePayoutOrderAPI =
   "payout" :> "merchant" :> "v1" :> "orders"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> ReqBody '[JSON] CreatePayoutOrderReq
     :> Post '[JSON] CreatePayoutOrderResp
 
@@ -44,11 +45,12 @@ createPayoutOrder ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
-createPayoutOrder url apiKey merchantId req = do
+createPayoutOrder url apiKey merchantId routingId req = do
   let proxy = Proxy @CreatePayoutOrderAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
   callAPI url eulerClient "create-payout-order" proxy
     >>= fromEitherM (\err -> InternalError $ "Failed to call create payout order API: " <> show err)
 
@@ -58,6 +60,7 @@ type PayoutOrderStatusAPI =
     :> BasicAuth "username-password" BasicAuthData
     :> QueryParam "expand" Payout.Expand
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> Get '[JSON] PayoutOrderStatusResp
 
 payoutOrderStatus ::
@@ -65,11 +68,12 @@ payoutOrderStatus ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   Text ->
   Maybe Payout.Expand ->
   m PayoutOrderStatusResp
-payoutOrderStatus url apiKey merchantId orderId mbExpand = do
+payoutOrderStatus url apiKey merchantId routingId orderId mbExpand = do
   let proxy = Proxy @PayoutOrderStatusAPI
-      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) mbExpand (Just merchantId)
+      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) mbExpand (Just merchantId) (Just routingId)
   callAPI url eulerClient "payout-order-status" proxy
     >>= fromEitherM (\err -> InternalError $ "Failed to call payout order status API: " <> show err)

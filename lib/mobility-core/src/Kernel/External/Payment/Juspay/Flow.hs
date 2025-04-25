@@ -32,6 +32,7 @@ type CreateCustomerAPI =
   "customers"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> ReqBody '[JSON] CreateCustomerRequest
     :> Post '[JSON] CreateCustomerResp
 
@@ -42,11 +43,12 @@ createCustomer ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   CreateCustomerRequest ->
   m CreateCustomerResp
-createCustomer url apiKey merchantId req = do
+createCustomer url apiKey merchantId routingId req = do
   let proxy = Proxy @CreateCustomerAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
   callJuspayAPI url eulerClient "create-customer" proxy
 
 type GetCustomerAPI =
@@ -54,6 +56,7 @@ type GetCustomerAPI =
     :> Capture "id" CustomerId
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> ReqBody '[FormUrlEncoded] GetCustomerReq
     :> Post '[JSON] CreateCustomerResp
 
@@ -64,18 +67,20 @@ getCustomer ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   CustomerId ->
   GetCustomerReq ->
   m CreateCustomerResp
-getCustomer url apiKey merchantId customerId req = do
+getCustomer url apiKey merchantId routingId customerId req = do
   let proxy = Proxy @GetCustomerAPI
-      eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
   callJuspayAPI url eulerClient "get-customer" proxy
 
 type CreateOrderAPI =
   "session"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> ReqBody '[JSON] CreateOrderReq
     :> Post '[JSON] CreateOrderResp
 
@@ -86,11 +91,12 @@ createOrder ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   CreateOrderReq ->
   m CreateOrderResp
-createOrder url apiKey merchantId req = do
+createOrder url apiKey merchantId routingId req = do
   let proxy = Proxy @CreateOrderAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
   callJuspayAPI url eulerClient "create-order" proxy
 
 type OrderStatusAPI =
@@ -98,6 +104,7 @@ type OrderStatusAPI =
     :> Capture "orderId" Text
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> MandatoryQueryParam "version" Text
     :> Get '[JSON] OrderStatusResp
 
@@ -108,12 +115,13 @@ orderStatus ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   Text ->
   m OrderStatusResp
-orderStatus url apiKey merchantId orderId = do
+orderStatus url apiKey merchantId routingId orderId = do
   version <- getCurrentDate
   let proxy = Proxy @OrderStatusAPI
-      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) version
+      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) version
   callJuspayAPI url eulerClient "order-status" proxy
 
 getCurrentDate :: MonadFlow m => m Text
@@ -123,11 +131,35 @@ getCurrentDate = do
       formattedDate = formatTime defaultTimeLocale dateFormat currentTime
   return $ encodeToText formattedDate
 
+type OrderUpdateAPI =
+  "orders"
+    :> Capture "orderId" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> ReqBody '[FormUrlEncoded] OrderUpdateReq
+    :> Post '[JSON] OrderUpdateResp
+
+updateOrder ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Text ->
+  OrderUpdateReq ->
+  m OrderUpdateResp
+updateOrder url apiKey merchantId orderId req = do
+  let proxy = Proxy @OrderUpdateAPI
+      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) req
+  callJuspayAPI url eulerClient "update-order" proxy
+
 type OfferListAPI =
   "offers"
     :> "list"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> ReqBody '[JSON] Offer.OfferListReq
     :> Post '[JSON] Offer.OfferListResp
 
@@ -138,11 +170,12 @@ offerList ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   Offer.OfferListReq ->
   m Offer.OfferListResp
-offerList url apiKey merchantId req = do
+offerList url apiKey merchantId routingId req = do
   let proxy = Proxy @OfferListAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
   callJuspayAPI url eulerClient "offer-list" proxy
 
 type OfferApplyAPI =
@@ -150,6 +183,7 @@ type OfferApplyAPI =
     :> "apply"
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> ReqBody '[JSON] Offer.OfferApplyReq
     :> Post '[JSON] Offer.OfferApplyResp
 
@@ -160,11 +194,12 @@ offerApply ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   Offer.OfferApplyReq ->
   m Offer.OfferApplyResp
-offerApply url apiKey merchantId req = do
+offerApply url apiKey merchantId routingId req = do
   let proxy = Proxy @OfferApplyAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
   callJuspayAPI url eulerClient "offer-apply" proxy
 
 type OfferNotifyAPI =
@@ -173,6 +208,7 @@ type OfferNotifyAPI =
     :> Capture "mandateId" Text
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> ReqBody '[JSON] Offer.OfferNotifyReq
     :> Post '[JSON] Offer.OfferNotifyResp
 
@@ -183,12 +219,13 @@ offerNotify ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   Text ->
   Offer.OfferNotifyReq ->
   m Offer.OfferNotifyResp
-offerNotify url apiKey merchantId mandateId req = do
+offerNotify url apiKey merchantId routingId mandateId req = do
   let proxy = Proxy @OfferNotifyAPI
-      eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) (Just routingId) req
   callJuspayAPI url eulerClient "offer-notify" proxy
 
 callJuspayAPI :: CallAPI' m api res res
@@ -280,6 +317,7 @@ mandateExecution url apiKey req = do
 type MandateRevokeAPI =
   "mandates"
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" (Maybe Text)
     :> BasicAuth "username-password" BasicAuthData
     :> Capture "mandateId" Text
     :> ReqBody '[FormUrlEncoded] MandateRevokeReq
@@ -292,17 +330,18 @@ mandateRevoke ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
   Text ->
   MandateRevokeReq ->
   m MandateRevokeRes
-mandateRevoke url apiKey merchantId mandateId req = do
+mandateRevoke url apiKey merchantId routingId mandateId req = do
   let eulerClient = Euler.client (Proxy @MandateRevokeAPI)
   let basicAuthData =
         BasicAuthData
           { basicAuthUsername = DT.encodeUtf8 apiKey,
             basicAuthPassword = ""
           }
-  callAPI url (eulerClient (Just merchantId) basicAuthData mandateId req) "mandate-Revoke" (Proxy @MandateRevokeAPI)
+  callAPI url (eulerClient (Just merchantId) (Just routingId) basicAuthData mandateId req) "mandate-Revoke" (Proxy @MandateRevokeAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call mandate Revoke API: " <> show err)
 
 type MandatePauseAPI =

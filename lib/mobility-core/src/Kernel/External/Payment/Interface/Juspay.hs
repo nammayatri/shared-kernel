@@ -18,6 +18,7 @@ module Kernel.External.Payment.Interface.Juspay
     createCustomer,
     getCustomer,
     orderStatus,
+    updateOrder,
     orderStatusWebhook,
     offerList,
     offerApply,
@@ -67,9 +68,38 @@ createOrder config req = do
   let url = config.url
       merchantId = config.merchantId
       clientId = fromMaybe merchantId config.pseudoClientId
+      routingId = req.customerId
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreateOrderReq config.returnUrl clientId merchantId req
-  Juspay.createOrder url apiKey merchantId orderReq
+  Juspay.createOrder url apiKey merchantId (Just routingId) orderReq
+
+updateOrder ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  OrderUpdateReq ->
+  m OrderUpdateResp
+updateOrder config req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  updateOrderReq <- mkUpdateOrderReq req
+  updateOrderRes <- Juspay.updateOrder url apiKey merchantId req.orderShortId updateOrderReq
+  return $ mkUpdateOrderRes updateOrderRes
+  where
+    mkUpdateOrderReq :: MonadTime m => OrderUpdateReq -> m Juspay.OrderUpdateReq
+    mkUpdateOrderReq OrderUpdateReq {..} =
+      do
+        return
+          Juspay.OrderUpdateReq
+            { amount = amount
+            }
+    mkUpdateOrderRes Juspay.OrderUpdateResp {..} =
+      OrderUpdateResp
+        { orderId = order_id,
+          amount
+        }
 
 createCustomer ::
   ( Metrics.CoreMetrics m,
@@ -81,9 +111,10 @@ createCustomer ::
 createCustomer config req = do
   let url = config.url
       merchantId = config.merchantId
+      routingId = req.objectReferenceId
   apiKey <- decrypt config.apiKey
   createCustomerReq <- mkcreateCustomerReq req
-  creatCustomerRespo <- Juspay.createCustomer url apiKey merchantId createCustomerReq
+  creatCustomerRespo <- Juspay.createCustomer url apiKey merchantId routingId createCustomerReq
   return $ mkCreateCustomerRes creatCustomerRespo
   where
     mkcreateCustomerReq :: MonadTime m => CreateCustomerReq -> m Juspay.CreateCustomerRequest
@@ -117,7 +148,7 @@ getCustomer config customerId = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  creatCustomerRespo <- Juspay.getCustomer url apiKey merchantId customerId mkGetCustomerReq
+  creatCustomerRespo <- Juspay.getCustomer url apiKey merchantId (Just customerId) customerId mkGetCustomerReq
   return $ mkCreateCustomerRes creatCustomerRespo
   where
     mkCreateCustomerRes Juspay.CreateCustomerResp {..} =
@@ -227,9 +258,10 @@ mandateRevoke ::
   m MandateRevokeRes
 mandateRevoke config req = do
   let url = config.url
-  let merchantId = config.merchantId
+      merchantId = config.merchantId
+      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  void $ Juspay.mandateRevoke url apiKey merchantId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
+  void $ Juspay.mandateRevoke url apiKey merchantId routingId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
   return Success
 
 mkCreateOrderReq :: MonadTime m => BaseUrl -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
@@ -284,8 +316,9 @@ orderStatus ::
 orderStatus config req = do
   let url = config.url
       merchantId = config.merchantId
+      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  mkOrderStatusResp <$> Juspay.orderStatus url apiKey merchantId req.orderShortId
+  mkOrderStatusResp <$> Juspay.orderStatus url apiKey merchantId routingId req.orderShortId
 
 mkOrderStatusResp :: Juspay.OrderStatusResp -> OrderStatusResp
 mkOrderStatusResp Juspay.OrderData {..} =
@@ -609,9 +642,10 @@ offerList ::
 offerList config req = do
   let url = config.url
       merchantId = config.merchantId
+      routingId = (.customerId) <$> req.customer
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferListReq req
-  juspayResp <- Juspay.offerList url apiKey merchantId juspayReq
+  juspayResp <- Juspay.offerList url apiKey merchantId routingId juspayReq
   buildOfferListResp juspayResp
 
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
@@ -707,9 +741,10 @@ offerApply ::
 offerApply config req = do
   let url = config.url
       merchantId = config.merchantId
+      routingId = req.customerId
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferApplyReq merchantId req
-  juspayResp <- Juspay.offerApply url apiKey merchantId juspayReq
+  juspayResp <- Juspay.offerApply url apiKey merchantId (Just routingId) juspayReq
   buildOfferApplyResp juspayResp
 
 mkOfferApplyReq :: Text -> OfferApplyReq -> Juspay.OfferApplyReq
@@ -757,9 +792,10 @@ offerNotify ::
 offerNotify config req = do
   let url = config.url
       merchantId = config.merchantId
+      routingId = req.personId
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferNotifyReq merchantId req
-  void $ Juspay.offerNotify url apiKey merchantId req.mandateId juspayReq
+  void $ Juspay.offerNotify url apiKey merchantId routingId req.mandateId juspayReq
   pure Success
 
 mkOfferNotifyReq :: Text -> OfferNotifyReq -> Juspay.OfferNotifyReq

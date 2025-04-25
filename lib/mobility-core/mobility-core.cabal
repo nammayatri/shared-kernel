@@ -57,7 +57,11 @@ library
       Kernel.External.Call.Exotel.Types
       Kernel.External.Call.Interface
       Kernel.External.Call.Interface.Exotel
+      Kernel.External.Call.Interface.TataClickToCall
       Kernel.External.Call.Interface.Types
+      Kernel.External.Call.TataClickToCall.Client
+      Kernel.External.Call.TataClickToCall.Config
+      Kernel.External.Call.TataClickToCall.Types
       Kernel.External.Call.Twillio.Config
       Kernel.External.Call.Types
       Kernel.External.Encryption
@@ -142,6 +146,7 @@ library
       Kernel.External.Payment.Juspay.Types.CreateOrder
       Kernel.External.Payment.Juspay.Types.Mandate
       Kernel.External.Payment.Juspay.Types.Offer
+      Kernel.External.Payment.Juspay.Types.UpdateOrder
       Kernel.External.Payment.Juspay.Types.Webhook
       Kernel.External.Payment.Juspay.Webhook
       Kernel.External.Payment.Stripe.Config
@@ -170,6 +175,10 @@ library
       Kernel.External.Slack.Flow
       Kernel.External.Slack.Types
       Kernel.External.SMS
+      Kernel.External.SMS.DigoEngage.API
+      Kernel.External.SMS.DigoEngage.Config
+      Kernel.External.SMS.DigoEngage.Flow
+      Kernel.External.SMS.DigoEngage.Types
       Kernel.External.SMS.ExotelSms.API
       Kernel.External.SMS.ExotelSms.Config
       Kernel.External.SMS.ExotelSms.Flow
@@ -179,6 +188,7 @@ library
       Kernel.External.SMS.GupShup.Flow
       Kernel.External.SMS.GupShup.Types
       Kernel.External.SMS.Interface
+      Kernel.External.SMS.Interface.DigoEngageSms
       Kernel.External.SMS.Interface.ExotelSms
       Kernel.External.SMS.Interface.GupShup
       Kernel.External.SMS.Interface.MyValueFirst
@@ -249,9 +259,14 @@ library
       Kernel.External.Verification.Types
       Kernel.External.Whatsapp.GupShup.Config
       Kernel.External.Whatsapp.GupShup.Flow
+      Kernel.External.Whatsapp.GupShup.Types
       Kernel.External.Whatsapp.Interface
       Kernel.External.Whatsapp.Interface.GupShup
+      Kernel.External.Whatsapp.Interface.TataCommunications
       Kernel.External.Whatsapp.Interface.Types
+      Kernel.External.Whatsapp.TataCommunications.Config
+      Kernel.External.Whatsapp.TataCommunications.Flow
+      Kernel.External.Whatsapp.TataCommunications.Types
       Kernel.External.Whatsapp.Types
       Kernel.InternalAPI.Auth.API
       Kernel.InternalAPI.Auth.Client

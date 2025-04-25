@@ -1,0 +1,112 @@
+query MultiModePlan(
+  $from: InputCoordinates!,
+  $to: InputCoordinates!,
+  $date: String,
+  $time: String,
+  $metroTransportModes: [TransportMode]!,
+  $metroItineraries: Int!
+  $subwayTransportModes: [TransportMode]!,
+  $subwayItineraries: Int!
+  $busTransportModes: [TransportMode]!,
+  $busItineraries: Int!
+  $bestTransportModes: [TransportMode]!,
+  $bestItineraries: Int!
+) {
+  metro: plan(
+    from: $from,
+    to:   $to,
+    date: $date,
+    time: $time,
+    transportModes: $metroTransportModes,
+    numItineraries: $metroItineraries
+  ) {
+    itineraries { ...ItineraryFields }
+  }
+  subway: plan(
+    from: $from,
+    to:   $to,
+    date: $date,
+    time: $time,
+    transportModes: $subwayTransportModes,
+    numItineraries: $subwayItineraries
+  ) {
+    itineraries { ...ItineraryFields }
+  }
+  bus: plan(
+    from: $from,
+    to:   $to,
+    date: $date,
+    time: $time,
+    transportModes: $busTransportModes,
+    numItineraries: $busItineraries
+  ) {
+    itineraries { ...ItineraryFields }
+  }
+  best: plan(
+    from: $from,
+    to:   $to,
+    date: $date,
+    time: $time,
+    transportModes: $bestTransportModes,
+    numItineraries: $bestItineraries
+  ) {
+    itineraries { ...ItineraryFields }
+  }
+}
+
+fragment ItineraryFields on Itinerary {
+  duration
+  startTime
+  endTime
+  legs {
+    pickupType
+    distance
+    mode
+    duration
+    startTime
+    endTime
+    from {
+      name
+      lat
+      lon
+      departureTime
+      arrivalTime
+      stop {
+        code
+        gtfsId
+        platformCode
+      }
+    }
+    to {
+      name
+      lat
+      lon
+      departureTime
+      arrivalTime
+      stop {
+        code
+        gtfsId
+        platformCode
+      }
+    }
+    route {
+      gtfsId
+      longName
+      trips {
+        gtfsId
+      }
+      shortName
+      color
+      agency {
+        gtfsId
+        name
+      }
+    }
+    legGeometry {
+      points
+    }
+    fareProducts {
+      id
+    }
+  }
+}

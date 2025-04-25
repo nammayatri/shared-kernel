@@ -31,10 +31,21 @@ data MultiModalRoute = MultiModalRoute
     duration :: Time.Seconds,
     startTime :: Maybe UTCTime,
     endTime :: Maybe UTCTime,
-    legs :: [MultiModalLeg]
+    legs :: [MultiModalLeg],
+    relevanceScore :: Maybe Double
   }
   deriving (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data NormalizerData = NormalizerData
+  { minArrivalTime :: Maybe UTCTime,
+    maxArrivalTime :: Maybe UTCTime,
+    minDuration :: Maybe Time.Seconds,
+    maxDuration :: Maybe Time.Seconds,
+    minTransfers :: Maybe Int,
+    maxTransfers :: Maybe Int
+  }
+  deriving (Show, Generic)
 
 data MultiModalStopDetails = MultiModalStopDetails
   { stopCode :: Maybe Text,
@@ -54,8 +65,8 @@ data MultiModalRouteDetails = MultiModalRouteDetails
   { gtfsId :: Maybe Text,
     longName :: Maybe Text,
     shortName :: Maybe Text,
+    alternateShortNames :: [Text],
     color :: Maybe Text,
-    frequency :: Maybe Time.Seconds,
     fromStopDetails :: Maybe MultiModalStopDetails,
     toStopDetails :: Maybe MultiModalStopDetails,
     startLocation :: GT.LocationV2,
@@ -105,7 +116,8 @@ $(mkBeamInstancesForEnumAndList ''GeneralVehicleType)
 
 data SortingType
   = Fastest
-  | Minimum_Transits
+  | MinimumTransits
+  | MostRelevant
   deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON, Read, ToSchema, ToParamSchema)
 
 $(mkHttpInstancesForEnum ''SortingType)

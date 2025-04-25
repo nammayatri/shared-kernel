@@ -23,11 +23,12 @@ where
 import Deriving.Aeson
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Whatsapp.GupShup.Config as GupShup
+import qualified Kernel.External.Whatsapp.TataCommunications.Config as TataCommunications
 import qualified Kernel.External.Whatsapp.Types as T
 import Kernel.Prelude
 import Kernel.Utils.JSON
 
-newtype WhatsappServiceConfig = GupShupConfig GupShup.GupShupCfg
+data WhatsappServiceConfig = GupShupConfig GupShup.GupShupCfg | TataCommunicationsConfig TataCommunications.TataCommunicationsCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] WhatsappServiceConfig
 
@@ -72,13 +73,7 @@ type SendWhatsAppMessageApiResp = OptApiResp
 data SendWhatsAppMessageWithTemplateIdApIReq = SendWhatsAppMessageWithTemplateIdApIReq
   { sendTo :: Text,
     templateId :: Text,
-    var1 :: Maybe Text,
-    var2 :: Maybe Text,
-    var3 :: Maybe Text,
-    var4 :: Maybe Text,
-    var5 :: Maybe Text,
-    var6 :: Maybe Text,
-    var7 :: Maybe Text,
+    variables :: [Maybe Text],
     ctaButtonUrl :: Maybe Text,
     containsUrlButton :: Maybe Bool
   }

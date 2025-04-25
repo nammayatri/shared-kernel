@@ -10,23 +10,23 @@ where
 
 import qualified Data.Char as Char
 import qualified Data.HashMap.Strict as HM
-import Data.List (nub, sort, sortBy)
+import Data.List (nub, partition, sortBy)
 import Data.List.Split (splitOn)
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Data.Time.Clock
 import qualified Debug.Trace as DT
-import EulerHS.Prelude (safeHead)
+import EulerHS.Prelude (liftA2, liftA3, safeHead)
 import Kernel.External.Maps.Google.MapsClient.Types as GT
 import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
 import Kernel.External.MultiModal.Interface.Types
+import Kernel.External.MultiModal.OpenTripPlanner.Config (MultiModalWeightedSortCfg (..), validateWeightedSortCfg)
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Types as OTP
 import Kernel.Prelude
 import qualified Kernel.Types.Distance as Distance
 import qualified Kernel.Types.Time as Time
-import Kernel.Utils.Time (millisecondsToUTC, parseISO8601UTC)
+import Kernel.Utils.Time (millisecondsToUTC, parseISO8601UTC, utcToEpochSeconds)
 
 extractDuration :: T.Text -> Int
 extractDuration t = read (filter Char.isDigit (T.unpack t)) :: Int
@@ -100,7 +100,8 @@ convertGoogleToGeneric gResponse =
               duration = Time.Seconds routeDuration,
               legs = routeLegs,
               startTime = Nothing,
-              endTime = Nothing
+              endTime = Nothing,
+              relevanceScore = Nothing
             } :
           genericRoutes
     accumulateLegs :: GT.LegV2 -> [MultiModalLeg] -> [MultiModalLeg]
@@ -245,20 +246,27 @@ convertGoogleToGeneric gResponse =
               else leg2
        in adjustedLeg1 : adjustWalkingLegs (adjustedLeg2 : rest)
 
-convertOTPToGeneric :: OTP.OTPPlan -> Distance.Meters -> [GeneralVehicleType] -> Int -> SortingType -> MultiModalResponse
-convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType =
+convertOTPToGeneric :: OTP.OTPPlan -> Distance.Meters -> [GeneralVehicleType] -> Int -> SortingType -> MultiModalWeightedSortCfg -> MultiModalResponse
+convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType relevanceSortCfg =
   let itineraries = otpResponse.plan.itineraries
       (genericRoutes, frequencyMap) = foldr accumulateItineraries ([], HM.empty) itineraries
       mergedRoutes = map mergeConsecutiveMetroLegs genericRoutes
       orderedRoutes = map assignSubLegOrderToRoute mergedRoutes -- Assign subLegOrder here
-      updatedRoutes = map (updateRouteFrequency frequencyMap) orderedRoutes
+      updatedRoutes = map (updateRouteAlternateShortNames frequencyMap) orderedRoutes
       filteredRoutes = map (removeShortWalkLegs minimumWalkDistance) updatedRoutes
       filteredByPermissibleModes = filter (hasOnlyPermissibleModes permissibleModes) filteredRoutes
       filteredByMaxPublicTransport = filter (withinMaxAllowedPublicTransportModes maxAllowedPublicTransportLegs) filteredByPermissibleModes
       !_string = DT.trace $ "Filtered by max public transport: " <> show filteredByMaxPublicTransport <> " " <> show maxAllowedPublicTransportLegs <> " " <> show permissibleModes <> " " <> show sortingType <> " " <> show otpResponse <> " " <> show itineraries <> " " <> show genericRoutes <> " " <> show frequencyMap <> " " <> show mergedRoutes <> " " <> show orderedRoutes <> " " <> show updatedRoutes <> " " <> show filteredRoutes <> " " <> show filteredByPermissibleModes
       sortedRoutes = case sortingType of
         Fastest -> sortRoutesByDuration filteredByMaxPublicTransport
-        Minimum_Transits -> sortRoutesByNumberOfLegs filteredByMaxPublicTransport
+        MinimumTransits -> sortRoutesByNumberOfLegs filteredByMaxPublicTransport
+        MostRelevant ->
+          if validateWeightedSortCfg relevanceSortCfg
+            then
+              let (onlyWalkItineraries, otherItineraries) = partition (\r -> all (\leg -> leg.mode == Walk) r.legs) filteredByMaxPublicTransport
+                  sortedItineraries = sortByRelevance $ addRelevanceScore relevanceSortCfg otherItineraries
+               in sortedItineraries <> onlyWalkItineraries
+            else filteredByMaxPublicTransport
       finalRoutes = uniqueRoutes sortedRoutes
    in MultiModalResponse
         { routes = finalRoutes
@@ -269,6 +277,107 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
 
     sortRoutesByNumberOfLegs :: [MultiModalRoute] -> [MultiModalRoute]
     sortRoutesByNumberOfLegs = sortBy (\r1 r2 -> compare (length r1.legs) (length r2.legs))
+
+    sortByRelevance :: [MultiModalRoute] -> [MultiModalRoute]
+    sortByRelevance = sortBy relevanceComparator
+
+    relevanceComparator :: MultiModalRoute -> MultiModalRoute -> Ordering
+    relevanceComparator r1 r2 =
+      case (r1.relevanceScore, r2.relevanceScore) of
+        (Just score1, Just score2) -> compare score1 score2
+        (Nothing, Nothing) -> EQ
+        (Just _, Nothing) -> LT
+        (Nothing, Just _) -> GT
+
+    calculateRouteDuration :: MultiModalRoute -> Maybe Time.Seconds
+    calculateRouteDuration route = Just route.duration
+
+    getArrivalTime :: MultiModalRoute -> Maybe UTCTime
+    getArrivalTime route = route.endTime
+
+    getTransfers :: MultiModalRoute -> Maybe Int
+    getTransfers route = do
+      case filter (\leg -> leg.mode /= Walk) route.legs of
+        [] -> Nothing
+        legs -> Just $ length legs
+
+    calculateNormalizerData :: [MultiModalRoute] -> Maybe NormalizerData
+    calculateNormalizerData [] = Nothing
+    calculateNormalizerData (firstRoute : routes) = do
+      let maxDuration = calculateRouteDuration firstRoute
+          minDuration = maxDuration
+          maxArrivalTime = getArrivalTime firstRoute
+          minArrivalTime = maxArrivalTime
+          maxTransfers = Just 5 -- hardcoded, to reduce skewness in score because of transfers
+          minTransfers = getTransfers firstRoute
+          normalizerDataInit = NormalizerData {..}
+      Just $ getData normalizerDataInit
+      where
+        getData normalizerDataInit =
+          foldr
+            ( \route normalizerData -> do
+                let routeDur = calculateRouteDuration route
+                    routeAT = getArrivalTime route
+                    routeTf = getTransfers route
+                    maxDuration = liftA2 max routeDur normalizerData.maxDuration
+                    minDuration = liftA2 min routeDur normalizerData.minDuration
+                    maxArrivalTime = liftA2 max routeAT normalizerData.maxArrivalTime
+                    minArrivalTime = liftA2 min routeAT normalizerData.minArrivalTime
+                    maxTransfers = liftA2 max routeTf normalizerData.maxTransfers
+                    minTransfers = liftA2 min routeTf normalizerData.minTransfers
+                NormalizerData {..}
+            )
+            normalizerDataInit
+            routes
+
+    normalize :: (Num a, Ord a, Eq a, Integral a) => a -> a -> a -> Maybe Double
+    normalize x minVal maxVal = do
+      if maxVal < minVal || x < minVal || x > maxVal
+        then Nothing
+        else
+          if maxVal == minVal
+            then Just 0
+            else Just $ fromIntegral (x - minVal) / fromIntegral (maxVal - minVal)
+
+    normalizeSeconds :: Time.Seconds -> Time.Seconds -> Time.Seconds -> Maybe Double
+    normalizeSeconds x minVal maxVal = normalize x.getSeconds minVal.getSeconds maxVal.getSeconds
+
+    normalizeUTCTime :: UTCTime -> UTCTime -> UTCTime -> Maybe Double
+    normalizeUTCTime x minVal maxVal = do
+      let maxVal' = utcToEpochSeconds maxVal
+          minVal' = utcToEpochSeconds minVal
+          x' = utcToEpochSeconds x
+      normalizeSeconds x' minVal' maxVal'
+
+    maxDouble :: Double
+    maxDouble = 5
+
+    calculateRelevanceScore :: MultiModalWeightedSortCfg -> NormalizerData -> MultiModalRoute -> Double
+    calculateRelevanceScore weight NormalizerData {..} route =
+      let routeDur = calculateRouteDuration route
+          routeAT = getArrivalTime route
+          routeTf = getTransfers route
+          normDur :: Maybe Double = join $ liftA3 normalizeSeconds routeDur minDuration maxDuration
+          normAT :: Maybe Double = join $ liftA3 normalizeUTCTime routeAT minArrivalTime maxArrivalTime
+          normTf :: Maybe Double = join $ liftA3 normalize routeTf minTransfers maxTransfers
+          durScore = maybe maxDouble (* weight.duration) normDur
+          aTScore = maybe maxDouble (* weight.arrivalTime) normAT
+          tfScore = maybe maxDouble (* weight.transfers) normTf
+       in durScore + aTScore + tfScore
+
+    addRelevanceScore :: MultiModalWeightedSortCfg -> [MultiModalRoute] -> [MultiModalRoute]
+    addRelevanceScore weight routes = do
+      maybe
+        routes
+        ( \normData -> do
+            map
+              ( \route ->
+                  let relevanceScore = calculateRelevanceScore weight normData route
+                   in route {relevanceScore = Just relevanceScore}
+              )
+              routes
+        )
+        (calculateNormalizerData routes)
 
     removeShortWalkLegs :: Distance.Meters -> MultiModalRoute -> MultiModalRoute
     removeShortWalkLegs threshold route =
@@ -350,7 +459,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                 }
          in mergeMetroLegs (mergedLeg : rest) -- Add merged leg and continue
       | otherwise = leg1 : mergeMetroLegs (leg2 : rest) -- Keep leg1, process the rest
-    accumulateItineraries :: Maybe OTP.OTPPlanPlanItineraries -> ([MultiModalRoute], HM.HashMap T.Text [UTCTime]) -> ([MultiModalRoute], HM.HashMap T.Text [UTCTime])
+    accumulateItineraries :: Maybe OTP.OTPPlanPlanItineraries -> ([MultiModalRoute], HM.HashMap T.Text [T.Text]) -> ([MultiModalRoute], HM.HashMap T.Text [T.Text])
     accumulateItineraries itinerary (genericRoutes, freqMap) =
       case itinerary of
         Nothing -> (genericRoutes, freqMap)
@@ -370,11 +479,12 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                         },
                     legs = legs,
                     startTime = (millisecondsToUTC . round) <$> itinerary'.startTime,
-                    endTime = (millisecondsToUTC . round) <$> itinerary'.endTime
+                    endTime = (millisecondsToUTC . round) <$> itinerary'.endTime,
+                    relevanceScore = Nothing
                   }
            in (route : genericRoutes, updatedFreqMap)
 
-    accumulateLegs :: Maybe OTP.OTPPlanPlanItinerariesLegs -> ([MultiModalLeg], Double, HM.HashMap T.Text [UTCTime]) -> ([MultiModalLeg], Double, HM.HashMap T.Text [UTCTime])
+    accumulateLegs :: Maybe OTP.OTPPlanPlanItinerariesLegs -> ([MultiModalLeg], Double, HM.HashMap T.Text [T.Text]) -> ([MultiModalLeg], Double, HM.HashMap T.Text [T.Text])
     accumulateLegs otpLeg (genericLegs, genericDistance, updatedFreqMap) =
       case otpLeg of
         Nothing -> (genericLegs, genericDistance, updatedFreqMap)
@@ -388,14 +498,13 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
               (startLat, startLng) = (otpLeg'.from.lat, otpLeg'.from.lon)
               (endLat, endLng) = (otpLeg'.to.lat, otpLeg'.to.lon)
               routeAgency = otpLeg'.route
-              serviceTypes = maybe [] (mapMaybe extractServiceType) (otpLeg'.route >>= \r -> r.trips)
+              serviceTypes = nub $ maybe [] (mapMaybe extractServiceType) (otpLeg'.route >>= \r -> r.trips)
                 where
                   extractServiceType (Just trip) =
                     case splitOn "-" (T.unpack $ gtfsIdtoDomainCode $ T.pack trip.gtfsId) of
                       [_prefix, middle, _suffix] -> Just $ T.pack middle
                       _ -> Nothing
                   extractServiceType Nothing = Nothing
-              maybeLongName = otpLeg'.route >>= \r -> r.longName
               fromArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.from.arrivalTime
               fromDepartureTime' = Just $ millisecondsToUTC $ round otpLeg'.from.departureTime
               toArrivalTime' = Just $ millisecondsToUTC $ round otpLeg'.to.arrivalTime
@@ -444,7 +553,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                         longName = fmap T.pack route.longName,
                         shortName = fmap T.pack route.shortName,
                         color = fmap T.pack route.color,
-                        frequency = Nothing,
+                        alternateShortNames = [],
                         fromStopDetails = fromStopDetails',
                         toStopDetails = toStopDetails',
                         startLocation =
@@ -472,11 +581,11 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                   ]
                 Nothing -> []
 
-              -- Update the frequency map only if longName exists
-              newFreqMap = case (maybeLongName, fromArrivalTime') of
-                (Just longName, Just time) ->
-                  let key = T.pack longName
-                   in HM.insertWith (\new old -> nub (new ++ old)) key [time] updatedFreqMap
+              -- Update the frequency map only if fromStopCode and toStopCode exists
+              newFreqMap = case (fromStopCode, toStopCode, otpLeg'.route >>= (.shortName)) of
+                (Just fromStopCode', Just toStopCode', Just shortName) ->
+                  let key = T.pack fromStopCode' <> "-" <> T.pack toStopCode'
+                   in HM.insertWith (\new old -> nub (new ++ old)) key [T.pack shortName] updatedFreqMap
                 _ -> updatedFreqMap
 
               leg =
@@ -524,34 +633,29 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
            in (leg : genericLegs, genericDistance + distance, newFreqMap)
 
     -- Update frequency of each leg in a route using the frequencyMap
-    updateRouteFrequency :: HM.HashMap T.Text [UTCTime] -> MultiModalRoute -> MultiModalRoute
-    updateRouteFrequency freqMap route =
-      let updatedLegs = map updateLegFrequency route.legs
+    updateRouteAlternateShortNames :: HM.HashMap T.Text [T.Text] -> MultiModalRoute -> MultiModalRoute
+    updateRouteAlternateShortNames freqMap route =
+      let updatedLegs = map updateLegAlternateShortNames route.legs
        in route {legs = updatedLegs}
       where
-        updateLegFrequency :: MultiModalLeg -> MultiModalLeg
-        updateLegFrequency leg =
-          --let updatedRouteDetails = map (updateDetailsFrequency freqMap) (routeDetails leg)
-          let updatedRouteDetails = updateDetailsFrequency freqMap <$> leg.routeDetails
+        updateLegAlternateShortNames :: MultiModalLeg -> MultiModalLeg
+        updateLegAlternateShortNames leg =
+          let updatedRouteDetails = updateDetailsAlternateShortNames freqMap <$> leg.routeDetails
            in leg {routeDetails = updatedRouteDetails}
 
-        updateDetailsFrequency :: HM.HashMap T.Text [UTCTime] -> MultiModalRouteDetails -> MultiModalRouteDetails
-        updateDetailsFrequency frequencyMap details =
-          case longName details of
-            Just longName ->
-              let key = longName
-                  timestamps = sort $ HM.lookupDefault [] key frequencyMap
-                  frequency = case timestamps of
-                    (t1 : t2 : _) -> Just $ Time.Seconds $ round $ diffUTCTime t2 t1
-                    _ -> Nothing
-               in details {frequency = frequency}
-            Nothing -> details
+        updateDetailsAlternateShortNames :: HM.HashMap T.Text [T.Text] -> MultiModalRouteDetails -> MultiModalRouteDetails
+        updateDetailsAlternateShortNames frequencyMap details =
+          case (details.fromStopDetails >>= (.stopCode), details.toStopDetails >>= (.stopCode)) of
+            (Just fromStopCode, Just toStopCode) ->
+              let key = fromStopCode <> "-" <> toStopCode
+                  shortNames = HM.lookupDefault [] key frequencyMap
+               in details {alternateShortNames = shortNames}
+            _ -> details
 
     -- Function to get the sequence combination for a route
     getSequenceCombination :: MultiModalRoute -> T.Text
     getSequenceCombination route =
-      --let sequenceCombination = mapMaybe (\leg -> leg.routeDetails >>= (.longName)) (route.legs)
-      let sequenceCombination = mapMaybe (listToMaybe . mapMaybe longName . routeDetails) (route.legs)
+      let sequenceCombination = concatMap (mapMaybe (\r -> (\f t -> f <> "-" <> t) <$> (r.fromStopDetails >>= (.stopCode)) <*> (r.toStopDetails >>= (.stopCode))) . (.routeDetails)) route.legs
        in T.intercalate "-" sequenceCombination
 
     -- Function to filter routes with unique sequence combinations

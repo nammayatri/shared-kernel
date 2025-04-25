@@ -99,10 +99,24 @@ type ExtractRCImageReq = ExtractImageReq
 
 type ExtractDLImageReq = ExtractImageReq
 
+type ExtractPanImage = ExtractImageReq
+
+type ExtractGSTImage = ExtractImageReq
+
 data ExtractImageReq = ExtractImageReq
   { image1 :: Text,
     image2 :: Maybe Text,
     driverId :: Text
+  }
+  deriving stock (Show, Generic)
+
+newtype ExtractedPanImageResp = ExtractedPanImageResp
+  { extractedPan :: Maybe Idfy.PanExtractionOutput
+  }
+  deriving stock (Show, Generic)
+
+newtype ExtractedGSTImageResp = ExtractedGSTImageResp
+  { extractedGST :: Maybe Idfy.GSTExtractionOutput
   }
   deriving stock (Show, Generic)
 
@@ -149,7 +163,8 @@ data DLVerificationOutputInterface = DLVerificationOutputInterface
     t_validity_to :: Maybe Text,
     covs :: Maybe [Idfy.CovDetail],
     status :: Maybe Text,
-    dateOfIssue :: Maybe Text
+    dateOfIssue :: Maybe Text,
+    message :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
 
