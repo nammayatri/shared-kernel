@@ -29,6 +29,7 @@ derivePersistField "PaymentService"
 -- Generic instances for type with single value will not work
 instance FromJSON PaymentService where
   parseJSON (String "Juspay") = pure Juspay
+  parseJSON (String "AAJuspay") = pure AAJuspay
   parseJSON (String "Stripe") = pure Stripe
   parseJSON (String _) = parseFail "Expected \"Juspay\""
   parseJSON e = typeMismatch "String" e
