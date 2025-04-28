@@ -31,13 +31,26 @@ data Version = Version
     preRelease :: Maybe Text,
     build :: Maybe Text
   }
-  deriving (Show, Eq, Ord, Generic, FromJSON, ToJSON, ToSchema)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
 versionToText :: Version -> Text
 versionToText Version {..} =
   pack (show major) <> "." <> pack (show minor) <> "." <> pack (show maintenance)
     <> maybe "" ("-" <>) preRelease
     <> maybe "" ("+" <>) build
+
+instance Ord Version where
+  compare a b =
+    compare (major a) (major b)
+      <> compare (minor a) (minor b)
+      <> compare (maintenance a) (maintenance b)
+      <> comparePre (preRelease a) (preRelease b)
+
+comparePre :: Maybe Text -> Maybe Text -> Ordering
+comparePre Nothing Nothing = EQ
+comparePre Nothing (Just _) = GT
+comparePre (Just _) Nothing = LT
+comparePre (Just x) (Just y) = compare x y
 
 data DeviceType = IOS | ANDROID
   deriving (Show, Eq, Ord, Generic, Read, ToJSON, FromJSON, ToSchema, ToParamSchema)
