@@ -14,19 +14,26 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 
-module Kernel.Utils.Version (Reexport.versionToText, readVersion, getDeviceFromText, mkClientDevice) where
+module Kernel.Utils.Version (Reexport.versionToText, readVersion, textToVersionDefault, getDeviceFromText, mkClientDevice) where
 
 import Data.Text hiding (reverse)
 import qualified Data.Text as T
 import Kernel.Prelude as Prelude
 import Kernel.Types.Logging
 import Kernel.Types.Version as Reexport
+import Prelude (id)
 
 readVersion :: (MonadThrow m, Log m) => Text -> m Version
 readVersion versionText =
   case textToVersion versionText of
     Right version -> return version
-    _ -> pure $ Version {major = 0, minor = 0, maintenance = 0, preRelease = Nothing, build = Nothing}
+    _ -> pure $ zeroVersion
+
+zeroVersion :: Version
+zeroVersion = Version {major = 0, minor = 0, maintenance = 0, preRelease = Nothing, build = Nothing}
+
+textToVersionDefault :: Text -> Version
+textToVersionDefault = either (const zeroVersion) id . textToVersion
 
 getDeviceFromText :: Maybe Text -> Maybe Device
 getDeviceFromText deviceText = do
