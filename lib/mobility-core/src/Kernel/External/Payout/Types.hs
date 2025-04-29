@@ -20,7 +20,7 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data PayoutService = Juspay
+data PayoutService = AAJuspay | Juspay
   deriving (Show, Read, Eq, Ord, Generic)
 
 $(mkBeamInstancesForEnumAndList ''PayoutService)
@@ -28,6 +28,7 @@ derivePersistField "PayoutService"
 
 -- Generic instances for type with single value will not work
 instance FromJSON PayoutService where
+  parseJSON (String "AAJuspay") = pure AAJuspay
   parseJSON (String "Juspay") = pure Juspay
   parseJSON (String _) = parseFail "Expected \"Juspay\""
   parseJSON e = typeMismatch "String" e
