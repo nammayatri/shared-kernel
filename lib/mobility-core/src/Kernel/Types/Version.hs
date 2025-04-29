@@ -80,9 +80,6 @@ textToVersion versionText =
             _ -> Right Version {major = 0, minor = 0, maintenance = 0, preRelease = Nothing, build = Nothing}
         _ -> Right Version {major = 0, minor = 0, maintenance = 0, preRelease = Nothing, build = Nothing}
 
-parseVersion :: Text -> Maybe Version
-parseVersion = either (const Nothing) Just . textToVersion
-
 instance ToParamSchema Version where
   toParamSchema _ =
     mempty
