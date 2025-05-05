@@ -377,10 +377,17 @@ setNxExpire key expirationTime val = withTimeRedis "RedisCluster" "setNxExpire" 
     Right Hedis.Ok -> True
     _ -> False
 
-delByPattern :: HedisFlow m env => Text -> m ()
-delByPattern ptrn = withTimeRedis "RedisCluster" "delByPattern" $ do
-  runWithPrefix_ ptrn $ \prefKey ->
-    Hedis.eval @_ @_ @Reply "for i, name in ipairs(redis.call('KEYS', ARGV[1])) do redis.call('DEL', name); end" ["0"] [prefKey]
+decrIfExist :: HedisFlow m env => Text -> m Integer
+decrIfExist key = do
+  res <- withTimeRedis "RedisCluster" "decrIfExist" $
+    runWithPrefix key $ \prefKey ->
+      Hedis.eval
+        "if tonumber(redis.call('GET', KEYS[1]) or '0') > 0 then return redis.call('DECR', KEYS[1]) else return nil end"
+        [prefKey]
+        []
+  case res of
+    Just (Hedis.Integer i) -> pure i
+    _ -> pure (-1)
 
 tryLockRedis :: HedisFlow m env => Text -> ExpirationTime -> m Bool
 tryLockRedis key timeout = setNxExpire (buildLockResourceName key) timeout ()
@@ -575,6 +582,9 @@ zAdd key members = withLogTag "Redis" $ do
     else pure ()
   res <- withTimeRedis "RedisCluster" "zAdd" $ try @_ @SomeException (runWithPrefix_ key $ \prefKey -> Hedis.zadd prefKey $ map (\(score, member) -> (score, BSL.toStrict $ Ae.encode member)) members)
   whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_ZADD" $ show err)
+
+zCount :: (HedisFlow m env) => Text -> Double -> Double -> m Integer
+zCount key mn mx = withTimeRedis "RedisStandalone" "zCount" $ runWithPrefix key $ \prefKey -> Hedis.zcount prefKey mn mx
 
 zIncrBy ::
   (ToJSON member, HedisFlow m env) =>
