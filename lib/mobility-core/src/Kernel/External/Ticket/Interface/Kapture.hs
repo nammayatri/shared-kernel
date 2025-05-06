@@ -25,6 +25,7 @@ import qualified Kernel.External.Ticket.Kapture.Flow as KF
 import Kernel.External.Ticket.Kapture.Types as Kapture
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Utils.Common (logInfo)
 
 createTicket ::
   ( Metrics.CoreMetrics m,
@@ -35,7 +36,9 @@ createTicket ::
   m Kapture.CreateTicketResp
 createTicket config req = do
   auth <- decrypt config.auth
-  KF.createTicketAPI config.url config.version auth (mkCreateTicketReq req)
+  let payload = mkCreateTicketReq req
+  logInfo $ "Create ticket request: " <> show payload
+  KF.createTicketAPI config.url config.version auth payload
 
 mkCreateTicketReq :: IT.CreateTicketReq -> Kapture.CreateTicketReq
 mkCreateTicketReq IT.CreateTicketReq {..} =
@@ -86,7 +89,9 @@ updateTicket ::
   m Kapture.UpdateTicketResp
 updateTicket config req = do
   auth <- decrypt config.auth
-  KF.updateTicketAPI config.url config.version auth (mkUpdateTicketReq req)
+  let payload = mkUpdateTicketReq req
+  logInfo $ "Update ticket request: " <> show payload
+  KF.updateTicketAPI config.url config.version auth payload
 
 mkUpdateTicketReq :: IT.UpdateTicketReq -> Kapture.UpdateTicketReq
 mkUpdateTicketReq IT.UpdateTicketReq {..} =
