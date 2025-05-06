@@ -389,6 +389,20 @@ decrIfExist key = do
     Just (Hedis.Integer i) -> pure i
     _ -> pure (-1)
 
+zAddIfPossible :: HedisFlow m env => Text -> (Text, Double) -> Int -> Double -> m Integer
+zAddIfPossible key (member, score) maxSize fromScore = do
+  let script =
+        "if redis.call('ZCOUNT', KEYS[1], ARGV[1], ARGV[2]) < tonumber(ARGV[3]) then "
+          ++ "redis.call('ZADD', KEYS[1], ARGV[2], ARGV[4]); return 1 "
+          ++ "else return 0 end"
+  result <- withTimeRedis "RedisCluster" "zAddIfPossible" $
+    runWithPrefix key $ \prefKey ->
+      Hedis.eval (cs script) [prefKey] [cs (show fromScore :: String), cs (show score :: String), cs (show maxSize :: String), cs member]
+
+  case result of
+    Just (Hedis.Integer i) -> pure i
+    _ -> pure (-1)
+
 tryLockRedis :: HedisFlow m env => Text -> ExpirationTime -> m Bool
 tryLockRedis key timeout = setNxExpire (buildLockResourceName key) timeout ()
 
