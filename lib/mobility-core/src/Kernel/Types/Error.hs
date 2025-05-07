@@ -877,6 +877,7 @@ instance IsAPIError KafkaError
 data CallStatusError
   = CallStatusDoesNotExist
   | CallStatusFieldNotPresent Text
+  | CallIDDoesNotExist Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''CallStatusError
@@ -884,12 +885,15 @@ instanceExceptionWithParent 'HTTPException ''CallStatusError
 instance IsBaseError CallStatusError where
   toMessage CallStatusDoesNotExist = Just "No call callback received yet."
   toMessage (CallStatusFieldNotPresent field) = Just $ "Required field " <> field <> " is null for this call."
+  toMessage (CallIDDoesNotExist callId) = Just $ "Call with callId " <> callId <> " does not exist."
 
 instance IsHTTPError CallStatusError where
   toErrorCode CallStatusDoesNotExist = "CALL_DOES_NOT_EXIST"
   toErrorCode (CallStatusFieldNotPresent _) = "CALL_FIELD_NOT_PRESENT"
+  toErrorCode (CallIDDoesNotExist _) = "CALL_ID_DOES_NOT_EXIST"
   toHttpCode CallStatusDoesNotExist = E400
   toHttpCode (CallStatusFieldNotPresent _) = E500
+  toHttpCode (CallIDDoesNotExist _) = E400
 
 instance IsAPIError CallStatusError
 
@@ -1261,6 +1265,23 @@ instance IsHTTPError PayoutConfigError where
     PayoutConfigNotFound _ _ -> E500
 
 instance IsAPIError PayoutConfigError
+
+data CallFeedbackError
+  = CallFeedbackOptionsDoesNotExist Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''CallFeedbackError
+
+instance IsBaseError CallFeedbackError where
+  toMessage (CallFeedbackOptionsDoesNotExist callFeedbackOptionID) = Just $ "No Call Feedback Options found for " <> callFeedbackOptionID
+
+instance IsHTTPError CallFeedbackError where
+  toErrorCode = \case
+    CallFeedbackOptionsDoesNotExist _ -> "CALL_FEEDBACK_OPTIONS_DOES_NOT_EXIST"
+  toHttpCode = \case
+    CallFeedbackOptionsDoesNotExist _ -> E400
+
+instance IsAPIError CallFeedbackError
 
 data ClickToCallError
   = ClickToCallNotConfigured
