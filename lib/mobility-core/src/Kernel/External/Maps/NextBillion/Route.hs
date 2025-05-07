@@ -23,10 +23,12 @@ import EulerHS.Types (EulerClient, client)
 import Kernel.External.Maps.Google.MapsClient.Types
 import Kernel.External.Maps.NextBillion.Types as NextBillion
 import Kernel.Prelude
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics.Types (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
 import Servant hiding (throwError)
 
 type DirectionsAPI =
@@ -58,8 +60,13 @@ directionsClient = client (Proxy :: Proxy DirectionsAPI)
 directions ::
   ( HasCallStack,
     CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    ToJSON a,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
+  a ->
   BaseUrl ->
   Text ->
   Place ->
@@ -70,6 +77,8 @@ directions ::
   Maybe Text ->
   Maybe Text ->
   m NextBillion.DirectionsResp
-directions url key origin destination waypoints alternatives altcount routeType option = do
-  callAPI url (directionsClient origin destination key waypoints alternatives altcount routeType option (Just "4w")) "next-billion-route" (Proxy @DirectionsAPI)
-    >>= fromEitherM (FailedToCallNextBillionRouteAPI . show)
+directions entityId req url key origin destination waypoints alternatives altcount routeType option = do
+  rsp <- callAPI url (directionsClient origin destination key waypoints alternatives altcount routeType option (Just "4w")) "next-billion-route" (Proxy @DirectionsAPI)
+  fork ("Logging external API Call of directions NextBillion ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka "directions" "NextBillion" entityId (Just req) rsp
+  fromEitherM (FailedToCallNextBillionRouteAPI . show) rsp

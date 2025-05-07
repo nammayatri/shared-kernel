@@ -47,6 +47,7 @@ import qualified Kernel.External.Maps.MMI.Types as MMI
 import qualified Kernel.External.Maps.MMI.Types as MMITypes
 import Kernel.External.Maps.Types
 import Kernel.Storage.Hedis as Redis
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
@@ -57,12 +58,15 @@ autoSuggest ::
   ( EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   IT.AutoCompleteReq ->
   m IT.AutoCompleteResp
-autoSuggest mmiCfg AutoCompleteReq {..} = do
+autoSuggest entityId mmiCfg req@AutoCompleteReq {..} = do
   let query = input
       loc = location
       region =
@@ -75,8 +79,8 @@ autoSuggest mmiCfg AutoCompleteReq {..} = do
               USA -> "us"
       lang = language
       mapsUrl = mmiCfg.mmiNonKeyUrl
-  token <- MMIAuthToken.getTokenText mmiCfg
-  res <- MMI.mmiAutoSuggest mapsUrl (Just $ MMITypes.MMIAuthToken token) query loc region lang
+  token <- MMIAuthToken.getTokenText entityId mmiCfg
+  res <- MMI.mmiAutoSuggest entityId req mapsUrl (Just $ MMITypes.MMIAuthToken token) query loc region lang
   let predictions = map (\MMITypes.SuggestedLocations {..} -> Prediction {placeId = Just eLoc, description = placeName <> " " <> placeAddress, distance = Nothing, distanceWithUnit = Nothing, types = Nothing}) res.suggestedLocations
   return $ AutoCompleteResp predictions
 
@@ -85,12 +89,17 @@ getDistanceMatrix ::
     CoreMetrics m,
     MonadFlow m,
     HasCoordinates a,
-    HasCoordinates b
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   IT.GetDistancesReq a b ->
   m (NonEmpty (IT.GetDistanceResp a b))
-getDistanceMatrix mmiCfg GetDistancesReq {..} = do
+getDistanceMatrix entityId mmiCfg req@GetDistancesReq {..} = do
   key <- decrypt mmiCfg.mmiApiKey
   let limitedOriginObjectsList = splitListByAPICap origins
       limitedDestinationObjectsList = splitListByAPICap destinations
@@ -108,7 +117,7 @@ getDistanceMatrix mmiCfg GetDistancesReq {..} = do
           placesList = (++) limitedOriginPlaces limitedDestinationPlaces
           coordinatesList = map latLongToText placesList
           coordinates = T.intercalate ";" coordinatesList
-      MMI.mmiDistanceMatrix mapsUrl key coordinates (Just origParam) (Just origDest)
+      MMI.mmiDistanceMatrix entityId req mapsUrl key coordinates (Just origParam) (Just origDest)
         >>= parseDistanceMatrixResp distanceUnit lOrigin lDest limitedOriginObjects limitedDestinationObjects
   case res of
     [] -> throwError (InternalError "Empty MMI.getDistances result.")
@@ -158,31 +167,37 @@ buildResp distanceUnit listSrc listDest distanceMatrixResp pair = do
 getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   IT.GetRoutesReq ->
   m IT.GetRoutesResp
-getRoutes mmiCfg req = do
+getRoutes entityId mmiCfg req = do
   key <- decrypt mmiCfg.mmiApiKey
   let origin = latLongToText (NE.head req.waypoints)
       destination = latLongToText (NE.last req.waypoints)
       points = origin <> ";" <> destination
       mapsUrl = mmiCfg.mmiKeyUrl
-  resp <- MMI.mmiRoute mapsUrl key points
+  resp <- MMI.mmiRoute entityId req mapsUrl key points
   traverse (mkRoute req resp) resp.routes
 
 getPlaceDetails ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   IT.GetPlaceDetailsReq ->
   m IT.GetPlaceDetailsResp
-getPlaceDetails mmiCfg GetPlaceDetailsReq {..} = do
+getPlaceDetails entityId mmiCfg req@GetPlaceDetailsReq {..} = do
   key <- decrypt mmiCfg.mmiApiKey
-  resp <- MMI.mmiPlaceDetails mmiCfg.mmiKeyUrl key placeId
+  resp <- MMI.mmiPlaceDetails entityId req mmiCfg.mmiKeyUrl key placeId
   let MMITypes.PlaceDetail {..} = NE.head resp.results
   pure $ GetPlaceDetailsResp (LatLong {lat = latitude, lon = longitude})
 
@@ -226,16 +241,19 @@ data Acc = Acc {minLat :: Double, maxLat :: Double, minLon :: Double, maxLon :: 
 snapToRoad ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   IT.SnapToRoadReq ->
   m IT.SnapToRoadResp
-snapToRoad mmiCfg req = do
+snapToRoad entityId mmiCfg req = do
   key <- decrypt mmiCfg.mmiApiKey
   let points = T.intercalate ";" $ latLongToMmiText <$> req.points
       mapsUrl = mmiCfg.mmiKeyUrl
-  resp <- MMI.mmiSnapToRoad mapsUrl key points
+  resp <- MMI.mmiSnapToRoad entityId req mapsUrl key points
 
   let listOfSnappedPoints = sortOn (.waypoint_index) $ catMaybes $ resp.results.snappedPoints
   let listOfPoints = getPoints listOfSnappedPoints
@@ -256,29 +274,35 @@ snapToRoad mmiCfg req = do
 reverseGeocode ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   MMITypes.ReverseGeocodeReq ->
   m MMITypes.ReverseGeocodeResp
-reverseGeocode mmiCfg MMITypes.ReverseGeocodeReq {..} = do
+reverseGeocode entityId mmiCfg req@MMITypes.ReverseGeocodeReq {..} = do
   key <- decrypt mmiCfg.mmiApiKey
   let mapsUrl = mmiCfg.mmiKeyUrl
-  MMI.mmiReverseGeocode mapsUrl key location region lang
+  MMI.mmiReverseGeocode entityId req mapsUrl key location region lang
 
 geocode ::
   ( EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   IT.GetPlaceNameReq ->
   m IT.GetPlaceNameResp
-geocode mmiCfg GetPlaceNameReq {..} = do
+geocode entityId mmiCfg req@GetPlaceNameReq {..} = do
   let mapsUrl = mmiCfg.mmiNonKeyUrl
-  token <- MMIAuthToken.getTokenText mmiCfg
-  res <- MMI.mmiGeoCode mapsUrl (Just $ MMI.MMIAuthToken token) mbByPlaceId
+  token <- MMIAuthToken.getTokenText entityId mmiCfg
+  res <- MMI.mmiGeoCode entityId req mapsUrl (Just $ MMI.MMIAuthToken token) mbByPlaceId
   return [reformatePlaceName res.copResults]
   where
     reformatePlaceName (res :: MMI.GeocodeResult) =

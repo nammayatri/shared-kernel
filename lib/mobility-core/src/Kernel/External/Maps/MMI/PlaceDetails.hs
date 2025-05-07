@@ -18,11 +18,15 @@ import Data.Maybe
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import Kernel.External.Encryption
+import Kernel.External.Maps.Interface.Types as IT
 import qualified Kernel.External.Maps.MMI.Types as MMI
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
+import qualified Kernel.Utils.Text as KUT
 import Servant hiding (throwError)
 
 type MMIPlaceDetails =
@@ -41,18 +45,25 @@ getPlaceDetailsClient = ET.client mmiPlaceDetailsAPI
 mmiPlaceDetails ::
   ( EncFlow m r,
     CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
+  IT.GetPlaceDetailsReq ->
   BaseUrl ->
   Text ->
   Text ->
   m MMI.PlaceDetailResponse
-mmiPlaceDetails url apiKey placeId = do
-  callMMIAPI
-    url
-    (getPlaceDetailsClient apiKey placeId)
-    "mmi-get-place-details"
-    mmiPlaceDetailsAPI
+mmiPlaceDetails entityId req url apiKey placeId = do
+  rsp <-
+    callMMIAPI
+      url
+      (getPlaceDetailsClient apiKey placeId)
+      "mmi-get-place-details"
+      mmiPlaceDetailsAPI
+  fork ("Logging external API Call of mmiPlaceDetails MMI ") $
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiPlaceDetails" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+  return rsp
 
 callMMIAPI :: CallAPI env api a
 callMMIAPI =

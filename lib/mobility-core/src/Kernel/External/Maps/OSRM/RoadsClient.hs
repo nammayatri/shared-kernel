@@ -22,12 +22,15 @@ import qualified Data.Vector as V
 import EulerHS.Prelude ((...))
 import qualified EulerHS.Types as Euler
 import qualified Kernel.External.Maps.Interface.Types as Maps
+import qualified Kernel.External.Maps.Interface.Types as MapsInterfaceTypes
 import qualified Kernel.External.Maps.Types as Maps
 import Kernel.Prelude hiding (unlines)
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.App
 import Kernel.Types.Error
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
 import Kernel.Utils.GenericPretty
 import Servant hiding (throwError)
 
@@ -220,20 +223,26 @@ instance ToJSON Location where
 callOsrmMatchAPI ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
+  MapsInterfaceTypes.SnapToRoadReq ->
   BaseUrl ->
   Maybe Int ->
   Maps.TravelMode -> -- Changed from Text to TravelMode
   PointsList ->
   m MatchResp
-callOsrmMatchAPI osrmUrl mbRadius travelMode pointsList = do
+callOsrmMatchAPI entityId req osrmUrl mbRadius travelMode pointsList = do
   let pointsNum = length pointsList.getPointsList
       radiuses = flip fmap mbRadius $ \r -> RadiusesList $ replicate pointsNum r
       profile = toOSRMProfile travelMode
   let eulerClient = Euler.client (Proxy @MatchAPI)
-  callAPI osrmUrl (eulerClient profile pointsList "full" AlwaysTrue radiuses GeoJson) "osrm-match" (Proxy @MatchAPI)
-    >>= fromEitherM (FailedToCallOsrmMatchAPI . show)
+  rsp <- callAPI osrmUrl (eulerClient profile pointsList "full" AlwaysTrue radiuses GeoJson) "osrm-match" (Proxy @MatchAPI)
+  fork ("Logging external API Call of OsrmMatchAPI OSRM ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka "OsrmMatchAPI" "OSRM" entityId (Just req) rsp
+  fromEitherM (FailedToCallOsrmMatchAPI . show) rsp
 
 getResultOneRouteExpected :: (Log m, MonadThrow m) => MatchResp -> m (HighPrecMeters, Double, [Maps.LatLong])
 getResultOneRouteExpected resp = do
@@ -247,8 +256,14 @@ getResultOneRouteExpected resp = do
 callOsrmGetDistancesAPI ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r,
+    ToJSON a,
+    ToJSON b
   ) =>
+  Maybe Text ->
+  MapsInterfaceTypes.GetDistancesReq a b ->
   BaseUrl ->
   Maps.TravelMode -> -- Changed from Text to TravelMode
   PointsList ->
@@ -256,24 +271,32 @@ callOsrmGetDistancesAPI ::
   DestinationsList ->
   Maybe Maps.SourceDestinationMapping ->
   m OSRMTableResponse
-callOsrmGetDistancesAPI osrmUrl travelMode pointsList sourcesList destinationsList mbSourceDestinationMapping =
+callOsrmGetDistancesAPI entityId req osrmUrl travelMode pointsList sourcesList destinationsList mbSourceDestinationMapping =
   do
     let eulerClient = Euler.client (Proxy @TableAPI)
         profile = toOSRMProfile travelMode
-    callAPI osrmUrl (eulerClient profile pointsList "distance,duration" sourcesList destinationsList mbSourceDestinationMapping) "osrm-table" (Proxy @TableAPI)
-    >>= fromEitherM (FailedToCallOsrmTableAPI . show)
+    rsp <- callAPI osrmUrl (eulerClient profile pointsList "distance,duration" sourcesList destinationsList mbSourceDestinationMapping) "osrm-table" (Proxy @TableAPI)
+    fork ("Logging external API Call of OsrmGetDistancesAPI OSRM ") $
+      ApiCallLogger.pushExternalApiCallDataToKafka "OsrmGetDistancesAPI" "OSRM" entityId (Just req) rsp
+    fromEitherM (FailedToCallOsrmTableAPI . show) rsp
 
 callOsrmRouteAPI ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
+  MapsInterfaceTypes.GetRoutesReq ->
   BaseUrl ->
   Maps.TravelMode -> -- Changed from Text to TravelMode
   PointsList ->
   m OSRMRouteResponse
-callOsrmRouteAPI osrmUrl travelMode pointsList = do
+callOsrmRouteAPI entityId req osrmUrl travelMode pointsList = do
   let eulerClient = Euler.client (Proxy @RouteAPI)
       profile = toOSRMProfile travelMode
-  callAPI osrmUrl (eulerClient profile pointsList GeoJson True True) "osrm-route" (Proxy @RouteAPI)
-    >>= fromEitherM (FailedToCallOsrmRouteAPI . show)
+  rsp <- callAPI osrmUrl (eulerClient profile pointsList GeoJson True True) "osrm-route" (Proxy @RouteAPI)
+  fork ("Logging external API Call of OsrmRouteAPI OSRM ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka "OsrmRouteAPI" "OSRM" entityId (Just req) rsp
+  fromEitherM (FailedToCallOsrmRouteAPI . show) rsp

@@ -24,10 +24,13 @@ import Kernel.External.Encryption
 import Kernel.External.Maps.MMI.Config
 import qualified Kernel.External.Maps.MMI.Types as MMI
 import Kernel.Storage.Hedis as Redis
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error as ER
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
+import qualified Kernel.Utils.Text as KUT
 import Servant hiding (throwError)
 
 type MMIAuthAPI =
@@ -47,21 +50,27 @@ mmiAuthToken ::
   ( EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   m MMI.AuthResp
-mmiAuthToken mmiCfg = do
+mmiAuthToken entityId mmiCfg = do
   secretKey <- decrypt mmiCfg.mmiAuthSecret
   let url = mmiCfg.mmiAuthUrl
       clientId = mmiCfg.mmiAuthId
       grantType = "client_credentials"
       authReq = MMI.AuthRequest grantType clientId secretKey
-  callMMIAPI
-    url
-    (callMMIAuth authReq)
-    "mmi-auto-suggest"
-    mmiAuthAPI
+  rsp <-
+    callMMIAPI
+      url
+      (callMMIAuth authReq)
+      "mmi-auto-suggest"
+      mmiAuthAPI
+  fork ("Logging external API Call of mmiAuthToken MMI ") $
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiAuthToken" "MMI" entityId (Nothing @(Maybe Value)) $ KUT.encodeToText rsp
+  return rsp
   where
     callMMIAuth authReq = ET.client mmiAuthAPI authReq
 
@@ -81,38 +90,44 @@ getMMIToken ::
   ( EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   m AccessToken
-getMMIToken config = do
+getMMIToken entityId config = do
   tokenStatus :: Maybe AccessToken <- Redis.get (config.mmiAuthId <> ":" <> redisMMIKey)
   case tokenStatus of
-    Nothing -> refreshToken config
+    Nothing -> refreshToken entityId config
     Just token -> pure token
 
 getTokenText ::
   ( EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   m Text
-getTokenText mfg = do
-  token <- getMMIToken mfg
+getTokenText entityId mfg = do
+  token <- getMMIToken entityId mfg
   pure $ mmiTokenType token <> " " <> mmiAccessToken token
 
 refreshToken ::
   ( EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MMICfg ->
   m AccessToken
-refreshToken config = do
-  res <- mmiAuthToken config
+refreshToken entityId config = do
+  res <- mmiAuthToken entityId config
   let accessToken =
         AccessToken
           { mmiAccessToken = res.accessToken,

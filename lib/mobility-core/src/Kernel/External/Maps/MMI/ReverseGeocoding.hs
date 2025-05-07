@@ -20,10 +20,13 @@ import Kernel.External.Encryption
 import qualified Kernel.External.Maps.MMI.Types as MMI
 import Kernel.External.Maps.Types
 import Kernel.External.Types
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
+import qualified Kernel.Utils.Text as KUT
 import Servant
 
 type MMIReverseGeocodeAPI =
@@ -45,20 +48,27 @@ getReverseGeocodeClient = ET.client mmiReverseGeocodeAPI
 mmiReverseGeocode ::
   ( EncFlow m r,
     CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
+  MMI.ReverseGeocodeReq ->
   BaseUrl ->
   Text ->
   LatLong ->
   Maybe Text ->
   Maybe Language ->
   m MMI.ReverseGeocodeResp
-mmiReverseGeocode url apiKey LatLong {..} region lang = do
-  callMMIAPI
-    url
-    (getReverseGeocodeClient apiKey lat lon region lang)
-    "mmi-reverse-geocode"
-    mmiReverseGeocodeAPI
+mmiReverseGeocode entityId req url apiKey LatLong {..} region lang = do
+  rsp <-
+    callMMIAPI
+      url
+      (getReverseGeocodeClient apiKey lat lon region lang)
+      "mmi-reverse-geocode"
+      mmiReverseGeocodeAPI
+  fork ("Logging external API Call of mmiReverseGeocode MMI ") $
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiReverseGeocode" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+  return rsp
 
 callMMIAPI :: CallAPI env api a
 callMMIAPI =

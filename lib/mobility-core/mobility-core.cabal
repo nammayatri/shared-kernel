@@ -418,6 +418,7 @@ library
       Kernel.Utils.Error.Hierarchy
       Kernel.Utils.Error.Throwing
       Kernel.Utils.Example
+      Kernel.Utils.ExternalAPICallLogging
       Kernel.Utils.FlowLogging
       Kernel.Utils.GenericPretty
       Kernel.Utils.Geometry

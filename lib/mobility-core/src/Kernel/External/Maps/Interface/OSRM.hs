@@ -32,6 +32,7 @@ import Kernel.External.Maps.OSRM.RoadsClient
 import qualified Kernel.External.Maps.OSRM.RoadsClient as OSRM
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error
 import Kernel.Utils.CalculateDistance (getRouteLinearLength)
@@ -40,14 +41,17 @@ import Kernel.Utils.Common
 callOsrmMatch ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   OSRMCfg ->
   SnapToRoadReq ->
   m SnapToRoadResp
-callOsrmMatch osrmCfg (SnapToRoadReq wps distanceUnit calculateDistanceFrom) = do
+callOsrmMatch entityId osrmCfg req@(SnapToRoadReq wps distanceUnit calculateDistanceFrom) = do
   let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
-  res <- OSRM.callOsrmMatchAPI osrmCfg.osrmUrl mbRadius CAR (OSRM.PointsList wps)
+  res <- OSRM.callOsrmMatchAPI entityId req osrmCfg.osrmUrl mbRadius CAR (OSRM.PointsList wps)
   (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
   pure $ case calculateDistanceFrom of
     Just _ -> do
@@ -60,16 +64,21 @@ getDistances ::
     Metrics.CoreMetrics m,
     MonadFlow m,
     HasCoordinates a,
-    HasCoordinates b
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   OSRMCfg ->
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
-getDistances osrmCfg request = do
+getDistances entityId osrmCfg request = do
   let pointsList = OSRM.PointsList $ map getCoordinates (toList request.origins) ++ map getCoordinates (toList request.destinations)
   let sourcesList = OSRM.SourcesList [0 .. (length request.origins - 1)]
   let destinationsList = OSRM.DestinationsList [(length request.origins) .. (length request.origins + length request.destinations - 1)]
-  response <- OSRM.callOsrmGetDistancesAPI osrmCfg.osrmUrl (fromMaybe CAR request.travelMode) pointsList sourcesList destinationsList request.sourceDestinationMapping
+  response <- OSRM.callOsrmGetDistancesAPI entityId request osrmCfg.osrmUrl (fromMaybe CAR request.travelMode) pointsList sourcesList destinationsList request.sourceDestinationMapping
   case request.sourceDestinationMapping of
     Just OneToOne -> getOSRMTableOneToOne response request
     _ -> getOSRMTable response request
@@ -145,13 +154,16 @@ getOSRMTableOneToOne tableResponse request = do
 getRoutes ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   OSRMCfg ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes osrmCfg request = do
-  response <- OSRM.callOsrmRouteAPI osrmCfg.osrmUrl (fromMaybe CAR request.mode) $ OSRM.PointsList {getPointsList = NE.toList request.waypoints}
+getRoutes entityId osrmCfg request = do
+  response <- OSRM.callOsrmRouteAPI entityId request osrmCfg.osrmUrl (fromMaybe CAR request.mode) $ OSRM.PointsList {getPointsList = NE.toList request.waypoints}
   getOSRMRoute response
 
 convertRouteToRouteInfo :: (Log m, MonadThrow m) => OSRM.OSRMRouteRoutes -> m RouteInfo

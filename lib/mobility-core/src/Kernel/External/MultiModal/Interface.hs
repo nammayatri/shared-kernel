@@ -13,6 +13,7 @@ import Kernel.External.MultiModal.OpenTripPlanner.Config as Reexport
 import Kernel.External.MultiModal.Types
 import Kernel.External.MultiModal.Utils as Reexport
 import Kernel.Prelude
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 
@@ -32,11 +33,13 @@ getTransitRoutesProvided = \case
 getTransitRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MultiModalServiceConfig ->
   GetTransitRoutesReq ->
   m (Maybe MultiModalResponse)
-getTransitRoutes serviceConfig req = case serviceConfig of
-  GoogleTransitConfig cfg -> Google.getTransitRoutes cfg req
+getTransitRoutes entityId serviceConfig req = case serviceConfig of
+  GoogleTransitConfig cfg -> Google.getTransitRoutes entityId cfg req
   OTPTransitConfig cfg -> OTP.getTransitRoutes cfg req

@@ -18,12 +18,16 @@ module Kernel.External.Maps.MMI.Geocode where
 import Data.Maybe
 import EulerHS.Prelude
 import EulerHS.Types as ET
+import Kernel.External.Maps.Interface.Types as IT
 import qualified Kernel.External.Maps.MMI.Types as MMI
 import Kernel.Storage.Hedis as Redis
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
+import qualified Kernel.Utils.Text as KUT
 import Servant
 
 type MMIGeocodeAPI =
@@ -43,18 +47,25 @@ mmiGeocodeClient = ET.client mmiGeocodeAPI
 mmiGeoCode ::
   ( CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
+  IT.GetPlaceNameReq ->
   BaseUrl ->
   Maybe MMI.MMIAuthToken ->
   Text ->
   m MMI.GeocodeResp
-mmiGeoCode url authToken address = do
-  callMMIGeocodeAPI
-    url
-    (mmiGeocodeClient authToken address (Just "ind"))
-    "mmi-auto-suggest"
-    mmiGeocodeAPI
+mmiGeoCode entityId req url authToken address = do
+  rsp <-
+    callMMIGeocodeAPI
+      url
+      (mmiGeocodeClient authToken address (Just "ind"))
+      "mmi-auto-suggest"
+      mmiGeocodeAPI
+  fork ("Logging external API Call of mmiGeoCode MMI ") $
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiGeoCode" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+  return rsp
 
 callMMIGeocodeAPI :: CallAPI env api a
 callMMIGeocodeAPI =
