@@ -53,7 +53,8 @@ data CreateOrderReq = CreateOrderReq
 data Split = Split
   { amount :: HighPrecMoney,
     merchant_commission :: HighPrecMoney,
-    sub_mid :: Text
+    sub_mid :: Text,
+    unique_split_id :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
