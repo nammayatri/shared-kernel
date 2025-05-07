@@ -111,6 +111,7 @@ data Category
   | DRIVER_UNLINK_FROM_OPERATOR
   | FLEET_UNLINK_FROM_OPERATOR
   | SAFETY_ALERT_RIDE_STOPPAGE
+  | FEEDBACK_REQUEST
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

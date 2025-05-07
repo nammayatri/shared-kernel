@@ -194,6 +194,7 @@ data FCMNotificationType
   | FLEET_UNLINK_FROM_OPERATOR
   | DRIVER_REQUEST_REJECTED
   | SAFETY_ALERT_RIDE_STOPPAGE
+  | FEEDBACK_REQUEST
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
