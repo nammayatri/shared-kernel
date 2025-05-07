@@ -16,15 +16,17 @@
 module Kernel.External.Payment.Juspay.Types.UpdateOrder where
 
 import Data.Aeson
+import Kernel.External.Payment.Juspay.Types.CreateOrder (SplitSettlementDetails)
 import Kernel.Prelude
 import Kernel.Utils.Common
 import Web.FormUrlEncoded
 
 data OrderUpdateReq = OrderUpdateReq
-  { amount :: HighPrecMoney
+  { amount :: HighPrecMoney,
+    split_settlement_details :: Maybe SplitSettlementDetails
   }
   deriving (Show, Generic)
-  deriving anyclass (ToSchema, FromJSON, ToJSON, ToForm)
+  deriving anyclass (ToForm)
 
 data OrderUpdateResp = OrderUpdateResp
   { order_id :: Maybe Text,
@@ -32,3 +34,17 @@ data OrderUpdateResp = OrderUpdateResp
   }
   deriving (Show, Generic)
   deriving anyclass (ToSchema, FromJSON, ToJSON)
+
+jsonReqOptionsUpdateOrder :: Options
+jsonReqOptionsUpdateOrder =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "split_settlement_details" -> "metadata.split_settlement_details"
+        other -> other
+    }
+
+instance FromJSON OrderUpdateReq where
+  parseJSON = genericParseJSON jsonReqOptionsUpdateOrder {omitNothingFields = True}
+
+instance ToJSON OrderUpdateReq where
+  toJSON = genericToJSON jsonReqOptionsUpdateOrder {omitNothingFields = True}
