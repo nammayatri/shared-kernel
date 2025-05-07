@@ -46,7 +46,8 @@ data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | Exotel
 data SendSMSReq = SendSMSReq
   { smsBody :: Text,
     phoneNumber :: Text,
-    sender :: Text
+    sender :: Text,
+    templateId :: Maybe Text
   }
   deriving (Generic, FromJSON, ToJSON, ToSchema)
 
