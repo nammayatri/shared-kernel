@@ -13,9 +13,11 @@
 -}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Kernel.Types.Error where
 
+import qualified Data.Aeson as DA
 import qualified Data.Text as T
 import EulerHS.Prelude
 import EulerHS.Types (KVDBReply)
@@ -1426,3 +1428,6 @@ instance FromResponse TataCommunicationsWhatsappError where
     _ -> Just TataCommunicationsWhatsappNotConfigured
 
 instance IsAPIError TataCommunicationsWhatsappError
+
+instance ToJSON ClientError where
+  toJSON = DA.String . show

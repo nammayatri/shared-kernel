@@ -17,12 +17,15 @@ module Kernel.External.Maps.Google.RoadsClient where
 
 import qualified Data.Text as T
 import EulerHS.Types as Euler
+import qualified Kernel.External.Maps.Interface.Types as MapsInterfaceTypes
 import Kernel.External.Maps.Types
 import Kernel.Prelude
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.App (MandatoryQueryParam, MonadFlow)
 import Kernel.Types.Error (GenericError (InternalError))
-import Kernel.Utils.Common (callAPI, fromEitherM, throwError)
+import Kernel.Utils.Common (callAPI, fork, fromEitherM, throwError)
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
 import Servant hiding (throwError)
 
 type SnapToRoadResponse = SnapToRoadResponse' LatLong
@@ -59,18 +62,23 @@ type SnapToRoadAPI =
 snapToRoad ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
+  MapsInterfaceTypes.SnapToRoadReq ->
   BaseUrl ->
   Text ->
   [LatLong] ->
   m SnapToRoadResponse
-snapToRoad roadsUrl apiKey pointsList = do
+snapToRoad entityId req roadsUrl apiKey pointsList = do
   let eulerClient = Euler.client (Proxy @SnapToRoadAPI)
       interpolate = True
-  res <-
-    callAPI roadsUrl (eulerClient apiKey interpolate $ convertPointsList pointsList) "snap-to-road" (Proxy @SnapToRoadAPI)
-      >>= fromEitherM (\err -> InternalError $ "Failed to call snap-to-road API: " <> show err)
+  eitherRes <- callAPI roadsUrl (eulerClient apiKey interpolate $ convertPointsList pointsList) "snap-to-road" (Proxy @SnapToRoadAPI)
+  fork ("Logging external API Call of snapToRoad Google ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka "snapToRoad" "Google" entityId (Just req) eitherRes
+  res <- fromEitherM (\err -> InternalError $ "Failed to call snap-to-road API: " <> show err) eitherRes
   maybe
     (pure ())
     (\warning -> throwError $ InternalError ("Snap-to-road API throwing warning" <> warning))

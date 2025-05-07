@@ -32,6 +32,7 @@ import Kernel.External.Maps.NextBillion.Route as NB
 import Kernel.External.Maps.NextBillion.Types as NextBillion
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 
@@ -71,36 +72,42 @@ getWayPoints waypoints = Just (map latLongToPlace waypoints)
 getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   NextBillionCfg ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes cfg req = do
+getRoutes entityId cfg req = do
   let routeProxyReq = routeToRouteProxyConverter req
   let url = cfg.nextBillionDirectionsUrl
   let origin = latLongToPlace routeProxyReq.origin
       destination = latLongToPlace routeProxyReq.destination
       waypoints = getWayPoints routeProxyReq.waypoints
   key <- decrypt cfg.nextBillionKey
-  res <- NB.directions url key origin destination waypoints Nothing Nothing Nothing Nothing
+  res <- NB.directions entityId req url key origin destination waypoints Nothing Nothing Nothing Nothing
   let allRoutes = map convertToRoute res.routes
   return $ allRoutes
 
 getRoutesWithExtraParameters ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    MonadReader r m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   NextBillionCfg ->
   NextBillion.GetRoutesRequest ->
   m GetRoutesResp
-getRoutesWithExtraParameters cfg req = do
+getRoutesWithExtraParameters entityId cfg req = do
   let url = cfg.nextBillionDirectionsUrl
       origin = latLongToPlace $ NE.head req.waypoints
       destination = latLongToPlace $ NE.last req.waypoints
       waypoints = getWayPoints $ originAndDestinationRemover $ NE.toList req.waypoints
   key <- decrypt cfg.nextBillionKey
-  res <- NB.directions url key origin destination waypoints req.alternatives req.altcount req.routeType req.option
+  res <- NB.directions entityId req url key origin destination waypoints req.alternatives req.altcount req.routeType req.option
   let allRoutes = map convertToRoute res.routes
   return $ allRoutes

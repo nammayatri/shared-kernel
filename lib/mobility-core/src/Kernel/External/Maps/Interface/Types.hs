@@ -69,7 +69,7 @@ data GetDistanceReq a b = GetDistanceReq
     sourceDestinationMapping :: Maybe SourceDestinationMapping,
     travelMode :: Maybe TravelMode
   }
-  deriving (Generic, Show)
+  deriving (Generic, Show, ToJSON)
 
 data GetDistancesReq a b = GetDistancesReq
   { origins :: NonEmpty a,
@@ -78,7 +78,7 @@ data GetDistancesReq a b = GetDistancesReq
     sourceDestinationMapping :: Maybe SourceDestinationMapping,
     travelMode :: Maybe TravelMode
   }
-  deriving (Generic, Show)
+  deriving (Generic, Show, ToJSON)
 
 data GetDistanceResp a b = GetDistanceResp
   { origin :: a,
@@ -88,7 +88,7 @@ data GetDistanceResp a b = GetDistanceResp
     duration :: Seconds,
     status :: Text
   }
-  deriving (Generic, Show, PrettyShow, FromJSON)
+  deriving (Generic, Show, PrettyShow, FromJSON, ToJSON)
 
 type GetDistancesResp a b = NonEmpty (GetDistanceResp a b)
 
@@ -180,7 +180,7 @@ data SnapToRoadReq = SnapToRoadReq
     calculateDistanceFrom :: Maybe LatLong
   }
   deriving stock (Generic)
-  deriving (Show)
+  deriving (Show, ToJSON)
 
 -- deriving anyclass (FromJSON, ToJSON, ToSchema)
 

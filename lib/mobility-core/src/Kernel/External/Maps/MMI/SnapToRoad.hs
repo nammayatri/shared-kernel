@@ -18,11 +18,15 @@ import Data.Maybe
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
 import Kernel.External.Encryption
+import Kernel.External.Maps.Interface.Types as IT
 import qualified Kernel.External.Maps.MMI.Types as MMI
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
+import qualified Kernel.Utils.Text as KUT
 import Servant hiding (throwError)
 
 type MMISnapToRoadAPI =
@@ -53,15 +57,22 @@ callMMIAPI =
 mmiSnapToRoad ::
   ( EncFlow m r,
     CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
+  IT.SnapToRoadReq ->
   BaseUrl ->
   Text ->
   Text ->
   m MMI.SnapToRoadResp
-mmiSnapToRoad url apiKey points = do
-  callMMIAPI
-    url
-    (getSnapToRoadClient apiKey points Nothing Nothing Nothing (Just "ind"))
-    "mmi-snap-to-road"
-    mmiSnapToRoadAPI
+mmiSnapToRoad entityId req url apiKey points = do
+  rsp <-
+    callMMIAPI
+      url
+      (getSnapToRoadClient apiKey points Nothing Nothing Nothing (Just "ind"))
+      "mmi-snap-to-road"
+      mmiSnapToRoadAPI
+  fork ("Logging external API Call of mmiSnapToRoad MMI ") $
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiSnapToRoad" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+  return rsp

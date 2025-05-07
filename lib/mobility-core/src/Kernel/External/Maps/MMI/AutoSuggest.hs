@@ -18,13 +18,17 @@ module Kernel.External.Maps.MMI.AutoSuggest where
 import Data.Maybe
 import EulerHS.Prelude
 import EulerHS.Types as ET
+import Kernel.External.Maps.Interface.Types as IT
 import qualified Kernel.External.Maps.MMI.Types as MMI
 import Kernel.External.Types (Language)
 import Kernel.Storage.Hedis as Redis
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
+import qualified Kernel.Utils.Text as KUT
 import Servant
 
 type MMIAutoSuggestAPI =
@@ -45,8 +49,11 @@ mmiAutoSuggestClient = ET.client mmiAutoSuggestAPI
 mmiAutoSuggest ::
   ( CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
+  IT.AutoCompleteReq ->
   BaseUrl ->
   Maybe MMI.MMIAuthToken ->
   Text ->
@@ -54,12 +61,16 @@ mmiAutoSuggest ::
   Text ->
   Language ->
   m MMI.AutoSuggestResp
-mmiAutoSuggest url authToken query location region lang = do
-  callMMIAutoSuggestAPI
-    url
-    (mmiAutoSuggestClient authToken query location region lang)
-    "mmi-auto-suggest"
-    mmiAutoSuggestAPI
+mmiAutoSuggest entityId req url authToken query location region lang = do
+  rsp <-
+    callMMIAutoSuggestAPI
+      url
+      (mmiAutoSuggestClient authToken query location region lang)
+      "mmi-auto-suggest"
+      mmiAutoSuggestAPI
+  fork ("Logging external API Call of autoSuggest MMI ") $
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "autoSuggest" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+  return rsp
 
 callMMIAutoSuggestAPI :: CallAPI env api a
 callMMIAutoSuggestAPI =

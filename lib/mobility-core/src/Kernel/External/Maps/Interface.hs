@@ -44,6 +44,7 @@ import Kernel.External.Maps.OSRM.Config as Reexport
 import Kernel.External.Maps.Types as Reexport
 import Kernel.Prelude
 import Kernel.Storage.Hedis as Redis
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
@@ -54,13 +55,17 @@ getDistance ::
   ( EncFlow m r,
     CoreMetrics m,
     HasCoordinates a,
-    HasCoordinates b
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MapsServiceConfig ->
   GetDistanceReq a b ->
   m (GetDistanceResp a b)
-getDistance serviceConfig GetDistanceReq {..} =
-  getDistances serviceConfig getDistancesReq >>= \case
+getDistance entityId serviceConfig GetDistanceReq {..} =
+  getDistances entityId serviceConfig getDistancesReq >>= \case
     (a :| []) -> return a
     _ -> throwError (InternalError "Exactly one getDistance result expected.")
   where
@@ -91,15 +96,19 @@ getDistances ::
   ( EncFlow m r,
     CoreMetrics m,
     HasCoordinates a,
-    HasCoordinates b
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MapsServiceConfig ->
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
-getDistances serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getDistances cfg req
-  OSRMConfig cfg -> OSRM.getDistances cfg req
-  MMIConfig cfg -> MMI.getDistanceMatrix cfg req
+getDistances entityId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getDistances entityId cfg req
+  OSRMConfig cfg -> OSRM.getDistances entityId cfg req
+  MMIConfig cfg -> MMI.getDistanceMatrix entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getDistances" NextBillion
 
 getRoutesProvided :: MapsService -> Bool
@@ -113,17 +122,19 @@ getRoutesProvided = \case
 getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   Bool ->
   MapsServiceConfig ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes isAvoidToll serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getRoutes isAvoidToll cfg req
-  OSRMConfig osrmCfg -> OSRM.getRoutes osrmCfg req
-  MMIConfig cfg -> MMI.getRoutes cfg req
-  NextBillionConfig cfg -> NextBillion.getRoutes cfg req
+getRoutes entityId isAvoidToll serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getRoutes entityId isAvoidToll cfg req
+  OSRMConfig osrmCfg -> OSRM.getRoutes entityId osrmCfg req
+  MMIConfig cfg -> MMI.getRoutes entityId cfg req
+  NextBillionConfig cfg -> NextBillion.getRoutes entityId cfg req
 
 snapToRoadProvided :: MapsService -> Bool
 snapToRoadProvided = \case
@@ -175,13 +186,15 @@ snapToRoadWithFallback ::
     HasFlowEnv m r '["snapToRoadSnippetThreshold" ::: HighPrecMeters],
     HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
     HasFlowEnv m r '["maxStraightLineRectificationThreshold" ::: HighPrecMeters],
-    HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters]
+    HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters],
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   Maybe MapsServiceConfig ->
   SnapToRoadHandler m ->
   SnapToRoadReq ->
   m ([MapsService], Either String SnapToRoadResp)
-snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandler {..} req = do
+snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandler {..} req = do
   providersList <- getProvidersList
   when (null providersList) $ throwError $ InternalError "No maps service provider configured"
   (servicesUsed, snapResponse) <- callSnapToRoadWithFallback providersList
@@ -200,7 +213,7 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
       preCheckPassed <- runPreCheck preferredProvider req
       if preCheckPassed
         then do
-          result <- try @_ @SomeException $ snapToRoad mapsConfig req
+          result <- try @_ @SomeException $ snapToRoad entityId mapsConfig req
           case result of
             Left err -> do
               logError $ "Snap to road Pre Check failed with error : " <> show err <> " - Provider : " <> show preferredProvider
@@ -235,7 +248,7 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
               if dist < maxStraightLineRectificationThreshold
                 then pure (x1, dist)
                 else do
-                  distanceRes <- getDistance mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR, distanceUnit = req.distanceUnit, sourceDestinationMapping = Nothing} :: GetDistanceReq LatLong LatLong)
+                  distanceRes <- getDistance entityId mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR, distanceUnit = req.distanceUnit, sourceDestinationMapping = Nothing} :: GetDistanceReq LatLong LatLong)
                   pure (x1, metersToHighPrecMeters distanceRes.distance)
           )
           straightDistancePoints
@@ -243,7 +256,7 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
       let (pointsOutOfThreshold, distance) = foldl' (\(accPoints, accDis) (x1, dis) -> (accPoints <> [x1], accDis + dis)) ([], 0) distanceRectified
       let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
       logDebug $ "Split snap-to-road calls: " <> show splitSnapToRoadCalls
-      pointsRes <- try @_ @SomeException $ mapM (\section -> snapToRoad mapsConfig (req {points = section})) splitSnapToRoadCalls
+      pointsRes <- try @_ @SomeException $ mapM (\section -> snapToRoad entityId mapsConfig (req {points = section})) splitSnapToRoadCalls
       logDebug $ "Snap-to-road results: " <> show pointsRes
       case pointsRes of
         Right result -> do
@@ -263,16 +276,18 @@ snapToRoadWithFallback mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandl
 
 snapToRoad ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MapsServiceConfig ->
   SnapToRoadReq ->
   m SnapToRoadResp
-snapToRoad serviceConfig req =
+snapToRoad entityId serviceConfig req =
   case serviceConfig of
-    GoogleConfig cfg -> Google.snapToRoad cfg req
-    OSRMConfig osrmCfg -> OSRM.callOsrmMatch osrmCfg req
-    MMIConfig mmiCfg -> MMI.snapToRoad mmiCfg req
+    GoogleConfig cfg -> Google.snapToRoad entityId cfg req
+    OSRMConfig osrmCfg -> OSRM.callOsrmMatch entityId osrmCfg req
+    MMIConfig mmiCfg -> MMI.snapToRoad entityId mmiCfg req
     NextBillionConfig _ -> throwNotProvidedError "snapToRoad" NextBillion
 
 autoCompleteProvided :: MapsService -> Bool
@@ -287,15 +302,17 @@ autoComplete ::
   ( EncFlow m r,
     Redis.HedisFlow m r,
     CoreMetrics m,
-    HasShortDurationRetryCfg r c
+    HasShortDurationRetryCfg r c,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MapsServiceConfig ->
   AutoCompleteReq ->
   m AutoCompleteResp
-autoComplete serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.autoComplete cfg req
+autoComplete entityId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.autoComplete entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "autoComplete" OSRM
-  MMIConfig cfg -> MMI.autoSuggest cfg req
+  MMIConfig cfg -> MMI.autoSuggest entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "autoComplete" NextBillion
 
 getPlaceDetailsProvided :: MapsService -> Bool
@@ -308,15 +325,17 @@ getPlaceDetailsProvided = \case
 
 getPlaceDetails ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MapsServiceConfig ->
   GetPlaceDetailsReq ->
   m GetPlaceDetailsResp
-getPlaceDetails serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getPlaceDetails cfg req
+getPlaceDetails entityId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getPlaceDetails entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
-  MMIConfig cfg -> MMI.getPlaceDetails cfg req
+  MMIConfig cfg -> MMI.getPlaceDetails entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getPlaceDetails" NextBillion
 
 getPlaceNameProvided :: MapsService -> Bool
@@ -330,13 +349,15 @@ getPlaceNameProvided = \case
 getPlaceName ::
   ( EncFlow m r,
     CoreMetrics m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    HasKafkaProducer r
   ) =>
+  Maybe Text ->
   MapsServiceConfig ->
   GetPlaceNameReq ->
   m GetPlaceNameResp
-getPlaceName serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getPlaceName cfg req
+getPlaceName entityId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getPlaceName entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
-  MMIConfig cfg -> MMI.geocode cfg req
+  MMIConfig cfg -> MMI.geocode entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getPlaceName" NextBillion
