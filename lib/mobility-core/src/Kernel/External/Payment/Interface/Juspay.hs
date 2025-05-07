@@ -93,7 +93,8 @@ updateOrder config req = do
       do
         return
           Juspay.OrderUpdateReq
-            { amount = amount
+            { amount = amount,
+              split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails
             }
     mkUpdateOrderRes Juspay.OrderUpdateResp {..} =
       OrderUpdateResp
