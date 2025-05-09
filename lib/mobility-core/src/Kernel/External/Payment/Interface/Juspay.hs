@@ -171,8 +171,10 @@ mandateNotification ::
   m MandateNotificationRes
 mandateNotification config req = do
   let url = config.url
+      merchantId = config.merchantId
+      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  notificationResponse <- Juspay.mandateNotification url apiKey req.mandateId (mkNotificationReq req)
+  notificationResponse <- Juspay.mandateNotification url apiKey req.mandateId merchantId routingId (mkNotificationReq req)
   return $ mkNotificationRes notificationResponse
   where
     mkNotificationRes Juspay.MandateNotificationRes {..} =
@@ -197,8 +199,10 @@ mandateNotificationStatus ::
   m NotificationStatusResp
 mandateNotificationStatus config req = do
   let url = config.url
+      merchantId = config.merchantId
+      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  notificationStatusResponse <- Juspay.mandateNotificationStatus url apiKey req.notificationId
+  notificationStatusResponse <- Juspay.mandateNotificationStatus url apiKey req.notificationId merchantId routingId
   return $ mkNotificationStatusRes notificationStatusResponse
   where
     mkNotificationStatusRes Juspay.NotificationStatusResp {..} =
@@ -237,8 +241,9 @@ mandateExecution ::
 mandateExecution config req = do
   let url = config.url
       merchantId = config.merchantId
+      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  executionResponse <- Juspay.mandateExecution url apiKey (mkExecutionReq req merchantId)
+  executionResponse <- Juspay.mandateExecution url apiKey merchantId routingId (mkExecutionReq req merchantId)
   return $ mkExecutionResponse executionResponse
   where
     mkExecutionResponse Juspay.MandateExecutionRes {..} =
@@ -884,8 +889,9 @@ verifyVPA ::
 verifyVPA config req = do
   let url = config.url
       merchantId = config.merchantId
+      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  mkVerifyVpaResp <$> Juspay.verifyVPA url apiKey (mkVerifyVpaRequest req merchantId)
+  mkVerifyVpaResp <$> Juspay.verifyVPA url apiKey merchantId routingId (mkVerifyVpaRequest req merchantId)
   where
     mkVerifyVpaRequest request merchantId =
       Juspay.VerifyVPAReq
