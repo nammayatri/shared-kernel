@@ -32,8 +32,18 @@ readVersion versionText =
 zeroVersion :: Version
 zeroVersion = Version {major = 0, minor = 0, maintenance = 0, preRelease = Nothing, build = Nothing}
 
+highVersion :: Version
+highVersion =
+  Version
+    { major = 9999,
+      minor = 9999,
+      maintenance = 9999,
+      preRelease = Nothing,
+      build = Nothing
+    }
+
 textToVersionDefault :: Text -> Version
-textToVersionDefault = either (const zeroVersion) id . textToVersion
+textToVersionDefault = either (const highVersion) id . textToVersion
 
 getDeviceFromText :: Maybe Text -> Maybe Device
 getDeviceFromText deviceText = do
