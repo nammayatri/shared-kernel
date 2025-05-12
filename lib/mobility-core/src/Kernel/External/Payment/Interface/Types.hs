@@ -229,7 +229,8 @@ data MandateNotificationReq = MandateNotificationReq
     txnDate :: UTCTime,
     mandateId :: Text,
     notificationId :: Text,
-    description :: Text
+    description :: Text,
+    personId :: Maybe Text
   }
   deriving (Eq, Show, Generic)
 
@@ -263,8 +264,8 @@ data PaymentGatewayResponse = PaymentGatewayResponse
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
 
 --- Notification status response and request --
-newtype NotificationStatusReq = NotificationStatusReq
-  {notificationId :: Text}
+data NotificationStatusReq = NotificationStatusReq
+  {notificationId :: Text, personId :: Maybe Text}
 
 data NotificationStatusResp = NotificationStatusResp
   { id :: Text,
@@ -313,6 +314,7 @@ data MandateExecutionReq = MandateExecutionReq
     customerId :: Text,
     mandateId :: Text,
     executionDate :: UTCTime,
+    personId :: Maybe Text,
     splitSettlementDetails :: Maybe SplitSettlementDetails
   }
 
@@ -334,6 +336,7 @@ data OfferListReq = OfferListReq
     dutyDate :: UTCTime,
     paymentMode :: Text,
     numOfRides :: Int,
+    personId :: Maybe Text,
     offerListingMetric :: Maybe UDF6
   }
 
@@ -594,7 +597,8 @@ type CustomerCardListResp = [CustomerCard]
 data VerifyVPAReq = VerifyVPAReq
   { vpa :: Text,
     customerId :: Maybe Text,
-    orderId :: Maybe Text
+    orderId :: Maybe Text,
+    personId :: Maybe Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
