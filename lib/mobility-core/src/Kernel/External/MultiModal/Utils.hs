@@ -427,7 +427,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
     mergeMetroLegs [] = []
     mergeMetroLegs [leg] = [leg] -- Single leg, no merging needed
     mergeMetroLegs (leg1 : leg2 : rest)
-      | ((leg1.mode == MetroRail && leg2.mode == MetroRail) || ((leg1.mode == Subway && leg2.mode == Subway))) && leg1.agency == leg2.agency =
+      | (leg1.mode == MetroRail && leg2.mode == MetroRail) && leg1.agency == leg2.agency =
         let leg1Start = leg1.startLocation
             leg2Start = leg2.startLocation
             leg2End = leg2.endLocation
