@@ -9,6 +9,7 @@ import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Types.Common
 import Kernel.Types.Id (Id)
 import qualified Kernel.Utils.Text as KUT
+import System.Environment (lookupEnv)
 
 data ExternalAPICallLog = ExternalAPICallLog
   { id :: Id ExternalAPICallLog,
@@ -25,7 +26,8 @@ data ExternalAPICallLog = ExternalAPICallLog
 pushExternalApiCallDataToKafka :: (MonadFlow m, MonadReader r m, ToJSON req', ToJSON err, ToJSON res', HasKafkaProducer r) => Text -> Text -> Maybe Text -> Maybe req' -> Either err res' -> m ()
 pushExternalApiCallDataToKafka apiName svcProvider entityId req eithRes = do
   let res = either KUT.encodeToText KUT.encodeToText eithRes
-  pushExternalApiCallDataToKafkaWithTextEncodedResp apiName svcProvider entityId req res
+  kafkaPushEnabled <- liftIO $ fromMaybe False . (readMaybe =<<) <$> lookupEnv "ENABLE_API_LOGS_KAFKA_PUSH"
+  when kafkaPushEnabled $ pushExternalApiCallDataToKafkaWithTextEncodedResp apiName svcProvider entityId req res
 
 pushExternalApiCallDataToKafkaWithTextEncodedResp :: forall m r req'. (MonadFlow m, MonadReader r m, ToJSON req', HasKafkaProducer r) => Text -> Text -> Maybe Text -> Maybe req' -> Text -> m ()
 pushExternalApiCallDataToKafkaWithTextEncodedResp apiName svcProvider entityId req res = do
