@@ -60,6 +60,11 @@ instance (C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => ClickhouseColumns a (T6 (Colu
   showClickhouseColumns _ = zipColumnsWithSynonyms6
   parseColumns _ = parseColumns6
 
+instance (C7 ClickhouseValue v1 v2 v3 v4 v5 v6 v7) => ClickhouseColumns a (T7 (Column a t) v1 v2 v3 v4 v5 v6 v7) where
+  type ColumnsType a (T7 (Column a t) v1 v2 v3 v4 v5 v6 v7) = (v1, v2, v3, v4, v5, v6, v7)
+  showClickhouseColumns _ = zipColumnsWithSynonyms7
+  parseColumns _ = parseColumns7
+
 -- we need to create map of values with different types
 data NotSpecified
 
@@ -149,6 +154,24 @@ parseColumns6 (c1, c2, c3, c4, c5, c6) json l = do
   v6 <- parseValueFromMap @a @t @v6 6 c6 mapResult l
   pure (v1, v2, v3, v4, v5, v6)
 
+parseColumns7 ::
+  forall a t v1 v2 v3 v4 v5 v6 v7.
+  (C7 ClickhouseValue v1 v2 v3 v4 v5 v6 v7) =>
+  T7 (Column a t) v1 v2 v3 v4 v5 v6 v7 ->
+  A.Value ->
+  SubQueryLevel ->
+  Either String (v1, v2, v3, v4, v5, v6, v7)
+parseColumns7 (c1, c2, c3, c4, c5, c6, c7) json l = do
+  mapResult <- eitherResult . A.fromJSON @(A.KeyMap (Value NotSpecified)) $ json
+  v1 <- parseValueFromMap @a @t @v1 1 c1 mapResult l
+  v2 <- parseValueFromMap @a @t @v2 2 c2 mapResult l
+  v3 <- parseValueFromMap @a @t @v3 3 c3 mapResult l
+  v4 <- parseValueFromMap @a @t @v4 4 c4 mapResult l
+  v5 <- parseValueFromMap @a @t @v5 5 c5 mapResult l
+  v6 <- parseValueFromMap @a @t @v6 6 c6 mapResult l
+  v7 <- parseValueFromMap @a @t @v7 7 c7 mapResult l
+  pure (v1, v2, v3, v4, v5, v6, v7)
+
 -- FIXME should parse Numbers also
 parseValueFromMap ::
   forall a t v.
@@ -183,6 +206,9 @@ zipColumnsWithSynonyms5 (c1, c2, c3, c4, c5) = zipColumns [showColumn c1, showCo
 
 zipColumnsWithSynonyms6 :: T6 (Column a t) v1 v2 v3 v4 v5 v6 -> SubQueryLevel -> String
 zipColumnsWithSynonyms6 (c1, c2, c3, c4, c5, c6) = zipColumns [showColumn c1, showColumn c2, showColumn c3, showColumn c4, showColumn c5, showColumn c6]
+
+zipColumnsWithSynonyms7 :: T7 (Column a t) v1 v2 v3 v4 v5 v6 v7 -> SubQueryLevel -> String
+zipColumnsWithSynonyms7 (c1, c2, c3, c4, c5, c6, c7) = zipColumns [showColumn c1, showColumn c2, showColumn c3, showColumn c4, showColumn c5, showColumn c6, showColumn c7]
 
 zipColumns :: [String] -> SubQueryLevel -> String
 zipColumns columns l = List.intercalate ", " $ zipWith (\n column -> column <> " as " <> getColumnSynonym n l) [1 ..] columns

@@ -60,6 +60,8 @@ data Column (a :: IsAggregated) t v where
   ToDate :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Time.Day) => Column a t DateTime -> Column a t Time.Day -- FIXME create some generic constructor for different clickhouse functions
   ToHour :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Int) => Column a t DateTime -> Column a t Int
   TimeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
+  ToStartOfWeek :: (ClickhouseTable t, ClickhouseValue Time.Day, ClickhouseValue Int) => Column a t Time.Day -> Column a t Int -> Column a t Time.Day
+  ToStartOfMonth :: (ClickhouseTable t, ClickhouseValue Time.Day) => Column a t Time.Day -> Column a t Time.Day
   ValColumn :: (ClickhouseTable t, ClickhouseValue v) => v -> Column a t v
   If :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
   Case :: (ClickhouseTable t, ClickhouseValue v) => NonEmpty (Column a t Bool, Column a t v) -> Column a t v -> Column a t v -- only boolean conditions available for now
@@ -245,6 +247,8 @@ showColumn (Add column1 column2) = addBrackets' (showColumn column1 <> "+" <> sh
 showColumn (CoerceNum column) = showColumn column
 showColumn (ToDate column) = "toDate" <> addBrackets' (showColumn column)
 showColumn (ToHour column) = "toHour" <> addBrackets' (showColumn column)
+showColumn (ToStartOfWeek column1 column2) = "toStartOfWeek" <> addBrackets' (showColumn column1 <> ", " <> showColumn column2)
+showColumn (ToStartOfMonth column) = "toStartOfMonth" <> addBrackets' (showColumn column)
 showColumn (TimeDiff column1 column2) = "timeDiff" <> addBrackets' (showColumn column1 <> ", " <> showColumn column2)
 showColumn (ValColumn v) = valToString . toClickhouseValue $ v
 showColumn (If cond v1 v2) = "if" <> addBrackets' (showColumn cond <> ", " <> showColumn v1 <> ", " <> showColumn v2)
@@ -271,6 +275,8 @@ type T5 (c :: Type -> Type) x1 x2 x3 x4 x5 = (c x1, c x2, c x3, c x4, c x5)
 
 type T6 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 = (c x1, c x2, c x3, c x4, c x5, c x6)
 
+type T7 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7)
+
 type C2 (c :: Type -> Constraint) x1 x2 = (c x1, c x2)
 
 type C3 (c :: Type -> Constraint) x1 x2 x3 = (c x1, c x2, c x3)
@@ -280,6 +286,8 @@ type C4 (c :: Type -> Constraint) x1 x2 x3 x4 = (c x1, c x2, c x3, c x4)
 type C5 (c :: Type -> Constraint) x1 x2 x3 x4 x5 = (c x1, c x2, c x3, c x4, c x5)
 
 type C6 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 = (c x1, c x2, c x3, c x4, c x5, c x6)
+
+type C7 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7)
 
 newtype SubQueryLevel = SubQueryLevel {getSubQueryLevel :: Int}
   deriving newtype (Show, Num, Eq)

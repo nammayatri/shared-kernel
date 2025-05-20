@@ -205,6 +205,12 @@ toDate = ToDate
 toHour :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Int) => Column a t DateTime -> Column a t Int
 toHour = ToHour
 
+toStartOfWeek :: (ClickhouseTable t, ClickhouseValue Time.Day, ClickhouseValue Int) => Column a t Time.Day -> Column a t Int -> Column a t Time.Day
+toStartOfWeek = ToStartOfWeek
+
+toStartOfMonth :: (ClickhouseTable t, ClickhouseValue Time.Day) => Column a t Time.Day -> Column a t Time.Day
+toStartOfMonth = ToStartOfMonth
+
 timeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
 timeDiff = TimeDiff
 
