@@ -110,10 +110,21 @@ data ExtractImageReq = ExtractImageReq
   }
   deriving stock (Show, Generic)
 
+data ExtractAadhaarImageReq = ExtractAadhaarImageReq
+  { image1 :: Text,
+    image2 :: Maybe Text,
+    consent :: Text,
+    driverId :: Text
+  }
+
 newtype ExtractedPanImageResp = ExtractedPanImageResp
   { extractedPan :: Maybe Idfy.PanExtractionOutput
   }
   deriving stock (Show, Generic)
+
+newtype ExtractAadhaarImageRes = ExtractAadhaarImageRes
+  { extractedAadhaar :: Maybe Idfy.AadhaarResult
+  }
 
 newtype ExtractedGSTImageResp = ExtractedGSTImageResp
   { extractedGST :: Maybe Idfy.GSTExtractionOutput

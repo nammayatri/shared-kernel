@@ -21,6 +21,7 @@ module Kernel.External.Verification.Interface.Idfy
     extractDLImage,
     extractPanImage,
     extractGSTImage,
+    extractAadhaarImage,
     getTask,
     convertDLOutputToDLVerificationOutput,
     convertRCOutputToRCVerificationResponse,
@@ -264,6 +265,30 @@ extractGSTImage cfg req = do
   pure
     ExtractedGSTImageResp
       { extractedGST = resp.result >>= (\x -> pure x.extraction_output)
+      }
+
+extractAadhaarImage ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  IdfyCfg ->
+  ExtractAadhaarImageReq ->
+  m ExtractAadhaarImageRes
+extractAadhaarImage cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.AadharVerificationData
+          { document1 = req.image1,
+            document2 = req.image2,
+            consent = req.consent
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  resp <- Idfy.extractAadhaarImage apiKey accountId url idfyReq
+  pure
+    ExtractAadhaarImageRes
+      { extractedAadhaar = resp.result
       }
 
 getTask ::
