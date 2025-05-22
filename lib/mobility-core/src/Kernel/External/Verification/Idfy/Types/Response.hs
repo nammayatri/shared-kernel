@@ -33,6 +33,8 @@ type PanExtractionResponse = IdfyResponse (ExtractionOutput PanExtractionOutput)
 
 type GSTExtractionResponse = IdfyResponse (ExtractionOutput GSTExtractionOutput)
 
+type AadhaarExtractionResponse = IdfyResponse AadhaarResult
+
 type VerificationResponse = IdfyResponse IdfyResult
 
 type VerificationResponseList = [IdfyResponse IdfyResult]
@@ -341,4 +343,69 @@ instance FromJSON GSTExtractionOutput where
   parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
 
 instance ToJSON GSTExtractionOutput where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data AadhaarExtractionOutput = AadhaarExtractionOutput
+  { address :: Maybe Text,
+    date_of_birth :: Maybe Text,
+    district :: Maybe Text,
+    fathers_name :: Maybe Text,
+    gender :: Maybe Text,
+    house_number :: Maybe Text,
+    id_number :: Maybe Text,
+    is_scanned :: Maybe Bool,
+    name_on_card :: Maybe Text,
+    pincode :: Maybe Text,
+    state :: Maybe Text,
+    street_address :: Maybe Text,
+    year_of_birth :: Maybe Text
+  }
+  deriving (Show, Generic)
+
+instance ToSchema AadhaarExtractionOutput where
+  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions stripPrefixUnderscoreIfAny
+
+instance FromJSON AadhaarExtractionOutput where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON AadhaarExtractionOutput where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data AadhaarQROutput = AadhaarQROutput
+  { address :: Maybe Text,
+    date_of_birth :: Maybe Text,
+    district :: Maybe Text,
+    gender :: Maybe Text,
+    house_number :: Maybe Text,
+    id_number :: Maybe Text,
+    name_on_card :: Maybe Text,
+    pincode :: Maybe Text,
+    state :: Maybe Text,
+    street_address :: Maybe Text,
+    year_of_birth :: Maybe Text
+  }
+  deriving (Show, Generic)
+
+instance ToSchema AadhaarQROutput where
+  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions stripPrefixUnderscoreIfAny
+
+instance FromJSON AadhaarQROutput where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON AadhaarQROutput where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data AadhaarResult = AadhaarResult
+  { extraction_output :: AadhaarExtractionOutput,
+    qr_output :: AadhaarQROutput
+  }
+  deriving (Show, Generic)
+
+instance ToSchema AadhaarResult where
+  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions stripPrefixUnderscoreIfAny
+
+instance FromJSON AadhaarResult where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON AadhaarResult where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
