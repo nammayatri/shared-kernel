@@ -20,6 +20,7 @@ module Kernel.External.Verification.Idfy.Client
     extractDLImage,
     extractPanImage,
     extractGSTImage,
+    extractAadhaarImage,
     getTask,
     VerifyDLAPI,
     VerifyRCAPI,
@@ -28,6 +29,7 @@ module Kernel.External.Verification.Idfy.Client
     ExtractPanImage,
     ExtractGSTImage,
     ExtractRCAPI,
+    ExtractAadhaarImage,
   )
 where
 
@@ -239,6 +241,34 @@ extractGSTImage apiKey accountId url req = callIdfyAPI url task "extractGSTImage
     task =
       T.client
         extractGSTAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type ExtractAadhaarImage =
+  "v3" :> "tasks" :> "sync" :> "extract" :> "ind_aadhaar"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] AadharVerificationReqest
+    :> Post '[JSON] AadhaarExtractionResponse
+
+extractAadhaarAPI :: Proxy ExtractAadhaarImage
+extractAadhaarAPI = Proxy
+
+extractAadhaarImage ::
+  ( MonadFlow m,
+    CoreMetrics m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  AadharVerificationReqest ->
+  m AadhaarExtractionResponse
+extractAadhaarImage apiKey accountId url req = callIdfyAPI url task "extractAadhaarImage" extractAadhaarAPI
+  where
+    task =
+      T.client
+        extractAadhaarAPI
         (Just apiKey)
         (Just accountId)
         req

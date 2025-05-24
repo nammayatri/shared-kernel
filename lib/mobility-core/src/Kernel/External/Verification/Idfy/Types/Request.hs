@@ -29,6 +29,8 @@ type ImageExtractRequest = IdfyRequest ExtractRequest
 
 type DLVerificationRequest = IdfyRequest DLVerificationData
 
+type AadharVerificationReqest = IdfyRequest AadharVerificationData
+
 type RCVerificationRequest = IdfyRequest RCVerificationData
 
 data IdfyRequest a = IdfyRequest
@@ -71,4 +73,11 @@ data DLVerificationData = DLVerificationData
 -- RC verification request
 data RCVerificationData = RCVerificationData
   {rc_number :: Text, _a :: Maybe Text}
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data AadharVerificationData = AadharVerificationData
+  { document1 :: Text,
+    document2 :: Maybe Text,
+    consent :: Text
+  }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
