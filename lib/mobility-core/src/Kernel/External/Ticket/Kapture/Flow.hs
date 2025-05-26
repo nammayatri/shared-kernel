@@ -15,6 +15,8 @@
 module Kernel.External.Ticket.Kapture.Flow
   ( createTicketAPI,
     updateTicketAPI,
+    addAndUpdateKaptureCustomer,
+    kaptureEncryption,
   )
 where
 
@@ -70,3 +72,37 @@ updateTicketAPI url version auth req = do
   let eulerClient = Euler.client (Proxy @KaptureUpdateTicketAPI)
   callAPI url (eulerClient version (Just auth) (Just auth) (Just "TICKET") req) "updateTicketAPI" (Proxy @KaptureUpdateTicketAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call update ticket API: " <> show err)
+
+type AddAndUpdateKaptureCustomerAPI =
+  "add-update-customer-from-other-source.html"
+    :> Header "Authorization" Text
+    :> ReqBody '[JSON] [Kapture.KaptureCustomerReq]
+    :> Post '[JSON] Kapture.KaptureCustomerResp
+
+addAndUpdateKaptureCustomer ::
+  (Metrics.CoreMetrics m, MonadFlow m) =>
+  BaseUrl ->
+  Text ->
+  Kapture.KaptureCustomerReq ->
+  m Kapture.KaptureCustomerResp
+addAndUpdateKaptureCustomer url apiKey req = do
+  let eulerClient = Euler.client (Proxy @AddAndUpdateKaptureCustomerAPI) (Just apiKey) [req]
+  callAPI url eulerClient "add-and-update-kapture-customer" (Proxy @AddAndUpdateKaptureCustomerAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call add and update kapture customer API: " <> show err)
+
+type KaptureEncryptionAPI =
+  "customer-code-encryption"
+    :> QueryParam "customer_code" Text
+    :> QueryParam "encryption_key" Text
+    :> Get '[JSON] Kapture.KaptureEncryptionResp
+
+kaptureEncryption ::
+  (Metrics.CoreMetrics m, MonadFlow m) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  m Kapture.KaptureEncryptionResp
+kaptureEncryption url customerCode encryptionKey = do
+  let eulerClient = Euler.client (Proxy @KaptureEncryptionAPI) (Just customerCode) (Just encryptionKey)
+  callAPI url eulerClient "kapture-encryption" (Proxy @KaptureEncryptionAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call kapture encryption API: " <> show err)

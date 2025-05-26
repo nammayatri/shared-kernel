@@ -172,3 +172,53 @@ instance FromJSON TicketDetails where
 
 instance ToJSON TicketDetails where
   toJSON = genericToJSON constructorsWithLowerCase
+
+data KaptureCustomerReq = KaptureCustomerReq
+  { customerId :: Text,
+    name :: Text,
+    phone :: Text,
+    email :: Text,
+    customerCode :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance ToJSON KaptureCustomerReq where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+data KaptureCustomerResp = KaptureCustomerResp
+  { message :: Text,
+    status :: Text,
+    kaptureCustomerId :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON KaptureCustomerResp where
+  parseJSON = withObject "KaptureCustomerResp" $ \v ->
+    KaptureCustomerResp
+      <$> v .: "message"
+      <*> v .: "status"
+      <*> v .: "Kapture Customer Id"
+
+instance ToJSON KaptureCustomerResp where
+  toJSON (KaptureCustomerResp message status kaptureCustomerId) =
+    object
+      [ "message" .= message,
+        "status" .= status,
+        "Kapture Customer Id" .= kaptureCustomerId
+      ]
+
+data KaptureEncryptionResp = KaptureEncryptionResp
+  { success :: Bool,
+    encrytedCc :: Text,
+    encryptedIv :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON KaptureEncryptionResp where
+  parseJSON = genericParseJSON constructorsWithSnakeCase
+
+instance ToJSON KaptureEncryptionResp where
+  toJSON = genericToJSON constructorsWithSnakeCase
