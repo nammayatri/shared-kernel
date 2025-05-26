@@ -20,6 +20,8 @@ import Kernel.Prelude
 data KaptureCfg = KaptureCfg
   { auth :: EncryptedField 'AsEncrypted Text,
     version :: Text,
-    url :: BaseUrl
+    url :: BaseUrl,
+    encryptionUrl :: Maybe BaseUrl,
+    encryptionKey :: Maybe (EncryptedField 'AsEncrypted Text)
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

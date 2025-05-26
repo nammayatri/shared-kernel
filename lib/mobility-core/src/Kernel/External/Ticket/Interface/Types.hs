@@ -20,7 +20,7 @@ where
 
 import Deriving.Aeson
 import Kernel.External.Ticket.Kapture.Config as Kapture
-import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), UpdateTicketResp (..))
+import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), KaptureCustomerResp (..), KaptureEncryptionResp (..), UpdateTicketResp (..))
 import Kernel.External.Ticket.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
@@ -96,3 +96,17 @@ data SubStatus = OP | IN | RS | PE | CL | CRS
 -- PENDING EXTERNAL	PE
 -- CLOSED	          CL
 -- REOPENED         CRS
+
+data KaptureCustomerReq = KaptureCustomerReq
+  { customerId :: Text,
+    name :: Text,
+    phone :: Text,
+    email :: Text,
+    customerCode :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data KaptureEncryptionReq = KaptureEncryptionReq
+  { customerCode :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
