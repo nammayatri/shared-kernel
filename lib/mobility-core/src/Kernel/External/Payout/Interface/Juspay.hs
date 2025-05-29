@@ -48,15 +48,15 @@ createPayoutOrder ::
     HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   JuspayConfig ->
+  Maybe Text ->
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
-createPayoutOrder config req = do
+createPayoutOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = Just req.customerId
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreatePayoutOrderReq req
-  mkCreatePayoutOrderResp <$> Juspay.createPayoutOrder url apiKey merchantId routingId orderReq
+  mkCreatePayoutOrderResp <$> Juspay.createPayoutOrder url apiKey merchantId mRoutingId orderReq
   where
     mkCreatePayoutOrderReq CreatePayoutOrderReq {..} = do
       webhookDetails <- case isDynamicWebhookRequired of
@@ -131,12 +131,11 @@ payoutOrderStatus ::
   Maybe Text ->
   Maybe Expand ->
   m PayoutOrderStatusResp
-payoutOrderStatus config orderId' personId mbExpand = do
+payoutOrderStatus config orderId' mRoutingId mbExpand = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = personId
   apiKey <- decrypt config.apiKey
-  mkPayoutOrderStatusResp <$> Juspay.payoutOrderStatus url apiKey merchantId routingId orderId' mbExpand
+  mkPayoutOrderStatusResp <$> Juspay.payoutOrderStatus url apiKey merchantId mRoutingId orderId' mbExpand
   where
     mkPayoutOrderStatusResp Payout.PayoutOrderResp {..} = do
       CreatePayoutOrderResp
