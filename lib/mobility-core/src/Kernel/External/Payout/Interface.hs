@@ -20,6 +20,7 @@ where
 import qualified Kernel.External.Payout.Interface.Juspay as Juspay
 import Kernel.External.Payout.Interface.Types as Reexport
 import Kernel.External.Payout.Types as Reexport
+import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common
 
@@ -29,17 +30,19 @@ createPayoutOrder ::
     HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   PayoutServiceConfig ->
+  Maybe Text ->
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
-createPayoutOrder serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.createPayoutOrder cfg req
+createPayoutOrder serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.createPayoutOrder cfg mRoutingId req
 
 payoutOrderStatus ::
   ( EncFlow m r,
     CoreMetrics m
   ) =>
   PayoutServiceConfig ->
+  Maybe Text ->
   PayoutOrderStatusReq ->
   m PayoutOrderStatusResp
-payoutOrderStatus serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req.orderId req.personId req.mbExpand
+payoutOrderStatus serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req.orderId mRoutingId req.mbExpand
