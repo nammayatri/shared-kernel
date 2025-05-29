@@ -28,7 +28,6 @@ module Kernel.Beam.Functions
     deleteWithDb, -- not used
     findAllWithKVAndConditionalDB,
     findOneWithKVRedis,
-    logQueryData,
     findAllFromKvRedis,
     createWithKVWithOptions,
     createWithKVSchedulerWithOptions,
@@ -42,7 +41,6 @@ module Kernel.Beam.Functions
 where
 
 import Data.Aeson
-import Data.Default.Class
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Serialize as Serialize
 import Database.Beam hiding (timestamp)
@@ -58,7 +56,6 @@ import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
-import qualified Kernel.Tools.ARTUtils as A
 import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Types.Common
 import Kernel.Types.Error
@@ -719,23 +716,3 @@ deleteInternal updatedMeshConfig whereClause = runInMasterRedis $ do
         then logDebug $ "Deleted rows in KV: " <> show res
         else logDebug $ "Deleted rows in DB: " <> show res
     Left err -> throwError $ InternalError $ show err
-
-logQueryData ::
-  (MonadFlow m, EsqDBFlow m r) =>
-  Text ->
-  Text ->
-  Text ->
-  Text ->
-  Bool ->
-  Text ->
-  m ()
-logQueryData queryType whereClause setClause tableObject kvEnabled table = do
-  shouldLogRequestId <- asks (.shouldLogRequestId)
-  timestamp <- getCurrentTime
-  when shouldLogRequestId $
-    fork "ArtData" $ do
-      kafkaConn <- L.getOption KBT.KafkaConn
-      requestId <- fromMaybe "" <$> asks (.requestId)
-      let queryData = A.QueryData {..}
-      handle (\(e :: SomeException) -> L.logError ("ART_QUERY_LOG_FAILED" :: Text) $ "Error while logging query data: " <> show e) $ do
-        liftIO $ A.pushToKafka kafkaConn (encode def {A.requestId = requestId, A.queryData = Just queryData, A.timestamp = Just timestamp}) "ART-Logs" requestId
