@@ -32,12 +32,13 @@ createOrder ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   CreateOrderReq ->
   m CreateOrderResp
-createOrder serviceConfig req = case serviceConfig of
+createOrder serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> do
     let req' = req {metadataGatewayReferenceId = cfg.gatewayReferenceId}
-    Juspay.createOrder cfg req'
+    Juspay.createOrder cfg mRoutingId req'
   StripeConfig _ -> throwError $ InternalError "Stripe Create Order not supported."
 
 orderStatus ::
@@ -45,10 +46,11 @@ orderStatus ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   OrderStatusReq ->
   m OrderStatusResp
-orderStatus serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.orderStatus cfg req
+orderStatus serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.orderStatus cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Order Status not supported."
 
 updateOrder ::
@@ -56,10 +58,11 @@ updateOrder ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   OrderUpdateReq ->
   m OrderUpdateResp
-updateOrder serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.updateOrder cfg req
+updateOrder serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.updateOrder cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Update Order not supported."
 
 offerList ::
@@ -67,10 +70,11 @@ offerList ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   OfferListReq ->
   m OfferListResp
-offerList serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.offerList cfg req
+offerList serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.offerList cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Offer List not supported."
 
 offerApply ::
@@ -78,10 +82,11 @@ offerApply ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   OfferApplyReq ->
   m OfferApplyResp
-offerApply serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.offerApply cfg req
+offerApply serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.offerApply cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Offer Apply not supported."
 
 offerNotify ::
@@ -89,10 +94,11 @@ offerNotify ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   OfferNotifyReq ->
   m OfferNotifyResp
-offerNotify serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.offerNotify cfg req
+offerNotify serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.offerNotify cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Offer Notify not supported."
 
 mandateRevoke ::
@@ -100,10 +106,11 @@ mandateRevoke ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   MandateRevokeReq ->
   m MandateRevokeRes
-mandateRevoke serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.mandateRevoke cfg req
+mandateRevoke serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.mandateRevoke cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Revoke not supported."
 
 mandateNotification ::
@@ -111,10 +118,11 @@ mandateNotification ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   MandateNotificationReq ->
   m MandateNotificationRes
-mandateNotification serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.mandateNotification cfg req
+mandateNotification serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.mandateNotification cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Notification not supported."
 
 mandateNotificationStatus ::
@@ -122,10 +130,11 @@ mandateNotificationStatus ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   NotificationStatusReq ->
   m NotificationStatusResp
-mandateNotificationStatus serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.mandateNotificationStatus cfg req
+mandateNotificationStatus serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.mandateNotificationStatus cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Notification Status not supported."
 
 mandateExecution ::
@@ -133,10 +142,11 @@ mandateExecution ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   MandateExecutionReq ->
   m MandateExecutionRes
-mandateExecution serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.mandateExecution cfg req
+mandateExecution serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.mandateExecution cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Execution not supported."
 
 autoRefunds ::
@@ -144,10 +154,11 @@ autoRefunds ::
     CoreMetrics m
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   AutoRefundReq ->
   m AutoRefundResp
-autoRefunds serviceConfig req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.autoRefund cfg req
+autoRefunds serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.autoRefund cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Auto Refunds not supported."
 
 createIndividualConnectAccount ::
@@ -337,10 +348,11 @@ verifyVPA ::
     EncFlow m r
   ) =>
   PaymentServiceConfig ->
+  Maybe Text ->
   VerifyVPAReq ->
   m VerifyVPAResp
-verifyVPA config req = case config of
-  JuspayConfig cfg -> Juspay.verifyVPA cfg req
+verifyVPA config mRoutingId req = case config of
+  JuspayConfig cfg -> Juspay.verifyVPA cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Verify VPA not supported."
 
 isSplitEnabled :: PaymentServiceConfig -> Bool

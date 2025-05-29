@@ -136,6 +136,7 @@ type OrderUpdateAPI =
     :> Capture "orderId" Text
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
+    :> Header "x-routing-id" Text
     :> ReqBody '[FormUrlEncoded] OrderUpdateReq
     :> Post '[JSON] OrderUpdateResp
 
@@ -147,11 +148,12 @@ updateOrder ::
   Text ->
   Text ->
   Text ->
+  Maybe Text ->
   OrderUpdateReq ->
   m OrderUpdateResp
-updateOrder url apiKey merchantId orderId req = do
+updateOrder url apiKey merchantId orderId mRoutingId req = do
   let proxy = Proxy @OrderUpdateAPI
-      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) req
+      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) mRoutingId req
   callJuspayAPI url eulerClient "update-order" proxy
 
 type OfferListAPI =
@@ -413,6 +415,8 @@ type AutoRefundAPI =
     :> Capture "orderId" Text
     :> "refunds"
     :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> Header "x-routing-id" Text
     :> ReqBody '[JSON] AutoRefundReq
     :> Post '[JSON] AutoRefundResp
 
@@ -423,16 +427,18 @@ autoRefund ::
   BaseUrl ->
   Text ->
   Text ->
+  Text ->
+  Maybe Text ->
   AutoRefundReq ->
   m AutoRefundResp
-autoRefund url apiKey orderId req = do
+autoRefund url apiKey orderId merchantId mRoutingId req = do
   let eulerClient = Euler.client (Proxy @AutoRefundAPI)
   let basicAuthData =
         BasicAuthData
           { basicAuthUsername = DT.encodeUtf8 apiKey,
             basicAuthPassword = ""
           }
-  callAPI url (eulerClient orderId basicAuthData req) "order-refund" (Proxy @AutoRefundAPI)
+  callAPI url (eulerClient orderId basicAuthData (Just merchantId) mRoutingId req) "order-refund" (Proxy @AutoRefundAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call order refund API: " <> show err)
 
 type VerifyVPAAPI =

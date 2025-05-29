@@ -94,8 +94,7 @@ instance ToHttpApiData Expand where
 
 data PayoutOrderStatusReq = PayoutOrderStatusReq
   { orderId :: Text,
-    mbExpand :: Maybe Expand,
-    personId :: Maybe Text
+    mbExpand :: Maybe Expand
   }
   deriving (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
