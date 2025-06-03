@@ -386,7 +386,7 @@ createApnsLiveActivtyPayload receipentToken apnsReq apnsReqTimeStamp =
       apnsContentState = apnsReq.liveActivityContentState
       apnsReqDismissalDate = case apnsReq.liveActivityReqType of
         "end" -> Just $ apnsReqTimeStamp + 600
-        _ -> Nothing
+        _ -> Just $ apnsReqTimeStamp
       liveActivityApnsPriority = apnsReq.liveActivityApnsPriority
       apnsPayload' =
         ApnsAPIRequest
