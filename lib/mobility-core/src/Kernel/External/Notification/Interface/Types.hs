@@ -113,6 +113,7 @@ data Category
   | SAFETY_ALERT_RIDE_STOPPAGE
   | EKD_LIVE_CALL_FEEDBACK
   | DRUNK_AND_DRIVE_VIOLATION_WARNING
+  | SAFETY_ALERT_RIDE_STOPPAGE_FOR_DRIVER
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
