@@ -108,8 +108,13 @@ addAndUpdateKaptureCustomer ::
   IT.KaptureCustomerReq ->
   m Kapture.KaptureCustomerResp
 addAndUpdateKaptureCustomer config req = do
-  auth <- decrypt config.auth
-  KF.addAndUpdateKaptureCustomer config.url auth (mkKaptureCustomerReq req)
+  maybe
+    (throwError $ InternalError "Kapture API key is not configured")
+    ( \apiKey -> do
+        apiKey' <- decrypt apiKey
+        KF.addAndUpdateKaptureCustomer config.url apiKey' (mkKaptureCustomerReq req)
+    )
+    config.apiKey
   where
     mkKaptureCustomerReq IT.KaptureCustomerReq {..} = Kapture.KaptureCustomerReq {..}
 

@@ -969,14 +969,53 @@ geoSearch ::
   m [BS.ByteString]
 geoSearch key from by = withLogTag "Redis" $ do
   migrating <- asks (.hedisMigrationStage)
-  when migrating $ do
-    res <- withTimeRedis "RedisStandalone" "geosearch" $ try @_ @SomeException (runWithPrefix'_ key $ \prefKey -> Hedis.geosearch prefKey from by)
-    case res of
-      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_GEOSEARCH" $ show err
-      Right items -> pure items
-  res <- withTimeRedis "RedisCluster" "geosearch" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.geosearch prefKey from by)
-  case res of
-    Left err -> do
-      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_GEOSEARCH" $ show err
-      pure [] -- Return an empty list if there was an error
-    Right items -> pure items
+  if migrating
+    then do
+      res <- withTimeRedis "RedisStandalone" "geosearch" $ try @_ @SomeException (runWithPrefix' key $ \prefKey -> Hedis.geosearch prefKey from by)
+      case res of
+        Left err -> do
+          withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_GEOSEARCH" $ show err
+          pure []
+        Right items -> pure items
+    else do
+      res <- withTimeRedis "RedisCluster" "geosearch" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.geosearch prefKey from by)
+      case res of
+        Left err -> do
+          withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_GEOSEARCH" $ show err
+          pure [] -- Return an empty list if there was an error
+        Right items -> pure items
+
+geoSearchDecoded ::
+  (FromJSON a, HedisFlow m env) =>
+  Text ->
+  -- | Search origin: either a member or coordinates.
+  Hedis.GeoFrom ->
+  -- | Search shape: radius or bounding box.
+  Hedis.GeoBy ->
+  -- | Search results.
+  m [a]
+geoSearchDecoded key from by = withLogTag "Redis" $ do
+  let decodeGeoItems :: (FromJSON a, HedisFlow m env) => [BS.ByteString] -> m [a]
+      decodeGeoItems = mapM (\a -> Error.fromMaybeM (HedisDecodeError $ cs a) . Ae.decode $ cs a)
+  migrating <- asks (.hedisMigrationStage)
+  if migrating
+    then do
+      res <- withTimeRedis "RedisStandalone" "geosearch" $ try @_ @SomeException (runWithPrefix' key $ \prefKey -> Hedis.geosearch prefKey from by)
+      case res of
+        Left err -> do
+          withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_GEOSEARCH" $ show err
+          pure []
+        Right items -> decodeGeoItems items
+    else do
+      res <- withTimeRedis "RedisCluster" "geosearch" $ try @_ @SomeException (runWithPrefix key $ \prefKey -> Hedis.geosearch prefKey from by)
+      case res of
+        Left err -> do
+          withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_GEOSEARCH" $ show err
+          pure [] -- Return an empty list if there was an error
+        Right items -> decodeGeoItems items
+
+setTtlIfNone :: (HedisFlow m env) => Text -> ExpirationTime -> m ()
+setTtlIfNone key secs = do
+  current <- ttl key
+  when (current < 0) $
+    expire key secs
