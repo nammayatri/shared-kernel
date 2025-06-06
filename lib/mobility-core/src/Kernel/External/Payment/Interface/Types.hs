@@ -78,29 +78,28 @@ data CreateOrderReq = CreateOrderReq
 data Split = Split
   { amount :: HighPrecMoney,
     merchantCommission :: HighPrecMoney,
-    subMid :: Text,
-    uniqueSplitId :: Maybe Text
+    subMid :: Text
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+  deriving stock (Show, Eq, Generic)
 
 newtype Vendor = Vendor
   { split :: [Split]
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+  deriving stock (Show, Eq, Generic)
 
 data SplitSettlementDetails = SplitSettlementDetails
   { marketplace :: Marketplace,
     mdrBorneBy :: MBY,
     vendor :: Vendor
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+  deriving stock (Show, Eq, Generic)
 
-data MBY = MARKETPLACE | VENDOR | ALL deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+data MBY = MARKETPLACE | VENDOR | ALL deriving stock (Show, Eq, Generic)
 
 newtype Marketplace = Marketplace
   { amount :: HighPrecMoney
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+  deriving stock (Show, Eq, Generic)
 
 newtype OrderStatusReq = OrderStatusReq
   { orderShortId :: Text
@@ -537,8 +536,7 @@ data CreateCustomerResp = CreateCustomerResp
 
 data OrderUpdateReq = OrderUpdateReq
   { amount :: HighPrecMoney,
-    orderShortId :: Text,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    orderShortId :: Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
