@@ -189,7 +189,9 @@ convertGoogleToGeneric gResponse =
               fromDepartureTime = fromDepartureTime',
               toArrivalTime = toArrivalTime',
               toDepartureTime = toDepartureTime',
-              routeDetails = []
+              routeDetails = [],
+              entrance = Nothing,
+              exit = Nothing
             } :
           genericLegs
     mergeWalkingLegs :: [MultiModalLeg] -> [MultiModalLeg]
@@ -230,7 +232,9 @@ convertGoogleToGeneric gResponse =
               fromDepartureTime = leg1.fromDepartureTime,
               toArrivalTime = leg2.toArrivalTime,
               toDepartureTime = leg2.toDepartureTime,
-              routeDetails = leg1.routeDetails
+              routeDetails = leg1.routeDetails,
+              entrance = leg1.entrance,
+              exit = leg2.exit
             }
     adjustWalkingLegs :: [MultiModalLeg] -> [MultiModalLeg]
     adjustWalkingLegs [] = []
@@ -455,7 +459,9 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                   fromArrivalTime = min <$> leg1.fromArrivalTime <*> leg2.fromArrivalTime,
                   fromDepartureTime = min <$> leg1.fromDepartureTime <*> leg2.fromDepartureTime,
                   toArrivalTime = max <$> leg1.toArrivalTime <*> leg2.toArrivalTime,
-                  toDepartureTime = max <$> leg1.toDepartureTime <*> leg2.toDepartureTime
+                  toDepartureTime = max <$> leg1.toDepartureTime <*> leg2.toDepartureTime,
+                  entrance = leg1.entrance,
+                  exit = leg2.exit
                 }
          in mergeMetroLegs (mergedLeg : rest) -- Add merged leg and continue
       | otherwise = leg1 : mergeMetroLegs (leg2 : rest) -- Keep leg1, process the rest
@@ -628,7 +634,9 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                     fromArrivalTime = fromArrivalTime',
                     fromDepartureTime = fromDepartureTime',
                     toArrivalTime = toArrivalTime',
-                    toDepartureTime = toDepartureTime'
+                    toDepartureTime = toDepartureTime',
+                    entrance = (maybeEntranceToGate otpLeg'.entrance),
+                    exit = (maybeExitToGate otpLeg'.exit)
                   }
            in (leg : genericLegs, genericDistance + distance, newFreqMap)
 
@@ -680,3 +688,39 @@ gtfsIdtoDomainCode :: Text -> Text
 gtfsIdtoDomainCode gtfsId = case break (== ':') $ T.unpack gtfsId of
   (_, ':' : code) -> T.pack code
   _ -> gtfsId
+
+maybeEntranceToGate :: Maybe OTP.OTPPlanPlanItinerariesLegsEntrance -> Maybe MultiModalLegGate
+maybeEntranceToGate Nothing = Nothing
+maybeEntranceToGate (Just entrance) =
+  Just $
+    MultiModalLegGate
+      { distance = entrance.distance,
+        lon = entrance.lon,
+        lat = entrance.lat,
+        isEntrance = True, -- Mark as entrance
+        absoluteDirection = entrance.absoluteDirection,
+        streetName = entrance.streetName,
+        exit = entrance.exit,
+        stayOn = entrance.stayOn,
+        area = entrance.area,
+        bogusName = entrance.bogusName,
+        walkingBike = entrance.walkingBike
+      }
+
+maybeExitToGate :: Maybe OTP.OTPPlanPlanItinerariesLegsExit -> Maybe MultiModalLegGate
+maybeExitToGate Nothing = Nothing
+maybeExitToGate (Just exit) =
+  Just $
+    MultiModalLegGate
+      { distance = exit.distance,
+        lon = exit.lon,
+        lat = exit.lat,
+        isEntrance = False, -- Mark as exit
+        absoluteDirection = exit.absoluteDirection,
+        streetName = exit.streetName,
+        exit = exit.exit,
+        stayOn = exit.stayOn,
+        area = exit.area,
+        bogusName = exit.bogusName,
+        walkingBike = exit.walkingBike
+      }
