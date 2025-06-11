@@ -26,7 +26,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time as Time
 import Kernel.Prelude
-import Kernel.Types.Common (Centesimal, Currency, HighPrecMeters, HighPrecMoney)
+import Kernel.Types.Common (Centesimal, Currency, HighPrecMeters, HighPrecMoney, Meters)
 import Kernel.Types.Id
 import qualified Text.Read as T
 
@@ -68,6 +68,9 @@ instance ClickhouseValue Double where
 instance ClickhouseValue Centesimal where
   fromClickhouseValue = parseAsStringOrNumber @Centesimal
 
+instance ClickhouseValue Meters where
+  fromClickhouseValue = parseAsStringOrNumber @Meters
+
 -- TODO create type safe wrapper CString Int in case of we have string on clickhouse side
 instance ClickhouseValue Int where
   fromClickhouseValue = parseAsStringOrNumber @Int
@@ -90,6 +93,8 @@ parseAsNumber :: forall a. (Num a, FromJSON a) => Sci.Scientific -> Except a
 parseAsNumber = Except . eitherResult . A.fromJSON @a . A.Number
 
 instance ClickhouseValue Bool where
+  toClickhouseValue True = Number 1
+  toClickhouseValue False = Number 0
   fromClickhouseValue (String "1") = pure True
   fromClickhouseValue (String "0") = pure False
   fromClickhouseValue (String "True") = pure True
@@ -161,7 +166,9 @@ eitherResult (A.Success a) = Right a
 
 valToString :: Value value -> String
 valToString (String str) = addQuotes $ str
-valToString (Number num) = show num
+valToString (Number num)
+  | Sci.isInteger num = show (Sci.coefficient num)
+  | otherwise = show num
 valToString Null = "null"
 
 addQuotes :: String -> String
