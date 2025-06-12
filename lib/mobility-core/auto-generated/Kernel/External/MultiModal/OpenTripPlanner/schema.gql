@@ -42,10 +42,26 @@ enum Mode {
     MONORAIL
 }
 
+type step {
+    distance: Float
+    lon: Float
+    lat: Float
+    relativeDirection: RelativeDirection
+    absoluteDirection: AbsoluteDirection
+    streetName: String
+    exit: String
+    stayOn: Boolean
+    area: Boolean
+    bogusName: Boolean
+    walkingBike: Boolean
+}
+
 type Leg {
   distance: Float
   duration: Float
   legGeometry: Geometry
+  entrance: step
+  exit: step
   mode: Mode
   startTime: Float
   pickupType: String
@@ -101,6 +117,36 @@ type Stop {
   gtfsId: String!
   code: String
   platformCode: String
+}
+
+enum RelativeDirection {
+  DEPART
+  HARD_LEFT
+  LEFT
+  SLIGHTLY_LEFT
+  CONTINUE
+  SLIGHTLY_RIGHT
+  RIGHT
+  HARD_RIGHT
+  CIRCLE_CLOCKWISE
+  CIRCLE_COUNTERCLOCKWISE
+  ELEVATOR
+  UTURN_LEFT
+  UTURN_RIGHT
+  ENTER_STATION
+  EXIT_STATION
+  FOLLOW_SIGNS
+}
+
+enum AbsoluteDirection {
+  NORTH
+  NORTHEAST
+  EAST
+  SOUTHEAST
+  SOUTH
+  SOUTHWEST
+  WEST
+  NORTHWEST
 }
 
 type Query {

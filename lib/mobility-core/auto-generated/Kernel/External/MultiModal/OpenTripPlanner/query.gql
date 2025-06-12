@@ -22,6 +22,32 @@ query OTPPlan (
         pickupType
         distance
         mode
+        entrance {
+          distance
+          lon
+          lat
+          relativeDirection
+          absoluteDirection
+          streetName
+          exit
+          stayOn
+          area
+          bogusName
+          walkingBike
+        }
+        exit {
+          distance
+          lon
+          lat
+          relativeDirection
+          absoluteDirection
+          streetName
+          exit
+          stayOn
+          area
+          bogusName
+          walkingBike
+        }
         duration
         startTime
         endTime

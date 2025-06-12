@@ -94,9 +94,26 @@ data MultiModalLeg = MultiModalLeg
     fromArrivalTime :: Maybe UTCTime,
     fromDepartureTime :: Maybe UTCTime,
     toArrivalTime :: Maybe UTCTime,
-    toDepartureTime :: Maybe UTCTime
+    toDepartureTime :: Maybe UTCTime,
+    entrance :: Maybe MultiModalLegGate,
+    exit :: Maybe MultiModalLegGate
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data MultiModalLegGate = MultiModalLegGate
+  { distance :: Maybe Double,
+    lon :: Maybe Double,
+    lat :: Maybe Double,
+    isEntrance :: Bool,
+    absoluteDirection :: Maybe OTPTypes.AbsoluteDirection,
+    streetName :: Maybe String,
+    exit :: Maybe String,
+    stayOn :: Maybe Bool,
+    area :: Maybe Bool,
+    bogusName :: Maybe Bool,
+    walkingBike :: Maybe Bool
+  }
+  deriving (Generic, Show, Eq, ToSchema, FromJSON, ToJSON)
 
 data MultiModalServiceConfig = GoogleTransitConfig Google.GoogleCfg | OTPTransitConfig OTP.OTPCfg
   deriving stock (Show, Eq, Generic)

@@ -12,6 +12,40 @@ import EulerHS.Prelude hiding (id, product)
 import Kernel.Prelude (ToSchema)
 import Prelude (Show (..))
 
+data AbsoluteDirection
+  = AbsoluteDirectionNORTH
+  | AbsoluteDirectionNORTHEAST
+  | AbsoluteDirectionEAST
+  | AbsoluteDirectionSOUTHEAST
+  | AbsoluteDirectionSOUTH
+  | AbsoluteDirectionSOUTHWEST
+  | AbsoluteDirectionWEST
+  | AbsoluteDirectionNORTHWEST
+  deriving (Generic, Show, Eq, ToSchema)
+
+instance FromJSON AbsoluteDirection where
+  parseJSON = \case
+    "NORTH" -> pure AbsoluteDirectionNORTH
+    "NORTHEAST" -> pure AbsoluteDirectionNORTHEAST
+    "EAST" -> pure AbsoluteDirectionEAST
+    "SOUTHEAST" -> pure AbsoluteDirectionSOUTHEAST
+    "SOUTH" -> pure AbsoluteDirectionSOUTH
+    "SOUTHWEST" -> pure AbsoluteDirectionSOUTHWEST
+    "WEST" -> pure AbsoluteDirectionWEST
+    "NORTHWEST" -> pure AbsoluteDirectionNORTHWEST
+    v -> invalidConstructorError v
+
+instance ToJSON AbsoluteDirection where
+  toJSON = \case
+    AbsoluteDirectionNORTH -> "NORTH"
+    AbsoluteDirectionNORTHEAST -> "NORTHEAST"
+    AbsoluteDirectionEAST -> "EAST"
+    AbsoluteDirectionSOUTHEAST -> "SOUTHEAST"
+    AbsoluteDirectionSOUTH -> "SOUTH"
+    AbsoluteDirectionSOUTHWEST -> "SOUTHWEST"
+    AbsoluteDirectionWEST -> "WEST"
+    AbsoluteDirectionNORTHWEST -> "NORTHWEST"
+
 data InputCoordinates = InputCoordinates
   { lat :: Double,
     lon :: Double
@@ -118,6 +152,64 @@ instance ToJSON Mode where
     ModeTROLLEYBUS -> "TROLLEYBUS"
     ModeMONORAIL -> "MONORAIL"
 
+data RelativeDirection
+  = RelativeDirectionDEPART
+  | RelativeDirectionHARD_LEFT
+  | RelativeDirectionLEFT
+  | RelativeDirectionSLIGHTLY_LEFT
+  | RelativeDirectionCONTINUE
+  | RelativeDirectionSLIGHTLY_RIGHT
+  | RelativeDirectionRIGHT
+  | RelativeDirectionHARD_RIGHT
+  | RelativeDirectionCIRCLE_CLOCKWISE
+  | RelativeDirectionCIRCLE_COUNTERCLOCKWISE
+  | RelativeDirectionELEVATOR
+  | RelativeDirectionUTURN_LEFT
+  | RelativeDirectionUTURN_RIGHT
+  | RelativeDirectionENTER_STATION
+  | RelativeDirectionEXIT_STATION
+  | RelativeDirectionFOLLOW_SIGNS
+  deriving (Generic, Show, Eq)
+
+instance FromJSON RelativeDirection where
+  parseJSON = \case
+    "DEPART" -> pure RelativeDirectionDEPART
+    "HARD_LEFT" -> pure RelativeDirectionHARD_LEFT
+    "LEFT" -> pure RelativeDirectionLEFT
+    "SLIGHTLY_LEFT" -> pure RelativeDirectionSLIGHTLY_LEFT
+    "CONTINUE" -> pure RelativeDirectionCONTINUE
+    "SLIGHTLY_RIGHT" -> pure RelativeDirectionSLIGHTLY_RIGHT
+    "RIGHT" -> pure RelativeDirectionRIGHT
+    "HARD_RIGHT" -> pure RelativeDirectionHARD_RIGHT
+    "CIRCLE_CLOCKWISE" -> pure RelativeDirectionCIRCLE_CLOCKWISE
+    "CIRCLE_COUNTERCLOCKWISE" -> pure RelativeDirectionCIRCLE_COUNTERCLOCKWISE
+    "ELEVATOR" -> pure RelativeDirectionELEVATOR
+    "UTURN_LEFT" -> pure RelativeDirectionUTURN_LEFT
+    "UTURN_RIGHT" -> pure RelativeDirectionUTURN_RIGHT
+    "ENTER_STATION" -> pure RelativeDirectionENTER_STATION
+    "EXIT_STATION" -> pure RelativeDirectionEXIT_STATION
+    "FOLLOW_SIGNS" -> pure RelativeDirectionFOLLOW_SIGNS
+    v -> invalidConstructorError v
+
+instance ToJSON RelativeDirection where
+  toJSON = \case
+    RelativeDirectionDEPART -> "DEPART"
+    RelativeDirectionHARD_LEFT -> "HARD_LEFT"
+    RelativeDirectionLEFT -> "LEFT"
+    RelativeDirectionSLIGHTLY_LEFT -> "SLIGHTLY_LEFT"
+    RelativeDirectionCONTINUE -> "CONTINUE"
+    RelativeDirectionSLIGHTLY_RIGHT -> "SLIGHTLY_RIGHT"
+    RelativeDirectionRIGHT -> "RIGHT"
+    RelativeDirectionHARD_RIGHT -> "HARD_RIGHT"
+    RelativeDirectionCIRCLE_CLOCKWISE -> "CIRCLE_CLOCKWISE"
+    RelativeDirectionCIRCLE_COUNTERCLOCKWISE -> "CIRCLE_COUNTERCLOCKWISE"
+    RelativeDirectionELEVATOR -> "ELEVATOR"
+    RelativeDirectionUTURN_LEFT -> "UTURN_LEFT"
+    RelativeDirectionUTURN_RIGHT -> "UTURN_RIGHT"
+    RelativeDirectionENTER_STATION -> "ENTER_STATION"
+    RelativeDirectionEXIT_STATION -> "EXIT_STATION"
+    RelativeDirectionFOLLOW_SIGNS -> "FOLLOW_SIGNS"
+
 newtype TransportMode = TransportMode
   { mode :: String
   }
@@ -169,6 +261,8 @@ data OTPPlanPlanItinerariesLegs = OTPPlanPlanItinerariesLegs
   { pickupType :: Maybe String,
     distance :: Maybe Double,
     mode :: Maybe Mode,
+    entrance :: Maybe OTPPlanPlanItinerariesLegsEntrance,
+    exit :: Maybe OTPPlanPlanItinerariesLegsExit,
     duration :: Maybe Double,
     startTime :: Maybe Double,
     endTime :: Maybe Double,
@@ -182,7 +276,45 @@ data OTPPlanPlanItinerariesLegs = OTPPlanPlanItinerariesLegs
 
 instance FromJSON OTPPlanPlanItinerariesLegs where
   parseJSON =
-    withObject "OTPPlanPlanItinerariesLegs" (\v -> OTPPlanPlanItinerariesLegs <$> v .:? "pickupType" <*> v .:? "distance" <*> v .:? "mode" <*> v .:? "duration" <*> v .:? "startTime" <*> v .:? "endTime" <*> v .: "from" <*> v .: "to" <*> v .:? "route" <*> v .:? "legGeometry" <*> v .:? "fareProducts")
+    withObject "OTPPlanPlanItinerariesLegs" (\v -> OTPPlanPlanItinerariesLegs <$> v .:? "pickupType" <*> v .:? "distance" <*> v .:? "mode" <*> v .:? "entrance" <*> v .:? "exit" <*> v .:? "duration" <*> v .:? "startTime" <*> v .:? "endTime" <*> v .: "from" <*> v .: "to" <*> v .:? "route" <*> v .:? "legGeometry" <*> v .:? "fareProducts")
+
+data OTPPlanPlanItinerariesLegsEntrance = OTPPlanPlanItinerariesLegsEntrance
+  { distance :: Maybe Double,
+    lon :: Maybe Double,
+    lat :: Maybe Double,
+    relativeDirection :: Maybe RelativeDirection,
+    absoluteDirection :: Maybe AbsoluteDirection,
+    streetName :: Maybe String,
+    exit :: Maybe String,
+    stayOn :: Maybe Bool,
+    area :: Maybe Bool,
+    bogusName :: Maybe Bool,
+    walkingBike :: Maybe Bool
+  }
+  deriving (Generic, Show, Eq)
+
+instance FromJSON OTPPlanPlanItinerariesLegsEntrance where
+  parseJSON =
+    withObject "OTPPlanPlanItinerariesLegsEntrance" (\v -> OTPPlanPlanItinerariesLegsEntrance <$> v .:? "distance" <*> v .:? "lon" <*> v .:? "lat" <*> v .:? "relativeDirection" <*> v .:? "absoluteDirection" <*> v .:? "streetName" <*> v .:? "exit" <*> v .:? "stayOn" <*> v .:? "area" <*> v .:? "bogusName" <*> v .:? "walkingBike")
+
+data OTPPlanPlanItinerariesLegsExit = OTPPlanPlanItinerariesLegsExit
+  { distance :: Maybe Double,
+    lon :: Maybe Double,
+    lat :: Maybe Double,
+    relativeDirection :: Maybe RelativeDirection,
+    absoluteDirection :: Maybe AbsoluteDirection,
+    streetName :: Maybe String,
+    exit :: Maybe String,
+    stayOn :: Maybe Bool,
+    area :: Maybe Bool,
+    bogusName :: Maybe Bool,
+    walkingBike :: Maybe Bool
+  }
+  deriving (Generic, Show, Eq)
+
+instance FromJSON OTPPlanPlanItinerariesLegsExit where
+  parseJSON =
+    withObject "OTPPlanPlanItinerariesLegsExit" (\v -> OTPPlanPlanItinerariesLegsExit <$> v .:? "distance" <*> v .:? "lon" <*> v .:? "lat" <*> v .:? "relativeDirection" <*> v .:? "absoluteDirection" <*> v .:? "streetName" <*> v .:? "exit" <*> v .:? "stayOn" <*> v .:? "area" <*> v .:? "bogusName" <*> v .:? "walkingBike")
 
 data OTPPlanPlanItinerariesLegsFrom = OTPPlanPlanItinerariesLegsFrom
   { name :: Maybe String,
@@ -309,7 +441,7 @@ instance ToJSON OTPPlanArgs where
 instance RequestType MultiModePlan where
   type RequestArgs MultiModePlan = MultiModePlanArgs
   __name _ = "MultiModePlan"
-  __query _ = "query MultiModePlan(\n  $from: InputCoordinates!,\n  $to: InputCoordinates!,\n  $date: String, \n  $time: String,\n  $metroTransportModes: [TransportMode]!,\n  $metroItineraries: Int!\n  $subwayTransportModes: [TransportMode]!,\n  $subwayItineraries: Int!\n  $busTransportModes: [TransportMode]!,\n  $busItineraries: Int!\n  $bestTransportModes: [TransportMode]!,\n  $bestItineraries: Int!\n) {\n  metro: plan(\n    from: $from,\n    to:   $to,\n    date: $date, \n    time: $time,\n    transportModes: $metroTransportModes,\n    numItineraries: $metroItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  subway: plan(\n    from: $from,\n    to:   $to,\n    date: $date, \n    time: $time,\n    transportModes: $subwayTransportModes,\n    numItineraries: $subwayItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  bus: plan(\n    from: $from,\n    to:   $to,\n    date: $date, \n    time: $time,\n    transportModes: $busTransportModes,\n    numItineraries: $busItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  best: plan(\n    from: $from,\n    to:   $to,\n    date: $date, \n    time: $time,\n    transportModes: $bestTransportModes,\n    numItineraries: $bestItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n}\n\nfragment ItineraryFields on Itinerary {\n  duration\n  startTime\n  endTime\n  legs {\n    pickupType\n    distance\n    mode\n    duration\n    startTime\n    endTime\n    from { \n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    to { \n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    route {\n      gtfsId\n      longName\n      trips {\n        gtfsId\n      }\n      shortName\n      color\n      agency {\n        gtfsId\n        name\n      }\n    }\n    legGeometry {\n      points\n    }\n    fareProducts {\n      id\n    }\n  }\n}\n"
+  __query _ = "query MultiModePlan(\n  $from: InputCoordinates!,\n  $to: InputCoordinates!,\n  $date: String,\n  $time: String,\n  $metroTransportModes: [TransportMode]!,\n  $metroItineraries: Int!\n  $subwayTransportModes: [TransportMode]!,\n  $subwayItineraries: Int!\n  $busTransportModes: [TransportMode]!,\n  $busItineraries: Int!\n  $bestTransportModes: [TransportMode]!,\n  $bestItineraries: Int!\n) {\n  metro: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $metroTransportModes,\n    numItineraries: $metroItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  subway: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $subwayTransportModes,\n    numItineraries: $subwayItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  bus: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $busTransportModes,\n    numItineraries: $busItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  best: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $bestTransportModes,\n    numItineraries: $bestItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n}\n\nfragment ItineraryFields on Itinerary {\n  duration\n  startTime\n  endTime\n  legs {\n    pickupType\n    distance\n    mode\n    entrance {\n      distance\n      lon\n      lat\n      relativeDirection\n      absoluteDirection\n      streetName\n      exit\n      stayOn\n      area\n      bogusName\n      walkingBike\n    }\n    exit {\n      distance\n      lon\n      lat\n      relativeDirection\n      absoluteDirection\n      streetName\n      exit\n      stayOn\n      area\n      bogusName\n      walkingBike\n    }\n    duration\n    startTime\n    endTime\n    from {\n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    to {\n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    route {\n      gtfsId\n      longName\n      trips {\n        gtfsId\n      }\n      shortName\n      color\n      agency {\n        gtfsId\n        name\n      }\n    }\n    legGeometry {\n      points\n    }\n    fareProducts {\n      id\n    }\n  }\n}\n"
   __type _ = OPERATION_QUERY
 
 data MultiModePlanArgs = MultiModePlanArgs
