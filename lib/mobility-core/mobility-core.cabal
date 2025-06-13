@@ -81,6 +81,12 @@ library
       Kernel.External.Infobip.API.WebengageWebhook
       Kernel.External.Infobip.Flow
       Kernel.External.Infobip.Types
+      Kernel.External.Insurance.Acko.Flow
+      Kernel.External.Insurance.Acko.Types
+      Kernel.External.Insurance.Interface
+      Kernel.External.Insurance.Interface.Acko
+      Kernel.External.Insurance.Interface.Types
+      Kernel.External.Insurance.Types
       Kernel.External.Maps
       Kernel.External.Maps.Google.Config
       Kernel.External.Maps.Google.MapsClient
