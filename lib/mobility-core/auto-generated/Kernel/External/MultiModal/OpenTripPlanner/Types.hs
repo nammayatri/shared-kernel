@@ -8,6 +8,10 @@
 module Kernel.External.MultiModal.OpenTripPlanner.Types where
 
 import Data.Morpheus.Client.CodeGen.Internal
+import qualified Data.Text as T
+import qualified Database.Beam as B
+import Database.Beam.Backend
+import Database.Beam.Postgres
 import EulerHS.Prelude hiding (id, product)
 import Kernel.Prelude (ToSchema)
 import Prelude (Show (..))
@@ -21,7 +25,7 @@ data AbsoluteDirection
   | AbsoluteDirectionSOUTHWEST
   | AbsoluteDirectionWEST
   | AbsoluteDirectionNORTHWEST
-  deriving (Generic, Show, Eq, ToSchema)
+  deriving (Generic, Show, Eq, ToSchema, Ord)
 
 instance FromJSON AbsoluteDirection where
   parseJSON = \case
@@ -524,3 +528,38 @@ newtype MultiModePlanBest = MultiModePlanBest
 instance FromJSON MultiModePlanBest where
   parseJSON =
     withObject "MultiModePlanBest" (\v -> MultiModePlanBest <$> v .: "itineraries")
+
+directionToText :: AbsoluteDirection -> Text
+directionToText = \case
+  AbsoluteDirectionNORTH -> "NORTH"
+  AbsoluteDirectionNORTHEAST -> "NORTHEAST"
+  AbsoluteDirectionEAST -> "EAST"
+  AbsoluteDirectionSOUTHEAST -> "SOUTHEAST"
+  AbsoluteDirectionSOUTH -> "SOUTH"
+  AbsoluteDirectionSOUTHWEST -> "SOUTHWEST"
+  AbsoluteDirectionWEST -> "WEST"
+  AbsoluteDirectionNORTHWEST -> "NORTHWEST"
+
+textToDirection :: Text -> Maybe AbsoluteDirection
+textToDirection = \case
+  "NORTH" -> Just AbsoluteDirectionNORTH
+  "NORTHEAST" -> Just AbsoluteDirectionNORTHEAST
+  "EAST" -> Just AbsoluteDirectionEAST
+  "SOUTHEAST" -> Just AbsoluteDirectionSOUTHEAST
+  "SOUTH" -> Just AbsoluteDirectionSOUTH
+  "SOUTHWEST" -> Just AbsoluteDirectionSOUTHWEST
+  "WEST" -> Just AbsoluteDirectionWEST
+  "NORTHWEST" -> Just AbsoluteDirectionNORTHWEST
+  _ -> Nothing
+
+instance HasSqlValueSyntax be Text => HasSqlValueSyntax be AbsoluteDirection where
+  sqlValueSyntax = sqlValueSyntax . directionToText
+
+instance FromBackendRow Postgres AbsoluteDirection where
+  fromBackendRow = do
+    txt <- fromBackendRow
+    case textToDirection txt of
+      Just d -> pure d
+      Nothing -> fail $ "Invalid AbsoluteDirection value in DB: " ++ T.unpack txt
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be AbsoluteDirection
