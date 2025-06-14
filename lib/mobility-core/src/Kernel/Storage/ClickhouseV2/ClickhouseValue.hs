@@ -90,6 +90,8 @@ parseAsNumber :: forall a. (Num a, FromJSON a) => Sci.Scientific -> Except a
 parseAsNumber = Except . eitherResult . A.fromJSON @a . A.Number
 
 instance ClickhouseValue Bool where
+  toClickhouseValue True = Number 1
+  toClickhouseValue False = Number 0
   fromClickhouseValue (String "1") = pure True
   fromClickhouseValue (String "0") = pure False
   fromClickhouseValue (String "True") = pure True
@@ -161,7 +163,9 @@ eitherResult (A.Success a) = Right a
 
 valToString :: Value value -> String
 valToString (String str) = addQuotes $ str
-valToString (Number num) = show num
+valToString (Number num)
+  | Sci.isInteger num = show (Sci.coefficient num)
+  | otherwise = show num
 valToString Null = "null"
 
 addQuotes :: String -> String
