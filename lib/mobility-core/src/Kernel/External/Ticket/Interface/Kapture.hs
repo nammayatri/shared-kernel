@@ -15,6 +15,8 @@
 module Kernel.External.Ticket.Interface.Kapture
   ( createTicket,
     updateTicket,
+    addAndUpdateKaptureCustomer,
+    kaptureEncryption,
   )
 where
 
@@ -25,6 +27,8 @@ import qualified Kernel.External.Ticket.Kapture.Flow as KF
 import Kernel.External.Ticket.Kapture.Types as Kapture
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.Error
+import Kernel.Utils.Error.Throwing (throwError)
 
 createTicket ::
   ( Metrics.CoreMetrics m,
@@ -95,3 +99,35 @@ mkUpdateTicketReq IT.UpdateTicketReq {..} =
       ticket_id = ticketId,
       sub_status = show subStatus
     }
+
+addAndUpdateKaptureCustomer ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  KaptureCfg ->
+  IT.KaptureCustomerReq ->
+  m Kapture.KaptureCustomerResp
+addAndUpdateKaptureCustomer config req = do
+  apiKey' <- decrypt config.auth
+  KF.addAndUpdateKaptureCustomer config.url apiKey' (mkKaptureCustomerReq req)
+  where
+    mkKaptureCustomerReq IT.KaptureCustomerReq {..} = Kapture.KaptureCustomerReq {..}
+
+kaptureEncryption ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  KaptureCfg ->
+  IT.KaptureEncryptionReq ->
+  m Kapture.KaptureEncryptionResp
+kaptureEncryption config req = do
+  maybe
+    (throwError $ InternalError "Kapture encryption key is not configured")
+    ( \key -> do
+        encryptionKey <- decrypt key
+        maybe
+          (throwError $ InternalError "Kapture encryption URL is not configured")
+          (\url -> KF.kaptureEncryption url req.customerCode encryptionKey)
+          config.encryptionUrl
+    )
+    config.encryptionKey
