@@ -114,20 +114,18 @@ addAndUpdateKaptureCustomer config req = do
     mkKaptureCustomerReq IT.KaptureCustomerReq {..} = Kapture.KaptureCustomerReq {..}
 
 kaptureEncryption ::
-  ( Metrics.CoreMetrics m,
-    EncFlow m r
-  ) =>
+  (Metrics.CoreMetrics m, EncFlow m r) =>
   KaptureCfg ->
   IT.KaptureEncryptionReq ->
   m Kapture.KaptureEncryptionResp
 kaptureEncryption config req = do
-  maybe
-    (throwError $ InternalError "Kapture encryption key is not configured")
-    ( \key -> do
-        encryptionKey <- decrypt key
-        maybe
-          (throwError $ InternalError "Kapture encryption URL is not configured")
-          (\url -> KF.kaptureEncryption url req.customerCode encryptionKey)
-          config.encryptionUrl
-    )
-    config.encryptionKey
+  let mKey = case req.ticketType of
+        IT.RIDE_RELATED -> config.encryptionKey
+        IT.APP_RELATED -> config.appEncryptionKey
+  case mKey of
+    Nothing -> throwError $ InternalError "Kapture encryption key is not configured"
+    Just key -> do
+      encryptionKey <- decrypt key
+      case config.encryptionUrl of
+        Nothing -> throwError $ InternalError "Kapture encryption URL is not configured"
+        Just url -> KF.kaptureEncryption url req.customerCode encryptionKey

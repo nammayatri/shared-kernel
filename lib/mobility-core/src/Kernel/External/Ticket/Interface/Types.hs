@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Ticket.Interface.Types
   ( module Reexport,
@@ -18,13 +19,16 @@ module Kernel.External.Ticket.Interface.Types
   )
 where
 
+import qualified Data.Text as T
 import Deriving.Aeson
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Ticket.Kapture.Config as Kapture
 import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), KaptureCustomerResp (..), KaptureEncryptionResp (..), UpdateTicketResp (..))
 import Kernel.External.Ticket.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
 import Kernel.Types.HideSecrets
+import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 newtype IssueTicketServiceConfig = KaptureConfig Kapture.KaptureCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -107,6 +111,22 @@ data KaptureCustomerReq = KaptureCustomerReq
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data KaptureEncryptionReq = KaptureEncryptionReq
-  { customerCode :: Text
+  { customerCode :: Text,
+    ticketType :: TicketType
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data TicketType = APP_RELATED | RIDE_RELATED
+  deriving (Show, Read, Eq, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
+
+$(mkBeamInstancesForEnum ''TicketType)
+
+instance FromHttpApiData TicketType where
+  parseQueryParam txt = case T.toUpper txt of
+    "APP_RELATED" -> Right APP_RELATED
+    "RIDE_RELATED" -> Right RIDE_RELATED
+    _ -> Left $ "Invalid TicketType: " <> txt
+
+instance ToHttpApiData TicketType where
+  toQueryParam APP_RELATED = "APP_RELATED"
+  toQueryParam RIDE_RELATED = "RIDE_RELATED"
