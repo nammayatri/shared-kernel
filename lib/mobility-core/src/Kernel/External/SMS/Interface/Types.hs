@@ -49,7 +49,8 @@ data SendSMSReq = SendSMSReq
     sender :: Text,
     templateId :: Maybe Text
   }
-  deriving (Generic, FromJSON, ToJSON, ToSchema)
+
+-- deriving (Generic, FromJSON, ToJSON, ToSchema)
 
 data SendSMSRes = Success | Fail | Pending | UnknownError
   deriving (Generic, FromJSON, ToJSON, Show, Eq)
