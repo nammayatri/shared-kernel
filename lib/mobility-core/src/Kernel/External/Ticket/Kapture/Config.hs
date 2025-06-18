@@ -23,6 +23,6 @@ data KaptureCfg = KaptureCfg
     url :: BaseUrl,
     encryptionUrl :: Maybe BaseUrl,
     encryptionKey :: Maybe (EncryptedField 'AsEncrypted Text),
-    apiKey :: Maybe (EncryptedField 'AsEncrypted Text)
+    appEncryptionKey :: Maybe (EncryptedField 'AsEncrypted Text)
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

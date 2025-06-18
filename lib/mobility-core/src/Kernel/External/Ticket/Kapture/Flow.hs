@@ -76,6 +76,8 @@ updateTicketAPI url version auth req = do
 type AddAndUpdateKaptureCustomerAPI =
   "add-update-customer-from-other-source.html"
     :> Header "Authorization" Text
+    :> Header "x-api-key" Text
+    :> Header "x-api-type" Text
     :> ReqBody '[JSON] [Kapture.KaptureCustomerReq]
     :> Post '[JSON] Kapture.KaptureCustomerResp
 
@@ -86,7 +88,7 @@ addAndUpdateKaptureCustomer ::
   Kapture.KaptureCustomerReq ->
   m Kapture.KaptureCustomerResp
 addAndUpdateKaptureCustomer url apiKey req = do
-  let eulerClient = Euler.client (Proxy @AddAndUpdateKaptureCustomerAPI) (Just apiKey) [req]
+  let eulerClient = Euler.client (Proxy @AddAndUpdateKaptureCustomerAPI) (Just apiKey) (Just apiKey) (Just "TICKET") [req]
   callAPI url eulerClient "add-and-update-kapture-customer" (Proxy @AddAndUpdateKaptureCustomerAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call add and update kapture customer API: " <> show err)
 
