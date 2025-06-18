@@ -70,6 +70,7 @@ type Leg {
   from: Place!
   to: Place!
   route: Route
+  steps: [step]
 }
 
 type Geometry {
