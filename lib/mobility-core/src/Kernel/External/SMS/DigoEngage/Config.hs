@@ -30,7 +30,7 @@ data DigoEngageSmsCfg = DigoEngageSmsCfg
     url :: BaseUrl,
     tiny :: Text,
     messageType :: Text,
-    tlv :: TLV,
+    tlv :: TLVForSmsCfg,
     dlr :: ClientDomain
   }
   deriving (Show, Eq, Generic)

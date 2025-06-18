@@ -36,7 +36,7 @@ data SubmitSmsReq = SubmitSmsReq
     dlr :: ClientDomain,
     messageType :: Text,
     tiny :: Text,
-    tlv :: TLV
+    tlv :: TLVForSmsReq
   }
   deriving (Generic, Eq, Show)
 
@@ -74,17 +74,29 @@ customOptions =
         other -> other
     }
 
-data TLV = TLV
+data TLVForSmsReq = TLVForSmsReq
   { peId :: Text,
     templateId :: Text,
     telemarketerId :: Text
   }
   deriving (Show, Generic, Eq)
 
-instance FromJSON TLV where
+instance FromJSON TLVForSmsReq where
   parseJSON = genericParseJSON customOptions
 
-instance ToJSON TLV where
+instance ToJSON TLVForSmsReq where
+  toJSON = genericToJSON customOptions
+
+data TLVForSmsCfg = TLVForSmsCfg
+  { peId :: Text,
+    telemarketerId :: Text
+  }
+  deriving (Show, Generic, Eq)
+
+instance FromJSON TLVForSmsCfg where
+  parseJSON = genericParseJSON customOptions
+
+instance ToJSON TLVForSmsCfg where
   toJSON = genericToJSON customOptions
 
 -- Response when the SMS is successfully sent
