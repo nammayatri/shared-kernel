@@ -22,7 +22,7 @@ import EulerHS.Prelude
 import Kernel.External.Encryption
 import Kernel.External.SMS.DigoEngage.Config
 import qualified Kernel.External.SMS.DigoEngage.Flow as Flow
-import Kernel.External.SMS.DigoEngage.Types (ClientDomain (..), SubmitSmsReq (..), SubmitSmsRes (..), TLV (..))
+import Kernel.External.SMS.DigoEngage.Types (ClientDomain (..), SubmitSmsReq (..), SubmitSmsRes (..), TLVForSmsReq (..))
 import Kernel.External.SMS.Interface.Types as IT
 import Kernel.External.SMS.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -46,7 +46,7 @@ sendOTP cfg smsReq = do
             dlr = ClientDomain {mask = cfg.dlr.mask, url = cfg.dlr.url},
             messageType = cfg.messageType,
             tiny = cfg.tiny,
-            tlv = TLV {peId = cfg.tlv.peId, templateId = cfg.tlv.templateId, telemarketerId = cfg.tlv.telemarketerId}
+            tlv = TLVForSmsReq {peId = cfg.tlv.peId, templateId = smsReq.templateId, telemarketerId = cfg.tlv.telemarketerId}
           }
   res <- Flow.sendOTPApi cfg digoReq
   return $ returnSmsResultDigoEngage res
