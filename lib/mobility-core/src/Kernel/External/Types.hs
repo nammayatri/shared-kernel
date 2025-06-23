@@ -38,6 +38,7 @@ data Language
   | FRENCH
   | TELUGU
   | ODIA
+  | DUTCH
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema, Enum, Bounded)
   deriving (PrettyShow) via Showable Language
 
@@ -53,6 +54,7 @@ instance FromHttpApiData Language where
   parseUrlPiece "fr" = pure FRENCH
   parseUrlPiece "te" = pure TELUGU
   parseUrlPiece "or" = pure ODIA
+  parseUrlPiece "nl" = pure DUTCH
   parseUrlPiece _ = Left "Unable to parse Language"
 
 instance ToHttpApiData Language where
@@ -65,6 +67,7 @@ instance ToHttpApiData Language where
   toUrlPiece FRENCH = "fr"
   toUrlPiece TELUGU = "te"
   toUrlPiece ODIA = "or"
+  toUrlPiece DUTCH = "nl"
 
 type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r, HasKafkaProducer r)
 
