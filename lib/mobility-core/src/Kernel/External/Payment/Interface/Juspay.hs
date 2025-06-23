@@ -55,6 +55,7 @@ import Kernel.Types.APISuccess
 import Kernel.Types.Beckn.Ack
 import Kernel.Types.Error
 import Kernel.Utils.Common (HighPrecMoney, Log, MonadTime, fromMaybeM, getCurrentTime)
+import Kernel.Utils.Logging (logDebug)
 import Servant hiding (throwError)
 
 createOrder ::
@@ -84,9 +85,12 @@ updateOrder ::
 updateOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
+  logDebug $ "updateOrder req: " <> show req
   apiKey <- decrypt config.apiKey
   updateOrderReq <- mkUpdateOrderReq req
+  logDebug $ "updateOrder mkUpdateOrderReq: " <> show updateOrderReq
   updateOrderRes <- Juspay.updateOrder url apiKey merchantId req.orderShortId mRoutingId updateOrderReq
+  logDebug $ "updateOrder res: " <> show updateOrderRes
   return $ mkUpdateOrderRes updateOrderRes
   where
     mkUpdateOrderReq :: MonadTime m => OrderUpdateReq -> m Juspay.OrderUpdateReq
