@@ -109,6 +109,7 @@ data City
   | Berhampur
   | Bardhaman
   | Ballari
+  | Amsterdam
   | Digha
   | Jharsuguda
   | Sambalpur
@@ -275,6 +276,8 @@ instance FromJSON City where
   parseJSON (String "Bardhaman") = pure Bardhaman
   parseJSON (String "std:08392") = pure Ballari
   parseJSON (String "Ballari") = pure Ballari
+  parseJSON (String "area:020") = pure Amsterdam
+  parseJSON (String "Amsterdam") = pure Amsterdam
   parseJSON (String "std:03216") = pure Digha
   parseJSON (String "Digha") = pure Digha
   parseJSON (String "std:06645") = pure Jharsuguda
@@ -366,6 +369,7 @@ instance ToJSON City where
   toJSON Berhampur = String "std:0680"
   toJSON Bardhaman = String "std:0343"
   toJSON Ballari = String "std:08392"
+  toJSON Amsterdam = String "area:020"
   toJSON Digha = String "std:03216"
   toJSON Jharsuguda = String "std:06645"
   toJSON Sambalpur = String "std:0663"
@@ -533,6 +537,8 @@ instance FromHttpApiData City where
       parseLowerCaseCity "bardhaman" = Right Bardhaman
       parseLowerCaseCity "std:08392" = Right Ballari
       parseLowerCaseCity "ballari" = Right Ballari
+      parseLowerCaseCity "area:020" = Right Amsterdam
+      parseLowerCaseCity "amsterdam" = Right Amsterdam
       parseLowerCaseCity "std:03216" = Right Digha
       parseLowerCaseCity "digha" = Right Digha
       parseLowerCaseCity "std:06645" = Right Jharsuguda
@@ -624,6 +630,7 @@ instance ToHttpApiData City where
   toUrlPiece Berhampur = "std:0680"
   toUrlPiece Bardhaman = "std:0343"
   toUrlPiece Ballari = "std:08392"
+  toUrlPiece Amsterdam = "area:020"
   toUrlPiece Digha = "std:03216"
   toUrlPiece Jharsuguda = "std:06645"
   toUrlPiece Sambalpur = "std:0663"

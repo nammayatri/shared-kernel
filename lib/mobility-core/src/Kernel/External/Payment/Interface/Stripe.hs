@@ -42,6 +42,7 @@ createIndividualConnectAccount config req = do
               Context.India -> "IN"
               Context.USA -> "US"
               Context.France -> "FR"
+              Context.Netherlands -> "NL"
               Context.AnyCountry -> "US" -- fix later
           email = req.email
           controller =
