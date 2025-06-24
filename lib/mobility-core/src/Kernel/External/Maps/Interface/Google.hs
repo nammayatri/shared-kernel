@@ -369,6 +369,7 @@ autoComplete entityId cfg req@AutoCompleteReq {..} = do
               India -> "country:in"
               France -> "country:fr"
               USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
+              Netherlands -> "country:nl"
       res <- withShortRetry $ GoogleMaps.autoComplete entityId req mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
       let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
       let predictions = map (\prediction -> Prediction {placeId = prediction.place_id, distance = prediction.distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> prediction.distance_meters, types = prediction.types, description = prediction.description}) res.predictions
@@ -395,6 +396,7 @@ autoCompleteNew entityId cfg AutoCompleteReq {..} = do
               India -> ["in"]
               France -> ["fr", "nl"]
               USA -> ["us", "pr", "vi", "gu", "mp"]
+              Netherlands -> ["nl"]
       includedPrimaryTypes = types_
       origin' = mkLatLngV2 <$> origin
   center <- buildLatLng location
