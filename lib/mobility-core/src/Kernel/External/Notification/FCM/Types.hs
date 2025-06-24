@@ -196,6 +196,7 @@ data FCMNotificationType
   | SAFETY_ALERT_RIDE_STOPPAGE
   | EKD_LIVE_CALL_FEEDBACK
   | DRUNK_AND_DRIVE_VIOLATION_WARNING
+  | ACCOUNT_DELETED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
