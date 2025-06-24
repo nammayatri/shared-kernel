@@ -39,3 +39,6 @@ mobileIndianCode = "+91"
 
 name :: Regex
 name = star latinOrSpace
+
+indianMobileNumber :: ExactLength `And` Regex
+indianMobileNumber = ExactLength 10 `And` (charRange '6' '9' <> star digit)
