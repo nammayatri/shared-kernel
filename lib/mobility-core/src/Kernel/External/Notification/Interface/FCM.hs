@@ -149,6 +149,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.SAFETY_ALERT_RIDE_STOPPAGE -> FCM.SAFETY_ALERT_RIDE_STOPPAGE
   Interface.EKD_LIVE_CALL_FEEDBACK -> FCM.EKD_LIVE_CALL_FEEDBACK
   Interface.DRUNK_AND_DRIVE_VIOLATION_WARNING -> FCM.DRUNK_AND_DRIVE_VIOLATION_WARNING
+  Interface.ACCOUNT_DELETED -> FCM.ACCOUNT_DELETED
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
