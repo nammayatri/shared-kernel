@@ -14,6 +14,7 @@
 
 module Kernel.Utils.Predicates where
 
+import Data.List (singleton)
 import Kernel.Prelude
 import Kernel.Types.Predicate
 
@@ -42,3 +43,21 @@ name = star latinOrSpace
 
 indianMobileNumber :: ExactLength `And` Regex
 indianMobileNumber = ExactLength 10 `And` (charRange '6' '9' <> star digit)
+
+plus :: Regex -> Regex
+plus r = r <> star r
+
+-- sublocal#1.sublocal#2@subdomain-1.subdomain-2.zone
+email :: LengthInRange `And` Regex
+email = LengthInRange 5 254 `And` (localPart <> "@" <> domain)
+  where
+    -- not allowed dots: in the start, in the end, two or more dots in a row
+    sublocal = plus (alphanum \/ specialSymbols)
+    localPart = sublocal <> star ("." <> sublocal)
+    subdomain = alphanum \/ (alphanum <> star (alphanum \/ "-") <> alphanum)
+    subdomains = subdomain <> star ("." <> subdomain)
+    zone = latin <> plus latin
+    domain = subdomains <> "." <> zone
+
+    specialSymbols :: Regex
+    specialSymbols = unions $ map (fromString . singleton) "!#$%&'*+-/=?^_`{|}~"
