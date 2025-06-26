@@ -17,6 +17,7 @@ module Kernel.External.Ticket.Interface.Kapture
     updateTicket,
     addAndUpdateKaptureCustomer,
     kaptureEncryption,
+    kapturePullTicket,
   )
 where
 
@@ -129,3 +130,16 @@ kaptureEncryption config req = do
       case config.encryptionUrl of
         Nothing -> throwError $ InternalError "Kapture encryption URL is not configured"
         Just url -> KF.kaptureEncryption url req.customerCode encryptionKey
+
+kapturePullTicket ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  KaptureCfg ->
+  IT.KapturePullTicketReq ->
+  m Kapture.KapturePullTicketResp
+kapturePullTicket config req = do
+  auth <- decrypt config.auth
+  KF.kapturePullTicket config.url auth (mkKapturePullTicketReq req)
+  where
+    mkKapturePullTicketReq IT.KapturePullTicketReq {..} = Kapture.KapturePullTicketReq {..}

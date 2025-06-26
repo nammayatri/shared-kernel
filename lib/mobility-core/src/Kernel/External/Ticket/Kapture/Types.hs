@@ -222,3 +222,31 @@ instance FromJSON KaptureEncryptionResp where
 
 instance ToJSON KaptureEncryptionResp where
   toJSON = genericToJSON constructorsWithSnakeCase
+
+data KapturePullTicketReq = KapturePullTicketReq
+  { customerCode :: Text,
+    status :: Text,
+    offset :: Text,
+    limit :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON KapturePullTicketReq where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+data KapturePullTicketResp = KapturePullTicketResp
+  { totalCount :: Maybe Int,
+    message :: [TicketSummary],
+    status :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+data TicketSummary = TicketSummary
+  { status :: Text,
+    ticketId :: Text,
+    customerName :: Text,
+    customerPhone :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
