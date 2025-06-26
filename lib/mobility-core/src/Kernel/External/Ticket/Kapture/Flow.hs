@@ -17,6 +17,7 @@ module Kernel.External.Ticket.Kapture.Flow
     updateTicketAPI,
     addAndUpdateKaptureCustomer,
     kaptureEncryption,
+    kapturePullTicket,
   )
 where
 
@@ -108,3 +109,23 @@ kaptureEncryption url customerCode encryptionKey = do
   let eulerClient = Euler.client (Proxy @KaptureEncryptionAPI) (Just customerCode) (Just encryptionKey)
   callAPI url eulerClient "kapture-encryption" (Proxy @KaptureEncryptionAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call kapture encryption API: " <> show err)
+
+type KapturePullTicketAPI =
+  "select-ticket-between-start-and-end-dates.html"
+    :> Capture "version" Text
+    :> Header "Authorization" Text
+    :> Header "x-api-key" Text
+    :> Header "x-api-type" Text
+    :> ReqBody '[JSON] [Kapture.KapturePullTicketReq]
+    :> Post '[JSON] Kapture.KapturePullTicketResp
+
+kapturePullTicket ::
+  (Metrics.CoreMetrics m, MonadFlow m) =>
+  BaseUrl ->
+  Text ->
+  Kapture.KapturePullTicketReq ->
+  m Kapture.KapturePullTicketResp
+kapturePullTicket url apiKey req = do
+  let eulerClient = Euler.client (Proxy @KapturePullTicketAPI) "v.2.0" (Just apiKey) (Just apiKey) (Just "TICKET") [req]
+  callAPI url eulerClient "kapturePullTicketAPI" (Proxy @KapturePullTicketAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call select ticket API: " <> show err)
