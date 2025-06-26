@@ -96,7 +96,8 @@ data MultiModalLeg = MultiModalLeg
     toArrivalTime :: Maybe UTCTime,
     toDepartureTime :: Maybe UTCTime,
     entrance :: Maybe MultiModalLegGate,
-    exit :: Maybe MultiModalLegGate
+    exit :: Maybe MultiModalLegGate,
+    steps :: Maybe [Maybe OTPTypes.OTPPlanPlanItinerariesLegsSteps]
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
