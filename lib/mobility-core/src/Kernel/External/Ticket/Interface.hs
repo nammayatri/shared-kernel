@@ -17,6 +17,7 @@ module Kernel.External.Ticket.Interface
     updateTicket,
     addAndUpdateKaptureCustomer,
     kaptureEncryption,
+    kapturePullTicket,
   )
 where
 
@@ -65,3 +66,13 @@ kaptureEncryption ::
   m KT.KaptureEncryptionResp
 kaptureEncryption serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.kaptureEncryption cfg req
+
+kapturePullTicket ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  IssueTicketServiceConfig ->
+  KapturePullTicketReq ->
+  m KT.KapturePullTicketResp
+kapturePullTicket serviceConfig req = case serviceConfig of
+  KaptureConfig cfg -> Kapture.kapturePullTicket cfg req

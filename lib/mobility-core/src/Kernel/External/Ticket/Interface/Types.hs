@@ -23,7 +23,7 @@ import qualified Data.Text as T
 import Deriving.Aeson
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Ticket.Kapture.Config as Kapture
-import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), KaptureCustomerResp (..), KaptureEncryptionResp (..), UpdateTicketResp (..))
+import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), KaptureCustomerResp (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), UpdateTicketResp (..))
 import Kernel.External.Ticket.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
