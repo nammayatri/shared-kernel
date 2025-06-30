@@ -26,6 +26,7 @@ module Kernel.External.Verification.Interface
     searchAgent,
     verifySdkResp,
     getTask,
+    nameCompare,
   )
 where
 
@@ -198,6 +199,20 @@ extractAadhaarImage ::
   m ExtractAadhaarImageRes
 extractAadhaarImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractAadhaarImage cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+
+nameCompare ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  NameCompareReq ->
+  m NameCompareResp
+nameCompare serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.nameCompare cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
