@@ -191,7 +191,8 @@ convertGoogleToGeneric gResponse =
               toDepartureTime = toDepartureTime',
               routeDetails = [],
               entrance = Nothing,
-              exit = Nothing
+              exit = Nothing,
+              steps = Nothing
             } :
           genericLegs
     mergeWalkingLegs :: [MultiModalLeg] -> [MultiModalLeg]
@@ -234,7 +235,8 @@ convertGoogleToGeneric gResponse =
               toDepartureTime = leg2.toDepartureTime,
               routeDetails = leg1.routeDetails,
               entrance = leg1.entrance,
-              exit = leg2.exit
+              exit = leg2.exit,
+              steps = Nothing
             }
     adjustWalkingLegs :: [MultiModalLeg] -> [MultiModalLeg]
     adjustWalkingLegs [] = []
@@ -461,7 +463,10 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                   toArrivalTime = max <$> leg1.toArrivalTime <*> leg2.toArrivalTime,
                   toDepartureTime = max <$> leg1.toDepartureTime <*> leg2.toDepartureTime,
                   entrance = leg1.entrance,
-                  exit = leg2.exit
+                  exit = leg2.exit,
+                  steps =
+                    let combined = fromMaybe [] leg1.steps ++ fromMaybe [] leg2.steps
+                     in if null combined then Nothing else Just combined
                 }
          in mergeMetroLegs (mergedLeg : rest) -- Add merged leg and continue
       | otherwise = leg1 : mergeMetroLegs (leg2 : rest) -- Keep leg1, process the rest
@@ -636,7 +641,8 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                     toArrivalTime = toArrivalTime',
                     toDepartureTime = toDepartureTime',
                     entrance = (maybeEntranceToGate otpLeg'.entrance),
-                    exit = (maybeExitToGate otpLeg'.exit)
+                    exit = (maybeExitToGate otpLeg'.exit),
+                    steps = otpLeg'.steps
                   }
            in (leg : genericLegs, genericDistance + distance, newFreqMap)
 
