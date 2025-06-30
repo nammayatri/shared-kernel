@@ -25,6 +25,7 @@ module Kernel.External.Verification.Interface.Idfy
     getTask,
     convertDLOutputToDLVerificationOutput,
     convertRCOutputToRCVerificationResponse,
+    nameCompare,
   )
 where
 
@@ -289,6 +290,30 @@ extractAadhaarImage cfg req = do
   pure
     ExtractAadhaarImageRes
       { extractedAadhaar = resp.result
+      }
+
+nameCompare ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  IdfyCfg ->
+  NameCompareReq ->
+  m NameCompareResp
+nameCompare cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.NameCompareRequestBody
+          { name1 = req.extractedName,
+            name2 = req.verifiedName,
+            percentage = req.percentage
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  resp <- Idfy.nameCompare apiKey accountId url idfyReq
+  pure
+    NameCompareResp
+      { nameComparedData = resp.result
       }
 
 getTask ::

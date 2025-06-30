@@ -41,6 +41,8 @@ type VerificationResponseList = [IdfyResponse IdfyResult]
 
 type IdfyResult = Output DLVerificationOutput RCVerificationOutput
 
+type NameCompareResponse = IdfyResponse NameCompareResponseData
+
 data IdfyResponse a = IdfyResponse
   { action :: Text,
     completed_at :: UTCTime,
@@ -409,3 +411,13 @@ instance FromJSON AadhaarResult where
 
 instance ToJSON AadhaarResult where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+newtype NameMatchOutput = NameMatchOutput
+  { name_match :: Int
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+newtype NameCompareResponseData = NameCompareResponseData
+  { match_output :: NameMatchOutput
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
