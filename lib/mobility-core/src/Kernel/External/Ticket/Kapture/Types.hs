@@ -246,7 +246,35 @@ data TicketSummary = TicketSummary
   { status :: Text,
     ticketId :: Text,
     customerName :: Text,
-    customerPhone :: Text
+    customerPhone :: Text,
+    additionalInfo :: Maybe PullAdditionalDetails
   }
   deriving (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+
+instance ToJSON TicketSummary where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+instance FromJSON TicketSummary where
+  parseJSON = genericParseJSON constructorsWithSnakeCase
+
+newtype PullAdditionalDetails = PullAdditionalDetails
+  { rideId :: RideIdObject
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON PullAdditionalDetails where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+instance FromJSON PullAdditionalDetails where
+  parseJSON = genericParseJSON constructorsWithSnakeCase
+
+newtype RideIdObject = RideIdObject
+  { rideId :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON RideIdObject where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+instance FromJSON RideIdObject where
+  parseJSON = genericParseJSON constructorsWithSnakeCase
