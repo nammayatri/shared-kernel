@@ -19,6 +19,7 @@ module Kernel.External.Ticket.Kapture.Types
 where
 
 import Data.Aeson
+import qualified Data.Aeson.Types as Aeson
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
 import Kernel.Utils.JSON
@@ -240,7 +241,21 @@ data KapturePullTicketResp = KapturePullTicketResp
     status :: Text
   }
   deriving (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+
+instance ToJSON KapturePullTicketResp where
+  toJSON = genericToJSON defaultOptions
+
+instance FromJSON KapturePullTicketResp where
+  parseJSON = withObject "KapturePullTicketResp" $ \v -> do
+    totalCount <- v .:? "totalCount"
+    status <- v .: "status"
+    msgVal <- v .: "message"
+    message <- case msgVal of
+      Aeson.String _ -> pure []
+      Aeson.Array _ -> parseJSON msgVal
+      Aeson.Object _ -> fmap (: []) (parseJSON msgVal)
+      _ -> fail "Unexpected type for message field"
+    return KapturePullTicketResp {..}
 
 data TicketSummary = TicketSummary
   { status :: Text,
@@ -252,10 +267,18 @@ data TicketSummary = TicketSummary
   deriving (Show, Eq, Generic)
 
 instance ToJSON TicketSummary where
-  toJSON = genericToJSON constructorsWithSnakeCase
+  toJSON = genericToJSON jsonTicketSummary
 
 instance FromJSON TicketSummary where
-  parseJSON = genericParseJSON constructorsWithSnakeCase
+  parseJSON = genericParseJSON jsonTicketSummary
+
+jsonTicketSummary :: Options
+jsonTicketSummary =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "additionalInfo" -> "additional_info"
+        other -> other
+    }
 
 newtype PullAdditionalDetails = PullAdditionalDetails
   { rideId :: RideIdObject
