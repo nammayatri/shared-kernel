@@ -463,3 +463,31 @@ verifyVPA url apiKey merchantId mRoutingId req = do
   let eulerClient = Euler.client (Proxy @VerifyVPAAPI) (mkBasicAuthData apiKey) (Just merchantId) mRoutingId req
   callAPI url eulerClient "verify-vpa" (Proxy @VerifyVPAAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call verify VPA API: " <> show err)
+
+type RefundOrderAPI =
+  "orders"
+    :> Capture "orderId" Text
+    :> "refunds"
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "version" Text
+    :> Header "x-merchantid" Text
+    :> Header "x-routing-id" Text
+    :> ReqBody '[FormUrlEncoded] RefundOrderReq
+    :> Post '[JSON] RefundOrderResp
+
+refundOrder ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Maybe Text ->
+  Text ->
+  RefundOrderReq ->
+  m RefundOrderResp
+refundOrder url apiKey merchantId mbRoutingId orderId req = do
+  version <- getCurrentDate
+  let proxy = Proxy @RefundOrderAPI
+      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just version) (Just merchantId) mbRoutingId req
+  callJuspayAPI url eulerClient "refund-order" proxy

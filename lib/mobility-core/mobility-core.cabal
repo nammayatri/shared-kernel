@@ -152,6 +152,7 @@ library
       Kernel.External.Payment.Juspay.Types.CreateOrder
       Kernel.External.Payment.Juspay.Types.Mandate
       Kernel.External.Payment.Juspay.Types.Offer
+      Kernel.External.Payment.Juspay.Types.RefundOrder
       Kernel.External.Payment.Juspay.Types.UpdateOrder
       Kernel.External.Payment.Juspay.Types.Webhook
       Kernel.External.Payment.Juspay.Webhook
