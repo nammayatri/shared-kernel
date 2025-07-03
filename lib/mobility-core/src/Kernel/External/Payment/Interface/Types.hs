@@ -606,3 +606,76 @@ data VerifyVPAResp = VerifyVPAResp
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- Refund Order Request
+data RefundOrderReq = RefundOrderReq
+  { orderId :: Text,
+    uniqueRequestId :: Text,
+    amount :: HighPrecMoney,
+    splitSettlementDetails :: Maybe SplitSettlementDetails
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- Refund Order Response
+data RefundOrderRefundsData = RefundOrderRefundsData
+  { uniqueRequestId :: Maybe Text,
+    status :: Maybe Text,
+    sentToGateway :: Maybe Bool,
+    refundType :: Maybe Text,
+    refundSource :: Maybe Text,
+    ref :: Maybe Text,
+    initiatedBy :: Maybe Text,
+    id :: Maybe Text,
+    errorMessage :: Maybe Text,
+    errorCode :: Maybe Text,
+    created :: Maybe UTCTime,
+    amount :: Maybe Double
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RefundOrderResp = RefundOrderResp
+  { statusId :: Int,
+    status :: Text,
+    returnUrl :: Text,
+    refunded :: Bool,
+    orderId :: Text,
+    merchantId :: Text,
+    id :: Text,
+    amount :: Double,
+    amountRefunded :: Double,
+    paymentLinks :: Maybe PaymentLinks,
+    refunds :: Maybe [RefundOrderRefundsData],
+    txnUuid :: Maybe Text,
+    txnId :: Maybe Text,
+    txnDetail :: Maybe TxnDetail,
+    paymentGatewayResponse :: Maybe PaymentGatewayResponse,
+    customerPhone :: Maybe Text,
+    customerId :: Maybe Text,
+    customerEmail :: Maybe Text,
+    currency :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data TxnDetail = TxnDetail
+  { txnUuid :: Maybe Text,
+    txnId :: Maybe Text,
+    txnAmount :: Maybe Double,
+    taxAmount :: Maybe Double,
+    surchargeAmount :: Maybe Double,
+    status :: Maybe Text,
+    redirect :: Maybe Bool,
+    orderId :: Maybe Text,
+    netAmount :: Maybe Double,
+    gatewayId :: Maybe Int,
+    gateway :: Maybe Text,
+    expressCheckout :: Maybe Bool,
+    errorMessage :: Maybe Text,
+    errorCode :: Maybe Text,
+    currency :: Maybe Text,
+    created :: Maybe UTCTime
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)

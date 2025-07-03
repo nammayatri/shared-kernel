@@ -31,6 +31,7 @@ module Kernel.External.Payment.Interface.Juspay
     autoRefund,
     mandateNotificationStatus,
     verifyVPA,
+    refundOrder,
   )
 where
 
@@ -48,6 +49,7 @@ import Kernel.External.Payment.Juspay.Config as Reexport
 import qualified Kernel.External.Payment.Juspay.Flow as Juspay
 import qualified Kernel.External.Payment.Juspay.Types as Juspay
 import qualified Kernel.External.Payment.Juspay.Types.CreateCustomer as Customer
+import qualified Kernel.External.Payment.Juspay.Types.RefundOrder as RefundOrder
 import qualified Kernel.External.Payment.Juspay.Webhook as Juspay
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -915,4 +917,108 @@ mkVerifyVpaResp Juspay.VerifyVPAResp {..} = do
     { vpa,
       status = show status,
       customerName = customer_name
+    }
+
+refundOrder ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  JuspayCfg ->
+  Maybe Text ->
+  RefundOrderReq ->
+  m RefundOrderResp
+refundOrder config mRoutingId req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  mkRefundOrderResp <$> Juspay.refundOrder url apiKey merchantId mRoutingId req.orderId (mkRefundOrderRequest req)
+  where
+    mkRefundOrderRequest RefundOrderReq {..} =
+      RefundOrder.RefundOrderReq
+        { unique_request_id = uniqueRequestId,
+          amount = show amount,
+          split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails
+        }
+
+mkRefundOrderResp :: RefundOrder.RefundOrderResp -> RefundOrderResp
+mkRefundOrderResp RefundOrder.RefundOrderResp {..} =
+  RefundOrderResp
+    { statusId = status_id,
+      status,
+      returnUrl = return_url,
+      refunded,
+      orderId = order_id,
+      merchantId = merchant_id,
+      id,
+      amount,
+      amountRefunded = amount_refunded,
+      paymentLinks = castPaymentLinks <$> payment_links,
+      refunds = fmap (map mkRefundOrderRefundsData) refunds,
+      txnUuid = txn_uuid,
+      txnId = txn_id,
+      txnDetail = castTxnDetail <$> txn_detail,
+      paymentGatewayResponse = castPaymentGatewayResponse <$> payment_gateway_response,
+      customerPhone = customer_phone,
+      customerId = customer_id,
+      customerEmail = customer_email,
+      currency
+    }
+
+castPaymentLinks :: RefundOrder.PaymentLinks -> PaymentLinks
+castPaymentLinks RefundOrder.PaymentLinks {..} =
+  PaymentLinks
+    { web,
+      mobile,
+      iframe,
+      deep_link = Nothing
+    }
+
+castTxnDetail :: RefundOrder.TxnDetail -> TxnDetail
+castTxnDetail RefundOrder.TxnDetail {..} =
+  TxnDetail
+    { txnUuid = txn_uuid,
+      txnId = txn_id,
+      txnAmount = txn_amount,
+      taxAmount = tax_amount,
+      surchargeAmount = surcharge_amount,
+      status,
+      redirect,
+      orderId = order_id,
+      netAmount = net_amount,
+      gatewayId = gateway_id,
+      gateway,
+      expressCheckout = express_checkout,
+      errorMessage = error_message,
+      errorCode = error_code,
+      currency,
+      created
+    }
+
+castPaymentGatewayResponse :: RefundOrder.PaymentGatewayResponse -> PaymentGatewayResponse
+castPaymentGatewayResponse RefundOrder.PaymentGatewayResponse {..} =
+  PaymentGatewayResponse
+    { txnId = txn_id,
+      rrn,
+      respMessage = resp_message,
+      respCode = resp_code,
+      epgTxnId = epg_txn_id,
+      created,
+      authIdCode = auth_id_code
+    }
+
+mkRefundOrderRefundsData :: RefundOrder.RefundsData -> RefundOrderRefundsData
+mkRefundOrderRefundsData RefundOrder.RefundsData {..} =
+  RefundOrderRefundsData
+    { uniqueRequestId = unique_request_id,
+      status = status,
+      sentToGateway = sent_to_gateway,
+      refundType = refund_type,
+      refundSource = refund_source,
+      ref = ref,
+      initiatedBy = initiated_by,
+      id = id,
+      errorMessage = error_message,
+      errorCode = error_code,
+      created = created,
+      amount = amount
     }

@@ -161,6 +161,18 @@ autoRefunds serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.autoRefund cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Auto Refunds not supported."
 
+refundOrder ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  PaymentServiceConfig ->
+  Maybe Text ->
+  RefundOrderReq ->
+  m RefundOrderResp
+refundOrder serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.refundOrder cfg mRoutingId req
+  StripeConfig _ -> throwError $ InternalError "Stripe Refund Order not supported."
+
 createIndividualConnectAccount ::
   ( EncFlow m r,
     CoreMetrics m
