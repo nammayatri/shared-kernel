@@ -55,6 +55,21 @@ convertFromHedisResponse hedisResponse =
       records = map convertFromHedisRecord (Hedis.records hedisResponse)
     }
 
+decodeJSONWithErrorHandler ::
+  (FromJSON a, HedisFlow m env) =>
+  Text ->
+  BS.ByteString ->
+  m () ->
+  m (Maybe a)
+decodeJSONWithErrorHandler key bs errorHandler = do
+  case Ae.eitherDecode (BSL.fromStrict bs) of
+    Left e -> do
+      logTagError "REDIS" $ "Decode Failure for key:" <> key <> ", with value:" <> cs bs <> ", error:" <> cs e
+      errorHandler
+      pure Nothing
+    Right a -> do
+      pure $ Just a
+
 convertFromHedisRecord :: Hedis.StreamsRecord -> StreamsRecord
 convertFromHedisRecord hedisRecord =
   StreamsRecord
@@ -216,13 +231,7 @@ get' ::
   (FromJSON a, HedisFlow m env) => Text -> m () -> m (Maybe a)
 get' key decodeErrHandler = getImpl decodeResult key
   where
-    decodeResult bs =
-      case Ae.decode $ BSL.fromStrict bs of
-        Just a -> return $ Just a
-        Nothing -> do
-          logTagError "REDIS" $ "Decode Failure for key:" <> key <> ", with value:" <> cs bs
-          decodeErrHandler
-          return Nothing
+    decodeResult bs = decodeJSONWithErrorHandler key bs decodeErrHandler
 
 safeGet ::
   (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
@@ -507,12 +516,7 @@ safeHGet key field =
     maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
     case maybeBS of
       Nothing -> pure Nothing
-      Just bs -> case Ae.decode $ BSL.fromStrict bs of
-        Just a -> return $ Just a
-        Nothing -> do
-          logTagError "REDIS" $ "Decode Failure for hash key:" <> key <> ", field:" <> field <> ", with value:" <> cs bs
-          hDel key [field]
-          return Nothing
+      Just bs -> decodeJSONWithErrorHandler key bs (hDel key [field])
 
 hGet :: (FromJSON a, HedisFlow m env) => Text -> Text -> m (Maybe a)
 hGet key field =
