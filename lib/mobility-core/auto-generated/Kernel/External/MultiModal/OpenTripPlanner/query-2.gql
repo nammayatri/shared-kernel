@@ -62,6 +62,19 @@ fragment ItineraryFields on Itinerary {
     pickupType
     distance
     mode
+    steps {
+      distance
+      lon
+      lat
+      relativeDirection
+      absoluteDirection
+      streetName
+      exit
+      stayOn
+      area
+      bogusName
+      walkingBike
+    }
     entrance {
       distance
       lon
