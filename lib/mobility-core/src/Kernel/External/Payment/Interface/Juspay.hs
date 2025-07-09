@@ -836,7 +836,8 @@ autoRefund config mRoutingId req = do
     mkAutoPayRequest request =
       Juspay.AutoRefundReq
         { unique_request_id = request.requestId,
-          amount = realToFrac request.amount
+          amount = realToFrac request.amount,
+          split_settlement_details = mkSplitSettlementDetails <$> req.splitSettlementDetails
         }
 
 mkRefundResp :: Juspay.AutoRefundResp -> AutoRefundResp

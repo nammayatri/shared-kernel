@@ -17,12 +17,14 @@ module Kernel.External.Payment.Juspay.Types.CreateOrder where
 
 import Data.Aeson
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as DT
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
 import Kernel.Types.Price
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
+import Web.FormUrlEncoded
 
 data CreateOrderReq = CreateOrderReq
   { order_id :: Text,
@@ -56,22 +58,22 @@ data Split = Split
     sub_mid :: Text,
     unique_split_id :: Maybe Text
   }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 newtype Vendor = Vendor
   { split :: [Split]
   }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data SplitSettlementDetails = SplitSettlementDetails
   { marketplace :: Marketplace,
     mdr_borne_by :: Text,
     vendor :: Vendor
   }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 instance FromHttpApiData SplitSettlementDetails where
   parseUrlPiece = parseHeader . DT.encodeUtf8
@@ -90,8 +92,8 @@ data MBY = MARKETPLACE | VENDOR | ALL
 newtype Marketplace = Marketplace
   { amount :: HighPrecMoney
   }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 jsonReqOptions :: Options
 jsonReqOptions =
@@ -189,6 +191,7 @@ jsonOptions =
         "mandateStartDate" -> "mandate.startDate"
         "mandateEndDate" -> "mandate.endDate"
         "options_getUpiDeepLinks" -> "options.getUpiDeepLinks"
+        "split_settlement_details" -> "metadata.split_settlement_details"
         other -> other
     }
 
@@ -200,10 +203,20 @@ instance ToJSON SDKPayloadDetails where
 
 data AutoRefundReq = AutoRefundReq
   { amount :: Double,
-    unique_request_id :: Text
+    unique_request_id :: Text,
+    split_settlement_details :: Maybe SplitSettlementDetails
   }
   deriving stock (Show, Generic, Read, Eq)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+  deriving anyclass (ToSchema)
+
+instance ToForm AutoRefundReq where
+  toForm AutoRefundReq {..} =
+    Form $
+      HM.fromList
+        [ ("unique_request_id", [toQueryParam unique_request_id]),
+          ("amount", [toQueryParam amount]),
+          ("metadata.split_settlement_details", [toQueryParam split_settlement_details])
+        ]
 
 data AutoRefundResp = AutoRefundResp
   { order_id :: Text,
@@ -215,3 +228,9 @@ data AutoRefundResp = AutoRefundResp
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+instance FromJSON AutoRefundReq where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON AutoRefundReq where
+  toJSON = genericToJSON jsonOptions
