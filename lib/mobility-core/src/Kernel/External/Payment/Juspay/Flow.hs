@@ -417,7 +417,7 @@ type AutoRefundAPI =
     :> BasicAuth "username-password" BasicAuthData
     :> Header "x-merchantid" Text
     :> Header "x-routing-id" Text
-    :> ReqBody '[JSON] AutoRefundReq
+    :> ReqBody '[FormUrlEncoded] AutoRefundReq
     :> Post '[JSON] AutoRefundResp
 
 autoRefund ::
