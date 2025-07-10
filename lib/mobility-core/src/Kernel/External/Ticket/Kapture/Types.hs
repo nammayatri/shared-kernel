@@ -281,7 +281,7 @@ jsonTicketSummary =
     }
 
 newtype PullAdditionalDetails = PullAdditionalDetails
-  { rideId :: RideIdObject
+  { rideId :: Maybe RideIdObject
   }
   deriving (Show, Eq, Generic)
 
