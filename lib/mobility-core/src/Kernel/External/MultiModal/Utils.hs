@@ -517,30 +517,24 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                 Just x -> (x.code, Just x.gtfsId, x.platformCode)
                 Nothing -> (Nothing, Nothing, Nothing)
               fromStopDetails' =
-                if mode == Walk
-                  then Nothing
-                  else
-                    Just
-                      MultiModalStopDetails
-                        { stopCode = fmap T.pack fromStopCode,
-                          name = startLocName,
-                          gtfsId = fmap T.pack fromStopGtfsId,
-                          platformCode = fmap T.pack fromStopPlatformCode
-                        }
+                Just
+                  MultiModalStopDetails
+                    { stopCode = fmap T.pack fromStopCode,
+                      name = startLocName,
+                      gtfsId = fmap T.pack fromStopGtfsId,
+                      platformCode = fmap T.pack fromStopPlatformCode
+                    }
               (toStopCode, toStopGtfsId, toStopPlatformCode) = case otpLeg'.to.stop of
                 Just x -> (x.code, Just x.gtfsId, x.platformCode)
                 Nothing -> (Nothing, Nothing, Nothing)
               toStopDetails' =
-                if mode == Walk
-                  then Nothing
-                  else
-                    Just
-                      MultiModalStopDetails
-                        { stopCode = fmap T.pack toStopCode,
-                          name = endLocName,
-                          gtfsId = fmap T.pack toStopGtfsId,
-                          platformCode = fmap T.pack toStopPlatformCode
-                        }
+                Just
+                  MultiModalStopDetails
+                    { stopCode = fmap T.pack toStopCode,
+                      name = endLocName,
+                      gtfsId = fmap T.pack toStopGtfsId,
+                      platformCode = fmap T.pack toStopPlatformCode
+                    }
               genericAgency = case routeAgency of
                 Nothing -> Nothing
                 Just ag ->
