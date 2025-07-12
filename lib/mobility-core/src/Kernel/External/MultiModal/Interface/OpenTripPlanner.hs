@@ -10,7 +10,7 @@ import qualified Kernel.External.MultiModal.Interface.Types as TP
 import Kernel.External.MultiModal.OpenTripPlanner.Config
 import Kernel.External.MultiModal.OpenTripPlanner.Types
 import Kernel.External.MultiModal.Utils
-import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics, addOpenTripPlannerLatency, addOpenTripPlannerResponse)
 import Kernel.Utils.Common hiding (id)
 import Servant.Client.Core (showBaseUrl)
 
@@ -63,17 +63,21 @@ getTransitRoutes cfg req = do
                 transportModes = transportModes',
                 numItineraries = numItineraries'
               }
-      resp <-
-        liftIO $
-          planClient
-            `request` otpReq
-              >>= single
+      (resp, latency) <-
+        measureDuration $
+          liftIO $
+            planClient
+              `request` otpReq
+                >>= single
       case resp of
         Left err -> do
           logError $ "Error in getTransitRoutes: " <> show err
+          addOpenTripPlannerResponse "NORMAL" "FAILURE" "GRAPHQL_ERROR"
+          addOpenTripPlannerLatency "NORMAL" "FAILURE" latency
           pure Nothing
         Right plan' -> do
           logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req <> " , GQLReq => " <> show otpReq
+          addOpenTripPlannerLatency "NORMAL" "SUCCESS" latency
           pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
     MULTI_SEARCH -> withLogTag "MULTI_SEARCH" $ do
       let otpReq =
@@ -91,18 +95,22 @@ getTransitRoutes cfg req = do
                 bestTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeTRANSIT, Just ModeWALK],
                 bestItineraries = 10
               }
-      resp <-
-        liftIO $
-          planClient
-            `request` otpReq
-              >>= single
+      (resp, latency) <-
+        measureDuration $
+          liftIO $
+            planClient
+              `request` otpReq
+                >>= single
       case resp of
         Left err -> do
           logError $ "Error in getTransitRoutes: " <> show err
+          addOpenTripPlannerResponse "MULTI_SEARCH" "FAILURE" "GRAPHQL_ERROR"
+          addOpenTripPlannerLatency "MULTI_SEARCH" "FAILURE" latency
           pure Nothing
         Right plan -> do
           logInfo $ "OTP plan log: " <> show plan <> " " <> show req <> " , GQLReq => " <> show otpReq
           let allPlans = combinePlans plan
+          addOpenTripPlannerLatency "MULTI_SEARCH" "SUCCESS" latency
           pure $ Just $ convertOTPToGeneric allPlans minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
 
 modeToTransportMode :: Mode -> TransportMode
