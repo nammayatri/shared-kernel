@@ -50,6 +50,10 @@ type GenericCounter = P.Vector P.Label1 P.Counter
 
 type SystemConfigsFailedCounter = P.Vector P.Label1 P.Counter
 
+type OpenTripPlannerResponseMetric = P.Vector P.Label4 P.Counter
+
+type OpenTripPlannerLatencyMetric = P.Vector P.Label3 P.Histogram
+
 newBuckets :: [Double]
 newBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 20, 25, 30, 40, 50]
 
@@ -73,6 +77,8 @@ class CoreMetrics m where
   incrementGenericMetrics :: Text -> m ()
   incrementSystemConfigsFailedCounter :: Text -> m ()
   addGenericLatencyMetrics :: Text -> Seconds -> m ()
+  addOpenTripPlannerResponse :: Text -> Text -> Text -> m ()
+  addOpenTripPlannerLatency :: Text -> Text -> Milliseconds -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -87,7 +93,9 @@ data CoreMetricsContainer = CoreMetricsContainer
     genericCounter :: GenericCounter,
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
     kvRedisMetricsContainer :: KVMetrics.KVMetricHandler,
-    genericLatencyMetrics :: GenericLatencyMetric
+    genericLatencyMetrics :: GenericLatencyMetric,
+    openTripPlannerResponseMetric :: OpenTripPlannerResponseMetric,
+    openTripPlannerLatencyMetric :: OpenTripPlannerLatencyMetric
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -105,6 +113,8 @@ registerCoreMetricsContainer = do
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
   kvRedisMetricsContainer <- KVMetrics.mkKVMetricHandler
   genericLatencyMetrics <- registerLatencyMetrics
+  openTripPlannerResponseMetric <- registerOpenTripPlannerResponseMetric
+  openTripPlannerLatencyMetric <- registerOpenTripPlannerLatencyMetric
   return CoreMetricsContainer {..}
 
 registerDatastoresLatencyMetrics :: IO DatastoresLatencyMetric
@@ -202,3 +212,19 @@ registerLatencyMetrics =
       P.histogram info newBuckets
   where
     info = P.Info "generic_app_latency_metrics" ""
+
+registerOpenTripPlannerResponseMetric :: IO OpenTripPlannerResponseMetric
+registerOpenTripPlannerResponseMetric =
+  P.register $
+    P.vector ("query_type", "status", "error_code", "version") $
+      P.counter info
+  where
+    info = P.Info "open_trip_planner_response_counter" "OpenTripPlanner response counter with query type, status, error code and version"
+
+registerOpenTripPlannerLatencyMetric :: IO OpenTripPlannerLatencyMetric
+registerOpenTripPlannerLatencyMetric =
+  P.register $
+    P.vector ("query_type", "status", "version") $
+      P.histogram info newBuckets
+  where
+    info = P.Info "open_trip_planner_latency_seconds" "OpenTripPlanner request latency in seconds"
