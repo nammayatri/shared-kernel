@@ -223,9 +223,7 @@ getImpl decodeResult key = withLogTag "Redis" $ do
     Just res' -> decodeResult res'
 
 get :: (FromJSON a, HedisFlow m env) => Text -> m (Maybe a)
-get = getImpl decodeResult
-  where
-    decodeResult bs = Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+get = safeGet
 
 get' ::
   (FromJSON a, HedisFlow m env) => Text -> m () -> m (Maybe a)
