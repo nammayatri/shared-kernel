@@ -18,13 +18,14 @@ import Data.List (singleton)
 import Kernel.Prelude
 import Kernel.Types.Predicate
 
-digit, latinUC, latinLC, latin, alphanum, latinOrSpace :: Regex
+digit, latinUC, latinLC, latin, alphanum, latinOrSpace, latinWithSymbols :: Regex
 digit = charRange '0' '9'
 latinUC = charRange 'A' 'Z'
 latinLC = charRange 'a' 'z'
 latin = latinUC \/ latinLC
 alphanum = latin \/ digit
 latinOrSpace = latin \/ " "
+latinWithSymbols = latinOrSpace \/ "_" \/ "-"
 
 mobileNumber :: ExactLength `And` Regex
 mobileNumber = ExactLength 10 `And` star digit
@@ -40,6 +41,9 @@ mobileIndianCode = "+91"
 
 name :: Regex
 name = star latinOrSpace
+
+inputName :: Regex
+inputName = star latinWithSymbols
 
 indianMobileNumber :: ExactLength `And` Regex
 indianMobileNumber = ExactLength 10 `And` (charRange '6' '9' <> star digit)
