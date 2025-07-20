@@ -301,3 +301,102 @@ instance ToJSON RideIdObject where
 
 instance FromJSON RideIdObject where
   parseJSON = genericParseJSON constructorsWithSnakeCase
+
+data GetTicketReq = GetTicketReq
+  { ticketIds :: Text,
+    conversationType :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON GetTicketReq where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+data FileAttachment = FileAttachment
+  { url :: Text,
+    mime :: Text,
+    message :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON FileAttachment where
+  parseJSON = genericParseJSON defaultOptions
+
+instance ToJSON FileAttachment where
+  toJSON = genericToJSON defaultOptions
+
+data ChatMessageContent
+  = TextMessage Text
+  | FileAttachments [FileAttachment]
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON ChatMessageContent where
+  parseJSON (String txt) = pure $ TextMessage txt
+  parseJSON (Array arrVal) = FileAttachments <$> parseJSON (Array arrVal)
+  parseJSON _ = fail "ChatMessageContent must be either String or Array"
+
+instance ToJSON ChatMessageContent where
+  toJSON (TextMessage txt) = String txt
+  toJSON (FileAttachments files) = toJSON files
+
+data ChatMessage = ChatMessage
+  { chatMessage :: ChatMessageContent,
+    senderName :: Text,
+    receiverName :: Text,
+    sentDate :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON ChatMessage where
+  parseJSON = withObject "ChatMessage" $ \v -> do
+    chatMessage <- v .: "chat_message"
+    senderName <- v .: "sender_name"
+    receiverName <- v .: "receiver_name"
+    sentDate <- v .: "sentDate"
+    return ChatMessage {..}
+
+instance ToJSON ChatMessage where
+  toJSON ChatMessage {..} =
+    object
+      [ "chatMessage" .= chatMessage,
+        "senderName" .= senderName,
+        "receiverName" .= receiverName,
+        "sentDate" .= sentDate
+      ]
+
+data ConversationType = ConversationType
+  { chat :: [ChatMessage]
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON ConversationType where
+  parseJSON = genericParseJSON defaultOptions
+
+instance ToJSON ConversationType where
+  toJSON = genericToJSON defaultOptions
+
+data GetTicketResp = GetTicketResp
+  { conversationType :: ConversationType
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+jsonGetTicketRespFromJSON :: Options
+jsonGetTicketRespFromJSON =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "conversationType" -> "conversation_type"
+        other -> other
+    }
+
+jsonGetTicketRespToJSON :: Options
+jsonGetTicketRespToJSON = defaultOptions
+
+instance FromJSON GetTicketResp where
+  parseJSON = genericParseJSON jsonGetTicketRespFromJSON
+
+instance ToJSON GetTicketResp where
+  toJSON = genericToJSON jsonGetTicketRespToJSON
