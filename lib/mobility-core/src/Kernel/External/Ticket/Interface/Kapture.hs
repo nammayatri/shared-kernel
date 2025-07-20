@@ -18,6 +18,7 @@ module Kernel.External.Ticket.Interface.Kapture
     addAndUpdateKaptureCustomer,
     kaptureEncryption,
     kapturePullTicket,
+    kaptureGetTicket,
   )
 where
 
@@ -143,3 +144,16 @@ kapturePullTicket config req = do
   KF.kapturePullTicket config.url auth (mkKapturePullTicketReq req)
   where
     mkKapturePullTicketReq IT.KapturePullTicketReq {..} = Kapture.KapturePullTicketReq {..}
+
+kaptureGetTicket ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r
+  ) =>
+  KaptureCfg ->
+  IT.GetTicketReq ->
+  m [Kapture.GetTicketResp]
+kaptureGetTicket config req = do
+  apiKey <- decrypt config.auth
+  KF.kaptureGetTicket config.url apiKey (mkGetTicketReq req)
+  where
+    mkGetTicketReq IT.GetTicketReq {..} = Kapture.GetTicketReq {..}
