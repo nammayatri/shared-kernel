@@ -51,13 +51,17 @@ sendOTPApi
   gupShupEntityId
   gupShupTemplateId
   gupShupSender
-  gupShupSmsCfg =
-    callAPI
-      gupShupSmsCfg.url
-      (callGupShup "SendMessage" 1.1 gupShupUserId gupShupPassword phoneNumber otpSmsTemplate "TEXT" "plain" "json" gupShupEntityId gupShupTemplateId gupShupSender)
-      "sendOTPApi"
-      API.gupShupConnectAPI
-      >>= checkGupShupOptError gupShupSmsCfg.url
+  gupShupSmsCfg = do
+    logDebug $ "GupShup req :" <> otpSmsTemplate <> " phoneNumber " <> phoneNumber <> "gupShupSender" <> gupShupSender <> "gupShupSmsCfg : " <> show gupShupSmsCfg
+    res <-
+      callAPI
+        gupShupSmsCfg.url
+        (callGupShup "SendMessage" 1.1 gupShupUserId gupShupPassword phoneNumber otpSmsTemplate "TEXT" "plain" "json" gupShupEntityId gupShupTemplateId gupShupSender)
+        "sendOTPApi"
+        API.gupShupConnectAPI
+        >>= checkGupShupOptError gupShupSmsCfg.url
+    logDebug $ "GupShup response: " <> show res
+    pure res
     where
       callGupShup = ET.client API.gupShupConnectAPI
 

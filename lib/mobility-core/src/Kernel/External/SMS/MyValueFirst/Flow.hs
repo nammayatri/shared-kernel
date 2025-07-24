@@ -31,8 +31,11 @@ submitSms ::
   SubmitSms ->
   m SubmitSmsRes
 submitSms url params = do
-  callAPI url (API.submitSms params) "submitSms" API.serviceAPI
-    >>= fromEitherM (ExternalAPICallError (Just "UNABLE_TO_SEND_SMS") url)
+  res <-
+    callAPI url (API.submitSms params) "submitSms" API.serviceAPI
+      >>= fromEitherM (ExternalAPICallError (Just "UNABLE_TO_SEND_SMS") url)
+  logDebug $ "MyFirst value response: " <> show res
+  pure res
 
 type OtpTemplate = Text
 

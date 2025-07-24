@@ -18,12 +18,12 @@
 module Kernel.External.SMS.GupShup.Types where
 
 import Data.Text (Text)
-import Kernel.Prelude (Eq, FromJSON, Generic, HasField (hasField), ToJSON)
+import Kernel.Prelude (Eq, FromJSON, Generic, HasField (hasField), Show, ToJSON)
 
 newtype SubmitSmsRes = SubmitSmsRes
   { response :: SmsResponse
   }
-  deriving (Generic, ToJSON, FromJSON, Eq)
+  deriving (Generic, ToJSON, FromJSON, Eq, Show)
 
 data SmsResponse = SmsResponse
   { id :: Text,
@@ -31,4 +31,4 @@ data SmsResponse = SmsResponse
     details :: Text,
     status :: Text
   }
-  deriving (Generic, ToJSON, FromJSON, Eq)
+  deriving (Generic, ToJSON, FromJSON, Eq, Show)
