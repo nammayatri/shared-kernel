@@ -69,6 +69,7 @@ instance IsHTTPError AuthError where
     AccessDenied -> "ACCESS_DENIED"
     HitsLimitError _ -> "HITS_LIMIT_EXCEED"
   toHttpCode = \case
+    TokenExpired -> E401
     Unauthorized -> E401
     InvalidToken _ -> E401
     AccessDenied -> E403
