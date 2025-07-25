@@ -42,6 +42,9 @@ mobileIndianCode = "+91"
 name :: Regex
 name = star latinOrSpace
 
+nameWithNumber :: Regex
+nameWithNumber = star $ alphanum \/ " "
+
 inputName :: Regex
 inputName = star latinWithSymbols
 
