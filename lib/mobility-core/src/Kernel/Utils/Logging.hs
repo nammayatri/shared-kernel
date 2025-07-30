@@ -28,6 +28,8 @@ module Kernel.Utils.Logging
     withTransactionIdLogTag,
     withTransactionIdLogTag',
     withPersonIdLogTag,
+    withSelectiveLogging,
+    withPersonIdSelectiveLogging,
     makeLogSomeException,
     logPretty,
     HasPrettyLogger,
@@ -86,6 +88,14 @@ withTransactionIdLogTag req =
 withTransactionIdLogTag' :: Log m => Text -> m a -> m a
 withTransactionIdLogTag' txnId =
   withLogTag ("txnId-" <> txnId)
+
+withSelectiveLogging :: (Monad m, Log m) => Text -> Text -> m a -> m a
+withSelectiveLogging entityType entityId action =
+  withLogTag (entityType <> "-" <> entityId) action
+
+withPersonIdSelectiveLogging :: (Monad m, Log m) => Id b -> m a -> m a
+withPersonIdSelectiveLogging personId action =
+  withSelectiveLogging "person" (getId personId) action
 
 makeLogSomeException :: SomeException -> Text
 makeLogSomeException someExc

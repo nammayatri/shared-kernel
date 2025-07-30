@@ -36,6 +36,7 @@ import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Types.Logging
 import Kernel.Types.Time
+import System.Environment (lookupEnv)
 import System.Log.FastLogger
 
 type HasLog r = HasField "loggerEnv" r LoggerEnv
@@ -93,7 +94,8 @@ logOutputImplementation logLevel message = do
 
 logOutputIO :: (MonadIO m, MonadTime m) => LoggerEnv -> LogLevel -> Text -> m ()
 logOutputIO logEnv logLevel message = do
-  when (logLevel >= logEnv.level) $ do
+  effectiveLevel <- liftIO $ getEffectiveLogLevel logEnv logLevel
+  when (logLevel >= effectiveLevel) $ do
     now <- getCurrentTime
     let formattedMessage = logFormatterText now logEnv.hostName logLevel logEnv.tags message
     whenJust logEnv.fileLogger $ \logger ->
@@ -116,6 +118,29 @@ withLogTagImplementation tag = local modifyEnv
 appendLogTag :: Text -> LoggerEnv -> LoggerEnv
 appendLogTag tag logEnv = do
   logEnv{tags = tag : logEnv.tags}
+
+getEffectiveLogLevel :: LoggerEnv -> LogLevel -> IO LogLevel
+getEffectiveLogLevel logEnv _ = do
+  case extractPersonIdFromTags logEnv.tags of
+    Nothing -> return logEnv.level
+    Just personId -> do
+      mbPersonSpecificLevel <- lookupPersonSpecificLogLevel personId
+      return $ maybe logEnv.level (\x -> x) mbPersonSpecificLevel
+
+lookupPersonSpecificLogLevel :: Text -> IO (Maybe LogLevel)
+lookupPersonSpecificLogLevel personId = do
+  mbDebugIds <- lookupEnv "PERSON_DEBUG_IDS"
+  case mbDebugIds of
+    Nothing -> return Nothing
+    Just debugIdsStr -> do
+      let debugIds = map T.strip $ T.splitOn "," (T.pack debugIdsStr)
+      if personId `elem` debugIds
+        then return (Just DEBUG)
+        else return Nothing
+
+extractPersonIdFromTags :: [Text] -> Maybe Text
+extractPersonIdFromTags tags =
+  listToMaybe $ mapMaybe (T.stripPrefix "actor-") tags
 
 updateLogLevelAndRawSql :: Maybe LogLevel -> LoggerEnv -> LoggerEnv
 updateLogLevelAndRawSql mbNewLogLevel logEnv =
