@@ -32,6 +32,7 @@ data HttpCode
   | E500
   | E501
   | E503
+  | E504
   deriving (Show)
 
 codeToHttpCode :: Int -> Maybe HttpCode
@@ -50,6 +51,7 @@ codeToHttpCode = \case
   500 -> Just E500
   501 -> Just E501
   503 -> Just E503
+  504 -> Just E504
   _ -> Nothing
 
 codeToHttpCodeWith500Default :: Int -> HttpCode
@@ -77,6 +79,7 @@ toServerError = \case
   E500 -> err500
   E501 -> err501
   E503 -> err503
+  E504 -> err504
 
 isInternalError :: HttpCode -> Bool
 isInternalError = \case
@@ -94,3 +97,4 @@ isInternalError = \case
   E500 -> True
   E501 -> True
   E503 -> True
+  E504 -> True
