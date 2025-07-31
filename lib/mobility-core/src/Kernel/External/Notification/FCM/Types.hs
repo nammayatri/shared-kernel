@@ -197,6 +197,7 @@ data FCMNotificationType
   | EKD_LIVE_CALL_FEEDBACK
   | DRUNK_AND_DRIVE_VIOLATION_WARNING
   | ACCOUNT_DELETED
+  | DRIVER_ACCEPTED_EDITED_LOCATION
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
