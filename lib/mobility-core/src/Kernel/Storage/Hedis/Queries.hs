@@ -522,7 +522,12 @@ hGet key field =
     maybeBS <- runWithPrefix key (`Hedis.hget` cs field)
     case maybeBS of
       Nothing -> pure Nothing
-      Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+      Just bs ->  Ae.decode $ BSL.fromStrict bs >>= \case
+        Nothing -> do
+          logTagError "REDIS" $ "Decode Failure for key:" <> key <>
+            ", with value:" <> cs bs
+          pure Nothing
+        Just a -> pure $ Just a
 
 hmGet :: (FromJSON a, HedisFlow m env) => Text -> [Text] -> m [Maybe a]
 hmGet key fields =
@@ -532,7 +537,12 @@ hmGet key fields =
   where
     decodeBS :: (FromJSON a, HedisFlow m env) => Maybe BS.ByteString -> m (Maybe a)
     decodeBS Nothing = pure Nothing
-    decodeBS (Just bs) = Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
+    decodeBS (Just bs) = Ae.decode $ BSL.fromStrict bs >>= \case
+      Nothing -> do
+        logTagError "REDIS" $ "Decode Failure for key:" <> key <>
+          ", with value:" <> cs bs
+        pure Nothing
+      Just a -> pure $ Just a
 
 hDel :: HedisFlow m env => Text -> [Text] -> m ()
 hDel key fields = withTimeRedis "RedisCluster" "hDel" $ runWithPrefix_ key (`Hedis.hdel` map cs fields)
