@@ -193,7 +193,7 @@ jsonOptions =
         "mandateEndDate" -> "mandate.endDate"
         "options_getUpiDeepLinks" -> "options.getUpiDeepLinks"
         "split_settlement_details" -> "metadata.split_settlement_details"
-        "gatewayReferenceId" -> "metadata.JUSPAY:gatewayReferenceId"
+        "gatewayReferenceId" -> "metadata.JUSPAY:gatewayreferenceid"
         other -> other
     }
 
