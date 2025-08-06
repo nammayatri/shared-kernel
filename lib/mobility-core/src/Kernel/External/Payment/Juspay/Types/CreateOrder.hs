@@ -177,8 +177,7 @@ data SDKPayloadDetails = SDKPayloadDetails
     createMandate :: Maybe MandateType,
     mandateMaxAmount :: Maybe Text,
     mandateStartDate :: Maybe Text,
-    mandateEndDate :: Maybe Text,
-    gatewayReferenceId :: Maybe Text
+    mandateEndDate :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (ToSchema)
@@ -193,7 +192,6 @@ jsonOptions =
         "mandateEndDate" -> "mandate.endDate"
         "options_getUpiDeepLinks" -> "options.getUpiDeepLinks"
         "split_settlement_details" -> "metadata.split_settlement_details"
-        "gatewayReferenceId" -> "metadata.JUSPAY:gatewayReferenceId"
         other -> other
     }
 
