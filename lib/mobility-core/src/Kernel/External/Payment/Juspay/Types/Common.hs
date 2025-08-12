@@ -19,10 +19,12 @@ module Kernel.External.Payment.Juspay.Types.Common where
 import Control.Lens
 import Data.Aeson.Types
 import Data.OpenApi hiding (components, description, links)
+import qualified Data.Text as T
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common
+import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 type CustomerId = Text
 
@@ -137,11 +139,17 @@ data TransactionStatus
   | AUTO_REFUNDED
   | CLIENT_AUTH_TOKEN_EXPIRED -- Domain status, not part of Juspay Euler status types
   deriving stock (Show, Eq, Read, Ord, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+  deriving anyclass (FromJSON, ToJSON, ToSchema, ToParamSchema)
 
 derivePersistField "TransactionStatus"
 
 $(mkBeamInstancesForEnum ''TransactionStatus)
+
+instance FromHttpApiData TransactionStatus where
+  parseUrlPiece txt = left (\_err -> "Invalid TransactionStatus: " <> txt) . readEither . T.toUpper $ txt
+
+instance ToHttpApiData TransactionStatus where
+  toUrlPiece = T.pack . show
 
 type OrderStatusResp = OrderData
 
