@@ -38,7 +38,7 @@ import Kernel.Utils.Text
 import Kernel.Utils.Time
 import qualified Network.HTTP.Client as Http
 import qualified Network.HTTP.Client.TLS as Http
-import Network.HTTP.Types (status404)
+import Network.HTTP.Types (Status (..), status404)
 import qualified Network.Wai as Wai
 import Network.Wai.Application.Static (staticApp)
 import qualified Servant
@@ -196,6 +196,7 @@ catchConnectionErrors action errorHandler =
   action `catch` \err -> do
     case err.clientError of
       ConnectionError _ -> errorHandler err
+      FailureResponse _ (Response (Status {statusCode = code}) _ _ _) -> if code == 503 then errorHandler err else throwError err
       _ -> throwError err
 
 retryAction ::
