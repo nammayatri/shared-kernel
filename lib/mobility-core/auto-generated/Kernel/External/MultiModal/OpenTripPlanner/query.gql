@@ -4,7 +4,9 @@ query OTPPlan (
     $date: String,
     $time:String,
     $transportModes: [TransportMode],
-    $numItineraries: Int
+    $numItineraries: Int,
+    $searchWindow: Float,
+    $noOptimization: Boolean,
 ){
   plan(
     from: $from,
@@ -12,7 +14,9 @@ query OTPPlan (
     date: $date,
     time: $time,
     transportModes: $transportModes,
-    numItineraries : $numItineraries
+    numItineraries : $numItineraries,
+    searchWindow: $searchWindow,
+    noOptimization: $noOptimization,
   ) {
     itineraries {
       duration

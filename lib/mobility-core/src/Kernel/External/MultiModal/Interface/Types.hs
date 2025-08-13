@@ -152,6 +152,8 @@ data GetTransitRoutesReq = GetTransitRoutesReq
     minimumWalkDistance :: Distance.Meters,
     permissibleModes :: [GeneralVehicleType],
     maxAllowedPublicTransportLegs :: Int,
-    sortingType :: SortingType
+    sortingType :: SortingType,
+    searchWindow :: Maybe Double,
+    noOptimization :: Maybe Bool
   }
   deriving (Generic, ToJSON, FromJSON, Show, ToSchema)

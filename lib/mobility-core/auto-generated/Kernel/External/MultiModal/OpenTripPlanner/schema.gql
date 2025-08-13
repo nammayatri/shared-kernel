@@ -157,5 +157,7 @@ type Query {
     date: String
     time: String
     numItineraries: Int
+    searchWindow: Float
+    noOptimization: Boolean
   ): Plan!
 }
