@@ -61,7 +61,9 @@ getTransitRoutes cfg req = do
                 date = fst <$> dateTime,
                 time = snd <$> dateTime,
                 transportModes = transportModes',
-                numItineraries = numItineraries'
+                numItineraries = numItineraries',
+                searchWindow = req.searchWindow,
+                noOptimization = req.noOptimization
               }
       (resp, latency) <-
         measureDuration $
@@ -93,7 +95,10 @@ getTransitRoutes cfg req = do
                 busTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeBUS, Just ModeWALK],
                 busItineraries = 10,
                 bestTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeTRANSIT, Just ModeWALK],
-                bestItineraries = 10
+                bestItineraries = 10,
+                searchWindow = req.searchWindow,
+                busSearchWindow = req.busSearchWindow,
+                noOptimization = req.noOptimization
               }
       (resp, latency) <-
         measureDuration $

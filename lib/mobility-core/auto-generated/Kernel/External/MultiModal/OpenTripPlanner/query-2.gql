@@ -10,7 +10,12 @@ query MultiModePlan(
   $busTransportModes: [TransportMode]!,
   $busItineraries: Int!
   $bestTransportModes: [TransportMode]!,
-  $bestItineraries: Int!
+  $bestItineraries: Int!,
+  # Actually Long
+  $searchWindow: Int,
+  $noOptimization: Boolean,
+  # Actually Long
+  $busSearchWindow: Int,
 ) {
   metro: plan(
     from: $from,
@@ -18,7 +23,9 @@ query MultiModePlan(
     date: $date,
     time: $time,
     transportModes: $metroTransportModes,
-    numItineraries: $metroItineraries
+    numItineraries: $metroItineraries,
+    searchWindow: $searchWindow,
+    noOptimization: $noOptimization,
   ) {
     itineraries { ...ItineraryFields }
   }
@@ -28,7 +35,9 @@ query MultiModePlan(
     date: $date,
     time: $time,
     transportModes: $subwayTransportModes,
-    numItineraries: $subwayItineraries
+    numItineraries: $subwayItineraries,
+    searchWindow: $searchWindow,
+    noOptimization: $noOptimization,
   ) {
     itineraries { ...ItineraryFields }
   }
@@ -38,7 +47,9 @@ query MultiModePlan(
     date: $date,
     time: $time,
     transportModes: $busTransportModes,
-    numItineraries: $busItineraries
+    numItineraries: $busItineraries,
+    searchWindow: $busSearchWindow,
+    noOptimization: $noOptimization,
   ) {
     itineraries { ...ItineraryFields }
   }
@@ -48,7 +59,9 @@ query MultiModePlan(
     date: $date,
     time: $time,
     transportModes: $bestTransportModes,
-    numItineraries: $bestItineraries
+    numItineraries: $bestItineraries,
+    searchWindow: $searchWindow,
+    noOptimization: $noOptimization,
   ) {
     itineraries { ...ItineraryFields }
   }
