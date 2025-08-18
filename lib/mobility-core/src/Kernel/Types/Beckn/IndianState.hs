@@ -65,6 +65,7 @@ data IndianState
   | Puducherry
   | Minnesota
   | NorthHolland
+  | Uusimaa
   | AnyState
   deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable IndianState
@@ -108,6 +109,7 @@ instance FromJSON IndianState where
   parseJSON (String "Lakshadweep") = pure Lakshadweep
   parseJSON (String "Puducherry") = pure Puducherry
   parseJSON (String "Minnesota") = pure Minnesota
+  parseJSON (String "Uusimaa") = pure Uusimaa
   parseJSON (String "NorthHolland") = pure NorthHolland
   parseJSON (String "*") = pure AnyState
   parseJSON (String _) = parseFail "Invalid IndianState"
@@ -150,5 +152,6 @@ instance ToJSON IndianState where
   toJSON Lakshadweep = String "Lakshadweep"
   toJSON Puducherry = String "Puducherry"
   toJSON Minnesota = String "Minnesota"
+  toJSON Uusimaa = String "Uusimaa"
   toJSON NorthHolland = String "NorthHolland"
   toJSON AnyState = String "*"
