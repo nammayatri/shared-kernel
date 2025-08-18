@@ -78,6 +78,7 @@ autoSuggest entityId mmiCfg req@AutoCompleteReq {..} = do
               France -> "fr"
               USA -> "us"
               Netherlands -> "nl"
+              Finland -> "fi"
       lang = language
       mapsUrl = mmiCfg.mmiNonKeyUrl
   token <- MMIAuthToken.getTokenText entityId mmiCfg

@@ -27,7 +27,7 @@ import Kernel.Utils.GenericPretty
 
 derivePersistField "Country"
 
-data Country = India | France | USA | Netherlands | AnyCountry
+data Country = India | France | USA | Netherlands | Finland | AnyCountry
   deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable Country
 
@@ -38,6 +38,7 @@ instance FromJSON Country where
   parseJSON (String "FRA") = pure France
   parseJSON (String "USA") = pure USA
   parseJSON (String "NLD") = pure Netherlands
+  parseJSON (String "FIN") = pure Finland
   parseJSON (String "*") = pure AnyCountry
   parseJSON (String _) = parseFail "Invalid Country"
   parseJSON e = typeMismatch "String" e
@@ -47,4 +48,5 @@ instance ToJSON Country where
   toJSON France = String "FRA"
   toJSON USA = String "USA"
   toJSON Netherlands = String "NLD"
+  toJSON Finland = String "FIN"
   toJSON AnyCountry = String "*"
