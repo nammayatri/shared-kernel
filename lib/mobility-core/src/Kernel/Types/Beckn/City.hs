@@ -115,6 +115,7 @@ data City
   | Sambalpur
   | Malappuram
   | Mayiladuthurai
+  | Helsinki
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
 
@@ -166,7 +167,7 @@ instance FromJSON City where
   parseJSON (String "Hosur") = pure Hosur
   parseJSON (String "std:0431") = pure Trichy
   parseJSON (String "Trichy") = pure Trichy
-  parseJSON (String "std:0820") = pure Minneapolis
+  parseJSON (String "usa:0820") = pure Minneapolis
   parseJSON (String "Minneapolis") = pure Minneapolis
   parseJSON (String "std:0471") = pure Trivandrum
   parseJSON (String "Trivandrum") = pure Trivandrum
@@ -276,7 +277,7 @@ instance FromJSON City where
   parseJSON (String "Bardhaman") = pure Bardhaman
   parseJSON (String "std:08392") = pure Ballari
   parseJSON (String "Ballari") = pure Ballari
-  parseJSON (String "area:020") = pure Amsterdam
+  parseJSON (String "nld:020") = pure Amsterdam
   parseJSON (String "Amsterdam") = pure Amsterdam
   parseJSON (String "std:03216") = pure Digha
   parseJSON (String "Digha") = pure Digha
@@ -288,6 +289,8 @@ instance FromJSON City where
   parseJSON (String "Malappuram") = pure Malappuram
   parseJSON (String "std:04364") = pure Mayiladuthurai
   parseJSON (String "Mayiladuthurai") = pure Mayiladuthurai
+  parseJSON (String "fin:009") = pure Helsinki
+  parseJSON (String "Helsinki") = pure Helsinki
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
@@ -314,7 +317,7 @@ instance ToJSON City where
   toJSON Salem = String "std:0427"
   toJSON Hosur = String "std:04344"
   toJSON Trichy = String "std:0431"
-  toJSON Minneapolis = String "std:0820"
+  toJSON Minneapolis = String "usa:0820"
   toJSON Trivandrum = String "std:0471"
   toJSON Thrissur = String "std:0487"
   toJSON Kozhikode = String "std:0495"
@@ -369,12 +372,13 @@ instance ToJSON City where
   toJSON Berhampur = String "std:0680"
   toJSON Bardhaman = String "std:0343"
   toJSON Ballari = String "std:08392"
-  toJSON Amsterdam = String "area:020"
+  toJSON Amsterdam = String "nld:020"
   toJSON Digha = String "std:03216"
   toJSON Jharsuguda = String "std:06645"
   toJSON Sambalpur = String "std:0663"
   toJSON Malappuram = String "std:0483"
   toJSON Mayiladuthurai = String "std:04364"
+  toJSON Helsinki = String "fin:009"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -427,7 +431,7 @@ instance FromHttpApiData City where
       parseLowerCaseCity "hosur" = Right Hosur
       parseLowerCaseCity "std:0431" = Right Trichy
       parseLowerCaseCity "trichy" = Right Trichy
-      parseLowerCaseCity "std:0820" = Right Minneapolis
+      parseLowerCaseCity "usa:0820" = Right Minneapolis
       parseLowerCaseCity "minneapolis" = Right Minneapolis
       parseLowerCaseCity "std:0471" = Right Trivandrum
       parseLowerCaseCity "trivandrum" = Right Trivandrum
@@ -537,7 +541,7 @@ instance FromHttpApiData City where
       parseLowerCaseCity "bardhaman" = Right Bardhaman
       parseLowerCaseCity "std:08392" = Right Ballari
       parseLowerCaseCity "ballari" = Right Ballari
-      parseLowerCaseCity "area:020" = Right Amsterdam
+      parseLowerCaseCity "nld:020" = Right Amsterdam
       parseLowerCaseCity "amsterdam" = Right Amsterdam
       parseLowerCaseCity "std:03216" = Right Digha
       parseLowerCaseCity "digha" = Right Digha
@@ -549,6 +553,8 @@ instance FromHttpApiData City where
       parseLowerCaseCity "malappuram" = Right Malappuram
       parseLowerCaseCity "std:04364" = Right Mayiladuthurai
       parseLowerCaseCity "mayiladuthurai" = Right Mayiladuthurai
+      parseLowerCaseCity "fin:009" = Right Helsinki
+      parseLowerCaseCity "helsinki" = Right Helsinki
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
@@ -575,7 +581,7 @@ instance ToHttpApiData City where
   toUrlPiece Salem = "std:0427"
   toUrlPiece Hosur = "std:04344"
   toUrlPiece Trichy = "std:0431"
-  toUrlPiece Minneapolis = "std:0820"
+  toUrlPiece Minneapolis = "usa:0820"
   toUrlPiece Trivandrum = "std:0471"
   toUrlPiece Thrissur = "std:0487"
   toUrlPiece Kozhikode = "std:0495"
@@ -630,7 +636,8 @@ instance ToHttpApiData City where
   toUrlPiece Berhampur = "std:0680"
   toUrlPiece Bardhaman = "std:0343"
   toUrlPiece Ballari = "std:08392"
-  toUrlPiece Amsterdam = "area:020"
+  toUrlPiece Amsterdam = "nld:020"
+  toUrlPiece Helsinki = "fin:009"
   toUrlPiece Digha = "std:03216"
   toUrlPiece Jharsuguda = "std:06645"
   toUrlPiece Sambalpur = "std:0663"
