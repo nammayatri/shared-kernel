@@ -199,6 +199,7 @@ data FCMNotificationType
   | ACCOUNT_DELETED
   | DRIVER_ACCEPTED_EDITED_LOCATION
   | DRIVER_UNSUBSCRIBED
+  | PICKUP_INSTRUCTIONS
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
