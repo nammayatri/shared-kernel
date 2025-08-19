@@ -228,7 +228,7 @@ instance ToJSON TransportMode where
 instance RequestType OTPPlan where
   type RequestArgs OTPPlan = OTPPlanArgs
   __name _ = "OTPPlan"
-  __query _ = "query OTPPlan (\n    $from: InputCoordinates!,\n    $to: InputCoordinates!,\n    $date: String,\n    $time:String,\n    $transportModes: [TransportMode],\n    $numItineraries: Int\n){\n  plan(\n    from: $from,\n    to: $to,\n    date: $date,\n    time: $time,\n    transportModes: $transportModes,\n    numItineraries : $numItineraries\n  ) {\n    itineraries {\n      duration\n      startTime\n      endTime\n      legs {\n        pickupType\n        distance\n        mode\n        duration\n        startTime\n        endTime\n        from {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n            gtfsId\n            platformCode\n          }\n        }\n        to {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n            gtfsId\n            platformCode\n          }\n        }\n        route {\n          gtfsId\n          longName\n          trips {\n            gtfsId\n          }\n          shortName\n          color\n          agency {\n            gtfsId\n            name\n          }\n        }\n        legGeometry {\n          points\n        }\n        fareProducts {\n          id\n        }\n      }\n    }\n  }\n}\n"
+  __query _ = "query OTPPlan (\n    $from: InputCoordinates!,\n    $to: InputCoordinates!,\n    $date: String,\n    $time:String,\n    $transportModes: [TransportMode],\n    $numItineraries: Int,\n    # Actually Long\n    $searchWindow: Int,\n    $noOptimization: Boolean,\n){\n  plan(\n    from: $from,\n    to: $to,\n    date: $date,\n    time: $time,\n    transportModes: $transportModes,\n    numItineraries : $numItineraries,\n    searchWindow: $searchWindow,\n    noOptimization: $noOptimization,\n  ) {\n    itineraries {\n      duration\n      startTime\n      endTime\n      legs {\n        pickupType\n        distance\n        mode\n        entrance {\n          distance\n          lon\n          lat\n          relativeDirection\n          absoluteDirection\n          streetName\n          exit\n          stayOn\n          area\n          bogusName\n          walkingBike\n        }\n        exit {\n          distance\n          lon\n          lat\n          relativeDirection\n          absoluteDirection\n          streetName\n          exit\n          stayOn\n          area\n          bogusName\n          walkingBike\n        }\n        duration\n        startTime\n        endTime\n        from {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n            gtfsId\n            platformCode\n          }\n        }\n        to {\n          name\n          lat\n          lon\n          departureTime\n          arrivalTime\n          stop {\n            code\n            gtfsId\n            platformCode\n          }\n        }\n        route {\n          gtfsId\n          longName\n          trips {\n            gtfsId\n          }\n          shortName\n          color\n          agency {\n            gtfsId\n            name\n          }\n        }\n        legGeometry {\n          points\n        }\n        fareProducts {\n          id\n        }\n      }\n    }\n  }\n}\n"
   __type _ = OPERATION_QUERY
 
 newtype OTPPlan = OTPPlan
@@ -427,25 +427,29 @@ data OTPPlanArgs = OTPPlanArgs
     date :: Maybe String,
     time :: Maybe String,
     transportModes :: Maybe [Maybe TransportMode],
-    numItineraries :: Maybe Int
+    numItineraries :: Maybe Int,
+    searchWindow :: Maybe Integer,
+    noOptimization :: Maybe Bool
   }
   deriving (Generic, Show, Eq)
 
 instance ToJSON OTPPlanArgs where
-  toJSON (OTPPlanArgs oTPPlanArgsFrom oTPPlanArgsTo oTPPlanArgsDate oTPPlanArgsTime oTPPlanArgsTransportModes oTPPlanArgsNumItineraries) =
+  toJSON (OTPPlanArgs oTPPlanArgsFrom oTPPlanArgsTo oTPPlanArgsDate oTPPlanArgsTime oTPPlanArgsTransportModes oTPPlanArgsNumItineraries oTPPlanArgsSearchWindow oTPPlanArgsNoOptimization) =
     omitNulls
       [ "from" .= oTPPlanArgsFrom,
         "to" .= oTPPlanArgsTo,
         "date" .= oTPPlanArgsDate,
         "time" .= oTPPlanArgsTime,
         "transportModes" .= oTPPlanArgsTransportModes,
-        "numItineraries" .= oTPPlanArgsNumItineraries
+        "numItineraries" .= oTPPlanArgsNumItineraries,
+        "searchWindow" .= oTPPlanArgsSearchWindow,
+        "noOptimization" .= oTPPlanArgsNoOptimization
       ]
 
 instance RequestType MultiModePlan where
   type RequestArgs MultiModePlan = MultiModePlanArgs
   __name _ = "MultiModePlan"
-  __query _ = "query MultiModePlan(\n  $from: InputCoordinates!,\n  $to: InputCoordinates!,\n  $date: String,\n  $time: String,\n  $metroTransportModes: [TransportMode]!,\n  $metroItineraries: Int!\n  $subwayTransportModes: [TransportMode]!,\n  $subwayItineraries: Int!\n  $busTransportModes: [TransportMode]!,\n  $busItineraries: Int!\n  $bestTransportModes: [TransportMode]!,\n  $bestItineraries: Int!\n) {\n  metro: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $metroTransportModes,\n    numItineraries: $metroItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  subway: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $subwayTransportModes,\n    numItineraries: $subwayItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  bus: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $busTransportModes,\n    numItineraries: $busItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  best: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $bestTransportModes,\n    numItineraries: $bestItineraries\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n}\n\nfragment ItineraryFields on Itinerary {\n  duration\n  startTime\n  endTime\n  legs {\n    pickupType\n    distance\n    mode\n    entrance {\n      distance\n      lon\n      lat\n      relativeDirection\n      absoluteDirection\n      streetName\n      exit\n      stayOn\n      area\n      bogusName\n      walkingBike\n    }\n    exit {\n      distance\n      lon\n      lat\n      relativeDirection\n      absoluteDirection\n      streetName\n      exit\n      stayOn\n      area\n      bogusName\n      walkingBike\n    }\n    duration\n    startTime\n    endTime\n    from {\n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    to {\n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    route {\n      gtfsId\n      longName\n      trips {\n        gtfsId\n      }\n      shortName\n      color\n      agency {\n        gtfsId\n        name\n      }\n    }\n    legGeometry {\n      points\n    }\n    fareProducts {\n      id\n    }\n  }\n}\n"
+  __query _ = "query MultiModePlan(\n  $from: InputCoordinates!,\n  $to: InputCoordinates!,\n  $date: String,\n  $time: String,\n  $metroTransportModes: [TransportMode]!,\n  $metroItineraries: Int!\n  $subwayTransportModes: [TransportMode]!,\n  $subwayItineraries: Int!\n  $busTransportModes: [TransportMode]!,\n  $busItineraries: Int!\n  $bestTransportModes: [TransportMode]!,\n  $bestItineraries: Int!,\n  # Actually Long\n  $searchWindow: Long,\n  $noOptimization: Boolean,\n  # Actually Long\n  $busSearchWindow: Long,\n) {\n  metro: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $metroTransportModes,\n    numItineraries: $metroItineraries,\n    searchWindow: $searchWindow,\n    noOptimization: $noOptimization,\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  subway: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $subwayTransportModes,\n    numItineraries: $subwayItineraries,\n    searchWindow: $searchWindow,\n    noOptimization: $noOptimization,\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  bus: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $busTransportModes,\n    numItineraries: $busItineraries,\n    searchWindow: $busSearchWindow,\n    noOptimization: $noOptimization,\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n  best: plan(\n    from: $from,\n    to:   $to,\n    date: $date,\n    time: $time,\n    transportModes: $bestTransportModes,\n    numItineraries: $bestItineraries,\n    searchWindow: $searchWindow,\n    noOptimization: $noOptimization,\n  ) {\n    itineraries { ...ItineraryFields }\n  }\n}\n\nfragment ItineraryFields on Itinerary {\n  duration\n  startTime\n  endTime\n  legs {\n    pickupType\n    distance\n    mode\n    entrance {\n      distance\n      lon\n      lat\n      relativeDirection\n      absoluteDirection\n      streetName\n      exit\n      stayOn\n      area\n      bogusName\n      walkingBike\n    }\n    exit {\n      distance\n      lon\n      lat\n      relativeDirection\n      absoluteDirection\n      streetName\n      exit\n      stayOn\n      area\n      bogusName\n      walkingBike\n    }\n    duration\n    startTime\n    endTime\n    from {\n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    to {\n      name\n      lat\n      lon\n      departureTime\n      arrivalTime\n      stop {\n        code\n        gtfsId\n        platformCode\n      }\n    }\n    route {\n      gtfsId\n      longName\n      trips {\n        gtfsId\n      }\n      shortName\n      color\n      agency {\n        gtfsId\n        name\n      }\n    }\n    legGeometry {\n      points\n    }\n    fareProducts {\n      id\n    }\n  }\n}\n"
   __type _ = OPERATION_QUERY
 
 data MultiModePlanArgs = MultiModePlanArgs
@@ -460,12 +464,15 @@ data MultiModePlanArgs = MultiModePlanArgs
     busTransportModes :: [Maybe TransportMode],
     busItineraries :: Int,
     bestTransportModes :: [Maybe TransportMode],
-    bestItineraries :: Int
+    bestItineraries :: Int,
+    searchWindow :: Maybe Integer,
+    noOptimization :: Maybe Bool,
+    busSearchWindow :: Maybe Integer
   }
   deriving (Generic, Show, Eq)
 
 instance ToJSON MultiModePlanArgs where
-  toJSON (MultiModePlanArgs multiModePlanArgsFrom multiModePlanArgsTo multiModePlanArgsDate multiModePlanArgsTime multiModePlanArgsMetroTransportModes multiModePlanArgsMetroItineraries multiModePlanArgsSubwayTransportModes multiModePlanArgsSubwayItineraries multiModePlanArgsBusTransportModes multiModePlanArgsBusItineraries multiModePlanArgsBestTransportModes multiModePlanArgsBestItineraries) =
+  toJSON (MultiModePlanArgs multiModePlanArgsFrom multiModePlanArgsTo multiModePlanArgsDate multiModePlanArgsTime multiModePlanArgsMetroTransportModes multiModePlanArgsMetroItineraries multiModePlanArgsSubwayTransportModes multiModePlanArgsSubwayItineraries multiModePlanArgsBusTransportModes multiModePlanArgsBusItineraries multiModePlanArgsBestTransportModes multiModePlanArgsBestItineraries multiModePlanArgsSearchWindow multiModePlanArgsNoOptimization multiModePlanArgsBusSearchWindow) =
     omitNulls
       [ "from" .= multiModePlanArgsFrom,
         "to" .= multiModePlanArgsTo,
@@ -478,7 +485,10 @@ instance ToJSON MultiModePlanArgs where
         "busTransportModes" .= multiModePlanArgsBusTransportModes,
         "busItineraries" .= multiModePlanArgsBusItineraries,
         "bestTransportModes" .= multiModePlanArgsBestTransportModes,
-        "bestItineraries" .= multiModePlanArgsBestItineraries
+        "bestItineraries" .= multiModePlanArgsBestItineraries,
+        "searchWindow" .= multiModePlanArgsSearchWindow,
+        "noOptimization" .= multiModePlanArgsNoOptimization,
+        "busSearchWindow" .= multiModePlanArgsBusSearchWindow
       ]
 
 data MultiModePlan = MultiModePlan
