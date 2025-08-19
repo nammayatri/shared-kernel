@@ -115,6 +115,7 @@ data Category
   | EKD_LIVE_CALL_FEEDBACK
   | DRUNK_AND_DRIVE_VIOLATION_WARNING
   | ACCOUNT_DELETED
+  | PICKUP_INSTRUCTIONS
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
