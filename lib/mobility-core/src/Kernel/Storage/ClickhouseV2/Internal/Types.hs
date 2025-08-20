@@ -73,6 +73,7 @@ data Column (a :: IsAggregated) t v where
   LessOrEqual :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
   Greater :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
   Less :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+  Mul :: (ClickhouseTable t, ClickhouseNum v) => Column a t v -> Column a t v -> Column a t v
 
 mkTableColumns :: ClickhouseTable t => FieldModifications t -> Columns 'NOT_AGG t
 mkTableColumns = mapTable Column
@@ -261,6 +262,7 @@ showColumn (GreaterOrEqual column1 column2) = addBrackets' $ showColumn column1 
 showColumn (LessOrEqual column1 column2) = addBrackets' $ showColumn column1 <> "<=" <> showColumn column2
 showColumn (Greater column1 column2) = addBrackets' $ showColumn column1 <> ">" <> showColumn column2
 showColumn (Less column1 column2) = addBrackets' $ showColumn column1 <> "<" <> showColumn column2
+showColumn (Mul column1 column2) = addBrackets' (showColumn column1 <> "*" <> showColumn column2)
 
 addBrackets' :: String -> String
 addBrackets' rq = "(" <> rq <> ")"
