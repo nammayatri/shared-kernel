@@ -80,12 +80,16 @@ getTransitRoutes cfg req = do
           addOpenTripPlannerLatency "NORMAL" "SUCCESS" latency
           pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
     MULTI_SEARCH -> withLogTag "MULTI_SEARCH" $ do
+      -- Hardcode to 10 AM today in UTC (OTP expects UTC)
+      currentTime <- getCurrentTime
+      let today = Just $ formatTime defaultTimeLocale "%Y-%m-%d" currentTime
+          constantTime = Just "10:00"
       let otpReq =
             MultiModePlanArgs
               { from = origin,
                 to = destination,
-                date = fst <$> dateTime,
-                time = snd <$> dateTime,
+                date = today,
+                time = constantTime,
                 metroTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeRAIL, Just ModeWALK],
                 metroItineraries = 5,
                 subwayTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeSUBWAY, Just ModeWALK],
