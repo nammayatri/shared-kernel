@@ -314,7 +314,7 @@ mkSplitSettlementDetails splitDetails =
   where
     mkMarketplace Marketplace {..} = Juspay.Marketplace {..}
     mkVendor vendor = Juspay.Vendor {split = mkSplit <$> vendor.split}
-    mkSplit split = Juspay.Split {amount = split.amount, merchant_commission = split.merchantCommission, sub_mid = split.subMid, unique_split_id = split.uniqueSplitId}
+    mkSplit split = Juspay.Split {amount = split.amount, merchant_commission = split.merchantCommission, sub_mid = split.subMid, unique_split_id = Just split.uniqueSplitId}
 
 orderStatus ::
   ( HasCallStack,
