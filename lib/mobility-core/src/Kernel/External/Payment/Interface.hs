@@ -359,3 +359,13 @@ isSplitEnabled :: PaymentServiceConfig -> Bool
 isSplitEnabled = \case
   JuspayConfig cfg -> fromMaybe False cfg.isSplitEnabled
   StripeConfig _ -> False
+
+isRefundSplitEnabled :: PaymentServiceConfig -> Bool
+isRefundSplitEnabled = \case
+  JuspayConfig cfg -> fromMaybe False cfg.isRefundSplitEnabled
+  StripeConfig _ -> False
+
+getGatewayReferenceId :: PaymentServiceConfig -> Maybe Text
+getGatewayReferenceId = \case
+  JuspayConfig cfg -> cfg.gatewayReferenceId
+  StripeConfig _ -> Nothing

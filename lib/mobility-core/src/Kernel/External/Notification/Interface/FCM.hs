@@ -90,6 +90,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.CANCELLED_SEARCH_REQUEST -> FCM.CANCELLED_SEARCH_REQUEST
   Interface.NEW_MESSAGE -> FCM.NEW_MESSAGE
   Interface.REFERRAL_ACTIVATED -> FCM.REFERRAL_ACTIVATED
+  Interface.DRIVER_UNSUBSCRIBED -> FCM.DRIVER_UNSUBSCRIBED
   Interface.CHAT_MESSAGE -> FCM.CHAT_MESSAGE
   Interface.PAYMENT_PENDING -> FCM.PAYMENT_PENDING
   Interface.PAYMENT_OVERDUE -> FCM.PAYMENT_OVERDUE
@@ -150,6 +151,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.EKD_LIVE_CALL_FEEDBACK -> FCM.EKD_LIVE_CALL_FEEDBACK
   Interface.DRUNK_AND_DRIVE_VIOLATION_WARNING -> FCM.DRUNK_AND_DRIVE_VIOLATION_WARNING
   Interface.ACCOUNT_DELETED -> FCM.ACCOUNT_DELETED
+  Interface.PICKUP_INSTRUCTIONS -> FCM.PICKUP_INSTRUCTIONS
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case

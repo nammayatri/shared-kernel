@@ -385,13 +385,11 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
 
     removeShortWalkLegs :: Distance.Meters -> MultiModalRoute -> MultiModalRoute
     removeShortWalkLegs threshold route =
-      let thresholdValue = fromIntegral $ Distance.getMeters threshold -- Convert threshold to Double for comparison
-          legsWithIndices = zip [0 ..] route.legs -- Pair each leg with its index
-          totalLegs = length route.legs
+      let thresholdValue = fromIntegral $ Distance.getMeters threshold
           filteredLegs =
             [ leg
-              | (index, leg) <- legsWithIndices,
-                not (leg.mode == Walk && getLegDistance leg < thresholdValue && index /= 0 && index /= totalLegs - 1)
+              | leg <- route.legs,
+                not (leg.mode == Walk && getLegDistance leg < thresholdValue)
             ]
        in route {legs = filteredLegs}
 
@@ -430,41 +428,52 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
     mergeMetroLegs :: [MultiModalLeg] -> [MultiModalLeg]
     mergeMetroLegs [] = []
     mergeMetroLegs [leg] = [leg] -- Single leg, no merging needed
+    mergeMetroLegs (leg1 : leg2 : leg3 : rest)
+      | ((leg1.mode == MetroRail && leg3.mode == MetroRail) || (leg1.mode == Subway && leg3.mode == Subway))
+          && leg1.agency == leg3.agency
+          && leg2.mode `notElem` [MetroRail, Subway, Bus]
+          && getLegDistance leg2 < 1000 =
+        let mergedLeg = mergeTwoRailLegs leg1 leg3
+         in mergeMetroLegs (mergedLeg : rest)
     mergeMetroLegs (leg1 : leg2 : rest)
-      | (leg1.mode == MetroRail && leg2.mode == MetroRail) && leg1.agency == leg2.agency =
-        let leg1Start = leg1.startLocation
-            leg2Start = leg2.startLocation
-            leg2End = leg2.endLocation
-            encodedPolylineText = encode [leg1Start.latLng, leg2Start.latLng, leg2End.latLng]
-            mergedLeg =
-              MultiModalLeg
-                { distance =
-                    Distance.Distance
-                      { value =
-                          Distance.HighPrecDistance
-                            { getHighPrecDistance = fromRational leg1.distance.value.getHighPrecDistance + fromRational leg2.distance.value.getHighPrecDistance
-                            },
-                        unit = leg1.distance.unit
-                      },
-                  duration = Time.Seconds $ leg1.duration.getSeconds + leg2.duration.getSeconds,
-                  polyline = GT.Polyline {encodedPolyline = encodedPolylineText},
-                  mode = leg1.mode,
-                  startLocation = leg1.startLocation,
-                  endLocation = leg2.endLocation,
-                  serviceTypes = nub (leg1.serviceTypes ++ leg2.serviceTypes),
-                  fromStopDetails = leg1.fromStopDetails,
-                  toStopDetails = leg2.toStopDetails,
-                  routeDetails = leg1.routeDetails ++ leg2.routeDetails,
-                  agency = leg1.agency,
-                  fromArrivalTime = min <$> leg1.fromArrivalTime <*> leg2.fromArrivalTime,
-                  fromDepartureTime = min <$> leg1.fromDepartureTime <*> leg2.fromDepartureTime,
-                  toArrivalTime = max <$> leg1.toArrivalTime <*> leg2.toArrivalTime,
-                  toDepartureTime = max <$> leg1.toDepartureTime <*> leg2.toDepartureTime,
-                  entrance = leg1.entrance,
-                  exit = leg2.exit
-                }
-         in mergeMetroLegs (mergedLeg : rest) -- Add merged leg and continue
-      | otherwise = leg1 : mergeMetroLegs (leg2 : rest) -- Keep leg1, process the rest
+      | ((leg1.mode == MetroRail && leg2.mode == MetroRail) || (leg1.mode == Subway && leg2.mode == Subway))
+          && leg1.agency == leg2.agency =
+        let mergedLeg = mergeTwoRailLegs leg1 leg2
+         in mergeMetroLegs (mergedLeg : rest)
+      | otherwise = leg1 : mergeMetroLegs (leg2 : rest)
+
+    mergeTwoRailLegs :: MultiModalLeg -> MultiModalLeg -> MultiModalLeg
+    mergeTwoRailLegs leg1 leg2 =
+      let leg1Start = leg1.startLocation
+          leg2End = leg2.endLocation
+          encodedPolylineText = encode [leg1Start.latLng, leg2End.latLng]
+       in MultiModalLeg
+            { distance =
+                Distance.Distance
+                  { value =
+                      Distance.HighPrecDistance
+                        { getHighPrecDistance = fromRational leg1.distance.value.getHighPrecDistance + fromRational leg2.distance.value.getHighPrecDistance
+                        },
+                    unit = leg1.distance.unit
+                  },
+              duration = Time.Seconds $ leg1.duration.getSeconds + leg2.duration.getSeconds,
+              polyline = GT.Polyline {encodedPolyline = encodedPolylineText},
+              mode = leg1.mode,
+              startLocation = leg1.startLocation,
+              endLocation = leg2.endLocation,
+              serviceTypes = nub (leg1.serviceTypes ++ leg2.serviceTypes),
+              fromStopDetails = leg1.fromStopDetails,
+              toStopDetails = leg2.toStopDetails,
+              routeDetails = leg1.routeDetails ++ leg2.routeDetails,
+              agency = leg1.agency,
+              fromArrivalTime = min <$> leg1.fromArrivalTime <*> leg2.fromArrivalTime,
+              fromDepartureTime = min <$> leg1.fromDepartureTime <*> leg2.fromDepartureTime,
+              toArrivalTime = max <$> leg1.toArrivalTime <*> leg2.toArrivalTime,
+              toDepartureTime = max <$> leg1.toDepartureTime <*> leg2.toDepartureTime,
+              entrance = leg1.entrance,
+              exit = leg2.exit
+            }
+
     accumulateItineraries :: Maybe OTP.OTPPlanPlanItineraries -> ([MultiModalRoute], HM.HashMap T.Text [T.Text]) -> ([MultiModalRoute], HM.HashMap T.Text [T.Text])
     accumulateItineraries itinerary (genericRoutes, freqMap) =
       case itinerary of
@@ -519,30 +528,24 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                 Just x -> (x.code, Just x.gtfsId, x.platformCode)
                 Nothing -> (Nothing, Nothing, Nothing)
               fromStopDetails' =
-                if mode == Walk
-                  then Nothing
-                  else
-                    Just
-                      MultiModalStopDetails
-                        { stopCode = fmap T.pack fromStopCode,
-                          name = startLocName,
-                          gtfsId = fmap T.pack fromStopGtfsId,
-                          platformCode = fmap T.pack fromStopPlatformCode
-                        }
+                Just
+                  MultiModalStopDetails
+                    { stopCode = fmap T.pack fromStopCode,
+                      name = startLocName,
+                      gtfsId = fmap T.pack fromStopGtfsId,
+                      platformCode = fmap T.pack fromStopPlatformCode
+                    }
               (toStopCode, toStopGtfsId, toStopPlatformCode) = case otpLeg'.to.stop of
                 Just x -> (x.code, Just x.gtfsId, x.platformCode)
                 Nothing -> (Nothing, Nothing, Nothing)
               toStopDetails' =
-                if mode == Walk
-                  then Nothing
-                  else
-                    Just
-                      MultiModalStopDetails
-                        { stopCode = fmap T.pack toStopCode,
-                          name = endLocName,
-                          gtfsId = fmap T.pack toStopGtfsId,
-                          platformCode = fmap T.pack toStopPlatformCode
-                        }
+                Just
+                  MultiModalStopDetails
+                    { stopCode = fmap T.pack toStopCode,
+                      name = endLocName,
+                      gtfsId = fmap T.pack toStopGtfsId,
+                      platformCode = fmap T.pack toStopPlatformCode
+                    }
               genericAgency = case routeAgency of
                 Nothing -> Nothing
                 Just ag ->

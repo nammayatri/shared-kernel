@@ -207,3 +207,16 @@ data RCRespWithRemPriorityList = RCRespWithRemPriorityList
     remPriorityList :: [VT.VerificationService]
   }
   deriving (Show, Generic, FromJSON, ToJSON)
+
+data NameCompareReq = NameCompareReq
+  { extractedName :: Text,
+    verifiedName :: Text,
+    percentage :: Maybe Bool,
+    driverId :: Text
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype NameCompareResp = NameCompareResp
+  { nameComparedData :: Maybe Idfy.NameCompareResponseData
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)

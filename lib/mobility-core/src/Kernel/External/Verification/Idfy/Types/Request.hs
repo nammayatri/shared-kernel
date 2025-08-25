@@ -33,6 +33,8 @@ type AadharVerificationReqest = IdfyRequest AadharVerificationData
 
 type RCVerificationRequest = IdfyRequest RCVerificationData
 
+type NameCompareRequest = IdfyRequest NameCompareRequestBody
+
 data IdfyRequest a = IdfyRequest
   { task_id :: Text,
     group_id :: Text,
@@ -79,5 +81,12 @@ data AadharVerificationData = AadharVerificationData
   { document1 :: Text,
     document2 :: Maybe Text,
     consent :: Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data NameCompareRequestBody = NameCompareRequestBody
+  { name1 :: Text,
+    name2 :: Text,
+    percentage :: Maybe Bool
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)

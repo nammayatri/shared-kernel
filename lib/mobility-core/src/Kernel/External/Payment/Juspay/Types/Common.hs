@@ -16,7 +16,9 @@
 
 module Kernel.External.Payment.Juspay.Types.Common where
 
+import Control.Lens
 import Data.Aeson.Types
+import Data.OpenApi hiding (components, description, links)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
@@ -94,7 +96,6 @@ instance ToJSON NotificationStatus where
 
 data RefundStatus = REFUND_PENDING | REFUND_FAILURE | REFUND_SUCCESS | MANUAL_REVIEW
   deriving stock (Show, Eq, Read, Ord, Generic)
-  deriving anyclass (ToSchema)
 
 derivePersistField "RefundStatus"
 
@@ -113,6 +114,14 @@ instance ToJSON RefundStatus where
   toJSON REFUND_PENDING = "PENDING"
   toJSON REFUND_SUCCESS = "SUCCESS"
   toJSON MANUAL_REVIEW = "MANUAL_REVIEW"
+
+instance ToSchema RefundStatus where
+  declareNamedSchema _ =
+    pure $
+      NamedSchema (Just "RefundStatus") $
+        mempty
+          & type_ ?~ OpenApiString
+          & enum_ ?~ (map toJSON [REFUND_PENDING, REFUND_FAILURE, REFUND_SUCCESS, MANUAL_REVIEW])
 
 data TransactionStatus
   = NEW

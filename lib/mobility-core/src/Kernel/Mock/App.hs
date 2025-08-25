@@ -65,6 +65,8 @@ instance CoreMetrics (MockM e) where
   incrementGenericMetrics _ = return ()
   incrementSystemConfigsFailedCounter _ = return ()
   addGenericLatencyMetrics _ _ = return ()
+  addOpenTripPlannerResponse _ _ _ = return ()
+  addOpenTripPlannerLatency _ _ _ = return ()
 
 instance MonadTime (MockM e) where
   getCurrentTime = liftIO getCurrentTime

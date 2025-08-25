@@ -448,7 +448,8 @@ type OfferNotifyResp = APISuccess
 data AutoRefundReq = AutoRefundReq
   { orderId :: Text,
     requestId :: Text,
-    amount :: HighPrecMoney
+    amount :: HighPrecMoney,
+    splitSettlementDetails :: Maybe SplitSettlementDetails
   }
 
 data AutoRefundResp = AutoRefundResp

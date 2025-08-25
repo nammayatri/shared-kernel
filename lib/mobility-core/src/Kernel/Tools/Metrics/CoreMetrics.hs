@@ -288,3 +288,39 @@ addGenericLatencyMetricsImplementation operation latency = do
       cmContainer.genericLatencyMetrics
       (operation, version.getDeploymentVersion)
       (`P.observe` fromIntegral latency)
+
+addOpenTripPlannerResponseImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Text ->
+  Text ->
+  m ()
+addOpenTripPlannerResponseImplementation queryType status errorCode = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  L.runIO $
+    P.withLabel
+      cmContainer.openTripPlannerResponseMetric
+      (queryType, status, errorCode, version.getDeploymentVersion)
+      P.incCounter
+
+addOpenTripPlannerLatencyImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Text ->
+  Milliseconds ->
+  m ()
+addOpenTripPlannerLatencyImplementation queryType status latency = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  L.runIO $
+    P.withLabel
+      cmContainer.openTripPlannerLatencyMetric
+      (queryType, status, version.getDeploymentVersion)
+      (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
