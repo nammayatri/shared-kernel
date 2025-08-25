@@ -79,7 +79,7 @@ data Split = Split
   { amount :: HighPrecMoney,
     merchantCommission :: HighPrecMoney,
     subMid :: Text,
-    uniqueSplitId :: Maybe Text
+    uniqueSplitId :: Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
