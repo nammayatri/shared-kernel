@@ -200,6 +200,11 @@ data FCMNotificationType
   | DRIVER_ACCEPTED_EDITED_LOCATION
   | DRIVER_UNSUBSCRIBED
   | PICKUP_INSTRUCTIONS
+  | PREPAID_RECHARGE_SUCCESS
+  | PREPAID_BALANCE_UPDATE
+  | PAYOUT_INITIATED
+  | PAYOUT_FAILED
+  | PAYOUT_COMPLETED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
