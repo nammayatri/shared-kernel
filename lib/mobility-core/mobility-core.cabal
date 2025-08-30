@@ -339,7 +339,6 @@ library
       Kernel.Streaming.Kafka.Topic.PublicTransportSearch.Types
       Kernel.Streaming.MonadConsumer
       Kernel.Streaming.MonadProducer
-      Kernel.Tools.ARTUtils
       Kernel.Tools.Logging
       Kernel.Tools.LoopGracefully
       Kernel.Tools.Metrics.AppMetrics
