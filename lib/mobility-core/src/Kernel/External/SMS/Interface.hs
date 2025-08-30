@@ -47,6 +47,7 @@ sendSMS SmsHandler {..} req = do
     sendSmsWithFallback (preferredProvider : restProviders) = do
       smsConfig <- getProviderConfig preferredProvider
       result <- try @_ @SomeException $ sendSMS' smsConfig req
+      logDebug $ "SMS sent with provider: " <> show preferredProvider <> " " <> show result
       case result of
         Left _ -> sendSmsWithFallback restProviders
         Right res -> case res of
