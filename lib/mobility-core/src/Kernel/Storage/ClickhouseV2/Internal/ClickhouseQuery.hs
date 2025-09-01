@@ -48,7 +48,7 @@ instance
       <> " FROM "
       <> toClickhouseQuery @(AvailableColumns db t acols) q.tableQ
       <> selectModifier
-      <> mkMaybeClause @(Where t) (q.whereQ <&> ($ cols))
+      <> mkMaybeClause @(Where t) q.whereQ
       <> toClickhouseQuery @(GroupBy a gr) groupBy
       <> mkMaybeClause @(OrderBy ord) (q.orderByQ <&> ($ cols))
       <> mkMaybeClause @Limit q.limitQ

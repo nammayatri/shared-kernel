@@ -142,14 +142,14 @@ subSelect_ s@(Select _cols _gr q) = (AvailableColumns . SubSelectColumns $ s, q.
 
 filter_ ::
   ClickhouseDb db =>
-  (AvailableColumnsType acols -> cols -> Clause table) ->
+  (AvailableColumnsType acols -> Clause table) ->
   (AvailableColumns db table acols, SubQueryLevel) ->
   Q db table cols NotOrdered acols
 filter_ filterClause (table, level) =
   Q
     { tableQ = table,
       subQueryLevelQ = level,
-      whereQ = Just $ Where . filterClause (getAvailableColumnsValue table),
+      whereQ = Just . Where $ filterClause (getAvailableColumnsValue table),
       limitQ = Nothing,
       offsetQ = Nothing,
       orderByQ = Nothing,

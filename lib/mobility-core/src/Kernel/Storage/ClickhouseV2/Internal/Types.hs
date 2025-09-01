@@ -191,7 +191,7 @@ data Q db table cols ord acols = (ClickhouseDb db) =>
   Q
   { tableQ :: AvailableColumns db table acols,
     subQueryLevelQ :: SubQueryLevel,
-    whereQ :: Maybe (cols -> Where table),
+    whereQ :: Maybe (Where table),
     limitQ :: Maybe Limit,
     offsetQ :: Maybe Offset,
     orderByQ :: Maybe (cols -> OrderBy ord),
