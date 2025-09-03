@@ -157,6 +157,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.DRUNK_AND_DRIVE_VIOLATION_WARNING -> FCM.DRUNK_AND_DRIVE_VIOLATION_WARNING
   Interface.ACCOUNT_DELETED -> FCM.ACCOUNT_DELETED
   Interface.PICKUP_INSTRUCTIONS -> FCM.PICKUP_INSTRUCTIONS
+  Interface.EXOTEL_CALL_UNREACHABLE -> FCM.EXOTEL_CALL_UNREACHABLE
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
