@@ -121,6 +121,7 @@ data Category
   | PAYOUT_INITIATED
   | PAYOUT_FAILED
   | PAYOUT_COMPLETED
+  | EXOTEL_CALL_UNREACHABLE
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

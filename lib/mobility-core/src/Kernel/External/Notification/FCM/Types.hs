@@ -205,6 +205,7 @@ data FCMNotificationType
   | PAYOUT_INITIATED
   | PAYOUT_FAILED
   | PAYOUT_COMPLETED
+  | EXOTEL_CALL_UNREACHABLE
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
