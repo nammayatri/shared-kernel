@@ -72,7 +72,8 @@ data CreateOrderReq = CreateOrderReq
     metadataGatewayReferenceId :: Maybe Text,
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetails,
+    usePseudoClientId :: Maybe Bool -- This flag is used if payment clientId and merchantId are different for same merchant id
   }
 
 data Split = Split
