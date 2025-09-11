@@ -69,7 +69,7 @@ createOrder ::
 createOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      clientId = fromMaybe merchantId config.pseudoClientId
+      clientId = if req.usePseudoClientId == Just True then fromMaybe merchantId config.pseudoClientId else merchantId
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreateOrderReq config.returnUrl clientId merchantId req
   Juspay.createOrder url apiKey merchantId mRoutingId orderReq
