@@ -45,7 +45,27 @@ data VerifyDLAsyncReq = VerifyDLAsyncReq
   }
   deriving stock (Show, Generic)
 
+data VerifyPanAsyncReq = VerifyPanAsyncReq
+  { panNumber :: Text,
+    driverId :: Text,
+    fullName :: Text,
+    dateOfBirth :: UTCTime
+  }
+  deriving stock (Show, Generic)
+
+data VerifyGstAsyncReq = VerifyGstAsyncReq
+  { gstNumber :: Text,
+    driverId :: Text,
+    filingDetails :: Bool,
+    eInvoiceDetails :: Bool
+  }
+  deriving stock (Show, Generic)
+
 type VerifyDLAsyncResp = VerifyAsyncResp
+
+type VerifyPanAsyncResp = VerifyAsyncResp
+
+type VerifyGstAsyncResp = VerifyAsyncResp
 
 data VerifyRCReq = VerifyRCReq
   { rcNumber :: Text,
@@ -161,7 +181,7 @@ data GetTaskReq = GetTaskReq
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
-data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface
+data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface | PanResp VT.PanVerificationResponse | GstResp VT.GstVerificationResponse
   deriving (Generic, FromJSON, ToJSON, Show)
 
 data DLVerificationOutputInterface = DLVerificationOutputInterface
