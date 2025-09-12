@@ -15,6 +15,8 @@
 module Kernel.External.Verification.Idfy.Client
   ( verifyDLAsync,
     verifyRCAsync,
+    verifyPanAsync,
+    verifyGstAsync,
     validateImage,
     extractRCImage,
     extractDLImage,
@@ -107,6 +109,62 @@ verifyRCAsync apiKey accountId url req = callIdfyAPI url task "verifyRCAsync" ve
     task =
       T.client
         verifyRCAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type VerifyPanAPI =
+  "v3" :> "tasks" :> "async" :> "verify_with_source" :> "ind_pan"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] PanVerificationRequest
+    :> Post '[JSON] IdfySuccess
+
+verifyPanAPI :: Proxy VerifyPanAPI
+verifyPanAPI = Proxy
+
+verifyPanAsync ::
+  ( MonadFlow m,
+    CoreMetrics m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  PanVerificationRequest ->
+  m IdfySuccess
+verifyPanAsync apiKey accountId url req = callIdfyAPI url task "verifyPanAsync" verifyPanAPI
+  where
+    task =
+      T.client
+        verifyPanAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type VerifyGstAPI =
+  "v3" :> "tasks" :> "async" :> "verify_with_source" :> "ind_gst_certificate"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] GstVerificationRequest
+    :> Post '[JSON] IdfySuccess
+
+verifyGstAPI :: Proxy VerifyGstAPI
+verifyGstAPI = Proxy
+
+verifyGstAsync ::
+  ( MonadFlow m,
+    CoreMetrics m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  GstVerificationRequest ->
+  m IdfySuccess
+verifyGstAsync apiKey accountId url req = callIdfyAPI url task "verifyGstAsync" verifyGstAPI
+  where
+    task =
+      T.client
+        verifyGstAPI
         (Just apiKey)
         (Just accountId)
         req
