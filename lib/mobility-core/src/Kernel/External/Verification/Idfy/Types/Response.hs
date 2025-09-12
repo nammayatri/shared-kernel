@@ -39,7 +39,26 @@ type VerificationResponse = IdfyResponse IdfyResult
 
 type VerificationResponseList = [IdfyResponse IdfyResult]
 
-type IdfyResult = Output DLVerificationOutput RCVerificationOutput
+data IdfyResult
+  = DLResult (Output DLVerificationOutput ())
+  | PanResult (Output PanVerificationOutput ())
+  | GstResult (Output GstVerificationOutput ())
+  | RCResult (Output () RCVerificationOutput)
+  deriving (Show, Generic)
+
+instance FromJSON IdfyResult where
+  parseJSON = withObject "IdfyResult" $ \o -> do
+    mDL <- o .:? "source_output"
+    mPan <- o .:? "source_output"
+    mGst <- o .:? "source_output"
+    mRC <- o .:? "extraction_output"
+
+    case (mDL, mPan, mGst, mRC) of
+      (Just dl, Nothing, Nothing, Nothing) -> pure (DLResult (Output (Just dl) Nothing))
+      (Nothing, Just pan, Nothing, Nothing) -> pure (PanResult (Output (Just pan) Nothing))
+      (Nothing, Nothing, Just gst, Nothing) -> pure (GstResult (Output (Just gst) Nothing))
+      (Nothing, Nothing, Nothing, Just rc) -> pure (RCResult (Output Nothing (Just rc)))
+      _ -> fail "Unable to decode IdfyResult"
 
 type NameCompareResponse = IdfyResponse NameCompareResponseData
 
@@ -190,6 +209,40 @@ data CovDetail = CovDetail
   { category :: Maybe Text,
     cov :: Text,
     issue_date :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data PanVerificationOutput = PanVerificationOutput
+  { aadhaar_seeding_status :: Maybe Bool,
+    pan_status :: Maybe Text,
+    name_match :: Maybe Bool,
+    dob_match :: Maybe Bool,
+    input_details :: Maybe A.Value
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data GstVerificationOutput = GstVerificationOutput
+  { additional_place_of_business_fields :: Maybe A.Value,
+    centre_jurisdiction :: Maybe Text,
+    centre_jurisdiction_code :: Maybe Text,
+    constitution_of_business :: Maybe Text,
+    date_of_cancellation :: Maybe Text,
+    date_of_registration :: Maybe Text,
+    gstin :: Maybe Text,
+    gstin_status :: Maybe Text,
+    last_updated_date :: Maybe Text,
+    legal_name :: Maybe Text,
+    nature_of_business_activity :: Maybe A.Value,
+    principal_place_of_business_fields :: Maybe A.Value,
+    source :: Maybe Text,
+    state_jurisdiction_code :: Maybe Text,
+    status :: Maybe Text,
+    taxpayer_type :: Maybe Text,
+    trade_name :: Maybe Text,
+    einvoice_status :: Maybe Text,
+    status_details :: Maybe Text,
+    is_sez :: Maybe Text,
+    filing_details :: Maybe A.Value
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
