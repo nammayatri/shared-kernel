@@ -15,6 +15,8 @@
 module Kernel.External.Verification.Interface
   ( module Reexport,
     verifyDLAsync,
+    verifyPanAsync,
+    verifyGstAsync,
     verifyRC,
     validateImage,
     extractRCImage,
@@ -63,6 +65,34 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.verifyDLAsync cfg req
+
+verifyPanAsync ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyPanAsyncReq ->
+  m VerifyPanAsyncResp
+verifyPanAsync serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.verifyPanAsync cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+
+verifyGstAsync ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyGstAsyncReq ->
+  m VerifyGstAsyncResp
+verifyGstAsync serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.verifyGstAsync cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
 
 verifyRC ::
   ( EncFlow m r,
