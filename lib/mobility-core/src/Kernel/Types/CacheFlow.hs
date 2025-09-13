@@ -13,6 +13,7 @@
 -}
 module Kernel.Types.CacheFlow where
 
+import EulerHS.Prelude
 import Kernel.Prelude
 import Kernel.Storage.Hedis (HedisFlow)
 import Kernel.Types.Common
@@ -48,4 +49,12 @@ type HasCacheConfig r = HasField "cacheConfig" r CacheConfig
 
 type HasCacConfig r = HasField "cacConfig" r CacConfig
 
-type CacheFlow m r = (HasCacheConfig r, HedisFlow m r, HasCacConfig r)
+data InMemConfig = InMemConfig
+  { enableInMem :: Bool,
+    inMemHashMap :: IORef (HashMap Text Any)
+  }
+  deriving (Generic)
+
+type HasInMemConfig r = HasField "inMemConfig" r InMemConfig
+
+type CacheFlow m r = (HasCacheConfig r, HedisFlow m r, HasCacConfig r, HasInMemConfig r)

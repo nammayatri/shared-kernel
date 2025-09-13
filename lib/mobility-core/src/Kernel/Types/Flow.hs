@@ -60,6 +60,7 @@ type HasFlowHandlerR m r =
   ( HasCacheConfig r,
     HasCacConfig r,
     HasCoreMetrics r,
+    HasInMemConfig r,
     HedisFlow m r,
     EsqDBFlow m r,
     IOLogging.HasLog r,
