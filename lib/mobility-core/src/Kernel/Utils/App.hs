@@ -233,7 +233,7 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId -> do
         flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
        }
 
-withModifiedEnv' :: (HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv' :: (HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
   let sanitizedUrl = removeUUIDs . cs $ Wai.rawPathInfo req
   mbDynamicLogLevelConfig <- runFlowR env.flowRuntime env.appEnv $ getDynamicLogLevelConfig
