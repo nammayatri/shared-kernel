@@ -75,6 +75,27 @@ data SplitSettlementDetails = SplitSettlementDetails
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
+data RefundSplitSettlementDetails = RefundSplitSettlementDetails
+  { marketplace :: RefundMarketplace,
+    mdr_borne_by :: Text,
+    vendor :: RefundVendor
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+newtype RefundVendor = RefundVendor
+  { split :: [RefundSplit]
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data RefundSplit = RefundSplit
+  { refund_amount :: HighPrecMoney,
+    sub_mid :: Text
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
 instance FromHttpApiData SplitSettlementDetails where
   parseUrlPiece = parseHeader . DT.encodeUtf8
   parseQueryParam = parseUrlPiece
@@ -85,12 +106,23 @@ instance ToHttpApiData SplitSettlementDetails where
   toQueryParam = toUrlPiece
   toHeader = BSL.toStrict . encode
 
+instance ToHttpApiData RefundSplitSettlementDetails where
+  toUrlPiece = DT.decodeUtf8 . toHeader
+  toQueryParam = toUrlPiece
+  toHeader = BSL.toStrict . encode
+
 data MBY = MARKETPLACE | VENDOR | ALL
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
 newtype Marketplace = Marketplace
   { amount :: HighPrecMoney
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+newtype RefundMarketplace = RefundMarketplace
+  { refund_amount :: HighPrecMoney
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -204,7 +236,7 @@ instance ToJSON SDKPayloadDetails where
 data AutoRefundReq = AutoRefundReq
   { amount :: Double,
     unique_request_id :: Text,
-    split_settlement_details :: Maybe SplitSettlementDetails
+    split_settlement_details :: Maybe RefundSplitSettlementDetails
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (ToSchema)

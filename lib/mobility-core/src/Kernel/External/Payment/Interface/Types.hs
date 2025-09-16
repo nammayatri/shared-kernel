@@ -95,10 +95,33 @@ data SplitSettlementDetails = SplitSettlementDetails
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
+data RefundSplitSettlementDetails = RefundSplitSettlementDetails
+  { marketplace :: RefundMarketplace,
+    mdrBorneBy :: MBY,
+    vendor :: RefundVendor
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype RefundVendor = RefundVendor
+  { split :: [RefundSplit]
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data RefundSplit = RefundSplit
+  { refundAmount :: HighPrecMoney,
+    subMid :: Text
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
 data MBY = MARKETPLACE | VENDOR | ALL deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
 newtype Marketplace = Marketplace
   { amount :: HighPrecMoney
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype RefundMarketplace = RefundMarketplace
+  { refundAmount :: HighPrecMoney
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
@@ -449,7 +472,7 @@ data AutoRefundReq = AutoRefundReq
   { orderId :: Text,
     requestId :: Text,
     amount :: HighPrecMoney,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe RefundSplitSettlementDetails
   }
 
 data AutoRefundResp = AutoRefundResp
