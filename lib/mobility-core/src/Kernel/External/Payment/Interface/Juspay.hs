@@ -316,6 +316,18 @@ mkSplitSettlementDetails splitDetails =
     mkVendor vendor = Juspay.Vendor {split = mkSplit <$> vendor.split}
     mkSplit split = Juspay.Split {amount = split.amount, merchant_commission = split.merchantCommission, sub_mid = split.subMid, unique_split_id = Just split.uniqueSplitId}
 
+mkRefundSplitSettlementDetails :: RefundSplitSettlementDetails -> Juspay.RefundSplitSettlementDetails
+mkRefundSplitSettlementDetails splitDetails =
+  Juspay.RefundSplitSettlementDetails
+    { marketplace = mkRefundMarketplace splitDetails.marketplace,
+      mdr_borne_by = show splitDetails.mdrBorneBy,
+      vendor = mkRefundVendor splitDetails.vendor
+    }
+  where
+    mkRefundMarketplace RefundMarketplace {..} = Juspay.RefundMarketplace {refund_amount = refundAmount}
+    mkRefundVendor vendor = Juspay.RefundVendor {split = mkRefundSplit <$> vendor.split}
+    mkRefundSplit split = Juspay.RefundSplit {refund_amount = split.refundAmount, sub_mid = split.subMid}
+
 orderStatus ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
@@ -837,7 +849,7 @@ autoRefund config mRoutingId req = do
       Juspay.AutoRefundReq
         { unique_request_id = request.requestId,
           amount = realToFrac request.amount,
-          split_settlement_details = mkSplitSettlementDetails <$> req.splitSettlementDetails
+          split_settlement_details = mkRefundSplitSettlementDetails <$> req.splitSettlementDetails
         }
 
 mkRefundResp :: Juspay.AutoRefundResp -> AutoRefundResp
