@@ -13,6 +13,7 @@
 -}
 module Kernel.Types.CacheFlow where
 
+import EulerHS.Prelude
 import Kernel.Prelude
 import Kernel.Storage.Hedis (HedisFlow)
 import Kernel.Types.Common
@@ -48,4 +49,33 @@ type HasCacheConfig r = HasField "cacheConfig" r CacheConfig
 
 type HasCacConfig r = HasField "cacConfig" r CacConfig
 
-type CacheFlow m r = (HasCacheConfig r, HedisFlow m r, HasCacConfig r)
+type Bytes = Integer
+
+data InMemKeyInfo = InMemKeyInfo
+  { lastUsed :: UTCTime,
+    cachedData :: Any,
+    cacheDataSize :: Bytes
+  }
+
+data InMemCacheInfo = InMemCacheInfo
+  { cache :: HashMap Text InMemKeyInfo,
+    cacheSize :: Bytes
+  }
+
+data InMemEnv = InMemEnv
+  { enableInMem :: Bool,
+    maxInMemSize :: Bytes,
+    inMemHashMap :: IORef InMemCacheInfo
+  }
+
+data InMemConfig = InMemConfig
+  { enableInMem :: Bool,
+    maxInMemSize :: Bytes
+  }
+  deriving (Generic, FromDhall)
+
+type HasInMemEnv r = HasField "inMemEnv" r InMemEnv
+
+type HasInMemConfig r = HasField "inMemConfig" r InMemConfig
+
+type CacheFlow m r = (HasCacheConfig r, HedisFlow m r, HasCacConfig r, HasInMemEnv r)

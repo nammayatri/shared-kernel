@@ -319,6 +319,7 @@ library
       Kernel.Storage.Hedis.Config
       Kernel.Storage.Hedis.Error
       Kernel.Storage.Hedis.Queries
+      Kernel.Storage.InMem
       Kernel.Storage.Queries.BecknRequest
       Kernel.Storage.Queries.SystemConfigs
       Kernel.Streaming.Kafka.Commons
