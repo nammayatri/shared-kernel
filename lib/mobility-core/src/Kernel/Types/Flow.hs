@@ -237,7 +237,7 @@ instance MonadGuid (FlowR r) where
   generateGUIDText = FlowR L.generateGUID
 
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
-  fork tag f = do
+  fork tag f = withLogTag ("Fork " <> tag) $ do
     newLocalOptions <- newMVar mempty
     -- logRequestIdForFork tag
     FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleForkExecution tag f)
