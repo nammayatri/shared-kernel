@@ -73,12 +73,19 @@ data RCVerificationResponse = RCVerificationResponse
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
 
+data PanInputDetails = PanInputDetails
+  { inputPanNumber :: Text,
+    inputName :: Maybe Text,
+    inputDob :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
 data PanVerificationResponse = PanVerificationResponse
   { aadhaarSeedingStatus :: Maybe Bool,
     panStatus :: Maybe Text,
     nameMatch :: Maybe Bool,
     dobMatch :: Maybe Bool,
-    inputDetails :: Maybe A.Value,
+    inputDetails :: Maybe PanInputDetails,
     status :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)

@@ -18,6 +18,7 @@ module Kernel.External.Verification.Idfy.Types.Response where
 import Data.Aeson hiding (Error)
 import qualified Data.Aeson as A
 import Data.OpenApi hiding (name)
+import Data.Text as T
 import EulerHS.Prelude hiding (state)
 import Kernel.Types.App ()
 import Kernel.Utils.JSON
@@ -35,30 +36,44 @@ type GSTExtractionResponse = IdfyResponse (ExtractionOutput GSTExtractionOutput)
 
 type AadhaarExtractionResponse = IdfyResponse AadhaarResult
 
-type VerificationResponse = IdfyResponse IdfyResult
+newtype VerificationResponse = VerificationResponse (IdfyResponse IdfyResult)
 
-type VerificationResponseList = [IdfyResponse IdfyResult]
+instance FromJSON VerificationResponse where
+  parseJSON val = do
+    mbDocType :: Maybe Text <- withObject "VerificationResponse" (\o -> o .:? "type") val
+    VerificationResponse <$> case mbDocType of
+      Just "ind_driving_license" ->
+        parseJSON @(IdfyResponse (SourceOutput DLVerificationOutput)) val <&> mapIdfyResponse DLResult
+      Just "ind_pan" ->
+        parseJSON @(IdfyResponse (SourceOutput PanVerificationOutput)) val <&> mapIdfyResponse PanResult
+      Just "ind_gst_certificate" ->
+        parseJSON @(IdfyResponse (SourceOutput GstVerificationOutput)) val <&> mapIdfyResponse GstResult
+      Just "ind_rc" ->
+        parseJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) val <&> mapIdfyResponse RCResult
+      Just docType ->
+        fail $ "Unable to decode document type: " <> T.unpack docType
+      Nothing ->
+        parseJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) val <&> mapIdfyResponse RCResult
+
+instance ToJSON VerificationResponse where
+  toJSON (VerificationResponse IdfyResponse {..}) = case result of
+    Just (DLResult res) -> toJSON @(IdfyResponse (SourceOutput DLVerificationOutput)) IdfyResponse {result = Just res, ..}
+    Just (PanResult res) -> toJSON @(IdfyResponse (SourceOutput PanVerificationOutput)) IdfyResponse {result = Just res, ..}
+    Just (GstResult res) -> toJSON @(IdfyResponse (SourceOutput GstVerificationOutput)) IdfyResponse {result = Just res, ..}
+    Just (RCResult res) -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Just res, ..}
+    Nothing -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Nothing, ..}
+
+mapIdfyResponse :: forall a b. (a -> b) -> IdfyResponse a -> IdfyResponse b
+mapIdfyResponse f IdfyResponse {..} = IdfyResponse {result = f <$> result, ..}
+
+type VerificationResponseList = [VerificationResponse]
 
 data IdfyResult
-  = DLResult (Output DLVerificationOutput ())
-  | PanResult (Output PanVerificationOutput ())
-  | GstResult (Output GstVerificationOutput ())
-  | RCResult (Output () RCVerificationOutput)
-  deriving (Show, Generic)
-
-instance FromJSON IdfyResult where
-  parseJSON = withObject "IdfyResult" $ \o -> do
-    mDL <- o .:? "source_output"
-    mPan <- o .:? "source_output"
-    mGst <- o .:? "source_output"
-    mRC <- o .:? "extraction_output"
-
-    case (mDL, mPan, mGst, mRC) of
-      (Just dl, Nothing, Nothing, Nothing) -> pure (DLResult (Output (Just dl) Nothing))
-      (Nothing, Just pan, Nothing, Nothing) -> pure (PanResult (Output (Just pan) Nothing))
-      (Nothing, Nothing, Just gst, Nothing) -> pure (GstResult (Output (Just gst) Nothing))
-      (Nothing, Nothing, Nothing, Just rc) -> pure (RCResult (Output Nothing (Just rc)))
-      _ -> fail "Unable to decode IdfyResult"
+  = DLResult (SourceOutput DLVerificationOutput)
+  | PanResult (SourceOutput PanVerificationOutput)
+  | GstResult (SourceOutput GstVerificationOutput)
+  | RCResult (ExtractionOutput RCVerificationOutput)
+  deriving (Show)
 
 type NameCompareResponse = IdfyResponse NameCompareResponseData
 
@@ -106,9 +121,6 @@ instance (ToSchema a) => ToSchema (SourceOutput a)
 instance (ToJSON a) => ToJSON (SourceOutput a)
 
 instance (FromJSON a) => FromJSON (SourceOutput a)
-
-data Output a b = Output {source_output :: Maybe a, extraction_output :: Maybe b}
-  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 -- RC verification response
 data RCVerificationOutput = RCVerificationOutput
@@ -212,12 +224,20 @@ data CovDetail = CovDetail
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
+data PanInputDetails = PanInputDetails
+  { input_pan_number :: Text,
+    input_name :: Maybe Text,
+    input_dob :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
 data PanVerificationOutput = PanVerificationOutput
   { aadhaar_seeding_status :: Maybe Bool,
     pan_status :: Maybe Text,
     name_match :: Maybe Bool,
     dob_match :: Maybe Bool,
-    input_details :: Maybe A.Value
+    status :: Maybe Text,
+    input_details :: Maybe PanInputDetails
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
