@@ -396,35 +396,14 @@ getTask cfg req updateResp = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
   accountId <- decrypt cfg.accountId
-  (resp, respDump) <- Idfy.getTask apiKey accountId url req.requestId
+  (VerificationResponse resp, respDump) <- Idfy.getTask apiKey accountId url req.requestId
   updateResp resp.status (Just respDump) req.requestId
-  case resp.result of
-    Just (DLResult out) ->
-      case out of
-        Idfy.Output {Idfy.source_output = Just op} ->
-          pure $ DLResp (convertDLOutputToDLVerificationOutput op)
-        Idfy.Output {Idfy.source_output = Nothing} ->
-          throwError $ InternalError "DLResult without source_output"
-    Just (RCResult out) ->
-      case out of
-        Idfy.Output {Idfy.extraction_output = Just op} ->
-          pure $ RCResp (convertRCOutputToRCVerificationResponse op)
-        Idfy.Output {Idfy.extraction_output = Nothing} ->
-          throwError $ InternalError "RCResult without extraction_output"
-    Just (PanResult out) ->
-      case out of
-        Idfy.Output {Idfy.source_output = Just op} ->
-          pure $ PanResp (convertPanOutputToPanVerification op)
-        Idfy.Output {Idfy.source_output = Nothing} ->
-          throwError $ InternalError "PanResult without source_output"
-    Just (GstResult out) ->
-      case out of
-        Idfy.Output {Idfy.source_output = Just op} ->
-          pure $ GstResp (convertGstOutputToGstVerification op)
-        Idfy.Output {Idfy.source_output = Nothing} ->
-          throwError $ InternalError "GstResult without source_output"
-    Nothing ->
-      throwError $ InternalError ("Missing result in getTask response: " <> show resp)
+  result <- resp.result & fromMaybeM (InternalError ("Missing result in getTask response: " <> show resp))
+  pure $ case result of
+    DLResult (SourceOutput out) -> DLResp $ convertDLOutputToDLVerificationOutput out
+    RCResult (ExtractionOutput out) -> RCResp $ convertRCOutputToRCVerificationResponse out
+    PanResult (SourceOutput out) -> PanResp $ convertPanOutputToPanVerification out
+    GstResult (SourceOutput out) -> GstResp $ convertGstOutputToGstVerification out
 
 convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
 convertDLOutputToDLVerificationOutput DLVerificationOutput {..} =
@@ -468,8 +447,16 @@ convertPanOutputToPanVerification PanVerificationOutput {..} =
       panStatus = pan_status,
       nameMatch = name_match,
       dobMatch = dob_match,
-      inputDetails = input_details,
-      status = pan_status
+      inputDetails = convertPanInputDetaills <$> input_details,
+      status = status
+    }
+
+convertPanInputDetaills :: PanInputDetails -> VT.PanInputDetails
+convertPanInputDetaills PanInputDetails {..} =
+  VT.PanInputDetails
+    { inputPanNumber = input_pan_number,
+      inputName = input_name,
+      inputDob = input_dob
     }
 
 convertGstOutputToGstVerification :: GstVerificationOutput -> VT.GstVerificationResponse
