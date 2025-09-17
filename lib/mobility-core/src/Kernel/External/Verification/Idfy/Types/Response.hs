@@ -35,30 +35,13 @@ type GSTExtractionResponse = IdfyResponse (ExtractionOutput GSTExtractionOutput)
 
 type AadhaarExtractionResponse = IdfyResponse AadhaarResult
 
-type VerificationResponse = IdfyResponse IdfyResult
+type DLVerificationResponse = IdfyResponse (SourceOutput DLVerificationOutput)
 
-type VerificationResponseList = [IdfyResponse IdfyResult]
+type PanVerificationResponse = IdfyResponse (SourceOutput PanVerificationOutput)
 
-data IdfyResult
-  = DLResult (Output DLVerificationOutput ())
-  | PanResult (Output PanVerificationOutput ())
-  | GstResult (Output GstVerificationOutput ())
-  | RCResult (Output () RCVerificationOutput)
-  deriving (Show, Generic)
+type GstVerificationResponse = IdfyResponse (SourceOutput GstVerificationOutput)
 
-instance FromJSON IdfyResult where
-  parseJSON = withObject "IdfyResult" $ \o -> do
-    mDL <- o .:? "source_output"
-    mPan <- o .:? "source_output"
-    mGst <- o .:? "source_output"
-    mRC <- o .:? "extraction_output"
-
-    case (mDL, mPan, mGst, mRC) of
-      (Just dl, Nothing, Nothing, Nothing) -> pure (DLResult (Output (Just dl) Nothing))
-      (Nothing, Just pan, Nothing, Nothing) -> pure (PanResult (Output (Just pan) Nothing))
-      (Nothing, Nothing, Just gst, Nothing) -> pure (GstResult (Output (Just gst) Nothing))
-      (Nothing, Nothing, Nothing, Just rc) -> pure (RCResult (Output Nothing (Just rc)))
-      _ -> fail "Unable to decode IdfyResult"
+type RCVerificationResponse = IdfyResponse (ExtractionOutput RCVerificationOutput)
 
 type NameCompareResponse = IdfyResponse NameCompareResponseData
 

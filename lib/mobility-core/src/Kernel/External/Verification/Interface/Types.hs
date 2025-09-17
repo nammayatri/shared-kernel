@@ -98,7 +98,7 @@ data ValidateImageReq = ValidateImageReq
   }
   deriving stock (Show, Generic)
 
-data ImageType = DriverLicense | VehicleRegistrationCertificate | VehiclePUC | VehiclePermit | VehicleInsurance | VehicleFitnessCertificate | VehicleNOC
+data ImageType = DriverLicense | VehicleRegistrationCertificate | VehiclePUC | VehiclePermit | VehicleInsurance | VehicleFitnessCertificate | VehicleNOC | PanCard | GSTCertificate
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
@@ -177,7 +177,8 @@ data ExtractedDL = ExtractedDL
 
 data GetTaskReq = GetTaskReq
   { workflowId :: Maybe Text,
-    requestId :: Text
+    requestId :: Text,
+    imageType :: ImageType
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
