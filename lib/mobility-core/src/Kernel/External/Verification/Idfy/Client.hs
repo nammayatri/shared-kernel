@@ -24,7 +24,7 @@ module Kernel.External.Verification.Idfy.Client
     extractGSTImage,
     extractAadhaarImage,
     nameCompare,
-    getTask,
+    getTaskGeneric,
     VerifyDLAPI,
     VerifyRCAPI,
     ValidateImage,
@@ -371,16 +371,18 @@ type GetTaskAPI =
 getTaskApi :: Proxy GetTaskAPI
 getTaskApi = Proxy
 
-getTask ::
-  ( MonadFlow m,
+getTaskGeneric ::
+  forall verificationResponse m.
+  ( FromJSON verificationResponse,
+    MonadFlow m,
     CoreMetrics m
   ) =>
   ApiKey ->
   AccountId ->
   BaseUrl ->
   Text ->
-  m (VerificationResponse, Text)
-getTask apiKey accountId url request_id = do
+  m (verificationResponse, Text)
+getTaskGeneric apiKey accountId url request_id = do
   (resp :: DA.Value) <- callIdfyAPI url task "getTask" getTaskApi
   convertValueToRespType resp <&> (,KUT.encodeToText resp)
   where
@@ -390,7 +392,7 @@ getTask apiKey accountId url request_id = do
         (Just apiKey)
         (Just accountId)
         request_id
-    convertValueToRespType :: (MonadThrow m, Log m) => DA.Value -> m VerificationResponse
+    convertValueToRespType :: (MonadThrow m, Log m) => DA.Value -> m verificationResponse
     convertValueToRespType rsp = case DA.fromJSON rsp of
       DA.Error err -> throwError $ IdfyCallError ("Could not parse Idfy getTask resp. Reason: " <> DT.pack err <> "Resp: " <> show rsp)
       DA.Success pyload -> return pyload

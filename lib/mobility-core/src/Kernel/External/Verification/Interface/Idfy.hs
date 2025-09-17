@@ -175,6 +175,8 @@ validateImage cfg req = do
     VehicleInsurance -> return validationNotAvailable
     VehicleFitnessCertificate -> return validationNotAvailable
     VehicleNOC -> return validationNotAvailable
+    PanCard -> return validationNotAvailable
+    GSTCertificate -> return validationNotAvailable
   where
     validationNotAvailable =
       ValidateImageResp
@@ -204,6 +206,8 @@ getDocType VehiclePermit = "ind_permit"
 getDocType VehicleInsurance = "ind_insurance"
 getDocType VehicleFitnessCertificate = "ind_fitness_certificate"
 getDocType VehicleNOC = "ind_vehicle_noc"
+getDocType PanCard = "ind_pan"
+getDocType GSTCertificate = "ind_gst_certificate"
 
 getImageType :: Text -> ImageType
 getImageType "ind_driving_license" = DriverLicense
@@ -213,6 +217,8 @@ getImageType "ind_permit" = VehiclePermit
 getImageType "ind_insurance" = VehicleInsurance
 getImageType "ind_fitness_certificate" = VehicleFitnessCertificate
 getImageType "ind_vehicle_noc" = VehicleNOC
+getImageType "ind_pan" = PanCard
+getImageType "ind_gst_certificate" = GSTCertificate
 getImageType _ = VehicleRegistrationCertificate
 
 extractRCImage ::
@@ -363,47 +369,63 @@ nameCompare cfg req = do
       { nameComparedData = resp.result
       }
 
-getTask ::
+type GetTask m r res =
   ( EncFlow m r,
     CoreMetrics m
   ) =>
   IdfyCfg ->
   GetTaskReq ->
   (Text -> Maybe Text -> Text -> m ()) ->
-  m GetTaskResp
-getTask cfg req updateResp = do
+  m res
+
+getTask :: GetTask m r GetTaskResp
+getTask cfg req updateResp = case req.imageType of
+  DriverLicense -> DLResp <$> getTaskDL cfg req updateResp
+  VehicleRegistrationCertificate -> RCResp <$> getTaskRC cfg req updateResp
+  PanCard -> PanResp <$> getTaskPan cfg req updateResp
+  GSTCertificate -> GstResp <$> getTaskGst cfg req updateResp
+  _ -> throwError $ InternalError "Image type not supported"
+
+getTaskDL :: GetTask m r DLVerificationOutputInterface
+getTaskDL cfg req updateResp = do
+  convertDLOutputToDLVerificationOutput . (.source_output)
+    <$> getTaskGeneric @(SourceOutput DLVerificationOutput) cfg req updateResp
+
+getTaskRC :: GetTask m r VT.RCVerificationResponse
+getTaskRC cfg req updateResp = do
+  convertRCOutputToRCVerificationResponse . (.extraction_output)
+    <$> getTaskGeneric @(ExtractionOutput RCVerificationOutput) cfg req updateResp
+
+getTaskPan :: GetTask m r VT.PanVerificationResponse
+getTaskPan cfg req updateResp = do
+  convertPanOutputToPanVerification . (.source_output)
+    <$> getTaskGeneric @(SourceOutput PanVerificationOutput) cfg req updateResp
+
+getTaskGst :: GetTask m r VT.GstVerificationResponse
+getTaskGst cfg req updateResp = do
+  convertGstOutputToGstVerification . (.source_output)
+    <$> getTaskGeneric @(SourceOutput GstVerificationOutput) cfg req updateResp
+
+getTaskGeneric ::
+  forall a m r.
+  ( EncFlow m r,
+    CoreMetrics m,
+    FromJSON a,
+    Show a
+  ) =>
+  IdfyCfg ->
+  GetTaskReq ->
+  (Text -> Maybe Text -> Text -> m ()) ->
+  m a
+getTaskGeneric cfg req updateResp = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
   accountId <- decrypt cfg.accountId
-  (resp, respDump) <- Idfy.getTask apiKey accountId url req.requestId
+  (resp, respDump) <- Idfy.getTaskGeneric @(IdfyResponse a) apiKey accountId url req.requestId
   updateResp resp.status (Just respDump) req.requestId
   case resp.result of
-    Just (DLResult out) ->
-      case out of
-        Idfy.Output {Idfy.source_output = Just op} ->
-          pure $ DLResp (convertDLOutputToDLVerificationOutput op)
-        Idfy.Output {Idfy.source_output = Nothing} ->
-          throwError $ InternalError "DLResult without source_output"
-    Just (RCResult out) ->
-      case out of
-        Idfy.Output {Idfy.extraction_output = Just op} ->
-          pure $ RCResp (convertRCOutputToRCVerificationResponse op)
-        Idfy.Output {Idfy.extraction_output = Nothing} ->
-          throwError $ InternalError "RCResult without extraction_output"
-    Just (PanResult out) ->
-      case out of
-        Idfy.Output {Idfy.source_output = Just op} ->
-          pure $ PanResp (convertPanOutputToPanVerification op)
-        Idfy.Output {Idfy.source_output = Nothing} ->
-          throwError $ InternalError "PanResult without source_output"
-    Just (GstResult out) ->
-      case out of
-        Idfy.Output {Idfy.source_output = Just op} ->
-          pure $ GstResp (convertGstOutputToGstVerification op)
-        Idfy.Output {Idfy.source_output = Nothing} ->
-          throwError $ InternalError "GstResult without source_output"
-    Nothing ->
-      throwError $ InternalError ("Missing result in getTask response: " <> show resp)
+    Just result -> pure result
+    Nothing -> throwError $ InternalError ("Missing result in getTask response: " <> show resp)
 
 convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
 convertDLOutputToDLVerificationOutput DLVerificationOutput {..} =
