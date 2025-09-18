@@ -52,7 +52,59 @@ data CreateOrderReq = CreateOrderReq
   }
   deriving stock (Show, Eq, Generic)
 
-data Split = Split
+data SplitSettlementDetails
+  = AmountBased SplitSettlementDetailsAmount
+  | PercentageBased SplitSettlementDetailsPercentage
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+-- instance FromJSON SplitSettlementDetails where
+--   parseJSON v = (AmountBased <$> parseJSON v) <|> (PercentageBased <$> parseJSON v)
+
+-- instance ToJSON SplitSettlementDetails where
+--   toJSON (AmountBased details) = toJSON details
+--   toJSON (PercentageBased details) = toJSON details
+
+-- instance FromHttpApiData SplitSettlementDetails where
+--   parseUrlPiece = parseHeader . DT.encodeUtf8
+--   parseQueryParam = parseUrlPiece
+--   parseHeader = left T.pack . eitherDecode . BSL.fromStrict
+
+-- instance ToHttpApiData SplitSettlementDetails where
+--   toUrlPiece = DT.decodeUtf8 . toHeader
+--   toQueryParam = toUrlPiece
+--   toHeader = BSL.toStrict . encode
+
+data SplitSettlementDetailsAmount = SplitSettlementDetailsAmount
+  { marketplace :: MarketplaceAmount,
+    mdr_borne_by :: Text,
+    vendor :: VendorAmount
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+instance FromHttpApiData SplitSettlementDetailsAmount where
+  parseUrlPiece = parseHeader . DT.encodeUtf8
+  parseQueryParam = parseUrlPiece
+  parseHeader = left T.pack . eitherDecode . BSL.fromStrict
+
+instance ToHttpApiData SplitSettlementDetailsAmount where
+  toUrlPiece = DT.decodeUtf8 . toHeader
+  toQueryParam = toUrlPiece
+  toHeader = BSL.toStrict . encode
+
+newtype MarketplaceAmount = MarketplaceAmount
+  { amount :: HighPrecMoney
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+newtype VendorAmount = VendorAmount
+  { split :: [SplitAmount]
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data SplitAmount = SplitAmount
   { amount :: HighPrecMoney,
     merchant_commission :: HighPrecMoney,
     sub_mid :: Text,
@@ -61,36 +113,45 @@ data Split = Split
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
-newtype Vendor = Vendor
-  { split :: [Split]
-  }
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
-
-data SplitSettlementDetails = SplitSettlementDetails
-  { marketplace :: Marketplace,
-    mdr_borne_by :: Text,
-    vendor :: Vendor
-  }
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
-
-instance FromHttpApiData SplitSettlementDetails where
-  parseUrlPiece = parseHeader . DT.encodeUtf8
-  parseQueryParam = parseUrlPiece
-  parseHeader = left T.pack . eitherDecode . BSL.fromStrict
-
-instance ToHttpApiData SplitSettlementDetails where
-  toUrlPiece = DT.decodeUtf8 . toHeader
-  toQueryParam = toUrlPiece
-  toHeader = BSL.toStrict . encode
-
 data MBY = MARKETPLACE | VENDOR | ALL
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
-newtype Marketplace = Marketplace
-  { amount :: HighPrecMoney
+data SplitSettlementDetailsPercentage = SplitSettlementDetailsPercentage
+  { marketplace :: MarketplacePercentage,
+    mdr_borne_by :: Text,
+    vendor :: VendorPercentage
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+instance FromHttpApiData SplitSettlementDetailsPercentage where
+  parseUrlPiece = parseHeader . DT.encodeUtf8
+  parseQueryParam = parseUrlPiece
+  parseHeader = left T.pack . eitherDecode . BSL.fromStrict
+
+instance ToHttpApiData SplitSettlementDetailsPercentage where
+  toUrlPiece = DT.decodeUtf8 . toHeader
+  toQueryParam = toUrlPiece
+  toHeader = BSL.toStrict . encode
+
+newtype MarketplacePercentage = MarketplacePercentage
+  { amount_percentage :: Double
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+newtype VendorPercentage = VendorPercentage
+  { split :: [SplitPercentage]
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data SplitPercentage = SplitPercentage
+  { amount_percentage :: Double,
+    merchant_commission_percentage :: Double,
+    sub_mid :: Text,
+    unique_split_id :: Maybe Text
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -204,7 +265,7 @@ instance ToJSON SDKPayloadDetails where
 data AutoRefundReq = AutoRefundReq
   { amount :: Double,
     unique_request_id :: Text,
-    split_settlement_details :: Maybe SplitSettlementDetails
+    split_settlement_details :: Maybe SplitSettlementDetailsAmount
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (ToSchema)
