@@ -101,9 +101,8 @@ newtype Marketplace = Marketplace
   }
   deriving stock (Show, Eq, Generic)
 
-data OrderStatusReq = OrderStatusReq
-  { orderShortId :: Text,
-    personId :: Maybe Text
+newtype OrderStatusReq = OrderStatusReq
+  { orderShortId :: Text
   }
 
 data OrderStatusResp
@@ -229,8 +228,7 @@ data MandateNotificationReq = MandateNotificationReq
     txnDate :: UTCTime,
     mandateId :: Text,
     notificationId :: Text,
-    description :: Text,
-    personId :: Maybe Text
+    description :: Text
   }
   deriving (Eq, Show, Generic)
 
@@ -264,8 +262,8 @@ data PaymentGatewayResponse = PaymentGatewayResponse
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON, ToSchema)
 
 --- Notification status response and request --
-data NotificationStatusReq = NotificationStatusReq
-  {notificationId :: Text, personId :: Maybe Text}
+newtype NotificationStatusReq = NotificationStatusReq
+  {notificationId :: Text}
 
 data NotificationStatusResp = NotificationStatusResp
   { id :: Text,
@@ -301,7 +299,7 @@ data MandatePauseReq = MandatePauseReq {mandateId :: Text, pauseStartDate :: UTC
 
 data MandateResumeReq = MandateResumeReq {mandateId :: Text, resumeDate :: UTCTime}
 
-data MandateRevokeReq = MandateRevokeReq {mandateId :: Text, personId :: Maybe Text}
+newtype MandateRevokeReq = MandateRevokeReq {mandateId :: Text}
 
 type MandateRevokeRes = APISuccess
 
@@ -314,7 +312,6 @@ data MandateExecutionReq = MandateExecutionReq
     customerId :: Text,
     mandateId :: Text,
     executionDate :: UTCTime,
-    personId :: Maybe Text,
     splitSettlementDetails :: Maybe SplitSettlementDetails
   }
 
@@ -336,7 +333,6 @@ data OfferListReq = OfferListReq
     dutyDate :: UTCTime,
     paymentMode :: Text,
     numOfRides :: Int,
-    personId :: Maybe Text,
     offerListingMetric :: Maybe UDF6
   }
 
@@ -436,7 +432,6 @@ data OfferNotifyReq = OfferNotifyReq
   { mandateId :: Text,
     orderShortId :: Text,
     transactionUUID :: Text,
-    personId :: Maybe Text,
     transactionStatus :: TransactionStatus,
     offers :: [OfferNotifyOffer]
   }
@@ -597,8 +592,7 @@ type CustomerCardListResp = [CustomerCard]
 data VerifyVPAReq = VerifyVPAReq
   { vpa :: Text,
     customerId :: Maybe Text,
-    orderId :: Maybe Text,
-    personId :: Maybe Text
+    orderId :: Maybe Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

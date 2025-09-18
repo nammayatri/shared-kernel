@@ -62,30 +62,31 @@ createOrder ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   CreateOrderReq ->
   m CreateOrderResp
-createOrder config req = do
+createOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
       clientId = fromMaybe merchantId config.pseudoClientId
-      routingId = req.customerId
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreateOrderReq config.returnUrl clientId merchantId req
-  Juspay.createOrder url apiKey merchantId (Just routingId) orderReq
+  Juspay.createOrder url apiKey merchantId mRoutingId orderReq
 
 updateOrder ::
   ( Metrics.CoreMetrics m,
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   OrderUpdateReq ->
   m OrderUpdateResp
-updateOrder config req = do
+updateOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   updateOrderReq <- mkUpdateOrderReq req
-  updateOrderRes <- Juspay.updateOrder url apiKey merchantId req.orderShortId updateOrderReq
+  updateOrderRes <- Juspay.updateOrder url apiKey merchantId req.orderShortId mRoutingId updateOrderReq
   return $ mkUpdateOrderRes updateOrderRes
   where
     mkUpdateOrderReq :: MonadTime m => OrderUpdateReq -> m Juspay.OrderUpdateReq
@@ -167,14 +168,14 @@ mandateNotification ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   MandateNotificationReq ->
   m MandateNotificationRes
-mandateNotification config req = do
+mandateNotification config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  notificationResponse <- Juspay.mandateNotification url apiKey req.mandateId merchantId routingId (mkNotificationReq req)
+  notificationResponse <- Juspay.mandateNotification url apiKey req.mandateId merchantId mRoutingId (mkNotificationReq req)
   return $ mkNotificationRes notificationResponse
   where
     mkNotificationRes Juspay.MandateNotificationRes {..} =
@@ -195,14 +196,14 @@ mandateNotificationStatus ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   NotificationStatusReq ->
   m NotificationStatusResp
-mandateNotificationStatus config req = do
+mandateNotificationStatus config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  notificationStatusResponse <- Juspay.mandateNotificationStatus url apiKey req.notificationId merchantId routingId
+  notificationStatusResponse <- Juspay.mandateNotificationStatus url apiKey req.notificationId merchantId mRoutingId
   return $ mkNotificationStatusRes notificationStatusResponse
   where
     mkNotificationStatusRes Juspay.NotificationStatusResp {..} =
@@ -236,14 +237,14 @@ mandateExecution ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   MandateExecutionReq ->
   m MandateExecutionRes
-mandateExecution config req = do
+mandateExecution config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  executionResponse <- Juspay.mandateExecution url apiKey merchantId routingId (mkExecutionReq req merchantId)
+  executionResponse <- Juspay.mandateExecution url apiKey merchantId mRoutingId (mkExecutionReq req merchantId)
   return $ mkExecutionResponse executionResponse
   where
     mkExecutionResponse Juspay.MandateExecutionRes {..} =
@@ -259,14 +260,14 @@ mandateRevoke ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   MandateRevokeReq ->
   m MandateRevokeRes
-mandateRevoke config req = do
+mandateRevoke config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  void $ Juspay.mandateRevoke url apiKey merchantId routingId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
+  void $ Juspay.mandateRevoke url apiKey merchantId mRoutingId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
   return Success
 
 mkCreateOrderReq :: MonadTime m => BaseUrl -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
@@ -316,14 +317,14 @@ orderStatus ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   OrderStatusReq ->
   m OrderStatusResp
-orderStatus config req = do
+orderStatus config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  mkOrderStatusResp <$> Juspay.orderStatus url apiKey merchantId routingId req.orderShortId
+  mkOrderStatusResp <$> Juspay.orderStatus url apiKey merchantId mRoutingId req.orderShortId
 
 mkOrderStatusResp :: Juspay.OrderStatusResp -> OrderStatusResp
 mkOrderStatusResp Juspay.OrderData {..} =
@@ -642,15 +643,15 @@ offerList ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   OfferListReq ->
   m OfferListResp
-offerList config req = do
+offerList config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = (.customerId) <$> req.customer
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferListReq req
-  juspayResp <- Juspay.offerList url apiKey merchantId routingId juspayReq
+  juspayResp <- Juspay.offerList url apiKey merchantId mRoutingId juspayReq
   buildOfferListResp juspayResp
 
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
@@ -741,15 +742,15 @@ offerApply ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   OfferApplyReq ->
   m OfferApplyResp
-offerApply config req = do
+offerApply config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.customerId
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferApplyReq merchantId req
-  juspayResp <- Juspay.offerApply url apiKey merchantId (Just routingId) juspayReq
+  juspayResp <- Juspay.offerApply url apiKey merchantId mRoutingId juspayReq
   buildOfferApplyResp juspayResp
 
 mkOfferApplyReq :: Text -> OfferApplyReq -> Juspay.OfferApplyReq
@@ -792,15 +793,15 @@ offerNotify ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   OfferNotifyReq ->
   m OfferNotifyResp
-offerNotify config req = do
+offerNotify config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.personId
   apiKey <- decrypt config.apiKey
   let juspayReq = mkOfferNotifyReq merchantId req
-  void $ Juspay.offerNotify url apiKey merchantId routingId req.mandateId juspayReq
+  void $ Juspay.offerNotify url apiKey merchantId mRoutingId req.mandateId juspayReq
   pure Success
 
 mkOfferNotifyReq :: Text -> OfferNotifyReq -> Juspay.OfferNotifyReq
@@ -818,12 +819,14 @@ autoRefund ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   AutoRefundReq ->
   m AutoRefundResp
-autoRefund config req = do
+autoRefund config mRoutingId req = do
   let url = config.url
+      merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  mkRefundResp <$> Juspay.autoRefund url apiKey req.orderId (mkAutoPayRequest req)
+  mkRefundResp <$> Juspay.autoRefund url apiKey req.orderId merchantId mRoutingId (mkAutoPayRequest req)
   where
     mkAutoPayRequest request =
       Juspay.AutoRefundReq
@@ -884,14 +887,14 @@ verifyVPA ::
     EncFlow m r
   ) =>
   JuspayCfg ->
+  Maybe Text ->
   VerifyVPAReq ->
   m VerifyVPAResp
-verifyVPA config req = do
+verifyVPA config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.personId
   apiKey <- decrypt config.apiKey
-  mkVerifyVpaResp <$> Juspay.verifyVPA url apiKey merchantId routingId (mkVerifyVpaRequest req merchantId)
+  mkVerifyVpaResp <$> Juspay.verifyVPA url apiKey merchantId mRoutingId (mkVerifyVpaRequest req merchantId)
   where
     mkVerifyVpaRequest request merchantId =
       Juspay.VerifyVPAReq
