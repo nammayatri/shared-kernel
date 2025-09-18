@@ -1,10 +1,15 @@
 module Kernel.External.MultiModal.Interface.OpenTripPlanner (getTransitRoutes) where
 
 import Data.Morpheus.Client
-  ( request,
+  ( GQLClient,
+    ResponseStream,
+    request,
     single,
   )
 import Data.Time.Format (defaultTimeLocale, formatTime)
+-- import Kernel.Utils.Time (diffUTCTime)
+-- import Kernel.Types.Forkable (Forkable, awaitableFork)
+import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id, product)
 import qualified Kernel.External.MultiModal.Interface.Types as TP
 import Kernel.External.MultiModal.OpenTripPlanner.Config
@@ -23,7 +28,8 @@ formatUtcDateTime utcTime = (dateString, timeString)
 getTransitRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
-    Log m
+    Log m,
+    Forkable m
   ) =>
   OTPCfg ->
   TP.GetTransitRoutesReq ->
@@ -76,47 +82,85 @@ getTransitRoutes cfg req = do
           addOpenTripPlannerLatency "NORMAL" "FAILURE" latency
           pure Nothing
         Right plan' -> do
-          logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req <> " , GQLReq => " <> show otpReq
+          -- logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req <> " , GQLReq => " <> show otpReq
           addOpenTripPlannerLatency "NORMAL" "SUCCESS" latency
           pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
     MULTI_SEARCH -> withLogTag "MULTI_SEARCH" $ do
-      let otpReq =
-            MultiModePlanArgs
+      let metroReq =
+            OTPPlanArgs
               { from = origin,
                 to = destination,
                 date = fst <$> dateTime,
                 time = snd <$> dateTime,
-                metroTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeRAIL, Just ModeWALK],
-                metroItineraries = 5,
-                subwayTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeSUBWAY, Just ModeWALK],
-                subwayItineraries = 5,
-                busTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeBUS, Just ModeWALK],
-                busItineraries = 10,
-                bestTransportModes = map (Just . modeToTransportMode) $ catMaybes [Just ModeTRANSIT, Just ModeWALK],
-                bestItineraries = 10
+                transportModes = Just $ map (Just . modeToTransportMode) [ModeRAIL, ModeWALK],
+                numItineraries = Just 5
               }
-      (resp, latency) <-
-        measureDuration $
-          liftIO $
-            planClient
-              `request` otpReq
-                >>= single
-      case resp of
-        Left err -> do
-          logError $ "Error in getTransitRoutes: " <> show err
-          addOpenTripPlannerResponse "MULTI_SEARCH" "FAILURE" "GRAPHQL_ERROR"
-          addOpenTripPlannerLatency "MULTI_SEARCH" "FAILURE" latency
+      let subwayReq =
+            metroReq
+              { transportModes = Just $ map (Just . modeToTransportMode) [ModeSUBWAY, ModeWALK],
+                numItineraries = Just 5
+              }
+      let busReq =
+            metroReq
+              { transportModes = Just $ map (Just . modeToTransportMode) [ModeBUS, ModeWALK],
+                numItineraries = Just 10
+              }
+      let bestReq =
+            metroReq
+              { transportModes = Just $ map (Just . modeToTransportMode) [ModeTRANSIT, ModeWALK],
+                numItineraries = Just 10
+              }
+      startTime <- getCurrentTime
+      metroAwaitable <- awaitableFork "metro-query" $ liftIO $ (requestPlan planClient metroReq) >>= single
+      subwayAwaitable <- awaitableFork "subway-query" $ liftIO $ (requestPlan planClient subwayReq) >>= single
+      busAwaitable <- awaitableFork "bus-query" $ liftIO $ (requestPlan planClient busReq) >>= single
+      bestAwaitable <- awaitableFork "best-query" $ liftIO $ (requestPlan planClient bestReq) >>= single
+      metroResult <- L.await Nothing metroAwaitable
+      subwayResult <- L.await Nothing subwayAwaitable
+      busResult <- L.await Nothing busAwaitable
+      bestResult <- L.await Nothing bestAwaitable
+      endTime <- getCurrentTime
+      let totalLatency = secondsToMillis $ nominalDiffTimeToSeconds $ diffUTCTime endTime startTime
+      let extractItineraries result = case result of
+            Right (Right plan) -> Just (plan.plan.itineraries)
+            Right (Left _) -> Nothing
+            Left _ -> Nothing
+      let successfulItineraries =
+            concat $
+              catMaybes
+                [ extractItineraries metroResult,
+                  extractItineraries subwayResult,
+                  extractItineraries busResult,
+                  extractItineraries bestResult
+                ]
+      if null successfulItineraries
+        then do
+          logError "All MULTI_SEARCH queries failed"
+          addOpenTripPlannerResponse "MULTI_SEARCH" "FAILURE" "ALL_QUERIES_FAILED"
+          addOpenTripPlannerLatency "MULTI_SEARCH" "FAILURE" totalLatency
           pure Nothing
-        Right plan -> do
-          logInfo $ "OTP plan log: " <> show plan <> " " <> show req <> " , GQLReq => " <> show otpReq
-          let allPlans = combinePlans plan
-          addOpenTripPlannerLatency "MULTI_SEARCH" "SUCCESS" latency
-          pure $ Just $ convertOTPToGeneric allPlans minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
+        else do
+          when (length successfulItineraries < 4) $
+            logWarning $
+              "Some MULTI_SEARCH queries failed, returning partial results: "
+                <> show (length successfulItineraries)
+                <> " itineraries"
+
+          let combinedPlan = OTPPlan {plan = OTPPlanPlan {itineraries = successfulItineraries}}
+
+          addOpenTripPlannerLatency "MULTI_SEARCH" "PARTIAL_SUCCESS" totalLatency
+          pure $
+            Just $
+              convertOTPToGeneric
+                combinedPlan
+                minimumWalkDistance
+                permissibleModes
+                maxAllowedPublicTransportLegs
+                sortingType
+                cfg.weightedSortCfg
 
 modeToTransportMode :: Mode -> TransportMode
 modeToTransportMode = TransportMode . show
 
-combinePlans :: MultiModePlan -> OTPPlan
-combinePlans res = do
-  let itineraries = res.metro.itineraries <> res.subway.itineraries <> res.bus.itineraries <> res.best.itineraries
-  OTPPlan {plan = OTPPlanPlan {..}}
+requestPlan :: GQLClient -> OTPPlanArgs -> IO (ResponseStream OTPPlan)
+requestPlan planClient args = planClient `request` args
