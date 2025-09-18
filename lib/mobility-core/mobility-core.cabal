@@ -427,6 +427,7 @@ library
       Kernel.Utils.Example
       Kernel.Utils.ExternalAPICallLogging
       Kernel.Utils.FlowLogging
+      Kernel.Utils.Forkable
       Kernel.Utils.GenericPretty
       Kernel.Utils.Geometry
       Kernel.Utils.IOLogging

@@ -2,14 +2,12 @@ module Kernel.External.MultiModal.Interface.OpenTripPlanner (getTransitRoutes) w
 
 import Data.Morpheus.Client
   ( GQLClient,
+    GQLClientResult,
     ResponseStream,
     request,
     single,
   )
 import Data.Time.Format (defaultTimeLocale, formatTime)
--- import Kernel.Utils.Time (diffUTCTime)
--- import Kernel.Types.Forkable (Forkable, awaitableFork)
-import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id, product)
 import qualified Kernel.External.MultiModal.Interface.Types as TP
 import Kernel.External.MultiModal.OpenTripPlanner.Config
@@ -17,6 +15,7 @@ import Kernel.External.MultiModal.OpenTripPlanner.Types
 import Kernel.External.MultiModal.Utils
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics, addOpenTripPlannerLatency, addOpenTripPlannerResponse)
 import Kernel.Utils.Common hiding (id)
+import Kernel.Utils.Forkable
 import Servant.Client.Core (showBaseUrl)
 
 formatUtcDateTime :: UTCTime -> (String, String)
@@ -82,73 +81,35 @@ getTransitRoutes cfg req = do
           addOpenTripPlannerLatency "NORMAL" "FAILURE" latency
           pure Nothing
         Right plan' -> do
-          -- logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req <> " , GQLReq => " <> show otpReq
           addOpenTripPlannerLatency "NORMAL" "SUCCESS" latency
           pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
     MULTI_SEARCH -> withLogTag "MULTI_SEARCH" $ do
-      let metroReq =
-            OTPPlanArgs
-              { from = origin,
-                to = destination,
-                date = fst <$> dateTime,
-                time = snd <$> dateTime,
-                transportModes = Just $ map (Just . modeToTransportMode) [ModeRAIL, ModeWALK],
-                numItineraries = Just 5
-              }
-      let subwayReq =
-            metroReq
-              { transportModes = Just $ map (Just . modeToTransportMode) [ModeSUBWAY, ModeWALK],
-                numItineraries = Just 5
-              }
-      let busReq =
-            metroReq
-              { transportModes = Just $ map (Just . modeToTransportMode) [ModeBUS, ModeWALK],
-                numItineraries = Just 10
-              }
-      let bestReq =
-            metroReq
-              { transportModes = Just $ map (Just . modeToTransportMode) [ModeTRANSIT, ModeWALK],
-                numItineraries = Just 10
-              }
-      startTime <- getCurrentTime
-      metroAwaitable <- awaitableFork "metro-query" $ liftIO $ (requestPlan planClient metroReq) >>= single
-      subwayAwaitable <- awaitableFork "subway-query" $ liftIO $ (requestPlan planClient subwayReq) >>= single
-      busAwaitable <- awaitableFork "bus-query" $ liftIO $ (requestPlan planClient busReq) >>= single
-      bestAwaitable <- awaitableFork "best-query" $ liftIO $ (requestPlan planClient bestReq) >>= single
-      metroResult <- L.await Nothing metroAwaitable
-      subwayResult <- L.await Nothing subwayAwaitable
-      busResult <- L.await Nothing busAwaitable
-      bestResult <- L.await Nothing bestAwaitable
-      endTime <- getCurrentTime
-      let totalLatency = secondsToMillis $ nominalDiffTimeToSeconds $ diffUTCTime endTime startTime
-      let extractItineraries result = case result of
-            Right (Right plan) -> Just (plan.plan.itineraries)
-            Right (Left _) -> Nothing
-            Left _ -> Nothing
-      let successfulItineraries =
-            concat $
-              catMaybes
-                [ extractItineraries metroResult,
-                  extractItineraries subwayResult,
-                  extractItineraries busResult,
-                  extractItineraries bestResult
-                ]
-      if null successfulItineraries
+      let requests =
+            [ ("metro-query", mkReq origin destination dateTime [ModeRAIL, ModeWALK] 5),
+              ("subway-query", mkReq origin destination dateTime [ModeSUBWAY, ModeWALK] 5),
+              ("bus-query", mkReq origin destination dateTime [ModeBUS, ModeWALK] 10),
+              ("best-query", mkReq origin destination dateTime [ModeTRANSIT, ModeWALK] 10)
+            ]
+      start <- getClockTimeInMs
+      results <-
+        mapConcurrentlyTagged
+          (\reqArgs -> liftIO $ requestPlan planClient reqArgs >>= single)
+          requests
+      end <- getClockTimeInMs
+      let latency = end - start
+      let anyFailed = any isLeft results
+      let allItineraries = mapMaybe extractItineraries results
+      let successfulItineraries = concat allItineraries
+      when anyFailed $ do
+        logError "MULTI_SEARCH query failed"
+        addOpenTripPlannerResponse "MULTI_SEARCH" "FAILURE" "GRAPHQL_ERROR"
+      if null allItineraries
         then do
-          logError "All MULTI_SEARCH queries failed"
-          addOpenTripPlannerResponse "MULTI_SEARCH" "FAILURE" "ALL_QUERIES_FAILED"
-          addOpenTripPlannerLatency "MULTI_SEARCH" "FAILURE" totalLatency
+          addOpenTripPlannerLatency "MULTI_SEARCH" "FAILURE" latency
           pure Nothing
         else do
-          when (length successfulItineraries < 4) $
-            logWarning $
-              "Some MULTI_SEARCH queries failed, returning partial results: "
-                <> show (length successfulItineraries)
-                <> " itineraries"
-
+          addOpenTripPlannerLatency "MULTI_SEARCH" "SUCCESS" latency
           let combinedPlan = OTPPlan {plan = OTPPlanPlan {itineraries = successfulItineraries}}
-
-          addOpenTripPlannerLatency "MULTI_SEARCH" "PARTIAL_SUCCESS" totalLatency
           pure $
             Just $
               convertOTPToGeneric
@@ -158,9 +119,24 @@ getTransitRoutes cfg req = do
                 maxAllowedPublicTransportLegs
                 sortingType
                 cfg.weightedSortCfg
+  where
+    mkReq :: InputCoordinates -> InputCoordinates -> Maybe (String, String) -> [Mode] -> Int -> OTPPlanArgs
+    mkReq origin destination dateTime modes n =
+      OTPPlanArgs
+        { from = origin,
+          to = destination,
+          date = fst <$> dateTime,
+          time = snd <$> dateTime,
+          transportModes = Just $ map (Just . modeToTransportMode) modes,
+          numItineraries = Just n
+        }
+    extractItineraries :: GQLClientResult OTPPlan -> Maybe [Maybe OTPPlanPlanItineraries]
+    extractItineraries result = case result of
+      Right plan -> Just plan.plan.itineraries
+      _ -> Nothing
 
-modeToTransportMode :: Mode -> TransportMode
-modeToTransportMode = TransportMode . show
+    modeToTransportMode :: Mode -> TransportMode
+    modeToTransportMode = TransportMode . show
 
-requestPlan :: GQLClient -> OTPPlanArgs -> IO (ResponseStream OTPPlan)
-requestPlan planClient args = planClient `request` args
+    requestPlan :: GQLClient -> OTPPlanArgs -> IO (ResponseStream OTPPlan)
+    requestPlan planClient args = planClient `request` args
