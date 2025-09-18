@@ -89,10 +89,30 @@ newtype Vendor = Vendor
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
-data SplitSettlementDetails = SplitSettlementDetails
+data SplitSettlementDetails
+  = AmountBased SplitSettlementDetailsAmount
+  | PercentageBased SplitSettlementDetailsPercentage
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+-- Custom JSON instances to handle both amount and percentage based splits
+-- instance FromJSON SplitSettlementDetails where
+--   parseJSON v = (AmountBased <$> parseJSON v) <|> (PercentageBased <$> parseJSON v)
+
+-- instance ToJSON SplitSettlementDetails where
+--   toJSON (AmountBased details) = toJSON details
+--   toJSON (PercentageBased details) = toJSON details
+
+data SplitSettlementDetailsAmount = SplitSettlementDetailsAmount
   { marketplace :: Marketplace,
     mdrBorneBy :: MBY,
     vendor :: Vendor
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data SplitSettlementDetailsPercentage = SplitSettlementDetailsPercentage
+  { marketplace :: MarketplacePercentage,
+    mdrBorneBy :: MBY,
+    vendor :: VendorPercentage
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
@@ -102,6 +122,58 @@ newtype Marketplace = Marketplace
   { amount :: HighPrecMoney
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype MarketplacePercentage = MarketplacePercentage
+  { amountPercentage :: Double
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+-- instance FromJSON MarketplacePercentage where
+--   parseJSON = genericParseJSON defaultOptions
+--     { fieldLabelModifier = \case
+--         "amountPercentage" -> "amount_percentage"
+--         other -> other
+--     }
+
+-- instance ToJSON MarketplacePercentage where
+--   toJSON = genericToJSON defaultOptions
+--     { fieldLabelModifier = \case
+--         "amountPercentage" -> "amount_percentage"
+--         other -> other
+--     }
+
+newtype VendorPercentage = VendorPercentage
+  { split :: [SplitPercentage]
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data SplitPercentage = SplitPercentage
+  { amountPercentage :: Double,
+    merchantCommissionPercentage :: Double,
+    subMid :: Text,
+    uniqueSplitId :: Text
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+-- instance FromJSON SplitPercentage where
+--   parseJSON = genericParseJSON defaultOptions
+--     { fieldLabelModifier = \case
+--         "amountPercentage" -> "amount_percentage"
+--         "merchantCommissionPercentage" -> "merchant_commission_percentage"
+--         "subMid" -> "sub_mid"
+--         "uniqueSplitId" -> "unique_split_id"
+--         other -> other
+--     }
+
+-- instance ToJSON SplitPercentage where
+--   toJSON = genericToJSON defaultOptions
+--     { fieldLabelModifier = \case
+--         "amountPercentage" -> "amount_percentage"
+--         "merchantCommissionPercentage" -> "merchant_commission_percentage"
+--         "subMid" -> "sub_mid"
+--         "uniqueSplitId" -> "unique_split_id"
+--         other -> other
+--     }
 
 newtype OrderStatusReq = OrderStatusReq
   { orderShortId :: Text
@@ -314,7 +386,7 @@ data MandateExecutionReq = MandateExecutionReq
     customerId :: Text,
     mandateId :: Text,
     executionDate :: UTCTime,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetailsAmount
   }
 
 data MandateExecutionRes = MandateExecutionRes
@@ -450,7 +522,7 @@ data AutoRefundReq = AutoRefundReq
   { orderId :: Text,
     requestId :: Text,
     amount :: HighPrecMoney,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetailsAmount
   }
 
 data AutoRefundResp = AutoRefundResp
@@ -540,7 +612,7 @@ data CreateCustomerResp = CreateCustomerResp
 data OrderUpdateReq = OrderUpdateReq
   { amount :: HighPrecMoney,
     orderShortId :: Text,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetailsAmount
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
