@@ -84,7 +84,7 @@ data Mode
   | ModeWALK
   | ModeTROLLEYBUS
   | ModeMONORAIL
-  deriving (Generic, Eq)
+  deriving (Generic, Eq, ToSchema)
 
 instance Show Mode where
   show = \case
@@ -215,7 +215,7 @@ instance ToJSON RelativeDirection where
     RelativeDirectionFOLLOW_SIGNS -> "FOLLOW_SIGNS"
 
 newtype TransportMode = TransportMode
-  { mode :: String
+  { mode :: Mode
   }
   deriving (Generic, Show, Eq, ToSchema, FromJSON)
 
