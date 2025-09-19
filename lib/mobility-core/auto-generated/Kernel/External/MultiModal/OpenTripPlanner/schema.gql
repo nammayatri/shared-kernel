@@ -5,7 +5,7 @@ input InputCoordinates
 }
 
 input TransportMode {
-  mode: String!
+  mode: Mode!
 }
 
 type Plan {

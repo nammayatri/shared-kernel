@@ -16,6 +16,7 @@ import Kernel.External.MultiModal.OpenTripPlanner.Config
 import Kernel.External.MultiModal.OpenTripPlanner.Types
 import Kernel.External.MultiModal.Utils
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics, addOpenTripPlannerLatency, addOpenTripPlannerResponse)
+import qualified Kernel.Types.Distance as Distance
 import Kernel.Utils.Common hiding (id)
 import Servant.Client.Core (showBaseUrl)
 
@@ -69,98 +70,123 @@ getTransitRoutes cfg req = do
                 transportModes = transportModes',
                 numItineraries = numItineraries'
               }
-      (resp, latency) <-
-        measureDuration $
-          liftIO $
-            planClient
-              `request` otpReq
-                >>= single
-      case resp of
-        Left err -> do
-          logError $ "Error in getTransitRoutes: " <> show err
-          addOpenTripPlannerResponse "NORMAL" "FAILURE" "GRAPHQL_ERROR"
-          addOpenTripPlannerLatency "NORMAL" "FAILURE" latency
-          pure Nothing
-        Right plan' -> do
-          -- logInfo $ "OTP plan log by gentleman and piyush: " <> show plan' <> " " <> show req <> " , GQLReq => " <> show otpReq
-          addOpenTripPlannerLatency "NORMAL" "SUCCESS" latency
-          pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
+      sendNormalOTPRequest planClient otpReq "NORMAL" minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
     MULTI_SEARCH -> withLogTag "MULTI_SEARCH" $ do
-      let metroReq =
-            OTPPlanArgs
-              { from = origin,
-                to = destination,
-                date = fst <$> dateTime,
-                time = snd <$> dateTime,
-                transportModes = Just $ map (Just . modeToTransportMode) [ModeRAIL, ModeWALK],
-                numItineraries = Just 5
-              }
-      let subwayReq =
-            metroReq
-              { transportModes = Just $ map (Just . modeToTransportMode) [ModeSUBWAY, ModeWALK],
-                numItineraries = Just 5
-              }
-      let busReq =
-            metroReq
-              { transportModes = Just $ map (Just . modeToTransportMode) [ModeBUS, ModeWALK],
-                numItineraries = Just 10
-              }
-      let bestReq =
-            metroReq
-              { transportModes = Just $ map (Just . modeToTransportMode) [ModeTRANSIT, ModeWALK],
-                numItineraries = Just 10
-              }
-      startTime <- getCurrentTime
-      metroAwaitable <- awaitableFork "metro-query" $ liftIO $ (requestPlan planClient metroReq) >>= single
-      subwayAwaitable <- awaitableFork "subway-query" $ liftIO $ (requestPlan planClient subwayReq) >>= single
-      busAwaitable <- awaitableFork "bus-query" $ liftIO $ (requestPlan planClient busReq) >>= single
-      bestAwaitable <- awaitableFork "best-query" $ liftIO $ (requestPlan planClient bestReq) >>= single
-      metroResult <- L.await Nothing metroAwaitable
-      subwayResult <- L.await Nothing subwayAwaitable
-      busResult <- L.await Nothing busAwaitable
-      bestResult <- L.await Nothing bestAwaitable
-      endTime <- getCurrentTime
-      let totalLatency = secondsToMillis $ nominalDiffTimeToSeconds $ diffUTCTime endTime startTime
-      let extractItineraries result = case result of
-            Right (Right plan) -> Just (plan.plan.itineraries)
-            Right (Left _) -> Nothing
-            Left _ -> Nothing
-      let successfulItineraries =
-            concat $
-              catMaybes
-                [ extractItineraries metroResult,
-                  extractItineraries subwayResult,
-                  extractItineraries busResult,
-                  extractItineraries bestResult
-                ]
-      if null successfulItineraries
-        then do
-          logError "All MULTI_SEARCH queries failed"
-          addOpenTripPlannerResponse "MULTI_SEARCH" "FAILURE" "ALL_QUERIES_FAILED"
-          addOpenTripPlannerLatency "MULTI_SEARCH" "FAILURE" totalLatency
-          pure Nothing
-        else do
-          when (length successfulItineraries < 4) $
-            logWarning $
-              "Some MULTI_SEARCH queries failed, returning partial results: "
-                <> show (length successfulItineraries)
-                <> " itineraries"
+      case req.transportModes of
+        Just _ -> do
+          let otpReq =
+                OTPPlanArgs
+                  { from = origin,
+                    to = destination,
+                    date = fst <$> dateTime,
+                    time = snd <$> dateTime,
+                    transportModes = req.transportModes,
+                    numItineraries = numItineraries'
+                  }
+          sendNormalOTPRequest planClient otpReq "MULTI_SEARCH" minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
+        Nothing -> do
+          let metroReq =
+                OTPPlanArgs
+                  { from = origin,
+                    to = destination,
+                    date = fst <$> dateTime,
+                    time = snd <$> dateTime,
+                    transportModes = Just $ map (Just . TransportMode) [ModeRAIL, ModeWALK],
+                    numItineraries = Just 5
+                  }
+          let subwayReq =
+                metroReq
+                  { transportModes = Just $ map (Just . TransportMode) [ModeSUBWAY, ModeWALK],
+                    numItineraries = Just 5
+                  }
+          let busReq =
+                metroReq
+                  { transportModes = Just $ map (Just . TransportMode) [ModeBUS, ModeWALK],
+                    numItineraries = Just 10
+                  }
+          let bestReq =
+                metroReq
+                  { transportModes = Just $ map (Just . TransportMode) [ModeTRANSIT, ModeWALK],
+                    numItineraries = Just 10
+                  }
+          startTime <- getCurrentTime
+          metroAwaitable <- awaitableFork "metro-query" $ liftIO $ (requestPlan planClient metroReq) >>= single
+          subwayAwaitable <- awaitableFork "subway-query" $ liftIO $ (requestPlan planClient subwayReq) >>= single
+          busAwaitable <- awaitableFork "bus-query" $ liftIO $ (requestPlan planClient busReq) >>= single
+          bestAwaitable <- awaitableFork "best-query" $ liftIO $ (requestPlan planClient bestReq) >>= single
+          metroResult <- L.await Nothing metroAwaitable
+          subwayResult <- L.await Nothing subwayAwaitable
+          busResult <- L.await Nothing busAwaitable
+          bestResult <- L.await Nothing bestAwaitable
+          endTime <- getCurrentTime
+          let totalLatency = secondsToMillis $ nominalDiffTimeToSeconds $ diffUTCTime endTime startTime
+          let extractItineraries result = case result of
+                Right (Right plan) -> Just (plan.plan.itineraries)
+                Right (Left _) -> Nothing
+                Left _ -> Nothing
+          let successfulItineraries =
+                concat $
+                  catMaybes
+                    [ extractItineraries metroResult,
+                      extractItineraries subwayResult,
+                      extractItineraries busResult,
+                      extractItineraries bestResult
+                    ]
+          if null successfulItineraries
+            then do
+              logError "All MULTI_SEARCH queries failed"
+              addOpenTripPlannerResponse "MULTI_SEARCH" "FAILURE" "ALL_QUERIES_FAILED"
+              addOpenTripPlannerLatency "MULTI_SEARCH" "FAILURE" totalLatency
+              pure Nothing
+            else do
+              when (length successfulItineraries < 4) $
+                logWarning $
+                  "Some MULTI_SEARCH queries failed, returning partial results: "
+                    <> show (length successfulItineraries)
+                    <> " itineraries"
 
-          let combinedPlan = OTPPlan {plan = OTPPlanPlan {itineraries = successfulItineraries}}
+              let combinedPlan = OTPPlan {plan = OTPPlanPlan {itineraries = successfulItineraries}}
 
-          addOpenTripPlannerLatency "MULTI_SEARCH" "PARTIAL_SUCCESS" totalLatency
-          pure $
-            Just $
-              convertOTPToGeneric
-                combinedPlan
-                minimumWalkDistance
-                permissibleModes
-                maxAllowedPublicTransportLegs
-                sortingType
-                cfg.weightedSortCfg
-
-modeToTransportMode :: Mode -> TransportMode
-modeToTransportMode = TransportMode . show
+              addOpenTripPlannerLatency "MULTI_SEARCH" "PARTIAL_SUCCESS" totalLatency
+              pure $
+                Just $
+                  convertOTPToGeneric
+                    combinedPlan
+                    minimumWalkDistance
+                    permissibleModes
+                    maxAllowedPublicTransportLegs
+                    sortingType
+                    cfg.weightedSortCfg
 
 requestPlan :: GQLClient -> OTPPlanArgs -> IO (ResponseStream OTPPlan)
 requestPlan planClient args = planClient `request` args
+
+sendNormalOTPRequest ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Log m,
+    Forkable m
+  ) =>
+  GQLClient ->
+  OTPPlanArgs ->
+  Text ->
+  Distance.Meters ->
+  [TP.GeneralVehicleType] ->
+  Int ->
+  TP.SortingType ->
+  MultiModalWeightedSortCfg ->
+  m (Maybe TP.MultiModalResponse)
+sendNormalOTPRequest planClient otpReq label minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType weightedSortCfg = do
+  (resp, latency) <-
+    measureDuration $
+      liftIO $
+        requestPlan planClient otpReq >>= single
+  case resp of
+    Left err -> do
+      logError $ "Error in getTransitRoutes: " <> show err
+      addOpenTripPlannerResponse label "FAILURE" "GRAPHQL_ERROR"
+      addOpenTripPlannerLatency label "FAILURE" latency
+      pure Nothing
+    Right plan' -> do
+      addOpenTripPlannerLatency label "SUCCESS" latency
+      pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType weightedSortCfg
