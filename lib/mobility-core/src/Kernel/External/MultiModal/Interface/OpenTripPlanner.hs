@@ -103,22 +103,21 @@ getTransitRoutes cfg req = do
       when anyFailed $ do
         logError "MULTI_SEARCH query failed"
         addOpenTripPlannerResponse "MULTI_SEARCH" "FAILURE" "GRAPHQL_ERROR"
-      if null allItineraries
+      if anyFailed
         then do
           addOpenTripPlannerLatency "MULTI_SEARCH" "FAILURE" latency
-          pure Nothing
         else do
           addOpenTripPlannerLatency "MULTI_SEARCH" "SUCCESS" latency
-          let combinedPlan = OTPPlan {plan = OTPPlanPlan {itineraries = successfulItineraries}}
-          pure $
-            Just $
-              convertOTPToGeneric
-                combinedPlan
-                minimumWalkDistance
-                permissibleModes
-                maxAllowedPublicTransportLegs
-                sortingType
-                cfg.weightedSortCfg
+      let combinedPlan = OTPPlan {plan = OTPPlanPlan {itineraries = successfulItineraries}}
+      pure $
+        Just $
+          convertOTPToGeneric
+            combinedPlan
+            minimumWalkDistance
+            permissibleModes
+            maxAllowedPublicTransportLegs
+            sortingType
+            cfg.weightedSortCfg
   where
     mkReq :: InputCoordinates -> InputCoordinates -> Maybe (String, String) -> [Mode] -> Int -> OTPPlanArgs
     mkReq origin destination dateTime modes n =
