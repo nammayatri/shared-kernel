@@ -6,7 +6,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Kernel.External.MultiModal.Interface.Types where
+module Kernel.External.MultiModal.Interface.Types
+  ( module Kernel.External.MultiModal.Interface.Types,
+    GeneralVehicleType (..),
+  )
+where
 
 import Data.Aeson
 import Data.OpenApi hiding (name)
@@ -16,6 +20,7 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import qualified Kernel.External.Maps.Google.Config as Google
 import qualified Kernel.External.Maps.Google.MapsClient.Types as GT
+import Kernel.External.MultiModal.OpenTripPlanner.Config (GeneralVehicleType)
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Config as OTP
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Types as OTPTypes
 import qualified Kernel.Types.Distance as Distance
@@ -43,7 +48,9 @@ data NormalizerData = NormalizerData
     minDuration :: Maybe Time.Seconds,
     maxDuration :: Maybe Time.Seconds,
     minTransfers :: Maybe Int,
-    maxTransfers :: Maybe Int
+    maxTransfers :: Maybe Int,
+    minCost :: Maybe Double,
+    maxCost :: Maybe Double
   }
   deriving (Show, Generic)
 
@@ -118,14 +125,6 @@ data MultiModalLegGate = MultiModalLegGate
 data MultiModalServiceConfig = GoogleTransitConfig Google.GoogleCfg | OTPTransitConfig OTP.OTPCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MultiModalServiceConfig
-
-data GeneralVehicleType
-  = Bus
-  | MetroRail
-  | Walk
-  | Subway
-  | Unspecified
-  deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON, Read, ToSchema, ToParamSchema)
 
 $(mkHttpInstancesForEnum ''GeneralVehicleType)
 
