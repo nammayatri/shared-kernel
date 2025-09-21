@@ -18,6 +18,7 @@ validateWeightedSortCfg MultiModalWeightedSortCfg {..} =
         arrivalTime
           + duration
           + transfers
+          + cost
    in totalWeight == 1
 
 data OTPQuery = NORMAL | MULTI_SEARCH
