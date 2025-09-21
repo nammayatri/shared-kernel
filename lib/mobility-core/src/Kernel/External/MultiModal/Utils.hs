@@ -263,6 +263,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
       sortedRoutes = case sortingType of
         Fastest -> sortRoutesByDuration filteredByMaxPublicTransport
         MinimumTransits -> sortRoutesByNumberOfLegs filteredByMaxPublicTransport
+        ByModePreference -> sortRoutesByModePreference filteredByMaxPublicTransport
         MostRelevant ->
           if validateWeightedSortCfg relevanceSortCfg
             then
@@ -281,6 +282,27 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
     sortRoutesByNumberOfLegs :: [MultiModalRoute] -> [MultiModalRoute]
     sortRoutesByNumberOfLegs = sortBy (\r1 r2 -> compare (length r1.legs) (length r2.legs))
 
+    sortRoutesByModePreference :: [MultiModalRoute] -> [MultiModalRoute]
+    sortRoutesByModePreference = sortBy modePreferenceComparator
+      where
+        modePreferenceComparator r1 r2 =
+          case compare (getModePriority r1) (getModePriority r2) of
+            EQ -> compare (r1.duration.getSeconds) (r2.duration.getSeconds) -- Secondary sort by duration
+            other -> other
+
+    getModePriority :: MultiModalRoute -> Int
+    getModePriority route =
+      let modes = map (.mode) route.legs
+          nonWalkModes = filter (/= Walk) modes
+       in if Bus `elem` nonWalkModes
+            then 1
+            else
+              if MetroRail `elem` nonWalkModes
+                then 2
+                else
+                  if Subway `elem` nonWalkModes
+                    then 3
+                    else 4 -- For routes with only Walk or other modes
     sortByRelevance :: [MultiModalRoute] -> [MultiModalRoute]
     sortByRelevance = sortBy relevanceComparator
 

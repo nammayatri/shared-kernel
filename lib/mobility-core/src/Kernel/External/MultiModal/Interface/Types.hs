@@ -135,6 +135,7 @@ data SortingType
   = Fastest
   | MinimumTransits
   | MostRelevant
+  | ByModePreference
   deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON, Read, ToSchema, ToParamSchema)
 
 $(mkHttpInstancesForEnum ''SortingType)
