@@ -7,8 +7,8 @@ data MultiModalWeightedSortCfg = MultiModalWeightedSortCfg
   { arrivalTime :: Double,
     duration :: Double,
     transfers :: Double,
-    cost :: Double,
-    perModeCost :: [(GeneralVehicleType, Double)]
+    cost :: Maybe Double,
+    perModeCost :: Maybe [(GeneralVehicleType, Double)]
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
@@ -18,7 +18,7 @@ validateWeightedSortCfg MultiModalWeightedSortCfg {..} =
         arrivalTime
           + duration
           + transfers
-          + cost
+          + (fromMaybe 0.0 cost)
    in totalWeight == 1
 
 data OTPQuery = NORMAL | MULTI_SEARCH
