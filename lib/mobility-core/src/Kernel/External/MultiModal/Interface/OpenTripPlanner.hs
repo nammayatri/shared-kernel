@@ -109,15 +109,9 @@ getTransitRoutes cfg req = do
         else do
           addOpenTripPlannerLatency "MULTI_SEARCH" "SUCCESS" latency
       let combinedPlan = OTPPlan {plan = OTPPlanPlan {itineraries = successfulItineraries}}
-      pure $
-        Just $
-          convertOTPToGeneric
-            combinedPlan
-            minimumWalkDistance
-            permissibleModes
-            maxAllowedPublicTransportLegs
-            sortingType
-            cfg.weightedSortCfg
+      let finalResp = convertOTPToGeneric combinedPlan minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
+      logDebug $ "finalOTP" <> show finalResp
+      pure $ Just finalResp
   where
     mkReq :: InputCoordinates -> InputCoordinates -> Maybe (String, String) -> [Mode] -> Int -> OTPPlanArgs
     mkReq origin destination dateTime modes n =
