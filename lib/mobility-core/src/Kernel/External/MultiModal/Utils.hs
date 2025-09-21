@@ -279,7 +279,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
     sortRoutesByDuration = sortBy (\r1 r2 -> compare (r1.duration.getSeconds) (r2.duration.getSeconds))
 
     perModeMap :: HM.HashMap GeneralVehicleType Double
-    perModeMap = HM.fromList (perModeCost relevanceSortCfg)
+    perModeMap = HM.fromList (fromMaybe [] (perModeCost relevanceSortCfg))
 
     computeRouteCost :: MultiModalRoute -> Maybe Double
     computeRouteCost route =
@@ -400,7 +400,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
           durScore = maybe maxDouble (* weight.duration) normDur
           aTScore = maybe maxDouble (* weight.arrivalTime) normAT
           tfScore = maybe maxDouble (* weight.transfers) normTf
-          costScore = maybe maxDouble (* weight.cost) normCost
+          costScore = maybe maxDouble (* (fromMaybe 0.0 weight.cost)) normCost
        in durScore + aTScore + tfScore + costScore
 
     addRelevanceScore :: MultiModalWeightedSortCfg -> [MultiModalRoute] -> [MultiModalRoute]
