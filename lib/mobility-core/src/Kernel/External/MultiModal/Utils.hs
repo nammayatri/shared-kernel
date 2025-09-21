@@ -278,6 +278,24 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
     sortRoutesByDuration :: [MultiModalRoute] -> [MultiModalRoute]
     sortRoutesByDuration = sortBy (\r1 r2 -> compare (r1.duration.getSeconds) (r2.duration.getSeconds))
 
+    perModeMap :: HM.HashMap GeneralVehicleType Double
+    perModeMap = HM.fromList (perModeCost relevanceSortCfg)
+
+    computeRouteCost :: MultiModalRoute -> Maybe Double
+    computeRouteCost route =
+      Just $ sum (map computeLegCost route.legs)
+
+    computeLegCost :: MultiModalLeg -> Double
+    computeLegCost leg = do
+      let meters = case leg.distance.unit of
+            Distance.Meter -> fromRational leg.distance.value.getHighPrecDistance
+            Distance.Kilometer -> fromRational leg.distance.value.getHighPrecDistance * 1000.0
+            Distance.Mile -> fromRational leg.distance.value.getHighPrecDistance * 1609.34
+            Distance.Yard -> fromRational leg.distance.value.getHighPrecDistance * 0.9144
+      let distKm = meters / 1000.0
+      let modeFactor = HM.lookupDefault 0.0 leg.mode perModeMap
+      distKm * modeFactor
+
     sortRoutesByNumberOfLegs :: [MultiModalRoute] -> [MultiModalRoute]
     sortRoutesByNumberOfLegs = sortBy (\r1 r2 -> compare (length r1.legs) (length r2.legs))
 
@@ -313,6 +331,8 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
           minArrivalTime = maxArrivalTime
           maxTransfers = Just 5 -- hardcoded, to reduce skewness in score because of transfers
           minTransfers = getTransfers firstRoute
+          minCost = computeRouteCost firstRoute
+          maxCost = computeRouteCost firstRoute
           normalizerDataInit = NormalizerData {..}
       Just $ getData normalizerDataInit
       where
@@ -322,12 +342,15 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                 let routeDur = calculateRouteDuration route
                     routeAT = getArrivalTime route
                     routeTf = getTransfers route
+                    routeCost = computeRouteCost route
                     maxDuration = liftA2 max routeDur normalizerData.maxDuration
                     minDuration = liftA2 min routeDur normalizerData.minDuration
                     maxArrivalTime = liftA2 max routeAT normalizerData.maxArrivalTime
                     minArrivalTime = liftA2 min routeAT normalizerData.minArrivalTime
                     maxTransfers = liftA2 max routeTf normalizerData.maxTransfers
                     minTransfers = liftA2 min routeTf normalizerData.minTransfers
+                    minCost = liftA2 min routeCost normalizerData.minCost
+                    maxCost = liftA2 max routeCost normalizerData.maxCost
                 NormalizerData {..}
             )
             normalizerDataInit
@@ -342,8 +365,17 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
             then Just 0
             else Just $ fromIntegral (x - minVal) / fromIntegral (maxVal - minVal)
 
+    normalizeDouble :: Double -> Double -> Double -> Maybe Double
+    normalizeDouble x minVal maxVal
+      | maxVal < minVal = Nothing
+      | maxVal == minVal = Just 0
+      | otherwise = Just $ (x - minVal) / (maxVal - minVal)
+
     normalizeSeconds :: Time.Seconds -> Time.Seconds -> Time.Seconds -> Maybe Double
     normalizeSeconds x minVal maxVal = normalize x.getSeconds minVal.getSeconds maxVal.getSeconds
+
+    normalizeCost :: Double -> Double -> Double -> Maybe Double
+    normalizeCost x minVal maxVal = normalizeDouble x minVal maxVal
 
     normalizeUTCTime :: UTCTime -> UTCTime -> UTCTime -> Maybe Double
     normalizeUTCTime x minVal maxVal = do
@@ -360,13 +392,16 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
       let routeDur = calculateRouteDuration route
           routeAT = getArrivalTime route
           routeTf = getTransfers route
+          routeCost = computeRouteCost route
           normDur :: Maybe Double = join $ liftA3 normalizeSeconds routeDur minDuration maxDuration
           normAT :: Maybe Double = join $ liftA3 normalizeUTCTime routeAT minArrivalTime maxArrivalTime
           normTf :: Maybe Double = join $ liftA3 normalize routeTf minTransfers maxTransfers
+          normCost :: Maybe Double = join $ liftA3 normalizeCost routeCost minCost maxCost
           durScore = maybe maxDouble (* weight.duration) normDur
           aTScore = maybe maxDouble (* weight.arrivalTime) normAT
           tfScore = maybe maxDouble (* weight.transfers) normTf
-       in durScore + aTScore + tfScore
+          costScore = maybe maxDouble (* weight.cost) normCost
+       in durScore + aTScore + tfScore + costScore
 
     addRelevanceScore :: MultiModalWeightedSortCfg -> [MultiModalRoute] -> [MultiModalRoute]
     addRelevanceScore weight routes = do
