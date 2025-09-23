@@ -27,6 +27,8 @@ module Kernel.External.Encryption
     EncFlow,
     EncryptedField,
     EncryptedHashed (..),
+    encryptedHashedToText,
+    textToEncryptedHashed,
     EncryptedHashedField,
     EncryptedBase64 (..),
     EncTools (..),
@@ -54,6 +56,7 @@ import Crypto.Hash.Algorithms (SHA256)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.Text as T
 import EulerHS.Prelude
 import Kernel.Storage.Esqueleto (PersistField, PersistFieldSql)
 import Kernel.Types.App
@@ -138,6 +141,20 @@ instance
 type family EncryptedField (e :: EncKind) (a :: Type) :: Type where
   EncryptedField 'AsUnencrypted a = a
   EncryptedField 'AsEncrypted a = Encrypted a
+
+-- Utility functions for EncryptedHashed Text serialization
+encryptedHashedToText :: EncryptedHashed Text -> Text
+encryptedHashedToText (EncryptedHashed encrypted hash) =
+  let encryptedText = unEncrypted encrypted
+      hashText = decodeUtf8 $ unDbHash hash
+   in encryptedText <> ":" <> hashText
+
+textToEncryptedHashed :: Text -> Maybe (EncryptedHashed Text)
+textToEncryptedHashed combinedText =
+  case T.splitOn ":" combinedText of
+    [encryptedText, hashText] ->
+      Just $ EncryptedHashed (Encrypted encryptedText) (DbHash $ encodeUtf8 hashText)
+    _ -> Nothing
 
 -- | Mark a field as encrypted with hash or not, depending on @e@ argument.
 --
