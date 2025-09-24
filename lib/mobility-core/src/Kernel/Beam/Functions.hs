@@ -642,7 +642,8 @@ updateInternal ::
   m ()
 updateInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
   dbConf <- getMasterDBConfig
-  res <- KV.updateAllReturningWithKVConnector dbConf updatedMeshConfig setClause whereClause
+  replicaDbConf <- getReplicaDbConfig
+  res <- KV.updateAllReturningWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
   case res of
     Right res' -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
@@ -665,7 +666,8 @@ updateOneInternal ::
   m ()
 updateOneInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
   dbConf <- getMasterDBConfig
-  res <- KV.updateWithKVConnector dbConf updatedMeshConfig setClause whereClause
+  replicaDbConf <- getReplicaDbConfig
+  res <- KV.updateWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
   case res of
     Right obj -> do
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
