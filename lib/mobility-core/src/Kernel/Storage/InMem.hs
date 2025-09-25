@@ -14,68 +14,122 @@
 module Kernel.Storage.InMem where
 
 import qualified Crypto.Hash as Hash
+import qualified Data.Aeson as Ae
 import qualified Data.ByteArray as BA
+import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HM
 import Data.String.Conversions
+import qualified Data.Text as T
+import Data.Time (timeOfDayToTime, utctDayTime)
 import Data.Typeable
+import Database.Redis as Hedis
 import EulerHS.Prelude
+import Kernel.Storage.Hedis.Config
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow
-import Kernel.Utils.Time (getCurrentTime, threadDelaySec)
+import Kernel.Utils.Time (Seconds, UTCTime, addUTCTime, getCurrentTime, secondsToNominalDiffTime, threadDelaySec)
 import Text.Hex (encodeHex)
 import Unsafe.Coerce (unsafeCoerce)
 
-withInMemCache :: forall a b r m. (Show a, Show b, Eq a, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b) => [a] -> m b -> m b
-withInMemCache cacheKeys fn = do
-  let key = cs . intercalate ":" $ map show cacheKeys
-  let keyType = show $ typeRep (Proxy :: Proxy b)
-  -- Adding response type to the key to help reduce chances of collisions.
-  let mbCacheKey
-        | length key > 200 = do
-          let hashedKey = BA.convert @(Hash.Digest Hash.SHA256) $ Hash.hashlazy (encodeUtf8 key)
-          Just $ encodeHex hashedKey <> keyType
-        | length key < 2 = Nothing
-        | otherwise = Just $ key <> keyType
-  case mbCacheKey of
-    Nothing -> fn
-    Just cacheKey -> do
-      inMemEnv <- asks (.inMemEnv)
-      let inMemCache = inMemHashMap inMemEnv
-      mbRes <- HM.lookup cacheKey . cache <$> readIORef inMemCache
-      case mbRes of
-        Just resAny -> pure (unsafeCoerce (cachedData resAny))
-        Nothing -> do
-          res <- fn
-          time <- getCurrentTime
-          let sizeOfRes = sizeOf res
-          void $ atomicModifyIORef inMemCache (\old -> (old {cache = HM.insert cacheKey (InMemKeyInfo {lastUsed = time, cachedData = unsafeCoerce @_ @Any res, cacheDataSize = sizeOfRes}) (cache old), cacheSize = (cacheSize old) + sizeOfRes}, ()))
-          pure res
+defaultInMemCacheInfo :: UTCTime -> InMemCacheInfo
+defaultInMemCacheInfo now = InMemCacheInfo {cache = mempty, cacheSize = 0, createdAt = now}
+
+withInMemCache :: forall b r m. (Show b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b) => [Text] -> Seconds -> m b -> m b
+withInMemCache cacheKeys ttlInSeconds fn = do
+  inMemEnv <- asks (.inMemEnv)
+  if inMemEnv.enableInMem && ttlInSeconds > 0
+    then do
+      let key = cs . T.intercalate (":" :: Text) $ cacheKeys
+      let keyType = show $ typeRep (Proxy :: Proxy b)
+      -- Adding response type to the key to help reduce chances of collisions.
+      let mbCacheKey
+            | length key > 200 = do
+              let hashedKey = BA.convert @(Hash.Digest Hash.SHA256) $ Hash.hashlazy (encodeUtf8 key)
+              Just $ encodeHex hashedKey <> keyType
+            | length key < 2 = Nothing
+            | otherwise = Just $ key <> keyType
+      case mbCacheKey of
+        Nothing -> fn
+        Just cacheKey -> do
+          let inMemCache = inMemHashMap inMemEnv
+          mbRes <- HM.lookup cacheKey . cache <$> readIORef inMemCache
+          case mbRes of
+            Just resAny -> pure (unsafeCoerce (cachedData resAny))
+            Nothing -> do
+              res <- fn
+              now <- getCurrentTime
+              let sizeOfRes = sizeOf res
+              void $ atomicModifyIORef inMemCache (\old -> (old {cache = HM.insert cacheKey (InMemKeyInfo {lastUsed = now, cachedData = unsafeCoerce @_ @Any res, cacheDataSize = sizeOfRes, createdAt = now, ttlInSeconds = ttlInSeconds}) (cache old), cacheSize = (cacheSize old) + sizeOfRes}, ()))
+              pure res
+    else fn
   where
     sizeOf :: Show b => b -> Bytes
     sizeOf a = fromIntegral . length $ (show :: b -> Text) a
 
-inMemCleanupThread :: InMemEnv -> IO ()
-inMemCleanupThread inMemEnv = do
+inMemCleanupThread :: Maybe HedisEnv -> InMemEnv -> IO ()
+inMemCleanupThread mbHedisEnv inMemEnv = do
   let inMemCache = inMemEnv.inMemHashMap
       maxInMemSize = inMemEnv.maxInMemSize
   inMemCacheInfo <- readIORef inMemCache
+  now <- getCurrentTime
   let inMemCacheSize = cacheSize inMemCacheInfo
-  when (inMemCacheSize > maxInMemSize) $ do
-    let cacheList = reverse $ sortOn (\(_, InMemKeyInfo {lastUsed}) -> lastUsed) $ HM.toList $ cache inMemCacheInfo
-        (updatedCacheSize, updatedCache) = foldl' (\(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) -> if cacheDataSize + acc <= (floor $ (fromIntegral maxInMemSize * 0.75 :: Double)) then (acc + cacheDataSize, accCacheList ++ [(k, v)]) else (acc, accCacheList)) (0, []) cacheList
-        updatedCacheInfo = InMemCacheInfo {cache = HM.fromList updatedCache, cacheSize = updatedCacheSize}
-    writeIORef inMemCache updatedCacheInfo
-  threadDelaySec $ 300
+  let sizeBasedCleanupRequired = inMemCacheSize > maxInMemSize
+  let updatedCacheInfo =
+        if sizeBasedCleanupRequired
+          then do
+            let cacheList = reverse $ sortOn (\(_, InMemKeyInfo {lastUsed}) -> lastUsed) $ HM.toList $ cache inMemCacheInfo
+                (updatedCacheSize, updatedCache) = foldl' (\(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize, createdAt, ttlInSeconds})) -> if cacheDataSize + acc <= (floor $ (fromIntegral maxInMemSize * 0.75 :: Double)) || addUTCTime (secondsToNominalDiffTime ttlInSeconds) createdAt < now then (acc + cacheDataSize, accCacheList ++ [(k, v)]) else (acc, accCacheList)) (0, []) cacheList
+            InMemCacheInfo {cache = HM.fromList updatedCache, cacheSize = updatedCacheSize, createdAt = inMemCacheInfo.createdAt}
+          else inMemCacheInfo
+  (forceCleanup, finalCacheInfo) <-
+    case mbHedisEnv of
+      Just hedisEnv -> do
+        let key = cs $ hedisEnv.keyModifier "inmem:force:cleanup:timeofday"
+        forceCleanupValue <- Hedis.runRedis hedisEnv.hedisConnection (Hedis.get key)
+        case forceCleanupValue of
+          Left err -> do
+            print err
+            pure (False, updatedCacheInfo)
+          Right forceCleanupVal -> do
+            let forceCleanupExpiryValue :: Maybe ForceCleanupExpiryValue = Ae.decode . BSL.fromStrict =<< forceCleanupVal
+            case forceCleanupExpiryValue of
+              Just cacheExpiryValue -> do
+                let cacheExpiryTime = timeOfDayToTime (forceCleanupTimestamp cacheExpiryValue)
+                let createAtTime = utctDayTime updatedCacheInfo.createdAt
+                if createAtTime < cacheExpiryTime
+                  then do
+                    void $ Hedis.runRedis hedisEnv.hedisConnection $ Hedis.expire key 600 -- do that it doesn't happen daily once user adds the key and forgets to set expiry
+                    case (forceCleanupKeyPrefix cacheExpiryValue) of
+                      Just cleanupKeyPrefix -> do
+                        let cacheList :: [(Text, InMemKeyInfo)] = HM.toList $ cache updatedCacheInfo
+                            (updatedCacheSize, updatedCache) = foldl' (\(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) -> if cleanupKeyPrefix `T.isPrefixOf` k then (acc + cacheDataSize, accCacheList ++ [(k, v)]) else (acc, accCacheList)) (0, []) cacheList
+                        pure (True, InMemCacheInfo {cache = HM.fromList updatedCache, cacheSize = updatedCacheSize, createdAt = inMemCacheInfo.createdAt})
+                      Nothing -> pure (False, defaultInMemCacheInfo now)
+                  else do
+                    pure (False, updatedCacheInfo)
+              Nothing -> do
+                pure (False, updatedCacheInfo)
+      Nothing -> do
+        pure (False, updatedCacheInfo)
+  when (sizeBasedCleanupRequired || forceCleanup) $
+    writeIORef inMemCache finalCacheInfo
+  threadDelaySec $ 60
 
-setupInMemEnv :: InMemConfig -> IO InMemEnv
-setupInMemEnv inMemConfig = do
-  let inMemCacheInfo = InMemCacheInfo {cache = mempty, cacheSize = 0}
-  inMemHashMap <- newIORef inMemCacheInfo
-  let inMemEnv =
-        InMemEnv
-          { enableInMem = inMemConfig.enableInMem,
-            maxInMemSize = inMemConfig.maxInMemSize,
-            inMemHashMap = inMemHashMap
-          }
-  void $ forkIO $ forever $ inMemCleanupThread inMemEnv
-  pure inMemEnv
+setupInMemEnv :: InMemConfig -> Maybe HedisEnv -> IO InMemEnv
+setupInMemEnv inMemConfig mbHedisEnv = do
+  now <- getCurrentTime
+  if inMemConfig.enableInMem
+    then do
+      let inMemCacheInfo = defaultInMemCacheInfo now
+      inMemHashMap <- newIORef inMemCacheInfo
+      let inMemEnv =
+            InMemEnv
+              { enableInMem = inMemConfig.enableInMem,
+                maxInMemSize = inMemConfig.maxInMemSize,
+                inMemHashMap = inMemHashMap
+              }
+      void $ forkIO $ forever $ inMemCleanupThread mbHedisEnv inMemEnv
+      pure inMemEnv
+    else do
+      inMemHashMap <- newIORef $ defaultInMemCacheInfo now
+      pure $ InMemEnv {enableInMem = False, maxInMemSize = 0, inMemHashMap}

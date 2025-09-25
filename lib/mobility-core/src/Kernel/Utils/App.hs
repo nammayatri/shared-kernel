@@ -43,7 +43,7 @@ import Data.Default.Class
 import qualified Data.HashMap.Internal as HM
 import Data.List (lookup)
 import Data.String.Conversions
-import qualified Data.Text as T (pack)
+import qualified Data.Text as T (pack, unpack)
 import Data.UUID.V4 (nextRandom)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
@@ -235,18 +235,18 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId -> do
 
 withModifiedEnv' :: (HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
-  let sanitizedUrl = removeUUIDs . cs $ Wai.rawPathInfo req
+  let url = cs $ Wai.rawPathInfo req
+      sanitizedUrl = removeUUIDs url
   mbDynamicLogLevelConfig <- runFlowR env.flowRuntime env.appEnv $ getDynamicLogLevelConfig
-  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId
+  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId url
   where
-    removeUUIDs path = do
-      T.pack $ TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}") path ":id"
-    modifyEnvR env mbLogLevel requestId = do
+    removeUUIDs path = T.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ T.unpack path
+    modifyEnvR env mbLogLevel requestId url = do
       let appEnv = env.appEnv
           updLogEnv = appendLogTag requestId appEnv.loggerEnv
           updLogEnv' = updateLogLevelAndRawSql mbLogLevel updLogEnv
       let requestId' = bool Nothing (Just requestId) appEnv.shouldLogRequestId
-      newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
+      newFlowRt <- L.updateLoggerContext (L.appendLogContext $ requestId <> " " <> url) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       pure $
         env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId'},

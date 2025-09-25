@@ -28,11 +28,11 @@ import Kernel.Types.Time (Milliseconds, Seconds)
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError)
 
-type RequestLatencyMetric = P.Vector P.Label4 P.Histogram
+type RequestLatencyMetric = P.Vector P.Label5 P.Histogram
 
 type DatastoresLatencyMetric = P.Vector P.Label3 P.Histogram
 
-type ErrorCounterMetric = P.Vector P.Label4 P.Counter
+type ErrorCounterMetric = P.Vector P.Label5 P.Counter
 
 type URLCallRetriesMetric = P.Vector P.Label3 P.Counter
 
@@ -59,7 +59,8 @@ newBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 20, 2
 
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
-    HasField "version" r DeploymentVersion
+    HasField "version" r DeploymentVersion,
+    HasField "url" r (Maybe Text)
   )
 
 newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}
@@ -128,7 +129,7 @@ registerDatastoresLatencyMetrics =
 registerRequestLatencyMetric :: IO RequestLatencyMetric
 registerRequestLatencyMetric =
   P.register $
-    P.vector ("host", "service", "status", "version") $
+    P.vector ("host", "service", "status", "version", "url") $
       P.histogram info P.defaultBuckets
   where
     info = P.Info "external_request_duration" ""
@@ -136,7 +137,7 @@ registerRequestLatencyMetric =
 registerErrorCounterMetric :: IO ErrorCounterMetric
 registerErrorCounterMetric =
   P.register $
-    P.vector ("HttpCode", "ErrorContext", "ErrorCode", "version") $
+    P.vector ("HttpCode", "ErrorContext", "ErrorCode", "version", "url") $
       P.counter info
   where
     info = P.Info "error_counter" ""

@@ -54,12 +54,15 @@ type Bytes = Integer
 data InMemKeyInfo = InMemKeyInfo
   { lastUsed :: UTCTime,
     cachedData :: Any,
-    cacheDataSize :: Bytes
+    cacheDataSize :: Bytes,
+    createdAt :: UTCTime,
+    ttlInSeconds :: Seconds
   }
 
 data InMemCacheInfo = InMemCacheInfo
   { cache :: HashMap Text InMemKeyInfo,
-    cacheSize :: Bytes
+    cacheSize :: Bytes,
+    createdAt :: UTCTime
   }
 
 data InMemEnv = InMemEnv
@@ -73,6 +76,12 @@ data InMemConfig = InMemConfig
     maxInMemSize :: Bytes
   }
   deriving (Generic, FromDhall)
+
+data ForceCleanupExpiryValue = ForceCleanupExpiryValue
+  { forceCleanupTimestamp :: TimeOfDay,
+    forceCleanupKeyPrefix :: Maybe Text
+  }
+  deriving (Generic, FromJSON)
 
 type HasInMemEnv r = HasField "inMemEnv" r InMemEnv
 

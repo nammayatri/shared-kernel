@@ -30,6 +30,7 @@ import Kernel.Types.Time (Milliseconds, Seconds, getMilliseconds)
 import Kernel.Utils.Servant.BaseUrl
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError (..), ResponseF (..))
+import qualified Text.Regex as TR
 
 incrementErrorCounterImplementation ::
   ( HasCoreMetrics r,
@@ -42,7 +43,8 @@ incrementErrorCounterImplementation ::
 incrementErrorCounterImplementation errorContext err = do
   cmContainer <- asks (.coreMetrics)
   version <- asks (.version)
-  incrementErrorCounterImplementation' cmContainer errorContext err version
+  url <- asks (.url)
+  incrementErrorCounterImplementation' cmContainer errorContext err version url
 
 addUrlCallRetriesImplementation ::
   ( HasCoreMetrics r,
@@ -82,7 +84,8 @@ addRequestLatencyImplementation ::
 addRequestLatencyImplementation host serviceName dur status = do
   cmContainer <- asks (.coreMetrics)
   version <- asks (.version)
-  addRequestLatencyImplementation' cmContainer host serviceName dur status version
+  url <- asks (.url)
+  addRequestLatencyImplementation' cmContainer host serviceName dur status url version
 
 addDatastoreLatencyImplementation ::
   ( HasCoreMetrics r,
@@ -145,16 +148,23 @@ addRequestLatencyImplementation' ::
   Text ->
   Milliseconds ->
   Either ClientError a ->
+  Maybe Text ->
   DeploymentVersion ->
   m ()
-addRequestLatencyImplementation' cmContainer host serviceName dur status version = do
+addRequestLatencyImplementation' cmContainer host serviceName dur status mbUrl version = do
   let requestLatencyMetric = cmContainer.requestLatency
+  let sanitizedUrl =
+        case mbUrl of
+          Just url -> removeUUIDs url
+          Nothing -> ""
   L.runIO $
     P.withLabel
       requestLatencyMetric
-      (host, serviceName, status', version.getDeploymentVersion)
+      (host, serviceName, status', version.getDeploymentVersion, sanitizedUrl)
       (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds dur))
   where
+    removeUUIDs :: Text -> Text
+    removeUUIDs path = DT.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ DT.unpack path
     status' =
       case status of
         Right _ -> "200"
@@ -164,20 +174,27 @@ addRequestLatencyImplementation' cmContainer host serviceName dur status version
         Left (UnsupportedContentType _ (Response code _ _ _)) -> show code
         Left (ConnectionError _) -> "Connection error"
 
-incrementErrorCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> SomeException -> DeploymentVersion -> m ()
-incrementErrorCounterImplementation' cmContainers errorContext exc version
+incrementErrorCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> SomeException -> DeploymentVersion -> Maybe Text -> m ()
+incrementErrorCounterImplementation' cmContainers errorContext exc version mbUrl
   | Just (HTTPException err) <- fromException exc = incCounter' err
   | Just (BaseException err) <- fromException exc = incCounter' . InternalError . fromMaybe (show err) $ toMessage err
   | otherwise = incCounter' . InternalError $ show exc
   where
     errorCounterMetric = cmContainers.errorCounter
 
+    sanitizedUrl =
+      case mbUrl of
+        Just url -> removeUUIDs url
+        Nothing -> ""
+    removeUUIDs :: Text -> Text
+    removeUUIDs path = DT.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ DT.unpack path
+
     incCounter' :: (L.MonadFlow m, IsHTTPException e) => e -> m ()
     incCounter' err =
       L.runIO $
         P.withLabel
           errorCounterMetric
-          (show $ toHttpCode err, errorContext, toErrorCode err, version.getDeploymentVersion)
+          (show $ toHttpCode err, errorContext, toErrorCode err, version.getDeploymentVersion, sanitizedUrl)
           P.incCounter
 
 addUrlCallRetriesImplementation' :: L.MonadFlow m => CoreMetricsContainer -> BaseUrl -> Int -> DeploymentVersion -> m ()
