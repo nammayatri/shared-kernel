@@ -430,6 +430,8 @@ library
       Kernel.Utils.Forkable
       Kernel.Utils.GenericPretty
       Kernel.Utils.Geometry
+      Kernel.Utils.GTFS.GTFS
+      Kernel.Utils.GTFS.Types
       Kernel.Utils.IOLogging
       Kernel.Utils.JSON
       Kernel.Utils.JWT
@@ -511,6 +513,7 @@ library
     , bytestring
     , case-insensitive
     , casing
+    , cassava
     , cereal
     , clickhouse-haskell
     , clock
@@ -553,6 +556,7 @@ library
     , morpheus-graphql-client
     , mtl
     , network
+    , network-uri
     , openapi3
     , parsec
     , passetto-client
@@ -674,6 +678,7 @@ test-suite mobility-core-tests
     , bytestring
     , case-insensitive
     , casing
+    , cassava
     , cereal
     , clickhouse-haskell
     , clock
@@ -717,6 +722,7 @@ test-suite mobility-core-tests
     , morpheus-graphql-client
     , mtl
     , network
+    , network-uri
     , openapi3
     , parsec
     , passetto-client
