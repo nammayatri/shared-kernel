@@ -82,7 +82,8 @@ withDashboardFlowHandler ::
     HasField "serviceClickhouseEnv" r ClickhouseEnv,
     HasField "dashboardClickhouseCfg" r ClickhouseCfg,
     HasField "dashboardClickhouseEnv" r ClickhouseEnv,
-    HasFlowHandlerR (FlowR r) r
+    HasFlowHandlerR (FlowR r) r,
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -111,7 +112,8 @@ withDashboardFlowHandler' ::
   ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
     HasField "serviceClickhouseEnv" r ClickhouseEnv,
     HasField "dashboardClickhouseCfg" r ClickhouseCfg,
-    HasField "dashboardClickhouseEnv" r ClickhouseEnv
+    HasField "dashboardClickhouseEnv" r ClickhouseEnv,
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -123,7 +125,8 @@ withDashboardFlowHandler' flow = do
 withFlowHandlerAPI ::
   ( HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
-    HasField "isShuttingDown" r (TMVar ())
+    HasField "isShuttingDown" r (TMVar ()),
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -136,7 +139,8 @@ withDashboardFlowHandlerAPI ::
     HasField "dashboardClickhouseEnv" r ClickhouseEnv,
     HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
-    HasField "isShuttingDown" r (TMVar ())
+    HasField "isShuttingDown" r (TMVar ()),
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -146,7 +150,8 @@ withDashboardFlowHandlerAPI = withDashboardFlowHandler . apiHandler . handleIfUp
 withFlowHandlerAPI' ::
   ( Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
-    Log (FlowR r)
+    Log (FlowR r),
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -159,7 +164,8 @@ withDashboardFlowHandlerAPI' ::
     HasField "dashboardClickhouseEnv" r ClickhouseEnv,
     Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
-    Log (FlowR r)
+    Log (FlowR r),
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -168,7 +174,8 @@ withDashboardFlowHandlerAPI' = withDashboardFlowHandler' . apiHandler . handleIf
 withFlowHandlerBecknAPI ::
   ( HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
-    HasField "isShuttingDown" r (TMVar ())
+    HasField "isShuttingDown" r (TMVar ()),
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
@@ -178,7 +185,8 @@ withFlowHandlerBecknAPI = withFlowHandler . becknApiHandler . handleIfUp
 withFlowHandlerBecknAPI' ::
   ( Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
-    Log (FlowR r)
+    Log (FlowR r),
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
@@ -189,7 +197,8 @@ handleIfUp ::
     Log m,
     MonadReader r m,
     HasField "isShuttingDown" r (TMVar ()),
-    Metrics.CoreMetrics m
+    Metrics.CoreMetrics m,
+    HasField "url" r (Maybe Text)
   ) =>
   m a ->
   m a
@@ -201,27 +210,33 @@ handleIfUp flow = do
     else throwAPIError ServerUnavailable
 
 apiHandler ::
-  ( MonadCatch m,
+  ( L.MonadFlow m,
     Log m,
-    Metrics.CoreMetrics m
+    Metrics.CoreMetrics m,
+    MonadReader r m,
+    HasField "url" r (Maybe Text)
   ) =>
   m a ->
   m a
 apiHandler = (`catch` someExceptionToAPIErrorThrow)
 
 becknApiHandler ::
-  ( MonadCatch m,
+  ( L.MonadFlow m,
     Log m,
-    Metrics.CoreMetrics m
+    Metrics.CoreMetrics m,
+    MonadReader r m,
+    HasField "url" r (Maybe Text)
   ) =>
   m a ->
   m a
 becknApiHandler = (`catch` someExceptionToBecknApiErrorThrow)
 
 someExceptionToAPIErrorThrow ::
-  ( MonadCatch m,
+  ( L.MonadFlow m,
     Log m,
-    Metrics.CoreMetrics m
+    Metrics.CoreMetrics m,
+    MonadReader r m,
+    HasField "url" r (Maybe Text)
   ) =>
   SomeException ->
   m a
@@ -232,9 +247,11 @@ someExceptionToAPIErrorThrow exc
   | otherwise = throwAPIError . InternalError $ show exc
 
 someExceptionToBecknApiErrorThrow ::
-  ( MonadCatch m,
+  ( L.MonadFlow m,
     Log m,
-    Metrics.CoreMetrics m
+    Metrics.CoreMetrics m,
+    MonadReader r m,
+    HasField "url" r (Maybe Text)
   ) =>
   SomeException ->
   m a
@@ -253,7 +270,9 @@ throwAPIError ::
     MonadThrow m,
     IsHTTPException e,
     Exception e,
-    Metrics.CoreMetrics m
+    Metrics.CoreMetrics m,
+    MonadReader r m,
+    HasField "url" r (Maybe Text)
   ) =>
   e ->
   m a
@@ -264,7 +283,9 @@ throwBecknApiError ::
     MonadThrow m,
     IsHTTPException e,
     Exception e,
-    Metrics.CoreMetrics m
+    Metrics.CoreMetrics m,
+    MonadReader r m,
+    HasField "url" r (Maybe Text)
   ) =>
   e ->
   m a
@@ -276,7 +297,9 @@ throwHTTPError ::
     MonadThrow m,
     IsHTTPException e,
     Exception e,
-    Metrics.CoreMetrics m
+    Metrics.CoreMetrics m,
+    MonadReader r m,
+    HasField "url" r (Maybe Text)
   ) =>
   (e -> j) ->
   e ->

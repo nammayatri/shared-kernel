@@ -100,7 +100,7 @@ callAPI' mbManagerSelector baseUrl eulerClient desc api =
         L.callAPI' (Just managerSelector) baseUrl eulerClient
     case res of
       Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
-      Left err -> logDebug $ "Error occured during client call: " <> show err
+      Left err -> logError $ "Error occured during client call: " <> show err
     return res
   where
     buildSanitizedUrl = do
