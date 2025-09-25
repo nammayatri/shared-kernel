@@ -19,8 +19,9 @@ import Kernel.Storage.Hedis (HedisFlow)
 import Kernel.Types.Common
 import Kernel.Utils.Dhall
 
-newtype CacheConfig = CacheConfig
-  { configsExpTime :: Seconds
+data CacheConfig = CacheConfig
+  { configsExpTime :: Seconds,
+    farePolicyExpTime :: Seconds
   }
   deriving (Generic, FromDhall)
 
