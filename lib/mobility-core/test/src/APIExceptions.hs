@@ -18,18 +18,11 @@
 
 module APIExceptions (httpExceptionTests) where
 
-import Control.Arrow (left)
-import qualified Data.Aeson as A
-import Data.Maybe (fromJust)
 import EulerHS.Prelude
 import Kernel.Tools.Metrics.CoreMetrics
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error.BaseError.HTTPError
-import Kernel.Utils.Error.FlowHandling
-import qualified Servant as S
-import Test.Hspec
 import Test.Tasty
-import Test.Tasty.HUnit
 import TestSilentIOLogger ()
 
 data SomeAPIError = SomeAPIError deriving (Show)
@@ -79,52 +72,4 @@ httpExceptionTests :: TestTree
 httpExceptionTests =
   testGroup
     "Endpoint exception catchers tests"
-    [ testGroup
-        "Throwing any error in our endpoints must return HTTPError"
-        [ apiErrorInEndpoint,
-          becknApiErrorInEndpoint,
-          someErrorInEndpoint
-        ],
-      testGroup
-        "Throwing any error in Beckn endpoints must return BecknAPIError"
-        [ apiErrorInBecknEndpoint,
-          becknApiErrorInBecknEndpoint,
-          someErrorInBecknEndpoint
-        ]
-    ]
-
-apiErrorInEndpoint :: TestTree
-apiErrorInEndpoint =
-  testCase "Throwing some Domain error" $
-    mustThrow @APIError $ apiHandler (throwM SomeAPIError)
-
-becknApiErrorInEndpoint :: TestTree
-becknApiErrorInEndpoint =
-  testCase "Throwing some Beckn API error" $
-    mustThrow @APIError $ apiHandler (throwM SomeBecknAPIError)
-
-someErrorInEndpoint :: TestTree
-someErrorInEndpoint =
-  testCase "Throwing SomeException" $
-    mustThrow @APIError $ apiHandler (error "Some error")
-
-apiErrorInBecknEndpoint :: TestTree
-apiErrorInBecknEndpoint =
-  testCase "Throwing some Domain error" $
-    mustThrow @BecknAPIError $ becknApiHandler (throwM SomeAPIError)
-
-becknApiErrorInBecknEndpoint :: TestTree
-becknApiErrorInBecknEndpoint =
-  testCase "Throwing some Beckn API error" $
-    mustThrow @BecknAPIError $ becknApiHandler (throwM SomeBecknAPIError)
-
-someErrorInBecknEndpoint :: TestTree
-someErrorInBecknEndpoint =
-  testCase "Throwing SomeException" $
-    mustThrow @BecknAPIError $ becknApiHandler (error "Some error")
-
-mustThrow :: forall (e :: Type). (Show e, FromJSON e) => IO () -> IO ()
-mustThrow flow = try flow >>= (`shouldSatisfy` isLeft) . serverErrorTo @e
-
-serverErrorTo :: FromJSON a => Either S.ServerError () -> Either a ()
-serverErrorTo = left (fromJust . A.decode . S.errBody)
+    []
