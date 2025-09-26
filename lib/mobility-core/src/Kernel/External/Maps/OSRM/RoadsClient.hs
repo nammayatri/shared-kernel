@@ -52,6 +52,13 @@ toOSRMProfile = \case
   Maps.BICYCLE -> Bicycling
   Maps.FOOT -> Walking
 
+-- Helper functions for updating travel mode in requests
+updateModeForGetDistancesReq :: Maps.TravelMode -> MapsInterfaceTypes.GetDistancesReq a b -> MapsInterfaceTypes.GetDistancesReq a b
+updateModeForGetDistancesReq mode req = req {MapsInterfaceTypes.travelMode = Just mode}
+
+updateModeForGetRoutesReq :: Maps.TravelMode -> MapsInterfaceTypes.GetRoutesReq -> MapsInterfaceTypes.GetRoutesReq
+updateModeForGetRoutesReq mode req = req {MapsInterfaceTypes.mode = Just mode}
+
 type MatchAPI =
   "match"
     :> "v1"
@@ -275,9 +282,10 @@ callOsrmGetDistancesAPI entityId req osrmUrl travelMode pointsList sourcesList d
   do
     let eulerClient = Euler.client (Proxy @TableAPI)
         profile = toOSRMProfile travelMode
+        updatedReq = updateModeForGetDistancesReq travelMode req
     rsp <- callAPI osrmUrl (eulerClient profile pointsList "distance,duration" sourcesList destinationsList mbSourceDestinationMapping) "osrm-table" (Proxy @TableAPI)
     fork ("Logging external API Call of OsrmGetDistancesAPI OSRM ") $
-      ApiCallLogger.pushExternalApiCallDataToKafka "OsrmGetDistancesAPI" "OSRM" entityId (Just req) rsp
+      ApiCallLogger.pushExternalApiCallDataToKafka "OsrmGetDistancesAPI" "OSRM" entityId (Just updatedReq) rsp
     fromEitherM (FailedToCallOsrmTableAPI . show) rsp
 
 callOsrmRouteAPI ::
@@ -296,7 +304,8 @@ callOsrmRouteAPI ::
 callOsrmRouteAPI entityId req osrmUrl travelMode pointsList = do
   let eulerClient = Euler.client (Proxy @RouteAPI)
       profile = toOSRMProfile travelMode
+      updatedReq = updateModeForGetRoutesReq travelMode req
   rsp <- callAPI osrmUrl (eulerClient profile pointsList GeoJson True True) "osrm-route" (Proxy @RouteAPI)
   fork ("Logging external API Call of OsrmRouteAPI OSRM ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "OsrmRouteAPI" "OSRM" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "OsrmRouteAPI" "OSRM" entityId (Just updatedReq) rsp
   fromEitherM (FailedToCallOsrmRouteAPI . show) rsp
