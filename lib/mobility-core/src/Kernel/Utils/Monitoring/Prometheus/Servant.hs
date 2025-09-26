@@ -128,3 +128,12 @@ instance
 
 instance SanitizedUrl Raw where
   getSanitizedUrl _ _ = Nothing
+
+-- Generic fallback instance for unknown authentication types
+-- This only matches when no more specific instance is available
+instance
+  {-# OVERLAPPABLE #-}
+  SanitizedUrl (subroute :: Type) =>
+  SanitizedUrl (auth :> subroute)
+  where
+  getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)

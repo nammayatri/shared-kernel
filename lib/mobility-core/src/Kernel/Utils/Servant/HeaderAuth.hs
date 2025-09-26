@@ -30,6 +30,7 @@ import Kernel.Types.Error
 import Kernel.Types.Flow
 import Kernel.Utils.Common
 import Kernel.Utils.IOLogging (HasLog)
+import Kernel.Utils.Monitoring.Prometheus.Servant (SanitizedUrl (..))
 import Kernel.Utils.Servant.Server
 import Network.Wai (Request (..))
 import Servant hiding (ResponseHeader (..))
@@ -158,3 +159,9 @@ addResponse401 = execState $ do
   where
     response401Name = "Unauthorized"
     response401 = mempty & DS.description .~ "Unauthorized"
+
+instance
+  SanitizedUrl (subroute :: Type) =>
+  SanitizedUrl (HeaderAuth header verify :> subroute)
+  where
+  getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
