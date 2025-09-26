@@ -63,6 +63,12 @@ buildIdfyRequest driverId a = do
         ..
       }
 
+getDecryptedConfig :: (EncFlow m r) => IdfyCfg -> m (Text, Text, Text)
+getDecryptedConfig cfg = do
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  pure (cfg.url, apiKey, accountId)
+
 verifyDLAsync ::
   ( EncFlow m r,
     CoreMetrics m
@@ -71,9 +77,7 @@ verifyDLAsync ::
   VerifyDLAsyncReq ->
   m VerifyDLAsyncResp
 verifyDLAsync cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let dobDay = T.pack $ formatTime defaultTimeLocale "%F" req.dateOfBirth
   let reqData =
         Idfy.DLVerificationData
@@ -92,9 +96,7 @@ verifyPanAsync ::
   VerifyPanAsyncReq ->
   m VerifyPanAsyncResp
 verifyPanAsync cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let dobDay = T.pack $ formatTime defaultTimeLocale "%F" req.dateOfBirth
   let reqData =
         Idfy.PanVerificationData
@@ -114,9 +116,7 @@ verifyGstAsync ::
   VerifyGstAsyncReq ->
   m VerifyGstAsyncResp
 verifyGstAsync cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let reqData =
         Idfy.GstVerificationData
           { gstin = req.gstNumber,
@@ -135,9 +135,7 @@ verifyRCAsync ::
   VerifyRCReq ->
   m VerifyRCResp
 verifyRCAsync cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let reqData =
         Idfy.RCVerificationData
           { rc_number = req.rcNumber,
@@ -223,9 +221,7 @@ extractRCImage ::
   ExtractRCImageReq ->
   m ExtractRCImageResp
 extractRCImage cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let reqData =
         Idfy.ExtractRequest
           { document1 = req.image1,
@@ -248,9 +244,7 @@ extractDLImage ::
   ExtractDLImageReq ->
   m ExtractDLImageResp
 extractDLImage cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let reqData =
         Idfy.ExtractRequest
           { document1 = req.image1,
@@ -277,9 +271,7 @@ extractPanImage ::
   ExtractPanImage ->
   m ExtractedPanImageResp
 extractPanImage cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let reqData =
         Idfy.ExtractRequest
           { document1 = req.image1,
@@ -300,9 +292,7 @@ extractGSTImage ::
   ExtractGSTImage ->
   m ExtractedGSTImageResp
 extractGSTImage cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let reqData =
         Idfy.ExtractRequest
           { document1 = req.image1,
@@ -323,9 +313,7 @@ extractAadhaarImage ::
   ExtractAadhaarImageReq ->
   m ExtractAadhaarImageRes
 extractAadhaarImage cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let reqData =
         Idfy.AadharVerificationData
           { document1 = req.image1,
@@ -347,9 +335,7 @@ nameCompare ::
   NameCompareReq ->
   m NameCompareResp
 nameCompare cfg req = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   let reqData =
         Idfy.NameCompareRequestBody
           { name1 = req.extractedName,
@@ -372,9 +358,7 @@ getTask ::
   (Text -> Maybe Text -> Text -> m ()) ->
   m GetTaskResp
 getTask cfg req updateResp = do
-  let url = cfg.url
-  apiKey <- decrypt cfg.apiKey
-  accountId <- decrypt cfg.accountId
+  (url, apiKey, accountId) <- getDecryptedConfig cfg
   (VerificationResponse resp, respDump) <- Idfy.getTask apiKey accountId url req.requestId
   updateResp resp.status (Just respDump) req.requestId
   result <- resp.result & fromMaybeM (InternalError ("Missing result in getTask response: " <> show resp))
@@ -426,12 +410,12 @@ convertPanOutputToPanVerification PanVerificationOutput {..} =
       panStatus = pan_status,
       nameMatch = name_match,
       dobMatch = dob_match,
-      inputDetails = convertPanInputDetaills <$> input_details,
+      inputDetails = convertPanInputDetails <$> input_details,
       status = status
     }
 
-convertPanInputDetaills :: PanInputDetails -> VT.PanInputDetails
-convertPanInputDetaills PanInputDetails {..} =
+convertPanInputDetails :: PanInputDetails -> VT.PanInputDetails
+convertPanInputDetails PanInputDetails {..} =
   VT.PanInputDetails
     { inputPanNumber = input_pan_number,
       inputName = input_name,
