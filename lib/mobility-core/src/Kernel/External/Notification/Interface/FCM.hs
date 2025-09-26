@@ -158,6 +158,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.ACCOUNT_DELETED -> FCM.ACCOUNT_DELETED
   Interface.PICKUP_INSTRUCTIONS -> FCM.PICKUP_INSTRUCTIONS
   Interface.EXOTEL_CALL_UNREACHABLE -> FCM.EXOTEL_CALL_UNREACHABLE
+  Interface.END_RIDE_OFFERS -> FCM.END_RIDE_OFFERS
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
