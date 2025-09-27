@@ -27,7 +27,7 @@ import Kernel.Prelude (lookup, (!!))
 import Kernel.Tools.Metrics.CoreMetrics.Types hiding (requestLatency)
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import qualified Network.HTTP.Types as HTTP
-import Network.Wai (Application, Request (..))
+import Network.Wai (Application)
 import qualified Network.Wai as Wai
 import Network.Wai.Handler.Warp as W
 import Network.Wai.Middleware.Prometheus (metricsApp)
@@ -77,7 +77,7 @@ addServantInfo ::
   Application
 addServantInfo version proxy app request respond =
   let mpath = getSanitizedUrl proxy request
-      fullpath = DT.intercalate "/" (pathInfo request)
+      fullpath = DT.intercalate "/" (normalizedPathInfo request)
    in instrumentHandlerValueWithVersionLabel version.getDeploymentVersion (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
 
 instrumentHandlerValueWithVersionLabel ::
