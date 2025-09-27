@@ -15,12 +15,17 @@
 
 module Kernel.Utils.Monitoring.Prometheus.Servant where
 
+import qualified Data.List as List
 import Data.Proxy
 import Data.Text as DT
 import EulerHS.Prelude as E
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Network.Wai (Request (..))
 import Servant
+
+-- Helper function to normalize paths by removing trailing slashes
+normalizedPathInfo :: Request -> [Text]
+normalizedPathInfo = List.dropWhileEnd (== "") . pathInfo
 
 class SanitizedUrl a where
   getSanitizedUrl :: Proxy a -> Request -> Maybe Text
@@ -40,7 +45,7 @@ instance
   SanitizedUrl (path :> subroute)
   where
   getSanitizedUrl _ req = do
-    let path = pathInfo req
+    let path = normalizedPathInfo req
     if E.null path
       then Nothing
       else do
@@ -59,7 +64,7 @@ instance
   SanitizedUrl (Capture capture a :> subroute)
   where
   getSanitizedUrl _ req = do
-    let path = pathInfo req
+    let path = normalizedPathInfo req
     if E.null path
       then Nothing
       else
@@ -73,7 +78,7 @@ instance
   SanitizedUrl (Verb (m :: StdMethod) code contentType a)
   where
   getSanitizedUrl _ req = do
-    let p = pathInfo req
+    let p = normalizedPathInfo req
     if E.null p && requestMethod req == reflectMethod (Proxy :: Proxy m)
       then Just ""
       else Nothing
