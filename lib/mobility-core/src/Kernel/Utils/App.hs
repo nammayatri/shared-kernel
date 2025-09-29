@@ -249,7 +249,7 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
       newFlowRt <- L.updateLoggerContext (L.appendLogContext $ requestId <> " " <> url) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId'},
+        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', url = Just url},
             flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
            }
 
