@@ -19,6 +19,7 @@
 
 module Kernel.Utils.TH where
 
+import Data.Aeson (Options (..), ToJSON (..), defaultOptions)
 import qualified Data.Bifunctor as BF
 import qualified Data.ByteString.Lazy as BSL
 import Data.OpenApi (ToSchema)
@@ -72,4 +73,19 @@ mkToHttpInstanceForEnum name = do
       toUrlPiece = DT.decodeUtf8 . toHeader
       toQueryParam = toUrlPiece
       toHeader = BSL.toStrict . encode
+    |]
+
+-- This generates ToJSON and FromJSON instances that omit Nothing fields.
+-- For example, if userEmail is Nothing, it won't appear in the JSON at all.
+deriveJSONOmitNothing :: TH.Name -> TH.Q [TH.Dec]
+deriveJSONOmitNothing name = do
+  let tyQ = pure (TH.ConT name)
+      options = [|defaultOptions {omitNothingFields = True}|]
+  [d|
+    instance ToJSON $tyQ where
+      toJSON = genericToJSON $options
+      toEncoding = genericToEncoding $options
+
+    instance FromJSON $tyQ where
+      parseJSON = genericParseJSON $options
     |]
