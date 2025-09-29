@@ -146,14 +146,15 @@ type family EncryptedField (e :: EncKind) (a :: Type) :: Type where
 encryptedHashedToText :: EncryptedHashed Text -> Text
 encryptedHashedToText (EncryptedHashed encrypted hash) =
   let encryptedText = unEncrypted encrypted
-      hashText = decodeUtf8 $ unDbHash hash
+      hashText = show hash
    in encryptedText <> ":" <> hashText
 
 textToEncryptedHashed :: Text -> Maybe (EncryptedHashed Text)
 textToEncryptedHashed combinedText =
   case T.splitOn ":" combinedText of
-    [encryptedText, hashText] ->
-      Just $ EncryptedHashed (Encrypted encryptedText) (DbHash $ encodeUtf8 hashText)
+    [encryptedText, hashText] -> do
+      hash <- readMaybe (T.unpack hashText) :: Maybe DbHash
+      Just $ EncryptedHashed (Encrypted encryptedText) hash
     _ -> Nothing
 
 -- | Mark a field as encrypted with hash or not, depending on @e@ argument.
