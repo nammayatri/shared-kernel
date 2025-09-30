@@ -19,7 +19,7 @@
 
 module Kernel.Utils.TH where
 
-import Data.Aeson (Options (..))
+import Data.Aeson (Options (..), defaultOptions)
 import qualified Data.Bifunctor as BF
 import qualified Data.ByteString.Lazy as BSL
 import Data.OpenApi (ToSchema)
