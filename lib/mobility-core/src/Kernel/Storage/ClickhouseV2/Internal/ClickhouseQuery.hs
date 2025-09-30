@@ -50,6 +50,7 @@ instance
       <> selectModifier
       <> mkMaybeClause @(Where t) q.whereQ
       <> toClickhouseQuery @(GroupBy a gr) groupBy
+      <> mkMaybeClause @(Having t) (q.havingQ <&> ($ cols))
       <> mkMaybeClause @(OrderBy ord) (q.orderByQ <&> ($ cols))
       <> mkMaybeClause @Limit q.limitQ
       <> mkMaybeClause @Offset q.offsetQ
@@ -120,6 +121,9 @@ instance ClickhouseQuery gr => ClickhouseQuery (GroupBy a gr) where
   toClickhouseQuery (GroupBy gr) = " GROUP BY " <> toClickhouseQuery gr
   toClickhouseQuery Aggregate = mempty
   toClickhouseQuery NotGrouped = mempty
+
+instance ClickhouseTable t => ClickhouseQuery (Having t) where
+  toClickhouseQuery (Having clause) = " HAVING " <> addBrackets (toClickhouseQuery @(Clause t) clause)
 
 instance ClickhouseTable t => ClickhouseQuery (Column a t value) where
   toClickhouseQuery = fromString . showColumn
