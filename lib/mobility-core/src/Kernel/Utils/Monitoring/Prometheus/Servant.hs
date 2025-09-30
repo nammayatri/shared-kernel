@@ -133,3 +133,7 @@ instance
 
 instance SanitizedUrl Raw where
   getSanitizedUrl _ _ = Nothing
+
+-- Note: Add instances for custom auth types as needed:
+-- instance SanitizedUrl (subroute :: Type) => SanitizedUrl (TokenAuth :> subroute) where
+--   getSanitizedUrl _ = getSanitizedUrl (Proxy :: Proxy subroute)
