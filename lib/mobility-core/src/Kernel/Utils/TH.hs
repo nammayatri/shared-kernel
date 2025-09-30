@@ -19,13 +19,14 @@
 
 module Kernel.Utils.TH where
 
-import Data.Aeson (Options (..), ToJSON (..), defaultOptions)
+import Data.Aeson (Options (..))
 import qualified Data.Bifunctor as BF
 import qualified Data.ByteString.Lazy as BSL
 import Data.OpenApi (ToSchema)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as DT
 import EulerHS.Prelude
+import Kernel.Utils.JSON
 import qualified Language.Haskell.TH as TH
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
 
@@ -75,8 +76,9 @@ mkToHttpInstanceForEnum name = do
       toHeader = BSL.toStrict . encode
     |]
 
--- This generates ToJSON and FromJSON instances that omit Nothing fields.
--- For example, if userEmail is Nothing, it won't appear in the JSON at all.
+-- | Generate ToJSON/FromJSON instances that omit Nothing fields from JSON output.
+-- | Usage: $(deriveJSONOmitNothing ''User)
+-- | Example: User{name="john", email=Nothing} -> {"name":"john"}
 deriveJSONOmitNothing :: TH.Name -> TH.Q [TH.Dec]
 deriveJSONOmitNothing name = do
   let tyQ = pure (TH.ConT name)
@@ -84,7 +86,50 @@ deriveJSONOmitNothing name = do
   [d|
     instance ToJSON $tyQ where
       toJSON = genericToJSON $options
-      toEncoding = genericToEncoding $options
+
+    instance FromJSON $tyQ where
+      parseJSON = genericParseJSON $options
+    |]
+
+-- | Generate ToJSON/FromJSON instances with custom Aeson Options.
+-- | Usage: $(deriveJSONWithOptions ''User [|removeNullFields|])
+-- | Example: User{name="john", email=Nothing} -> {"name":"john"}
+deriveJSONWithOptions :: TH.Name -> TH.Q TH.Exp -> TH.Q [TH.Dec]
+deriveJSONWithOptions name optionsExp = do
+  let tyQ = pure (TH.ConT name)
+  [d|
+    instance ToJSON $tyQ where
+      toJSON = genericToJSON $optionsExp
+
+    instance FromJSON $tyQ where
+      parseJSON = genericParseJSON $optionsExp
+    |]
+
+-- | Generate ToJSON/FromJSON instances with snake_case field names and omit Nothing fields.
+-- | Usage: $(deriveJSONSnakeCase ''User)
+-- | Example: User{userName="john", userEmail=Nothing} -> {"user_name":"john"}
+deriveJSONSnakeCase :: TH.Name -> TH.Q [TH.Dec]
+deriveJSONSnakeCase name = do
+  let tyQ = pure (TH.ConT name)
+      options = [|constructorsWithSnakeCase {omitNothingFields = True}|]
+  [d|
+    instance ToJSON $tyQ where
+      toJSON = genericToJSON $options
+
+    instance FromJSON $tyQ where
+      parseJSON = genericParseJSON $options
+    |]
+
+-- | Generate ToJSON/FromJSON instances with lowercase field names and omit Nothing fields.
+-- | Usage: $(deriveJSONLowerCase ''User)
+-- | Example: User{UserName="john", UserEmail=Nothing} -> {"username":"john"}
+deriveJSONLowerCase :: TH.Name -> TH.Q [TH.Dec]
+deriveJSONLowerCase name = do
+  let tyQ = pure (TH.ConT name)
+      options = [|constructorsWithLowerCase {omitNothingFields = True}|]
+  [d|
+    instance ToJSON $tyQ where
+      toJSON = genericToJSON $options
 
     instance FromJSON $tyQ where
       parseJSON = genericParseJSON $options
