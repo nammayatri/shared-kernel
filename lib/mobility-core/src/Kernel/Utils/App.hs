@@ -238,10 +238,10 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
   let url = cs $ Wai.rawPathInfo req
       sanitizedUrl = removeUUIDs url
   mbDynamicLogLevelConfig <- runFlowR env.flowRuntime env.appEnv $ getDynamicLogLevelConfig
-  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId url
+  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId url sanitizedUrl
   where
     removeUUIDs path = T.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ T.unpack path
-    modifyEnvR env mbLogLevel requestId url = do
+    modifyEnvR env mbLogLevel requestId url sanitizedUrl = do
       let appEnv = env.appEnv
           updLogEnv = appendLogTag requestId appEnv.loggerEnv
           updLogEnv' = updateLogLevelAndRawSql mbLogLevel updLogEnv
@@ -249,7 +249,7 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
       newFlowRt <- L.updateLoggerContext (L.appendLogContext $ requestId <> " " <> url) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', url = Just url},
+        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', url = Just sanitizedUrl},
             flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
            }
 
