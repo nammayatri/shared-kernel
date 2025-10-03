@@ -4,7 +4,7 @@
 module Kernel.External.Payment.Juspay.Types.Mandate where
 
 import Kernel.External.Payment.Juspay.Types.Common (NotificationStatus, TransactionStatus)
-import Kernel.External.Payment.Juspay.Types.CreateOrder (SplitSettlementDetails)
+import Kernel.External.Payment.Juspay.Types.CreateOrder (SplitSettlementDetailsAmount)
 import Kernel.Prelude
 import Servant (ToHttpApiData (..))
 import Web.FormUrlEncoded
@@ -76,7 +76,7 @@ data MandateOrder = MandateOrder
   { orderId :: Text,
     orderAmount :: Text,
     orderCustomerId :: Text,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetailsAmount
   }
 
 data MandateInfo = MandateInfo
@@ -108,7 +108,7 @@ instance ToForm MandateExecutionReq where
           ("format", toQueryParam format)
         ]
 
-      splitSettleParam :: SplitSettlementDetails -> [(Text, Text)]
+      splitSettleParam :: SplitSettlementDetailsAmount -> [(Text, Text)]
       splitSettleParam details =
         [("order.metadata.split_settlement_details", toQueryParam details)]
 
