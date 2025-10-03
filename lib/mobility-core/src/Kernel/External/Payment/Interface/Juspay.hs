@@ -99,7 +99,7 @@ updateOrder config mRoutingId req = do
         return
           Juspay.OrderUpdateReq
             { amount = amount,
-              split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails
+              split_settlement_details = mkSplitSettlementDetailsAmountBased <$> req.splitSettlementDetails
             }
     mkUpdateOrderRes Juspay.OrderUpdateResp {..} =
       OrderUpdateResp
@@ -305,17 +305,40 @@ mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
           basket = show <$> basket
         }
 
-mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
-mkSplitSettlementDetails splitDetails =
-  Juspay.SplitSettlementDetails
+mkSplitSettlementDetailsAmountBased :: SplitSettlementDetailsAmount -> Juspay.SplitSettlementDetailsAmount
+mkSplitSettlementDetailsAmountBased splitDetails =
+  Juspay.SplitSettlementDetailsAmount
     { marketplace = mkMarketplace splitDetails.marketplace,
       mdr_borne_by = show splitDetails.mdrBorneBy,
       vendor = mkVendor splitDetails.vendor
     }
   where
-    mkMarketplace Marketplace {..} = Juspay.Marketplace {..}
-    mkVendor vendor = Juspay.Vendor {split = mkSplit <$> vendor.split}
-    mkSplit split = Juspay.Split {amount = split.amount, merchant_commission = split.merchantCommission, sub_mid = split.subMid, unique_split_id = Just split.uniqueSplitId}
+    mkMarketplace Marketplace {..} = Juspay.MarketplaceAmount {..}
+    mkVendor vendor = Juspay.VendorAmount {split = mkSplit <$> vendor.split}
+    mkSplit split = Juspay.SplitAmount {amount = split.amount, merchant_commission = split.merchantCommission, sub_mid = split.subMid, unique_split_id = Just split.uniqueSplitId}
+
+mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
+mkSplitSettlementDetails = \case
+  AmountBased details -> Juspay.AmountBased (mkSplitSettlementDetailsAmountBased details)
+  PercentageBased details -> Juspay.PercentageBased (mkSplitSettlementDetailsPercentageBased details)
+
+mkSplitSettlementDetailsPercentageBased :: SplitSettlementDetailsPercentage -> Juspay.SplitSettlementDetailsPercentage
+mkSplitSettlementDetailsPercentageBased splitDetails =
+  Juspay.SplitSettlementDetailsPercentage
+    { marketplace = mkMarketplacePercentage splitDetails.marketplace,
+      mdr_borne_by = show splitDetails.mdrBorneBy,
+      vendor = mkVendorPercentage splitDetails.vendor
+    }
+  where
+    mkMarketplacePercentage MarketplacePercentage {..} = Juspay.MarketplacePercentage {amount_percentage = amountPercentage}
+    mkVendorPercentage vendor = Juspay.VendorPercentage {split = mkSplitPercentage <$> vendor.split}
+    mkSplitPercentage split =
+      Juspay.SplitPercentage
+        { amount_percentage = split.amountPercentage,
+          merchant_commission_percentage = fromRational (toRational split.merchantCommissionPercentage),
+          sub_mid = split.subMid,
+          unique_split_id = Just split.uniqueSplitId
+        }
 
 mkRefundSplitSettlementDetails :: RefundSplitSettlementDetails -> Juspay.RefundSplitSettlementDetails
 mkRefundSplitSettlementDetails splitDetails =
@@ -439,7 +462,7 @@ mkExecutionReq MandateExecutionReq {..} merchantId =
     { merchantId,
       mandateId = mandateId,
       mandate = Juspay.MandateInfo {notificationId = notificationId, executionDate = show $ utcTimeToPOSIXSeconds executionDate},
-      order = Juspay.MandateOrder {orderId = orderId, orderAmount = show amount, orderCustomerId = customerId, splitSettlementDetails = mkSplitSettlementDetails <$> splitSettlementDetails},
+      order = Juspay.MandateOrder {orderId = orderId, orderAmount = show amount, orderCustomerId = customerId, splitSettlementDetails = mkSplitSettlementDetailsAmountBased <$> splitSettlementDetails},
       format = "json"
     }
 
