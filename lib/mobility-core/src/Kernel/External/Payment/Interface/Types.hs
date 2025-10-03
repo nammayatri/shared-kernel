@@ -88,7 +88,12 @@ newtype Vendor = Vendor
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
-data SplitSettlementDetails = SplitSettlementDetails
+data SplitSettlementDetails
+  = AmountBased SplitSettlementDetailsAmount
+  | PercentageBased SplitSettlementDetailsPercentage
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data SplitSettlementDetailsAmount = SplitSettlementDetailsAmount
   { marketplace :: Marketplace,
     mdrBorneBy :: MBY,
     vendor :: Vendor
@@ -113,6 +118,13 @@ data RefundSplit = RefundSplit
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
+data SplitSettlementDetailsPercentage = SplitSettlementDetailsPercentage
+  { marketplace :: MarketplacePercentage,
+    mdrBorneBy :: MBY,
+    vendor :: VendorPercentage
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
 data MBY = MARKETPLACE | VENDOR | ALL deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
 newtype Marketplace = Marketplace
@@ -122,6 +134,24 @@ newtype Marketplace = Marketplace
 
 newtype RefundMarketplace = RefundMarketplace
   { refundAmount :: HighPrecMoney
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype MarketplacePercentage = MarketplacePercentage
+  { amountPercentage :: Double
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype VendorPercentage = VendorPercentage
+  { split :: [SplitPercentage]
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data SplitPercentage = SplitPercentage
+  { amountPercentage :: Double,
+    merchantCommissionPercentage :: Double,
+    subMid :: Text,
+    uniqueSplitId :: Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
@@ -336,7 +366,7 @@ data MandateExecutionReq = MandateExecutionReq
     customerId :: Text,
     mandateId :: Text,
     executionDate :: UTCTime,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetailsAmount
   }
 
 data MandateExecutionRes = MandateExecutionRes
@@ -562,7 +592,7 @@ data CreateCustomerResp = CreateCustomerResp
 data OrderUpdateReq = OrderUpdateReq
   { amount :: HighPrecMoney,
     orderShortId :: Text,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetailsAmount
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

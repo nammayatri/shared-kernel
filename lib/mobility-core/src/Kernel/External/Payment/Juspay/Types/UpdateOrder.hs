@@ -16,14 +16,14 @@
 module Kernel.External.Payment.Juspay.Types.UpdateOrder where
 
 import Data.Aeson
-import Kernel.External.Payment.Juspay.Types.CreateOrder (SplitSettlementDetails)
+import Kernel.External.Payment.Juspay.Types.CreateOrder (SplitSettlementDetailsAmount)
 import Kernel.Prelude
 import Kernel.Utils.Common
 import Web.FormUrlEncoded
 
 data OrderUpdateReq = OrderUpdateReq
   { amount :: HighPrecMoney,
-    split_settlement_details :: Maybe SplitSettlementDetails
+    split_settlement_details :: Maybe SplitSettlementDetailsAmount
   }
   deriving (Show, Generic)
   deriving anyclass (ToForm)
