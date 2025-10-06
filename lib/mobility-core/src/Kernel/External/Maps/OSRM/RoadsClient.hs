@@ -21,6 +21,7 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import EulerHS.Prelude ((...))
 import qualified EulerHS.Types as Euler
+import Kernel.External.Maps.HasCoordinates
 import qualified Kernel.External.Maps.Interface.Types as Maps
 import qualified Kernel.External.Maps.Interface.Types as MapsInterfaceTypes
 import qualified Kernel.External.Maps.Types as Maps
@@ -260,7 +261,10 @@ callOsrmGetDistancesAPI ::
     MonadReader r m,
     HasKafkaProducer r,
     ToJSON a,
-    ToJSON b
+    ToJSON b,
+    HasDriverId a,
+    HasCoordinates a,
+    HasCoordinates b
   ) =>
   Maybe Text ->
   MapsInterfaceTypes.GetDistancesReq a b ->
@@ -277,7 +281,7 @@ callOsrmGetDistancesAPI entityId req osrmUrl travelMode pointsList sourcesList d
         profile = toOSRMProfile travelMode
     rsp <- callAPI osrmUrl (eulerClient profile pointsList "distance,duration" sourcesList destinationsList mbSourceDestinationMapping) "osrm-table" (Proxy @TableAPI)
     fork ("Logging external API Call of OsrmGetDistancesAPI OSRM ") $
-      ApiCallLogger.pushExternalApiCallDataToKafka "OsrmGetDistancesAPI" "OSRM" entityId (Just req) rsp
+      ApiCallLogger.pushExternalApiCallDataToKafka "OsrmGetDistancesAPI" "OSRM" entityId (Just $ map getCoordinatesAndDriverId (toList req.origins)) rsp
     fromEitherM (FailedToCallOsrmTableAPI . show) rsp
 
 callOsrmRouteAPI ::
