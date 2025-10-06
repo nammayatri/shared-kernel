@@ -25,7 +25,7 @@ import qualified Data.List.NonEmpty as NE
 import GHC.Float (double2Int)
 import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.Google.PolyLinePoints
-import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
+import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..), HasDriverId (..))
 import Kernel.External.Maps.Interface.Types
 import Kernel.External.Maps.OSRM.Config
 import Kernel.External.Maps.OSRM.RoadsClient
@@ -65,6 +65,7 @@ getDistances ::
     MonadFlow m,
     HasCoordinates a,
     HasCoordinates b,
+    HasDriverId a,
     ToJSON a,
     ToJSON b,
     MonadReader r m,

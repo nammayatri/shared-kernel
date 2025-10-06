@@ -27,3 +27,17 @@ getCoordinatessDefault loc = Types.LatLong loc.lat loc.lon
 
 instance HasCoordinates Types.LatLong where
   getCoordinates = identity
+
+class HasDriverId a where
+  getDriverId :: a -> Maybe Text
+  default getDriverId :: (HasField "driverId" a (Maybe Text)) => a -> Maybe Text
+  getDriverId = getDriverIdDefault
+
+  getCoordinatesAndDriverId :: (HasCoordinates a, HasDriverId a) => a -> Text
+  getCoordinatesAndDriverId req = show (getCoordinates req) <> "|" <> fromMaybe "unknown" (getDriverId req)
+
+getDriverIdDefault :: (HasField "driverId" a (Maybe Text)) => a -> Maybe Text
+getDriverIdDefault req = req.driverId
+
+instance HasDriverId Types.LatLong where
+  getDriverId = const Nothing
