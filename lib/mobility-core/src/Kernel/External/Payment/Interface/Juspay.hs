@@ -301,7 +301,8 @@ mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
           options_get_upi_deep_links = optionsGetUpiDeepLinks,
           metadata_expiry_in_mins = metadataExpiryInMins,
           metadata_gateway_reference_id = metadataGatewayReferenceId,
-          split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails
+          split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails,
+          basket = show <$> basket
         }
 
 mkSplitSettlementDetailsAmountBased :: SplitSettlementDetailsAmount -> Juspay.SplitSettlementDetailsAmount
