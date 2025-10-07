@@ -277,6 +277,10 @@ type T6 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 = (c x1, c x2, c x3, c x4, c x5, c
 
 type T7 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7)
 
+type T8 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8)
+
+type T9 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9)
+
 type C2 (c :: Type -> Constraint) x1 x2 = (c x1, c x2)
 
 type C3 (c :: Type -> Constraint) x1 x2 x3 = (c x1, c x2, c x3)
@@ -288,6 +292,10 @@ type C5 (c :: Type -> Constraint) x1 x2 x3 x4 x5 = (c x1, c x2, c x3, c x4, c x5
 type C6 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 = (c x1, c x2, c x3, c x4, c x5, c x6)
 
 type C7 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7)
+
+type C8 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8)
+
+type C9 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9)
 
 newtype SubQueryLevel = SubQueryLevel {getSubQueryLevel :: Int}
   deriving newtype (Show, Num, Eq)
