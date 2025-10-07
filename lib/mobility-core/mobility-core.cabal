@@ -200,6 +200,7 @@ library
       Kernel.External.SMS.Interface.MyValueFirst
       Kernel.External.SMS.Interface.TwillioSms
       Kernel.External.SMS.Interface.Types
+      Kernel.External.SMS.Interface.VonageSms
       Kernel.External.SMS.MyValueFirst.API
       Kernel.External.SMS.MyValueFirst.Config
       Kernel.External.SMS.MyValueFirst.Flow
@@ -209,6 +210,10 @@ library
       Kernel.External.SMS.TwillioSms.Flow
       Kernel.External.SMS.TwillioSms.Types
       Kernel.External.SMS.Types
+      Kernel.External.SMS.VonageSms.API
+      Kernel.External.SMS.VonageSms.Config
+      Kernel.External.SMS.VonageSms.Flow
+      Kernel.External.SMS.VonageSms.Types
       Kernel.External.Ticket.Interface
       Kernel.External.Ticket.Interface.Kapture
       Kernel.External.Ticket.Interface.Types

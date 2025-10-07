@@ -1391,6 +1391,81 @@ instance FromResponse DigoEngageError where
 
 instance IsAPIError DigoEngageError
 
+data VonageSmsError
+  = VonageSmsInvalidRequest
+  | VonageSmsNotConfigured
+  | VonageSmsUnauthorized
+  | VonageSmsForbidden
+  | VonageSmsNotFound
+  | VonageSmsMethodNotAllowed
+  | VonageSmsRequestTimeout
+  | VonageSmsUnsupportedMediaType
+  | VonageSmsInputParameterValidationFailed
+  | VonageSmsTooManyRequests
+  | VonageSmsEntitlementCheckFailed
+  | VonageSmsServerError
+  | VonageSmsBadGateway
+  | VonageSmsServiceUnavailable
+  | VonageSmsValidationError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''VonageSmsError
+
+instance IsBaseError VonageSmsError where
+  toMessage = \case
+    VonageSmsInvalidRequest -> Just "Bad request to Vonage SMS API. For example, when JWT token is not included in HTTP request header."
+    VonageSmsNotConfigured -> Just "Vonage SMS env variables aren't properly set."
+    VonageSmsUnauthorized -> Just "Unauthorized access to Vonage SMS API. When the client application doesn't have access permission of the API or token expired."
+    VonageSmsForbidden -> Just "Forbidden access to Vonage SMS API. Client is not allowed to access requested resource."
+    VonageSmsNotFound -> Just "Resource not found. When requested URI doesn't exist for the Vonage SMS API."
+    VonageSmsMethodNotAllowed -> Just "Method not allowed. For example, perform POST method on API where it only supports GET."
+    VonageSmsRequestTimeout -> Just "Request timeout. For example, a client request that exceeds a specific time limit, or closing an unused connection."
+    VonageSmsUnsupportedMediaType -> Just "Unsupported media type. For example, client sent data in plain text when API expects JSON format."
+    VonageSmsInputParameterValidationFailed -> Just "Input parameter validation failed. For example, required IMSI not present or timestamp in incorrect format."
+    VonageSmsTooManyRequests -> Just "Too many requests. Indicates the client has sent too many requests in a given amount of time (rate limiting)."
+    VonageSmsEntitlementCheckFailed -> Just "Entitlement check failed. When the client application is not entitled to access the data for a requested device."
+    VonageSmsServerError -> Just "Internal server error. When other uncaught incidents (errors) occur."
+    VonageSmsBadGateway -> Just "Bad gateway. For example, when accessing the API external URL via HTTP rather than HTTPS."
+    VonageSmsServiceUnavailable -> Just "Vonage SMS service is temporarily unavailable."
+    VonageSmsValidationError msg -> Just ("Vonage SMS validation error: " <> msg)
+
+instance IsHTTPError VonageSmsError where
+  toErrorCode = \case
+    VonageSmsNotConfigured -> "VONAGE_SMS_NOT_CONFIGURED"
+    VonageSmsInvalidRequest -> "VONAGE_SMS_BAD_REQUEST"
+    VonageSmsUnauthorized -> "VONAGE_SMS_UNAUTHORIZED"
+    VonageSmsForbidden -> "VONAGE_SMS_FORBIDDEN"
+    VonageSmsNotFound -> "VONAGE_SMS_NOT_FOUND"
+    VonageSmsMethodNotAllowed -> "VONAGE_SMS_METHOD_NOT_ALLOWED"
+    VonageSmsRequestTimeout -> "VONAGE_SMS_REQUEST_TIMEOUT"
+    VonageSmsUnsupportedMediaType -> "VONAGE_SMS_UNSUPPORTED_MEDIA_TYPE"
+    VonageSmsInputParameterValidationFailed -> "VONAGE_SMS_INPUT_PARAMETER_VALIDATION_FAILED"
+    VonageSmsTooManyRequests -> "VONAGE_SMS_TOO_MANY_REQUESTS"
+    VonageSmsEntitlementCheckFailed -> "VONAGE_SMS_ENTITLEMENT_CHECK_FAILED"
+    VonageSmsServerError -> "VONAGE_SMS_INTERNAL_SERVER_ERROR"
+    VonageSmsBadGateway -> "VONAGE_SMS_BAD_GATEWAY"
+    VonageSmsServiceUnavailable -> "VONAGE_SMS_SERVICE_UNAVAILABLE"
+    VonageSmsValidationError msg -> "VONAGE_SMS_VALIDATION_ERROR: " <> msg
+
+instance FromResponse VonageSmsError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just VonageSmsInvalidRequest
+    401 -> Just VonageSmsUnauthorized
+    403 -> Just VonageSmsForbidden
+    404 -> Just VonageSmsNotFound
+    405 -> Just VonageSmsMethodNotAllowed
+    408 -> Just VonageSmsRequestTimeout
+    415 -> Just VonageSmsUnsupportedMediaType
+    422 -> Just VonageSmsInputParameterValidationFailed
+    429 -> Just VonageSmsTooManyRequests
+    453 -> Just VonageSmsEntitlementCheckFailed
+    500 -> Just VonageSmsServerError
+    502 -> Just VonageSmsBadGateway
+    503 -> Just VonageSmsServiceUnavailable
+    _ -> Just VonageSmsNotConfigured
+
+instance IsAPIError VonageSmsError
+
 data TataCommunicationsWhatsappError
   = TataCommunicationsWhatsappInvalidRequest
   | TataCommunicationsWhatsappNotConfigured

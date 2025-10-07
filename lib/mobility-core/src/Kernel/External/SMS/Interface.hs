@@ -30,8 +30,10 @@ import qualified Kernel.External.SMS.Interface.GupShup as GupShup
 import qualified Kernel.External.SMS.Interface.MyValueFirst as MyValueFirst
 import qualified Kernel.External.SMS.Interface.TwillioSms as TwillioSms
 import Kernel.External.SMS.Interface.Types as Reexport
+import qualified Kernel.External.SMS.Interface.VonageSms as VonageSms
 import Kernel.External.SMS.MyValueFirst.Config as Reexport
 import Kernel.External.SMS.Types as Reexport
+import Kernel.External.SMS.VonageSms.Config as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
@@ -68,6 +70,7 @@ sendSMS' serviceConfig req = do
     GupShupConfig cfg -> GupShup.sendOTP cfg req
     TwillioSmsConfig cfg -> TwillioSms.sendOTP cfg req
     DigoEngageSmsConfig cfg -> DigoEngageSms.sendOTP cfg req
+    VonageSmsConfig cfg -> VonageSms.sendOTP cfg req
 
 checkSmsResult ::
   (Log m, MonadThrow m) => SendSMSRes -> m ()
