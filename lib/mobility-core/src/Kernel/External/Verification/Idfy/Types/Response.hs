@@ -43,6 +43,8 @@ type IdfyResult = Output DLVerificationOutput RCVerificationOutput
 
 type NameCompareResponse = IdfyResponse NameCompareResponseData
 
+type FaceCompareResponse = IdfyResponse FaceCompareResponseData
+
 data IdfyResponse a = IdfyResponse
   { action :: Text,
     completed_at :: UTCTime,
@@ -419,5 +421,20 @@ newtype NameMatchOutput = NameMatchOutput
 
 newtype NameCompareResponseData = NameCompareResponseData
   { match_output :: NameMatchOutput
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data FaceImage = FaceImage
+  { face_detected :: Bool,
+    face_quality :: Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data FaceCompareResponseData = FaceCompareResponseData
+  { image_1 :: FaceImage,
+    image_2 :: FaceImage,
+    is_a_match :: Bool,
+    match_score :: Int,
+    review_recommended :: Bool
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
