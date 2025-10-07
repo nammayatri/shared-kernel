@@ -30,6 +30,7 @@ import qualified Kernel.External.SMS.GupShup.Config as GupShup
 import qualified Kernel.External.SMS.MyValueFirst.Config as MyValueFirst
 import qualified Kernel.External.SMS.TwillioSms.Config as TwillioSms
 import qualified Kernel.External.SMS.Types as T
+import qualified Kernel.External.SMS.VonageSms.Config as VonageSms
 import Kernel.Prelude
 import Kernel.Types.Servant
 import Servant
@@ -39,7 +40,7 @@ data SmsHandler m = SmsHandler
     getProviderConfig :: T.SmsService -> m SmsServiceConfig
   }
 
-data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg | GupShupConfig GupShup.GupShupCfg | TwillioSmsConfig TwillioSms.TwillioSmsCfg | DigoEngageSmsConfig DigoEngageSms.DigoEngageSmsCfg
+data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg | GupShupConfig GupShup.GupShupCfg | TwillioSmsConfig TwillioSms.TwillioSmsCfg | DigoEngageSmsConfig DigoEngageSms.DigoEngageSmsCfg | VonageSmsConfig VonageSms.VonageSmsCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SmsServiceConfig
 
