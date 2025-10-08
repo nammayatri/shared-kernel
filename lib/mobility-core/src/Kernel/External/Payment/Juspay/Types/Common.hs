@@ -180,7 +180,8 @@ data OrderData = OrderData
     links :: Maybe LinkData,
     amount_refunded :: Maybe Double,
     refunds :: Maybe [RefundsData],
-    split_settlement_response :: Maybe SplitSettlementResponse
+    split_settlement_response :: Maybe SplitSettlementResponse,
+    effective_amount :: Double
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
