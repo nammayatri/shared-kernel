@@ -72,8 +72,17 @@ data CreateOrderReq = CreateOrderReq
     metadataGatewayReferenceId :: Maybe Text,
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetails,
+    basket :: Maybe [Basket]
   }
+
+data Basket = Basket
+  { id :: Text,
+    unitPrice :: HighPrecMoney,
+    quantity :: Int
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data Split = Split
   { amount :: HighPrecMoney,
@@ -134,7 +143,8 @@ data OrderStatusResp
         payerVpa :: Maybe Text,
         upi :: Maybe Upi,
         card :: Maybe CardInfo,
-        splitSettlementResponse :: Maybe SplitSettlementResponse
+        splitSettlementResponse :: Maybe SplitSettlementResponse,
+        effectiveAmount :: HighPrecMoney
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
