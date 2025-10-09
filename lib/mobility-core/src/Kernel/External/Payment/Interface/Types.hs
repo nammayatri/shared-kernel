@@ -23,7 +23,7 @@ where
 
 import Data.Time
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
 import qualified Kernel.External.Payment.Stripe.Config as Stripe
 import Kernel.External.Payment.Stripe.Types as Reexport
 import Kernel.Prelude
@@ -168,6 +168,15 @@ newtype OrderStatusReq = OrderStatusReq
   { orderShortId :: Text
   }
 
+data Offer = Offer
+  { offerId :: Maybe Text,
+    offerCode :: Maybe Text,
+    status :: OfferState,
+    offerDump :: Maybe Value
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data OrderStatusResp
   = OrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -197,7 +206,8 @@ data OrderStatusResp
         upi :: Maybe Upi,
         card :: Maybe CardInfo,
         splitSettlementResponse :: Maybe SplitSettlementResponse,
-        effectiveAmount :: HighPrecMoney
+        effectiveAmount :: HighPrecMoney,
+        offers :: Maybe [Offer]
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -252,6 +262,14 @@ data OrderStatusResp
   | BadStatusResp
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- data Offer = Offer
+--   { offerId :: Maybe Text,
+--     offerCode :: Maybe Text,
+--     status :: Text
+--   }
+--   deriving stock (Show, Read, Eq, Generic)
+--   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data SplitSettlementResponse = SplitSettlementResponse
   { splitDetails :: Maybe [SplitDetailsResponse],

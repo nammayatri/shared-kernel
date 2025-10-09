@@ -438,6 +438,7 @@ mkOrderStatusResp Juspay.OrderData {..} =
           upi = castUpi <$> upi,
           card = castCard <$> card,
           splitSettlementResponse = mkSplitSettlementResponse <$> split_settlement_response,
+          offers = maybe Nothing mkOffersData offers,
           ..
         }
 
@@ -601,6 +602,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               upi = castUpi <$> justOrder.upi,
               card = castCard <$> justOrder.card,
               splitSettlementResponse = mkSplitSettlementResponse <$> justOrder.split_settlement_response,
+              offers = maybe Nothing mkOffersData justOrder.offers,
               ..
             }
     (Nothing, Just justMandate, _, _) ->
@@ -654,6 +656,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           card = castCard <$> justTransaction.card,
           splitSettlementResponse = Nothing,
           effectiveAmount = realToFrac justTransaction.txn_amount,
+          offers = Nothing,
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp
@@ -904,6 +907,14 @@ mkRefundsData =
             requestId = unique_request_id
           }
     )
+
+mkOffersData :: [Juspay.Offer] -> Maybe [Offer]
+mkOffersData =
+  Just
+    . map
+      ( \Juspay.Offer {..} ->
+          Offer {offerId = offer_id, offerCode = offer_code, status = status, offerDump = Nothing}
+      )
 
 parseRetargetAndRetryData ::
   Maybe Juspay.MetaData ->
