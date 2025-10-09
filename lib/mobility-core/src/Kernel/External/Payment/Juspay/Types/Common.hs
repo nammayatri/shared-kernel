@@ -205,7 +205,7 @@ data OrderData = OrderData
     amount_refunded :: Maybe Double,
     refunds :: Maybe [RefundsData],
     split_settlement_response :: Maybe SplitSettlementResponse,
-    effective_amount :: Double,
+    effective_amount :: Maybe Double,
     offers :: Maybe [Offer]
   }
   deriving stock (Show, Generic)

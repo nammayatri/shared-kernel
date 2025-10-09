@@ -206,7 +206,7 @@ data OrderStatusResp
         upi :: Maybe Upi,
         card :: Maybe CardInfo,
         splitSettlementResponse :: Maybe SplitSettlementResponse,
-        effectiveAmount :: HighPrecMoney,
+        effectiveAmount :: Maybe HighPrecMoney,
         offers :: Maybe [Offer]
       }
   | MandateOrderStatusResp

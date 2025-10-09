@@ -374,3 +374,8 @@ getGatewayReferenceId :: PaymentServiceConfig -> Maybe Text
 getGatewayReferenceId = \case
   JuspayConfig cfg -> cfg.gatewayReferenceId
   StripeConfig _ -> Nothing
+
+offerSKUConfig :: PaymentServiceConfig -> Maybe Text
+offerSKUConfig = \case
+  JuspayConfig cfg -> cfg.offerSKUConfig
+  StripeConfig _ -> Nothing
