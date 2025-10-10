@@ -99,7 +99,7 @@ updateOrder config mRoutingId req = do
         return
           Juspay.OrderUpdateReq
             { amount = amount,
-              split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails
+              split_settlement_details = mkSplitSettlementDetailsAmountBased <$> req.splitSettlementDetails
             }
     mkUpdateOrderRes Juspay.OrderUpdateResp {..} =
       OrderUpdateResp
@@ -305,17 +305,40 @@ mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
           basket = show <$> basket
         }
 
-mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
-mkSplitSettlementDetails splitDetails =
-  Juspay.SplitSettlementDetails
+mkSplitSettlementDetailsAmountBased :: SplitSettlementDetailsAmount -> Juspay.SplitSettlementDetailsAmount
+mkSplitSettlementDetailsAmountBased splitDetails =
+  Juspay.SplitSettlementDetailsAmount
     { marketplace = mkMarketplace splitDetails.marketplace,
       mdr_borne_by = show splitDetails.mdrBorneBy,
       vendor = mkVendor splitDetails.vendor
     }
   where
-    mkMarketplace Marketplace {..} = Juspay.Marketplace {..}
-    mkVendor vendor = Juspay.Vendor {split = mkSplit <$> vendor.split}
-    mkSplit split = Juspay.Split {amount = split.amount, merchant_commission = split.merchantCommission, sub_mid = split.subMid, unique_split_id = Just split.uniqueSplitId}
+    mkMarketplace Marketplace {..} = Juspay.MarketplaceAmount {..}
+    mkVendor vendor = Juspay.VendorAmount {split = mkSplit <$> vendor.split}
+    mkSplit split = Juspay.SplitAmount {amount = split.amount, merchant_commission = split.merchantCommission, sub_mid = split.subMid, unique_split_id = Just split.uniqueSplitId}
+
+mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
+mkSplitSettlementDetails = \case
+  AmountBased details -> Juspay.AmountBased (mkSplitSettlementDetailsAmountBased details)
+  PercentageBased details -> Juspay.PercentageBased (mkSplitSettlementDetailsPercentageBased details)
+
+mkSplitSettlementDetailsPercentageBased :: SplitSettlementDetailsPercentage -> Juspay.SplitSettlementDetailsPercentage
+mkSplitSettlementDetailsPercentageBased splitDetails =
+  Juspay.SplitSettlementDetailsPercentage
+    { marketplace = mkMarketplacePercentage splitDetails.marketplace,
+      mdr_borne_by = show splitDetails.mdrBorneBy,
+      vendor = mkVendorPercentage splitDetails.vendor
+    }
+  where
+    mkMarketplacePercentage MarketplacePercentage {..} = Juspay.MarketplacePercentage {amount_percentage = amountPercentage}
+    mkVendorPercentage vendor = Juspay.VendorPercentage {split = mkSplitPercentage <$> vendor.split}
+    mkSplitPercentage split =
+      Juspay.SplitPercentage
+        { amount_percentage = split.amountPercentage,
+          merchant_commission_percentage = fromRational (toRational split.merchantCommissionPercentage),
+          sub_mid = split.subMid,
+          unique_split_id = Just split.uniqueSplitId
+        }
 
 mkRefundSplitSettlementDetails :: RefundSplitSettlementDetails -> Juspay.RefundSplitSettlementDetails
 mkRefundSplitSettlementDetails splitDetails =
@@ -404,7 +427,7 @@ mkOrderStatusResp Juspay.OrderData {..} =
           respCode = resp_code,
           gatewayReferenceId = gateway_reference_id,
           amount = realToFrac amount,
-          effectiveAmount = realToFrac effective_amount,
+          effectiveAmount = realToFrac <$> effective_amount,
           currency = currency,
           bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
           bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
@@ -415,6 +438,7 @@ mkOrderStatusResp Juspay.OrderData {..} =
           upi = castUpi <$> upi,
           card = castCard <$> card,
           splitSettlementResponse = mkSplitSettlementResponse <$> split_settlement_response,
+          offers = maybe Nothing mkOffersData offers,
           ..
         }
 
@@ -439,7 +463,7 @@ mkExecutionReq MandateExecutionReq {..} merchantId =
     { merchantId,
       mandateId = mandateId,
       mandate = Juspay.MandateInfo {notificationId = notificationId, executionDate = show $ utcTimeToPOSIXSeconds executionDate},
-      order = Juspay.MandateOrder {orderId = orderId, orderAmount = show amount, orderCustomerId = customerId, splitSettlementDetails = mkSplitSettlementDetails <$> splitSettlementDetails},
+      order = Juspay.MandateOrder {orderId = orderId, orderAmount = show amount, orderCustomerId = customerId, splitSettlementDetails = mkSplitSettlementDetailsAmountBased <$> splitSettlementDetails},
       format = "json"
     }
 
@@ -569,7 +593,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               bankErrorMessage = if justOrder.bank_error_message == Just "" then Nothing else justOrder.bank_error_message,
               bankErrorCode = if justOrder.bank_error_code == Just "" then Nothing else justOrder.bank_error_code,
               amount = realToFrac justOrder.amount,
-              effectiveAmount = realToFrac justOrder.effective_amount,
+              effectiveAmount = realToFrac <$> justOrder.effective_amount,
               currency = justOrder.currency,
               dateCreated = justOrder.date_created,
               refunds = maybe [] mkRefundsData justOrder.refunds,
@@ -578,6 +602,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               upi = castUpi <$> justOrder.upi,
               card = castCard <$> justOrder.card,
               splitSettlementResponse = mkSplitSettlementResponse <$> justOrder.split_settlement_response,
+              offers = maybe Nothing mkOffersData justOrder.offers,
               ..
             }
     (Nothing, Just justMandate, _, _) ->
@@ -630,7 +655,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           upi = castUpi <$> justTransaction.upi,
           card = castCard <$> justTransaction.card,
           splitSettlementResponse = Nothing,
-          effectiveAmount = realToFrac justTransaction.txn_amount,
+          effectiveAmount = Just $ realToFrac justTransaction.txn_amount,
+          offers = Nothing,
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp
@@ -881,6 +907,14 @@ mkRefundsData =
             requestId = unique_request_id
           }
     )
+
+mkOffersData :: [Juspay.Offer] -> Maybe [Offer]
+mkOffersData =
+  Just
+    . map
+      ( \Juspay.Offer {..} ->
+          Offer {offerId = offer_id, offerCode = offer_code, status = status}
+      )
 
 parseRetargetAndRetryData ::
   Maybe Juspay.MetaData ->

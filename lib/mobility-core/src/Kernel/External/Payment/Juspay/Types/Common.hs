@@ -125,6 +125,26 @@ instance ToSchema RefundStatus where
           & type_ ?~ OpenApiString
           & enum_ ?~ (map toJSON [REFUND_PENDING, REFUND_FAILURE, REFUND_SUCCESS, MANUAL_REVIEW])
 
+data OfferState = OFFER_INITIATED | OFFER_AVAILED | OFFER_REFUNDED | OFFER_FAILED
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+derivePersistField "OfferState"
+
+instance FromJSON OfferState where
+  parseJSON (String "INITIATED") = pure OFFER_INITIATED
+  parseJSON (String "AVAILED") = pure OFFER_AVAILED
+  parseJSON (String "REFUNDED") = pure OFFER_REFUNDED
+  parseJSON (String "FAILED") = pure OFFER_FAILED
+  parseJSON (String _) = parseFail "Expected type"
+  parseJSON e = typeMismatch "String" e
+
+instance ToJSON OfferState where
+  toJSON OFFER_INITIATED = "INITIATED"
+  toJSON OFFER_AVAILED = "AVAILED"
+  toJSON OFFER_REFUNDED = "REFUNDED"
+  toJSON OFFER_FAILED = "FAILED"
+
 data TransactionStatus
   = NEW
   | PENDING_VBV
@@ -181,10 +201,19 @@ data OrderData = OrderData
     amount_refunded :: Maybe Double,
     refunds :: Maybe [RefundsData],
     split_settlement_response :: Maybe SplitSettlementResponse,
-    effective_amount :: Double
+    effective_amount :: Maybe Double,
+    offers :: Maybe [Offer]
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data Offer = Offer
+  { offer_id :: Maybe Text,
+    offer_code :: Maybe Text,
+    status :: OfferState
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, ToSchema, FromJSON)
 
 data SplitSettlementResponse = SplitSettlementResponse
   { split_details :: Maybe [SplitDetailsResponse],
