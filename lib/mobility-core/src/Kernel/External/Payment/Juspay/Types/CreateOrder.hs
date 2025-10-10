@@ -53,7 +53,42 @@ data CreateOrderReq = CreateOrderReq
   }
   deriving stock (Show, Eq, Generic)
 
-data Split = Split
+data SplitSettlementDetails
+  = AmountBased SplitSettlementDetailsAmount
+  | PercentageBased SplitSettlementDetailsPercentage
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data SplitSettlementDetailsAmount = SplitSettlementDetailsAmount
+  { marketplace :: MarketplaceAmount,
+    mdr_borne_by :: Text,
+    vendor :: VendorAmount
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+instance FromHttpApiData SplitSettlementDetailsAmount where
+  parseUrlPiece = parseHeader . DT.encodeUtf8
+  parseQueryParam = parseUrlPiece
+  parseHeader = left T.pack . eitherDecode . BSL.fromStrict
+
+instance ToHttpApiData SplitSettlementDetailsAmount where
+  toUrlPiece = DT.decodeUtf8 . toHeader
+  toQueryParam = toUrlPiece
+  toHeader = BSL.toStrict . encode
+
+newtype MarketplaceAmount = MarketplaceAmount
+  { amount :: HighPrecMoney
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+newtype VendorAmount = VendorAmount
+  { split :: [SplitAmount]
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data SplitAmount = SplitAmount
   { amount :: HighPrecMoney,
     merchant_commission :: HighPrecMoney,
     sub_mid :: Text,
@@ -62,16 +97,23 @@ data Split = Split
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
-newtype Vendor = Vendor
-  { split :: [Split]
+data RefundSplitSettlementDetails = RefundSplitSettlementDetails
+  { marketplace :: RefundMarketplace,
+    mdr_borne_by :: Text,
+    vendor :: RefundVendor
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
-data SplitSettlementDetails = SplitSettlementDetails
-  { marketplace :: Marketplace,
-    mdr_borne_by :: Text,
-    vendor :: Vendor
+newtype RefundVendor = RefundVendor
+  { split :: [RefundSplit]
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data RefundSplit = RefundSplit
+  { refund_amount :: HighPrecMoney,
+    sub_mid :: Text
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -90,8 +132,41 @@ data MBY = MARKETPLACE | VENDOR | ALL
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
-newtype Marketplace = Marketplace
-  { amount :: HighPrecMoney
+data SplitSettlementDetailsPercentage = SplitSettlementDetailsPercentage
+  { marketplace :: MarketplacePercentage,
+    mdr_borne_by :: Text,
+    vendor :: VendorPercentage
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+instance FromHttpApiData SplitSettlementDetailsPercentage where
+  parseUrlPiece = parseHeader . DT.encodeUtf8
+  parseQueryParam = parseUrlPiece
+  parseHeader = left T.pack . eitherDecode . BSL.fromStrict
+
+instance ToHttpApiData SplitSettlementDetailsPercentage where
+  toUrlPiece = DT.decodeUtf8 . toHeader
+  toQueryParam = toUrlPiece
+  toHeader = BSL.toStrict . encode
+
+newtype MarketplacePercentage = MarketplacePercentage
+  { amount_percentage :: Double
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+newtype VendorPercentage = VendorPercentage
+  { split :: [SplitPercentage]
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data SplitPercentage = SplitPercentage
+  { amount_percentage :: Double,
+    merchant_commission_percentage :: Double,
+    sub_mid :: Text,
+    unique_split_id :: Maybe Text
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)

@@ -23,7 +23,7 @@ where
 
 import Data.Time
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
 import qualified Kernel.External.Payment.Stripe.Config as Stripe
 import Kernel.External.Payment.Stripe.Types as Reexport
 import Kernel.Prelude
@@ -97,10 +97,40 @@ newtype Vendor = Vendor
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
-data SplitSettlementDetails = SplitSettlementDetails
+data SplitSettlementDetails
+  = AmountBased SplitSettlementDetailsAmount
+  | PercentageBased SplitSettlementDetailsPercentage
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data SplitSettlementDetailsAmount = SplitSettlementDetailsAmount
   { marketplace :: Marketplace,
     mdrBorneBy :: MBY,
     vendor :: Vendor
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data RefundSplitSettlementDetails = RefundSplitSettlementDetails
+  { marketplace :: RefundMarketplace,
+    mdrBorneBy :: MBY,
+    vendor :: RefundVendor
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype RefundVendor = RefundVendor
+  { split :: [RefundSplit]
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data RefundSplit = RefundSplit
+  { refundAmount :: HighPrecMoney,
+    subMid :: Text
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data SplitSettlementDetailsPercentage = SplitSettlementDetailsPercentage
+  { marketplace :: MarketplacePercentage,
+    mdrBorneBy :: MBY,
+    vendor :: VendorPercentage
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
@@ -111,9 +141,40 @@ newtype Marketplace = Marketplace
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
+newtype RefundMarketplace = RefundMarketplace
+  { refundAmount :: HighPrecMoney
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype MarketplacePercentage = MarketplacePercentage
+  { amountPercentage :: Double
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype VendorPercentage = VendorPercentage
+  { split :: [SplitPercentage]
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
+data SplitPercentage = SplitPercentage
+  { amountPercentage :: Double,
+    merchantCommissionPercentage :: Double,
+    subMid :: Text,
+    uniqueSplitId :: Text
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+
 newtype OrderStatusReq = OrderStatusReq
   { orderShortId :: Text
   }
+
+data Offer = Offer
+  { offerId :: Maybe Text,
+    offerCode :: Maybe Text,
+    status :: OfferState
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data OrderStatusResp
   = OrderStatusResp
@@ -144,7 +205,8 @@ data OrderStatusResp
         upi :: Maybe Upi,
         card :: Maybe CardInfo,
         splitSettlementResponse :: Maybe SplitSettlementResponse,
-        effectiveAmount :: HighPrecMoney
+        effectiveAmount :: Maybe HighPrecMoney,
+        offers :: Maybe [Offer]
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -323,7 +385,7 @@ data MandateExecutionReq = MandateExecutionReq
     customerId :: Text,
     mandateId :: Text,
     executionDate :: UTCTime,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetailsAmount
   }
 
 data MandateExecutionRes = MandateExecutionRes
@@ -549,7 +611,7 @@ data CreateCustomerResp = CreateCustomerResp
 data OrderUpdateReq = OrderUpdateReq
   { amount :: HighPrecMoney,
     orderShortId :: Text,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe SplitSettlementDetailsAmount
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

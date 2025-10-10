@@ -30,7 +30,9 @@ data JuspayCfg = JuspayCfg
     gatewayReferenceId :: Maybe Text,
     pseudoClientId :: Maybe Text, --- it is passed in response to for handling multiple merchants in same payment page
     isSplitEnabled :: Maybe Bool,
-    isRefundSplitEnabled :: Maybe Bool
+    isRefundSplitEnabled :: Maybe Bool,
+    isPercentageSplit :: Maybe Bool,
+    offerSKUConfig :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
