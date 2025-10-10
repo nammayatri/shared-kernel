@@ -27,8 +27,8 @@ alphanum = latin \/ digit
 latinOrSpace = latin \/ " "
 latinWithSymbols = latinOrSpace \/ "_" \/ "-"
 
-mobileNumber :: ExactLength `And` Regex
-mobileNumber = ExactLength 10 `And` star digit
+mobileNumber :: LengthInRange `And` Regex
+mobileNumber = LengthInRange 8 15 `And` star digit
 
 mobileCountryCode :: LengthInRange `And` Regex
 mobileCountryCode = LengthInRange 2 4 `And` ("+" <> star digit)
