@@ -360,6 +360,11 @@ isSplitEnabled = \case
   JuspayConfig cfg -> fromMaybe False cfg.isSplitEnabled
   StripeConfig _ -> False
 
+isPercentageSplit :: PaymentServiceConfig -> Bool
+isPercentageSplit = \case
+  JuspayConfig cfg -> fromMaybe False cfg.isPercentageSplit
+  StripeConfig _ -> False
+
 isRefundSplitEnabled :: PaymentServiceConfig -> Bool
 isRefundSplitEnabled = \case
   JuspayConfig cfg -> fromMaybe False cfg.isRefundSplitEnabled
@@ -368,4 +373,9 @@ isRefundSplitEnabled = \case
 getGatewayReferenceId :: PaymentServiceConfig -> Maybe Text
 getGatewayReferenceId = \case
   JuspayConfig cfg -> cfg.gatewayReferenceId
+  StripeConfig _ -> Nothing
+
+offerSKUConfig :: PaymentServiceConfig -> Maybe Text
+offerSKUConfig = \case
+  JuspayConfig cfg -> cfg.offerSKUConfig
   StripeConfig _ -> Nothing
