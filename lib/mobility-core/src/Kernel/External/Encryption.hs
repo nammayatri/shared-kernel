@@ -147,11 +147,11 @@ encryptedHashedToText :: EncryptedHashed Text -> Text
 encryptedHashedToText (EncryptedHashed encrypted hash) =
   let encryptedText = unEncrypted encrypted
       hashText = show hash
-   in encryptedText <> ":" <> hashText
+   in encryptedText <> ":::" <> hashText
 
 textToEncryptedHashed :: Text -> Maybe (EncryptedHashed Text)
 textToEncryptedHashed combinedText =
-  case T.splitOn ":" combinedText of
+  case T.splitOn ":::" combinedText of
     [encryptedText, hashText] -> do
       hash <- readMaybe (T.unpack hashText) :: Maybe DbHash
       Just $ EncryptedHashed (Encrypted encryptedText) hash
