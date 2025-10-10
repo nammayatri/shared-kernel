@@ -65,6 +65,16 @@ instance (C7 ClickhouseValue v1 v2 v3 v4 v5 v6 v7) => ClickhouseColumns a (T7 (C
   showClickhouseColumns _ = zipColumnsWithSynonyms7
   parseColumns _ = parseColumns7
 
+instance (C8 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8) => ClickhouseColumns a (T8 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8) where
+  type ColumnsType a (T8 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8) = (v1, v2, v3, v4, v5, v6, v7, v8)
+  showClickhouseColumns _ = zipColumnsWithSynonyms8
+  parseColumns _ = parseColumns8
+
+instance (C9 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9) => ClickhouseColumns a (T9 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9) where
+  type ColumnsType a (T9 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9) = (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+  showClickhouseColumns _ = zipColumnsWithSynonyms9
+  parseColumns _ = parseColumns9
+
 -- we need to create map of values with different types
 data NotSpecified
 
@@ -172,6 +182,45 @@ parseColumns7 (c1, c2, c3, c4, c5, c6, c7) json l = do
   v7 <- parseValueFromMap @a @t @v7 7 c7 mapResult l
   pure (v1, v2, v3, v4, v5, v6, v7)
 
+parseColumns8 ::
+  forall a t v1 v2 v3 v4 v5 v6 v7 v8.
+  (C8 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8) =>
+  T8 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 ->
+  A.Value ->
+  SubQueryLevel ->
+  Either String (v1, v2, v3, v4, v5, v6, v7, v8)
+parseColumns8 (c1, c2, c3, c4, c5, c6, c7, c8) json l = do
+  mapResult <- eitherResult . A.fromJSON @(A.KeyMap (Value NotSpecified)) $ json
+  v1 <- parseValueFromMap @a @t @v1 1 c1 mapResult l
+  v2 <- parseValueFromMap @a @t @v2 2 c2 mapResult l
+  v3 <- parseValueFromMap @a @t @v3 3 c3 mapResult l
+  v4 <- parseValueFromMap @a @t @v4 4 c4 mapResult l
+  v5 <- parseValueFromMap @a @t @v5 5 c5 mapResult l
+  v6 <- parseValueFromMap @a @t @v6 6 c6 mapResult l
+  v7 <- parseValueFromMap @a @t @v7 7 c7 mapResult l
+  v8 <- parseValueFromMap @a @t @v8 8 c8 mapResult l
+  pure (v1, v2, v3, v4, v5, v6, v7, v8)
+
+parseColumns9 ::
+  forall a t v1 v2 v3 v4 v5 v6 v7 v8 v9.
+  (C9 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9) =>
+  T9 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 ->
+  A.Value ->
+  SubQueryLevel ->
+  Either String (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+parseColumns9 (c1, c2, c3, c4, c5, c6, c7, c8, c9) json l = do
+  mapResult <- eitherResult . A.fromJSON @(A.KeyMap (Value NotSpecified)) $ json
+  v1 <- parseValueFromMap @a @t @v1 1 c1 mapResult l
+  v2 <- parseValueFromMap @a @t @v2 2 c2 mapResult l
+  v3 <- parseValueFromMap @a @t @v3 3 c3 mapResult l
+  v4 <- parseValueFromMap @a @t @v4 4 c4 mapResult l
+  v5 <- parseValueFromMap @a @t @v5 5 c5 mapResult l
+  v6 <- parseValueFromMap @a @t @v6 6 c6 mapResult l
+  v7 <- parseValueFromMap @a @t @v7 7 c7 mapResult l
+  v8 <- parseValueFromMap @a @t @v8 8 c8 mapResult l
+  v9 <- parseValueFromMap @a @t @v9 9 c9 mapResult l
+  pure (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+
 -- FIXME should parse Numbers also
 parseValueFromMap ::
   forall a t v.
@@ -209,6 +258,12 @@ zipColumnsWithSynonyms6 (c1, c2, c3, c4, c5, c6) = zipColumns [showColumn c1, sh
 
 zipColumnsWithSynonyms7 :: T7 (Column a t) v1 v2 v3 v4 v5 v6 v7 -> SubQueryLevel -> String
 zipColumnsWithSynonyms7 (c1, c2, c3, c4, c5, c6, c7) = zipColumns [showColumn c1, showColumn c2, showColumn c3, showColumn c4, showColumn c5, showColumn c6, showColumn c7]
+
+zipColumnsWithSynonyms8 :: T8 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 -> SubQueryLevel -> String
+zipColumnsWithSynonyms8 (c1, c2, c3, c4, c5, c6, c7, c8) = zipColumns [showColumn c1, showColumn c2, showColumn c3, showColumn c4, showColumn c5, showColumn c6, showColumn c7, showColumn c8]
+
+zipColumnsWithSynonyms9 :: T9 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 -> SubQueryLevel -> String
+zipColumnsWithSynonyms9 (c1, c2, c3, c4, c5, c6, c7, c8, c9) = zipColumns [showColumn c1, showColumn c2, showColumn c3, showColumn c4, showColumn c5, showColumn c6, showColumn c7, showColumn c8, showColumn c9]
 
 zipColumns :: [String] -> SubQueryLevel -> String
 zipColumns columns l = List.intercalate ", " $ zipWith (\n column -> column <> " as " <> getColumnSynonym n l) [1 ..] columns
