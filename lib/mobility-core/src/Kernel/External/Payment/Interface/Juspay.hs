@@ -70,8 +70,11 @@ createOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
       clientId = fromMaybe merchantId config.pseudoClientId
+  logDebug $ "createOrder req: " <> show req
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreateOrderReq config.returnUrl clientId merchantId req
+  logDebug $ "createOrder mkCreateOrderReq: " <> show orderReq
+  logDebug $ "createOrder splitSettlementDetails: " <> show req.splitSettlementDetails
   Juspay.createOrder url apiKey merchantId mRoutingId orderReq
 
 updateOrder ::
@@ -305,6 +308,11 @@ mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
           basket = show <$> basket
         }
 
+mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
+mkSplitSettlementDetails = \case
+  AmountBased details -> Juspay.AmountBased (mkSplitSettlementDetailsAmountBased details)
+  PercentageBased details -> Juspay.PercentageBased (mkSplitSettlementDetailsPercentageBased details)
+
 mkSplitSettlementDetailsAmountBased :: SplitSettlementDetailsAmount -> Juspay.SplitSettlementDetailsAmount
 mkSplitSettlementDetailsAmountBased splitDetails =
   Juspay.SplitSettlementDetailsAmount
@@ -316,11 +324,6 @@ mkSplitSettlementDetailsAmountBased splitDetails =
     mkMarketplace Marketplace {..} = Juspay.MarketplaceAmount {..}
     mkVendor vendor = Juspay.VendorAmount {split = mkSplit <$> vendor.split}
     mkSplit split = Juspay.SplitAmount {amount = split.amount, merchant_commission = split.merchantCommission, sub_mid = split.subMid, unique_split_id = Just split.uniqueSplitId}
-
-mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
-mkSplitSettlementDetails = \case
-  AmountBased details -> Juspay.AmountBased (mkSplitSettlementDetailsAmountBased details)
-  PercentageBased details -> Juspay.PercentageBased (mkSplitSettlementDetailsPercentageBased details)
 
 mkSplitSettlementDetailsPercentageBased :: SplitSettlementDetailsPercentage -> Juspay.SplitSettlementDetailsPercentage
 mkSplitSettlementDetailsPercentageBased splitDetails =

@@ -75,6 +75,8 @@ data CreateOrderReq = CreateOrderReq
     splitSettlementDetails :: Maybe SplitSettlementDetails,
     basket :: Maybe [Basket]
   }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data Basket = Basket
   { id :: Text,
