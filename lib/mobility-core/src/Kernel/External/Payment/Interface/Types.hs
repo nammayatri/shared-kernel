@@ -30,7 +30,6 @@ import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
 import qualified Kernel.Types.Beckn.Context as Context
 import Kernel.Types.Common
-import Kernel.Utils.JSON (untaggedValue)
 
 castToTransactionStatus :: PaymentIntentStatus -> TransactionStatus
 castToTransactionStatus Succeeded = CHARGED
@@ -103,7 +102,15 @@ newtype Vendor = Vendor
 data SplitSettlementDetails
   = AmountBased SplitSettlementDetailsAmount
   | PercentageBased SplitSettlementDetailsPercentage
-  deriving (Show, Eq, Generic, ToSchema)
+  deriving (Show, Eq, Generic, FromJSON, ToSchema)
+
+instance ToJSON SplitSettlementDetails where
+  toJSON = customFunction
+
+customFunction :: SplitSettlementDetails -> Value
+customFunction = \case
+  AmountBased details -> toJSON details
+  PercentageBased details -> toJSON details
 
 data SplitSettlementDetailsAmount = SplitSettlementDetailsAmount
   { marketplace :: Marketplace,
@@ -682,9 +689,3 @@ data VerifyVPAResp = VerifyVPAResp
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-instance FromJSON SplitSettlementDetails where
-  parseJSON = genericParseJSON untaggedValue
-
-instance ToJSON SplitSettlementDetails where
-  toJSON = genericToJSON untaggedValue
