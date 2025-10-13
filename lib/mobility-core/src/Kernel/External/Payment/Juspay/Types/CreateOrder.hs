@@ -49,7 +49,7 @@ data CreateOrderReq = CreateOrderReq
     options_get_upi_deep_links :: Maybe Bool,
     metadata_expiry_in_mins :: Maybe Int,
     split_settlement_details :: Maybe SplitSettlementDetails,
-    basket :: Maybe String
+    basket :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
 
