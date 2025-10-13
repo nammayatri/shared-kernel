@@ -278,9 +278,10 @@ mandateRevoke config mRoutingId req = do
   void $ Juspay.mandateRevoke url apiKey merchantId mRoutingId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
   return Success
 
-mkCreateOrderReq :: MonadTime m => BaseUrl -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
+mkCreateOrderReq :: (MonadTime m, MonadThrow m, Log m) => BaseUrl -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
 mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
   do
+    splitDetails <- traverse mkSplitSettlementDetails splitSettlementDetails
     return
       Juspay.CreateOrderReq
         { order_id = orderShortId,
@@ -304,14 +305,17 @@ mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
           options_get_upi_deep_links = optionsGetUpiDeepLinks,
           metadata_expiry_in_mins = metadataExpiryInMins,
           metadata_gateway_reference_id = metadataGatewayReferenceId,
-          split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails,
-          basket = show . A.toJSON <$> basket
+          split_settlement_details = splitDetails,
+          basket = decodeUtf8 . A.encode <$> basket
         }
 
-mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
-mkSplitSettlementDetails = \case
-  AmountBased details -> Juspay.AmountBased (mkSplitSettlementDetailsAmountBased details)
-  PercentageBased details -> Juspay.PercentageBased (mkSplitSettlementDetailsPercentageBased details)
+mkSplitSettlementDetails :: (MonadThrow m, Log m) => SplitSettlementDetails -> m Juspay.SplitSettlementDetails
+mkSplitSettlementDetails splitDetails = do
+  let result = case splitDetails of
+        AmountBased details -> Juspay.AmountBased (mkSplitSettlementDetailsAmountBased details)
+        PercentageBased details -> Juspay.PercentageBased (mkSplitSettlementDetailsPercentageBased details)
+  logDebug $ "mkSplitSettlementDetails result: " <> show result
+  return result
 
 mkSplitSettlementDetailsAmountBased :: SplitSettlementDetailsAmount -> Juspay.SplitSettlementDetailsAmount
 mkSplitSettlementDetailsAmountBased splitDetails =
