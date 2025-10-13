@@ -305,7 +305,7 @@ mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
           metadata_expiry_in_mins = metadataExpiryInMins,
           metadata_gateway_reference_id = metadataGatewayReferenceId,
           split_settlement_details = mkSplitSettlementDetails <$> splitSettlementDetails,
-          basket = show <$> basket
+          basket = show . A.toJSON <$> basket
         }
 
 mkSplitSettlementDetails :: SplitSettlementDetails -> Juspay.SplitSettlementDetails
