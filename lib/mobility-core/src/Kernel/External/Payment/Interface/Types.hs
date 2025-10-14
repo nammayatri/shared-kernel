@@ -21,7 +21,6 @@ module Kernel.External.Payment.Interface.Types
   )
 where
 
-import Control.Applicative ((<|>))
 import Data.Time
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
 import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
@@ -103,16 +102,7 @@ newtype Vendor = Vendor
 data SplitSettlementDetails
   = AmountBased SplitSettlementDetailsAmount
   | PercentageBased SplitSettlementDetailsPercentage
-  deriving (Show, Eq, Generic, ToSchema)
-
-instance FromJSON SplitSettlementDetails where
-  parseJSON v =
-    (AmountBased <$> parseJSON v)
-      <|> (PercentageBased <$> parseJSON v)
-
-instance ToJSON SplitSettlementDetails where
-  toJSON (AmountBased details) = toJSON details
-  toJSON (PercentageBased details) = toJSON details
+  deriving (Show, Eq, Generic, ToSchema, ToJSON, FromJSON)
 
 data SplitSettlementDetailsAmount = SplitSettlementDetailsAmount
   { marketplace :: Marketplace,
