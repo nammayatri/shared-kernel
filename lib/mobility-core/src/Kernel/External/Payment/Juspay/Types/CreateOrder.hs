@@ -23,6 +23,7 @@ import qualified Data.Text.Encoding as DT
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
 import Kernel.Types.Price
+import Kernel.Utils.JSON (untaggedValue)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 import Web.FormUrlEncoded
 
@@ -56,7 +57,13 @@ data CreateOrderReq = CreateOrderReq
 data SplitSettlementDetails
   = AmountBased SplitSettlementDetailsAmount
   | PercentageBased SplitSettlementDetailsPercentage
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic)
+
+instance ToJSON SplitSettlementDetails where
+  toJSON = genericToJSON untaggedValue
+
+instance FromJSON SplitSettlementDetails where
+  parseJSON = genericParseJSON untaggedValue
 
 data SplitSettlementDetailsAmount = SplitSettlementDetailsAmount
   { marketplace :: MarketplaceAmount,
