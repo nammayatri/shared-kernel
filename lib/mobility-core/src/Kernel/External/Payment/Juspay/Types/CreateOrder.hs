@@ -271,7 +271,8 @@ data SDKPayloadDetails = SDKPayloadDetails
     createMandate :: Maybe MandateType,
     mandateMaxAmount :: Maybe Text,
     mandateStartDate :: Maybe Text,
-    mandateEndDate :: Maybe Text
+    mandateEndDate :: Maybe Text,
+    basket :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (ToSchema)
