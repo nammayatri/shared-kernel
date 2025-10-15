@@ -220,34 +220,68 @@ createPaymentIntent ::
 createPaymentIntent config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  -- Clone the payment method to the driver's connected account
-  let clonePaymentMethodReq = Stripe.ClonePaymentMethodReq {payment_method = req.paymentMethod, customer = req.customer}
-  clonedPMRes <- Stripe.clonePaymentMethod url apiKey req.driverAccountId clonePaymentMethodReq
-  -- use cloned paymentMethodId to create paymentIntent
-  let paymentIntentReq = mkPaymentIntentReq clonedPMRes.id req
-  paymentIntentResp <- Stripe.createPaymentIntent url apiKey paymentIntentReq
-  let paymentIntentId = paymentIntentResp.id
-  let clientSecret = paymentIntentResp.client_secret
-  let status = paymentIntentResp.status
-  return $ CreatePaymentIntentResp {..}
+  case config.chargeDestination of
+    -- Platform receives payment, transfers to driver (Destination Charges)
+    Platform -> createPlatformCharge url apiKey req
+    -- Driver receives payment directly (Direct Charges)
+    ConnectedAccount -> createConnectedAccountCharge url apiKey req
   where
-    mkPaymentIntentReq :: PaymentMethodId -> CreatePaymentIntentReq -> Stripe.PaymentIntentReq
-    mkPaymentIntentReq clonedPaymentMethodId CreatePaymentIntentReq {amount = amonutInUsd, ..} = do
-      let application_fee_amount = usdToCents applicationFeeAmount
-      let amountInCents = usdToCents amonutInUsd
-      let payment_method = clonedPaymentMethodId
-      let receipt_email = receiptEmail
-      let on_behalf_of = driverAccountId
-      let transfer_data = Stripe.TransferData {destination = driverAccountId}
-      -- let automatic_payment_methods = Stripe.AutomaticPayementMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
-      let confirm = True
-      let description = Nothing
-      let setup_future_usage = Nothing
-      let capture_method = Stripe.ManualCaptureMethod
-      let confirmation_method = Stripe.AutomaticConfirmationMethod
-      let use_stripe_sdk = True
-      let return_url = showBaseUrl config.returnUrl
-      Stripe.PaymentIntentReq {amount = amountInCents, ..}
+    -- Platform Charge: No cloning, no on_behalf_of
+    createPlatformCharge url apiKey CreatePaymentIntentReq {amount = amonutInUsd, ..} = do
+      let paymentIntentReq = mkPlatformPaymentIntentReq
+      paymentIntentResp <- Stripe.createPaymentIntent url apiKey paymentIntentReq
+      let paymentIntentId = paymentIntentResp.id
+      let clientSecret = paymentIntentResp.client_secret
+      let status = paymentIntentResp.status
+      return $ CreatePaymentIntentResp {..}
+      where
+        mkPlatformPaymentIntentReq :: Stripe.PaymentIntentReq
+        mkPlatformPaymentIntentReq =
+          let application_fee_amount = eurToCents applicationFeeAmount
+              amountInCents = eurToCents amonutInUsd
+              payment_method = paymentMethod -- Use original payment method (NO cloning)
+              receipt_email = receiptEmail
+              on_behalf_of = Nothing -- OMIT for platform charges
+              transfer_data = Stripe.TransferData {destination = driverAccountId}
+              confirm = True
+              description = Nothing
+              setup_future_usage = Nothing
+              capture_method = Stripe.ManualCaptureMethod
+              confirmation_method = Stripe.AutomaticConfirmationMethod
+              use_stripe_sdk = True
+              return_url = showBaseUrl config.returnUrl
+           in Stripe.PaymentIntentReq {amount = amountInCents, ..}
+
+    -- Connected Account Charge: Clone payment method, use on_behalf_of
+    createConnectedAccountCharge url apiKey reqData = do
+      -- Clone the payment method to the driver's connected account
+      let clonePaymentMethodReq = Stripe.ClonePaymentMethodReq {payment_method = reqData.paymentMethod, customer = reqData.customer}
+      clonedPMRes <- Stripe.clonePaymentMethod url apiKey reqData.driverAccountId clonePaymentMethodReq
+      -- use cloned paymentMethodId to create paymentIntent
+      let paymentIntentReq = mkPaymentIntentReq clonedPMRes.id reqData
+      paymentIntentResp <- Stripe.createPaymentIntent url apiKey paymentIntentReq
+      let paymentIntentId = paymentIntentResp.id
+      let clientSecret = paymentIntentResp.client_secret
+      let status = paymentIntentResp.status
+      return $ CreatePaymentIntentResp {..}
+      where
+        mkPaymentIntentReq :: PaymentMethodId -> CreatePaymentIntentReq -> Stripe.PaymentIntentReq
+        mkPaymentIntentReq clonedPaymentMethodId CreatePaymentIntentReq {amount = amonutInUsd, ..} = do
+          let application_fee_amount = usdToCents applicationFeeAmount
+          let amountInCents = usdToCents amonutInUsd
+          let payment_method = clonedPaymentMethodId
+          let receipt_email = receiptEmail
+          let on_behalf_of = Just driverAccountId
+          let transfer_data = Stripe.TransferData {destination = driverAccountId}
+          -- let automatic_payment_methods = Stripe.AutomaticPayementMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
+          let confirm = True
+          let description = Nothing
+          let setup_future_usage = Nothing
+          let capture_method = Stripe.ManualCaptureMethod
+          let confirmation_method = Stripe.AutomaticConfirmationMethod
+          let use_stripe_sdk = True
+          let return_url = showBaseUrl config.returnUrl
+          Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
 createSetupIntent ::
   ( Metrics.CoreMetrics m,
@@ -400,3 +434,6 @@ mkAccountLinkReq config accountId =
 -- | Convert USD to cents
 usdToCents :: HighPrecMoney -> Int
 usdToCents (HighPrecMoney money) = round $ money * 100
+
+eurToCents :: HighPrecMoney -> Int
+eurToCents (HighPrecMoney money) = round $ money * 100

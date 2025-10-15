@@ -13,19 +13,28 @@
 -}
 {-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.External.Payment.Stripe.Config where
+module Kernel.External.Payment.Stripe.Config
+  ( module Kernel.External.Payment.Stripe.Config,
+    module Reexport,
+  )
+where
 
 import Data.Aeson
 import Kernel.External.Encryption
-import Kernel.External.Payment.Stripe.Types.Accounts
+import Kernel.External.Payment.Stripe.Types.Accounts as Reexport (BusinessProfile (..))
 import Kernel.Prelude
+
+data ChargeDestination = Platform | ConnectedAccount
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON)
 
 data StripeCfg = StripeCfg
   { apiKey :: EncryptedField 'AsEncrypted Text,
     returnUrl :: BaseUrl,
     refreshUrl :: BaseUrl,
     url :: BaseUrl,
-    businessProfile :: Maybe BusinessProfile
+    businessProfile :: Maybe BusinessProfile,
+    chargeDestination :: ChargeDestination
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

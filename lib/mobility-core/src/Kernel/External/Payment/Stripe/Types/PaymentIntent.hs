@@ -37,7 +37,7 @@ data PaymentIntentReq = PaymentIntentReq
     application_fee_amount :: Int,
     capture_method :: CaptureMethod,
     confirmation_method :: ConfirmationMethod,
-    on_behalf_of :: AccountId,
+    on_behalf_of :: Maybe AccountId,
     use_stripe_sdk :: Bool,
     return_url :: Text,
     transfer_data :: TransferData
@@ -60,7 +60,6 @@ instance ToForm PaymentIntentReq where
           ("application_fee_amount", [toQueryParam application_fee_amount]),
           ("capture_method", [toQueryParam capture_method]),
           ("confirmation_method", [toQueryParam confirmation_method]),
-          ("on_behalf_of", [toQueryParam on_behalf_of]),
           ("use_stripe_sdk", [toQueryParam use_stripe_sdk]),
           ("return_url", [toQueryParam return_url]),
           ("transfer_data[destination]", [toQueryParam transfer_data.destination])
@@ -68,6 +67,7 @@ instance ToForm PaymentIntentReq where
         <> maybeToForm "description" description
         <> maybeToForm "receipt_email" receipt_email
         <> maybeToForm "setup_future_usage" setup_future_usage
+        <> maybeToForm "on_behalf_of" on_behalf_of
     where
       maybeToForm :: ToHttpApiData a => Text -> Maybe a -> HM.HashMap Text [Text]
       maybeToForm key = maybe HM.empty (\value -> HM.singleton key [toQueryParam value])
