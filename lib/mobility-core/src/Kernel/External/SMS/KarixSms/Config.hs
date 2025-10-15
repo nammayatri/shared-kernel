@@ -1,9 +1,9 @@
-module Kernel.External.SMS.Karix.Config where
+module Kernel.External.SMS.KarixSms.Config where
 
 import Kernel.External.Encryption
 import Kernel.Prelude
 
-data KarixCfg = KarixCfg
+data KarixSmsCfg = KarixSmsCfg
   { accessKey :: EncryptedField 'AsEncrypted Text,
     url :: BaseUrl
   }

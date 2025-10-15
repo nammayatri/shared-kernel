@@ -27,7 +27,7 @@ import Deriving.Aeson
 import qualified Kernel.External.SMS.DigoEngage.Config as DigoEngageSms
 import qualified Kernel.External.SMS.ExotelSms.Config as ExotelSms
 import qualified Kernel.External.SMS.GupShup.Config as GupShup
-import qualified Kernel.External.SMS.Karix.Config as Karix
+import qualified Kernel.External.SMS.KarixSms.Config as KarixSms
 import qualified Kernel.External.SMS.MyValueFirst.Config as MyValueFirst
 import qualified Kernel.External.SMS.TwillioSms.Config as TwillioSms
 import qualified Kernel.External.SMS.Types as T
@@ -41,7 +41,7 @@ data SmsHandler m = SmsHandler
     getProviderConfig :: T.SmsService -> m SmsServiceConfig
   }
 
-data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg | GupShupConfig GupShup.GupShupCfg | TwillioSmsConfig TwillioSms.TwillioSmsCfg | DigoEngageSmsConfig DigoEngageSms.DigoEngageSmsCfg | VonageSmsConfig VonageSms.VonageSmsCfg | KarixConfig Karix.KarixCfg
+data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg | GupShupConfig GupShup.GupShupCfg | TwillioSmsConfig TwillioSms.TwillioSmsCfg | DigoEngageSmsConfig DigoEngageSms.DigoEngageSmsCfg | VonageSmsConfig VonageSms.VonageSmsCfg | KarixSmsConfig KarixSms.KarixSmsCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SmsServiceConfig
 
