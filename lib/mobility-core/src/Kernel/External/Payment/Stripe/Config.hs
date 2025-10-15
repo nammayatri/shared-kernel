@@ -19,13 +19,16 @@ import Data.Aeson
 import Kernel.External.Encryption
 import Kernel.External.Payment.Stripe.Types.Accounts
 import Kernel.Prelude
+import Kernel.Types.Common
 
 data StripeCfg = StripeCfg
   { apiKey :: EncryptedField 'AsEncrypted Text,
     returnUrl :: BaseUrl,
     refreshUrl :: BaseUrl,
     url :: BaseUrl,
-    businessProfile :: Maybe BusinessProfile
+    businessProfile :: Maybe BusinessProfile,
+    webhookEndpointSecret :: EncryptedField 'AsEncrypted Text, -- TODO backfilling migration
+    webhookToleranceSeconds :: Maybe Seconds
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
