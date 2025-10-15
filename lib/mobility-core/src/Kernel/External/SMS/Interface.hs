@@ -1,14 +1,9 @@
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
-
   This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
-
   as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is
-
   distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-
   FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero
-
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE TypeApplications #-}
@@ -30,12 +25,12 @@ import Kernel.External.SMS.GupShup.Config as Reexport
 import qualified Kernel.External.SMS.Interface.DigoEngageSms as DigoEngageSms
 import qualified Kernel.External.SMS.Interface.ExotelSms as ExotelSms
 import qualified Kernel.External.SMS.Interface.GupShup as GupShup
-import qualified Kernel.External.SMS.Interface.Karix as Karix
+import qualified Kernel.External.SMS.Interface.KarixSms as KarixSms
 import qualified Kernel.External.SMS.Interface.MyValueFirst as MyValueFirst
 import qualified Kernel.External.SMS.Interface.TwillioSms as TwillioSms
 import Kernel.External.SMS.Interface.Types as Reexport
 import qualified Kernel.External.SMS.Interface.VonageSms as VonageSms
-import Kernel.External.SMS.Karix.Config as Reexport
+import Kernel.External.SMS.KarixSms.Config as Reexport
 import Kernel.External.SMS.MyValueFirst.Config as Reexport
 import Kernel.External.SMS.Types as Reexport
 import Kernel.External.SMS.VonageSms.Config as Reexport
@@ -59,7 +54,7 @@ sendSMS' serviceConfig req = do
     TwillioSmsConfig cfg -> TwillioSms.sendOTP cfg req
     DigoEngageSmsConfig cfg -> DigoEngageSms.sendOTP cfg req
     VonageSmsConfig cfg -> VonageSms.sendOTP cfg req
-    KarixConfig cfg -> Karix.sendOTP cfg req
+    KarixSmsConfig cfg -> KarixSms.sendOTP cfg req
 
 checkSmsResult ::
   (Log m, MonadThrow m) => SendSMSRes -> m ()

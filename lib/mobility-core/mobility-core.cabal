@@ -200,15 +200,15 @@ library
       Kernel.External.SMS.Interface.DigoEngageSms
       Kernel.External.SMS.Interface.ExotelSms
       Kernel.External.SMS.Interface.GupShup
-      Kernel.External.SMS.Interface.Karix
+      Kernel.External.SMS.Interface.KarixSms
       Kernel.External.SMS.Interface.MyValueFirst
       Kernel.External.SMS.Interface.TwillioSms
       Kernel.External.SMS.Interface.Types
       Kernel.External.SMS.Interface.VonageSms
-      Kernel.External.SMS.Karix.Api
-      Kernel.External.SMS.Karix.Config
-      Kernel.External.SMS.Karix.Flow
-      Kernel.External.SMS.Karix.Types
+      Kernel.External.SMS.KarixSms.Api
+      Kernel.External.SMS.KarixSms.Config
+      Kernel.External.SMS.KarixSms.Flow
+      Kernel.External.SMS.KarixSms.Types
       Kernel.External.SMS.MyValueFirst.API
       Kernel.External.SMS.MyValueFirst.Config
       Kernel.External.SMS.MyValueFirst.Flow
