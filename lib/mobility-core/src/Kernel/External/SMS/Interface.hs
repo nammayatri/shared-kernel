@@ -90,7 +90,6 @@ sendSMS SmsHandler {..} req = do
     circularAttempt providers totalCount startIndex currentAttempts = do
       when (currentAttempts >= totalCount) $
         throwError $ InternalError "Not able to send sms with all the configured providers"
-
       let currentIndex = (startIndex + currentAttempts) `mod` totalCount
           preferredProvider = providers !! currentIndex
       logDebug $ "hihi" <> (T.pack $ show preferredProvider)
