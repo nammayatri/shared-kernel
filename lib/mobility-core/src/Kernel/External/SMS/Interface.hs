@@ -20,7 +20,10 @@ module Kernel.External.SMS.Interface
   )
 where
 
-import EulerHS.Prelude
+import Data.Char (digitToInt)
+import Data.List (length, (!!))
+import qualified Data.Text as T
+import EulerHS.Prelude hiding (length)
 import Kernel.External.SMS.DigoEngage.Config as Reexport
 import Kernel.External.SMS.ExotelSms.Config as Reexport
 import Kernel.External.SMS.GupShup.Config as Reexport
@@ -38,23 +41,6 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
-
-sendSMS :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => SmsHandler m -> SendSMSReq -> m SendSMSRes
-sendSMS SmsHandler {..} req = do
-  prividersPriorityList <- getProvidersPriorityList
-  when (null prividersPriorityList) $ throwError $ InternalError "No sms serive provider configured"
-  sendSmsWithFallback prividersPriorityList
-  where
-    sendSmsWithFallback [] = throwError $ InternalError "Not able to send sms with all the configured providers"
-    sendSmsWithFallback (preferredProvider : restProviders) = do
-      smsConfig <- getProviderConfig preferredProvider
-      result <- try @_ @SomeException $ sendSMS' smsConfig req
-      case result of
-        Left _ -> sendSmsWithFallback restProviders
-        Right res -> case res of
-          UnknownError -> sendSmsWithFallback restProviders
-          Fail -> sendSmsWithFallback restProviders
-          _ -> pure res
 
 sendSMS' ::
   ( EncFlow m r,
@@ -80,3 +66,42 @@ checkSmsResult txt =
     Fail -> throwError SMSInvalidNumber
     Pending -> pure ()
     _ -> throwError SMSInvalidNumber
+
+sendSMS ::
+  (EncFlow m r, EsqDBFlow m r, CoreMetrics m) =>
+  SmsHandler m ->
+  SendSMSReq ->
+  m SendSMSRes
+sendSMS SmsHandler {..} req = do
+  providers <- getProvidersPriorityList
+
+  when (null providers) $
+    throwError $ InternalError "No sms serive provider configured"
+  let totalCount = length providers
+      phoneNum = req.phoneNumber
+      lastDigit =
+        if T.null phoneNum
+          then 0
+          else digitToInt (T.last phoneNum)
+
+      startIndex = lastDigit `mod` totalCount
+  circularAttempt providers totalCount startIndex 0
+  where
+    circularAttempt providers totalCount startIndex currentAttempts = do
+      when (currentAttempts >= totalCount) $
+        throwError $ InternalError "Not able to send sms with all the configured providers"
+
+      let currentIndex = (startIndex + currentAttempts) `mod` totalCount
+          preferredProvider = providers !! currentIndex
+      logDebug $ "hihi" <> (T.pack $ show preferredProvider)
+      smsConfig <- getProviderConfig preferredProvider
+      result <- try @_ @SomeException $ sendSMS' smsConfig req
+
+      case result of
+        Left _ -> fallback
+        Right res -> case res of
+          UnknownError -> fallback
+          Fail -> fallback
+          _ -> pure res
+      where
+        fallback = circularAttempt providers totalCount startIndex (currentAttempts + 1)
