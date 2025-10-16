@@ -19,13 +19,17 @@ import Data.Aeson
 import qualified Data.Map as M
 import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Kernel.Prelude
+import Kernel.Types.Id
 import qualified Kernel.Utils.JSON as J
 import qualified Kernel.Utils.Schema as S
 
 -- TODO make not required fields as optional or remove
 -- TODO check duplication with other Stripe types
+
+data Event
+
 data WebhookReq = WebhookReq
-  { id :: Text,
+  { id :: Id Event,
     _object :: Text,
     api_version :: Text,
     created :: Integer,

@@ -30,6 +30,7 @@ import Kernel.External.Payment.Interface.Types
 import qualified Kernel.External.Payment.Stripe.Types as Stripe
 import Kernel.Prelude
 import Kernel.Types.Error
+import Kernel.Types.Id
 import Kernel.Utils.Common
 import Servant hiding (throwError)
 
@@ -39,29 +40,34 @@ type StripeWebhookAPI =
     :> ReqBody '[OctetStream] LBS.ByteString -- we need raw bytes for proper signature check
     :> Post '[JSON] AckResponse
 
--- TODO answer on duplicates with the same event.id also with 200
--- TODO handle huge logic asynchronically
 -- TODO Handle webhook versioning
 orderStatusWebhook :: -- TODO rename accordingly
   EncFlow m r =>
   PaymentServiceConfig ->
+  (Id Stripe.Event -> m Bool) -> -- should we handle it on domain side?
   (Stripe.WebhookReq -> Text -> m AckResponse) ->
   Text ->
   LBS.ByteString ->
-  m (Maybe ()) -- FIXME add proper type
-orderStatusWebhook paymentConfig orderStatusHandler sigHeader rawBytes = do
+  m AckResponse
+orderStatusWebhook paymentConfig checkDuplicatedEvent orderStatusHandler sigHeader rawBytes = do
   withLogTag "stripeWebhook" $ do
-    -- TODO add eventId
     let respDump = decodeUtf8 rawBytes
     let mResp = A.eitherDecode rawBytes
     case mResp of
-      Right (resp :: Stripe.WebhookReq) -> do
+      Right (resp :: Stripe.WebhookReq) -> withLogTag ("eventId-" <> resp.id.getId) $ do
         void $ verifyAuth paymentConfig sigHeader rawBytes
-        void $ orderStatusHandler resp respDump
-        pure $ Just ()
+        -- according to docs run heavy logic asynchronically and return 200 quickly
+        fork "stripe webhook" $ do
+          isDuplicatedEvent <- checkDuplicatedEvent resp.id
+          if isDuplicatedEvent
+            then do
+              void $ orderStatusHandler resp respDump
+            else do
+              logInfo $ "Duplicated Stripe webhook event found; skipping"
+        pure Ack
       Left err -> do
-        logInfo $ "Stripe webhook parsing failed :: " <> show err
-        pure Nothing
+        logInfo $ "Stripe webhook parsing failed: " <> show err
+        throwError $ InvalidRequest "STRIPE_WEBHOOK_PARSING_FAILED"
 
 verifyAuth ::
   EncFlow m r =>
@@ -89,7 +95,6 @@ verifyAuth config sigHeader rawBody = do
   unless (any (secureEqHex expected) sigsV1) $
     throwError (InvalidRequest "INVALID_STRIPE_SIGNATURE")
 
--- TODO add eventId to errors
 parseStripeSignature :: (MonadThrow m, Log m) => Text -> m (Int, [BS.ByteString])
 parseStripeSignature hdr = do
   -- format: t=1697040000, v1=abcdef..., v1=...
