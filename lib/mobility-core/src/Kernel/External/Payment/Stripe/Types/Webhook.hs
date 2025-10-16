@@ -301,7 +301,7 @@ data SetupIntent = SetupIntent
     application :: Maybe Text,
     automatic_payment_methods :: Maybe Value,
     cancellation_reason :: Maybe Text,
-    client_secret :: Text,
+    client_secret :: Maybe Text,
     created :: Integer,
     customer :: Maybe Text,
     description :: Maybe Text,
@@ -310,15 +310,15 @@ data SetupIntent = SetupIntent
     latest_attempt :: Maybe Text,
     livemode :: Bool,
     mandate :: Maybe Text,
-    metadata :: M.Map Text Text,
+    metadata :: Maybe (M.Map Text Text),
     next_action :: Maybe Value,
     on_behalf_of :: Maybe Text,
     payment_method :: Maybe Text,
-    payment_method_options :: PaymentMethodOptions,
+    payment_method_options :: Maybe PaymentMethodOptions,
     payment_method_types :: [Text],
     single_use_mandate :: Maybe Text,
     status :: Text,
-    usage :: Text
+    usage :: Maybe Text
   }
   deriving stock (Show, Generic)
 
@@ -366,7 +366,7 @@ data PaymentIntent = PaymentIntent
     canceled_at :: Maybe Integer,
     cancellation_reason :: Maybe Text,
     capture_method :: Text,
-    client_secret :: Text,
+    client_secret :: Maybe Text,
     confirmation_method :: Text,
     created :: Integer,
     currency :: Text,
@@ -376,11 +376,11 @@ data PaymentIntent = PaymentIntent
     last_payment_error :: Maybe Value,
     latest_charge :: Maybe Text,
     livemode :: Bool,
-    metadata :: M.Map Text Text,
+    metadata :: Maybe (M.Map Text Text),
     next_action :: Maybe Value,
     on_behalf_of :: Maybe Text,
     payment_method :: Maybe Text,
-    payment_method_options :: Value,
+    payment_method_options :: Maybe Value,
     payment_method_types :: [Text],
     processing :: Maybe Value,
     receipt_email :: Maybe Text,
@@ -423,7 +423,7 @@ data Charge = Charge
     fraud_details :: Maybe Value,
     invoice :: Maybe Text,
     livemode :: Bool,
-    metadata :: M.Map Text Text,
+    metadata :: Maybe (M.Map Text Text),
     outcome :: Maybe Value,
     paid :: Bool,
     payment_intent :: Maybe Text,
@@ -431,7 +431,7 @@ data Charge = Charge
     receipt_email :: Maybe Text,
     receipt_url :: Maybe Text,
     refunded :: Bool,
-    refunds :: Value, -- This would be a list of refund objects
+    refunds :: Maybe Value, -- This would be a list of refund objects
     status :: Text
   }
   deriving stock (Show, Generic)
