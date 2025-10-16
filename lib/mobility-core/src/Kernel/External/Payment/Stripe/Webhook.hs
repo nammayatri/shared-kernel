@@ -30,6 +30,7 @@ import Kernel.External.Payment.Interface.Types
 import qualified Kernel.External.Payment.Stripe.Types as Stripe
 import Kernel.Prelude
 import Kernel.Types.Error
+import Kernel.Types.HideSecrets
 import Kernel.Types.Id
 import Kernel.Utils.Common
 import Servant hiding (throwError)
@@ -40,7 +41,6 @@ type StripeWebhookAPI =
     :> ReqBody '[OctetStream] LBS.ByteString -- we need raw bytes for proper signature check
     :> Post '[JSON] AckResponse
 
--- TODO Handle webhook versioning
 orderStatusWebhook :: -- TODO rename accordingly
   EncFlow m r =>
   PaymentServiceConfig ->
@@ -51,7 +51,6 @@ orderStatusWebhook :: -- TODO rename accordingly
   m AckResponse
 orderStatusWebhook paymentConfig checkDuplicatedEvent orderStatusHandler sigHeader rawBytes = do
   withLogTag "stripeWebhook" $ do
-    let respDump = decodeUtf8 rawBytes
     let mResp = A.eitherDecode rawBytes
     case mResp of
       Right (resp :: Stripe.WebhookReq) -> withLogTag ("eventId-" <> resp.id.getId) $ do
@@ -61,6 +60,7 @@ orderStatusWebhook paymentConfig checkDuplicatedEvent orderStatusHandler sigHead
           isDuplicatedEvent <- checkDuplicatedEvent resp.id
           if isDuplicatedEvent
             then do
+              let respDump = encodeToText $ hideSecrets @Stripe.WebhookReq resp
               void $ orderStatusHandler resp respDump
             else do
               logInfo $ "Duplicated Stripe webhook event found; skipping"

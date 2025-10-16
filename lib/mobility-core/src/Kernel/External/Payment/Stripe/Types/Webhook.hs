@@ -16,9 +16,11 @@
 module Kernel.External.Payment.Stripe.Types.Webhook where
 
 import Data.Aeson
+import qualified Data.Aeson as A
 import qualified Data.Map as M
 import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Kernel.Prelude
+import Kernel.Types.HideSecrets
 import Kernel.Types.Id
 import qualified Kernel.Utils.JSON as J
 import qualified Kernel.Utils.Schema as S
@@ -213,6 +215,13 @@ data WebhookReq = WebhookReq
   }
   deriving stock (Show, Generic)
 
+instance HideSecrets WebhookReq where
+  hideSecrets WebhookReq {..} =
+    WebhookReq
+      { _data = hideSecrets @WebhookReqData _data,
+        ..
+      }
+
 instance FromJSON WebhookReq where
   parseJSON = genericParseJSON J.stripPrefixUnderscoreIfAny
 
@@ -226,6 +235,12 @@ newtype WebhookReqData = WebhookReqData
   { _object :: StripeObject
   }
   deriving stock (Show, Generic)
+
+instance HideSecrets WebhookReqData where
+  hideSecrets WebhookReqData {..} =
+    WebhookReqData
+      { _object = hideSecrets @StripeObject _object
+      }
 
 instance FromJSON WebhookReqData where
   parseJSON = genericParseJSON J.stripPrefixUnderscoreIfAny
@@ -278,6 +293,13 @@ data StripeObject
   deriving (Show, Generic)
   deriving anyclass (ToSchema)
 
+instance HideSecrets StripeObject where
+  hideSecrets = \case
+    ObjectSetupIntent a -> ObjectSetupIntent $ hideSecrets @SetupIntent a
+    ObjectPaymentIntent a -> ObjectPaymentIntent $ hideSecrets @PaymentIntent a
+    ObjectCharge a -> ObjectCharge $ hideSecrets @Charge a
+    CustomObject objType _val -> CustomObject objType A.Null
+
 instance ToJSON StripeObject where
   toJSON = \case
     ObjectSetupIntent a -> toJSON @SetupIntent a
@@ -321,6 +343,17 @@ data SetupIntent = SetupIntent
     usage :: Maybe Text
   }
   deriving stock (Show, Generic)
+
+instance HideSecrets SetupIntent where
+  hideSecrets SetupIntent {..} =
+    SetupIntent
+      { client_secret = Nothing,
+        customer = Nothing,
+        last_setup_error = Nothing,
+        metadata = Nothing,
+        payment_method = Nothing,
+        ..
+      }
 
 instance FromJSON SetupIntent where
   parseJSON = genericParseJSON J.stripPrefixUnderscoreIfAny
@@ -392,6 +425,19 @@ data PaymentIntent = PaymentIntent
   }
   deriving stock (Show, Generic)
 
+instance HideSecrets PaymentIntent where
+  hideSecrets PaymentIntent {..} =
+    PaymentIntent
+      { client_secret = Nothing,
+        customer = Nothing,
+        last_payment_error = Nothing,
+        metadata = Nothing,
+        payment_method = Nothing,
+        receipt_email = Nothing,
+        shipping = Nothing,
+        ..
+      }
+
 instance FromJSON PaymentIntent where
   parseJSON = genericParseJSON J.stripPrefixUnderscoreIfAny
 
@@ -435,6 +481,20 @@ data Charge = Charge
     status :: Text
   }
   deriving stock (Show, Generic)
+
+instance HideSecrets Charge where
+  hideSecrets Charge {..} =
+    Charge
+      { customer = Nothing,
+        failure_message = Nothing,
+        fraud_details = Nothing,
+        metadata = Nothing,
+        outcome = Nothing,
+        payment_method = Nothing,
+        receipt_email = Nothing,
+        receipt_url = Nothing,
+        ..
+      }
 
 instance FromJSON Charge where
   parseJSON = genericParseJSON J.stripPrefixUnderscoreIfAny
