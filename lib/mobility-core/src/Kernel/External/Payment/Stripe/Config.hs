@@ -27,7 +27,7 @@ data StripeCfg = StripeCfg
     refreshUrl :: BaseUrl,
     url :: BaseUrl,
     businessProfile :: Maybe BusinessProfile,
-    webhookEndpointSecret :: EncryptedField 'AsEncrypted Text, -- TODO backfilling migration
+    webhookEndpointSecret :: Maybe (EncryptedField 'AsEncrypted Text),
     webhookToleranceSeconds :: Maybe Seconds
   }
   deriving stock (Show, Eq, Generic)

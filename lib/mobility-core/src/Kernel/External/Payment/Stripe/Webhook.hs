@@ -78,7 +78,8 @@ verifyAuth ::
 verifyAuth config sigHeader rawBody = do
   (secret, tolerance) <- case config of
     StripeConfig cfg -> do
-      s <- decrypt cfg.webhookEndpointSecret
+      webhookEndpointSecret <- cfg.webhookEndpointSecret & fromMaybeM (InternalError "STRIPE_WEBHOOK_SECRET_NOT_FOUND")
+      s <- decrypt webhookEndpointSecret
       pure (s, fromMaybe 300 cfg.webhookToleranceSeconds)
     _ -> throwError (InternalError "NOT_STRIPE_CONFIG")
 

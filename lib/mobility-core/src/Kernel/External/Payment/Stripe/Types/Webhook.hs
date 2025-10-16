@@ -23,15 +23,12 @@ import Kernel.Types.Id
 import qualified Kernel.Utils.JSON as J
 import qualified Kernel.Utils.Schema as S
 
--- TODO make not required fields as optional or remove
--- TODO check duplication with other Stripe types
-
 data Event
 
 data WebhookReq = WebhookReq
   { id :: Id Event,
     _object :: Text,
-    api_version :: Text,
+    api_version :: Text, -- should be configurated in stripe dashboard
     created :: Integer,
     _data :: WebhookReqData,
     livemode :: Bool,
