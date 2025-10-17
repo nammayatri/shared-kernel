@@ -43,12 +43,13 @@ data EventType
   | PaymentIntentRequiresAction
   | -- Setup Intents
 
-    -- | SetupIntentSucceeded
-    -- | SetupIntentSetupFailed
-    -- | SetupIntentCanceled
-    -- | SetupIntentCreated
-    -- | SetupIntentRequiresAction
-    -- Customers
+    SetupIntentSucceeded
+  | SetupIntentSetupFailed
+  | SetupIntentCanceled
+  | SetupIntentCreated
+  | SetupIntentRequiresAction
+  | -- Customers
+
     -- | CustomerCreated
     -- | CustomerUpdated
     -- | CustomerDeleted
@@ -127,12 +128,11 @@ eventTypeBimap =
       (PaymentIntentCreated, "payment_intent.created"),
       (PaymentIntentRequiresAction, "payment_intent.requires_action"),
       -- Setup Intents
-      -- (SetupIntentSucceeded, "setup_intent.succeeded"),
-      -- (SetupIntentSetupFailed, "setup_intent.setup_failed"),
-      -- (SetupIntentCanceled, "setup_intent.canceled"),
-      -- (SetupIntentCreated, "setup_intent.created"),
-      -- (SetupIntentRequiresAction, "setup_intent.requires_action"),
-
+      (SetupIntentSucceeded, "setup_intent.succeeded"),
+      (SetupIntentSetupFailed, "setup_intent.setup_failed"),
+      (SetupIntentCanceled, "setup_intent.canceled"),
+      (SetupIntentCreated, "setup_intent.created"),
+      (SetupIntentRequiresAction, "setup_intent.requires_action"),
       -- Customers
       -- (CustomerCreated, "customer.created"),
       -- (CustomerUpdated, "customer.updated"),
