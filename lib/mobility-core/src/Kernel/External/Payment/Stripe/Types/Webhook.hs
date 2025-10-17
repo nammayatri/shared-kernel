@@ -17,6 +17,7 @@ module Kernel.External.Payment.Stripe.Types.Webhook where
 
 import Data.Aeson
 import qualified Data.Aeson as A
+import qualified Data.Bimap as BM
 import qualified Data.Map as M
 import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Data.Time.Clock.POSIX (POSIXTime)
@@ -112,197 +113,107 @@ data EventType
     -- | ProductDeleted
     -- Custom (for unknown types)
     CustomEvent Text
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (ToSchema)
+
+eventTypeBimap :: BM.Bimap EventType Text
+eventTypeBimap =
+  BM.fromList
+    [ -- Payment Intents
+      (PaymentIntentSucceeded, "payment_intent.succeeded"),
+      (PaymentIntentPaymentFailed, "payment_intent.payment_failed"),
+      (PaymentIntentProcessing, "payment_intent.processing"),
+      (PaymentIntentCanceled, "payment_intent.canceled"),
+      (PaymentIntentCreated, "payment_intent.created"),
+      (PaymentIntentRequiresAction, "payment_intent.requires_action"),
+      -- Setup Intents
+      -- (SetupIntentSucceeded, "setup_intent.succeeded"),
+      -- (SetupIntentSetupFailed, "setup_intent.setup_failed"),
+      -- (SetupIntentCanceled, "setup_intent.canceled"),
+      -- (SetupIntentCreated, "setup_intent.created"),
+      -- (SetupIntentRequiresAction, "setup_intent.requires_action"),
+
+      -- Customers
+      -- (CustomerCreated, "customer.created"),
+      -- (CustomerUpdated, "customer.updated"),
+      -- (CustomerDeleted, "customer.deleted"),
+      -- (CustomerSourceCreated, "customer.source.created"),
+      -- (CustomerSourceUpdated, "customer.source.updated"),
+      -- (CustomerSourceExpiring, "customer.source.expiring"),
+
+      -- Subscriptions
+      -- (CustomerSubscriptionCreated, "customer.subscription.created"),
+      -- (CustomerSubscriptionUpdated, "customer.subscription.updated"),
+      -- (CustomerSubscriptionDeleted, "customer.subscription.deleted"),
+      -- (CustomerSubscriptionTrialWillEnd, "customer.subscription.trial_will_end"),
+      -- (CustomerSubscriptionPendingUpdateApplied, "customer.subscription.pending_update_applied"),
+      -- (CustomerSubscriptionPendingUpdateExpired, "customer.subscription.pending_update_expired"),
+
+      -- Invoices
+      -- (InvoiceCreated, "invoice.created"),
+      -- (InvoiceFinalized, "invoice.finalized"),
+      -- (InvoicePaymentSucceeded, "invoice.payment_succeeded"),
+      -- (InvoicePaymentFailed, "invoice.payment_failed"),
+      -- (InvoiceUpcoming, "invoice.upcoming"),
+      -- (InvoiceMarkedUncollectible, "invoice.marked_uncollectible"),
+
+      -- Charges
+      (ChargeSucceeded, "charge.succeeded"),
+      (ChargeFailed, "charge.failed"),
+      (ChargeRefunded, "charge.refunded"),
+      (ChargeDisputeCreated, "charge.dispute.created"),
+      (ChargeDisputeClosed, "charge.dispute.closed"),
+      -- Payment Methods
+      -- (PaymentMethodAttached, "payment_method.attached"),
+      -- (PaymentMethodAutomaticallyUpdated, "payment_method.automatically_updated"),
+      -- (PaymentMethodDetached, "payment_method.detached"),
+
+      -- Refunds
+      (ChargeRefundUpdated, "charge.refund.updated")
+      -- Account
+      -- (AccountUpdated, "account.updated"),
+      -- (AccountApplicationAuthorized, "account.application.authorized"),
+      -- (AccountApplicationDeauthorized, "account.application.deauthorized"),
+
+      -- Connect
+      -- (PayoutCreated, "payout.created"),
+      -- (PayoutPaid, "payout.paid"),
+      -- (PayoutFailed, "payout.failed"),
+      -- (PayoutCanceled, "payout.canceled"),
+
+      -- Tax
+      -- (TaxRateCreated, "tax_rate.created"),
+      -- (TaxRateUpdated, "tax_rate.updated"),
+
+      -- Billing
+      -- (BillingPortalConfigurationCreated, "billing_portal.configuration.created"),
+      -- (BillingPortalConfigurationUpdated, "billing_portal.configuration.updated"),
+
+      -- Checkout
+      -- (CheckoutSessionCompleted, "checkout.session.completed"),
+      -- (CheckoutSessionAsyncPaymentSucceeded, "checkout.session.async_payment_succeeded"),
+      -- (CheckoutSessionAsyncPaymentFailed, "checkout.session.async_payment_failed"),
+      -- (CheckoutSessionExpired, "checkout.session.expired"),
+
+      -- Price
+      -- (PriceCreated, "price.created"),
+      -- (PriceUpdated, "price.updated"),
+      -- (PriceDeleted, "price.deleted"),
+
+      -- Product
+      -- (ProductCreated, "product.created"),
+      -- (ProductUpdated, "product.updated"),
+      -- (ProductDeleted, "product.deleted")
+    ]
 
 instance FromJSON EventType where
   parseJSON = withText "EventType" $ \txt ->
-    pure $ eventTypeFromText txt
+    pure $ fromMaybe (CustomEvent txt) $ BM.lookupR txt eventTypeBimap
 
 instance ToJSON EventType where
-  toJSON eventType = String (eventTypeToText eventType)
-
-eventTypeFromText :: Text -> EventType
-eventTypeFromText = \case
-  -- Payment Intents
-  "payment_intent.succeeded" -> PaymentIntentSucceeded
-  "payment_intent.payment_failed" -> PaymentIntentPaymentFailed
-  "payment_intent.processing" -> PaymentIntentProcessing
-  "payment_intent.canceled" -> PaymentIntentCanceled
-  "payment_intent.created" -> PaymentIntentCreated
-  "payment_intent.requires_action" -> PaymentIntentRequiresAction
-  -- Setup Intents
-  -- "setup_intent.succeeded" -> SetupIntentSucceeded
-  -- "setup_intent.setup_failed" -> SetupIntentSetupFailed
-  -- "setup_intent.canceled" -> SetupIntentCanceled
-  -- "setup_intent.created" -> SetupIntentCreated
-  -- "setup_intent.requires_action" -> SetupIntentRequiresAction
-
-  -- Customers
-  -- "customer.created" -> CustomerCreated
-  -- "customer.updated" -> CustomerUpdated
-  -- "customer.deleted" -> CustomerDeleted
-  -- "customer.source.created" -> CustomerSourceCreated
-  -- "customer.source.updated" -> CustomerSourceUpdated
-  -- "customer.source.expiring" -> CustomerSourceExpiring
-
-  -- Subscriptions
-  -- "customer.subscription.created" -> CustomerSubscriptionCreated
-  -- "customer.subscription.updated" -> CustomerSubscriptionUpdated
-  -- "customer.subscription.deleted" -> CustomerSubscriptionDeleted
-  -- "customer.subscription.trial_will_end" -> CustomerSubscriptionTrialWillEnd
-  -- "customer.subscription.pending_update_applied" -> CustomerSubscriptionPendingUpdateApplied
-  -- "customer.subscription.pending_update_expired" -> CustomerSubscriptionPendingUpdateExpired
-
-  -- Invoices
-  -- "invoice.created" -> InvoiceCreated
-  -- "invoice.finalized" -> InvoiceFinalized
-  -- "invoice.payment_succeeded" -> InvoicePaymentSucceeded
-  -- "invoice.payment_failed" -> InvoicePaymentFailed
-  -- "invoice.upcoming" -> InvoiceUpcoming
-  -- "invoice.marked_uncollectible" -> InvoiceMarkedUncollectible
-
-  -- Charges
-  "charge.succeeded" -> ChargeSucceeded
-  "charge.failed" -> ChargeFailed
-  "charge.refunded" -> ChargeRefunded
-  "charge.dispute.created" -> ChargeDisputeCreated
-  "charge.dispute.closed" -> ChargeDisputeClosed
-  -- Payment Methods
-  -- "payment_method.attached" -> PaymentMethodAttached
-  -- "payment_method.automatically_updated" -> PaymentMethodAutomaticallyUpdated
-  -- "payment_method.detached" -> PaymentMethodDetached
-
-  -- Refunds
-  "charge.refund.updated" -> ChargeRefundUpdated
-  -- Account
-  -- "account.updated" -> AccountUpdated
-  -- "account.application.authorized" -> AccountApplicationAuthorized
-  -- "account.application.deauthorized" -> AccountApplicationDeauthorized
-
-  -- Connect
-  -- "payout.created" -> PayoutCreated
-  -- "payout.paid" -> PayoutPaid
-  -- "payout.failed" -> PayoutFailed
-  -- "payout.canceled" -> PayoutCanceled
-
-  -- Tax
-  -- "tax_rate.created" -> TaxRateCreated
-  -- "tax_rate.updated" -> TaxRateUpdated
-
-  -- Billing
-  -- "billing_portal.configuration.created" -> BillingPortalConfigurationCreated
-  -- "billing_portal.configuration.updated" -> BillingPortalConfigurationUpdated
-
-  -- Checkout
-  -- "checkout.session.completed" -> CheckoutSessionCompleted
-  -- "checkout.session.async_payment_succeeded" -> CheckoutSessionAsyncPaymentSucceeded
-  -- "checkout.session.async_payment_failed" -> CheckoutSessionAsyncPaymentFailed
-  -- "checkout.session.expired" -> CheckoutSessionExpired
-
-  -- Price
-  -- "price.created" -> PriceCreated
-  -- "price.updated" -> PriceUpdated
-  -- "price.deleted" -> PriceDeleted
-
-  -- Product
-  -- "product.created" -> ProductCreated
-  -- "product.updated" -> ProductUpdated
-  -- "product.deleted" -> ProductDeleted
-
-  -- Unknown events
-  unknown -> CustomEvent unknown
-
-eventTypeToText :: EventType -> Text
-eventTypeToText = \case
-  -- Payment Intents
-  PaymentIntentSucceeded -> "payment_intent.succeeded"
-  PaymentIntentPaymentFailed -> "payment_intent.payment_failed"
-  PaymentIntentProcessing -> "payment_intent.processing"
-  PaymentIntentCanceled -> "payment_intent.canceled"
-  PaymentIntentCreated -> "payment_intent.created"
-  PaymentIntentRequiresAction -> "payment_intent.requires_action"
-  -- Setup Intents
-  -- SetupIntentSucceeded -> "setup_intent.succeeded"
-  -- SetupIntentSetupFailed -> "setup_intent.setup_failed"
-  -- SetupIntentCanceled -> "setup_intent.canceled"
-  -- SetupIntentCreated -> "setup_intent.created"
-  -- SetupIntentRequiresAction -> "setup_intent.requires_action"
-
-  -- Customers
-  -- CustomerCreated -> "customer.created"
-  -- CustomerUpdated -> "customer.updated"
-  -- CustomerDeleted -> "customer.deleted"
-  -- CustomerSourceCreated -> "customer.source.created"
-  -- CustomerSourceUpdated -> "customer.source.updated"
-  -- CustomerSourceExpiring -> "customer.source.expiring"
-
-  -- Subscriptions
-  -- CustomerSubscriptionCreated -> "customer.subscription.created"
-  -- CustomerSubscriptionUpdated -> "customer.subscription.updated"
-  -- CustomerSubscriptionDeleted -> "customer.subscription.deleted"
-  -- CustomerSubscriptionTrialWillEnd -> "customer.subscription.trial_will_end"
-  -- CustomerSubscriptionPendingUpdateApplied -> "customer.subscription.pending_update_applied"
-  -- CustomerSubscriptionPendingUpdateExpired -> "customer.subscription.pending_update_expired"
-
-  -- Invoices
-  -- InvoiceCreated -> "invoice.created"
-  -- InvoiceFinalized -> "invoice.finalized"
-  -- InvoicePaymentSucceeded -> "invoice.payment_succeeded"
-  -- InvoicePaymentFailed -> "invoice.payment_failed"
-  -- InvoiceUpcoming -> "invoice.upcoming"
-  -- InvoiceMarkedUncollectible -> "invoice.marked_uncollectible"
-
-  -- Charges
-  ChargeSucceeded -> "charge.succeeded"
-  ChargeFailed -> "charge.failed"
-  ChargeRefunded -> "charge.refunded"
-  ChargeDisputeCreated -> "charge.dispute.created"
-  ChargeDisputeClosed -> "charge.dispute.closed"
-  -- Payment Methods
-  -- PaymentMethodAttached -> "payment_method.attached"
-  -- PaymentMethodAutomaticallyUpdated -> "payment_method.automatically_updated"
-  -- PaymentMethodDetached -> "payment_method.detached"
-
-  -- Refunds
-  ChargeRefundUpdated -> "charge.refund.updated"
-  -- Account
-  -- AccountUpdated -> "account.updated"
-  -- AccountApplicationAuthorized -> "account.application.authorized"
-  -- AccountApplicationDeauthorized -> "account.application.deauthorized"
-
-  -- Connect
-  -- PayoutCreated -> "payout.created"
-  -- PayoutPaid -> "payout.paid"
-  -- PayoutFailed -> "payout.failed"
-  -- PayoutCanceled -> "payout.canceled"
-
-  -- Tax
-  -- TaxRateCreated -> "tax_rate.created"
-  -- TaxRateUpdated -> "tax_rate.updated"
-
-  -- Billing
-  -- BillingPortalConfigurationCreated -> "billing_portal.configuration.created"
-  -- BillingPortalConfigurationUpdated -> "billing_portal.configuration.updated"
-
-  -- Checkout
-  -- CheckoutSessionCompleted -> "checkout.session.completed"
-  -- CheckoutSessionAsyncPaymentSucceeded -> "checkout.session.async_payment_succeeded"
-  -- CheckoutSessionAsyncPaymentFailed -> "checkout.session.async_payment_failed"
-  -- CheckoutSessionExpired -> "checkout.session.expired"
-
-  -- Price
-  -- PriceCreated -> "price.created"
-  -- PriceUpdated -> "price.updated"
-  -- PriceDeleted -> "price.deleted"
-
-  -- Product
-  -- ProductCreated -> "product.created"
-  -- ProductUpdated -> "product.updated"
-  -- ProductDeleted -> "product.deleted"
-
-  -- Custom events
-  CustomEvent txt -> txt
+  toJSON eventType = String $ case BM.lookup eventType eventTypeBimap of
+    Just txt -> txt
+    Nothing -> show eventType -- impossible: missing mapping
 
 data WebhookReq = WebhookReq
   { id :: Id Event,

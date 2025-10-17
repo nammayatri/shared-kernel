@@ -515,6 +515,7 @@ library
     , beam-core
     , beam-mysql
     , beam-postgres
+    , bimap
     , bytestring
     , case-insensitive
     , casing
@@ -678,6 +679,7 @@ test-suite mobility-core-tests
     , beam-core
     , beam-mysql
     , beam-postgres
+    , bimap
     , bytestring
     , case-insensitive
     , casing
