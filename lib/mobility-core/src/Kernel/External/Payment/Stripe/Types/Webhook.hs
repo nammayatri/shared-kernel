@@ -112,7 +112,15 @@ data EventType
     -- | ProductDeleted
     -- Custom (for unknown types)
     CustomEvent Text
-  deriving (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON EventType where
+  parseJSON = withText "EventType" $ \txt ->
+    pure $ eventTypeFromText txt
+
+instance ToJSON EventType where
+  toJSON eventType = String (eventTypeToText eventType)
 
 eventTypeFromText :: Text -> EventType
 eventTypeFromText = \case
@@ -205,6 +213,97 @@ eventTypeFromText = \case
   -- Unknown events
   unknown -> CustomEvent unknown
 
+eventTypeToText :: EventType -> Text
+eventTypeToText = \case
+  -- Payment Intents
+  PaymentIntentSucceeded -> "payment_intent.succeeded"
+  PaymentIntentPaymentFailed -> "payment_intent.payment_failed"
+  PaymentIntentProcessing -> "payment_intent.processing"
+  PaymentIntentCanceled -> "payment_intent.canceled"
+  PaymentIntentCreated -> "payment_intent.created"
+  PaymentIntentRequiresAction -> "payment_intent.requires_action"
+  -- Setup Intents
+  -- SetupIntentSucceeded -> "setup_intent.succeeded"
+  -- SetupIntentSetupFailed -> "setup_intent.setup_failed"
+  -- SetupIntentCanceled -> "setup_intent.canceled"
+  -- SetupIntentCreated -> "setup_intent.created"
+  -- SetupIntentRequiresAction -> "setup_intent.requires_action"
+
+  -- Customers
+  -- CustomerCreated -> "customer.created"
+  -- CustomerUpdated -> "customer.updated"
+  -- CustomerDeleted -> "customer.deleted"
+  -- CustomerSourceCreated -> "customer.source.created"
+  -- CustomerSourceUpdated -> "customer.source.updated"
+  -- CustomerSourceExpiring -> "customer.source.expiring"
+
+  -- Subscriptions
+  -- CustomerSubscriptionCreated -> "customer.subscription.created"
+  -- CustomerSubscriptionUpdated -> "customer.subscription.updated"
+  -- CustomerSubscriptionDeleted -> "customer.subscription.deleted"
+  -- CustomerSubscriptionTrialWillEnd -> "customer.subscription.trial_will_end"
+  -- CustomerSubscriptionPendingUpdateApplied -> "customer.subscription.pending_update_applied"
+  -- CustomerSubscriptionPendingUpdateExpired -> "customer.subscription.pending_update_expired"
+
+  -- Invoices
+  -- InvoiceCreated -> "invoice.created"
+  -- InvoiceFinalized -> "invoice.finalized"
+  -- InvoicePaymentSucceeded -> "invoice.payment_succeeded"
+  -- InvoicePaymentFailed -> "invoice.payment_failed"
+  -- InvoiceUpcoming -> "invoice.upcoming"
+  -- InvoiceMarkedUncollectible -> "invoice.marked_uncollectible"
+
+  -- Charges
+  ChargeSucceeded -> "charge.succeeded"
+  ChargeFailed -> "charge.failed"
+  ChargeRefunded -> "charge.refunded"
+  ChargeDisputeCreated -> "charge.dispute.created"
+  ChargeDisputeClosed -> "charge.dispute.closed"
+  -- Payment Methods
+  -- PaymentMethodAttached -> "payment_method.attached"
+  -- PaymentMethodAutomaticallyUpdated -> "payment_method.automatically_updated"
+  -- PaymentMethodDetached -> "payment_method.detached"
+
+  -- Refunds
+  ChargeRefundUpdated -> "charge.refund.updated"
+  -- Account
+  -- AccountUpdated -> "account.updated"
+  -- AccountApplicationAuthorized -> "account.application.authorized"
+  -- AccountApplicationDeauthorized -> "account.application.deauthorized"
+
+  -- Connect
+  -- PayoutCreated -> "payout.created"
+  -- PayoutPaid -> "payout.paid"
+  -- PayoutFailed -> "payout.failed"
+  -- PayoutCanceled -> "payout.canceled"
+
+  -- Tax
+  -- TaxRateCreated -> "tax_rate.created"
+  -- TaxRateUpdated -> "tax_rate.updated"
+
+  -- Billing
+  -- BillingPortalConfigurationCreated -> "billing_portal.configuration.created"
+  -- BillingPortalConfigurationUpdated -> "billing_portal.configuration.updated"
+
+  -- Checkout
+  -- CheckoutSessionCompleted -> "checkout.session.completed"
+  -- CheckoutSessionAsyncPaymentSucceeded -> "checkout.session.async_payment_succeeded"
+  -- CheckoutSessionAsyncPaymentFailed -> "checkout.session.async_payment_failed"
+  -- CheckoutSessionExpired -> "checkout.session.expired"
+
+  -- Price
+  -- PriceCreated -> "price.created"
+  -- PriceUpdated -> "price.updated"
+  -- PriceDeleted -> "price.deleted"
+
+  -- Product
+  -- ProductCreated -> "product.created"
+  -- ProductUpdated -> "product.updated"
+  -- ProductDeleted -> "product.deleted"
+
+  -- Custom events
+  CustomEvent txt -> txt
+
 data WebhookReq = WebhookReq
   { id :: Id Event,
     _object :: Text,
@@ -214,7 +313,7 @@ data WebhookReq = WebhookReq
     livemode :: Bool,
     pending_webhooks :: Integer,
     request :: WebhookRequest,
-    _type :: Text
+    _type :: EventType
   }
   deriving stock (Show, Generic)
 
@@ -264,8 +363,7 @@ data WebhookRequest = WebhookRequest
 data StripeObject
   = ObjectSetupIntent SetupIntent
   | ObjectPaymentIntent PaymentIntent
-  | --   | ObjectSetupIntent SetupIntent
-    --   | ObjectCustomer Customer
+  | --   | ObjectCustomer Customer
     --   | ObjectSubscription Subscription
     --   | ObjectInvoice Invoice
     ObjectCharge Charge
