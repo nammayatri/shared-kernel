@@ -135,6 +135,11 @@ instance ToHttpApiData SplitSettlementDetails where
   toQueryParam = toUrlPiece
   toHeader = BSL.toStrict . encode
 
+instance ToHttpApiData RefundSplitSettlementDetails where
+  toUrlPiece = DT.decodeUtf8 . toHeader
+  toQueryParam = toUrlPiece
+  toHeader = BSL.toStrict . encode
+
 data MBY = MARKETPLACE | VENDOR | ALL
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
@@ -174,6 +179,12 @@ data SplitPercentage = SplitPercentage
     merchant_commission_percentage :: Double,
     sub_mid :: Text,
     unique_split_id :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+newtype RefundMarketplace = RefundMarketplace
+  { refund_amount :: HighPrecMoney
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -288,7 +299,7 @@ instance ToJSON SDKPayloadDetails where
 data AutoRefundReq = AutoRefundReq
   { amount :: Double,
     unique_request_id :: Text,
-    split_settlement_details :: Maybe SplitSettlementDetails
+    split_settlement_details :: Maybe RefundSplitSettlementDetails
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (ToSchema)
