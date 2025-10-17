@@ -524,7 +524,7 @@ data AutoRefundReq = AutoRefundReq
   { orderId :: Text,
     requestId :: Text,
     amount :: HighPrecMoney,
-    splitSettlementDetails :: Maybe SplitSettlementDetails
+    splitSettlementDetails :: Maybe RefundSplitSettlementDetails
   }
 
 data AutoRefundResp = AutoRefundResp
