@@ -108,3 +108,53 @@ instance FromJSON PaymentIntentStatus where
 
 instance ToJSON PaymentIntentStatus where
   toJSON = genericToJSON paymentIntentStatusJsonOptions
+
+data CaptureMethod = AutomaticCaptureMethod | AutomaticAsyncCaptureMethod | ManualCaptureMethod
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+captureMethodJsonOptions :: Options
+captureMethodJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "AutomaticCaptureMethod" -> "automatic"
+        "AutomaticAsyncCaptureMethod" -> "automatic_async"
+        "ManualCaptureMethod" -> "manual"
+        x -> x
+    }
+
+instance ToHttpApiData CaptureMethod where
+  toQueryParam :: CaptureMethod -> Text
+  toQueryParam AutomaticCaptureMethod = "automatic"
+  toQueryParam AutomaticAsyncCaptureMethod = "automatic_async"
+  toQueryParam ManualCaptureMethod = "manual"
+
+instance FromJSON CaptureMethod where
+  parseJSON = genericParseJSON captureMethodJsonOptions
+
+instance ToJSON CaptureMethod where
+  toJSON = genericToJSON captureMethodJsonOptions
+
+data ConfirmationMethod = AutomaticConfirmationMethod | ManualConfirmationMethod
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+confirmationMethodJsonOptions :: Options
+confirmationMethodJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "AutomaticConfirmationMethod" -> "automatic"
+        "ManualConfirmationMethod" -> "manual"
+        x -> x
+    }
+
+instance ToHttpApiData ConfirmationMethod where
+  toQueryParam :: ConfirmationMethod -> Text
+  toQueryParam AutomaticConfirmationMethod = "automatic"
+  toQueryParam ManualConfirmationMethod = "manual"
+
+instance FromJSON ConfirmationMethod where
+  parseJSON = genericParseJSON confirmationMethodJsonOptions
+
+instance ToJSON ConfirmationMethod where
+  toJSON = genericToJSON confirmationMethodJsonOptions

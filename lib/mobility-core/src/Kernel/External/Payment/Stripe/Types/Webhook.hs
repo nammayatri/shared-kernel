@@ -19,9 +19,12 @@ import Data.Aeson
 import qualified Data.Aeson as A
 import qualified Data.Map as M
 import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
+import Data.Time.Clock.POSIX (POSIXTime)
+import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 import Kernel.Types.HideSecrets
 import Kernel.Types.Id
+import Kernel.Types.Price
 import qualified Kernel.Utils.JSON as J
 import qualified Kernel.Utils.Schema as S
 
@@ -206,7 +209,7 @@ data WebhookReq = WebhookReq
   { id :: Id Event,
     _object :: Text,
     api_version :: Text, -- should be configurated in stripe dashboard
-    created :: Integer,
+    created :: POSIXTime,
     _data :: WebhookReqData,
     livemode :: Bool,
     pending_webhooks :: Integer,
@@ -321,11 +324,11 @@ data SetupIntent = SetupIntent
   { id :: Text,
     _object :: Text,
     application :: Maybe Text,
-    automatic_payment_methods :: Maybe Value,
+    automatic_payment_methods :: Maybe AutomaticPayementMethods,
     cancellation_reason :: Maybe Text,
     client_secret :: Maybe Text,
-    created :: Integer,
-    customer :: Maybe Text,
+    created :: POSIXTime,
+    customer :: Maybe CustomerId,
     description :: Maybe Text,
     flow_directions :: Maybe [Text],
     last_setup_error :: Maybe Value,
@@ -334,12 +337,12 @@ data SetupIntent = SetupIntent
     mandate :: Maybe Text,
     metadata :: Maybe (M.Map Text Text),
     next_action :: Maybe Value,
-    on_behalf_of :: Maybe Text,
-    payment_method :: Maybe Text,
+    on_behalf_of :: Maybe AccountId,
+    payment_method :: Maybe PaymentMethodId,
     payment_method_options :: Maybe PaymentMethodOptions,
     payment_method_types :: [Text],
     single_use_mandate :: Maybe Text,
-    status :: Text,
+    status :: PaymentIntentStatus,
     usage :: Maybe Text
   }
   deriving stock (Show, Generic)
@@ -371,7 +374,7 @@ newtype PaymentMethodOptions = PaymentMethodOptions
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data ACSSDebit = ACSSDebit
-  { currency :: Text,
+  { currency :: Currency,
     mandate_options :: MandateOptions,
     verification_method :: Text
   }
@@ -390,20 +393,20 @@ data MandateOptions = MandateOptions
 data PaymentIntent = PaymentIntent
   { id :: Text,
     _object :: Text,
-    amount :: Integer,
-    amount_capturable :: Integer,
-    amount_received :: Integer,
+    amount :: Int,
+    amount_capturable :: Int,
+    amount_received :: Int,
     application :: Maybe Text,
-    application_fee_amount :: Maybe Integer,
-    automatic_payment_methods :: Maybe Value,
-    canceled_at :: Maybe Integer,
+    application_fee_amount :: Maybe Int,
+    automatic_payment_methods :: Maybe AutomaticPayementMethods,
+    canceled_at :: Maybe POSIXTime,
     cancellation_reason :: Maybe Text,
-    capture_method :: Text,
+    capture_method :: CaptureMethod,
     client_secret :: Maybe Text,
-    confirmation_method :: Text,
-    created :: Integer,
-    currency :: Text,
-    customer :: Maybe Text,
+    confirmation_method :: ConfirmationMethod,
+    created :: POSIXTime,
+    currency :: Currency,
+    customer :: Maybe CustomerId,
     description :: Maybe Text,
     invoice :: Maybe Text,
     last_payment_error :: Maybe Value,
@@ -411,16 +414,16 @@ data PaymentIntent = PaymentIntent
     livemode :: Bool,
     metadata :: Maybe (M.Map Text Text),
     next_action :: Maybe Value,
-    on_behalf_of :: Maybe Text,
-    payment_method :: Maybe Text,
+    on_behalf_of :: Maybe AccountId,
+    payment_method :: Maybe PaymentMethodId,
     payment_method_options :: Maybe Value,
     payment_method_types :: [Text],
     processing :: Maybe Value,
     receipt_email :: Maybe Text,
     review :: Maybe Text,
-    setup_future_usage :: Maybe Text,
+    setup_future_usage :: Maybe SetupFutureUsage,
     shipping :: Maybe Value,
-    status :: Text,
+    status :: PaymentIntentStatus,
     transfer_group :: Maybe Text
   }
   deriving stock (Show, Generic)
@@ -451,17 +454,17 @@ instance ToSchema PaymentIntent where
 data Charge = Charge
   { id :: Text,
     _object :: Text,
-    amount :: Integer,
-    amount_captured :: Integer,
-    amount_refunded :: Integer,
+    amount :: Int,
+    amount_captured :: Int,
+    amount_refunded :: Int,
     application :: Maybe Text,
-    application_fee_amount :: Maybe Integer,
+    application_fee_amount :: Maybe Int,
     balance_transaction :: Maybe Text,
     calculated_statement_descriptor :: Maybe Text,
     captured :: Bool,
-    created :: Integer,
-    currency :: Text,
-    customer :: Maybe Text,
+    created :: POSIXTime,
+    currency :: Currency,
+    customer :: Maybe CustomerId,
     description :: Maybe Text,
     disputed :: Bool,
     failure_code :: Maybe Text,
@@ -473,12 +476,12 @@ data Charge = Charge
     outcome :: Maybe Value,
     paid :: Bool,
     payment_intent :: Maybe Text,
-    payment_method :: Maybe Text,
+    payment_method :: Maybe PaymentMethodId,
     receipt_email :: Maybe Text,
     receipt_url :: Maybe Text,
     refunded :: Bool,
     refunds :: Maybe Value, -- This would be a list of refund objects
-    status :: Text
+    status :: ChargeStatus
   }
   deriving stock (Show, Generic)
 
@@ -504,3 +507,13 @@ instance ToJSON Charge where
 
 instance ToSchema Charge where
   declareNamedSchema = genericDeclareNamedSchema S.stripPrefixUnderscoreIfAny
+
+data ChargeStatus = Succeeded | Pending | Failed | Refunded | Disputed | Uncaptured | Canceled
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+instance FromJSON ChargeStatus where
+  parseJSON = genericParseJSON J.constructorsToLowerOptions
+
+instance ToJSON ChargeStatus where
+  toJSON = genericToJSON J.constructorsToLowerOptions
