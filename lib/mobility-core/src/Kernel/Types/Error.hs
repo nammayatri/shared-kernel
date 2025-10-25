@@ -164,6 +164,7 @@ data PersonError
   | PersonDoesNotExist Text
   | PersonFieldNotPresent Text
   | PersonWithPhoneNotFound Text
+  | PersonWithEmailOrPhoneNotFound (Maybe Text) (Maybe Text)
   | PersonEmailExists
   | PersonCityInformationDoesNotExist Text
   | PersonCityInformationNotFound Text
@@ -178,6 +179,11 @@ instance IsBaseError PersonError where
     PersonDoesNotExist personId -> Just $ "No person matches passed data \"" <> show personId <> "\" not exist."
     PersonFieldNotPresent field -> Just $ "Required field " <> field <> " is null for this person."
     PersonWithPhoneNotFound phone -> Just $ "Person with mobile number \"" <> show phone <> "\" not found."
+    PersonWithEmailOrPhoneNotFound mbPhone mbEmail -> case (mbPhone, mbEmail) of
+      (Just email, Just phone) -> Just $ "Person with email \"" <> email <> "\" and phone \"" <> phone <> "\" not found."
+      (Just email, Nothing) -> Just $ "Person with email \"" <> email <> "\" not found."
+      (Nothing, Just phone) -> Just $ "Person with phone \"" <> phone <> "\" not found."
+      (Nothing, Nothing) -> Just $ "Person with given identifiers not found"
     PersonEmailExists -> Just "Email is already registered."
     PersonCityInformationDoesNotExist searchKey -> Just $ "No person city information matches passed data " <> show searchKey <> "."
     PersonCityInformationNotFound searchKey -> Just $ "Person city information with personId \"" <> show searchKey <> "\" not found."
@@ -189,6 +195,7 @@ instance IsHTTPError PersonError where
     PersonDoesNotExist _ -> "PERSON_DOES_NOT_EXIST"
     PersonFieldNotPresent _ -> "PERSON_FIELD_NOT_PRESENT"
     PersonWithPhoneNotFound _ -> "PERSON_NOT_FOUND"
+    PersonWithEmailOrPhoneNotFound _ _ -> "PERSON_NOT_FOUND"
     PersonEmailExists -> "PERSON_EMAIL_ALREADY_EXISTS"
     PersonCityInformationDoesNotExist _ -> "PERSON_CITY_INFORMATION_DOES_NOT_EXIST"
     PersonCityInformationNotFound _ -> "PERSON_CITY_INFORMATION_NOT_FOUND"
@@ -196,6 +203,7 @@ instance IsHTTPError PersonError where
   toHttpCode = \case
     PersonNotFound _ -> E500
     PersonDoesNotExist _ -> E400
+    PersonWithEmailOrPhoneNotFound _ _ -> E400
     PersonFieldNotPresent _ -> E500
     PersonWithPhoneNotFound _ -> E422
     PersonEmailExists -> E400
