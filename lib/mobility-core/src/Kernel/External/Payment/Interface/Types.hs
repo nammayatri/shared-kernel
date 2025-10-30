@@ -137,7 +137,7 @@ data SplitSettlementDetailsPercentage = SplitSettlementDetailsPercentage
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
-data MBY = MARKETPLACE | VENDOR | ALL deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
+data MBY = MARKETPLACE | VENDOR | ALL deriving (Show, Read, Eq, Ord, Generic, FromJSON, ToJSON, ToSchema)
 
 newtype Marketplace = Marketplace
   { amount :: HighPrecMoney
