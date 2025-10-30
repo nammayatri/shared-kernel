@@ -120,7 +120,8 @@ newtype RefundVendor = RefundVendor
 
 data RefundSplit = RefundSplit
   { refund_amount :: HighPrecMoney,
-    sub_mid :: Text
+    sub_mid :: Text,
+    unique_split_id :: Maybe Text
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -325,7 +326,7 @@ data AutoRefundResp = AutoRefundResp
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 instance FromJSON AutoRefundReq where
-  parseJSON = genericParseJSON jsonOptions
+  parseJSON = genericParseJSON jsonReqOptions {omitNothingFields = True}
 
 instance ToJSON AutoRefundReq where
-  toJSON = genericToJSON jsonOptions
+  toJSON = genericToJSON jsonReqOptions {omitNothingFields = True}

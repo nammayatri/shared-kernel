@@ -125,7 +125,8 @@ newtype RefundVendor = RefundVendor
 
 data RefundSplit = RefundSplit
   { refundAmount :: HighPrecMoney,
-    subMid :: Text
+    subMid :: Text,
+    uniqueSplitId :: Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
