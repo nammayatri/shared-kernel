@@ -357,7 +357,7 @@ mkRefundSplitSettlementDetails splitDetails =
   where
     mkRefundMarketplace RefundMarketplace {..} = Juspay.RefundMarketplace {refund_amount = refundAmount}
     mkRefundVendor vendor = Juspay.RefundVendor {split = mkRefundSplit <$> vendor.split}
-    mkRefundSplit split = Juspay.RefundSplit {refund_amount = split.refundAmount, sub_mid = split.subMid}
+    mkRefundSplit split = Juspay.RefundSplit {refund_amount = split.refundAmount, sub_mid = split.subMid, unique_split_id = Just split.uniqueSplitId}
 
 orderStatus ::
   ( HasCallStack,
