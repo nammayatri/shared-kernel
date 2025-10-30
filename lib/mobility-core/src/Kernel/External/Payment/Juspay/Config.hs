@@ -18,6 +18,7 @@ module Kernel.External.Payment.Juspay.Config where
 import Data.Aeson
 import Kernel.External.Encryption
 import Kernel.Prelude
+import Kernel.Types.Time
 
 data JuspayCfg = JuspayCfg
   { apiKey :: EncryptedField 'AsEncrypted Text,
@@ -32,6 +33,7 @@ data JuspayCfg = JuspayCfg
     isSplitEnabled :: Maybe Bool,
     isRefundSplitEnabled :: Maybe Bool,
     isPercentageSplit :: Maybe Bool,
+    paymentOrderValidity :: Maybe Seconds,
     offerSKUConfig :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
