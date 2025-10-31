@@ -23,6 +23,7 @@ import Data.Aeson
 import Kernel.External.Encryption
 import Kernel.External.Payment.Stripe.Types.Accounts as Reexport (BusinessProfile (..))
 import Kernel.Prelude
+import Kernel.Types.Common
 
 data ChargeDestination = Platform | ConnectedAccount
   deriving stock (Show, Eq, Generic, Read)
@@ -34,7 +35,9 @@ data StripeCfg = StripeCfg
     refreshUrl :: BaseUrl,
     url :: BaseUrl,
     businessProfile :: Maybe BusinessProfile,
-    chargeDestination :: ChargeDestination
+    chargeDestination :: ChargeDestination,
+    webhookEndpointSecret :: Maybe (EncryptedField 'AsEncrypted Text),
+    webhookToleranceSeconds :: Maybe Seconds
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
