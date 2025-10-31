@@ -93,7 +93,7 @@ paymentIntentStatusJsonOptions :: Options
 paymentIntentStatusJsonOptions =
   defaultOptions
     { constructorTagModifier = \case
-        "Cancelled" -> "cancelled"
+        "Cancelled" -> "canceled"
         "Processing" -> "processing"
         "RequiresAction" -> "requires_action"
         "RequiresCapture" -> "requires_capture"
