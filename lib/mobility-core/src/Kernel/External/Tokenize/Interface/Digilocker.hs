@@ -15,25 +15,29 @@
 module Kernel.External.Tokenize.Interface.Digilocker where
 
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Kernel.External.Encryption (EncFlow, decrypt)
+import Kernel.External.Encryption (decrypt)
 import qualified Kernel.External.Tokenize.Digilocker.Flow as DigilockerFlow
 import qualified Kernel.External.Tokenize.Digilocker.Types as DigilockerTypes
 import Kernel.External.Tokenize.Interface.Error
 import qualified Kernel.External.Tokenize.Interface.Types as InterfaceTypes
 import Kernel.Prelude hiding (error)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Utils.Error.Throwing (fromMaybeM)
+import Kernel.Utils.Common
 
 tokenize ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    Log m
   ) =>
   DigilockerTypes.DigilockerTokenizeConfig ->
   InterfaceTypes.TokenizationReq ->
   m InterfaceTypes.TokenizationResp
 tokenize config req = do
+  logInfo "DigiLocker tokenize: Preparing tokenize request"
   digilockerReq <- makeDigilockerTokenizeRequest config req
+  logDebug $ "DigiLocker tokenize: Request prepared - " <> show digilockerReq
   resp <- DigilockerFlow.tokenize config.url digilockerReq
+  logInfo "DigiLocker tokenize: Processing response"
   makeDigilockerTokenizeResp resp
   where
     makeDigilockerTokenizeRequest :: EncFlow m r => DigilockerTypes.DigilockerTokenizeConfig -> InterfaceTypes.TokenizationReq -> m DigilockerTypes.DigilockerTokenizeRequest

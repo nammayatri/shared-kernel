@@ -48,7 +48,8 @@ digilockerError baseUrl clientError =
 checkDigilockerTokenizeResponse ::
   ( HasCallStack,
     MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    Log m
   ) =>
   BaseUrl ->
   Either ClientError DLT.DigilockerTokenizeResponse ->
@@ -57,12 +58,23 @@ checkDigilockerTokenizeResponse baseUrl resp =
   case resp of
     Left err@(FailureResponse _ (Response (Status {statusCode = code}) _ _ _)) -> do
       let errMsg = "No error message found in response or failed to parse error"
+      logError $ "DigiLocker tokenize API call failed with status code: " <> show code <> ", error: " <> show err
       case code of
-        401 -> throwError DLUnauthorizedError
-        400 -> throwError $ DLBadRequestError errMsg
-        _ -> fromEitherM (digilockerError baseUrl) (Left err)
-    Left err -> fromEitherM (digilockerError baseUrl) (Left err)
-    Right resp' -> validateDigilockerTokenizeResponse resp'
+        401 -> do
+          logError "DigiLocker tokenize failed: Unauthorized (401)"
+          throwError DLUnauthorizedError
+        400 -> do
+          logError $ "DigiLocker tokenize failed: Bad Request (400) - " <> errMsg
+          throwError $ DLBadRequestError errMsg
+        _ -> do
+          logError $ "DigiLocker tokenize failed with unexpected status code: " <> show code
+          fromEitherM (digilockerError baseUrl) (Left err)
+    Left err -> do
+      logError $ "DigiLocker tokenize API call failed: " <> show err
+      fromEitherM (digilockerError baseUrl) (Left err)
+    Right resp' -> do
+      logInfo "DigiLocker tokenize API call succeeded"
+      validateDigilockerTokenizeResponse resp'
 
 validateDigilockerTokenizeResponse ::
   ( MonadThrow m,
@@ -72,8 +84,10 @@ validateDigilockerTokenizeResponse ::
   m DLT.DigilockerTokenizeResponse
 validateDigilockerTokenizeResponse resp = do
   logDebug $ "DigiLocker Tokenize Response: " <> show resp
-  when (T.null resp.access_token) $
+  when (T.null resp.access_token) $ do
+    logError "DigiLocker tokenize response validation failed: Access token is missing"
     throwError $ DLError "Access token is missing in DigiLocker response"
+  logInfo "DigiLocker tokenize response validated successfully"
   return resp
 
 tokenize ::
@@ -86,6 +100,9 @@ tokenize ::
   DLT.DigilockerTokenizeRequest ->
   m DLT.DigilockerTokenizeResponse
 tokenize baseUrl req = do
-  logDebug $ "DigiLocker tokenize request: " <> show req
+  logInfo $ "Starting DigiLocker tokenize request to baseUrl: " <> showBaseUrl baseUrl
+  logDebug $ "DigiLocker tokenize request details: " <> show req
   res <- callAPI baseUrl (tokenizeClient req) "DIGILOCKER_TOKENIZE" (Proxy @DigilockerTokenizeAPI)
-  checkDigilockerTokenizeResponse baseUrl res
+  resp <- checkDigilockerTokenizeResponse baseUrl res
+  logInfo "DigiLocker tokenize completed successfully"
+  return resp
