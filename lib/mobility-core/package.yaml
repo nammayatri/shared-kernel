@@ -158,6 +158,7 @@ dependencies:
   - slack-web
   - insert-ordered-containers
   - split
+  - bimap
 
 ghc-options:
   - -fwrite-ide-info
