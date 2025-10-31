@@ -30,19 +30,21 @@ type SetupIntentId = Text
 
 type PaymentMethodId = Text
 
-data AutomaticPayementMethods = AutomaticPayementMethods
+data Event
+
+data AutomaticPaymentMethods = AutomaticPaymentMethods
   { enabled :: Bool,
-    allow_redirects :: AutomaticPayementMethodsAllowRedirects
+    allow_redirects :: AutomaticPaymentMethodsAllowRedirects
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data AutomaticPayementMethodsAllowRedirects = AlwaysRedirect | NeverRedirect
+data AutomaticPaymentMethodsAllowRedirects = AlwaysRedirect | NeverRedirect
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
 
-instance ToHttpApiData AutomaticPayementMethodsAllowRedirects where
-  toQueryParam :: AutomaticPayementMethodsAllowRedirects -> Text
+instance ToHttpApiData AutomaticPaymentMethodsAllowRedirects where
+  toQueryParam :: AutomaticPaymentMethodsAllowRedirects -> Text
   toQueryParam AlwaysRedirect = "redirect"
   toQueryParam NeverRedirect = "never"
 
@@ -55,10 +57,10 @@ automaticPayementMethodsAllowRedirectsJsonOptions =
         x -> x
     }
 
-instance FromJSON AutomaticPayementMethodsAllowRedirects where
+instance FromJSON AutomaticPaymentMethodsAllowRedirects where
   parseJSON = genericParseJSON automaticPayementMethodsAllowRedirectsJsonOptions
 
-instance ToJSON AutomaticPayementMethodsAllowRedirects where
+instance ToJSON AutomaticPaymentMethodsAllowRedirects where
   toJSON = genericToJSON automaticPayementMethodsAllowRedirectsJsonOptions
 
 data SetupFutureUsage = FutureUsageOffSession | FutureUsageOnSession
@@ -108,3 +110,77 @@ instance FromJSON PaymentIntentStatus where
 
 instance ToJSON PaymentIntentStatus where
   toJSON = genericToJSON paymentIntentStatusJsonOptions
+
+data CaptureMethod = AutomaticCaptureMethod | AutomaticAsyncCaptureMethod | ManualCaptureMethod
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+captureMethodJsonOptions :: Options
+captureMethodJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "AutomaticCaptureMethod" -> "automatic"
+        "AutomaticAsyncCaptureMethod" -> "automatic_async"
+        "ManualCaptureMethod" -> "manual"
+        x -> x
+    }
+
+instance ToHttpApiData CaptureMethod where
+  toQueryParam :: CaptureMethod -> Text
+  toQueryParam AutomaticCaptureMethod = "automatic"
+  toQueryParam AutomaticAsyncCaptureMethod = "automatic_async"
+  toQueryParam ManualCaptureMethod = "manual"
+
+instance FromJSON CaptureMethod where
+  parseJSON = genericParseJSON captureMethodJsonOptions
+
+instance ToJSON CaptureMethod where
+  toJSON = genericToJSON captureMethodJsonOptions
+
+data ConfirmationMethod = AutomaticConfirmationMethod | ManualConfirmationMethod
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+confirmationMethodJsonOptions :: Options
+confirmationMethodJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "AutomaticConfirmationMethod" -> "automatic"
+        "ManualConfirmationMethod" -> "manual"
+        x -> x
+    }
+
+instance ToHttpApiData ConfirmationMethod where
+  toQueryParam :: ConfirmationMethod -> Text
+  toQueryParam AutomaticConfirmationMethod = "automatic"
+  toQueryParam ManualConfirmationMethod = "manual"
+
+instance FromJSON ConfirmationMethod where
+  parseJSON = genericParseJSON confirmationMethodJsonOptions
+
+instance ToJSON ConfirmationMethod where
+  toJSON = genericToJSON confirmationMethodJsonOptions
+
+data ChargeStatus = CHARGE_SUCCEEDED | CHARGE_PENDING | CHARGE_FAILED | CHARGE_REFUNDED | CHARGE_DISPUTED | CHARGE_UNCAPTURED | CHARGE_CANCELED
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+instance FromJSON ChargeStatus where
+  parseJSON = genericParseJSON chargeStatusJsonOptions
+
+instance ToJSON ChargeStatus where
+  toJSON = genericToJSON chargeStatusJsonOptions
+
+chargeStatusJsonOptions :: Options
+chargeStatusJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "CHARGE_SUCCEEDED" -> "succeeded"
+        "CHARGE_PENDING" -> "pending"
+        "CHARGE_FAILED" -> "failed"
+        "CHARGE_REFUNDED" -> "refunded"
+        "CHARGE_DISPUTED" -> "disputed"
+        "CHARGE_UNCAPTURED" -> "uncaptured"
+        "CHARGE_CANCELED" -> "canceled"
+        x -> x
+    }
