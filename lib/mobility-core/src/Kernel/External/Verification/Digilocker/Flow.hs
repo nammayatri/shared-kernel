@@ -11,14 +11,5 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-module Kernel.External.Tokenize.Types where
 
-import Data.Text (unpack)
-import Kernel.Prelude
-import Servant.API (FromHttpApiData (..))
-
-data TokenizationService = HyperVerge | JourneyMonitoring | Gullak | Digilocker
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
-
-instance FromHttpApiData TokenizationService where
-  parseUrlPiece = pure . read . unpack
+module Kernel.External.Verification.Digilocker.Flow where

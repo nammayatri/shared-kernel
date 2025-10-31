@@ -15,16 +15,19 @@
 
 module Kernel.External.Tokenize.Interface.Types where
 
+import qualified Kernel.External.Tokenize.Digilocker.Types as DLT
 import qualified Kernel.External.Tokenize.Gullak.Types as GUKTypes
 import qualified Kernel.External.Tokenize.HyperVerge.Types as HVTypes
 import Kernel.External.Tokenize.JourneyMonitoring.Types as JMTypes
 import Kernel.Prelude
 
-data TokenizationServiceConfig = HyperVergeTokenizationServiceConfig HVTypes.HyperVergeTokenizeConfig | JourneyMonitoringTokenizationServiceConfig JMTypes.JourneyMonitoringTokenizeConfig | GullakTokenizationServiceConfig GUKTypes.GullakConfig
+data TokenizationServiceConfig = HyperVergeTokenizationServiceConfig HVTypes.HyperVergeTokenizeConfig | JourneyMonitoringTokenizationServiceConfig JMTypes.JourneyMonitoringTokenizeConfig | GullakTokenizationServiceConfig GUKTypes.GullakConfig | DigilockerTokenizationServiceConfig DLT.DigilockerTokenizeConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
-newtype TokenizationReq = TokenizationReq
-  { expiry :: Maybe Int
+data TokenizationReq = TokenizationReq
+  { expiry :: Maybe Int,
+    code :: Maybe Text,
+    codeVerifier :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
