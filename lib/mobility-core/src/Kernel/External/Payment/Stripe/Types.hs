@@ -24,3 +24,4 @@ import Kernel.External.Payment.Stripe.Types.Customer as Reexport
 import Kernel.External.Payment.Stripe.Types.Error as Reexport
 import Kernel.External.Payment.Stripe.Types.PaymentIntent as Reexport
 import Kernel.External.Payment.Stripe.Types.SetupIntent as Reexport
+import Kernel.External.Payment.Stripe.Types.Webhook as Reexport
