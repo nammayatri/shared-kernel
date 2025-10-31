@@ -141,6 +141,7 @@ library
       Kernel.External.Notification.PayTM.Types
       Kernel.External.Notification.Types
       Kernel.External.Payment.Interface
+      Kernel.External.Payment.Interface.Events.Types
       Kernel.External.Payment.Interface.Juspay
       Kernel.External.Payment.Interface.Stripe
       Kernel.External.Payment.Interface.Types
@@ -165,6 +166,8 @@ library
       Kernel.External.Payment.Stripe.Types.Error
       Kernel.External.Payment.Stripe.Types.PaymentIntent
       Kernel.External.Payment.Stripe.Types.SetupIntent
+      Kernel.External.Payment.Stripe.Types.Webhook
+      Kernel.External.Payment.Stripe.Webhook
       Kernel.External.Payment.Types
       Kernel.External.Payout.Interface
       Kernel.External.Payout.Interface.Juspay
@@ -514,6 +517,7 @@ library
     , beam-core
     , beam-mysql
     , beam-postgres
+    , bimap
     , bytestring
     , case-insensitive
     , casing
@@ -677,6 +681,7 @@ test-suite mobility-core-tests
     , beam-core
     , beam-mysql
     , beam-postgres
+    , bimap
     , bytestring
     , case-insensitive
     , casing

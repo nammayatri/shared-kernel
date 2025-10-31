@@ -27,7 +27,7 @@ import Web.HttpApiData (ToHttpApiData (..))
 data PaymentIntentReq = PaymentIntentReq
   { amount :: Int,
     currency :: Currency,
-    -- automatic_payment_methods :: AutomaticPayementMethods,
+    -- automatic_payment_methods :: AutomaticPaymentMethods,
     confirm :: Bool,
     customer :: CustomerId,
     description :: Maybe Text,
@@ -78,63 +78,13 @@ newtype TransferData = TransferData
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data CaptureMethod = AutomaticCaptureMethod | AutomaticAsyncCaptureMethod | ManualCaptureMethod
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (ToSchema)
-
-captureMethodJsonOptions :: Options
-captureMethodJsonOptions =
-  defaultOptions
-    { constructorTagModifier = \case
-        "AutomaticCaptureMethod" -> "automatic"
-        "AutomaticAsyncCaptureMethod" -> "automatic_async"
-        "ManualCaptureMethod" -> "manual"
-        x -> x
-    }
-
-instance ToHttpApiData CaptureMethod where
-  toQueryParam :: CaptureMethod -> Text
-  toQueryParam AutomaticCaptureMethod = "automatic"
-  toQueryParam AutomaticAsyncCaptureMethod = "automatic_async"
-  toQueryParam ManualCaptureMethod = "manual"
-
-instance FromJSON CaptureMethod where
-  parseJSON = genericParseJSON captureMethodJsonOptions
-
-instance ToJSON CaptureMethod where
-  toJSON = genericToJSON captureMethodJsonOptions
-
-data ConfirmationMethod = AutomaticConfirmationMethod | ManualConfirmationMethod
-  deriving stock (Show, Eq, Generic, Read)
-  deriving anyclass (ToSchema)
-
-confirmationMethodJsonOptions :: Options
-confirmationMethodJsonOptions =
-  defaultOptions
-    { constructorTagModifier = \case
-        "AutomaticConfirmationMethod" -> "automatic"
-        "ManualConfirmationMethod" -> "manual"
-        x -> x
-    }
-
-instance ToHttpApiData ConfirmationMethod where
-  toQueryParam :: ConfirmationMethod -> Text
-  toQueryParam AutomaticConfirmationMethod = "automatic"
-  toQueryParam ManualConfirmationMethod = "manual"
-
-instance FromJSON ConfirmationMethod where
-  parseJSON = genericParseJSON confirmationMethodJsonOptions
-
-instance ToJSON ConfirmationMethod where
-  toJSON = genericToJSON confirmationMethodJsonOptions
-
 data PaymentIntentObject = PaymentIntentObject
   { id :: PaymentIntentId,
     amount :: Maybe Int,
     client_secret :: Text,
     latest_charge :: Maybe Text,
     status :: PaymentIntentStatus,
-    -- automatic_payment_methods :: Maybe AutomaticPayementMethods,
+    -- automatic_payment_methods :: Maybe AutomaticPaymentMethods,
     -- confirm :: Maybe Bool,
     customer_id :: Maybe CustomerId,
     description :: Maybe Text,

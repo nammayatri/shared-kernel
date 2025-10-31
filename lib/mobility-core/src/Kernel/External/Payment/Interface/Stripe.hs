@@ -4,14 +4,20 @@ import Control.Applicative ((<|>))
 import Data.Time
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Kernel.External.Encryption
+import qualified Kernel.External.Payment.Interface.Events.Types as Events
 import Kernel.External.Payment.Interface.Types
 import Kernel.External.Payment.Stripe.Config as Reexport
 import qualified Kernel.External.Payment.Stripe.Flow as Stripe
 import qualified Kernel.External.Payment.Stripe.Types as Stripe
+import qualified Kernel.External.Payment.Stripe.Webhook as Stripe
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.Beckn.Ack
 import qualified Kernel.Types.Beckn.Context as Context
 import Kernel.Types.Common
+import Kernel.Types.Error
+import Kernel.Types.Id
+import Kernel.Utils.Common
 
 createIndividualConnectAccount ::
   ( Metrics.CoreMetrics m,
@@ -273,7 +279,7 @@ createPaymentIntent config req = do
           let receipt_email = receiptEmail
           let on_behalf_of = Just driverAccountId
           let transfer_data = Stripe.TransferData {destination = driverAccountId}
-          -- let automatic_payment_methods = Stripe.AutomaticPayementMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
+          -- let automatic_payment_methods = Stripe.AutomaticPaymentMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
           let confirm = True
           let description = Nothing
           let setup_future_usage = Nothing
@@ -302,7 +308,7 @@ createSetupIntent config customerId = do
   where
     mkSetupIntentReq :: Stripe.SetupIntentReq
     mkSetupIntentReq = do
-      let automatic_payment_methods = Stripe.AutomaticPayementMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
+      let automatic_payment_methods = Stripe.AutomaticPaymentMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
       let confirm = False
       let customer = customerId
       let description = Nothing
@@ -437,3 +443,149 @@ usdToCents (HighPrecMoney money) = round $ money * 100
 
 eurToCents :: HighPrecMoney -> Int
 eurToCents (HighPrecMoney money) = round $ money * 100
+
+-- | Convert cents to USD
+centsToUsd :: Int -> HighPrecMoney
+centsToUsd cents = HighPrecMoney $ (toRational cents / 100)
+
+serviceEventWebhook ::
+  EncFlow m r =>
+  PaymentServiceConfig ->
+  (Id Stripe.Event -> m Bool) ->
+  (Events.ServiceEventResp -> Text -> m AckResponse) ->
+  Maybe Text ->
+  Stripe.RawByteString ->
+  m AckResponse
+serviceEventWebhook paymentConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes = do
+  Stripe.serviceEventWebhook paymentConfig checkDuplicatedEvent (\resp respDump -> buildServiceEventResp resp >>= flip serviceEventHandler respDump) mbSigHeader rawBytes
+
+buildServiceEventResp :: (MonadThrow m, Log m) => Stripe.WebhookReq -> m Events.ServiceEventResp
+buildServiceEventResp Stripe.WebhookReq {..} = do
+  eventData <- buildEventObject _type _data._object
+  pure
+    Events.ServiceEventResp
+      { id,
+        apiVersion = api_version,
+        createdAt = posixSecondsToUTCTime created,
+        eventData,
+        livemode,
+        pendingWebhooks = pending_webhooks,
+        ..
+      }
+
+buildEventObject :: (MonadThrow m, Log m) => Stripe.EventType -> Stripe.StripeObject -> m Events.EventObject
+buildEventObject eventType stripeObject = case (eventType, stripeObject) of
+  (Stripe.PaymentIntentSucceeded, Stripe.ObjectPaymentIntent obj) -> pure $ Events.PaymentIntentSucceededEvent $ mkPaymentIntentObject obj
+  (Stripe.PaymentIntentPaymentFailed, Stripe.ObjectPaymentIntent obj) -> pure $ Events.PaymentIntentPaymentFailedEvent $ mkPaymentIntentObject obj
+  (Stripe.PaymentIntentProcessing, Stripe.ObjectPaymentIntent obj) -> pure $ Events.PaymentIntentProcessingEvent $ mkPaymentIntentObject obj
+  (Stripe.PaymentIntentCanceled, Stripe.ObjectPaymentIntent obj) -> pure $ Events.PaymentIntentCanceledEvent $ mkPaymentIntentObject obj
+  (Stripe.PaymentIntentCreated, Stripe.ObjectPaymentIntent obj) -> pure $ Events.PaymentIntentCreatedEvent $ mkPaymentIntentObject obj
+  (Stripe.PaymentIntentRequiresAction, Stripe.ObjectPaymentIntent obj) -> pure $ Events.PaymentIntentRequiresActionEvent $ mkPaymentIntentObject obj
+  (Stripe.SetupIntentSucceeded, Stripe.ObjectSetupIntent obj) -> pure $ Events.SetupIntentSucceededEvent $ mkSetupIntentObject obj
+  (Stripe.SetupIntentSetupFailed, Stripe.ObjectSetupIntent obj) -> pure $ Events.SetupIntentSetupFailedEvent $ mkSetupIntentObject obj
+  (Stripe.SetupIntentCanceled, Stripe.ObjectSetupIntent obj) -> pure $ Events.SetupIntentCanceledEvent $ mkSetupIntentObject obj
+  (Stripe.SetupIntentCreated, Stripe.ObjectSetupIntent obj) -> pure $ Events.SetupIntentCreatedEvent $ mkSetupIntentObject obj
+  (Stripe.SetupIntentRequiresAction, Stripe.ObjectSetupIntent obj) -> pure $ Events.SetupIntentRequiresActionEvent $ mkSetupIntentObject obj
+  (Stripe.ChargeSucceeded, Stripe.ObjectCharge obj) -> pure $ Events.ChargeSucceededEvent $ mkChargeObject obj
+  (Stripe.ChargeFailed, Stripe.ObjectCharge obj) -> pure $ Events.ChargeFailedEvent $ mkChargeObject obj
+  (Stripe.ChargeRefunded, Stripe.ObjectCharge obj) -> pure $ Events.ChargeRefundedEvent $ mkChargeObject obj
+  (Stripe.ChargeDisputeCreated, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeCreatedEvent $ mkChargeObject obj
+  (Stripe.ChargeDisputeClosed, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeClosedEvent $ mkChargeObject obj
+  (Stripe.ChargeRefundUpdated, Stripe.ObjectCharge obj) -> pure $ Events.ChargeRefundUpdatedEvent $ mkChargeObject obj
+  (Stripe.CustomEvent eventName, Stripe.CustomObject _objectName _obj) -> pure $ Events.CustomEvent eventName
+  (_, _) -> throwError (InvalidRequest $ "Invalid object: " <> Stripe.getObjectType stripeObject <> "found for event:" <> Stripe.eventTypeToText eventType)
+
+mkPaymentIntentObject :: Stripe.PaymentIntent -> Events.PaymentIntent
+mkPaymentIntentObject Stripe.PaymentIntent {..} =
+  Events.PaymentIntent
+    { amount = centsToUsd amount,
+      amountCapturable = centsToUsd amount_capturable,
+      amountReceived = centsToUsd amount_received,
+      applicationFeeAmount = centsToUsd <$> application_fee_amount,
+      automaticPaymentMethods = castAutomaticPaymentMethods <$> automatic_payment_methods,
+      canceledAt = posixSecondsToUTCTime <$> canceled_at,
+      cancellationReason = cancellation_reason,
+      captureMethod = capture_method,
+      clientSecret = client_secret,
+      confirmationMethod = confirmation_method,
+      createdAt = posixSecondsToUTCTime created,
+      lastPaymentError = last_payment_error,
+      latestCharge = latest_charge,
+      nextAction = next_action,
+      onBehalfOf = on_behalf_of,
+      paymentMethod = payment_method,
+      paymentMethodOptions = payment_method_options,
+      paymentMethodTypes = payment_method_types,
+      receiptEmail = receipt_email,
+      setupFutureUsage = setup_future_usage,
+      transferGroup = transfer_group,
+      ..
+    }
+
+castAutomaticPaymentMethods :: Stripe.AutomaticPaymentMethods -> Events.AutomaticPaymentMethods
+castAutomaticPaymentMethods Stripe.AutomaticPaymentMethods {..} =
+  Events.AutomaticPaymentMethods
+    { allowRedirects = allow_redirects,
+      ..
+    }
+
+mkSetupIntentObject :: Stripe.SetupIntent -> Events.SetupIntent
+mkSetupIntentObject Stripe.SetupIntent {..} =
+  Events.SetupIntent
+    { automaticPaymentMethods = castAutomaticPaymentMethods <$> automatic_payment_methods,
+      cancellationReason = cancellation_reason,
+      clientSecret = client_secret,
+      createdAt = posixSecondsToUTCTime created,
+      flowDirections = flow_directions,
+      lastSetupError = last_setup_error,
+      latestAttempt = latest_attempt,
+      nextAction = next_action,
+      onBehalfOf = on_behalf_of,
+      paymentMethod = payment_method,
+      paymentMethodOptions = castPaymentMethodOptions <$> payment_method_options,
+      paymentMethodTypes = payment_method_types,
+      singleUseMandate = single_use_mandate,
+      ..
+    }
+
+castPaymentMethodOptions :: Stripe.PaymentMethodOptions -> Events.PaymentMethodOptions
+castPaymentMethodOptions Stripe.PaymentMethodOptions {..} =
+  Events.PaymentMethodOptions
+    { acssDebit = castACSSDebit <$> acss_debit
+    }
+
+castACSSDebit :: Stripe.ACSSDebit -> Events.ACSSDebit
+castACSSDebit Stripe.ACSSDebit {..} =
+  Events.ACSSDebit
+    { mandateOptions = castMandateOptions mandate_options,
+      verificationMethod = verification_method,
+      ..
+    }
+
+castMandateOptions :: Stripe.MandateOptions -> Events.MandateOptions
+castMandateOptions Stripe.MandateOptions {..} =
+  Events.MandateOptions
+    { intervalDescription = interval_description,
+      paymentSchedule = payment_schedule,
+      transactionType = transaction_type
+    }
+
+mkChargeObject :: Stripe.Charge -> Events.Charge
+mkChargeObject Stripe.Charge {..} =
+  Events.Charge
+    { amount = centsToUsd amount,
+      amountCaptured = centsToUsd amount_captured,
+      amountRefunded = centsToUsd amount_refunded,
+      applicationFeeAmount = centsToUsd <$> application_fee_amount,
+      balanceTransaction = balance_transaction,
+      calculatedStatementDescriptor = calculated_statement_descriptor,
+      createdAt = posixSecondsToUTCTime created,
+      failureCode = failure_code,
+      failureMessage = failure_message,
+      fraudDetails = fraud_details,
+      paymentIntent = payment_intent,
+      paymentMethod = payment_method,
+      receiptEmail = receipt_email,
+      receiptUrl = receipt_url,
+      ..
+    }
