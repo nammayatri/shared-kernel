@@ -619,6 +619,8 @@ library
     , wai-app-static
     , wai-middleware-prometheus
     , warp
+    , xml-conduit
+    , xml-types
     , xmlbf
   default-language: Haskell2010
 
@@ -783,5 +785,7 @@ test-suite mobility-core-tests
     , wai-app-static
     , wai-middleware-prometheus
     , warp
+    , xml-conduit
+    , xml-types
     , xmlbf
   default-language: Haskell2010

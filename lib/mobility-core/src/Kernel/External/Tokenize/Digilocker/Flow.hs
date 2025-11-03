@@ -62,10 +62,10 @@ checkDigilockerTokenizeResponse baseUrl resp =
       case code of
         401 -> do
           logError "DigiLocker tokenize failed: Unauthorized (401)"
-          throwError DLUnauthorizedError
+          throwError DGLUnauthorizedError
         400 -> do
           logError $ "DigiLocker tokenize failed: Bad Request (400) - " <> errMsg
-          throwError $ DLBadRequestError errMsg
+          throwError $ DGLBadRequestError errMsg
         _ -> do
           logError $ "DigiLocker tokenize failed with unexpected status code: " <> show code
           fromEitherM (digilockerError baseUrl) (Left err)
@@ -86,7 +86,7 @@ validateDigilockerTokenizeResponse resp = do
   logDebug $ "DigiLocker Tokenize Response: " <> show resp
   when (T.null resp.access_token) $ do
     logError "DigiLocker tokenize response validation failed: Access token is missing"
-    throwError $ DLError "Access token is missing in DigiLocker response"
+    throwError $ DGLError "Access token is missing in DigiLocker response"
   logInfo "DigiLocker tokenize response validated successfully"
   return resp
 

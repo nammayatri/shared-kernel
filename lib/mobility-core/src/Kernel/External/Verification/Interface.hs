@@ -27,9 +27,12 @@ module Kernel.External.Verification.Interface
     verifySdkResp,
     getTask,
     nameCompare,
+    getXml,
+    getFile,
   )
 where
 
+import qualified Data.ByteString.Lazy as BSL
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.External.Verification.GovtData.Client as GovtData
@@ -37,6 +40,7 @@ import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
 import Kernel.External.Verification.GovtData.Types as Reexport
 import Kernel.External.Verification.HyperVerge.Types as Reexport
 import Kernel.External.Verification.Idfy.Config as Reexport
+import qualified Kernel.External.Verification.Interface.Digilocker as DigiLocker
 import qualified Kernel.External.Verification.Interface.HyperVerge as HyperVerge
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
@@ -268,3 +272,25 @@ getTask serviceConfig req updateResp = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.getVerificationStatus cfg req updateResp
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+
+getXml ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  DigiLockerGetXmlReq ->
+  m GetTaskResp
+getXml serviceConfig req = case serviceConfig of
+  DigiLockerConfig cfg -> DigiLocker.getXML cfg req.accessToken req.uri
+  _ -> throwError $ InternalError "Not Implemented!"
+
+getFile ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  DigiLockerGetFileReq ->
+  m BSL.ByteString
+getFile serviceConfig req = case serviceConfig of
+  DigiLockerConfig cfg -> DigiLocker.getFile cfg req.accessToken req.uri
+  _ -> throwError $ InternalError "Not Implemented!"

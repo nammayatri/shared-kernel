@@ -16,33 +16,87 @@
 
 module Kernel.External.SharedLogic.DigiLocker.Error where
 
+import qualified Data.Aeson as A
+import qualified Data.ByteString as BS
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
+
+-- DigiLocker error response JSON format
+data DigiLockerErrorResp = DigiLockerErrorResp
+  { _error :: Text,
+    error_description :: Maybe Text
+  }
+  deriving (Eq, Show, Generic)
+
+instance A.FromJSON DigiLockerErrorResp where
+  parseJSON = A.genericParseJSON stripPrefixUnderscoreIfAny
+
+instance A.ToJSON DigiLockerErrorResp where
+  toJSON = A.genericToJSON stripPrefixUnderscoreIfAny
 
 data DigiLockerError
-  = DLError Text
-  | DLUnauthorizedError
-  | DLBadRequestError Text
+  = DGLError Text
+  | DGLUnauthorizedError -- 401: invalid_token
+  | DGLBadRequestError Text -- 400: uri_missing
+  | DGLForbiddenError Text -- 403: insufficient_scope
+  | DGLNotFoundError Text -- 404: invalid_uri
+  | DGLInternalServerError Text -- 530: repository_service_resperror
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''DigiLockerError
 
 instance IsBaseError DigiLockerError where
   toMessage = \case
-    DLError msg -> Just $ "DigiLocker Error: " <> msg
-    DLUnauthorizedError -> Just "DigiLocker token expired or has been revoked by DigiLocker user."
-    DLBadRequestError msg -> Just $ "DigiLocker Bad Request: " <> msg
+    DGLError msg -> Just $ "DigiLocker Error: " <> msg
+    DGLUnauthorizedError -> Just "DigiLocker token expired or has been revoked by DigiLocker user."
+    DGLBadRequestError msg -> Just $ "DigiLocker Bad Request: " <> msg
+    DGLForbiddenError msg -> Just $ "DigiLocker Forbidden: " <> msg
+    DGLNotFoundError msg -> Just $ "DigiLocker Not Found: " <> msg
+    DGLInternalServerError msg -> Just $ "DigiLocker Internal Server Error: " <> msg
 
 instance IsHTTPError DigiLockerError where
   toErrorCode = \case
-    DLError _ -> "DL_ERROR"
-    DLUnauthorizedError -> "DL_UNAUTHORIZED"
-    DLBadRequestError _ -> "DL_BAD_REQUEST"
+    DGLError _ -> "DGL_ERROR"
+    DGLUnauthorizedError -> "DGL_UNAUTHORIZED"
+    DGLBadRequestError _ -> "DGL_BAD_REQUEST"
+    DGLForbiddenError _ -> "DGL_FORBIDDEN"
+    DGLNotFoundError _ -> "DGL_NOT_FOUND"
+    DGLInternalServerError _ -> "DGL_INTERNAL_SERVER_ERROR"
 
   toHttpCode = \case
-    DLUnauthorizedError -> E401
-    DLBadRequestError _ -> E400
-    DLError _ -> E400
+    DGLUnauthorizedError -> E401
+    DGLBadRequestError _ -> E400
+    DGLForbiddenError _ -> E403
+    DGLNotFoundError _ -> E404
+    DGLInternalServerError _ -> E500
+    DGLError _ -> E400
 
 instance IsAPIError DigiLockerError
+
+-- Helper function to parse error from response body
+parseDigiLockerErrorFromResponse ::
+  Int ->
+  BS.ByteString ->
+  DigiLockerError
+parseDigiLockerErrorFromResponse statusCode body =
+  case A.decodeStrict body of
+    Just (errorResp :: DigiLockerErrorResp) -> do
+      let errorDesc = fromMaybe errorResp._error errorResp.error_description
+      case statusCode of
+        401 -> DGLUnauthorizedError
+        400 -> DGLBadRequestError errorDesc
+        403 -> DGLForbiddenError errorDesc
+        404 -> DGLNotFoundError errorDesc
+        530 -> DGLInternalServerError errorDesc
+        _ -> DGLError errorDesc
+    Nothing -> do
+      -- If we can't parse JSON, use status code with generic message
+      case statusCode of
+        401 -> DGLUnauthorizedError
+        400 -> DGLBadRequestError "Bad Request"
+        403 -> DGLForbiddenError "Forbidden"
+        404 -> DGLNotFoundError "Not Found"
+        530 -> DGLInternalServerError "Internal Server Error"
+        _ -> DGLError $ "HTTP " <> show statusCode

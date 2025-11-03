@@ -221,3 +221,16 @@ newtype NameCompareResp = NameCompareResp
   { nameComparedData :: Maybe Idfy.NameCompareResponseData
   }
   deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+
+-- DigiLocker request types
+data DigiLockerGetXmlReq = DigiLockerGetXmlReq
+  { uri :: Text,
+    accessToken :: Text
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+
+data DigiLockerGetFileReq = DigiLockerGetFileReq
+  { uri :: Text,
+    accessToken :: Text
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
