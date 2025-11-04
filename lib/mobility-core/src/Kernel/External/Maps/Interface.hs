@@ -191,11 +191,11 @@ snapToRoadWithFallback ::
   ) =>
   Maybe Text ->
   Maybe MapsServiceConfig ->
+  Bool ->
   SnapToRoadHandler m ->
   SnapToRoadReq ->
-  Bool ->
   m ([MapsService], Either String SnapToRoadResp)
-snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandler {..} req includeRectifiedDistance = do
+snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includeRectifiedDistance SnapToRoadHandler {..} req = do
   providersList <- getProvidersList
   when (null providersList) $ throwError $ InternalError "No maps service provider configured"
   (servicesUsed, snapResponse) <- callSnapToRoadWithFallback providersList
