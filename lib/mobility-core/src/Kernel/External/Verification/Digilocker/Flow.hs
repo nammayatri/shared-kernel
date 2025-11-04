@@ -19,7 +19,7 @@ import qualified Data.Text as DT
 import qualified EulerHS.Language as L
 import EulerHS.Types (EulerClient, client)
 import Kernel.External.Encryption
-import Kernel.External.SharedLogic.DigiLocker.Error (parseDigiLockerErrorFromResponse)
+import Kernel.External.SharedLogic.DigiLocker.Error (DigiLockerError (..), parseDigiLockerErrorFromResponse)
 import qualified Kernel.External.Verification.Digilocker.Types as DigiTypes
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -61,11 +61,24 @@ type DigiLockerFileAPI =
     :> Header "Authorization" Text
     :> Get '[OctetStream] BSL.ByteString
 
+type DigiLockerPullDrivingLicenseAPI =
+  "public"
+    :> "oauth2"
+    :> "1"
+    :> "pull"
+    :> "pulldocument"
+    :> Header "Authorization" Text
+    :> ReqBody '[FormUrlEncoded] DigiTypes.DigiLockerPullDrivingLicenseRequest
+    :> Post '[JSON] DigiTypes.DigiLockerPullDocumentResponse
+
 xmlClient :: Text -> Maybe Text -> EulerClient Text
 xmlClient uri authHeader = client (Proxy :: Proxy DigiLockerXmlAPI) uri authHeader
 
 fileClient :: Text -> Maybe Text -> EulerClient BSL.ByteString
 fileClient uri authHeader = client (Proxy :: Proxy DigiLockerFileAPI) uri authHeader
+
+pullDrivingLicenseClient :: Maybe Text -> DigiTypes.DigiLockerPullDrivingLicenseRequest -> EulerClient DigiTypes.DigiLockerPullDocumentResponse
+pullDrivingLicenseClient authHeader = client (Proxy :: Proxy DigiLockerPullDrivingLicenseAPI) authHeader
 
 getXml ::
   ( HasCallStack,
@@ -144,6 +157,56 @@ checkDigiLockerFileResponse url resp = case resp of
   Right resp' -> do
     logDebug $ "DigiLocker File API call succeeded, file size: " <> show (BSL.length resp')
     return resp'
+
+pullDrivingLicense ::
+  ( HasCallStack,
+    EncFlow m r,
+    MonadFlow m,
+    CoreMetrics m,
+    Log m
+  ) =>
+  DigiTypes.DigiLockerCfg ->
+  Text ->
+  DigiTypes.DigiLockerPullDrivingLicenseRequest ->
+  m DigiTypes.DigiLockerPullDocumentResponse
+pullDrivingLicense cfg accessToken req = do
+  let authHeader = "Bearer " <> accessToken
+  logInfo $ "Calling DigiLocker Pull Driving License API for orgid: " <> req.orgid <> ", doctype: " <> req.doctype <> ", dlno: " <> req.dlno
+  logDebug $ "DigiLocker Pull Driving License request details: " <> show req
+  res <-
+    callAPI
+      cfg.url
+      (pullDrivingLicenseClient (Just authHeader) req)
+      "DGL-PULL-DRIVING-LICENSE-API"
+      (Proxy @DigiLockerPullDrivingLicenseAPI)
+  checkDigiLockerPullDocumentResponse cfg.url res
+
+checkDigiLockerPullDocumentResponse ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m,
+    Log m
+  ) =>
+  BaseUrl ->
+  Either ClientError DigiTypes.DigiLockerPullDocumentResponse ->
+  m DigiTypes.DigiLockerPullDocumentResponse
+checkDigiLockerPullDocumentResponse url resp =
+  fromEitherM (digiLockerError url) resp >>= validateDigiLockerPullDocumentResponse
+
+validateDigiLockerPullDocumentResponse ::
+  ( HasCallStack,
+    MonadThrow m,
+    Log m
+  ) =>
+  DigiTypes.DigiLockerPullDocumentResponse ->
+  m DigiTypes.DigiLockerPullDocumentResponse
+validateDigiLockerPullDocumentResponse resp = do
+  logDebug $ "DigiLocker Pull Document Response: " <> show resp
+  when (DT.null resp.uri) $ do
+    logError "DigiLocker Pull Document response validation failed: URI is missing"
+    throwError $ DGLError "URI is missing in DigiLocker pull document response"
+  logInfo $ "DigiLocker Pull Document API call succeeded, URI: " <> resp.uri
+  return resp
 
 digiLockerError :: BaseUrl -> ClientError -> ExternalAPICallError
 digiLockerError = ExternalAPICallError (Just "DIGILOCKER_API_ERROR")

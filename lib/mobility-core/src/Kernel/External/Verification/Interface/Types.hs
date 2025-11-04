@@ -234,3 +234,12 @@ data DigiLockerGetFileReq = DigiLockerGetFileReq
     accessToken :: Text
   }
   deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+
+data DigiLockerPullDrivingLicenseReq = DigiLockerPullDrivingLicenseReq
+  { accessToken :: Text,
+    orgid :: Text,
+    doctype :: Text,
+    consent :: Text,
+    dlno :: Text -- Driving License Number
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)

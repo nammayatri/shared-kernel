@@ -15,6 +15,7 @@
 module Kernel.External.Verification.Interface.Digilocker
   ( getXML,
     getFile,
+    pullDrivingLicense,
   )
 where
 
@@ -63,6 +64,21 @@ getFile ::
   m BSL.ByteString
 getFile config accessToken uri = do
   DigiFlow.getFile config accessToken uri
+
+-- | Pull driving license document from DigiLocker
+-- Takes the DigiLocker config, access token (Bearer token), and pull driving license request
+-- Returns the URI of the pulled document
+pullDrivingLicense ::
+  ( CoreMetrics m,
+    EncFlow m r,
+    MonadFlow m
+  ) =>
+  DigiTypes.DigiLockerCfg ->
+  Text ->
+  DigiTypes.DigiLockerPullDrivingLicenseRequest ->
+  m DigiTypes.DigiLockerPullDocumentResponse
+pullDrivingLicense config accessToken req = do
+  DigiFlow.pullDrivingLicense config accessToken req
 
 parseXmlToGetTaskResp ::
   ( MonadThrow m,

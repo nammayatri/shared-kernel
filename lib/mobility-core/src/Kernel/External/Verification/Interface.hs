@@ -29,12 +29,14 @@ module Kernel.External.Verification.Interface
     nameCompare,
     getXml,
     getFile,
+    pullDrivingLicense,
   )
 where
 
 import qualified Data.ByteString.Lazy as BSL
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH
+import qualified Kernel.External.Verification.Digilocker.Types as DigiTypes
 import qualified Kernel.External.Verification.GovtData.Client as GovtData
 import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
 import Kernel.External.Verification.GovtData.Types as Reexport
@@ -293,4 +295,23 @@ getFile ::
   m BSL.ByteString
 getFile serviceConfig req = case serviceConfig of
   DigiLockerConfig cfg -> DigiLocker.getFile cfg req.accessToken req.uri
+  _ -> throwError $ InternalError "Not Implemented!"
+
+pullDrivingLicense ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  DigiLockerPullDrivingLicenseReq ->
+  m DigiTypes.DigiLockerPullDocumentResponse
+pullDrivingLicense serviceConfig req = case serviceConfig of
+  DigiLockerConfig cfg -> do
+    let pullReq =
+          DigiTypes.DigiLockerPullDrivingLicenseRequest
+            { orgid = req.orgid,
+              doctype = req.doctype,
+              consent = req.consent,
+              dlno = req.dlno
+            }
+    DigiLocker.pullDrivingLicense cfg req.accessToken pullReq
   _ -> throwError $ InternalError "Not Implemented!"

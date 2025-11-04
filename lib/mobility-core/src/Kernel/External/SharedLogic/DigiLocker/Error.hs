@@ -76,6 +76,7 @@ instance IsHTTPError DigiLockerError where
 instance IsAPIError DigiLockerError
 
 -- Helper function to parse error from response body
+-- Maps specific DigiLocker error codes to appropriate error types
 parseDigiLockerErrorFromResponse ::
   Int ->
   BS.ByteString ->
@@ -83,12 +84,35 @@ parseDigiLockerErrorFromResponse ::
 parseDigiLockerErrorFromResponse statusCode body =
   case A.decodeStrict body of
     Just (errorResp :: DigiLockerErrorResp) -> do
-      let errorDesc = fromMaybe errorResp._error errorResp.error_description
+      let errorCode = errorResp._error
+          errorDesc = fromMaybe errorCode errorResp.error_description
+      -- Map based on HTTP status code and specific error code
       case statusCode of
-        401 -> DGLUnauthorizedError
-        400 -> DGLBadRequestError errorDesc
-        403 -> DGLForbiddenError errorDesc
-        404 -> DGLNotFoundError errorDesc
+        401 ->
+          case errorCode of
+            "invalid_token" -> DGLUnauthorizedError
+            _ -> DGLUnauthorizedError
+        403 ->
+          case errorCode of
+            "insufficient_scope" -> DGLForbiddenError errorDesc
+            _ -> DGLForbiddenError errorDesc
+        400 ->
+          case errorCode of
+            "invalid_orgid" -> DGLBadRequestError errorDesc
+            "invalid_doctype" -> DGLBadRequestError errorDesc
+            "pull_response_pending" -> DGLBadRequestError errorDesc
+            "uri_exists" -> DGLBadRequestError errorDesc
+            "aadhaar_not_linked" -> DGLBadRequestError errorDesc
+            _ -> DGLBadRequestError errorDesc
+        404 ->
+          case errorCode of
+            "record_not_found" -> DGLNotFoundError errorDesc
+            _ -> DGLNotFoundError errorDesc
+        500 ->
+          case errorCode of
+            "repository_service_configerror" -> DGLInternalServerError errorDesc
+            "unexpected_error" -> DGLInternalServerError errorDesc
+            _ -> DGLInternalServerError errorDesc
         530 -> DGLInternalServerError errorDesc
         _ -> DGLError errorDesc
     Nothing -> do
@@ -98,5 +122,6 @@ parseDigiLockerErrorFromResponse statusCode body =
         400 -> DGLBadRequestError "Bad Request"
         403 -> DGLForbiddenError "Forbidden"
         404 -> DGLNotFoundError "Not Found"
+        500 -> DGLInternalServerError "Internal Server Error"
         530 -> DGLInternalServerError "Internal Server Error"
         _ -> DGLError $ "HTTP " <> show statusCode

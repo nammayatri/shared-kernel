@@ -12,10 +12,12 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE OverloadedLists #-}
 
 module Kernel.External.Verification.Digilocker.Types where
 
 import Kernel.Prelude
+import Web.FormUrlEncoded (ToForm (..))
 
 data DigiLockerCfg = DigiLockerCfg
   { url :: BaseUrl,
@@ -23,6 +25,29 @@ data DigiLockerCfg = DigiLockerCfg
     clientSecret :: Text,
     redirectUri :: Text,
     codeChallengeMethod :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- Pull Driving License Document API types
+data DigiLockerPullDrivingLicenseRequest = DigiLockerPullDrivingLicenseRequest
+  { orgid :: Text,
+    doctype :: Text,
+    consent :: Text, -- "Y" or "N"
+    dlno :: Text -- Driving License Number
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToForm DigiLockerPullDrivingLicenseRequest where
+  toForm DigiLockerPullDrivingLicenseRequest {..} =
+    [ ("orgid", orgid),
+      ("doctype", doctype),
+      ("consent", consent),
+      ("dlno", dlno)
+    ]
+
+data DigiLockerPullDocumentResponse = DigiLockerPullDocumentResponse
+  { uri :: Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
