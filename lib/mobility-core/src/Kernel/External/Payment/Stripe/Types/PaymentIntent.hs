@@ -27,6 +27,7 @@ import Web.HttpApiData (ToHttpApiData (..))
 data PaymentIntentReq = PaymentIntentReq
   { amount :: Int,
     currency :: Currency,
+    metadata :: Metadata,
     -- automatic_payment_methods :: AutomaticPaymentMethods,
     confirm :: Bool,
     customer :: CustomerId,
@@ -64,6 +65,7 @@ instance ToForm PaymentIntentReq where
           ("return_url", [toQueryParam return_url]),
           ("transfer_data[destination]", [toQueryParam transfer_data.destination])
         ]
+        <> maybeToForm "metadata[order_short_id]" metadata.order_short_id
         <> maybeToForm "description" description
         <> maybeToForm "receipt_email" receipt_email
         <> maybeToForm "setup_future_usage" setup_future_usage
