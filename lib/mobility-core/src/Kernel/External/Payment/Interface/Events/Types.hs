@@ -15,7 +15,6 @@
 
 module Kernel.External.Payment.Interface.Events.Types where
 
-import qualified Data.Map as M
 import qualified Kernel.External.Payment.Stripe.Types.Common as Stripe
 import Kernel.Prelude
 import Kernel.Types.Common
@@ -67,7 +66,6 @@ data SetupIntent = SetupIntent
     latestAttempt :: Maybe Text,
     livemode :: Bool,
     mandate :: Maybe Text,
-    metadata :: Maybe (M.Map Text Text),
     nextAction :: Maybe Value,
     onBehalfOf :: Maybe Stripe.AccountId,
     paymentMethod :: Maybe Stripe.PaymentMethodId,
@@ -106,7 +104,8 @@ data MandateOptions = MandateOptions
 
 --- PaymentIntent Object ---
 data PaymentIntent = PaymentIntent
-  { id :: Text,
+  { paymentIntentId :: Stripe.PaymentIntentId,
+    orderShortId :: Maybe Text,
     amount :: HighPrecMoney,
     amountCapturable :: HighPrecMoney,
     amountReceived :: HighPrecMoney,
@@ -126,7 +125,6 @@ data PaymentIntent = PaymentIntent
     lastPaymentError :: Maybe Value,
     latestCharge :: Maybe Text,
     livemode :: Bool,
-    metadata :: Maybe (M.Map Text Text),
     nextAction :: Maybe Value,
     onBehalfOf :: Maybe Stripe.AccountId,
     paymentMethod :: Maybe Stripe.PaymentMethodId,
@@ -144,7 +142,9 @@ data PaymentIntent = PaymentIntent
 
 --- Charge Object ---
 data Charge = Charge
-  { id :: Text,
+  { chargeId :: Stripe.ChargeId,
+    paymentIntentId :: Maybe Stripe.PaymentIntentId,
+    orderShortId :: Maybe Text,
     amount :: HighPrecMoney,
     amountCaptured :: HighPrecMoney,
     amountRefunded :: HighPrecMoney,
@@ -163,10 +163,8 @@ data Charge = Charge
     fraudDetails :: Maybe Value,
     invoice :: Maybe Text,
     livemode :: Bool,
-    metadata :: Maybe (M.Map Text Text),
     outcome :: Maybe Value,
     paid :: Bool,
-    paymentIntent :: Maybe Text,
     paymentMethod :: Maybe Stripe.PaymentMethodId,
     receiptEmail :: Maybe Text,
     receiptUrl :: Maybe Text,
