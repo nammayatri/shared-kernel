@@ -191,10 +191,11 @@ snapToRoadWithFallback ::
   ) =>
   Maybe Text ->
   Maybe MapsServiceConfig ->
+  Bool ->
   SnapToRoadHandler m ->
   SnapToRoadReq ->
   m ([MapsService], Either String SnapToRoadResp)
-snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure SnapToRoadHandler {..} req = do
+snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includeRectifiedDistance SnapToRoadHandler {..} req = do
   providersList <- getProvidersList
   when (null providersList) $ throwError $ InternalError "No maps service provider configured"
   (servicesUsed, snapResponse) <- callSnapToRoadWithFallback providersList
@@ -241,11 +242,11 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure SnapTo
       mapsConfig <- getProviderConfig preferredProvider
       droppedPointsThreshold <- asks (.droppedPointsThreshold)
       maxStraightLineRectificationThreshold <- asks (.maxStraightLineRectificationThreshold)
-      let straightDistancePoints = getEverySnippetWhichIsNot (< droppedPointsThreshold) req.points
+      let straightDistancePoints = getEverySnippetWhichIsNot (< droppedPointsThreshold) req.points -- point with dist > 2000
       distanceRectified <-
         mapM
           ( \(x1, x2, dist) -> do
-              if dist < maxStraightLineRectificationThreshold
+              if dist < maxStraightLineRectificationThreshold -- never happens
                 then pure (x1, dist)
                 else do
                   distanceRes <- getDistance entityId mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR, distanceUnit = req.distanceUnit, sourceDestinationMapping = Nothing} :: GetDistanceReq LatLong LatLong)
@@ -263,7 +264,7 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure SnapTo
           let (totalSectorsDistance, snappedPoints) = foldl' (\(accDis, snappedPoints') res -> (res.distance + accDis, snappedPoints' <> res.snappedPoints)) (0, []) result
           let snapToRoadResp =
                 SnapToRoadResp
-                  { distance = totalSectorsDistance + distance,
+                  { distance = totalSectorsDistance + (if includeRectifiedDistance then distance else 0),
                     distanceWithUnit = convertHighPrecMetersToDistance req.distanceUnit $ totalSectorsDistance + distance,
                     confidence = 1,
                     snappedPoints = snappedPoints
