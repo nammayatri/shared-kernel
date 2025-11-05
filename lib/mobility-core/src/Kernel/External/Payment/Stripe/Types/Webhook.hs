@@ -18,7 +18,6 @@ module Kernel.External.Payment.Stripe.Types.Webhook where
 import Data.Aeson
 import qualified Data.Aeson as A
 import qualified Data.Bimap as BM
-import qualified Data.Map as M
 import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Data.Time.Clock.POSIX (POSIXTime)
 import Kernel.External.Payment.Stripe.Types.Common
@@ -350,7 +349,7 @@ data SetupIntent = SetupIntent
     latest_attempt :: Maybe Text,
     livemode :: Bool,
     mandate :: Maybe Text,
-    metadata :: Maybe (M.Map Text Text),
+    metadata :: Maybe Metadata,
     next_action :: Maybe Value,
     on_behalf_of :: Maybe AccountId,
     payment_method :: Maybe PaymentMethodId,
@@ -427,7 +426,7 @@ data PaymentIntent = PaymentIntent
     last_payment_error :: Maybe Value,
     latest_charge :: Maybe Text,
     livemode :: Bool,
-    metadata :: Maybe (M.Map Text Text),
+    metadata :: Maybe Metadata,
     next_action :: Maybe Value,
     on_behalf_of :: Maybe AccountId,
     payment_method :: Maybe PaymentMethodId,
@@ -487,7 +486,7 @@ data Charge = Charge
     fraud_details :: Maybe Value,
     invoice :: Maybe Text,
     livemode :: Bool,
-    metadata :: Maybe (M.Map Text Text),
+    metadata :: Maybe Metadata,
     outcome :: Maybe Value,
     paid :: Bool,
     payment_intent :: Maybe Text,

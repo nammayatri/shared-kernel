@@ -256,6 +256,7 @@ createPaymentIntent config req = do
               confirmation_method = Stripe.AutomaticConfirmationMethod
               use_stripe_sdk = True
               return_url = showBaseUrl config.returnUrl
+              metadata = Metadata {order_short_id = Just orderShortId}
            in Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
     -- Connected Account Charge: Clone payment method, use on_behalf_of
@@ -287,6 +288,7 @@ createPaymentIntent config req = do
           let confirmation_method = Stripe.AutomaticConfirmationMethod
           let use_stripe_sdk = True
           let return_url = showBaseUrl config.returnUrl
+          let metadata = Metadata {order_short_id = Just orderShortId}
           Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
 createSetupIntent ::
@@ -498,7 +500,9 @@ buildEventObject eventType stripeObject = case (eventType, stripeObject) of
 mkPaymentIntentObject :: Stripe.PaymentIntent -> Events.PaymentIntent
 mkPaymentIntentObject Stripe.PaymentIntent {..} =
   Events.PaymentIntent
-    { amount = centsToUsd amount,
+    { paymentIntentId = id,
+      orderShortId = metadata >>= (.order_short_id),
+      amount = centsToUsd amount,
       amountCapturable = centsToUsd amount_capturable,
       amountReceived = centsToUsd amount_received,
       applicationFeeAmount = centsToUsd <$> application_fee_amount,
@@ -573,7 +577,9 @@ castMandateOptions Stripe.MandateOptions {..} =
 mkChargeObject :: Stripe.Charge -> Events.Charge
 mkChargeObject Stripe.Charge {..} =
   Events.Charge
-    { amount = centsToUsd amount,
+    { chargeId = id,
+      orderShortId = metadata >>= (.order_short_id),
+      amount = centsToUsd amount,
       amountCaptured = centsToUsd amount_captured,
       amountRefunded = centsToUsd amount_refunded,
       applicationFeeAmount = centsToUsd <$> application_fee_amount,
@@ -583,7 +589,7 @@ mkChargeObject Stripe.Charge {..} =
       failureCode = failure_code,
       failureMessage = failure_message,
       fraudDetails = fraud_details,
-      paymentIntent = payment_intent,
+      paymentIntentId = payment_intent,
       paymentMethod = payment_method,
       receiptEmail = receipt_email,
       receiptUrl = receipt_url,
