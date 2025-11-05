@@ -222,24 +222,20 @@ newtype NameCompareResp = NameCompareResp
   }
   deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
 
--- DigiLocker request types
-data DigiLockerGetXmlReq = DigiLockerGetXmlReq
-  { uri :: Text,
-    accessToken :: Text
+newtype ExtractedDigiLockerDLResp = ExtractedDigiLockerDLResp
+  { extractedDL :: Maybe DigiTypes.DigiLockerDLFlow
   }
-  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
-data DigiLockerGetFileReq = DigiLockerGetFileReq
-  { uri :: Text,
-    accessToken :: Text
+newtype ExtractedDigiLockerPanResp = ExtractedDigiLockerPanResp
+  { extractedPan :: Maybe DigiTypes.DigiLockerPanFlow
   }
-  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
-data DigiLockerPullDrivingLicenseReq = DigiLockerPullDrivingLicenseReq
-  { accessToken :: Text,
-    orgid :: Text,
-    doctype :: Text,
-    consent :: Text,
-    dlno :: Text -- Driving License Number
+newtype ExtractedDigiLockerAadhaarResp = ExtractedDigiLockerAadhaarResp
+  { extractedAadhaar :: Maybe DigiTypes.DigiLockerAadhaarFlow
   }
-  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)

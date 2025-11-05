@@ -51,3 +51,77 @@ data DigiLockerPullDocumentResponse = DigiLockerPullDocumentResponse
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
+
+-- DigiLocker verified extraction flow types (similar structure to HyperVerge but DigiLocker-specific)
+data DigiLockerPanFlow = DigiLockerPanFlow
+  { pan :: Maybe Text,
+    name :: Maybe Text,
+    dob :: Maybe Text,
+    gender :: Maybe Text,
+    panURL :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data DigiLockerAadhaarFlow = DigiLockerAadhaarFlow
+  { idNumber :: Maybe Text,
+    fullName :: Maybe Text,
+    dob :: Maybe Text,
+    address :: Maybe Text,
+    city :: Maybe Text,
+    pincode :: Maybe Text,
+    aadhaarFrontURL :: Maybe Text,
+    aadhaarBackURL :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data DigiLockerDLFlow = DigiLockerDLFlow
+  { dlNumber :: Maybe Text,
+    name :: Maybe Text,
+    dob :: Maybe Text,
+    dlURL :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- DigiLocker request types
+-- DigiLocker DL extraction request
+data DigiLockerExtractDLReq = DigiLockerExtractDLReq
+  { uri :: Text,
+    accessToken :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- DigiLocker PAN extraction request
+data DigiLockerExtractPanReq = DigiLockerExtractPanReq
+  { accessToken :: Text,
+    uri :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- DigiLocker Aadhaar extraction request
+data DigiLockerExtractAadhaarReq = DigiLockerExtractAadhaarReq
+  { accessToken :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data DigiLockerGetFileReq = DigiLockerGetFileReq
+  { uri :: Text,
+    accessToken :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data DigiLockerPullDrivingLicenseReq = DigiLockerPullDrivingLicenseReq
+  { accessToken :: Text,
+    orgid :: Text,
+    doctype :: Text,
+    consent :: Text,
+    dlno :: Text -- Driving License Number
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)

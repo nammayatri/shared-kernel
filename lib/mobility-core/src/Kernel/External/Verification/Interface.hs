@@ -27,9 +27,11 @@ module Kernel.External.Verification.Interface
     verifySdkResp,
     getTask,
     nameCompare,
-    getXml,
+    fetchAndExtractVerifiedDL,
     getFile,
     pullDrivingLicense,
+    fetchAndExtractVerifiedPan,
+    fetchAndExtractVerifiedAadhaar,
   )
 where
 
@@ -275,15 +277,15 @@ getTask serviceConfig req updateResp = case serviceConfig of
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.getVerificationStatus cfg req updateResp
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
 
-getXml ::
+fetchAndExtractVerifiedDL ::
   ( EncFlow m r,
     CoreMetrics m
   ) =>
   VerificationServiceConfig ->
-  DigiLockerGetXmlReq ->
-  m GetTaskResp
-getXml serviceConfig req = case serviceConfig of
-  DigiLockerConfig cfg -> DigiLocker.getXML cfg req.accessToken req.uri
+  DigiTypes.DigiLockerExtractDLReq ->
+  m ExtractedDigiLockerDLResp
+fetchAndExtractVerifiedDL serviceConfig req = case serviceConfig of
+  DigiLockerConfig cfg -> DigiLocker.fetchAndExtractVerifiedDL cfg req.accessToken req.uri
   _ -> throwError $ InternalError "Not Implemented!"
 
 getFile ::
@@ -291,7 +293,7 @@ getFile ::
     CoreMetrics m
   ) =>
   VerificationServiceConfig ->
-  DigiLockerGetFileReq ->
+  DigiTypes.DigiLockerGetFileReq ->
   m BSL.ByteString
 getFile serviceConfig req = case serviceConfig of
   DigiLockerConfig cfg -> DigiLocker.getFile cfg req.accessToken req.uri
@@ -302,7 +304,7 @@ pullDrivingLicense ::
     CoreMetrics m
   ) =>
   VerificationServiceConfig ->
-  DigiLockerPullDrivingLicenseReq ->
+  DigiTypes.DigiLockerPullDrivingLicenseReq ->
   m DigiTypes.DigiLockerPullDocumentResponse
 pullDrivingLicense serviceConfig req = case serviceConfig of
   DigiLockerConfig cfg -> do
@@ -314,4 +316,26 @@ pullDrivingLicense serviceConfig req = case serviceConfig of
               dlno = req.dlno
             }
     DigiLocker.pullDrivingLicense cfg req.accessToken pullReq
+  _ -> throwError $ InternalError "Not Implemented!"
+
+fetchAndExtractVerifiedPan ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  DigiTypes.DigiLockerExtractPanReq ->
+  m ExtractedDigiLockerPanResp
+fetchAndExtractVerifiedPan serviceConfig req = case serviceConfig of
+  DigiLockerConfig cfg -> DigiLocker.fetchAndExtractVerifiedPan cfg req.accessToken req.uri
+  _ -> throwError $ InternalError "Not Implemented!"
+
+fetchAndExtractVerifiedAadhaar ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  DigiTypes.DigiLockerExtractAadhaarReq ->
+  m ExtractedDigiLockerAadhaarResp
+fetchAndExtractVerifiedAadhaar serviceConfig req = case serviceConfig of
+  DigiLockerConfig cfg -> DigiLocker.fetchAndExtractVerifiedAadhaar cfg req.accessToken
   _ -> throwError $ InternalError "Not Implemented!"

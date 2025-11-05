@@ -71,6 +71,15 @@ type DigiLockerPullDrivingLicenseAPI =
     :> ReqBody '[FormUrlEncoded] DigiTypes.DigiLockerPullDrivingLicenseRequest
     :> Post '[JSON] DigiTypes.DigiLockerPullDocumentResponse
 
+type DigiLockerAadhaarXmlAPI =
+  "public"
+    :> "oauth2"
+    :> "3"
+    :> "xml"
+    :> "eaadhaar"
+    :> Header "Authorization" Text
+    :> Get '[PlainText] Text
+
 xmlClient :: Text -> Maybe Text -> EulerClient Text
 xmlClient uri authHeader = client (Proxy :: Proxy DigiLockerXmlAPI) uri authHeader
 
@@ -79,6 +88,9 @@ fileClient uri authHeader = client (Proxy :: Proxy DigiLockerFileAPI) uri authHe
 
 pullDrivingLicenseClient :: Maybe Text -> DigiTypes.DigiLockerPullDrivingLicenseRequest -> EulerClient DigiTypes.DigiLockerPullDocumentResponse
 pullDrivingLicenseClient authHeader = client (Proxy :: Proxy DigiLockerPullDrivingLicenseAPI) authHeader
+
+aadhaarXmlClient :: Maybe Text -> EulerClient Text
+aadhaarXmlClient authHeader = client (Proxy :: Proxy DigiLockerAadhaarXmlAPI) authHeader
 
 getXml ::
   ( HasCallStack,
@@ -207,6 +219,20 @@ validateDigiLockerPullDocumentResponse resp = do
     throwError $ DGLError "URI is missing in DigiLocker pull document response"
   logInfo $ "DigiLocker Pull Document API call succeeded, URI: " <> resp.uri
   return resp
+
+getAadhaarXml ::
+  ( HasCallStack,
+    EncFlow m r,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  DigiTypes.DigiLockerCfg ->
+  Text ->
+  m Text
+getAadhaarXml cfg accessToken = do
+  let authHeader = "Bearer " <> accessToken
+  callAPI' Nothing cfg.url (aadhaarXmlClient (Just authHeader)) "DGL-AADHAAR-XML-API" (Proxy @DigiLockerAadhaarXmlAPI)
+    >>= checkDigiLockerResponse cfg.url
 
 digiLockerError :: BaseUrl -> ClientError -> ExternalAPICallError
 digiLockerError = ExternalAPICallError (Just "DIGILOCKER_API_ERROR")

@@ -13,31 +13,34 @@
 -}
 
 module Kernel.External.Verification.Interface.Digilocker
-  ( getXML,
+  ( fetchAndExtractVerifiedDL,
     getFile,
     pullDrivingLicense,
+    fetchAndExtractVerifiedPan,
+    fetchAndExtractVerifiedAadhaar,
   )
 where
 
+import Control.Applicative ((<|>))
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Maybe as Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TLE
 import Kernel.External.SharedLogic.DigiLocker.Error (DigiLockerError (..))
 import qualified Kernel.External.Verification.Digilocker.Flow as DigiFlow
 import qualified Kernel.External.Verification.Digilocker.Types as DigiTypes
-import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import qualified Kernel.External.Verification.Interface.Types as InterfaceTypes
 import Kernel.Prelude hiding (error)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Utils.Common
 import Text.XML (def, parseLBS)
 import Text.XML.Cursor
 
--- | Get XML document from DigiLocker and parse it to return structured data
+-- | Fetch and extract verified Driving License from DigiLocker XML
 -- Takes the DigiLocker config, access token (Bearer token), and document URI
-getXML ::
+-- Returns ExtractedDigiLockerDLResp
+fetchAndExtractVerifiedDL ::
   ( CoreMetrics m,
     EncFlow m r,
     MonadFlow m
@@ -45,10 +48,18 @@ getXML ::
   DigiTypes.DigiLockerCfg ->
   Text ->
   Text ->
-  m InterfaceTypes.GetTaskResp
-getXML config accessToken uri = do
+  m InterfaceTypes.ExtractedDigiLockerDLResp
+fetchAndExtractVerifiedDL config accessToken uri = do
   xmlText <- DigiFlow.getXml config accessToken uri
-  parseXmlToGetTaskResp xmlText
+  doc <- case parseLBS def (TLE.encodeUtf8 $ TL.fromStrict xmlText) of
+    Left err -> throwError $ DGLError $ "Failed to parse XML: " <> T.pack (show err)
+    Right d -> pure d
+  let cursor = fromDocument doc
+  cert <- extractCertificate cursor
+  dlFlow <- case cert of
+    DLCertificate dlData -> parseDLToDLFlow dlData
+    _ -> throwError $ DGLError "Expected Driving License certificate, but got different certificate type"
+  return $ InterfaceTypes.ExtractedDigiLockerDLResp {extractedDL = Just dlFlow}
 
 -- | Get file (PDF) from DigiLocker
 -- Takes the DigiLocker config, access token (Bearer token), and document URI
@@ -80,30 +91,17 @@ pullDrivingLicense ::
 pullDrivingLicense config accessToken req = do
   DigiFlow.pullDrivingLicense config accessToken req
 
-parseXmlToGetTaskResp ::
-  ( MonadThrow m,
-    Log m
-  ) =>
-  Text ->
-  m InterfaceTypes.GetTaskResp
-parseXmlToGetTaskResp xmlText = do
-  doc <- case parseLBS def (TLE.encodeUtf8 $ TL.fromStrict xmlText) of
-    Left err -> throwError $ DGLError $ "Failed to parse XML: " <> T.pack (show err)
-    Right d -> pure d
-  let cursor = fromDocument doc
-  cert <- extractCertificate cursor
-  case cert of
-    PANCertificate panData -> parsePanToGetTaskResp panData
-    DLCertificate dlData -> parseDLToGetTaskResp dlData
-    AadhaarCertificate _aadhaarData -> throwError $ InternalError "Aadhaar XML parsing not yet implemented for GetTaskResp"
-
 data CertificateType = PANCertificate PanData | DLCertificate DLData | AadhaarCertificate AadhaarData
   deriving (Show)
 
 data PanData = PanData
   { panNumber :: Maybe Text,
     name :: Maybe Text,
-    dob :: Maybe Text
+    dob :: Maybe Text,
+    dateOfIssue :: Maybe Text,
+    validFromDate :: Maybe Text,
+    status :: Maybe Text,
+    panType :: Maybe Text
   }
   deriving (Show)
 
@@ -128,10 +126,18 @@ data CategoryData = CategoryData
   deriving (Show)
 
 data AadhaarData = AadhaarData
-  { name :: Maybe Text,
+  { aadhaarNumber :: Maybe Text,
+    name :: Maybe Text,
     dob :: Maybe Text,
     gender :: Maybe Text,
-    address :: Maybe Text
+    fathersName :: Maybe Text,
+    addressLine1 :: Maybe Text,
+    addressLine2 :: Maybe Text,
+    district :: Maybe Text,
+    state :: Maybe Text,
+    pincode :: Maybe Text,
+    country :: Maybe Text,
+    photo :: Maybe Text
   }
   deriving (Show)
 
@@ -142,15 +148,34 @@ extractCertificate cursor = do
     Just "PANCR" -> PANCertificate <$> parsePanXML cursor
     Just "DRVLC" -> DLCertificate <$> parseDLXML cursor
     Just ct -> throwError $ DGLError ("Unknown certificate type: " <> ct)
-    Nothing -> throwError $ DGLError "Certificate type attribute missing"
+    Nothing ->
+      -- Check if it's an Aadhaar certificate (KycRes structure)
+      if not (null $ cursor $// element "CertificateData" &/ element "KycRes")
+        then AadhaarCertificate <$> parseAadhaarXML cursor
+        else throwError $ DGLError "Certificate type attribute missing"
 
 parsePanXML :: (MonadThrow m, Log m) => Cursor -> m PanData
 parsePanXML cursor = do
-  let panNum = listToMaybe $ (cursor $// element "CertificateData" &/ element "PAN") >>= laxAttribute "num"
+  let panNumFromCert = listToMaybe $ laxAttribute "number" cursor
+      panNumFromElement = listToMaybe $ (cursor $// element "CertificateData" &/ element "PAN") >>= laxAttribute "num"
+      panNum = panNumFromElement <|> panNumFromCert -- Try element first, fallback to certificate attribute
       nameAttr = listToMaybe $ (cursor $// element "IssuedTo" &/ element "Person") >>= laxAttribute "name"
       dobAttr = listToMaybe $ (cursor $// element "IssuedTo" &/ element "Person") >>= laxAttribute "dob"
-
-  return $ PanData {panNumber = panNum, name = nameAttr, dob = dobAttr}
+      dateOfIssueAttr = listToMaybe $ laxAttribute "issueDate" cursor
+      validFromDateAttr = listToMaybe $ laxAttribute "validFromDate" cursor
+      statusAttr = listToMaybe $ laxAttribute "status" cursor
+      -- PAN type can be determined from PAN number format or other attributes
+      panTypeAttr = Nothing -- Could be extracted from PAN number pattern if needed
+  return $
+    PanData
+      { panNumber = panNum,
+        name = nameAttr,
+        dob = dobAttr,
+        dateOfIssue = dateOfIssueAttr,
+        validFromDate = validFromDateAttr,
+        status = statusAttr,
+        panType = panTypeAttr
+      }
 
 parseDLXML :: (MonadThrow m, Log m) => Cursor -> m DLData
 parseDLXML cursor = do
@@ -187,36 +212,119 @@ parseCategory cursor =
       issueDate = listToMaybe $ laxAttribute "issueDate" cursor
     }
 
-parsePanToGetTaskResp :: (MonadThrow m, Log m) => PanData -> m InterfaceTypes.GetTaskResp
-parsePanToGetTaskResp _panData = do
-  -- PAN doesn't map to DLResp or RCResp, but we need to return something
-  -- Based on the interface, PAN verification might not use GetTaskResp
-  -- For now, throw an error or return a minimal response
-  throwError $ InternalError "PAN certificate parsing to GetTaskResp not implemented - use extractPanImage instead"
+parseAadhaarXML :: (MonadThrow m, Log m) => Cursor -> m AadhaarData
+parseAadhaarXML cursor = do
+  let uidDataCursors = cursor $// element "CertificateData" &/ element "KycRes" &/ element "UidData"
 
-parseDLToGetTaskResp :: (MonadThrow m, Log m) => DLData -> m InterfaceTypes.GetTaskResp
-parseDLToGetTaskResp dlData = do
-  let covs = fmap (map categoryToCovDetail) dlData.categories
+      aadhaarNum = listToMaybe $ uidDataCursors >>= laxAttribute "uid"
+
+      poiCursors = cursor $// element "CertificateData" &/ element "KycRes" &/ element "UidData" &/ element "Poi"
+      nameAttr = listToMaybe $ poiCursors >>= laxAttribute "name"
+      dobAttr = listToMaybe $ poiCursors >>= laxAttribute "dob"
+      genderAttr = listToMaybe $ poiCursors >>= laxAttribute "gender"
+
+      poaCursors = cursor $// element "CertificateData" &/ element "KycRes" &/ element "UidData" &/ element "Poa"
+      fathersNameAttr = listToMaybe $ poaCursors >>= laxAttribute "co"
+      houseAttr = listToMaybe $ poaCursors >>= laxAttribute "house"
+      streetAttr = listToMaybe $ poaCursors >>= laxAttribute "street"
+      locAttr = listToMaybe $ poaCursors >>= laxAttribute "loc"
+      vtcAttr = listToMaybe $ poaCursors >>= laxAttribute "vtc"
+      districtAttr = listToMaybe $ poaCursors >>= laxAttribute "dist"
+      stateAttr = listToMaybe $ poaCursors >>= laxAttribute "state"
+      pincodeAttr = listToMaybe $ poaCursors >>= laxAttribute "pc"
+      countryAttr = listToMaybe $ poaCursors >>= laxAttribute "country"
+
+      photoCursors = cursor $// element "CertificateData" &/ element "KycRes" &/ element "UidData" &/ element "Pht"
+      photoAttr = listToMaybe $ photoCursors >>= content
+
+      -- Combine address components
+      addressLine1Parts = Maybe.catMaybes [houseAttr, streetAttr, locAttr]
+      addressLine1 = if null addressLine1Parts then Nothing else Just $ T.intercalate ", " addressLine1Parts
+      addressLine2 = vtcAttr
+
   return $
-    InterfaceTypes.DLResp $
-      InterfaceTypes.DLVerificationOutputInterface
-        { driverName = dlData.name,
-          dob = dlData.dob,
-          licenseNumber = dlData.dlNumber,
-          nt_validity_from = dlData.validFromDate,
-          nt_validity_to = dlData.expiryDate,
-          t_validity_from = Nothing, -- Transport validity not in DL XML
-          t_validity_to = Nothing,
-          covs = covs,
-          status = dlData.status,
-          dateOfIssue = dlData.issueDate,
-          message = Nothing
-        }
+    AadhaarData
+      { aadhaarNumber = aadhaarNum,
+        name = nameAttr,
+        dob = dobAttr,
+        gender = genderAttr,
+        fathersName = fathersNameAttr,
+        addressLine1 = addressLine1,
+        addressLine2 = addressLine2,
+        district = districtAttr,
+        state = stateAttr,
+        pincode = pincodeAttr,
+        country = countryAttr,
+        photo = photoAttr
+      }
 
-categoryToCovDetail :: CategoryData -> Idfy.CovDetail
-categoryToCovDetail cat =
-  Idfy.CovDetail
-    { category = cat.code,
-      issue_date = cat.issueDate,
-      cov = fromMaybe "" cat.abbreviation
-    }
+parseDLToDLFlow :: (MonadThrow m, Log m) => DLData -> m DigiTypes.DigiLockerDLFlow
+parseDLToDLFlow dlData = do
+  return $
+    DigiTypes.DigiLockerDLFlow
+      { dlNumber = dlData.dlNumber,
+        name = dlData.name,
+        dob = dlData.dob,
+        dlURL = Nothing -- DigiLocker XML doesn't provide image URLs
+      }
+
+-- | Fetch and extract verified PAN from DigiLocker XML
+-- Returns ExtractedDigiLockerPanResp
+fetchAndExtractVerifiedPan ::
+  ( CoreMetrics m,
+    EncFlow m r,
+    MonadFlow m
+  ) =>
+  DigiTypes.DigiLockerCfg ->
+  Text ->
+  Text ->
+  m InterfaceTypes.ExtractedDigiLockerPanResp
+fetchAndExtractVerifiedPan config accessToken uri = do
+  xmlText <- DigiFlow.getXml config accessToken uri
+  doc <- case parseLBS def (TLE.encodeUtf8 $ TL.fromStrict xmlText) of
+    Left err -> throwError $ DGLError $ "Failed to parse XML: " <> T.pack (show err)
+    Right d -> pure d
+  let cursor = fromDocument doc
+  panData <- parsePanXML cursor
+  let panFlow =
+        DigiTypes.DigiLockerPanFlow
+          { pan = panData.panNumber,
+            name = panData.name,
+            dob = panData.dob,
+            gender = Nothing, -- Not available in PAN XML
+            panURL = Nothing -- DigiLocker XML doesn't provide image URLs
+          }
+  return $ InterfaceTypes.ExtractedDigiLockerPanResp {extractedPan = Just panFlow}
+
+-- | Fetch and extract verified Aadhaar from DigiLocker XML
+-- Returns ExtractedDigiLockerAadhaarResp
+fetchAndExtractVerifiedAadhaar ::
+  ( CoreMetrics m,
+    EncFlow m r,
+    MonadFlow m
+  ) =>
+  DigiTypes.DigiLockerCfg ->
+  Text ->
+  m InterfaceTypes.ExtractedDigiLockerAadhaarResp
+fetchAndExtractVerifiedAadhaar config accessToken = do
+  xmlText <- DigiFlow.getAadhaarXml config accessToken
+  doc <- case parseLBS def (TLE.encodeUtf8 $ TL.fromStrict xmlText) of
+    Left err -> throwError $ DGLError $ "Failed to parse XML: " <> T.pack (show err)
+    Right d -> pure d
+  let cursor = fromDocument doc
+  aadhaarData <- parseAadhaarXML cursor
+  let -- Combine address components for full address
+      addressParts = Maybe.catMaybes [aadhaarData.addressLine1, aadhaarData.addressLine2, aadhaarData.district, aadhaarData.state, aadhaarData.pincode]
+      fullAddress = if null addressParts then Nothing else Just $ T.intercalate ", " addressParts
+      aadhaarFlow =
+        DigiTypes.DigiLockerAadhaarFlow
+          { idNumber = aadhaarData.aadhaarNumber,
+            fullName = aadhaarData.name,
+            dob = aadhaarData.dob,
+            address = fullAddress,
+            city = aadhaarData.district,
+            pincode = aadhaarData.pincode,
+            aadhaarFrontURL = Nothing, -- DigiLocker XML doesn't provide image URLs
+            aadhaarBackURL = Nothing
+          }
+  return $ InterfaceTypes.ExtractedDigiLockerAadhaarResp {extractedAadhaar = Just aadhaarFlow}
