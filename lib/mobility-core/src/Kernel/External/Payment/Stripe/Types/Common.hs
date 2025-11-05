@@ -26,6 +26,8 @@ type CustomerId = Text
 
 type PaymentIntentId = Text
 
+type ChargeId = Text
+
 type SetupIntentId = Text
 
 type PaymentMethodId = Text
@@ -184,3 +186,10 @@ chargeStatusJsonOptions =
         "CHARGE_CANCELED" -> "canceled"
         x -> x
     }
+
+-- up to 50 custom defined fields
+newtype Metadata = Metadata
+  { order_short_id :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)

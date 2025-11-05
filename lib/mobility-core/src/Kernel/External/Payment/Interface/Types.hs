@@ -636,7 +636,8 @@ data OrderUpdateResp = OrderUpdateResp
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data CreatePaymentIntentReq = CreatePaymentIntentReq
-  { amount :: HighPrecMoney,
+  { orderShortId :: Text,
+    amount :: HighPrecMoney,
     applicationFeeAmount :: HighPrecMoney,
     currency :: Currency,
     customer :: CustomerId,
