@@ -261,12 +261,19 @@ parseAadhaarXML cursor = do
 
 parseDLToDLFlow :: (MonadThrow m, Log m) => DLData -> m DigiTypes.DigiLockerDLFlow
 parseDLToDLFlow dlData = do
+  let classOfVehicles =
+        dlData.categories >>= \cats ->
+          let abbreviations = Maybe.catMaybes $ map (\cat -> cat.abbreviation) cats
+           in if null abbreviations then Nothing else Just abbreviations
   return $
     DigiTypes.DigiLockerDLFlow
       { dlNumber = dlData.dlNumber,
         name = dlData.name,
         dob = dlData.dob,
-        dlURL = Nothing -- DigiLocker XML doesn't provide image URLs
+        dlURL = Nothing, -- DigiLocker XML doesn't provide image URLs
+        expiryDate = dlData.expiryDate,
+        classOfVehicles = classOfVehicles,
+        dateOfIssue = dlData.issueDate
       }
 
 -- | Fetch and extract verified PAN from DigiLocker XML

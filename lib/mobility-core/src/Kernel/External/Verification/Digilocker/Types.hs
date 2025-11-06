@@ -80,7 +80,10 @@ data DigiLockerDLFlow = DigiLockerDLFlow
   { dlNumber :: Maybe Text,
     name :: Maybe Text,
     dob :: Maybe Text,
-    dlURL :: Maybe Text
+    dlURL :: Maybe Text,
+    expiryDate :: Maybe Text,
+    classOfVehicles :: Maybe [Text],
+    dateOfIssue :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
