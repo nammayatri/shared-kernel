@@ -68,7 +68,8 @@ registryLookup registryUrl request selfSubId =
 
 registryFetch ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    Log m
   ) =>
   BaseUrl ->
   API.LookupRequest ->
