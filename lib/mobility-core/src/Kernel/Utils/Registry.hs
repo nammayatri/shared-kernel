@@ -75,8 +75,11 @@ registryFetch ::
   Text ->
   m [Subscriber]
 registryFetch registryUrl request selfSubId = do
-  callAPI' (Just (T.ManagerSelector (getHttpManagerKey selfSubId))) registryUrl (T.client Registry.lookupAPI request) "lookup" Registry.lookupAPI
-    >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
+  res <-
+    callAPI' (Just (T.ManagerSelector (getHttpManagerKey selfSubId))) registryUrl (T.client Registry.lookupAPI request) "lookup" Registry.lookupAPI
+      >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
+  logDebug $ "Registry response: " <> show res
+  pure res
 
 checkBlacklisted ::
   (MonadThrow m, Log m) =>
