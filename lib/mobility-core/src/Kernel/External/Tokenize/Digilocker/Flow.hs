@@ -14,9 +14,10 @@
 
 module Kernel.External.Tokenize.Digilocker.Flow where
 
+import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as T
 import EulerHS.Types (EulerClient, client)
-import Kernel.External.SharedLogic.DigiLocker.Error (DigiLockerError (..))
+import Kernel.External.SharedLogic.DigiLocker.Error (DigiLockerError (..), parseDigiLockerErrorFromResponse)
 import qualified Kernel.External.Tokenize.Digilocker.Types as DLT
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -54,27 +55,18 @@ checkDigilockerTokenizeResponse ::
   BaseUrl ->
   Either ClientError DLT.DigilockerTokenizeResponse ->
   m DLT.DigilockerTokenizeResponse
-checkDigilockerTokenizeResponse baseUrl resp =
-  case resp of
-    Left err@(FailureResponse _ (Response (Status {statusCode = code}) _ _ _)) -> do
-      let errMsg = "No error message found in response or failed to parse error"
-      logError $ "DigiLocker tokenize API call failed with status code: " <> show code <> ", error: " <> show err
-      case code of
-        401 -> do
-          logError "DigiLocker tokenize failed: Unauthorized (401)"
-          throwError DGLUnauthorizedError
-        400 -> do
-          logError $ "DigiLocker tokenize failed: Bad Request (400) - " <> errMsg
-          throwError $ DGLBadRequestError errMsg
-        _ -> do
-          logError $ "DigiLocker tokenize failed with unexpected status code: " <> show code
-          fromEitherM (digilockerError baseUrl) (Left err)
-    Left err -> do
-      logError $ "DigiLocker tokenize API call failed: " <> show err
-      fromEitherM (digilockerError baseUrl) (Left err)
-    Right resp' -> do
-      logInfo "DigiLocker tokenize API call succeeded"
-      validateDigilockerTokenizeResponse resp'
+checkDigilockerTokenizeResponse baseUrl resp = case resp of
+  Left err@(FailureResponse _ (Response (Status {statusCode = code}) _ _ body)) -> do
+    logError $ "DigiLocker tokenize API call failed with status code: " <> show code <> ", error: " <> show err
+    let errorBody = BSL.toStrict body
+        digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
+    throwError digiLockerErr
+  Left err -> do
+    logError $ "DigiLocker tokenize API call failed: " <> show err
+    fromEitherM (digilockerError baseUrl) (Left err)
+  Right resp' -> do
+    logInfo "DigiLocker tokenize API call succeeded"
+    validateDigilockerTokenizeResponse resp'
 
 validateDigilockerTokenizeResponse ::
   ( MonadThrow m,

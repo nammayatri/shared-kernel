@@ -202,8 +202,18 @@ checkDigiLockerPullDocumentResponse ::
   BaseUrl ->
   Either ClientError DigiTypes.DigiLockerPullDocumentResponse ->
   m DigiTypes.DigiLockerPullDocumentResponse
-checkDigiLockerPullDocumentResponse url resp =
-  fromEitherM (digiLockerError url) resp >>= validateDigiLockerPullDocumentResponse
+checkDigiLockerPullDocumentResponse url resp = case resp of
+  Left err@(FailureResponse _ (Response (Status {statusCode = code}) _ _ body)) -> do
+    logError $ "DigiLocker Pull Document API call failed with status code: " <> show code <> ", error: " <> show err
+    let errorBody = BSL.toStrict body
+        digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
+    throwError digiLockerErr
+  Left err -> do
+    logError $ "DigiLocker Pull Document API call failed: " <> show err
+    fromEitherM (digiLockerError url) (Left err)
+  Right resp' -> do
+    logDebug $ "DigiLocker Pull Document Response: " <> show resp'
+    validateDigiLockerPullDocumentResponse resp'
 
 validateDigiLockerPullDocumentResponse ::
   ( HasCallStack,

@@ -18,6 +18,7 @@ module Kernel.External.Verification.Interface.Digilocker
     pullDrivingLicense,
     fetchAndExtractVerifiedPan,
     fetchAndExtractVerifiedAadhaar,
+    getVerifiedAadhaarXML,
   )
 where
 
@@ -328,3 +329,17 @@ fetchAndExtractVerifiedAadhaar config accessToken = do
             aadhaarBackURL = Nothing
           }
   return $ InterfaceTypes.ExtractedDigiLockerAadhaarResp {extractedAadhaar = Just aadhaarFlow}
+
+-- | Get Aadhaar XML from DigiLocker as-is without parsing
+-- Takes the DigiLocker config and access token (Bearer token)
+-- Returns the raw XML as Text
+getVerifiedAadhaarXML ::
+  ( CoreMetrics m,
+    EncFlow m r,
+    MonadFlow m
+  ) =>
+  DigiTypes.DigiLockerCfg ->
+  Text ->
+  m Text
+getVerifiedAadhaarXML config accessToken = do
+  DigiFlow.getAadhaarXml config accessToken

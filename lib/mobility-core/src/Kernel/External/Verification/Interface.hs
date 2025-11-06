@@ -32,6 +32,7 @@ module Kernel.External.Verification.Interface
     pullDrivingLicense,
     fetchAndExtractVerifiedPan,
     fetchAndExtractVerifiedAadhaar,
+    getVerifiedAadhaarXML,
   )
 where
 
@@ -338,4 +339,15 @@ fetchAndExtractVerifiedAadhaar ::
   m ExtractedDigiLockerAadhaarResp
 fetchAndExtractVerifiedAadhaar serviceConfig req = case serviceConfig of
   DigiLockerConfig cfg -> DigiLocker.fetchAndExtractVerifiedAadhaar cfg req.accessToken
+  _ -> throwError $ InternalError "Not Implemented!"
+
+getVerifiedAadhaarXML ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  VerificationServiceConfig ->
+  DigiTypes.DigiLockerExtractAadhaarReq ->
+  m Text
+getVerifiedAadhaarXML serviceConfig req = case serviceConfig of
+  DigiLockerConfig cfg -> DigiLocker.getVerifiedAadhaarXML cfg req.accessToken
   _ -> throwError $ InternalError "Not Implemented!"
