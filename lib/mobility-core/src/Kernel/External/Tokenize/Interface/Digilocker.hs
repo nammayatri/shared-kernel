@@ -56,4 +56,4 @@ tokenize config req = do
           }
     makeDigilockerTokenizeResp DigilockerTypes.DigilockerTokenizeResponse {..} = do
       let expiresAt = consent_valid_till <&> (\validTill -> posixSecondsToUTCTime $ fromIntegral validTill)
-      return $ InterfaceTypes.TokenizationResp {token = access_token, ..}
+      return $ InterfaceTypes.TokenizationResp {token = access_token, scope = scope, ..}

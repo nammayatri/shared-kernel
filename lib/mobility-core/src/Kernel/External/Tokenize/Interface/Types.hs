@@ -33,7 +33,8 @@ data TokenizationReq = TokenizationReq
 
 data TokenizationResp = TokenizationResp
   { token :: Text,
-    expiresAt :: Maybe UTCTime
+    expiresAt :: Maybe UTCTime,
+    scope :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
