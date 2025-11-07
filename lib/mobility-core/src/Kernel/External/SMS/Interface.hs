@@ -93,7 +93,7 @@ sendSMS SmsHandler {..} req = do
       let currentIndex = (startIndex + currentAttempts) `mod` totalCount
           preferredProvider = providers !! currentIndex
       smsConfig <- getProviderConfig preferredProvider
-      result <- try @_ @SomeException $ sendSMS' smsConfig req
+      result <- withTryCatch "sendSMS" $ sendSMS' smsConfig req
 
       case result of
         Left _ -> fallback

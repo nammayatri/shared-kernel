@@ -7,6 +7,7 @@ import Kernel.Prelude
 import Kernel.Storage.Hedis
 import Kernel.Storage.Hedis.Queries as Hedis
 import Kernel.Tools.Metrics.CoreMetrics
+import Kernel.Types.TryException
 import qualified System.Environment as SE
 
 data LatencyAction = SELECT_TO_SEND_REQUEST
@@ -25,7 +26,8 @@ startGenericLatencyMetrics ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
     HedisFlow m r,
-    MonadReader r m
+    MonadReader r m,
+    TryException m
   ) =>
   LatencyAction ->
   Text ->
@@ -41,7 +43,8 @@ finishGenericLatencyMetrics ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
     HedisFlow m r,
-    MonadReader r m
+    MonadReader r m,
+    TryException m
   ) =>
   LatencyAction ->
   Text ->

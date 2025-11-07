@@ -160,7 +160,7 @@ getRoutes entityId isAvoidToll cfg req = do
           destination = NE.last waypointsV2
           intermediates = if length waypointsV2 > 2 then Just $ init $ NE.tail waypointsV2 else Nothing
           mode = getModeV2 <$> req.mode
-      result <- try @_ @SomeException $ GoogleMaps.advancedDirectionsAPI entityId googleMapsUrl key origin destination mode intermediates isAvoidToll computeAlternativeRoutes routePreference
+      result <- withTryCatch "getRoutes" $ GoogleMaps.advancedDirectionsAPI entityId googleMapsUrl key origin destination mode intermediates isAvoidToll computeAlternativeRoutes routePreference
       case result of
         Right gRes -> do
           if null gRes.routes && isAvoidToll
@@ -353,7 +353,7 @@ autoComplete ::
 autoComplete entityId cfg req@AutoCompleteReq {..} = do
   if cfg.useNewPlaces
     then do
-      result <- try @_ @SomeException $ autoCompleteNew entityId cfg AutoCompleteReq {..}
+      result <- withTryCatch "autoComplete" $ autoCompleteNew entityId cfg AutoCompleteReq {..}
       case result of
         Right res -> return res
         Left err -> do
