@@ -51,3 +51,4 @@ initiateCall config req = do
     ExotelConfig ec -> Exotel.initiateCall ec req
     TataClickToCallConfig ec -> TataClickToCall.initiateCall ec req
     TwillioCallConfig _ -> throwNotProvidedError "initiateCall" TwillioCall
+    VonageCallConfig _ -> throwNotProvidedError "initiateCall" VonageCall
