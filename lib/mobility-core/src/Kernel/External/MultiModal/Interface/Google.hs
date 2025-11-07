@@ -36,7 +36,7 @@ getTransitRoutes entityId cfg req = do
       arrivalTime = formatUtcTime req.arrivalTime
       departureTime = formatUtcTime req.departureTime
       transitPreferences = req.transitPreferences
-  result <- try @_ @SomeException $ GoogleMaps.transitDirectionsAPI entityId googleMapsUrl key origin destination travelMode computeAlternativeRoutes routePreference transitPreferences arrivalTime departureTime
+  result <- withTryCatch "getTransitRoutes" $ GoogleMaps.transitDirectionsAPI entityId googleMapsUrl key origin destination travelMode computeAlternativeRoutes routePreference transitPreferences arrivalTime departureTime
   case result of
     Right gRes -> do
       pure $ Just $ convertGoogleToGeneric gRes
