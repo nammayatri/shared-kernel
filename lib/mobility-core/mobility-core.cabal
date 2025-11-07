@@ -416,6 +416,7 @@ library
       Kernel.Types.Time
       Kernel.Types.TimeBound
       Kernel.Types.TimeRFC339
+      Kernel.Types.TryException
       Kernel.Types.Validation
       Kernel.Types.Value
       Kernel.Types.Version
