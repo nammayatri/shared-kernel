@@ -11,21 +11,20 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.External.Call.Types
-  ( module Kernel.External.Call.Types,
-  )
-where
+module Kernel.External.Call.Vonage.Config (VonageCallCfg) where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.External.Encryption
+import Kernel.Prelude
 
-data CallService = Exotel | Knowlarity | TwillioCall | TataClickToCall | VonageCall
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
-
-$(mkBeamInstancesForEnum ''CallService)
-
-derivePersistField "CallService"
+data VonageCallCfg = VonageCallCfg
+  { apiKey :: EncryptedField 'AsEncrypted Text,
+    apiSecret :: EncryptedField 'AsEncrypted Text,
+    applicationId :: Text,
+    privateKey :: EncryptedField 'AsEncrypted Text,
+    answerUrl :: Text,
+    eventUrl :: Text,
+    rtcEventUrl :: Text,
+    region :: Text
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)

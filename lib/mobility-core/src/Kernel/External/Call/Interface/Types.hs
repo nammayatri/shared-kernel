@@ -21,10 +21,11 @@ import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Call.Exotel.Config as Exotel
 import qualified Kernel.External.Call.TataClickToCall.Config as TataClickToCall
 import qualified Kernel.External.Call.Twillio.Config as Twillio
+import qualified Kernel.External.Call.Vonage.Config as Vonage
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data CallServiceConfig = ExotelConfig Exotel.ExotelCfg | TwillioCallConfig Twillio.TwillioCallCfg | TataClickToCallConfig TataClickToCall.TataClickToCallCfg
+data CallServiceConfig = ExotelConfig Exotel.ExotelCfg | TwillioCallConfig Twillio.TwillioCallCfg | TataClickToCallConfig TataClickToCall.TataClickToCallCfg | VonageCallConfig Vonage.VonageCallCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data InitiateCallReq a = InitiateCallReq
