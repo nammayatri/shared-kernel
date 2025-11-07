@@ -17,4 +17,4 @@ module Kernel.Types.TryException where
 import EulerHS.Prelude
 
 class TryException m where
-  withTryCatch :: Text -> m a -> m (Either Text a)
+  withTryCatch :: Text -> m a -> m (Either SomeException a)

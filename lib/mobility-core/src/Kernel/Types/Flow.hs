@@ -273,7 +273,7 @@ instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => TryException (FlowR r
           Left e -> do
             logError $ "withTryCatch [" <> label <> "] died with error: " <> makeLogSomeException e
             Metrics.incrementTryExceptionCounter label e
-            return $ Left $ makeLogSomeException e
+            return $ Left e
 
 logRequestIdForFork :: (Log (FlowR r), HasARTFlow r, Metrics.CoreMetrics (FlowR r)) => Text -> FlowR r ()
 logRequestIdForFork tag = do
