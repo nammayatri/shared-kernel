@@ -38,6 +38,7 @@ import Kernel.Types.Forkable
 import Kernel.Types.Logging
 import Kernel.Types.MonadGuid
 import Kernel.Types.Time
+import Kernel.Types.TryException
 import qualified Kernel.Utils.IOLogging as IOLogging
 import Kernel.Utils.Logging
 import Prometheus (MonadMonitor (..))
@@ -230,6 +231,7 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   addGenericLatencyMetrics = Metrics.addGenericLatencyMetricsImplementation
   addOpenTripPlannerResponse = Metrics.addOpenTripPlannerResponseImplementation
   addOpenTripPlannerLatency = Metrics.addOpenTripPlannerLatencyImplementation
+  incrementTryExceptionCounter = Metrics.incrementTryExceptionCounterImplementation
 
 instance MonadMonitor (FlowR r) where
   doIO = liftIO
@@ -259,6 +261,19 @@ instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkabl
             logError $ "awaitableFork Thread " <> show tag <> " died with error: " <> makeLogSomeException e
             Metrics.incrementErrorCounter "AWAITABLE_FORK_THREAD_ERROR" e
             liftIO $ throwIO e
+
+instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => TryException (FlowR r) where
+  withTryCatch label action =
+    handleExc action
+    where
+      handleExc f' = do
+        res <- try f'
+        case res of
+          Right a -> return $ Right a
+          Left e -> do
+            logError $ "withTryCatch [" <> label <> "] died with error: " <> makeLogSomeException e
+            Metrics.incrementTryExceptionCounter label e
+            return $ Left $ makeLogSomeException e
 
 logRequestIdForFork :: (Log (FlowR r), HasARTFlow r, Metrics.CoreMetrics (FlowR r)) => Text -> FlowR r ()
 logRequestIdForFork tag = do

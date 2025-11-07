@@ -33,6 +33,7 @@ import Kernel.Types.Forkable
 import Kernel.Types.Logging
 import Kernel.Types.MonadGuid
 import Kernel.Types.Time
+import Kernel.Types.TryException
 import Servant
 import qualified Servant.Client.Core as Servant
 
@@ -51,7 +52,8 @@ type MonadFlow m =
     MonadGuid m,
     MonadTime m,
     MonadClock m,
-    MonadThrow m
+    MonadThrow m,
+    TryException m
   )
 
 -- | Require monad to be Flow-based and have specified fields in Reader env.
