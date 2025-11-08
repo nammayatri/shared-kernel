@@ -18,3 +18,6 @@ import EulerHS.Prelude
 
 class TryException m where
   withTryCatch :: Text -> m a -> m (Either SomeException a)
+
+instance TryException IO where
+  withTryCatch _ = try
