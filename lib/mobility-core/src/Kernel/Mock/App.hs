@@ -84,6 +84,9 @@ instance (HasLog e) => Forkable (MockM e) where
   forkMultiple tagAndFunction = forM_ tagAndFunction $ \(tag, f) -> mockFork tag f -- it works with multiple threads unlike forkMultiple @(FlowR r), which creates only one thread
   awaitableFork = mockAwaitableFork
 
+instance (HasLog e) => TryException (MockM e) where
+  withTryCatch = mockWithTryCatch
+
 instance MonadGuid (MockM e) where
   generateGUIDText = liftIO generateGUIDTextIO
 
@@ -105,3 +108,12 @@ mockAwaitableFork tag action = do
       Right res -> do
         liftIO $ M.putMVar awaitableMVar $ Right res
   pure $ ET.Awaitable awaitableMVar
+
+mockWithTryCatch :: (HasLog e) => Text -> MockM e a -> MockM e (Either SomeException a)
+mockWithTryCatch _ action = do
+  res <- try action
+  case res of
+    Right a -> pure $ Right a
+    Left e -> do
+      logOutput ERROR $ show e
+      pure $ Left e
