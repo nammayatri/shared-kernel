@@ -16,6 +16,7 @@ module Kernel.External.Verification.Digilocker.Flow where
 
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as DT
+import qualified Data.Text.Encoding as TE
 import qualified EulerHS.Language as L
 import EulerHS.Types (EulerClient, client)
 import Kernel.External.Encryption
@@ -32,7 +33,18 @@ import Network.HTTP.Types (Status (..))
 import Servant hiding (OctetStream, throwError)
 import Servant.Client.Core (ClientError (..), ResponseF (..))
 
+data ApplicationXML deriving (Typeable)
+
 data OctetStream deriving (Typeable)
+
+instance Accept ApplicationXML where
+  contentTypes _ = pure $ "application" M.// "xml"
+
+instance MimeUnrender ApplicationXML Text where
+  mimeUnrender _ bs =
+    case TE.decodeUtf8' (BSL.toStrict bs) of
+      Left err -> Left (show err)
+      Right text -> Right text
 
 instance Accept OctetStream where
   contentTypes _ = pure $ "application" M.// "octet-stream"
@@ -50,7 +62,7 @@ type DigiLockerXmlAPI =
     :> "xml"
     :> Capture "uri" Text
     :> Header "Authorization" Text
-    :> Get '[PlainText] Text
+    :> Get '[ApplicationXML, PlainText] Text
 
 type DigiLockerFileAPI =
   "public"
@@ -78,7 +90,7 @@ type DigiLockerAadhaarXmlAPI =
     :> "xml"
     :> "eaadhaar"
     :> Header "Authorization" Text
-    :> Get '[PlainText] Text
+    :> Get '[ApplicationXML, PlainText] Text
 
 xmlClient :: Text -> Maybe Text -> EulerClient Text
 xmlClient uri authHeader = client (Proxy :: Proxy DigiLockerXmlAPI) uri authHeader
