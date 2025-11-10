@@ -27,22 +27,13 @@ import Kernel.Types.Error (ExternalAPICallError (..))
 import Kernel.Utils.Common
 import qualified Network.HTTP.Media as M
 import Network.HTTP.Types (Status (..))
-import Servant hiding (OctetStream, throwError)
+import Servant hiding (throwError)
 import Servant.Client.Core (ClientError (..), ResponseF (..))
 
 data ApplicationXML deriving (Typeable)
 
-data OctetStream deriving (Typeable)
-
-data PDF deriving (Typeable)
-
-newtype BinaryFile = BinaryFile BSL.ByteString
-
-instance ToJSON BinaryFile where
-  toJSON (BinaryFile bs) = toJSON ("<binary data, " <> show (BSL.length bs) <> " bytes>" :: Text)
-
 instance Accept ApplicationXML where
-  contentTypes _ = pure $ "application" M.// "xml"
+  contentType _ = "application" M.// "xml"
 
 instance MimeUnrender ApplicationXML Text where
   mimeUnrender _ bs =
@@ -50,29 +41,50 @@ instance MimeUnrender ApplicationXML Text where
       Left err -> Left (show err)
       Right text -> Right text
 
-instance Accept OctetStream where
-  contentTypes _ = pure $ "application" M.// "octet-stream"
+-- Custom content type definitions for DigiLocker's file API
+-- DigiLocker can return: application/pdf, image/jpeg, image/jpg, image/png
+data PDF deriving (Typeable)
 
-instance MimeRender OctetStream BSL.ByteString where
-  mimeRender _ = \x -> x
+data JPEG deriving (Typeable)
 
-instance MimeUnrender OctetStream BSL.ByteString where
-  mimeUnrender _ = pure . (\x -> x)
+data JPG deriving (Typeable)
 
-instance MimeUnrender OctetStream BinaryFile where
-  mimeUnrender _ = pure . BinaryFile
+data PNG deriving (Typeable)
 
+-- Accept instances define what Content-Type header each type matches
 instance Accept PDF where
-  contentTypes _ = pure $ "application" M.// "pdf"
+  contentType _ = "application" M.// "pdf"
 
-instance MimeRender PDF BSL.ByteString where
-  mimeRender _ = \x -> x
+instance Accept JPEG where
+  contentType _ = "image" M.// "jpeg"
 
-instance MimeUnrender PDF BSL.ByteString where
-  mimeUnrender _ = pure . (\x -> x)
+instance Accept JPG where
+  contentType _ = "image" M.// "jpg"
+
+instance Accept PNG where
+  contentType _ = "image" M.// "png"
+
+-- Wrapper type for binary data to provide ToJSON instance (needed for callAPI' logging)
+newtype BinaryFile = BinaryFile BSL.ByteString
+
+instance ToJSON BinaryFile where
+  toJSON (BinaryFile bs) = toJSON ("<binary data, " <> show (BSL.length bs) <> " bytes>" :: Text)
+
+-- MimeUnrender instances - all binary types decode to BinaryFile
+instance MimeUnrender OctetStream BinaryFile where
+  mimeUnrender _ = Right . BinaryFile
 
 instance MimeUnrender PDF BinaryFile where
-  mimeUnrender _ = pure . BinaryFile
+  mimeUnrender _ = Right . BinaryFile
+
+instance MimeUnrender JPEG BinaryFile where
+  mimeUnrender _ = Right . BinaryFile
+
+instance MimeUnrender JPG BinaryFile where
+  mimeUnrender _ = Right . BinaryFile
+
+instance MimeUnrender PNG BinaryFile where
+  mimeUnrender _ = Right . BinaryFile
 
 type DigiLockerXmlAPI =
   "public"
@@ -90,7 +102,7 @@ type DigiLockerFileAPI =
     :> "file"
     :> Capture "uri" Text
     :> Header "Authorization" Text
-    :> Get '[OctetStream, PDF] BinaryFile
+    :> Get '[OctetStream, PDF, JPEG, JPG, PNG] BinaryFile
 
 type DigiLockerPullDrivingLicenseAPI =
   "public"
@@ -195,9 +207,9 @@ checkDigiLockerFileResponse url resp = case resp of
   Left err -> do
     logError $ "DigiLocker File API call failed: " <> show err
     fromEitherM (digiLockerError url) (Left err)
-  Right (BinaryFile resp') -> do
-    logDebug $ "DigiLocker File API call succeeded, file size: " <> show (BSL.length resp')
-    return resp'
+  Right (BinaryFile bytes) -> do
+    logInfo $ "DigiLocker File API call succeeded, file size: " <> show (BSL.length bytes)
+    return bytes
 
 pullDrivingLicense ::
   ( HasCallStack,
