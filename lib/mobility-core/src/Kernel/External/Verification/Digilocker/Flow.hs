@@ -30,6 +30,10 @@ import Network.HTTP.Types (Status (..))
 import Servant hiding (throwError)
 import Servant.Client.Core (ClientError (..), ResponseF (..))
 
+-- Version identifier for debugging - update this when making changes
+digiLockerFlowVersion :: Text
+digiLockerFlowVersion = "2025-11-10-v2-fixed-content-types"
+
 data ApplicationXML deriving (Typeable)
 
 instance Accept ApplicationXML where
@@ -163,8 +167,23 @@ getFile ::
   m BSL.ByteString
 getFile cfg accessToken uri = do
   let authHeader = "Bearer " <> accessToken
+  logInfo $ "DigiLocker Flow Version: " <> digiLockerFlowVersion
+  logInfo $ "Supported content types: application/octet-stream, application/pdf, image/jpeg, image/jpg, image/png"
   logDebug $ "Calling DigiLocker File API for URI: " <> uri
+  logDebug $ "Authorization header present: " <> show (not $ DT.null accessToken)
   res <- callAPI' Nothing cfg.url (fileClient uri (Just authHeader)) "DGL-FILE-API" (Proxy @DigiLockerFileAPI)
+  -- 👇 Diagnostic logging - shows raw response before error handling
+  case res of
+    Left (FailureResponse _ (Response status headers _ _)) -> do
+      let headersList = toList headers
+      logError $ "🔍 RAW RESPONSE DIAGNOSTIC (before content-type matching):"
+      logError $ "Response status: " <> show status
+      logError $ "Received Content-Type header: " <> show (lookup "Content-Type" headersList)
+      logError $ "Full response headers: " <> show headersList
+      logError $ "Note: Check for charset parameters, trailing spaces, or case differences"
+    Left (UnsupportedContentType mediaType _) -> do
+      logError $ "🔍 Content-Type was rejected by Servant: " <> show mediaType
+    _ -> pure ()
   checkDigiLockerFileResponse cfg.url res
 
 checkDigiLockerResponse ::
@@ -199,16 +218,29 @@ checkDigiLockerFileResponse ::
   Either ClientError BinaryFile ->
   m BSL.ByteString
 checkDigiLockerFileResponse url resp = case resp of
-  Left err@(FailureResponse _ (Response (Status {statusCode = code}) _ _ body)) -> do
-    logError $ "DigiLocker File API call failed with status code: " <> show code <> ", error: " <> show err
+  Left err@(FailureResponse _ (Response (Status {statusCode = code}) headers _ body)) -> do
+    logError $ "DigiLocker File API call failed with status code: " <> show code
+    logError $ "Response headers: " <> show headers
+    logError $ "Full error: " <> show err
     let errorBody = BSL.toStrict body
         digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
     throwError digiLockerErr
+  Left err@(UnsupportedContentType mediaType response) -> do
+    logError $ "❌ UNSUPPORTED CONTENT TYPE ERROR ❌"
+    logError $ "DigiLocker Flow Version: " <> digiLockerFlowVersion
+    logError $ "Received Content-Type: " <> show mediaType
+    logError $ "Response status: " <> show (responseStatusCode response)
+    logError $ "Response headers: " <> show (responseHeaders response)
+    logError $ "This means the Accept instances are not working correctly"
+    logError $ "Expected to accept: application/octet-stream, application/pdf, image/jpeg, image/jpg, image/png"
+    logError $ "Full error: " <> show err
+    fromEitherM (digiLockerError url) (Left err)
   Left err -> do
-    logError $ "DigiLocker File API call failed: " <> show err
+    logError $ "DigiLocker File API call failed with client error: " <> show err
     fromEitherM (digiLockerError url) (Left err)
   Right (BinaryFile bytes) -> do
-    logInfo $ "DigiLocker File API call succeeded, file size: " <> show (BSL.length bytes)
+    logInfo $ "✅ DigiLocker File API call succeeded!"
+    logInfo $ "File size: " <> show (BSL.length bytes) <> " bytes"
     return bytes
 
 pullDrivingLicense ::
