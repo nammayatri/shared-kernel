@@ -37,6 +37,8 @@ data ApplicationXML deriving (Typeable)
 
 data OctetStream deriving (Typeable)
 
+data PDF deriving (Typeable)
+
 instance Accept ApplicationXML where
   contentTypes _ = pure $ "application" M.// "xml"
 
@@ -55,6 +57,15 @@ instance MimeRender OctetStream BSL.ByteString where
 instance MimeUnrender OctetStream BSL.ByteString where
   mimeUnrender _ = pure . (\x -> x)
 
+instance Accept PDF where
+  contentTypes _ = pure $ "application" M.// "pdf"
+
+instance MimeRender PDF BSL.ByteString where
+  mimeRender _ = \x -> x
+
+instance MimeUnrender PDF BSL.ByteString where
+  mimeUnrender _ = pure . (\x -> x)
+
 type DigiLockerXmlAPI =
   "public"
     :> "oauth2"
@@ -71,7 +82,7 @@ type DigiLockerFileAPI =
     :> "file"
     :> Capture "uri" Text
     :> Header "Authorization" Text
-    :> Get '[OctetStream] BSL.ByteString
+    :> Get '[OctetStream, PDF] BSL.ByteString
 
 type DigiLockerPullDrivingLicenseAPI =
   "public"
