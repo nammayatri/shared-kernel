@@ -17,17 +17,14 @@ module Kernel.External.Verification.Digilocker.Flow where
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as DT
 import qualified Data.Text.Encoding as TE
-import qualified EulerHS.Language as L
 import EulerHS.Types (EulerClient, client)
 import Kernel.External.Encryption
 import Kernel.External.SharedLogic.DigiLocker.Error (DigiLockerError (..), parseDigiLockerErrorFromResponse)
 import qualified Kernel.External.Verification.Digilocker.Types as DigiTypes
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error (ExternalAPICallError (..))
 import Kernel.Utils.Common
-import Kernel.Utils.Servant.BaseUrl (showBaseUrlText)
 import qualified Network.HTTP.Media as M
 import Network.HTTP.Types (Status (..))
 import Servant hiding (OctetStream, throwError)
@@ -38,6 +35,11 @@ data ApplicationXML deriving (Typeable)
 data OctetStream deriving (Typeable)
 
 data PDF deriving (Typeable)
+
+newtype BinaryFile = BinaryFile BSL.ByteString
+
+instance ToJSON BinaryFile where
+  toJSON (BinaryFile bs) = toJSON ("<binary data, " <> show (BSL.length bs) <> " bytes>" :: Text)
 
 instance Accept ApplicationXML where
   contentTypes _ = pure $ "application" M.// "xml"
@@ -57,6 +59,9 @@ instance MimeRender OctetStream BSL.ByteString where
 instance MimeUnrender OctetStream BSL.ByteString where
   mimeUnrender _ = pure . (\x -> x)
 
+instance MimeUnrender OctetStream BinaryFile where
+  mimeUnrender _ = pure . BinaryFile
+
 instance Accept PDF where
   contentTypes _ = pure $ "application" M.// "pdf"
 
@@ -65,6 +70,9 @@ instance MimeRender PDF BSL.ByteString where
 
 instance MimeUnrender PDF BSL.ByteString where
   mimeUnrender _ = pure . (\x -> x)
+
+instance MimeUnrender PDF BinaryFile where
+  mimeUnrender _ = pure . BinaryFile
 
 type DigiLockerXmlAPI =
   "public"
@@ -82,7 +90,7 @@ type DigiLockerFileAPI =
     :> "file"
     :> Capture "uri" Text
     :> Header "Authorization" Text
-    :> Get '[OctetStream, PDF] BSL.ByteString
+    :> Get '[OctetStream, PDF] BinaryFile
 
 type DigiLockerPullDrivingLicenseAPI =
   "public"
@@ -106,7 +114,7 @@ type DigiLockerAadhaarXmlAPI =
 xmlClient :: Text -> Maybe Text -> EulerClient Text
 xmlClient uri authHeader = client (Proxy :: Proxy DigiLockerXmlAPI) uri authHeader
 
-fileClient :: Text -> Maybe Text -> EulerClient BSL.ByteString
+fileClient :: Text -> Maybe Text -> EulerClient BinaryFile
 fileClient uri authHeader = client (Proxy :: Proxy DigiLockerFileAPI) uri authHeader
 
 pullDrivingLicenseClient :: Maybe Text -> DigiTypes.DigiLockerPullDrivingLicenseRequest -> EulerClient DigiTypes.DigiLockerPullDocumentResponse
@@ -144,9 +152,7 @@ getFile ::
 getFile cfg accessToken uri = do
   let authHeader = "Bearer " <> accessToken
   logDebug $ "Calling DigiLocker File API for URI: " <> uri
-  res <-
-    measuringDuration (Metrics.addRequestLatency (showBaseUrlText cfg.url) "DGL-FILE-API") $
-      L.callAPI' Nothing cfg.url (fileClient uri (Just authHeader))
+  res <- callAPI' Nothing cfg.url (fileClient uri (Just authHeader)) "DGL-FILE-API" (Proxy @DigiLockerFileAPI)
   checkDigiLockerFileResponse cfg.url res
 
 checkDigiLockerResponse ::
@@ -178,7 +184,7 @@ checkDigiLockerFileResponse ::
     Log m
   ) =>
   BaseUrl ->
-  Either ClientError BSL.ByteString ->
+  Either ClientError BinaryFile ->
   m BSL.ByteString
 checkDigiLockerFileResponse url resp = case resp of
   Left err@(FailureResponse _ (Response (Status {statusCode = code}) _ _ body)) -> do
@@ -189,7 +195,7 @@ checkDigiLockerFileResponse url resp = case resp of
   Left err -> do
     logError $ "DigiLocker File API call failed: " <> show err
     fromEitherM (digiLockerError url) (Left err)
-  Right resp' -> do
+  Right (BinaryFile resp') -> do
     logDebug $ "DigiLocker File API call succeeded, file size: " <> show (BSL.length resp')
     return resp'
 
