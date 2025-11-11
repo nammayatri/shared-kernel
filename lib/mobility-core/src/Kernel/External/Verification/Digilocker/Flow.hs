@@ -32,7 +32,7 @@ import Servant.Client.Core (ClientError (..), ResponseF (..))
 
 -- Version identifier for debugging - update this when making changes
 digiLockerFlowVersion :: Text
-digiLockerFlowVersion = "2025-11-10-v2-fixed-content-types"
+digiLockerFlowVersion = "2025-11-10-v3-fixed-content-types"
 
 data ApplicationXML deriving (Typeable)
 
@@ -106,7 +106,7 @@ type DigiLockerFileAPI =
     :> "file"
     :> Capture "uri" Text
     :> Header "Authorization" Text
-    :> Get '[OctetStream, PDF, JPEG, JPG, PNG] BinaryFile
+    :> Get '[PDF, OctetStream, JPEG, JPG, PNG] BinaryFile
 
 type DigiLockerPullDrivingLicenseAPI =
   "public"
