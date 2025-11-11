@@ -207,6 +207,9 @@ data FCMNotificationType
   | PAYOUT_COMPLETED
   | EXOTEL_CALL_UNREACHABLE
   | END_RIDE_OFFERS
+  | REFUND_PENDING
+  | REFUND_SUCCESS
+  | REFUND_FAILED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
