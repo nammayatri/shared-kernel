@@ -37,6 +37,7 @@ module Kernel.External.Verification.Interface
 where
 
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Text as T
 import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.External.Verification.Digilocker.Types as DigiTypes
@@ -291,14 +292,21 @@ fetchAndExtractVerifiedDL serviceConfig req = case serviceConfig of
 
 getFile ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    Log m
   ) =>
   VerificationServiceConfig ->
   DigiTypes.DigiLockerGetFileReq ->
   m BSL.ByteString
-getFile serviceConfig req = case serviceConfig of
-  DigiLockerConfig cfg -> DigiLocker.getFile cfg req.accessToken req.uri
-  _ -> throwError $ InternalError "Not Implemented!"
+getFile serviceConfig req = do
+  logInfo $
+    "Interface.getFile -> forwarding to DigiLocker | uri="
+      <> req.uri
+      <> ", accessTokenPresent="
+      <> show (not $ T.null req.accessToken)
+  case serviceConfig of
+    DigiLockerConfig cfg -> DigiLocker.getFile cfg req.accessToken req.uri
+    _ -> throwError $ InternalError "Not Implemented!"
 
 pullDrivingLicense ::
   ( EncFlow m r,
@@ -332,14 +340,17 @@ fetchAndExtractVerifiedPan serviceConfig req = case serviceConfig of
 
 fetchAndExtractVerifiedAadhaar ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    Log m
   ) =>
   VerificationServiceConfig ->
   DigiTypes.DigiLockerExtractAadhaarReq ->
   m ExtractedDigiLockerAadhaarResp
-fetchAndExtractVerifiedAadhaar serviceConfig req = case serviceConfig of
-  DigiLockerConfig cfg -> DigiLocker.fetchAndExtractVerifiedAadhaar cfg req.accessToken
-  _ -> throwError $ InternalError "Not Implemented!"
+fetchAndExtractVerifiedAadhaar serviceConfig req = do
+  logInfo "Interface.fetchAndExtractVerifiedAadhaar -> delegating to DigiLocker"
+  case serviceConfig of
+    DigiLockerConfig cfg -> DigiLocker.fetchAndExtractVerifiedAadhaar cfg req.accessToken
+    _ -> throwError $ InternalError "Not Implemented!"
 
 getVerifiedAadhaarXML ::
   ( EncFlow m r,

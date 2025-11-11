@@ -68,13 +68,19 @@ fetchAndExtractVerifiedDL config accessToken uri = do
 getFile ::
   ( CoreMetrics m,
     EncFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    Log m
   ) =>
   DigiTypes.DigiLockerCfg ->
   Text ->
   Text ->
   m BSL.ByteString
 getFile config accessToken uri = do
+  logInfo $
+    "Interface.Digilocker.getFile -> calling Flow.getFile | uri="
+      <> uri
+      <> ", accessTokenPresent="
+      <> show (not $ T.null accessToken)
   DigiFlow.getFile config accessToken uri
 
 -- | Pull driving license document from DigiLocker
@@ -309,12 +315,14 @@ fetchAndExtractVerifiedPan config accessToken uri = do
 fetchAndExtractVerifiedAadhaar ::
   ( CoreMetrics m,
     EncFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    Log m
   ) =>
   DigiTypes.DigiLockerCfg ->
   Text ->
   m InterfaceTypes.ExtractedDigiLockerAadhaarResp
 fetchAndExtractVerifiedAadhaar config accessToken = do
+  logInfo "Interface.Digilocker.fetchAndExtractVerifiedAadhaar -> invoking Flow.getAadhaarXml"
   xmlText <- DigiFlow.getAadhaarXml config accessToken
   doc <- case parseLBS def (TLE.encodeUtf8 $ TL.fromStrict xmlText) of
     Left err -> throwError $ DGLError $ "Failed to parse XML: " <> T.pack (show err)
