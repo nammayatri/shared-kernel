@@ -286,7 +286,8 @@ data SplitDetailsResponse = SplitDetailsResponse
     amount :: Maybe HighPrecMoney,
     merchantCommission :: Maybe HighPrecMoney,
     gatewaySubAccountId :: Maybe Text,
-    epgTxnId :: Maybe Text
+    epgTxnId :: Maybe Text,
+    uniqueSplitId :: Maybe Text
   }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
