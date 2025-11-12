@@ -176,8 +176,22 @@ runPostCheck mapsService req res = do
   case mapsService of
     Google -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
     MMI -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
-    OSRM -> return $ (< osrmThreshold) $ distanceBetweenInMeters (last req.points) (last res.snappedPoints)
+    OSRM ->
+      case (req.points, res.snappedPoints) of
+        (_x : _xs, _y : _ys) -> return $ (< osrmThreshold) $ distanceBetweenInMeters (last req.points) (last res.snappedPoints)
+        (_, _) -> reportEmptyPoints req res
     _ -> return True
+  where
+    reportEmptyPoints SnapToRoadReq {points} SnapToRoadResp {snappedPoints} = do
+      let reqPointsCount = length points
+          resPointsCount = length snappedPoints
+      logTagError "DebugErrorLog: SnapToRoadPostCheck" $
+        "OSRM post-check skipped due to empty points. "
+          <> "reqPointsCount="
+          <> show reqPointsCount
+          <> ", resPointsCount="
+          <> show resPointsCount
+      return False
 
 snapToRoadWithFallback ::
   ( EncFlow m r,
