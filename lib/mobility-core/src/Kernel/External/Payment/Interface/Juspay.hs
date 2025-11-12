@@ -681,7 +681,8 @@ mkSplitSettlementResponse Juspay.SplitSettlementResponse {..} =
           merchantCommission = merchant_commission,
           amount = amount,
           gatewaySubAccountId = gateway_sub_account_id,
-          epgTxnId = epg_txn_id
+          epgTxnId = epg_txn_id,
+          uniqueSplitId = unique_split_id
         }
 
 castSourceInfo :: Juspay.SourceInfo -> SourceInfo
