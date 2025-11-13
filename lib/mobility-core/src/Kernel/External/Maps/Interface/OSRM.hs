@@ -104,13 +104,16 @@ getOSRMTable tableResponse request = do
               let subList =
                     map
                       ( \destinationPair -> do
-                          let distance = Meters {getMeters = round $ tableResponse.distances !! fst sourcePair !! fst destinationPair}
+                          let rawDistance = Meters {getMeters = round $ tableResponse.distances !! fst sourcePair !! fst destinationPair}
+                          let rawDuration = Seconds {getSeconds = round $ tableResponse.durations !! fst sourcePair !! fst destinationPair}
+                          let distance = if rawDistance < -1 then Meters {getMeters = 2000} else rawDistance
+                          let duration = if rawDuration < -1 then Seconds {getSeconds = 2000} else rawDuration
                           GetDistanceResp
                             { origin = snd sourcePair,
                               destination = snd destinationPair,
                               distance,
                               distanceWithUnit = convertMetersToDistance request.distanceUnit distance,
-                              duration = Seconds {getSeconds = round $ tableResponse.durations !! fst sourcePair !! fst destinationPair},
+                              duration = duration,
                               status = "ok"
                             }
                       )
@@ -135,14 +138,17 @@ getOSRMTableOneToOne tableResponse request = do
     NE.fromList $
       foldl
         ( \mainList (indx, source, dest) -> do
-            let distance = Meters {getMeters = round $ tableResponse.distances !! 0 !! indx}
+            let rawDistance = Meters {getMeters = round $ tableResponse.distances !! 0 !! indx}
+            let rawDuration = Seconds {getSeconds = round $ tableResponse.durations !! 0 !! indx}
+            let distance = if rawDistance < -1 then Meters {getMeters = 2000} else rawDistance
+            let duration = if rawDuration < -1 then Seconds {getSeconds = 2000} else rawDuration
             let resp =
                   GetDistanceResp
                     { origin = source,
                       destination = dest,
                       distance,
                       distanceWithUnit = convertMetersToDistance request.distanceUnit distance,
-                      duration = Seconds {getSeconds = round $ tableResponse.durations !! 0 !! indx},
+                      duration = duration,
                       status = "ok"
                     }
             let subList = [resp]
