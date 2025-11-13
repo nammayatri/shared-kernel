@@ -22,7 +22,7 @@ import Web.FormUrlEncoded
 import Web.HttpApiData (ToHttpApiData (..))
 
 data SetupIntentReq = SetupIntentReq
-  { automatic_payment_methods :: AutomaticPayementMethods,
+  { automatic_payment_methods :: AutomaticPaymentMethods,
     confirm :: Bool,
     customer :: CustomerId,
     description :: Maybe Text,

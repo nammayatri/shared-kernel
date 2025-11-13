@@ -26,7 +26,8 @@ import Kernel.Utils.Common hiding (nominalDiffTimeToSeconds)
 
 checkSlidingWindowLimit ::
   ( Redis.HedisFlow m r,
-    HasFlowEnv m r '["apiRateLimitOptions" ::: APIRateLimitOptions]
+    HasFlowEnv m r '["apiRateLimitOptions" ::: APIRateLimitOptions],
+    TryException m
   ) =>
   Text ->
   m ()
@@ -36,7 +37,8 @@ checkSlidingWindowLimit key = do
 
 checkSlidingWindowLimitWithOptions ::
   ( Redis.HedisFlow m r,
-    MonadTime m
+    MonadTime m,
+    TryException m
   ) =>
   Text ->
   APIRateLimitOptions ->
@@ -49,7 +51,7 @@ checkSlidingWindowLimitWithOptions key APIRateLimitOptions {..} = do
 -- Returns True if limit is not exceed and further
 -- actions should be allowed. False otherwise.
 
-slidingWindowLimiter :: (Redis.HedisFlow m r, MonadTime m) => Text -> Int -> Int -> m Bool
+slidingWindowLimiter :: (Redis.HedisFlow m r, MonadTime m, TryException m) => Text -> Int -> Int -> m Bool
 slidingWindowLimiter key frameHitsLim frameLen = do
   currTime <- getCurrentTime
   hits <- fromMaybe [] <$> Redis.get key

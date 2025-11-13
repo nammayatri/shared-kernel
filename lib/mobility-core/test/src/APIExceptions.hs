@@ -67,6 +67,7 @@ instance Metrics.CoreMetrics IO where
   addGenericLatencyMetrics _ _ = return ()
   addOpenTripPlannerResponse _ _ _ = return ()
   addOpenTripPlannerLatency _ _ _ = return ()
+  incrementTryExceptionCounter _ _ = return ()
 
 httpExceptionTests :: TestTree
 httpExceptionTests =

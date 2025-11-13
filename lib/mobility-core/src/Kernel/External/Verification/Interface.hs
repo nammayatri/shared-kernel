@@ -83,7 +83,7 @@ verifyRC getServiceConfig verificationProvidersPriorityList req = do
     verifyRCWithFallback [] = throwError $ InternalError "Not able to verify the RC with all the configured providers !!!!!"
     verifyRCWithFallback (preferredProvider : restProviders) = do
       logDebug $ "Calling verifyRC for provider : " <> show preferredProvider
-      result <- try @_ @SomeException $ getServiceConfig preferredProvider >>= flip verifyRC' req
+      result <- withTryCatch "verifyRC" $ getServiceConfig preferredProvider >>= flip verifyRC' req
       case result of
         Left _ -> verifyRCWithFallback restProviders
         Right res -> return $ RCRespWithRemPriorityList res restProviders

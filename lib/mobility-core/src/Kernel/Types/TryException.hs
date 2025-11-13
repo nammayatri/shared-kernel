@@ -12,16 +12,12 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.Payment.Stripe.Types
-  ( module Reexport,
-  )
-where
+module Kernel.Types.TryException where
 
-import Kernel.External.Payment.Stripe.Types.Accounts as Reexport
-import Kernel.External.Payment.Stripe.Types.Card as Reexport
-import Kernel.External.Payment.Stripe.Types.Common as Reexport
-import Kernel.External.Payment.Stripe.Types.Customer as Reexport
-import Kernel.External.Payment.Stripe.Types.Error as Reexport
-import Kernel.External.Payment.Stripe.Types.PaymentIntent as Reexport
-import Kernel.External.Payment.Stripe.Types.SetupIntent as Reexport
-import Kernel.External.Payment.Stripe.Types.Webhook as Reexport
+import EulerHS.Prelude
+
+class TryException m where
+  withTryCatch :: Text -> m a -> m (Either SomeException a)
+
+instance TryException IO where
+  withTryCatch _ = try

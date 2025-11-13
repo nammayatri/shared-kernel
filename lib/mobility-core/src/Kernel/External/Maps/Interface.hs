@@ -214,7 +214,7 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
       preCheckPassed <- runPreCheck preferredProvider req
       if preCheckPassed
         then do
-          result <- try @_ @SomeException $ snapToRoad entityId mapsConfig req
+          result <- withTryCatch "callSnapToRoadWithFallback" $ snapToRoad entityId mapsConfig req
           case result of
             Left err -> do
               logError $ "Snap to road Pre Check failed with error : " <> show err <> " - Provider : " <> show preferredProvider
@@ -257,7 +257,7 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
       let (pointsOutOfThreshold, distance) = foldl' (\(accPoints, accDis) (x1, dis) -> (accPoints <> [x1], accDis + dis)) ([], 0) distanceRectified
       let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
       logDebug $ "Split snap-to-road calls: " <> show splitSnapToRoadCalls
-      pointsRes <- try @_ @SomeException $ mapM (\section -> snapToRoad entityId mapsConfig (req {points = section})) splitSnapToRoadCalls
+      pointsRes <- withTryCatch "callSnapToRoadWithRectification" $ mapM (\section -> snapToRoad entityId mapsConfig (req {points = section})) splitSnapToRoadCalls
       logDebug $ "Snap-to-road results: " <> show pointsRes
       case pointsRes of
         Right result -> do

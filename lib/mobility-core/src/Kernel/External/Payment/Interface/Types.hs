@@ -52,6 +52,15 @@ caseToPaymentIntentStatus AUTHORIZATION_FAILED = Cancelled
 caseToPaymentIntentStatus JUSPAY_DECLINED = Cancelled
 caseToPaymentIntentStatus _ = RequiresPaymentMethod
 
+castChargeToTransactionStatus :: ChargeStatus -> TransactionStatus
+castChargeToTransactionStatus CHARGE_SUCCEEDED = CHARGED
+castChargeToTransactionStatus CHARGE_PENDING = PENDING_VBV
+castChargeToTransactionStatus CHARGE_FAILED = AUTHORIZATION_FAILED
+castChargeToTransactionStatus CHARGE_REFUNDED = AUTO_REFUNDED
+castChargeToTransactionStatus CHARGE_DISPUTED = CANCELLED -- does not have correct status for dispute yet
+castChargeToTransactionStatus CHARGE_UNCAPTURED = STARTED
+castChargeToTransactionStatus CHARGE_CANCELED = CANCELLED
+
 data PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg | StripeConfig Stripe.StripeCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
@@ -277,7 +286,8 @@ data SplitDetailsResponse = SplitDetailsResponse
     amount :: Maybe HighPrecMoney,
     merchantCommission :: Maybe HighPrecMoney,
     gatewaySubAccountId :: Maybe Text,
-    epgTxnId :: Maybe Text
+    epgTxnId :: Maybe Text,
+    uniqueSplitId :: Maybe Text
   }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -627,7 +637,8 @@ data OrderUpdateResp = OrderUpdateResp
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data CreatePaymentIntentReq = CreatePaymentIntentReq
-  { amount :: HighPrecMoney,
+  { orderShortId :: Text,
+    amount :: HighPrecMoney,
     applicationFeeAmount :: HighPrecMoney,
     currency :: Currency,
     customer :: CustomerId,

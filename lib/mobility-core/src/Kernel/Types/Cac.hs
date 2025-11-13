@@ -11,6 +11,7 @@ import qualified Kernel.Storage.Hedis as Hedis
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App
 import Kernel.Types.Error
+import Kernel.Types.TryException
 import Kernel.Utils.Common (CacheFlow, EsqDBFlow, logDebug, logError)
 import Kernel.Utils.Error.Throwing (throwError)
 import System.Random
@@ -49,7 +50,7 @@ data CACData = CACData
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
-getToss :: (CacheFlow m r) => Maybe Text -> m Int
+getToss :: (CacheFlow m r, TryException m) => Maybe Text -> m Int
 getToss srId = do
   gen <- newStdGen
   expTime <- fromIntegral <$> asks (.cacConfig.cacExpTime)

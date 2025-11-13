@@ -41,7 +41,7 @@ whatsAppOptApi WhatsappHandler {..} req = do
     callWithFallback [] = throwError $ InternalError "Not able to opt whatsapp with all the configured providers"
     callWithFallback (preferredProvider : restProviders) = do
       whatsappConfig <- getProviderConfig preferredProvider
-      result <- try @_ @SomeException $ whatsAppOptApi' whatsappConfig req
+      result <- withTryCatch "whatsAppOptApi" $ whatsAppOptApi' whatsappConfig req
       case result of
         Left _ -> callWithFallback restProviders
         Right res -> pure res
@@ -70,7 +70,7 @@ whatsAppOtpApi WhatsappHandler {..} req = do
     callWithFallback [] = throwError $ InternalError "Not able to opt whatsapp with all the configured providers"
     callWithFallback (preferredProvider : restProviders) = do
       whatsappConfig <- getProviderConfig preferredProvider
-      result <- try @_ @SomeException $ whatsAppOtpApi' whatsappConfig req
+      result <- withTryCatch "whatsAppOtpApi" $ whatsAppOtpApi' whatsappConfig req
       case result of
         Left _ -> callWithFallback restProviders
         Right res -> pure res
@@ -96,7 +96,7 @@ whatsAppSendMessageWithTemplateIdAPI WhatsappHandler {..} req = do
     callWithFallback [] = throwError $ InternalError "Not able to opt whatsapp with all the configured providers"
     callWithFallback (preferredProvider : restProviders) = do
       whatsappConfig <- getProviderConfig preferredProvider
-      result <- try @_ @SomeException $ whatsAppSendMessageWithTemplateIdAPI' whatsappConfig req
+      result <- withTryCatch "whatsAppSendMessageWithTemplateIdAPI" $ whatsAppSendMessageWithTemplateIdAPI' whatsappConfig req
       case result of
         Left err -> do
           logError $ "Error while sending whatsapp message with template id: " <> show err

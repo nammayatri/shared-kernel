@@ -123,6 +123,9 @@ data Category
   | PAYOUT_COMPLETED
   | EXOTEL_CALL_UNREACHABLE
   | END_RIDE_OFFERS
+  | REFUND_PENDING
+  | REFUND_SUCCESS
+  | REFUND_FAILED
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

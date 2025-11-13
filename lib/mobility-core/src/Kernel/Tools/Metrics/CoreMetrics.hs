@@ -341,3 +341,40 @@ addOpenTripPlannerLatencyImplementation queryType status latency = do
       cmContainer.openTripPlannerLatencyMetric
       (queryType, status, version.getDeploymentVersion)
       (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
+
+incrementTryExceptionCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  SomeException ->
+  m ()
+incrementTryExceptionCounterImplementation errorContext err = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  url <- asks (.url)
+  incrementTryExceptionCounterImplementation' cmContainer errorContext err version url
+
+incrementTryExceptionCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> SomeException -> DeploymentVersion -> Maybe Text -> m ()
+incrementTryExceptionCounterImplementation' cmContainers errorContext exc version mbUrl
+  | Just (HTTPException err) <- fromException exc = incCounter' err
+  | Just (BaseException err) <- fromException exc = incCounter' . InternalError . fromMaybe (show err) $ toMessage err
+  | otherwise = incCounter' . InternalError $ show exc
+  where
+    tryExceptionCounterMetric = cmContainers.tryExceptionCounter
+
+    sanitizedUrl =
+      case mbUrl of
+        Just url -> removeUUIDs url
+        Nothing -> ""
+    removeUUIDs :: Text -> Text
+    removeUUIDs path = DT.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ DT.unpack path
+
+    incCounter' :: (L.MonadFlow m, IsHTTPException e) => e -> m ()
+    incCounter' err =
+      L.runIO $
+        P.withLabel
+          tryExceptionCounterMetric
+          (show $ toHttpCode err, errorContext, toErrorCode err, version.getDeploymentVersion, sanitizedUrl)
+          P.incCounter

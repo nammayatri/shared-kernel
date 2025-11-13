@@ -24,6 +24,7 @@ import Kafka.Consumer as KafkaCons
 import Kernel.Prelude
 import Kernel.Streaming.Kafka.Consumer.Types as ConsTypes
 import qualified Kernel.Streaming.MonadConsumer as MonadCons
+import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (fromMaybeM, throwError)
 import Kernel.Utils.Logging
@@ -53,13 +54,14 @@ listenForMessages ::
     MonadIO m,
     MonadCatch m,
     Log m,
-    MonadThrow m
+    MonadThrow m,
+    TryException m
   ) =>
   m Bool ->
   (a -> m ()) ->
   m ()
 listenForMessages isRunning handleMessage = whileM isRunning $ do
-  etrRes <- try @_ @SomeException MonadCons.receiveMessage
+  etrRes <- withTryCatch "listenForMessages" MonadCons.receiveMessage
   case etrRes of
     Left err -> logInfo $ "Message was not received: " <> show err
     Right mbRes -> whenJust mbRes handleMessage

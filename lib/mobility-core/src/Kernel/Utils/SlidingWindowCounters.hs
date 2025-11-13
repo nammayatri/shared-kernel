@@ -38,6 +38,7 @@ import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id)
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Types.SlidingWindowCounters
+import Kernel.Types.TryException
 
 -- ========================== Helper functions ==========================
 
@@ -146,7 +147,8 @@ makeSWKeyForTime SlidingWindowOptions {..} utcTime keyModifier periodMagnitude =
 
 incrementWindowCount ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   Text ->
   SlidingWindowOptions ->
@@ -155,7 +157,8 @@ incrementWindowCount = incrementCounter makeSWKeyForTime makeQuickAccessWindowCo
 
 incrementByValue ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   Integer ->
   Text ->
@@ -165,7 +168,8 @@ incrementByValue val = incrementByValueImpl Nothing val makeSWKeyForTime makeQui
 
 incrementByValueInTimeBucket ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   UTCTime ->
   Integer ->
@@ -176,7 +180,8 @@ incrementByValueInTimeBucket utcTime val = incrementByValueImpl (Just utcTime) v
 
 incrementCounter ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   (SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> Text) ->
   (Text -> Text) ->
@@ -188,7 +193,8 @@ incrementCounter = incrementByValueImpl Nothing 1
 
 incrementByValueImpl ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   Maybe UTCTime ->
   Integer ->
@@ -209,7 +215,8 @@ incrementByValueImpl mbTimeStamp val getOutOfWindowKey getStoredResultKey getWin
 
 decrementWindowCount ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   Text ->
   SlidingWindowOptions ->
@@ -218,7 +225,8 @@ decrementWindowCount = decrementCounter makeSWKeyForTime makeQuickAccessWindowCo
 
 decrementCounter ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   (SlidingWindowOptions -> UTCTime -> (UTCTime -> Text) -> Integer -> Text) ->
   (Text -> Text) ->
@@ -230,7 +238,8 @@ decrementCounter = decrementByValueImpl Nothing 1
 
 decrementByValueImpl ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   Maybe UTCTime ->
   Integer ->
@@ -252,7 +261,8 @@ decrementByValueImpl mbTimeStamp val getOutOfWindowKey getStoredResultKey getWin
 -- the cached value would stay correct for current and current + 1 peroid in any given periodType so keeping the expiry as end of (current + 1) periodType from now
 cacheTheCounts ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   UTCTime ->
   Integer ->
@@ -312,14 +322,15 @@ cacheTheCounts now val getOutOfWindowKey getStoredResultKey getWindowKey key swo
 
 -- | getLatestRatio :: (id to getResult for, and generate TIMEBASED_KEY_FOR_THE_TOTAL_CASES) -> (id modifier to create TIMEBASED_KEY_FOR_POSITIVE_CASE) -> Resultsant Ratio of the sliding window
 -- Minutes | Hours | Days | Months | Years
-getCountsFromCache :: (L.MonadFlow m, Redis.HedisFlow m r) => Text -> m (Maybe Integer)
+getCountsFromCache :: (L.MonadFlow m, Redis.HedisFlow m r, TryException m) => Text -> m (Maybe Integer)
 getCountsFromCache key = do
   let storesResultKey = makeQuickAccessWindowCountKey key
   Redis.get storesResultKey
 
 cacheAndGetNumDeno ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   UTCTime ->
   Text ->
@@ -336,7 +347,8 @@ cacheAndGetNumDeno now driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn swo = do
 
 getLatestRatio ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   Text ->
   (Text -> Text) ->
@@ -351,7 +363,7 @@ getLatestRatio driverId mkPostiveCaseKeyfn mkTotalCaseKeyfn slidingWindowOptions
       (getNumDenFromCache (mkPostiveCaseKeyfn driverId) (mkTotalCaseKeyfn driverId))
   return $ fromIntegral positiveCases / fromIntegral (max 1 totalCases)
 
-getNumDenFromCache :: (L.MonadFlow m, Redis.HedisFlow m r) => Text -> Text -> m (Maybe (Integer, Integer))
+getNumDenFromCache :: (L.MonadFlow m, Redis.HedisFlow m r, TryException m) => Text -> Text -> m (Maybe (Integer, Integer))
 getNumDenFromCache postiveCaseKey totalCaseKey =
   runMaybeT $ do
     positiveCases <- MaybeT $ getCountsFromCache postiveCaseKey
@@ -360,7 +372,8 @@ getNumDenFromCache postiveCaseKey totalCaseKey =
 
 getCurrentWindowCount ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   Text ->
   SlidingWindowOptions ->
@@ -375,7 +388,8 @@ getCurrentWindowCount key swo = do
 getCurrentWindowValuesUptoLast ::
   ( L.MonadFlow m,
     Redis.HedisFlow m r,
-    FromJSON a
+    FromJSON a,
+    TryException m
   ) =>
   Integer ->
   Text ->
@@ -389,7 +403,8 @@ getCurrentWindowValuesUptoLast nPeriod key swo = do
 getCurrentWindowValues ::
   ( L.MonadFlow m,
     Redis.HedisFlow m r,
-    FromJSON a
+    FromJSON a,
+    TryException m
   ) =>
   Text ->
   SlidingWindowOptions ->
@@ -401,7 +416,8 @@ getCurrentWindowValues key swo = do
 
 deleteCurrentWindowValues ::
   ( L.MonadFlow m,
-    Redis.HedisFlow m r
+    Redis.HedisFlow m r,
+    TryException m
   ) =>
   Text ->
   SlidingWindowOptions ->

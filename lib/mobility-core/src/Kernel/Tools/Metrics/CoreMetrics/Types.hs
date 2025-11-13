@@ -34,6 +34,8 @@ type DatastoresLatencyMetric = P.Vector P.Label3 P.Histogram
 
 type ErrorCounterMetric = P.Vector P.Label5 P.Counter
 
+type TryExceptionCounterMetric = P.Vector P.Label5 P.Counter
+
 type URLCallRetriesMetric = P.Vector P.Label3 P.Counter
 
 type URLCallRetryFailuresMetric = P.Vector P.Label2 P.Counter
@@ -80,12 +82,14 @@ class CoreMetrics m where
   addGenericLatencyMetrics :: Text -> Seconds -> m ()
   addOpenTripPlannerResponse :: Text -> Text -> Text -> m ()
   addOpenTripPlannerLatency :: Text -> Text -> Milliseconds -> m ()
+  incrementTryExceptionCounter :: Text -> SomeException -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
     datastoresLatency :: DatastoresLatencyMetric,
     genericLatency :: GenericLatencyMetric,
     errorCounter :: ErrorCounterMetric,
+    tryExceptionCounter :: TryExceptionCounterMetric,
     urlCallRetries :: URLCallRetriesMetric,
     urlCallRetryFailures :: URLCallRetryFailuresMetric,
     sortedSetCounter :: SortedSetMetric,
@@ -105,6 +109,7 @@ registerCoreMetricsContainer = do
   datastoresLatency <- registerDatastoresLatencyMetrics
   genericLatency <- registerGenericLatencyMetrics
   errorCounter <- registerErrorCounterMetric
+  tryExceptionCounter <- registerTryExceptionCouterMetric
   urlCallRetries <- registerURLCallRetriesMetric
   urlCallRetryFailures <- registerURLCallRetryFailuresMetric
   sortedSetCounter <- registerSortedSetMetric
@@ -141,6 +146,14 @@ registerErrorCounterMetric =
       P.counter info
   where
     info = P.Info "error_counter" ""
+
+registerTryExceptionCouterMetric :: IO TryExceptionCounterMetric
+registerTryExceptionCouterMetric =
+  P.register $
+    P.vector ("HttpCode", "ErrorContext", "ErrorCode", "version", "url") $
+      P.counter info
+  where
+    info = P.Info "try_exception_error_counter" ""
 
 registerURLCallRetriesMetric :: IO URLCallRetriesMetric
 registerURLCallRetriesMetric =
