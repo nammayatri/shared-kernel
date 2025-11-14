@@ -24,7 +24,8 @@ data DigiLockerCfg = DigiLockerCfg
     clientId :: Text,
     clientSecret :: Text,
     redirectUri :: Text,
-    codeChallengeMethod :: Text
+    codeChallengeMethod :: Text,
+    dlOrgId :: Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
