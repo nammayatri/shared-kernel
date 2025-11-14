@@ -14,20 +14,22 @@
 
 module Kernel.External.Tokenize.Interface.Digilocker where
 
-import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Kernel.External.Encryption (decrypt)
+import Data.Time (addUTCTime)
+import Kernel.External.Encryption (EncFlow, decrypt)
 import qualified Kernel.External.Tokenize.Digilocker.Flow as DigilockerFlow
 import qualified Kernel.External.Tokenize.Digilocker.Types as DigilockerTypes
 import Kernel.External.Tokenize.Interface.Error
 import qualified Kernel.External.Tokenize.Interface.Types as InterfaceTypes
 import Kernel.Prelude hiding (error)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Utils.Common
+import Kernel.Utils.Common (Log, MonadTime, getCurrentTime, logDebug, logInfo)
+import Kernel.Utils.Error.Throwing (fromMaybeM)
 
 tokenize ::
   ( CoreMetrics m,
     EncFlow m r,
-    Log m
+    Log m,
+    MonadTime m
   ) =>
   DigilockerTypes.DigilockerTokenizeConfig ->
   InterfaceTypes.TokenizationReq ->
@@ -55,5 +57,6 @@ tokenize config req = do
             code_verifier = codeVerifier'
           }
     makeDigilockerTokenizeResp DigilockerTypes.DigilockerTokenizeResponse {..} = do
-      let expiresAt = consent_valid_till <&> (\validTill -> posixSecondsToUTCTime $ fromIntegral validTill)
+      now <- getCurrentTime
+      let expiresAt = expires_in <&> (\expiresIn -> addUTCTime (fromIntegral expiresIn) now)
       return $ InterfaceTypes.TokenizationResp {token = access_token, scope = scope, expiresAt = expiresAt}
