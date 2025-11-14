@@ -726,6 +726,166 @@ instance FromResponse GupShupError where
 
 instance IsAPIError GupShupError
 
+data KarixSmsError
+  = KarixSmsInternalError -- -999
+  | KarixSmsApiVersionInvalid -- -101
+  | KarixSmsInvalidJSON -- -102
+  | KarixSmsInvalidIP -- -105
+  | KarixSmsAccountExpired -- -106
+  | KarixSmsAccountInactive -- -107
+  | KarixSmsAccountInvalidCredentials -- -108
+  | KarixSmsEncryptionOptionInvalid -- -109
+  | KarixSmsScheduleOptionDisable -- -110
+  | KarixSmsScheduleInvalidTime -- -111
+  | KarixSmsScheduleTimeBeyondBound -- -112
+  | KarixSmsDestinationEmpty -- -113
+  | KarixSmsDestinationInvalid -- -114
+  | KarixSmsMessageEmpty -- -115
+  | KarixSmsInvalidMsgType -- -116
+  | KarixSmsPortInvalid -- -117
+  | KarixSmsDLRTypeInvalid -- -118
+  | KarixSmsExpiryMinutesInvalid -- -119
+  | KarixSmsExpiryMinutesBeyondBound -- -120
+  | KarixSmsCountryCodeInvalidAppend -- -121
+  | KarixSmsUrlTrackInvalidOption -- -122
+  | KarixSmsCustReferenceIdInvalid -- -123
+  | KarixSmsCustReferenceIdInvalidLength -- -124
+  | KarixSmsTraiBlockoutTime -- -125
+  | KarixSmsScheduleTraiBlockoutTime -- -126
+  | KarixSmsDcsInvalid -- -127
+  | KarixSmsUdhiInvalid -- -128
+  | KarixSmsSenderIdEmpty -- -129
+  | KarixSmsInvalidSenderId -- -130
+  | KarixSmsInvalidTemplateId -- -131
+  | KarixSmsTemplateValuesEmpty -- -132
+  | KarixSmsAccessViolation -- -142
+  | KarixSmsEmptyReportingKey -- -143
+  | KarixSmsInvalidBatchNumber -- -144
+  | KarixSmsServerError
+  | KarixSmsNotConfigured
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''KarixSmsError
+
+instance IsBaseError KarixSmsError where
+  toMessage = \case
+    KarixSmsInternalError -> Just "Internal error."
+    KarixSmsApiVersionInvalid -> Just "Invalid API version."
+    KarixSmsInvalidJSON -> Just "Invalid JSON."
+    KarixSmsInvalidIP -> Just "IP restricted."
+    KarixSmsAccountExpired -> Just "Account expired."
+    KarixSmsAccountInactive -> Just "Account deactivated."
+    KarixSmsAccountInvalidCredentials -> Just "Invalid credentials."
+    KarixSmsEncryptionOptionInvalid -> Just "Invalid encryption option."
+    KarixSmsScheduleOptionDisable -> Just "Scheduling feature disabled."
+    KarixSmsScheduleInvalidTime -> Just "Invalid schedule time."
+    KarixSmsScheduleTimeBeyondBound -> Just "Schedule time is beyond the time bound."
+    KarixSmsDestinationEmpty -> Just "Empty mobile number."
+    KarixSmsDestinationInvalid -> Just "Invalid mobile number."
+    KarixSmsMessageEmpty -> Just "Empty message content."
+    KarixSmsInvalidMsgType -> Just "Invalid message type."
+    KarixSmsPortInvalid -> Just "Invalid port."
+    KarixSmsDLRTypeInvalid -> Just "Invalid DLR type."
+    KarixSmsExpiryMinutesInvalid -> Just "Invalid expiry minutes."
+    KarixSmsExpiryMinutesBeyondBound -> Just "Expiry time is beyond allowed bound."
+    KarixSmsCountryCodeInvalidAppend -> Just "Invalid append country code option."
+    KarixSmsUrlTrackInvalidOption -> Just "Invalid URL tracking option."
+    KarixSmsCustReferenceIdInvalid -> Just "Invalid customer reference id."
+    KarixSmsCustReferenceIdInvalidLength -> Just "Invalid customer reference id length."
+    KarixSmsTraiBlockoutTime -> Just "Cannot send message in TRAI blockout time."
+    KarixSmsScheduleTraiBlockoutTime -> Just "Cannot schedule message delivery in TRAI blockout time."
+    KarixSmsDcsInvalid -> Just "Invalid DCS value."
+    KarixSmsUdhiInvalid -> Just "Invalid UDHI."
+    KarixSmsSenderIdEmpty -> Just "Empty senderId."
+    KarixSmsInvalidSenderId -> Just "Invalid senderId."
+    KarixSmsInvalidTemplateId -> Just "Invalid template id."
+    KarixSmsTemplateValuesEmpty -> Just "Empty template values."
+    KarixSmsAccessViolation -> Just "Access violation."
+    KarixSmsEmptyReportingKey -> Just "Empty reporting key."
+    KarixSmsInvalidBatchNumber -> Just "Invalid batch number."
+    KarixSmsServerError -> Just "Internal server error at Karix."
+    KarixSmsNotConfigured -> Just "Karix SMS env variables aren't properly set."
+
+instance IsHTTPError KarixSmsError where
+  toErrorCode = \case
+    KarixSmsServerError -> "KARIX_SMS_INTERNAL_SERVER_ERROR"
+    KarixSmsNotConfigured -> "KARIX_SMS_NOT_CONFIGURED"
+    KarixSmsInternalError -> "KARIX_SMS_INTERNAL_ERROR"
+    KarixSmsApiVersionInvalid -> "KARIX_SMS_API_VERSION_INVALID"
+    KarixSmsInvalidJSON -> "KARIX_SMS_INVALID_JSON"
+    KarixSmsInvalidIP -> "KARIX_SMS_IP_RESTRICTED"
+    KarixSmsAccountExpired -> "KARIX_SMS_ACCOUNT_EXPIRED"
+    KarixSmsAccountInactive -> "KARIX_SMS_ACCOUNT_INACTIVE"
+    KarixSmsAccountInvalidCredentials -> "KARIX_SMS_ACCOUNT_INVALID_CREDENTIALS"
+    KarixSmsEncryptionOptionInvalid -> "KARIX_SMS_ENCRYPTION_OPTION_INVALID"
+    KarixSmsScheduleOptionDisable -> "KARIX_SMS_SCHEDULE_OPTION_DISABLE"
+    KarixSmsScheduleInvalidTime -> "KARIX_SMS_SCHEDULE_INVALID_TIME"
+    KarixSmsScheduleTimeBeyondBound -> "KARIX_SMS_SCHEDULE_TIME_BEYOND_TIME_BOUND"
+    KarixSmsDestinationEmpty -> "KARIX_SMS_DESTINATION_EMPTY"
+    KarixSmsDestinationInvalid -> "KARIX_SMS_DESTINATION_INVALID"
+    KarixSmsMessageEmpty -> "KARIX_SMS_MESSAGE_EMPTY"
+    KarixSmsInvalidMsgType -> "KARIX_SMS_INVALID_MSGTYPE"
+    KarixSmsPortInvalid -> "KARIX_SMS_PORT_INVALID"
+    KarixSmsDLRTypeInvalid -> "KARIX_SMS_DLRTYPE_INVALID"
+    KarixSmsExpiryMinutesInvalid -> "KARIX_SMS_EXPIRY_MINUTES_INVALID"
+    KarixSmsExpiryMinutesBeyondBound -> "KARIX_SMS_EXPIRY_MINUTES_BEYOND_TIME_BOUND"
+    KarixSmsCountryCodeInvalidAppend -> "KARIX_SMS_COUNTRY_CODE_INVALID_APPEND"
+    KarixSmsUrlTrackInvalidOption -> "KARIX_SMS_URLTRACK_INVALID_OPTION"
+    KarixSmsCustReferenceIdInvalid -> "KARIX_SMS_CUST_REFERENCE_ID_INVALID"
+    KarixSmsCustReferenceIdInvalidLength -> "KARIX_SMS_CUST_REFERENCE_ID_INVALID_LENGTH"
+    KarixSmsTraiBlockoutTime -> "KARIX_SMS_TRAI_BLOCKOUT_TIME"
+    KarixSmsScheduleTraiBlockoutTime -> "KARIX_SMS_SCHEDULE_TRAI_BLOCKOUT_TIME"
+    KarixSmsDcsInvalid -> "KARIX_SMS_DCS_INVALID"
+    KarixSmsUdhiInvalid -> "KARIX_SMS_UDHI_INVALID"
+    KarixSmsSenderIdEmpty -> "KARIX_SMS_SENDER_ID_EMPTY"
+    KarixSmsInvalidSenderId -> "KARIX_SMS_INVALID_SENDERID"
+    KarixSmsInvalidTemplateId -> "KARIX_SMS_INVALID_TEMPLATEID"
+    KarixSmsTemplateValuesEmpty -> "KARIX_SMS_TEMPLATE_VALUES_EMPTY"
+    KarixSmsAccessViolation -> "KARIX_SMS_ACCESS_VIOLATION"
+    KarixSmsEmptyReportingKey -> "KARIX_SMS_EMPTY_REPORTING_KEY"
+    KarixSmsInvalidBatchNumber -> "KARIX_SMS_INVALID_BATCH_NUMBER"
+
+instance FromResponse KarixSmsError where
+  fromResponse resp =
+    case statusCode $ responseStatusCode resp of
+      -999 -> Just KarixSmsInternalError
+      -101 -> Just KarixSmsApiVersionInvalid
+      -102 -> Just KarixSmsInvalidJSON
+      -105 -> Just KarixSmsInvalidIP
+      -106 -> Just KarixSmsAccountExpired
+      -107 -> Just KarixSmsAccountInactive
+      -108 -> Just KarixSmsAccountInvalidCredentials
+      -109 -> Just KarixSmsEncryptionOptionInvalid
+      -110 -> Just KarixSmsScheduleOptionDisable
+      -111 -> Just KarixSmsScheduleInvalidTime
+      -112 -> Just KarixSmsScheduleTimeBeyondBound
+      -113 -> Just KarixSmsDestinationEmpty
+      -114 -> Just KarixSmsDestinationInvalid
+      -115 -> Just KarixSmsMessageEmpty
+      -116 -> Just KarixSmsInvalidMsgType
+      -117 -> Just KarixSmsPortInvalid
+      -118 -> Just KarixSmsDLRTypeInvalid
+      -119 -> Just KarixSmsExpiryMinutesInvalid
+      -120 -> Just KarixSmsExpiryMinutesBeyondBound
+      -121 -> Just KarixSmsCountryCodeInvalidAppend
+      -122 -> Just KarixSmsUrlTrackInvalidOption
+      -123 -> Just KarixSmsCustReferenceIdInvalid
+      -124 -> Just KarixSmsCustReferenceIdInvalidLength
+      -125 -> Just KarixSmsTraiBlockoutTime
+      -126 -> Just KarixSmsScheduleTraiBlockoutTime
+      -127 -> Just KarixSmsDcsInvalid
+      -128 -> Just KarixSmsUdhiInvalid
+      -129 -> Just KarixSmsSenderIdEmpty
+      -130 -> Just KarixSmsInvalidSenderId
+      -131 -> Just KarixSmsInvalidTemplateId
+      -132 -> Just KarixSmsTemplateValuesEmpty
+      -142 -> Just KarixSmsAccessViolation
+      -143 -> Just KarixSmsEmptyReportingKey
+      -144 -> Just KarixSmsInvalidBatchNumber
+      _ -> Nothing
+
+instance IsAPIError KarixSmsError
+
 data TwillioError
   = TwillioBadRequest
   | TwillioForbidden
