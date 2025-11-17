@@ -260,7 +260,7 @@ data OfferStatus = INITIATED | AVAILED | REFUNDED | FAILED
 
 data OfferListStatus = ELIGIBLE | INELIGIBLE
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 -- offer notify response --
 
