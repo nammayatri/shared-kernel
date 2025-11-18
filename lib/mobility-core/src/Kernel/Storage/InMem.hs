@@ -25,8 +25,10 @@ import Data.Typeable
 import Database.Redis as Hedis
 import EulerHS.Prelude
 import Kernel.Storage.Hedis.Config
+import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow
+import Kernel.Utils.DatastoreLatencyCalculator
 import Kernel.Utils.Time (Seconds, UTCTime, addUTCTime, getCurrentTime, secondsToNominalDiffTime, threadDelaySec)
 import Text.Hex (encodeHex)
 import Unsafe.Coerce (unsafeCoerce)
@@ -34,8 +36,12 @@ import Unsafe.Coerce (unsafeCoerce)
 defaultInMemCacheInfo :: UTCTime -> InMemCacheInfo
 defaultInMemCacheInfo now = InMemCacheInfo {cache = mempty, cacheSize = 0, createdAt = now}
 
-withInMemCache :: forall b r m. (Show b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b) => [Text] -> Seconds -> m b -> m b
-withInMemCache cacheKeys ttlInSeconds fn = do
+headMay :: [x] -> Maybe x
+headMay [] = Nothing
+headMay (x : _xs) = Just x
+
+withInMemCache :: forall b r m. (Show b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b, CoreMetrics m) => [Text] -> Seconds -> m b -> m b
+withInMemCache cacheKeys ttlInSeconds fn = fmap fst . withTimeGeneric ("InMem-Fetch" <> show (headMay cacheKeys)) $ do
   inMemEnv <- asks (.inMemEnv)
   if inMemEnv.enableInMem && ttlInSeconds > 0
     then do
@@ -53,16 +59,20 @@ withInMemCache cacheKeys ttlInSeconds fn = do
         Just cacheKey -> do
           let inMemCache = inMemHashMap inMemEnv
           mbRes <- HM.lookup cacheKey . cache <$> readIORef inMemCache
+          now <- getCurrentTime
           case mbRes of
-            Just resAny -> pure (unsafeCoerce (cachedData resAny))
-            Nothing -> do
-              res <- fn
-              now <- getCurrentTime
-              let sizeOfRes = sizeOf res
-              void $ atomicModifyIORef inMemCache (\old -> (old {cache = HM.insert cacheKey (InMemKeyInfo {lastUsed = now, cachedData = unsafeCoerce @_ @Any res, cacheDataSize = sizeOfRes, createdAt = now, ttlInSeconds = ttlInSeconds}) (cache old), cacheSize = (cacheSize old) + sizeOfRes}, ()))
-              pure res
+            Just resAny -> do
+              if addUTCTime (fromIntegral resAny.ttlInSeconds) resAny.createdAt < now
+                then pure (unsafeCoerce (cachedData resAny))
+                else recache inMemCache now cacheKey
+            Nothing -> recache inMemCache now cacheKey
     else fn
   where
+    recache inMemCache now cacheKey = do
+      res <- fn
+      let sizeOfRes = sizeOf res
+      void $ atomicModifyIORef inMemCache (\old -> (old {cache = HM.insert cacheKey (InMemKeyInfo {lastUsed = now, cachedData = unsafeCoerce @_ @Any res, cacheDataSize = sizeOfRes, createdAt = now, ttlInSeconds = ttlInSeconds}) (cache old), cacheSize = (cacheSize old) + sizeOfRes}, ()))
+      pure res
     sizeOf :: Show b => b -> Bytes
     sizeOf a = fromIntegral . length $ (show :: b -> Text) a
 
@@ -101,10 +111,18 @@ inMemCleanupThread mbHedisEnv inMemEnv = do
                     void $ Hedis.runRedis hedisEnv.hedisConnection $ Hedis.expire key 600 -- do that it doesn't happen daily once user adds the key and forgets to set expiry
                     case (forceCleanupKeyPrefix cacheExpiryValue) of
                       Just cleanupKeyPrefix -> do
-                        let cacheList :: [(Text, InMemKeyInfo)] = HM.toList $ cache updatedCacheInfo
-                            (updatedCacheSize, updatedCache) = foldl' (\(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) -> if cleanupKeyPrefix `T.isPrefixOf` k then (acc + cacheDataSize, accCacheList ++ [(k, v)]) else (acc, accCacheList)) (0, []) cacheList
+                        let cacheList :: [(Text, InMemKeyInfo)] = HM.toList updatedCacheInfo.cache
+                            (updatedCacheSize, updatedCache) =
+                              foldl'
+                                ( \(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) ->
+                                    if cleanupKeyPrefix `T.isPrefixOf` k
+                                      then (acc, accCacheList)
+                                      else (acc + cacheDataSize, accCacheList ++ [(k, v)])
+                                )
+                                (0, [])
+                                cacheList
                         pure (True, InMemCacheInfo {cache = HM.fromList updatedCache, cacheSize = updatedCacheSize, createdAt = inMemCacheInfo.createdAt})
-                      Nothing -> pure (False, defaultInMemCacheInfo now)
+                      Nothing -> pure (True, defaultInMemCacheInfo now)
                   else do
                     pure (False, updatedCacheInfo)
               Nothing -> do
