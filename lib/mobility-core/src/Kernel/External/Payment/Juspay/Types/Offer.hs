@@ -62,7 +62,7 @@ data OfferPaymentMethodInfo = OfferPaymentMethodInfo
 
 data PaymentMethodType = CARD | NB | UPI | WALLET | REWARD
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data TxnType = UPI_PAY | UPI_COLLECT
   deriving stock (Show, Generic)
@@ -83,7 +83,7 @@ data OfferListResp = OfferListResp
     offers :: [OfferResp]
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data BestOfferCombination = BestOfferCombination
   { payment_method_reference :: Maybe Text,
@@ -91,7 +91,7 @@ data BestOfferCombination = BestOfferCombination
     order_breakup :: OrderBreakup
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data BestOfferCombinationOffer = BestOfferCombinationOffer
   { offer_id :: Text,
@@ -101,7 +101,7 @@ data BestOfferCombinationOffer = BestOfferCombinationOffer
     total_offered_amount :: Text
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data OrderBreakup = OrderBreakup
   { order_amount :: Text,
@@ -113,7 +113,7 @@ data OrderBreakup = OrderBreakup
     benefits :: [BestOfferCombinationBenefit]
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data BestOfferCombinationBenefit = BestOfferCombinationBenefit
   { _type :: Text,
@@ -121,6 +121,7 @@ data BestOfferCombinationBenefit = BestOfferCombinationBenefit
     value :: HighPrecMoney
   }
   deriving stock (Show, Generic)
+  deriving anyclass (ToSchema)
 
 instance FromJSON BestOfferCombinationBenefit where
   parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
@@ -137,7 +138,7 @@ data OfferResp = OfferResp
     order_breakup :: OrderBreakup
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data OfferDescription = OfferDescription
   { sponsored_by :: Maybe Text,
@@ -146,28 +147,28 @@ data OfferDescription = OfferDescription
     tnc :: Maybe Text
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data OfferRules = OfferRules
   { amount :: OfferRulesAmount,
     payment_instrument :: [OfferRulesPaymentInstrument]
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data OfferRulesAmount = OfferRulesAmount
   { currency :: Currency,
     min_order_amount :: Text
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data OfferRulesPaymentInstrument = OfferRulesPaymentInstrument
   { payment_method :: [Text],
     payment_method_type :: PaymentMethodType
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 -- offer apply request --
 
