@@ -66,6 +66,9 @@ in_ :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => C
 in_ _column [] = val_ False
 in_ column (value1 : values) = column `Is` In (value1 NE.:| values)
 
+like_ :: forall a table. (ClickhouseTable table, ClickhouseValue Text) => Column a table Text -> Text -> Clause table
+like_ column value = column `Is` Like value
+
 isNull :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table (Maybe value) -> Clause table
 isNull column = Is column NullTerm
 
@@ -242,6 +245,19 @@ case_ = Case
 (<=..) = LessOrEqual
 
 infix 4 ==.., >.., <.., >=.., <=..
+
+-- | Concatenates multiple text columns into a single string.
+--   This corresponds to ClickHouse's concat function which takes multiple string arguments.
+--   Example: concat_ [col1, col2, col3] will generate: concat(col1, col2, col3)
+concat_ :: forall a t. (ClickhouseTable t, ClickhouseValue Text) => NonEmpty (Column a t Text) -> Column a t Text
+concat_ = Concat
+
+-- | Returns the leftmost non-NULL argument from multiple nullable columns.
+--   This corresponds to ClickHouse's coalesce function which returns the first non-NULL value.
+--   Example: coalesce_ (col1 :| [col2, col3]) will generate: coalesce(col1, col2, col3)
+--   See: https://clickhouse.com/docs/sql-reference/functions/functions-for-nulls#coalesce
+coalesce_ :: forall a t v. (ClickhouseTable t, ClickhouseValue v) => NonEmpty (Column a t (Maybe v)) -> Column a t (Maybe v)
+coalesce_ = Coalesce
 
 infixr 3 &&..
 

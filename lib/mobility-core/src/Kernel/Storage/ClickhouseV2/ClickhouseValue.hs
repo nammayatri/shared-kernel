@@ -25,6 +25,7 @@ import qualified Data.Scientific as Sci
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time as Time
+import Kernel.External.Encryption (DbHash (..))
 import Kernel.Prelude
 import Kernel.Types.Common (Centesimal, Currency, HighPrecMeters, HighPrecMoney, Meters)
 import Kernel.Types.Id
@@ -70,6 +71,11 @@ instance ClickhouseValue Centesimal where
 
 instance ClickhouseValue Meters where
   fromClickhouseValue = parseAsStringOrNumber @Meters
+
+instance ClickhouseValue DbHash where
+  fromClickhouseValue (String str) = pure . DbHash . TE.encodeUtf8 . T.pack $ str
+  fromClickhouseValue (Number _) = fail "Unexpected Number"
+  fromClickhouseValue Null = fail "Unexpected Null"
 
 -- TODO create type safe wrapper CString Int in case of we have string on clickhouse side
 instance ClickhouseValue Int where
