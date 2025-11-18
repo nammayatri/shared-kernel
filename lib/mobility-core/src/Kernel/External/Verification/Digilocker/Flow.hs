@@ -199,7 +199,8 @@ checkDigiLockerResponse url resp = case resp of
   Left err@(FailureResponse _ (Response (Status {statusCode = code}) _ _ body)) -> do
     logError $ "DigiLocker XML API call failed with status code: " <> show code <> ", error: " <> show err
     let errorBody = BSL.toStrict body
-        digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
+    logError $ "Response body: " <> either (const "<decode error>") (\x -> x) (TE.decodeUtf8' errorBody)
+    let digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
     throwError digiLockerErr
   Left err -> do
     logError $ "DigiLocker XML API call failed: " <> show err
@@ -223,7 +224,8 @@ checkDigiLockerFileResponse url resp = case resp of
     logError $ "Response headers: " <> show headers
     logError $ "Full error: " <> show err
     let errorBody = BSL.toStrict body
-        digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
+    logError $ "Response body: " <> either (const "<decode error>") (\x -> x) (TE.decodeUtf8' errorBody)
+    let digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
     throwError digiLockerErr
   Left err@(UnsupportedContentType mediaType response) -> do
     logError $ "❌ UNSUPPORTED CONTENT TYPE ERROR ❌"
@@ -279,7 +281,8 @@ checkDigiLockerPullDocumentResponse url resp = case resp of
   Left err@(FailureResponse _ (Response (Status {statusCode = code}) _ _ body)) -> do
     logError $ "DigiLocker Pull Document API call failed with status code: " <> show code <> ", error: " <> show err
     let errorBody = BSL.toStrict body
-        digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
+    logError $ "Response body: " <> either (const "<decode error>") (\x -> x) (TE.decodeUtf8' errorBody)
+    let digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
     throwError digiLockerErr
   Left err -> do
     logError $ "DigiLocker Pull Document API call failed: " <> show err

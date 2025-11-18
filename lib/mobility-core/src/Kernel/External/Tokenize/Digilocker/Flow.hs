@@ -16,6 +16,7 @@ module Kernel.External.Tokenize.Digilocker.Flow where
 
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import EulerHS.Types (EulerClient, client)
 import Kernel.External.SharedLogic.DigiLocker.Error (DigiLockerError (..), parseDigiLockerErrorFromResponse)
 import qualified Kernel.External.Tokenize.Digilocker.Types as DLT
@@ -59,13 +60,15 @@ checkDigilockerTokenizeResponse baseUrl resp = case resp of
   Left err@(FailureResponse _ (Response (Status {statusCode = code}) _ _ body)) -> do
     logError $ "DigiLocker tokenize API call failed with status code: " <> show code <> ", error: " <> show err
     let errorBody = BSL.toStrict body
-        digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
+    logError $ "Response body: " <> either (const "<decode error>") (\x -> x) (TE.decodeUtf8' errorBody)
+    let digiLockerErr = parseDigiLockerErrorFromResponse code errorBody
     throwError digiLockerErr
   Left err -> do
     logError $ "DigiLocker tokenize API call failed: " <> show err
     fromEitherM (digilockerError baseUrl) (Left err)
   Right resp' -> do
     logInfo "DigiLocker tokenize API call succeeded"
+    logDebug $ "DigiLocker Tokenize Response body: " <> show resp'
     validateDigilockerTokenizeResponse resp'
 
 validateDigilockerTokenizeResponse ::
