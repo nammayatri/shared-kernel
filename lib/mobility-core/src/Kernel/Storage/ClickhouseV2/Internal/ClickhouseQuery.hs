@@ -139,6 +139,33 @@ instance ClickhouseTable t => ClickhouseQuery (T5 (Column a t) v1 v2 v3 v4 v5) w
 instance ClickhouseTable t => ClickhouseQuery (T6 (Column a t) v1 v2 v3 v4 v5 v6) where
   toClickhouseQuery (c1, c2, c3, c4, c5, c6) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6]
 
+instance ClickhouseTable t => ClickhouseQuery (T7 (Column a t) v1 v2 v3 v4 v5 v6 v7) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7]
+
+instance ClickhouseTable t => ClickhouseQuery (T8 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8]
+
+instance ClickhouseTable t => ClickhouseQuery (T9 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8, c9) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8, toClickhouseQuery c9]
+
+instance ClickhouseTable t => ClickhouseQuery (T10 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8, toClickhouseQuery c9, toClickhouseQuery c10]
+
+instance ClickhouseTable t => ClickhouseQuery (T11 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8, toClickhouseQuery c9, toClickhouseQuery c10, toClickhouseQuery c11]
+
+instance ClickhouseTable t => ClickhouseQuery (T12 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8, toClickhouseQuery c9, toClickhouseQuery c10, toClickhouseQuery c11, toClickhouseQuery c12]
+
+instance ClickhouseTable t => ClickhouseQuery (T13 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8, toClickhouseQuery c9, toClickhouseQuery c10, toClickhouseQuery c11, toClickhouseQuery c12, toClickhouseQuery c13]
+
+instance ClickhouseTable t => ClickhouseQuery (T14 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8, toClickhouseQuery c9, toClickhouseQuery c10, toClickhouseQuery c11, toClickhouseQuery c12, toClickhouseQuery c13, toClickhouseQuery c14]
+
+instance ClickhouseTable t => ClickhouseQuery (T15 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8, toClickhouseQuery c9, toClickhouseQuery c10, toClickhouseQuery c11, toClickhouseQuery c12, toClickhouseQuery c13, toClickhouseQuery c14, toClickhouseQuery c15]
+
 instance ClickhouseTable t => ClickhouseQuery (AvailableAllColumns db t) where
   toClickhouseQuery _ = do
     let tableName = dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)

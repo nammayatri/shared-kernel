@@ -66,6 +66,9 @@ in_ :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => C
 in_ _column [] = val_ False
 in_ column (value1 : values) = column `Is` In (value1 NE.:| values)
 
+like_ :: forall a table. (ClickhouseTable table, ClickhouseValue Text) => Column a table Text -> Text -> Clause table
+like_ column value = column `Is` Like value
+
 isNull :: forall a table value. (ClickhouseTable table, ClickhouseValue value) => Column a table (Maybe value) -> Clause table
 isNull column = Is column NullTerm
 
