@@ -75,7 +75,7 @@ data Column (a :: IsAggregated) t v where
   Greater :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
   Less :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
   Concat :: (ClickhouseTable t, ClickhouseValue Text) => NonEmpty (Column a t Text) -> Column a t Text
-  Coalesce :: (ClickhouseTable t, ClickhouseValue v) => NonEmpty (Column a t (Maybe v)) -> Column a t (Maybe v)
+  IfNull :: (ClickhouseTable t, ClickhouseValue v) => Column a t (Maybe v) -> Column a t v -> Column a t v
 
 mkTableColumns :: ClickhouseTable t => FieldModifications t -> Columns 'NOT_AGG t
 mkTableColumns = mapTable Column
@@ -169,14 +169,13 @@ data GroupBy (a :: IsAggregated) gr where
   Aggregate :: GroupBy 'AGG NoColumns
   NotGrouped :: GroupBy 'NOT_AGG NotGrouped
 
-data OrderBy ord where
-  OrderBy :: IsOrderColumns ord => Order -> ord -> OrderBy ord
+data IsOrdered = ORDERED | NOT_ORDERED
 
-data NotOrdered
+data OrderBy (ord :: IsOrdered) where
+  OrderBy :: (ClickhouseQuery ord, IsOrderColumns ord) => Order -> ord -> OrderBy 'ORDERED
+  NotOrdered :: OrderBy 'NOT_ORDERED
 
 class IsOrderColumns cols
-
-instance IsOrderColumns NotOrdered
 
 instance (ClickhouseTable t, ClickhouseValue v) => IsOrderColumns (Column a t v)
 
@@ -283,7 +282,7 @@ showColumn (LessOrEqual column1 column2) = addBrackets' $ showColumn column1 <> 
 showColumn (Greater column1 column2) = addBrackets' $ showColumn column1 <> ">" <> showColumn column2
 showColumn (Less column1 column2) = addBrackets' $ showColumn column1 <> "<" <> showColumn column2
 showColumn (Concat columns) = "concat" <> addBrackets' (List.intercalate ", " (showColumn <$> toList columns))
-showColumn (Coalesce columns) = "coalesce" <> addBrackets' (List.intercalate ", " (showColumn <$> toList columns))
+showColumn (IfNull column alt) = "ifNull" <> addBrackets' (showColumn column <> ", " <> showColumn alt)
 
 addBrackets' :: String -> String
 addBrackets' rq = "(" <> rq <> ")"

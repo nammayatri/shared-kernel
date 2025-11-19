@@ -103,18 +103,18 @@ selectModifierOverride :: SelectModifier -> Q db table cols ord subsel -> Q db t
 selectModifierOverride selectModifier q = q {selectModifierOverrideQ = Just selectModifier}
 
 orderBy_ ::
-  forall db table cols ord acols.
+  forall db table cols acols.
   ClickhouseTable table =>
-  (AvailableColumnsType acols -> cols -> OrderBy ord) ->
-  Q db table cols NotOrdered acols ->
-  Q db table cols ord acols
+  (AvailableColumnsType acols -> cols -> OrderBy 'ORDERED) ->
+  Q db table cols 'NOT_ORDERED acols ->
+  Q db table cols 'ORDERED acols
 orderBy_ orderByClause q = q {orderByQ = Just $ orderByClause $ getAvailableColumnsValue (tableQ q)}
 
-asc :: forall ord. IsOrderColumns ord => ord -> OrderBy ord
-asc = OrderBy Asc
+asc :: forall ord. (ClickhouseQuery ord, IsOrderColumns ord) => ord -> OrderBy 'ORDERED
+asc = OrderBy @ord Asc
 
-desc :: forall ord. IsOrderColumns ord => ord -> OrderBy ord
-desc = OrderBy Desc
+desc :: forall ord. (ClickhouseQuery ord, IsOrderColumns ord) => ord -> OrderBy 'ORDERED
+desc = OrderBy @ord Desc
 
 groupBy :: forall cols gr. IsGroupColumns gr => gr -> (GroupColumnsType gr -> cols) -> (cols, GroupBy 'AGG gr)
 groupBy gr mkCols = (mkCols (groupColumns gr), GroupBy gr)
@@ -147,7 +147,7 @@ filter_ ::
   ClickhouseDb db =>
   (AvailableColumnsType acols -> Clause table) ->
   (AvailableColumns db table acols, SubQueryLevel) ->
-  Q db table cols NotOrdered acols
+  Q db table cols 'NOT_ORDERED acols
 filter_ filterClause (table, level) =
   Q
     { tableQ = table,
@@ -162,7 +162,7 @@ filter_ filterClause (table, level) =
 emptyFilter ::
   ClickhouseDb db =>
   (AvailableColumns db table acols, SubQueryLevel) ->
-  Q db table cols NotOrdered acols
+  Q db table cols 'NOT_ORDERED acols
 emptyFilter (table, level) =
   Q
     { tableQ = table,
@@ -246,18 +246,17 @@ case_ = Case
 
 infix 4 ==.., >.., <.., >=.., <=..
 
--- | Concatenates multiple text columns into a single string.
 --   This corresponds to ClickHouse's concat function which takes multiple string arguments.
 --   Example: concat_ [col1, col2, col3] will generate: concat(col1, col2, col3)
 concat_ :: forall a t. (ClickhouseTable t, ClickhouseValue Text) => NonEmpty (Column a t Text) -> Column a t Text
 concat_ = Concat
 
--- | Returns the leftmost non-NULL argument from multiple nullable columns.
---   This corresponds to ClickHouse's coalesce function which returns the first non-NULL value.
---   Example: coalesce_ (col1 :| [col2, col3]) will generate: coalesce(col1, col2, col3)
---   See: https://clickhouse.com/docs/sql-reference/functions/functions-for-nulls#coalesce
-coalesce_ :: forall a t v. (ClickhouseTable t, ClickhouseValue v) => NonEmpty (Column a t (Maybe v)) -> Column a t (Maybe v)
-coalesce_ = Coalesce
+-- | Returns the first argument if it is not NULL, otherwise the second argument.
+--   This corresponds to ClickHouse's ifNull function which replaces NULLs with a fallback value.
+--   Example: ifNull_ nullableCol fallbackCol will generate: ifNull(nullableCol, fallbackCol)
+--   See: https://clickhouse.com/docs/sql-reference/functions/functions-for-nulls#ifNull
+ifNull_ :: forall a t v. (ClickhouseTable t, ClickhouseValue v) => Column a t (Maybe v) -> Column a t v -> Column a t v
+ifNull_ = IfNull
 
 infixr 3 &&..
 
