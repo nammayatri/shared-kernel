@@ -25,6 +25,7 @@ import qualified Data.Scientific as Sci
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Time as Time
+import Kernel.External.Encryption (DbHash (..))
 import Kernel.Prelude
 import Kernel.Types.Common (Centesimal, Currency, HighPrecMeters, HighPrecMoney, Meters)
 import Kernel.Types.Id
@@ -75,6 +76,11 @@ instance ClickhouseValue Meters where
 instance ClickhouseValue Int where
   fromClickhouseValue = parseAsStringOrNumber @Int
   toClickhouseValue = Number . fromIntegral
+
+instance ClickhouseValue DbHash where
+  fromClickhouseValue (String str) = pure . DbHash . TE.encodeUtf8 . T.pack $ str
+  fromClickhouseValue (Number _) = fail "Unexpected Number"
+  fromClickhouseValue Null = fail "Unexpected Null"
 
 parseAsStringOrNumber :: forall a. (Read a, Num a, FromJSON a) => Value a -> Except a
 parseAsStringOrNumber (String str) = parseAsString @a str
