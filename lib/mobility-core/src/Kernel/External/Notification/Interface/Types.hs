@@ -128,6 +128,7 @@ data Category
   | REFUND_FAILED
   | FULFILLMENT_PENDING
   | FULFILLMENT_SUCCESS
+  | TICKET_ACTIVATED
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
