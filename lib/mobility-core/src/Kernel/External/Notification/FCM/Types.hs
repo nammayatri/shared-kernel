@@ -210,6 +210,8 @@ data FCMNotificationType
   | REFUND_PENDING
   | REFUND_SUCCESS
   | REFUND_FAILED
+  | FULFILLMENT_PENDING
+  | FULFILLMENT_SUCCESS
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
