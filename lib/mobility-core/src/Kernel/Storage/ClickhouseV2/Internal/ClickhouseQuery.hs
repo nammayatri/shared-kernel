@@ -34,7 +34,7 @@ instance
     ClickhouseTable t,
     ClickhouseColumns a cols,
     ClickhouseQuery gr,
-    ClickhouseQuery ord,
+    ClickhouseQuery (OrderBy ord),
     ClickhouseQuery (AvailableColumns db t acols)
   ) =>
   ClickhouseQuery (Select a db t cols gr ord acols)
@@ -103,12 +103,12 @@ instance ClickhouseQuery Limit where
 instance ClickhouseQuery Offset where
   toClickhouseQuery (Offset val) = " OFFSET " <> show val
 
-instance ClickhouseQuery NotOrdered where
+instance ClickhouseQuery (OrderBy 'NOT_ORDERED) where
   toClickhouseQuery _ = mempty
 
-instance ClickhouseQuery ord => ClickhouseQuery (OrderBy ord) where
-  toClickhouseQuery (OrderBy Asc column) = " ORDER BY " <> toClickhouseQuery @ord column <> " ASC"
-  toClickhouseQuery (OrderBy Desc column) = " ORDER BY " <> toClickhouseQuery @ord column <> " DESC"
+instance ClickhouseQuery (OrderBy 'ORDERED) where
+  toClickhouseQuery (OrderBy Asc column) = " ORDER BY " <> toClickhouseQuery column <> " ASC"
+  toClickhouseQuery (OrderBy Desc column) = " ORDER BY " <> toClickhouseQuery column <> " DESC"
 
 instance ClickhouseQuery NotGrouped where
   toClickhouseQuery _ = mempty

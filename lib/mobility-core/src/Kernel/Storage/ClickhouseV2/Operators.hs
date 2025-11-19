@@ -103,18 +103,18 @@ selectModifierOverride :: SelectModifier -> Q db table cols ord subsel -> Q db t
 selectModifierOverride selectModifier q = q {selectModifierOverrideQ = Just selectModifier}
 
 orderBy_ ::
-  forall db table cols ord acols.
+  forall db table cols acols.
   ClickhouseTable table =>
-  (AvailableColumnsType acols -> cols -> OrderBy ord) ->
-  Q db table cols NotOrdered acols ->
-  Q db table cols ord acols
+  (AvailableColumnsType acols -> cols -> OrderBy 'ORDERED) ->
+  Q db table cols 'NOT_ORDERED acols ->
+  Q db table cols 'ORDERED acols
 orderBy_ orderByClause q = q {orderByQ = Just $ orderByClause $ getAvailableColumnsValue (tableQ q)}
 
-asc :: forall ord. IsOrderColumns ord => ord -> OrderBy ord
-asc = OrderBy Asc
+asc :: forall ord. (ClickhouseQuery ord, IsOrderColumns ord) => ord -> OrderBy 'ORDERED
+asc = OrderBy @ord Asc
 
-desc :: forall ord. IsOrderColumns ord => ord -> OrderBy ord
-desc = OrderBy Desc
+desc :: forall ord. (ClickhouseQuery ord, IsOrderColumns ord) => ord -> OrderBy 'ORDERED
+desc = OrderBy @ord Desc
 
 groupBy :: forall cols gr. IsGroupColumns gr => gr -> (GroupColumnsType gr -> cols) -> (cols, GroupBy 'AGG gr)
 groupBy gr mkCols = (mkCols (groupColumns gr), GroupBy gr)
@@ -147,7 +147,7 @@ filter_ ::
   ClickhouseDb db =>
   (AvailableColumnsType acols -> Clause table) ->
   (AvailableColumns db table acols, SubQueryLevel) ->
-  Q db table cols NotOrdered acols
+  Q db table cols 'NOT_ORDERED acols
 filter_ filterClause (table, level) =
   Q
     { tableQ = table,
@@ -162,7 +162,7 @@ filter_ filterClause (table, level) =
 emptyFilter ::
   ClickhouseDb db =>
   (AvailableColumns db table acols, SubQueryLevel) ->
-  Q db table cols NotOrdered acols
+  Q db table cols 'NOT_ORDERED acols
 emptyFilter (table, level) =
   Q
     { tableQ = table,
