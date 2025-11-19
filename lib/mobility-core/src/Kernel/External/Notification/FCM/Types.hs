@@ -212,6 +212,7 @@ data FCMNotificationType
   | REFUND_FAILED
   | FULFILLMENT_PENDING
   | FULFILLMENT_SUCCESS
+  | TICKET_ACTIVATED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON)
   deriving (PrettyShow) via Showable FCMNotificationType
 
