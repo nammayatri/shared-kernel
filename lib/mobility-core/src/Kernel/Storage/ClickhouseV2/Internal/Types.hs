@@ -166,14 +166,13 @@ data GroupBy (a :: IsAggregated) gr where
   Aggregate :: GroupBy 'AGG NoColumns
   NotGrouped :: GroupBy 'NOT_AGG NotGrouped
 
-data OrderBy ord where
-  OrderBy :: IsOrderColumns ord => Order -> ord -> OrderBy ord
+data IsOrdered = ORDERED | NOT_ORDERED
 
-data NotOrdered
+data OrderBy (ord :: IsOrdered) where
+  OrderBy :: (ClickhouseQuery ord, IsOrderColumns ord) => Order -> ord -> OrderBy 'ORDERED
+  NotOrdered :: OrderBy 'NOT_ORDERED
 
 class IsOrderColumns cols
-
-instance IsOrderColumns NotOrdered
 
 instance (ClickhouseTable t, ClickhouseValue v) => IsOrderColumns (Column a t v)
 
