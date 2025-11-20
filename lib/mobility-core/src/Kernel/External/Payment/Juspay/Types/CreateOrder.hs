@@ -50,7 +50,8 @@ data CreateOrderReq = CreateOrderReq
     options_get_upi_deep_links :: Maybe Bool,
     metadata_expiry_in_mins :: Maybe Int,
     split_settlement_details :: Maybe SplitSettlementDetails,
-    basket :: Maybe Text
+    basket :: Maybe Text,
+    auto_refund_conflict_threshold_minutes :: Maybe Int
   }
   deriving stock (Show, Eq, Generic)
 
@@ -204,6 +205,7 @@ jsonReqOptions =
         "metadata_gateway_reference_id" -> "metadata.JUSPAY:gateway_reference_id"
         "metadata_expiry_in_mins" -> "metadata.expiryInMins"
         "split_settlement_details" -> "metadata.split_settlement_details"
+        "auto_refund_conflict_threshold_minutes" -> "metadata.auto_refund_conflict_threshold_minutes"
         other -> other
     }
 
