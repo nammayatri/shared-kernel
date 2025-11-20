@@ -129,6 +129,18 @@ incrementStreamCounterImplementation context = do
   version <- asks (.version)
   incrementStreamCounterImplementation' cmContainer context version
 
+incrementStreamFailedCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementStreamFailedCounterImplementation context = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  incrementStreamFailedCounterImplementation' cmContainer context version
+
 incrementSchedulerFailureCounterImplementation ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
@@ -227,6 +239,15 @@ incrementSortedSetCounterImplementation' cmContainers context version = do
 incrementStreamCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
 incrementStreamCounterImplementation' cmContainers context version = do
   let sortedSetMetric = cmContainers.streamCounter
+  L.runIO $
+    P.withLabel
+      sortedSetMetric
+      (context, version.getDeploymentVersion)
+      P.incCounter
+
+incrementStreamFailedCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
+incrementStreamFailedCounterImplementation' cmContainers context version = do
+  let sortedSetMetric = cmContainers.streamFailedCounter
   L.runIO $
     P.withLabel
       sortedSetMetric
