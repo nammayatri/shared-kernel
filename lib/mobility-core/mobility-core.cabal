@@ -64,6 +64,7 @@ library
       Kernel.External.Call.TataClickToCall.Types
       Kernel.External.Call.Twillio.Config
       Kernel.External.Call.Types
+      Kernel.External.Call.Vonage.Config
       Kernel.External.Encryption
       Kernel.External.GoogleTranslate.API
       Kernel.External.GoogleTranslate.Client
