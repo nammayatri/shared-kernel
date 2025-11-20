@@ -72,7 +72,7 @@ createOrder config mRoutingId req = do
       clientId = fromMaybe merchantId config.pseudoClientId
   logDebug $ "createOrder req: " <> show req
   apiKey <- decrypt config.apiKey
-  orderReq <- mkCreateOrderReq config.returnUrl clientId merchantId req
+  orderReq <- mkCreateOrderReq config.returnUrl config.autoRefundConflictThresholdMinutes clientId merchantId req
   logDebug $ "createOrder mkCreateOrderReq: " <> show orderReq
   logDebug $ "createOrder splitSettlementDetails: " <> show req.splitSettlementDetails
   Juspay.createOrder url apiKey merchantId mRoutingId orderReq
@@ -278,8 +278,8 @@ mandateRevoke config mRoutingId req = do
   void $ Juspay.mandateRevoke url apiKey merchantId mRoutingId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
   return Success
 
-mkCreateOrderReq :: (MonadTime m, MonadThrow m, Log m) => BaseUrl -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
-mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
+mkCreateOrderReq :: (MonadTime m, MonadThrow m, Log m) => BaseUrl -> Maybe Int -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
+mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantId CreateOrderReq {..} =
   do
     splitDetails <- traverse mkSplitSettlementDetails splitSettlementDetails
     return
@@ -306,7 +306,8 @@ mkCreateOrderReq returnUrl clientId merchantId CreateOrderReq {..} =
           metadata_expiry_in_mins = metadataExpiryInMins,
           metadata_gateway_reference_id = metadataGatewayReferenceId,
           split_settlement_details = splitDetails,
-          basket = decodeUtf8 . A.encode <$> basket
+          basket = decodeUtf8 . A.encode <$> basket,
+          auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes
         }
 
 mkSplitSettlementDetails :: (MonadThrow m, Log m) => SplitSettlementDetails -> m Juspay.SplitSettlementDetails
