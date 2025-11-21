@@ -60,6 +60,7 @@ instance Metrics.CoreMetrics IO where
   addUrlCallRetryFailures _ = return ()
   incrementSortedSetCounter _ = return ()
   incrementStreamCounter _ = return ()
+  incrementStreamFailedCounter _ = return ()
   addGenericLatency _ _ = return ()
   incrementSchedulerFailureCounter _ = return ()
   incrementGenericMetrics _ = return ()
