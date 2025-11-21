@@ -14,6 +14,7 @@
 
 module Kernel.Storage.ClickhouseV2.Queries
   ( findAll,
+    findAllEither,
     -- findOne,
     runRawQuery,
     RawQuery (..),
@@ -57,6 +58,31 @@ findAll selectClause@(Select cols _ q) = do
       logDebug $ "clickhouse raw query v2 json result: " <> show val
       logError "Expected Array"
       pure []
+
+findAllEither ::
+  forall a db t m cols gr ord acols.
+  (HasClickhouseEnv db m, ClickhouseQuery (Select a db t cols gr ord acols)) =>
+  Select a db t cols gr ord acols ->
+  m (Either Text [ColumnsType a cols])
+findAllEither selectClause@(Select cols _ q) = do
+  let rawQuery = toClickhouseQuery @(Select a db t cols gr ord acols) selectClause
+  logDebug $ "clickhouse raw query v2: " <> T.pack rawQuery.getRawQuery
+  resJSON <- runRawQuery @db @A.Value @m (Proxy @db) rawQuery
+  case resJSON of
+    Left err -> do
+      logError $ "Clickhouse error: " <> T.pack err
+      pure $ Left $ T.pack err
+    Right val@(A.Array xs) -> do
+      logDebug $ "clickhouse raw query v2 json result: " <> show val
+      case mapM (\val' -> parseColumns @a @cols (Proxy @a) cols val' q.subQueryLevelQ) xs of
+        Left err -> do
+          logError $ "Clickhouse parsing result error: " <> T.pack err
+          pure $ Left $ T.pack err
+        Right ys -> pure $ Right $ V.toList ys
+    Right val -> do
+      logDebug $ "clickhouse raw query v2 json result: " <> show val
+      logError "Expected Array"
+      pure $ Left "Expected Array"
 
 runRawQuery :: forall db a m. (HasClickhouseEnv db m, FromJSON a) => Proxy db -> RawQuery -> m (Either String a)
 runRawQuery db query = runClickhouse @db @a @m db (`runQuery` getJSON query.getRawQuery)
