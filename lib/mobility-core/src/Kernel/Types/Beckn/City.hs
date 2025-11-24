@@ -116,6 +116,9 @@ data City
   | Malappuram
   | Mayiladuthurai
   | Helsinki
+  | Rajkot
+  | Somnath
+  | Dwarka
   deriving (Eq, Generic, Show, Read, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable City
 
@@ -291,6 +294,12 @@ instance FromJSON City where
   parseJSON (String "Mayiladuthurai") = pure Mayiladuthurai
   parseJSON (String "fin:009") = pure Helsinki
   parseJSON (String "Helsinki") = pure Helsinki
+  parseJSON (String "std:0281") = pure Rajkot
+  parseJSON (String "Rajkot") = pure Rajkot
+  parseJSON (String "std:02871") = pure Somnath
+  parseJSON (String "Somnath") = pure Somnath
+  parseJSON (String "std:02892") = pure Dwarka
+  parseJSON (String "Dwarka") = pure Dwarka
   parseJSON (String _) = pure AnyCity
   parseJSON e = typeMismatch "String" e
 
@@ -379,6 +388,9 @@ instance ToJSON City where
   toJSON Malappuram = String "std:0483"
   toJSON Mayiladuthurai = String "std:04364"
   toJSON Helsinki = String "fin:009"
+  toJSON Rajkot = String "std:0281"
+  toJSON Somnath = String "std:02871"
+  toJSON Dwarka = String "std:02892"
   toJSON AnyCity = String "*"
 
 instance FromHttpApiData City where
@@ -555,6 +567,12 @@ instance FromHttpApiData City where
       parseLowerCaseCity "mayiladuthurai" = Right Mayiladuthurai
       parseLowerCaseCity "fin:009" = Right Helsinki
       parseLowerCaseCity "helsinki" = Right Helsinki
+      parseLowerCaseCity "std:0281" = Right Rajkot
+      parseLowerCaseCity "rajkot" = Right Rajkot
+      parseLowerCaseCity "std:02871" = Right Somnath
+      parseLowerCaseCity "somnath" = Right Somnath
+      parseLowerCaseCity "std:02892" = Right Dwarka
+      parseLowerCaseCity "dwarka" = Right Dwarka
       parseLowerCaseCity "*" = Right AnyCity
       parseLowerCaseCity city = Left . T.pack $ ("ParseFail: Unable to parse city: " <> city)
 
@@ -643,4 +661,7 @@ instance ToHttpApiData City where
   toUrlPiece Sambalpur = "std:0663"
   toUrlPiece Malappuram = "std:0483"
   toUrlPiece Mayiladuthurai = "std:04364"
+  toUrlPiece Rajkot = "std:0281"
+  toUrlPiece Somnath = "std:02871"
+  toUrlPiece Dwarka = "std:02892"
   toUrlPiece AnyCity = "*"
