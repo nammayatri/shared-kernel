@@ -44,6 +44,8 @@ type SortedSetMetric = P.Vector P.Label2 P.Counter
 
 type StreamMetric = P.Vector P.Label2 P.Counter
 
+type StreamFailedMetric = P.Vector P.Label2 P.Counter
+
 type GenericLatencyMetric = P.Vector P.Label2 P.Histogram
 
 type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
@@ -75,6 +77,7 @@ class CoreMetrics m where
   addUrlCallRetryFailures :: BaseUrl -> m ()
   incrementSortedSetCounter :: Text -> m ()
   incrementStreamCounter :: Text -> m ()
+  incrementStreamFailedCounter :: Text -> m ()
   addGenericLatency :: Text -> Milliseconds -> m ()
   incrementSchedulerFailureCounter :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
@@ -94,6 +97,7 @@ data CoreMetricsContainer = CoreMetricsContainer
     urlCallRetryFailures :: URLCallRetryFailuresMetric,
     sortedSetCounter :: SortedSetMetric,
     streamCounter :: StreamMetric,
+    streamFailedCounter :: StreamFailedMetric,
     schedulerFailureCounter :: SchedulerFailureMetric,
     genericCounter :: GenericCounter,
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
@@ -114,6 +118,7 @@ registerCoreMetricsContainer = do
   urlCallRetryFailures <- registerURLCallRetryFailuresMetric
   sortedSetCounter <- registerSortedSetMetric
   streamCounter <- registerStreamCounter
+  streamFailedCounter <- registerStreamFailedCounter
   schedulerFailureCounter <- registerSchedulerFailureCounter
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
@@ -186,6 +191,14 @@ registerStreamCounter =
       P.counter info
   where
     info = P.Info "stream_jobs_counter" ""
+
+registerStreamFailedCounter :: IO StreamFailedMetric
+registerStreamFailedCounter =
+  P.register $
+    P.vector ("job_type", "version") $
+      P.counter info
+  where
+    info = P.Info "stream_jobs_failed_counter" ""
 
 registerGenericLatencyMetrics :: IO GenericLatencyMetric
 registerGenericLatencyMetrics =
