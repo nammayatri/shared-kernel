@@ -288,6 +288,14 @@ library
       Kernel.External.Verification.SafetyPortal.Error
       Kernel.External.Verification.SafetyPortal.Types
       Kernel.External.Verification.Types
+      Kernel.External.Wallet
+      Kernel.External.Wallet.Interface
+      Kernel.External.Wallet.Interface.Juspay
+      Kernel.External.Wallet.Interface.Types
+      Kernel.External.Wallet.Juspay
+      Kernel.External.Wallet.Juspay.Config
+      Kernel.External.Wallet.Juspay.Flow
+      Kernel.External.Wallet.Types
       Kernel.External.Whatsapp.GupShup.Config
       Kernel.External.Whatsapp.GupShup.Flow
       Kernel.External.Whatsapp.GupShup.Types
