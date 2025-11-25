@@ -35,6 +35,8 @@ type RCVerificationRequest = IdfyRequest RCVerificationData
 
 type NameCompareRequest = IdfyRequest NameCompareRequestBody
 
+type FaceCompareRequest = IdfyRequest FaceCompareRequestBody
+
 data IdfyRequest a = IdfyRequest
   { task_id :: Text,
     group_id :: Text,
@@ -88,5 +90,11 @@ data NameCompareRequestBody = NameCompareRequestBody
   { name1 :: Text,
     name2 :: Text,
     percentage :: Maybe Bool
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data FaceCompareRequestBody = FaceCompareRequestBody
+  { document1 :: Text,
+    document2 :: Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)

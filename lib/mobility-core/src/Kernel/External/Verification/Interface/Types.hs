@@ -220,3 +220,15 @@ newtype NameCompareResp = NameCompareResp
   { nameComparedData :: Maybe Idfy.NameCompareResponseData
   }
   deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+
+data FaceCompareReq = FaceCompareReq
+  { document1 :: Text,
+    document2 :: Text,
+    driverId :: Text
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype FaceCompareResp = FaceCompareResp
+  { faceComparedData :: Maybe Idfy.FaceCompareResponseData
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
