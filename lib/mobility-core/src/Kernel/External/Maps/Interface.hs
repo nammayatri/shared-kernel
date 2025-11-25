@@ -33,7 +33,7 @@ where
 
 import EulerHS.Prelude ((...))
 import Kernel.External.Maps.Google.Config as Reexport
-import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..))
+import Kernel.External.Maps.HasCoordinates as Reexport (HasCoordinates (..), HasDriverId (..))
 import qualified Kernel.External.Maps.Interface.Google as Google
 import qualified Kernel.External.Maps.Interface.MMI as MMI
 import qualified Kernel.External.Maps.Interface.NextBillion as NextBillion
@@ -56,6 +56,7 @@ getDistance ::
     CoreMetrics m,
     HasCoordinates a,
     HasCoordinates b,
+    HasDriverId a,
     ToJSON a,
     ToJSON b,
     HasKafkaProducer r
@@ -97,6 +98,7 @@ getDistances ::
     CoreMetrics m,
     HasCoordinates a,
     HasCoordinates b,
+    HasDriverId a,
     ToJSON a,
     ToJSON b,
     HasKafkaProducer r
