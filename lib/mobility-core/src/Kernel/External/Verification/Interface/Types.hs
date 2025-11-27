@@ -20,7 +20,6 @@ where
 
 import Deriving.Aeson
 import EulerHS.Prelude
-import qualified Kernel.External.Verification.Digilocker.Types as DigiTypes
 import qualified Kernel.External.Verification.HyperVerge.Types as HyperVergeTypes
 import qualified Kernel.External.Verification.Idfy.Config as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
@@ -30,7 +29,7 @@ import Kernel.External.Verification.SafetyPortal.Types
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -221,21 +220,3 @@ newtype NameCompareResp = NameCompareResp
   { nameComparedData :: Maybe Idfy.NameCompareResponseData
   }
   deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
-
-newtype ExtractedDigiLockerDLResp = ExtractedDigiLockerDLResp
-  { extractedDL :: Maybe DigiTypes.DigiLockerDLFlow
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
-newtype ExtractedDigiLockerPanResp = ExtractedDigiLockerPanResp
-  { extractedPan :: Maybe DigiTypes.DigiLockerPanFlow
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
-newtype ExtractedDigiLockerAadhaarResp = ExtractedDigiLockerAadhaarResp
-  { extractedAadhaar :: Maybe DigiTypes.DigiLockerAadhaarFlow
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)

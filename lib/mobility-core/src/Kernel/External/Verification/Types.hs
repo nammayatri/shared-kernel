@@ -27,7 +27,7 @@ import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge | HyperVergeRCDL | DigiLocker
+data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge | HyperVergeRCDL
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 data DriverBackgroundVerificationService = SafetyPortal
