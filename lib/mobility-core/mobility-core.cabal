@@ -179,7 +179,6 @@ library
       Kernel.External.Payout.Juspay.Types.Webhook
       Kernel.External.Payout.Juspay.Webhook
       Kernel.External.Payout.Types
-      Kernel.External.SharedLogic.DigiLocker.Error
       Kernel.External.SharedLogic.HyperVerge.Error
       Kernel.External.SharedLogic.HyperVerge.Functions
       Kernel.External.Slack.Flow
@@ -231,14 +230,11 @@ library
       Kernel.External.Ticket.Kapture.Types
       Kernel.External.Ticket.Types
       Kernel.External.Tokenize
-      Kernel.External.Tokenize.Digilocker.Flow
-      Kernel.External.Tokenize.Digilocker.Types
       Kernel.External.Tokenize.Gullak.Flow
       Kernel.External.Tokenize.Gullak.Types
       Kernel.External.Tokenize.HyperVerge.Flow
       Kernel.External.Tokenize.HyperVerge.Types
       Kernel.External.Tokenize.Interface
-      Kernel.External.Tokenize.Interface.Digilocker
       Kernel.External.Tokenize.Interface.Error
       Kernel.External.Tokenize.Interface.Gullak
       Kernel.External.Tokenize.Interface.HyperVerge
@@ -250,8 +246,6 @@ library
       Kernel.External.Tokenize.Types
       Kernel.External.Types
       Kernel.External.Verification
-      Kernel.External.Verification.Digilocker.Flow
-      Kernel.External.Verification.Digilocker.Types
       Kernel.External.Verification.GovtData.Client
       Kernel.External.Verification.GovtData.Storage.Beam
       Kernel.External.Verification.GovtData.Storage.Query
@@ -268,7 +262,6 @@ library
       Kernel.External.Verification.Idfy.Types.Response
       Kernel.External.Verification.Idfy.WebhookHandler
       Kernel.External.Verification.Interface
-      Kernel.External.Verification.Interface.Digilocker
       Kernel.External.Verification.Interface.HyperVerge
       Kernel.External.Verification.Interface.Idfy
       Kernel.External.Verification.Interface.InternalScripts
@@ -629,8 +622,6 @@ library
     , wai-app-static
     , wai-middleware-prometheus
     , warp
-    , xml-conduit
-    , xml-types
     , xmlbf
   default-language: Haskell2010
 
@@ -796,7 +787,5 @@ test-suite mobility-core-tests
     , wai-app-static
     , wai-middleware-prometheus
     , warp
-    , xml-conduit
-    , xml-types
     , xmlbf
   default-language: Haskell2010

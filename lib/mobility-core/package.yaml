@@ -68,8 +68,6 @@ dependencies:
   - hex-text
   - hspec
   - xmlbf
-  - xml-conduit
-  - xml-types
   - http-api-data
   - http-client
   - regex-compat
