@@ -25,15 +25,15 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data SmsService = MyValueFirst | ExotelSms | GupShup | TwillioSms | DigoEngage | VonageSms | KarixSms
+data SmsService = MyValueFirst | ExotelSms | GupShup | TwillioSms | DigoEngage | VonageSms | KarixSms | PinbixSms
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
-instance HasSqlValueSyntax be String => HasSqlValueSyntax be SmsService where
+instance (HasSqlValueSyntax be String) => HasSqlValueSyntax be SmsService where
   sqlValueSyntax = autoSqlValueSyntax
 
 $(mkBeamInstancesForList ''SmsService)
 
 availableSmsServices :: [SmsService]
-availableSmsServices = [MyValueFirst, ExotelSms, GupShup, TwillioSms, DigoEngage, VonageSms, KarixSms]
+availableSmsServices = [MyValueFirst, ExotelSms, GupShup, TwillioSms, DigoEngage, VonageSms, KarixSms, PinbixSms]
 
 derivePersistField "SmsService"
