@@ -199,6 +199,7 @@ library
       Kernel.External.SMS.Interface.GupShup
       Kernel.External.SMS.Interface.KarixSms
       Kernel.External.SMS.Interface.MyValueFirst
+      Kernel.External.SMS.Interface.PinbixSms
       Kernel.External.SMS.Interface.TwillioSms
       Kernel.External.SMS.Interface.Types
       Kernel.External.SMS.Interface.VonageSms
@@ -210,6 +211,10 @@ library
       Kernel.External.SMS.MyValueFirst.Config
       Kernel.External.SMS.MyValueFirst.Flow
       Kernel.External.SMS.MyValueFirst.Types
+      Kernel.External.SMS.PinbixSms.Api
+      Kernel.External.SMS.PinbixSms.Config
+      Kernel.External.SMS.PinbixSms.Flow
+      Kernel.External.SMS.PinbixSms.Types
       Kernel.External.SMS.TwillioSms.API
       Kernel.External.SMS.TwillioSms.Config
       Kernel.External.SMS.TwillioSms.Flow
