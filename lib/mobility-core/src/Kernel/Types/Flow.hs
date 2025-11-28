@@ -224,6 +224,7 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   addUrlCallRetryFailures = Metrics.addUrlCallFailuresImplementation
   incrementSortedSetCounter = Metrics.incrementSortedSetCounterImplementation
   incrementStreamCounter = Metrics.incrementStreamCounterImplementation
+  incrementStreamFailedCounter = Metrics.incrementStreamFailedCounterImplementation
   addGenericLatency = Metrics.addGenericLatencyImplementation
   incrementSchedulerFailureCounter = Metrics.incrementSchedulerFailureCounterImplementation
   incrementGenericMetrics = Metrics.incrementGenericMetrics'
