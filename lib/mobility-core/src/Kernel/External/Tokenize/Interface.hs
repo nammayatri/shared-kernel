@@ -14,6 +14,7 @@
 module Kernel.External.Tokenize.Interface where
 
 import Kernel.External.Encryption as Common (EncFlow)
+import qualified Kernel.External.Tokenize.Interface.Digilocker as DigilockerInt
 import qualified Kernel.External.Tokenize.Interface.Gullak as GullakInt
 import qualified Kernel.External.Tokenize.Interface.HyperVerge as HyperVergeInt
 import qualified Kernel.External.Tokenize.Interface.JourneyMonitoring as JourneyMonitoringInt
@@ -33,6 +34,7 @@ tokenize serviceConfig req =
   case serviceConfig of
     InterfaceTypes.HyperVergeTokenizationServiceConfig config -> HyperVergeInt.tokenize config req
     InterfaceTypes.JourneyMonitoringTokenizationServiceConfig config -> JourneyMonitoringInt.tokenize config req
+    InterfaceTypes.DigilockerTokenizationServiceConfig config -> DigilockerInt.tokenize config req
     _ -> throwError (InternalError "Unsupported Tokenization Service")
 
 onboard ::
