@@ -65,7 +65,8 @@ instance FromJSON TwillioSmsResp where
 data TwillioSmsReq = TwillioSmsReq
   { to :: Text,
     body :: Text,
-    messagingServiceSid :: Text
+    messagingServiceSid :: Text,
+    from :: Text
   }
   deriving (Generic, ToJSON, FromJSON, Eq, ToSchema)
 
@@ -73,5 +74,6 @@ instance ToForm TwillioSmsReq where
   toForm TwillioSmsReq {..} =
     [ ("To", toQueryParam to),
       ("Body", toQueryParam body),
-      ("MessagingServiceSid", toQueryParam messagingServiceSid)
+      ("MessagingServiceSid", toQueryParam messagingServiceSid),
+      ("From", toQueryParam from)
     ]
