@@ -18,6 +18,7 @@ module Kernel.Storage.ClickhouseV2.Internal.Types where
 
 import qualified Data.Aeson.Types as A
 import Data.Kind (Constraint)
+import qualified Data.List as List
 import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Storage.ClickhouseV2.ClickhouseDb
@@ -73,6 +74,8 @@ data Column (a :: IsAggregated) t v where
   LessOrEqual :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
   Greater :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
   Less :: (ClickhouseTable t, ClickhouseValue v) => Column a t v -> Column a t v -> Column a t Bool
+  Concat :: (ClickhouseTable t, ClickhouseValue Text) => NonEmpty (Column a t Text) -> Column a t Text
+  IfNull :: (ClickhouseTable t, ClickhouseValue v) => Column a t (Maybe v) -> Column a t v -> Column a t v
 
 mkTableColumns :: ClickhouseTable t => FieldModifications t -> Columns 'NOT_AGG t
 mkTableColumns = mapTable Column
@@ -166,14 +169,13 @@ data GroupBy (a :: IsAggregated) gr where
   Aggregate :: GroupBy 'AGG NoColumns
   NotGrouped :: GroupBy 'NOT_AGG NotGrouped
 
-data OrderBy ord where
-  OrderBy :: IsOrderColumns ord => Order -> ord -> OrderBy ord
+data IsOrdered = ORDERED | NOT_ORDERED
 
-data NotOrdered
+data OrderBy (ord :: IsOrdered) where
+  OrderBy :: (ClickhouseQuery ord, IsOrderColumns ord) => Order -> ord -> OrderBy 'ORDERED
+  NotOrdered :: OrderBy 'NOT_ORDERED
 
 class IsOrderColumns cols
-
-instance IsOrderColumns NotOrdered
 
 instance (ClickhouseTable t, ClickhouseValue v) => IsOrderColumns (Column a t v)
 
@@ -186,6 +188,24 @@ instance (ClickhouseTable t, C4 ClickhouseValue v1 v2 v3 v4) => IsOrderColumns (
 instance (ClickhouseTable t, C5 ClickhouseValue v1 v2 v3 v4 v5) => IsOrderColumns (T5 (Column a t) v1 v2 v3 v4 v5)
 
 instance (ClickhouseTable t, C6 ClickhouseValue v1 v2 v3 v4 v5 v6) => IsOrderColumns (T6 (Column a t) v1 v2 v3 v4 v5 v6)
+
+instance (ClickhouseTable t, C7 ClickhouseValue v1 v2 v3 v4 v5 v6 v7) => IsOrderColumns (T7 (Column a t) v1 v2 v3 v4 v5 v6 v7)
+
+instance (ClickhouseTable t, C8 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8) => IsOrderColumns (T8 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8)
+
+instance (ClickhouseTable t, C9 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9) => IsOrderColumns (T9 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9)
+
+instance (ClickhouseTable t, C10 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9 v10) => IsOrderColumns (T10 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10)
+
+instance (ClickhouseTable t, C11 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11) => IsOrderColumns (T11 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11)
+
+instance (ClickhouseTable t, C12 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12) => IsOrderColumns (T12 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12)
+
+instance (ClickhouseTable t, C13 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13) => IsOrderColumns (T13 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13)
+
+instance (ClickhouseTable t, C14 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14) => IsOrderColumns (T14 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14)
+
+instance (ClickhouseTable t, C15 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15) => IsOrderColumns (T15 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15)
 
 data Q db table cols ord acols = (ClickhouseDb db) =>
   Q
@@ -261,6 +281,8 @@ showColumn (GreaterOrEqual column1 column2) = addBrackets' $ showColumn column1 
 showColumn (LessOrEqual column1 column2) = addBrackets' $ showColumn column1 <> "<=" <> showColumn column2
 showColumn (Greater column1 column2) = addBrackets' $ showColumn column1 <> ">" <> showColumn column2
 showColumn (Less column1 column2) = addBrackets' $ showColumn column1 <> "<" <> showColumn column2
+showColumn (Concat columns) = "concat" <> addBrackets' (List.intercalate ", " (showColumn <$> toList columns))
+showColumn (IfNull column alt) = "ifNull" <> addBrackets' (showColumn column <> ", " <> showColumn alt)
 
 addBrackets' :: String -> String
 addBrackets' rq = "(" <> rq <> ")"
@@ -281,6 +303,18 @@ type T8 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 = (c x1, c x2, c x3, c x4, c
 
 type T9 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9)
 
+type T10 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10)
+
+type T11 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11)
+
+type T12 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12)
+
+type T13 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13)
+
+type T14 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13, c x14)
+
+type T15 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13, c x14, c x15)
+
 type C2 (c :: Type -> Constraint) x1 x2 = (c x1, c x2)
 
 type C3 (c :: Type -> Constraint) x1 x2 x3 = (c x1, c x2, c x3)
@@ -296,6 +330,18 @@ type C7 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 = (c x1, c x2, c x3, c x4
 type C8 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8)
 
 type C9 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9)
+
+type C10 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10)
+
+type C11 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11)
+
+type C12 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12)
+
+type C13 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13)
+
+type C14 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13, c x14)
+
+type C15 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13, c x14, c x15)
 
 newtype SubQueryLevel = SubQueryLevel {getSubQueryLevel :: Int}
   deriving newtype (Show, Num, Eq)
