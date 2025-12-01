@@ -6,6 +6,7 @@ where
 
 import qualified Data.Text as T
 import EulerHS.Prelude
+import Kernel.External.Encryption
 import Kernel.External.SMS.Interface.Types as Reexport
 import Kernel.External.SMS.PinbixSms.Config
 import qualified Kernel.External.SMS.PinbixSms.Flow as PF
@@ -13,27 +14,27 @@ import Kernel.External.SMS.PinbixSms.Types
 import Kernel.External.SMS.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
-import Kernel.Utils.Logging (logDebug)
+import Kernel.Utils.Servant.Client
 
 sendOTP ::
   ( CoreMetrics m,
     MonadFlow m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m,
     Log m
   ) =>
   PinbixSmsCfg ->
   SendSMSReq ->
   m SendSMSRes
 sendOTP pinbixCfg SendSMSReq {..} = do
-  let pinbixSmsTemplate = "3333+is+your+OTP+for+login+to+Namma+Yatri+App.+test+-Namma+Yatri"
-      pinbixPhoneNumber =
+  let pinbixPhoneNumber =
         if not (T.null phoneNumber) && T.head phoneNumber == '+'
           then T.drop 1 phoneNumber
           else phoneNumber
-      pinbixSender = "NMAYTI"
 
-  logDebug $ "[Pinbix] Initiating sendOTP for " <> pinbixPhoneNumber
-  resp <- PF.sendOTPApi pinbixSmsTemplate pinbixPhoneNumber pinbixSender pinbixCfg.userId pinbixCfg.password pinbixCfg
-  logDebug $ "[Pinbix] Provider responded with status " <> resp.status <> maybe "" (" code " <>) resp.statusCode
+  pinbixPassword <- decrypt pinbixCfg.password
+  resp <- PF.sendOTPApi smsBody pinbixPhoneNumber sender pinbixCfg.userId pinbixPassword pinbixCfg
   pure $ mapResponse resp
 
 mapResponse :: PinbixSmsResponse -> SendSMSRes
