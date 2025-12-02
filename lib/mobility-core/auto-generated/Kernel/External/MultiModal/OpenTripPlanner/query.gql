@@ -4,7 +4,8 @@ query OTPPlan (
     $date: String,
     $time:String,
     $transportModes: [TransportMode],
-    $numItineraries: Int
+    $numItineraries: Int,
+    $walkSpeed: Float
 ){
   plan(
     from: $from,
@@ -12,7 +13,8 @@ query OTPPlan (
     date: $date,
     time: $time,
     transportModes: $transportModes,
-    numItineraries : $numItineraries
+    numItineraries : $numItineraries,
+    walkSpeed : $walkSpeed
   ) {
     itineraries {
       duration

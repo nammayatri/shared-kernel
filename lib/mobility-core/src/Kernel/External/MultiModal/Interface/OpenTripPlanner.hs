@@ -57,6 +57,7 @@ getTransitRoutes cfg req = do
   let maxAllowedPublicTransportLegs = req.maxAllowedPublicTransportLegs
   let sortingType = req.sortingType
   let queryType = fromMaybe NORMAL cfg.queryType
+  let walkSpeed = req.walkSpeed
   case queryType of
     NORMAL -> do
       let otpReq =
@@ -66,7 +67,8 @@ getTransitRoutes cfg req = do
                 date = fst <$> dateTime,
                 time = snd <$> dateTime,
                 transportModes = transportModes',
-                numItineraries = numItineraries'
+                numItineraries = numItineraries',
+                walkSpeed = req.walkSpeed
               }
       (resp, latency) <-
         measureDuration $
@@ -85,10 +87,10 @@ getTransitRoutes cfg req = do
           pure $ Just $ convertOTPToGeneric plan' minimumWalkDistance permissibleModes maxAllowedPublicTransportLegs sortingType cfg.weightedSortCfg
     MULTI_SEARCH -> withLogTag "MULTI_SEARCH" $ do
       let requests =
-            [ ("metro-query", mkReq origin destination dateTime [ModeRAIL, ModeWALK] 5),
-              ("subway-query", mkReq origin destination dateTime [ModeSUBWAY, ModeWALK] 5),
-              ("bus-query", mkReq origin destination dateTime [ModeBUS, ModeWALK] 10),
-              ("best-query", mkReq origin destination dateTime [ModeTRANSIT, ModeWALK] 10)
+            [ ("metro-query", mkReq origin destination dateTime [ModeRAIL, ModeWALK] 5 walkSpeed),
+              ("subway-query", mkReq origin destination dateTime [ModeSUBWAY, ModeWALK] 5 walkSpeed),
+              ("bus-query", mkReq origin destination dateTime [ModeBUS, ModeWALK] 10 walkSpeed),
+              ("best-query", mkReq origin destination dateTime [ModeTRANSIT, ModeWALK] 10 walkSpeed)
             ]
       start <- getClockTimeInMs
       results <-
@@ -119,15 +121,16 @@ getTransitRoutes cfg req = do
             sortingType
             cfg.weightedSortCfg
   where
-    mkReq :: InputCoordinates -> InputCoordinates -> Maybe (String, String) -> [Mode] -> Int -> OTPPlanArgs
-    mkReq origin destination dateTime modes n =
+    mkReq :: InputCoordinates -> InputCoordinates -> Maybe (String, String) -> [Mode] -> Int -> Maybe Double -> OTPPlanArgs
+    mkReq origin destination dateTime modes n ws =
       OTPPlanArgs
         { from = origin,
           to = destination,
           date = fst <$> dateTime,
           time = snd <$> dateTime,
           transportModes = Just $ map (Just . modeToTransportMode) modes,
-          numItineraries = Just n
+          numItineraries = Just n,
+          walkSpeed = ws
         }
     extractItineraries :: GQLClientResult OTPPlan -> Maybe [Maybe OTPPlanPlanItineraries]
     extractItineraries result = case result of

@@ -156,6 +156,7 @@ type Query {
     transportModes: [TransportMode]
     date: String
     time: String
-    numItineraries: Int
+    numItineraries: Int,
+    walkSpeed: Float
   ): Plan!
 }
