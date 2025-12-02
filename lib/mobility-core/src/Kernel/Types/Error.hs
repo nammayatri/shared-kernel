@@ -36,6 +36,7 @@ data AuthError
   = Unauthorized
   | InvalidAuthData
   | TokenExpired
+  | BusinessEmailTokenExpired
   | TokenIsNotVerified
   | TokenNotFound Text
   | InvalidToken Text
@@ -61,6 +62,7 @@ instance IsHTTPError AuthError where
     Unauthorized -> "UNAUTHORIZED"
     InvalidAuthData -> "INVALID_AUTH_DATA"
     TokenExpired -> "TOKEN_EXPIRED"
+    BusinessEmailTokenExpired -> "BUSINESS_EMAIL_TOKEN_EXPIRED"
     TokenIsNotVerified -> "TOKEN_IS_NOT_VERIFIED"
     TokenNotFound _ -> "TOKEN_NOT_FOUND"
     InvalidToken _ -> "INVALID_TOKEN"
