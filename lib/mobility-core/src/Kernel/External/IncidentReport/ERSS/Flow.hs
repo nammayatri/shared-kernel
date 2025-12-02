@@ -24,7 +24,8 @@ import Kernel.External.IncidentReport.Interface.Error
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
-import Kernel.Utils.Common (callAPI, fromEitherM)
+import Kernel.Utils.Common (fromEitherM)
+import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
 type ERSSIncidentReportAPI =
@@ -35,7 +36,9 @@ type ERSSIncidentReportAPI =
 
 reportIncident ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ERSS.IncidentReportReq ->
   BaseUrl ->
@@ -54,7 +57,9 @@ type ERSSIncidentReportUpdateAPI =
 
 reportIncidentUpdate ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ERSS.IncidentReportUpdateReq ->
   BaseUrl ->

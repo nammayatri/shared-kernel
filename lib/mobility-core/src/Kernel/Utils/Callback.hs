@@ -38,13 +38,15 @@ someExceptionToCallbackReqMig context exc =
           context
         }
 
-type WithBecknCallbackMig api callback_success m =
+type WithBecknCallbackMig api callback_success m r =
   ( MonadFlow m,
     SanitizedUrl api,
     CoreMetrics m,
     HasClient ET.EulerClient api,
     Client ET.EulerClient api
-      ~ (BecknCallbackReq callback_success -> ET.EulerClient AckResponse)
+      ~ (BecknCallbackReq callback_success -> ET.EulerClient AckResponse),
+    HasRequestId r,
+    MonadReader r m
   ) =>
   M.Context.Action ->
   Proxy api ->
@@ -57,7 +59,7 @@ type WithBecknCallbackMig api callback_success m =
 withBecknCallbackMig ::
   (m () -> m ()) ->
   Maybe ET.ManagerSelector ->
-  WithBecknCallbackMig api callback_success m
+  WithBecknCallbackMig api callback_success m r
 withBecknCallbackMig doWithCallback auth actionName api context cbUrl internalEndPointHashMap action = do
   now <- getCurrentTime
   cbAction <-

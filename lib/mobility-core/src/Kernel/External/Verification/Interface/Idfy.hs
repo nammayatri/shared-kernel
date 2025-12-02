@@ -48,6 +48,7 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Utils.Error.Throwing
+import Kernel.Utils.Servant.Client
 
 buildIdfyRequest :: MonadGuid m => Text -> a -> m (Idfy.IdfyRequest a)
 buildIdfyRequest driverId a = do
@@ -61,7 +62,9 @@ buildIdfyRequest driverId a = do
 
 verifyDLAsync ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   VerifyDLAsyncReq ->
@@ -82,7 +85,9 @@ verifyDLAsync cfg req = do
 
 verifyRCAsync ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   VerifyRCReq ->
@@ -102,7 +107,9 @@ verifyRCAsync cfg req = do
 
 validateImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   ValidateImageReq ->
@@ -170,7 +177,9 @@ getImageType _ = VehicleRegistrationCertificate
 
 extractRCImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   ExtractRCImageReq ->
@@ -195,7 +204,9 @@ extractRCImage cfg req = do
 
 extractDLImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   ExtractDLImageReq ->
@@ -224,7 +235,9 @@ extractDLImage cfg req = do
 
 extractPanImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   ExtractPanImage ->
@@ -247,7 +260,9 @@ extractPanImage cfg req = do
 
 extractGSTImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   ExtractGSTImage ->
@@ -270,7 +285,9 @@ extractGSTImage cfg req = do
 
 extractAadhaarImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   ExtractAadhaarImageReq ->
@@ -294,7 +311,9 @@ extractAadhaarImage cfg req = do
 
 nameCompare ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   NameCompareReq ->
@@ -318,7 +337,9 @@ nameCompare cfg req = do
 
 getTask ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   GetTaskReq ->

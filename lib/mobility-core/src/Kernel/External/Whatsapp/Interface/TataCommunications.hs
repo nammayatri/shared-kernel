@@ -25,11 +25,14 @@ import Kernel.External.Whatsapp.TataCommunications.Flow as Flow
 import qualified Kernel.External.Whatsapp.TataCommunications.Types as TC
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Utils.Servant.Client
 
 whatsAppSendMessageWithTemplateIdAPI ::
   ( CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   TataCommunicationsCfg ->
   IT.SendWhatsAppMessageWithTemplateIdApIReq ->
@@ -59,7 +62,9 @@ whatsAppSendMessageWithTemplateIdAPI tataCommunicationsCfg req = do
 whatsAppOTPApi ::
   ( CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   TataCommunicationsCfg ->
   IT.SendOtpApiReq ->

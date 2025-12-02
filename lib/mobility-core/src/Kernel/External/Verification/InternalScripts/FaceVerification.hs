@@ -32,7 +32,7 @@ type FaceValidationAPI =
     :> ReqBody '[JSON] FaceValidationReq
     :> Post '[JSON] FaceValidationRes
 
-validateFace :: (CoreMetrics m, MonadFlow m) => BaseUrl -> FaceValidationReq -> m FaceValidationRes
+validateFace :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => BaseUrl -> FaceValidationReq -> m FaceValidationRes
 validateFace url req = callFaceVerificationApi url (translate req) "upload" faceValidationAPI
 
 translate :: FaceValidationReq -> EulerClient FaceValidationRes
@@ -49,5 +49,5 @@ prepareInternalScriptsHttpManager timeout =
 internalScriptsManagerKey :: String
 internalScriptsManagerKey = "internal-scripts-http-manager"
 
-callFaceVerificationApi :: CallAPI env api res
+callFaceVerificationApi :: CallAPI m r api res
 callFaceVerificationApi = callApiUnwrappingApiError (identity @FaceVerificationError) (Just $ ET.ManagerSelector $ DT.pack internalScriptsManagerKey) (Just "FACE_VERIFICATION_ERROR") Nothing

@@ -83,7 +83,9 @@ gupShupOptAPIClient :<|> gupShupSendOtpAPIClient :<|> gupShupSendMessageWithTemp
 
 whatsAppOptAPI ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -125,7 +127,9 @@ validateResponseStatus response = do
 
 whatsAppSendOtpAPI ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -146,7 +150,9 @@ whatsAppSendOtpAPI url userid password sendTo method auth_scheme v msgType forma
 
 whatsAppSendMessageWithTemplateIdAPI ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->

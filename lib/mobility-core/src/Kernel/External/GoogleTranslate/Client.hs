@@ -25,7 +25,9 @@ import Servant.Client.Core (ClientError)
 
 translate ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->

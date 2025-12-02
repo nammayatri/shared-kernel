@@ -46,7 +46,9 @@ initiateCall ::
   ( CoreMetrics m,
     EncFlow m r,
     MonadFlow m,
-    ToJSON a
+    ToJSON a,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ExotelCfg ->
   ExotelInitiateCallReq a ->
@@ -67,7 +69,7 @@ initiateCall ExotelCfg {..} exoRequest = do
   where
     callExotel sid authData = ET.client (Proxy :: Proxy (InitiateCallAPI a)) sid authData exoRequest
 
-callExotelAPI :: CallAPI env api a
+callExotelAPI :: CallAPI m r api a
 callExotelAPI =
   callApiUnwrappingApiError
     (identity @ExotelError)

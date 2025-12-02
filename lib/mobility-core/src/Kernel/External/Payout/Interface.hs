@@ -27,6 +27,8 @@ import Kernel.Utils.Common
 createPayoutOrder ::
   ( EncFlow m r,
     CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m,
     HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   PayoutServiceConfig ->
@@ -38,7 +40,9 @@ createPayoutOrder serviceConfig mRoutingId req = case serviceConfig of
 
 payoutOrderStatus ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PayoutServiceConfig ->
   Maybe Text ->

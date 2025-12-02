@@ -21,10 +21,12 @@ import qualified Kernel.External.IncidentReport.Interface.ERSS as ERSSIntegratio
 import Kernel.External.IncidentReport.Interface.Types
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Utils.Servant.Client
 
 reportIncident ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   IncidentReportServiceConfig ->
   IncidentReportReq ->
@@ -34,7 +36,8 @@ reportIncident serviceConfig req = case serviceConfig of
 
 reportIncidentUpdate ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   IncidentReportServiceConfig ->
   IncidentReportUpdateReq ->

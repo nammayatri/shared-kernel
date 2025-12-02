@@ -26,7 +26,9 @@ notifyPerson ::
   ( CoreMetrics m,
     EncFlow m r,
     MonadFlow m,
-    ToJSON a
+    ToJSON a,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PayTM.PayTMConfig ->
   PayTM.NotificationReq a ->

@@ -53,7 +53,9 @@ mmiDistanceMatrix ::
     MonadFlow m,
     ToJSON a,
     ToJSON b,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   IT.GetDistancesReq a b ->
@@ -74,7 +76,7 @@ mmiDistanceMatrix entityId req url apiKey points srcList destList = do
     ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiDistanceMatrix" "MMI" entityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
-callMMIAPI :: CallAPI env api a
+callMMIAPI :: CallAPI m r api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

@@ -23,6 +23,7 @@ import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.BaseError.HTTPError.APIError
 import Kernel.Utils.Error.Throwing
+import Kernel.Utils.Servant.Client
 
 authAPI :: Text -> E.EulerClient PersonId
 authAPI = E.client (Proxy @API)
@@ -31,7 +32,8 @@ auth ::
   ( HasField "authServiceUrl" r BaseUrl,
     CoreMetrics m,
     MonadFlow m,
-    MonadReader r m
+    MonadReader r m,
+    HasRequestId r
   ) =>
   Text ->
   m PersonId

@@ -18,13 +18,17 @@ import qualified Kernel.External.Tokenize.Interface.Gullak as GullakInt
 import qualified Kernel.External.Tokenize.Interface.HyperVerge as HyperVergeInt
 import qualified Kernel.External.Tokenize.Interface.JourneyMonitoring as JourneyMonitoringInt
 import qualified Kernel.External.Tokenize.Interface.Types as InterfaceTypes
+import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Servant.Client
 
 tokenize ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   InterfaceTypes.TokenizationServiceConfig ->
   InterfaceTypes.TokenizationReq ->
@@ -37,7 +41,9 @@ tokenize serviceConfig req =
 
 onboard ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   InterfaceTypes.TokenizationServiceConfig ->
   InterfaceTypes.OnboardingReq ->
@@ -49,7 +55,9 @@ onboard serviceConfig req = do
 
 login ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   InterfaceTypes.TokenizationServiceConfig ->
   InterfaceTypes.LoginReq ->

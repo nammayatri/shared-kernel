@@ -35,6 +35,7 @@ import Kernel.Prelude
 import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Utils.Servant.Client
 
 originAndDestinationRemover :: [a] -> [a]
 originAndDestinationRemover waypoints = if length waypoints > 2 then init $ tail waypoints else []
@@ -74,7 +75,8 @@ getRoutes ::
     CoreMetrics m,
     Log m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   NextBillionCfg ->
@@ -96,7 +98,8 @@ getRoutesWithExtraParameters ::
     CoreMetrics m,
     Log m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   NextBillionCfg ->

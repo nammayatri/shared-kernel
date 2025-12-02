@@ -25,7 +25,9 @@ import Kernel.Utils.Common
 
 submitSms ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   SubmitSms ->
@@ -42,7 +44,9 @@ type InviteTemplate = Text
 
 sendOTPApi ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -62,7 +66,9 @@ sendOTPApi url token otpSmsTemplate phoneNumber sender = do
 
 sendSms ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   SmsConfig ->
   Text ->

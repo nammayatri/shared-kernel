@@ -29,7 +29,9 @@ import Servant.Client
 sendOTPApi ::
   ( CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   DigoEngageSmsCfg ->
   SubmitSmsReq ->

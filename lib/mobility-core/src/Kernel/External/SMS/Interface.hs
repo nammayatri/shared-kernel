@@ -41,7 +41,9 @@ import Kernel.Utils.Common
 
 sendSMS' ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   SmsServiceConfig ->
   SendSMSReq ->
@@ -66,7 +68,7 @@ checkSmsResult txt =
     _ -> throwError SMSInvalidNumber
 
 sendSMS ::
-  (EncFlow m r, EsqDBFlow m r, CoreMetrics m) =>
+  (EncFlow m r, EsqDBFlow m r, CoreMetrics m, HasRequestId r, MonadReader r m) =>
   SmsHandler m ->
   SendSMSReq ->
   m SendSMSRes

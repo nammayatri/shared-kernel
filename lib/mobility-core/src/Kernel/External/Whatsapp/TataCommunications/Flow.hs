@@ -36,7 +36,9 @@ type TataCommunicationsWhatsappAPI =
 sendMessageApi ::
   ( CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   TataCommunicationsCfg ->
   WhatsAppMessageReq ->

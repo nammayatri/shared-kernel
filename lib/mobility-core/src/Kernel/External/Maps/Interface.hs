@@ -58,7 +58,8 @@ getDistance ::
     HasCoordinates b,
     ToJSON a,
     ToJSON b,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsServiceConfig ->
@@ -99,7 +100,8 @@ getDistances ::
     HasCoordinates b,
     ToJSON a,
     ToJSON b,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsServiceConfig ->
@@ -123,7 +125,8 @@ getRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
     Log m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   Bool ->
@@ -187,7 +190,8 @@ snapToRoadWithFallback ::
     HasFlowEnv m r '["droppedPointsThreshold" ::: HighPrecMeters],
     HasFlowEnv m r '["maxStraightLineRectificationThreshold" ::: HighPrecMeters],
     HasFlowEnv m r '["osrmMatchThreshold" ::: HighPrecMeters],
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   Maybe MapsServiceConfig ->
@@ -278,7 +282,8 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
 snapToRoad ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsServiceConfig ->
@@ -304,7 +309,8 @@ autoComplete ::
     Redis.HedisFlow m r,
     CoreMetrics m,
     HasShortDurationRetryCfg r c,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsServiceConfig ->
@@ -327,7 +333,8 @@ getPlaceDetailsProvided = \case
 getPlaceDetails ::
   ( EncFlow m r,
     CoreMetrics m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsServiceConfig ->
@@ -351,7 +358,8 @@ getPlaceName ::
   ( EncFlow m r,
     CoreMetrics m,
     Redis.HedisFlow m r,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsServiceConfig ->

@@ -48,7 +48,9 @@ whatsAppOptApi WhatsappHandler {..} req = do
 
 whatsAppOptApi' ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   WhatsappServiceConfig ->
   OptApiReq ->
@@ -77,7 +79,9 @@ whatsAppOtpApi WhatsappHandler {..} req = do
 
 whatsAppOtpApi' ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   WhatsappServiceConfig ->
   SendOtpApiReq ->
@@ -105,7 +109,9 @@ whatsAppSendMessageWithTemplateIdAPI WhatsappHandler {..} req = do
 
 whatsAppSendMessageWithTemplateIdAPI' ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   WhatsappServiceConfig ->
   SendWhatsAppMessageWithTemplateIdApIReq ->

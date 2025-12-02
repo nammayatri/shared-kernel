@@ -40,11 +40,14 @@ import Kernel.Types.Error
 import Kernel.Types.Field
 import Kernel.Utils.Error.Throwing (fromMaybeM)
 import Kernel.Utils.Logging (logDebug)
+import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
 createPayoutOrder ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
+    HasRequestId r,
+    MonadReader r m,
     HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   JuspayConfig ->
@@ -124,7 +127,9 @@ createPayoutOrder config mRoutingId req = do
 
 payoutOrderStatus ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayConfig ->
   Text ->
@@ -144,7 +149,10 @@ payoutOrderStatus config orderId' mRoutingId mbExpand = do
         }
 
 payoutOrderStatusWebhook ::
-  EncFlow m r =>
+  ( EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
   PayoutServiceConfig ->
   BasicAuthData ->
   A.Value ->

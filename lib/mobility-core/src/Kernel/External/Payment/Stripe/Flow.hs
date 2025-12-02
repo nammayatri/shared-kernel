@@ -6,10 +6,10 @@ import Kernel.External.Payment.Stripe.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
-import Kernel.Utils.Common (CallAPI, callApiUnwrappingApiError)
+import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
-callStripeAPI :: CallAPI m api res
+callStripeAPI :: CallAPI m r api res
 callStripeAPI url eulerClient description proxy = do
   callApiUnwrappingApiError (identity @StripeError) Nothing Nothing Nothing url eulerClient description proxy
 
@@ -32,7 +32,9 @@ type CreateAccountAPI =
 
 createAccount ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -52,7 +54,9 @@ type CreateAccountLinkAPI =
 
 createAccountLink ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -72,7 +76,9 @@ type GetAccountAPI =
 
 getAccount ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -93,7 +99,9 @@ type CreateCustomerAPI =
 
 createCustomer ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -114,7 +122,9 @@ type UpdateCustomerAPI =
 
 updateCustomer ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -135,7 +145,9 @@ type GetCustomerAPI =
 
 getCustomer ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -156,7 +168,9 @@ type CreatePaymentIntentAPI =
 
 createPaymentIntent ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -177,7 +191,9 @@ type CancelPaymentIntentAPI =
 
 cancelPaymentIntent ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -197,7 +213,9 @@ type GetPaymentIntentAPI =
 
 getPaymentIntent ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -219,7 +237,9 @@ type ConfirmPaymentIntentAPI =
 
 confirmPaymentIntent ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -242,7 +262,9 @@ type CapturePaymentIntentAPI =
 
 capturePaymentIntent ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -265,7 +287,9 @@ type IncrementAuthorizationPaymentIntentAPI =
 
 incrementAuthorizationPaymentIntent ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -287,7 +311,9 @@ type CreateSetupIntentAPI =
 
 createSetupIntent ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -310,7 +336,9 @@ type CreateCardAPI =
 
 createCard ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -333,7 +361,9 @@ type DeleteCardAPI =
 
 deleteCard ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -357,7 +387,9 @@ type UpdateCardAPI =
 
 updateCard ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -381,7 +413,9 @@ type GetCardAPI =
 
 getCard ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -403,7 +437,9 @@ type GetCardListAPI =
 
 getCardList ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -425,7 +461,9 @@ type GetPaymentMethodListAPI =
 
 getPaymentMethodList ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -446,7 +484,9 @@ type DetachPaymentMethodAPI =
 
 detachPaymentMethod ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -467,7 +507,9 @@ type ClonePaymentMethodAPI =
 
 clonePaymentMethod ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -490,7 +532,9 @@ type CreateEphemeralKeysAPI =
 
 createEphemeralKeys ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->

@@ -30,6 +30,7 @@ import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Types.Field
 import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Servant.Client
 
 notifyPerson ::
   ( MonadFlow m,
@@ -37,7 +38,9 @@ notifyPerson ::
     CoreMetrics m,
     Redis.HedisFlow m r,
     ToJSON a,
-    ToJSON b
+    ToJSON b,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   NotificationServiceConfig ->
   NotificationReq a b ->
@@ -61,6 +64,8 @@ notifyPersonWithAllProviders ::
     ToJSON a,
     ToJSON b,
     ToJSON c,
+    HasRequestId r,
+    MonadReader r m,
     HasFlowEnv m r '["maxNotificationShards" ::: Int]
   ) =>
   NotficationServiceHandler m a c ->

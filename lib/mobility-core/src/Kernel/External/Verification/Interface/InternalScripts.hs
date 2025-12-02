@@ -18,14 +18,14 @@ module Kernel.External.Verification.Interface.InternalScripts
   )
 where
 
-import Control.Monad
 import Kernel.External.Verification.InternalScripts.Error
 import qualified Kernel.External.Verification.InternalScripts.FaceVerification as FV
 import Kernel.External.Verification.InternalScripts.Types as Reexport
+import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common
 
-validateFace :: (CoreMetrics m, MonadFlow m) => FaceVerificationCfg -> FaceValidationReq -> m FaceValidationRes
+validateFace :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => FaceVerificationCfg -> FaceValidationReq -> m FaceValidationRes
 validateFace fvCfg req = do
   let url = fvCfg.url
   res <- FV.validateFace url req

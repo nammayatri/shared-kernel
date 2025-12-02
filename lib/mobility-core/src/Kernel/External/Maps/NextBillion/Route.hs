@@ -63,7 +63,8 @@ directions ::
     MonadFlow m,
     ToJSON a,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   a ->

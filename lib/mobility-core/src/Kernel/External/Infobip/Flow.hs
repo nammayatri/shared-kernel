@@ -26,7 +26,9 @@ import Kernel.Utils.Common
 
 sendSms ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   InfoBIPConfig ->
   Text ->
@@ -44,7 +46,9 @@ sendSms smsCfg smsTemplate phoneNumber entityId templetId = do
 
 submitSms ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -62,7 +66,9 @@ submitSms url userName password from phoneNumber smsTemplate entityId templetId 
 
 callWebengageWebhook ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   WebengageConfig ->
   WebengageRes ->

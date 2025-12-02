@@ -31,10 +31,13 @@ import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Servant.Client
 
 createTicket ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   KaptureCfg ->
   IT.CreateTicketReq ->
@@ -85,7 +88,9 @@ mkRideDescriptionDriver IT.RideInfo {..} =
 
 updateTicket ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   KaptureCfg ->
   IT.UpdateTicketReq ->
@@ -104,7 +109,9 @@ mkUpdateTicketReq IT.UpdateTicketReq {..} =
 
 addAndUpdateKaptureCustomer ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   KaptureCfg ->
   IT.KaptureCustomerReq ->
@@ -116,7 +123,7 @@ addAndUpdateKaptureCustomer config req = do
     mkKaptureCustomerReq IT.KaptureCustomerReq {..} = Kapture.KaptureCustomerReq {..}
 
 kaptureEncryption ::
-  (Metrics.CoreMetrics m, EncFlow m r) =>
+  (Metrics.CoreMetrics m, EncFlow m r, HasRequestId r, MonadReader r m) =>
   KaptureCfg ->
   IT.KaptureEncryptionReq ->
   m Kapture.KaptureEncryptionResp
@@ -134,7 +141,9 @@ kaptureEncryption config req = do
 
 kapturePullTicket ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   KaptureCfg ->
   IT.KapturePullTicketReq ->
@@ -147,7 +156,9 @@ kapturePullTicket config req = do
 
 kaptureGetTicket ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   KaptureCfg ->
   IT.GetTicketReq ->

@@ -22,7 +22,8 @@ import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
-import Kernel.Utils.Common (callAPI, fromEitherM)
+import Kernel.Utils.Common (fromEitherM)
+import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
 mkBasicAuthData :: Text -> BasicAuthData
@@ -41,7 +42,7 @@ type CreatePayoutOrderAPI =
     :> Post '[JSON] CreatePayoutOrderResp
 
 createPayoutOrder ::
-  (Metrics.CoreMetrics m, MonadFlow m) =>
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
   Text ->
@@ -64,7 +65,7 @@ type PayoutOrderStatusAPI =
     :> Get '[JSON] PayoutOrderStatusResp
 
 payoutOrderStatus ::
-  (Metrics.CoreMetrics m, MonadFlow m) =>
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
   Text ->

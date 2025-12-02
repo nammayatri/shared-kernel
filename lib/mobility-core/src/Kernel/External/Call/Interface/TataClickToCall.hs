@@ -24,12 +24,15 @@ import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Utils.Logging (logDebug)
+import Kernel.Utils.Servant.Client
 
 initiateCall ::
   ( CoreMetrics m,
     EncFlow m r,
     MonadFlow m,
-    ToJSON a
+    ToJSON a,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   TataClickToCallCfg ->
   InitiateCallReq a ->

@@ -56,11 +56,14 @@ import Kernel.Types.Beckn.Ack
 import Kernel.Types.Error
 import Kernel.Utils.Common (HighPrecMoney, Log, MonadTime, fromMaybeM, getCurrentTime)
 import Kernel.Utils.Logging (logDebug)
+import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
 createOrder ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -79,7 +82,9 @@ createOrder config mRoutingId req = do
 
 updateOrder ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -112,7 +117,9 @@ updateOrder config mRoutingId req = do
 
 createCustomer ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   CreateCustomerReq ->
@@ -148,7 +155,9 @@ createCustomer config req = do
 
 getCustomer ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   CustomerId ->
@@ -173,7 +182,9 @@ getCustomer config customerId = do
 
 mandateNotification ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -201,7 +212,9 @@ mandateNotification config mRoutingId req = do
 
 mandateNotificationStatus ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -242,7 +255,9 @@ mandateNotificationStatus config mRoutingId req = do
 
 mandateExecution ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -265,7 +280,9 @@ mandateExecution config mRoutingId req = do
 
 mandateRevoke ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -363,7 +380,9 @@ mkRefundSplitSettlementDetails splitDetails =
 orderStatus ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -477,7 +496,9 @@ mkExecutionReq MandateExecutionReq {..} merchantId =
 
 mandatePause ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   MandatePauseReq ->
@@ -490,7 +511,9 @@ mandatePause config req = do
 
 mkPauseReq ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   MandatePauseReq ->
   m Juspay.MandatePauseReq
@@ -505,7 +528,9 @@ mkPauseReq MandatePauseReq {..} = do
 
 mandateResume ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   MandateResumeReq ->
@@ -696,7 +721,9 @@ castSourceInfo source_info =
 offerList ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -795,7 +822,9 @@ parseMoney field desc = do
 offerApply ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -846,7 +875,9 @@ buildOfferApplyResp resp = do
 offerNotify ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -872,7 +903,9 @@ mkOfferNotifyReq merchantId OfferNotifyReq {..} = do
 
 autoRefund ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->
@@ -949,7 +982,9 @@ parseRetargetAndRetryData metaData linkData additionalInfo = do
 
 verifyVPA ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JuspayCfg ->
   Maybe Text ->

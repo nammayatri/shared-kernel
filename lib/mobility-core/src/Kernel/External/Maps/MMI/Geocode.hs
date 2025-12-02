@@ -48,7 +48,9 @@ mmiGeoCode ::
   ( CoreMetrics m,
     Redis.HedisFlow m r,
     MonadFlow m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   IT.GetPlaceNameReq ->
@@ -67,7 +69,7 @@ mmiGeoCode entityId req url authToken address = do
     ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiGeoCode" "MMI" entityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
-callMMIGeocodeAPI :: CallAPI env api a
+callMMIGeocodeAPI :: CallAPI m r api a
 callMMIGeocodeAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

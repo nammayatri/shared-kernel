@@ -168,7 +168,8 @@ autoComplete ::
   ( CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsInterfaceTypes.AutoCompleteReq ->
@@ -194,7 +195,8 @@ autoCompleteV2 ::
   ( CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   BaseUrl ->
@@ -212,7 +214,8 @@ getPlaceDetails ::
   ( CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsInterfaceTypes.GetPlaceDetailsReq ->
@@ -232,7 +235,8 @@ getPlaceName ::
   ( CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsInterfaceTypes.GetPlaceNameReq ->
@@ -255,7 +259,8 @@ distanceMatrix ::
     ToJSON a,
     ToJSON b,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsInterfaceTypes.GetDistancesReq a b ->
@@ -281,7 +286,8 @@ directions ::
   ( CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsInterfaceTypes.GetRoutesReq ->
@@ -305,7 +311,8 @@ transitDirectionsAPI ::
   ( CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   BaseUrl ->
@@ -332,7 +339,8 @@ advancedDirectionsAPI ::
   ( CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   BaseUrl ->

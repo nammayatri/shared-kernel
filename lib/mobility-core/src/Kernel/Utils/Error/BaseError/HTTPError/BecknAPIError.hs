@@ -50,7 +50,9 @@ callBecknAPI ::
   ( MonadFlow m,
     CoreMetrics m,
     IsBecknAPI api req res,
-    SanitizedUrl api
+    SanitizedUrl api,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe ET.ManagerSelector ->
   Maybe Text ->
@@ -64,11 +66,14 @@ callBecknAPI mbManagerSelector errorCodeMb action api baseUrl internalEndPointHa
   callBecknAPI' mbManagerSelector errorCodeMb (Just internalEndPointHashMap) baseUrl (ET.client api req) action api
 
 callBecknAPI' ::
-  MonadFlow m =>
+  ( MonadFlow m,
+    MonadReader r m,
+    HasRequestId r
+  ) =>
   Maybe ET.ManagerSelector ->
   Maybe Text ->
   Maybe (HM.HashMap BaseUrl BaseUrl) ->
-  CallAPI m api res
+  CallAPI m r api res
 callBecknAPI' mbManagerSelector errorCodeMb internalEndPointHashMap baseUrl eulerClient name api = do
   callApiUnwrappingApiError
     (becknAPIErrorToException name)
@@ -84,7 +89,7 @@ callPseudoBecknAPI ::
   Maybe ET.ManagerSelector ->
   Maybe Text ->
   HM.HashMap BaseUrl BaseUrl ->
-  CallAPI env api a
+  CallAPI m r api a
 callPseudoBecknAPI mbManagerSelector errorCodeMb internalEndPointHashMap baseUrl eulerClient name api =
   callApiUnwrappingApiError
     (becknAPIErrorToException name)

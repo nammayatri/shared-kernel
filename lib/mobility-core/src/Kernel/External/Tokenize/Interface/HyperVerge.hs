@@ -22,10 +22,13 @@ import qualified Kernel.External.Tokenize.Interface.Types as InterfaceTypes
 import Kernel.Prelude hiding (error)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Error.Throwing (fromMaybeM)
+import Kernel.Utils.Servant.Client
 
 tokenize ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeTokenizeConfig ->
   InterfaceTypes.TokenizationReq ->

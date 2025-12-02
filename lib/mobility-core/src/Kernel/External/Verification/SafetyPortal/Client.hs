@@ -27,7 +27,9 @@ import Kernel.Utils.Common hiding (Error)
 
 searchAgent ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -37,5 +39,5 @@ searchAgent url apiKey req = do
   let client = API.searchAgent (Just apiKey) req
   callSafetyPortalAPI url client "searchAgent" API.searchAgentAPI
 
-callSafetyPortalAPI :: CallAPI env api res
+callSafetyPortalAPI :: CallAPI m r api res
 callSafetyPortalAPI = callApiUnwrappingApiError (identity @SafetyPortal.SafetyPortalError) (Just $ ET.ManagerSelector $ T.pack safetyPortalHttpManagerKey) (Just "SAFETY_PORTAL_ERROR") Nothing

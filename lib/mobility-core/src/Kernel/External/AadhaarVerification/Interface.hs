@@ -25,10 +25,12 @@ import Kernel.External.AadhaarVerification.Interface.Types as Reexport
 import Kernel.External.AadhaarVerification.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.Common
+import Kernel.Utils.Servant.Client
 
 generateAadhaarOtp ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   AadhaarVerificationServiceConfig ->
   AadhaarOtpReq ->
@@ -38,7 +40,8 @@ generateAadhaarOtp serviceConfig req = case serviceConfig of
 
 verifyAadhaarOtp ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   AadhaarVerificationServiceConfig ->
   AadhaarOtpVerifyReq ->

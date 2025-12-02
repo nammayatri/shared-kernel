@@ -60,7 +60,8 @@ autoSuggest ::
     Redis.HedisFlow m r,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MMICfg ->
@@ -95,7 +96,8 @@ getDistanceMatrix ::
     ToJSON a,
     ToJSON b,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MMICfg ->
@@ -171,7 +173,8 @@ getRoutes ::
     CoreMetrics m,
     Log m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MMICfg ->
@@ -191,7 +194,8 @@ getPlaceDetails ::
     CoreMetrics m,
     Log m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MMICfg ->
@@ -245,7 +249,8 @@ snapToRoad ::
     CoreMetrics m,
     Log m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MMICfg ->
@@ -278,7 +283,8 @@ reverseGeocode ::
     CoreMetrics m,
     Log m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MMICfg ->
@@ -295,7 +301,8 @@ geocode ::
     Redis.HedisFlow m r,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MMICfg ->

@@ -37,7 +37,8 @@ import Kernel.Utils.Common
 createInvitation ::
   ( Metrics.CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r
   ) =>
   CheckrCfg ->
   CreateInvitationReqI ->

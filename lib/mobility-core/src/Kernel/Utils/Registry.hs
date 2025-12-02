@@ -37,7 +37,9 @@ import Kernel.Utils.Servant.SignatureAuth
 
 registryLookup ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   SimpleLookupRequest ->
@@ -68,7 +70,9 @@ registryLookup registryUrl request selfSubId =
 
 registryFetch ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   API.LookupRequest ->

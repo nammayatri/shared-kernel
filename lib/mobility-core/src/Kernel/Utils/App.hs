@@ -246,11 +246,10 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
       let appEnv = env.appEnv
           updLogEnv = appendLogTag requestId appEnv.loggerEnv
           updLogEnv' = updateLogLevelAndRawSql mbLogLevel updLogEnv
-      let requestId' = bool Nothing (Just requestId) appEnv.shouldLogRequestId
       newFlowRt <- L.updateLoggerContext (L.appendLogContext $ requestId <> " " <> url) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', url = Just sanitizedUrl},
+        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = Just requestId, url = Just sanitizedUrl},
             flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
            }
 

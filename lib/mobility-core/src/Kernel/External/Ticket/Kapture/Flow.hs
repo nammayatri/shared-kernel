@@ -28,7 +28,8 @@ import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
-import Kernel.Utils.Common (callAPI, fromEitherM)
+import Kernel.Utils.Common (fromEitherM)
+import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
 type KaptureCreateTicketAPI =
@@ -49,7 +50,9 @@ type KaptureUpdateTicketAPI =
 
 createTicketAPI ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -63,7 +66,9 @@ createTicketAPI url version auth req = do
 
 updateTicketAPI ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -84,7 +89,7 @@ type AddAndUpdateKaptureCustomerAPI =
     :> Post '[JSON] Kapture.KaptureCustomerResp
 
 addAndUpdateKaptureCustomer ::
-  (Metrics.CoreMetrics m, MonadFlow m) =>
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
   Kapture.KaptureCustomerReq ->
@@ -101,7 +106,7 @@ type KaptureEncryptionAPI =
     :> Get '[JSON] Kapture.KaptureEncryptionResp
 
 kaptureEncryption ::
-  (Metrics.CoreMetrics m, MonadFlow m) =>
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
   Text ->
@@ -121,7 +126,7 @@ type KapturePullTicketAPI =
     :> Post '[JSON] Kapture.KapturePullTicketResp
 
 kapturePullTicket ::
-  (Metrics.CoreMetrics m, MonadFlow m) =>
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
   Kapture.KapturePullTicketReq ->
@@ -141,7 +146,7 @@ type KaptureGetTicketAPI =
     :> Post '[JSON] [Kapture.GetTicketResp]
 
 kaptureGetTicket ::
-  (Metrics.CoreMetrics m, MonadFlow m) =>
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
   Kapture.GetTicketReq ->

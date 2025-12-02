@@ -25,10 +25,13 @@ import Kernel.External.IncidentReport.ERSS.Types as ERSS
 import qualified Kernel.External.IncidentReport.Interface.Types as Interface
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Utils.Servant.Client
 
 reportIncident ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ERSSCfg ->
   Interface.IncidentReportReq ->
@@ -53,7 +56,9 @@ reportIncident config req = do
 
 reportIncidentUpdate ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ERSSCfg ->
   Interface.IncidentReportUpdateReq ->

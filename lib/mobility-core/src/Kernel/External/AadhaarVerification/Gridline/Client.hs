@@ -27,7 +27,9 @@ import Kernel.Utils.Common hiding (Error)
 
 generateAadhaarOtp ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -41,7 +43,9 @@ generateAadhaarOtp url apiKey authType req = do
 
 verifyAadhaarOtp ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -54,7 +58,7 @@ verifyAadhaarOtp url apiKey authType transactionId req = do
   callGridlineAPI url client "verifyAadhaarOtp" API.verifyAadhaarOtpAPI
     >>= validateVerifyResponseStatus
 
-callGridlineAPI :: CallAPI env api res
+callGridlineAPI :: CallAPI m r api res
 callGridlineAPI = callApiUnwrappingApiError (identity @GridlineError) (Just $ ET.ManagerSelector $ T.pack gridlineHttpManagerKey) (Just "GRIDLINE_ERROR") Nothing
 
 validateGenerateResponseStatus :: (MonadThrow m, Log m) => Gridline.GridlineVerifyAadhaarResp -> m Gridline.GridlineVerifyAadhaarResp

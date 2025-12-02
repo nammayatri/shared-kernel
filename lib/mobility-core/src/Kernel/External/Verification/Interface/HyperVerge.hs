@@ -31,10 +31,13 @@ import qualified Kernel.Types.MonadGuid as UID
 import Kernel.Utils.Common (logError)
 import Kernel.Utils.Error.Throwing (fromMaybeM, throwError)
 import Kernel.Utils.Logging (Log)
+import Kernel.Utils.Servant.Client
 
 verifySdkResp ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeVerificationCfg ->
   InterfaceTypes.VerifySdkDataReq ->
@@ -58,7 +61,9 @@ verifySdkResp config req = do
 verifyRCAsync ::
   ( CoreMetrics m,
     EncFlow m r,
-    MonadIO m
+    MonadIO m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeRCDLVerificationConfig ->
   InterfaceTypes.VerifyRCReq ->
@@ -79,7 +84,9 @@ verifyRCAsync cfg req = do
 verifyDLAsync ::
   ( CoreMetrics m,
     EncFlow m r,
-    MonadIO m
+    MonadIO m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeRCDLVerificationConfig ->
   InterfaceTypes.VerifyDLAsyncReq ->
@@ -101,7 +108,9 @@ verifyDLAsync cfg req = do
 
 getVerificationStatus ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeRCDLVerificationConfig ->
   InterfaceTypes.GetTaskReq ->

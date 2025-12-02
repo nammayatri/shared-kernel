@@ -16,6 +16,7 @@ import Kernel.Prelude
 import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
+import Kernel.Utils.Servant.Client
 
 -- To be used in future when we add another provider
 -- mkNotProvidedError :: Text -> MultiModalService -> Text
@@ -34,7 +35,9 @@ getTransitRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
     Log m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   MultiModalServiceConfig ->
