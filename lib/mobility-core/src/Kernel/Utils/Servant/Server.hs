@@ -111,6 +111,7 @@ runServer ::
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
+    HasField "requestId" env (Maybe Text),
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
@@ -198,6 +199,7 @@ runHealthCheckServerWithService ::
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
+    HasField "requestId" env (Maybe Text),
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters
   ) =>
   env ->
@@ -223,6 +225,7 @@ runServerWithHealthCheck ::
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
+    HasField "requestId" env (Maybe Text),
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
@@ -245,6 +248,7 @@ runServerWithHealthCheckAndSlackNotification ::
     HasField "isShuttingDown" env Shutdown,
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
+    HasField "requestId" env (Maybe Text),
     HasSlackEnv env,
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,

@@ -222,14 +222,14 @@ logRequestAndResponseGeneric logInfoIO f req respF =
       logInfoIO "Request&Response" $ "Request: " <> show (toRequestInfo req) <> " || Response: " <> respLogText
       respF resp
 
-withModifiedEnv :: HasLog f => (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv :: (HasLog f, HasField "requestId" f (Maybe Text)) => (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv = withModifiedEnvFn $ \_ env requestId -> do
   let appEnv = env.appEnv
       updLogEnv = appendLogTag requestId appEnv.loggerEnv
   newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
   newOptionsLocal <- newMVar mempty
   pure $
-    env{appEnv = appEnv{loggerEnv = updLogEnv},
+    env{appEnv = appEnv{loggerEnv = updLogEnv, requestId = Just requestId},
         flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
        }
 
