@@ -40,7 +40,9 @@ type GullakLoginAPI =
 
 gullakOnboarding ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -60,7 +62,9 @@ gullakOnboarding url apiKey merchantId req = do
 
 gullakLogin ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->

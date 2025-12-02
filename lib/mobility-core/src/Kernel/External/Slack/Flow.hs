@@ -45,7 +45,9 @@ defaultBaseUrl =
 
 postMessage ::
   ( CoreMetrics m,
-    HasFlowEnv m r '["slackCfg" ::: SlackConfig]
+    HasFlowEnv m r '["slackCfg" ::: SlackConfig],
+    HasRequestId r,
+    MonadReader r m
   ) =>
   T.Text ->
   m SlackResponse
@@ -65,7 +67,7 @@ postMessage message = do
   where
     callSlack token slackRequest = ET.client slackConnectAPI (Just $ "Bearer " <> token) slackRequest
 
-callSlackAPI :: CallAPI env api a
+callSlackAPI :: CallAPI m r api a
 callSlackAPI =
   callApiUnwrappingApiError
     (identity @Error)

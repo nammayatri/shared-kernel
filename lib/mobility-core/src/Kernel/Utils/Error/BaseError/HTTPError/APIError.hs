@@ -45,7 +45,7 @@ callOwnAPI ::
   Maybe ET.ManagerSelector ->
   Maybe Text ->
   Maybe (HM.HashMap BaseUrl BaseUrl) ->
-  CallAPI env api a
+  CallAPI m r api a
 callOwnAPI = callApiUnwrappingApiError APICallError
 
 catchOwnAPI ::

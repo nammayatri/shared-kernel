@@ -43,7 +43,8 @@ callOsrmMatch ::
     Metrics.CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   OSRMCfg ->
@@ -68,7 +69,8 @@ getDistances ::
     ToJSON a,
     ToJSON b,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   OSRMCfg ->
@@ -162,7 +164,8 @@ getRoutes ::
     Metrics.CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   OSRMCfg ->
@@ -192,7 +195,9 @@ convertRouteToRouteInfo osrmRouteRoutes =
 getOSRMRoute ::
   ( HasCallStack,
     Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   OSRM.OSRMRouteResponse ->
   m GetRoutesResp

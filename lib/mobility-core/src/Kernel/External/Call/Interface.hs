@@ -30,6 +30,7 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Servant.Client
 
 mkNotProvidedError :: Text -> CallService -> Text
 mkNotProvidedError functionName serviceName = "Function " <> functionName <> " is not provided by service " <> show serviceName
@@ -41,7 +42,9 @@ throwNotProvidedError =
 initiateCall ::
   ( CoreMetrics m,
     EncFlow m r,
-    ToJSON a
+    ToJSON a,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   CallServiceConfig ->
   InitiateCallReq a ->

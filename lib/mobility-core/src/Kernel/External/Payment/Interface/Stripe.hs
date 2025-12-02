@@ -21,7 +21,9 @@ import Kernel.Utils.Common
 
 createIndividualConnectAccount ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   IndividualConnectAccountReq ->
@@ -109,7 +111,9 @@ createIndividualConnectAccount config req = do
 
 retryAccountLink ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   Stripe.AccountId ->
@@ -125,7 +129,9 @@ retryAccountLink config accountId = do
 
 getAccount ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   Stripe.AccountId ->
@@ -140,7 +146,9 @@ getAccount config accountId = do
 
 createCustomer ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   CreateCustomerReq ->
@@ -167,7 +175,9 @@ createCustomer config req = do
 
 createEphemeralKeys ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   CustomerId ->
@@ -181,7 +191,9 @@ createEphemeralKeys config customerId = do
 
 getCardList ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   CustomerId ->
@@ -206,7 +218,9 @@ getCardList config customerId = do
 
 deleteCard ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   PaymentMethodId ->
@@ -218,7 +232,9 @@ deleteCard config paymentMethodId = do
 
 createPaymentIntent ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   CreatePaymentIntentReq ->
@@ -293,7 +309,9 @@ createPaymentIntent config req = do
 
 createSetupIntent ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   CustomerId ->
@@ -321,7 +339,9 @@ createSetupIntent config customerId = do
 
 cancelPaymentIntent ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   PaymentIntentId ->
@@ -336,7 +356,9 @@ cancelPaymentIntent config paymentIntentId = do
 
 updatePaymentMethodInIntent ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   PaymentIntentId ->
@@ -350,7 +372,9 @@ updatePaymentMethodInIntent config paymentIntentId paymentMethodId = do
 
 getCard ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   PaymentMethodId ->
@@ -376,7 +400,9 @@ getCard config paymentMethodId customerId = do
 
 getPaymentIntent ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   PaymentIntentId ->
@@ -391,7 +417,9 @@ getPaymentIntent config paymentIntentId = do
 
 capturePaymentIntent ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   PaymentIntentId ->
@@ -408,7 +436,9 @@ capturePaymentIntent config paymentIntentId amount applicationFeeAmount = do
 
 updateAmountInPaymentIntent ::
   ( Metrics.CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   StripeCfg ->
   PaymentIntentId ->
@@ -451,7 +481,10 @@ centsToUsd :: Int -> HighPrecMoney
 centsToUsd cents = HighPrecMoney $ (toRational cents / 100)
 
 serviceEventWebhook ::
-  EncFlow m r =>
+  ( EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
   PaymentServiceConfig ->
   (Id Stripe.Event -> m Bool) ->
   (Events.ServiceEventResp -> Text -> m AckResponse) ->

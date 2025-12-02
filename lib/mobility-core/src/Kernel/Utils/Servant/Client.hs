@@ -15,9 +15,12 @@
 module Kernel.Utils.Servant.Client where
 
 import qualified Data.Aeson as A
+import qualified Data.CaseInsensitive as CI
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashMap.Strict as HMS
+import qualified Data.Sequence as Seq
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id, notElem)
 import qualified EulerHS.Types as ET
@@ -43,6 +46,8 @@ import qualified Network.Wai as Wai
 import Network.Wai.Application.Static (staticApp)
 import qualified Servant
 import Servant.Client.Core
+import qualified Servant.Client.Core as SCC
+import qualified Servant.Client.Free as SCF
 import qualified Text.Regex as TR
 import WaiAppStatic.Storage.Filesystem
 import WaiAppStatic.Types (StaticSettings (..))
@@ -66,14 +71,18 @@ type HasShortDurationRetryCfg r c = HasField "shortDurationRetryCfg" r RetryCfg
 
 type HasLongDurationRetryCfg r c = HasField "longDurationRetryCfg" r RetryCfg
 
+type HasRequestId r = HasField "requestId" r (Maybe Text)
+
 data RetryType = ShortDurationRetry | LongDurationRetry
 
-type CallAPI' m api res res' =
+type CallAPI' m r api res res' =
   ( HasCallStack,
     Metrics.CoreMetrics m,
     SanitizedUrl api,
     MonadFlow m,
-    ToJSON res
+    MonadReader r m,
+    ToJSON res,
+    HasRequestId r
   ) =>
   BaseUrl ->
   ET.EulerClient res ->
@@ -81,23 +90,45 @@ type CallAPI' m api res res' =
   Proxy api ->
   m res'
 
-type CallAPI m api res = CallAPI' m api res res
+type CallAPI m r api res = CallAPI' m r api res res
+
+-- | Add multiple headers to an EulerClient. Headers are added to all requests made by the client.
+-- Headers are added in addition to any headers already present in the request.
+--
+-- > let headers = [("Authorization", "Bearer token123"), ("X-Custom-Header", "value")]
+-- > clientWithHeaders <- withHeaders headers myClient
+-- > result <- callAPI' Nothing baseUrl clientWithHeaders
+withHeaders :: [(Text, Text)] -> ET.EulerClient a -> ET.EulerClient a
+withHeaders headerPairs (ET.EulerClient f) =
+  ET.EulerClient $ foldFree addHeadersToClientF f
+  where
+    addHeadersToClientF :: SCF.ClientF a -> Free SCF.ClientF a
+    addHeadersToClientF (SCF.RunRequest req next) =
+      let newHeaders = Seq.fromList $ fmap (\(name, value) -> (CI.mk $ TE.encodeUtf8 name, TE.encodeUtf8 value)) headerPairs
+          reqWithHeaders = req {SCC.requestHeaders = SCC.requestHeaders req <> newHeaders}
+       in Free $ SCF.RunRequest reqWithHeaders (\resp -> return (next resp))
+    addHeadersToClientF (SCF.Throw e) = Free $ SCF.Throw e
 
 callAPI ::
-  CallAPI' m api res (Either ClientError res)
+  CallAPI' m r api res (Either ClientError res)
 callAPI = callAPI' Nothing
 
 -- Why do we call L.callAPI' (Just "default") instead of L.callAPI' Nothing?
 callAPI' ::
   Maybe ET.ManagerSelector ->
-  CallAPI' m api res (Either ClientError res)
+  CallAPI' m r api res (Either ClientError res)
 callAPI' mbManagerSelector baseUrl eulerClient desc api =
   withLogTag "callAPI" $ do
     let managerSelector = fromMaybe defaultHttpManager mbManagerSelector
     logDebug $ "Sanitized URL is " <> buildSanitizedUrl
+    mbRequestId <- asks (.requestId)
+    let modifiedEulerClient =
+          case mbRequestId of
+            Just requestId -> withHeaders [("x-request-id", requestId)] eulerClient
+            Nothing -> eulerClient
     res <-
       measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
-        L.callAPI' (Just managerSelector) baseUrl eulerClient
+        L.callAPI' (Just managerSelector) baseUrl modifiedEulerClient
     case res of
       Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
       Left err -> logError $ "Error occured during client call: " <> show err
@@ -114,10 +145,11 @@ callAPI' mbManagerSelector baseUrl eulerClient desc api =
 
 callApiExtractingApiError ::
   ( Metrics.CoreMetrics m,
+    HasRequestId r,
     FromResponse err
   ) =>
   Maybe ET.ManagerSelector ->
-  CallAPI' m api a (Either (CallAPIError err) a)
+  CallAPI' m r api a (Either (CallAPIError err) a)
 callApiExtractingApiError mbManagerSelector baseUrl eulerClient desc api =
   callAPI' mbManagerSelector baseUrl eulerClient desc api
     <&> extractApiError
@@ -131,7 +163,7 @@ callApiUnwrappingApiError ::
   Maybe ET.ManagerSelector ->
   Maybe Text ->
   Maybe (HM.HashMap BaseUrl BaseUrl) ->
-  CallAPI m api a
+  CallAPI m r api a
 callApiUnwrappingApiError toAPIException mbManagerSelector errorCodeMb internalEndPointHashMap baseUrl eulerClient desc api = do
   newBaseUrl <-
     HM.foldrWithKey

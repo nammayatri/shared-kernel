@@ -44,7 +44,9 @@ verifySdkResp ::
   ( HasCallStack,
     EncFlow m r,
     MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeVerificationCfg ->
   HyperVergeTypes.HyperVergeSdkVerificationReq ->
@@ -92,7 +94,9 @@ verifyRCAsync ::
   ( HasCallStack,
     EncFlow m r,
     MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeRCDLVerificationConfig ->
   Text ->
@@ -137,7 +141,9 @@ verifyDLAsync ::
   ( HasCallStack,
     EncFlow m r,
     MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeRCDLVerificationConfig ->
   Text ->
@@ -181,7 +187,9 @@ getVerificationStatus ::
   ( HasCallStack,
     EncFlow m r,
     MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeRCDLVerificationConfig ->
   Text ->

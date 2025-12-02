@@ -23,7 +23,8 @@ import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
-import Kernel.Utils.Common (CallAPI', callAPI, encodeToText, fromEitherM)
+import Kernel.Utils.Common (encodeToText, fromEitherM)
+import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
 -- https://docs.juspay.in/payment-page/ios/base-sdk-integration/order-status-api
@@ -38,7 +39,9 @@ type CreateCustomerAPI =
 
 createCustomer ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -62,7 +65,9 @@ type GetCustomerAPI =
 
 getCustomer ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -86,7 +91,9 @@ type CreateOrderAPI =
 
 createOrder ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -110,7 +117,9 @@ type OrderStatusAPI =
 
 orderStatus ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -142,7 +151,9 @@ type OrderUpdateAPI =
 
 updateOrder ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -167,7 +178,9 @@ type OfferListAPI =
 
 offerList ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -191,7 +204,9 @@ type OfferApplyAPI =
 
 offerApply ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -216,7 +231,9 @@ type OfferNotifyAPI =
 
 offerNotify ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -230,7 +247,7 @@ offerNotify url apiKey merchantId mRoutingId mandateId req = do
       eulerClient = Euler.client proxy mandateId (mkBasicAuthData apiKey) (Just merchantId) mRoutingId req
   callJuspayAPI url eulerClient "offer-notify" proxy
 
-callJuspayAPI :: CallAPI' m api res res
+callJuspayAPI :: CallAPI' m r api res res
 callJuspayAPI url eulerClient description proxy = do
   callAPI url eulerClient description proxy
     >>= fromEitherM (\err -> InternalError $ "Failed to call " <> description <> " API: " <> show err)
@@ -253,7 +270,9 @@ type MandateNotificationAPI =
 
 mandateNotification ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -282,7 +301,9 @@ type NotificationStatusAPI =
 
 mandateNotificationStatus ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -310,7 +331,9 @@ type MandateExecutionAPI =
 
 mandateExecution ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -339,7 +362,9 @@ type MandateRevokeAPI =
 
 mandateRevoke ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -367,7 +392,9 @@ type MandatePauseAPI =
 
 mandatePause ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -393,7 +420,9 @@ type MandateResumeAPI =
 
 mandateResume ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -422,7 +451,9 @@ type AutoRefundAPI =
 
 autoRefund ::
   ( Metrics.CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   Text ->
@@ -452,7 +483,7 @@ type VerifyVPAAPI =
     :> Post '[JSON] VerifyVPAResp
 
 verifyVPA ::
-  (Metrics.CoreMetrics m, MonadFlow m) =>
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
   Text ->

@@ -10,10 +10,12 @@ import Kernel.External.BackgroundVerification.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Common
+import Kernel.Utils.Servant.Client
 
 createCandidate ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   BackgroundVerificationServiceConfig ->
   CreateCandidateReq ->
@@ -23,7 +25,8 @@ createCandidate serviceConfig req = case serviceConfig of
 
 createInvitation ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   BackgroundVerificationServiceConfig ->
   CreateInvitationReqI ->
@@ -33,7 +36,8 @@ createInvitation serviceConfig req = case serviceConfig of
 
 getInvitation ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   BackgroundVerificationServiceConfig ->
   Text ->
@@ -43,7 +47,8 @@ getInvitation serviceConfig invitationId = case serviceConfig of
 
 getReport ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   BackgroundVerificationServiceConfig ->
   Text ->

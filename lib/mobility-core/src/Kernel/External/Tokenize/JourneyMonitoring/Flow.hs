@@ -37,7 +37,9 @@ tokenize ::
   ( HasCallStack,
     MonadFlow m,
     CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   JourneyMonitoringTypes.JourneyMonitoringTokenizeConfig ->
   m JourneyMonitoringTypes.JourneyMonitoringTokenizeResponse

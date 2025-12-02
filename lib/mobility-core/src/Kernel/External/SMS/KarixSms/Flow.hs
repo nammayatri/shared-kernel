@@ -20,7 +20,9 @@ sendOTPApi ::
   ( CoreMetrics m,
     MonadFlow m,
     EncFlow m r,
-    B.Log m
+    B.Log m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Text -> --  SMS text
   Text -> --  Phone number

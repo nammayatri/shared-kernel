@@ -49,7 +49,9 @@ mmiReverseGeocode ::
   ( EncFlow m r,
     CoreMetrics m,
     MonadFlow m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   MMI.ReverseGeocodeReq ->
@@ -70,7 +72,7 @@ mmiReverseGeocode entityId req url apiKey LatLong {..} region lang = do
     ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiReverseGeocode" "MMI" entityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
-callMMIAPI :: CallAPI env api a
+callMMIAPI :: CallAPI m r api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

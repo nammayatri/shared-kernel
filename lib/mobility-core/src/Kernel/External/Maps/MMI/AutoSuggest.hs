@@ -50,7 +50,9 @@ mmiAutoSuggest ::
   ( CoreMetrics m,
     Redis.HedisFlow m r,
     MonadFlow m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   IT.AutoCompleteReq ->
@@ -72,7 +74,7 @@ mmiAutoSuggest entityId req url authToken query location region lang = do
     ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "autoSuggest" "MMI" entityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
-callMMIAutoSuggestAPI :: CallAPI env api a
+callMMIAutoSuggestAPI :: CallAPI m r api a
 callMMIAutoSuggestAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

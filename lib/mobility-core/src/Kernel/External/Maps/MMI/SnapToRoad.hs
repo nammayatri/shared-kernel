@@ -46,7 +46,7 @@ mmiSnapToRoadAPI = Proxy
 getSnapToRoadClient :: Text -> Text -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> ET.EulerClient MMI.SnapToRoadResp
 getSnapToRoadClient = ET.client mmiSnapToRoadAPI
 
-callMMIAPI :: CallAPI env api a
+callMMIAPI :: CallAPI m r api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)
@@ -58,7 +58,9 @@ mmiSnapToRoad ::
   ( EncFlow m r,
     CoreMetrics m,
     MonadFlow m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   IT.SnapToRoadReq ->

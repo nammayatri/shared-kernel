@@ -7,6 +7,7 @@ import Kernel.Prelude
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Utils.Servant.Client
 
 notifyPerson ::
   ( CoreMetrics m,
@@ -14,7 +15,9 @@ notifyPerson ::
     Redis.HedisFlow m r,
     ToJSON a,
     ToJSON b,
-    ToJSON c
+    ToJSON c,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   FCM.FCMConfig ->
   Interface.NotificationReq a b ->

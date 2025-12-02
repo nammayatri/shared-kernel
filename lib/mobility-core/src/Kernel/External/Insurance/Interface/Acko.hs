@@ -13,10 +13,11 @@ import Kernel.Types.Error
 import Kernel.Types.Time (getCurrentTime)
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Logging (logError)
+import Kernel.Utils.Servant.Client
 
 --import Kernel.Utils.Text (encodeToText)
 
-createInsurance :: (Metrics.CoreMetrics m, EncFlow m r) => AckoTypes.AckoInsuranceConfig -> InsuranceRequest -> m InsuranceResponse
+createInsurance :: (Metrics.CoreMetrics m, EncFlow m r, HasRequestId r, MonadReader r m) => AckoTypes.AckoInsuranceConfig -> InsuranceRequest -> m InsuranceResponse
 createInsurance config request = do
   let insuranceReq = toAckoInsuranceRequest request
   authHeader <- mkAuthHeader config
@@ -34,7 +35,9 @@ createInsurance config request = do
 mkAuthHeader ::
   ( Metrics.CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   AckoTypes.AckoInsuranceConfig ->
   m Text

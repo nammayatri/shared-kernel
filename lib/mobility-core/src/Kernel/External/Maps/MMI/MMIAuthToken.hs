@@ -51,7 +51,9 @@ mmiAuthToken ::
     CoreMetrics m,
     Redis.HedisFlow m r,
     MonadFlow m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   MMICfg ->
@@ -74,7 +76,7 @@ mmiAuthToken entityId mmiCfg = do
   where
     callMMIAuth authReq = ET.client mmiAuthAPI authReq
 
-callMMIAPI :: CallAPI env api a
+callMMIAPI :: CallAPI m r api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)
@@ -91,7 +93,9 @@ getMMIToken ::
     CoreMetrics m,
     Redis.HedisFlow m r,
     MonadFlow m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   MMICfg ->
@@ -107,7 +111,9 @@ getTokenText ::
     CoreMetrics m,
     Redis.HedisFlow m r,
     MonadFlow m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   MMICfg ->
@@ -121,7 +127,9 @@ refreshToken ::
     CoreMetrics m,
     Redis.HedisFlow m r,
     MonadFlow m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   MMICfg ->

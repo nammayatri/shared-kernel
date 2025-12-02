@@ -12,7 +12,8 @@ import Kernel.Utils.Common
 
 createInsurance ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   InsuranceConfig ->
   InsuranceRequest ->

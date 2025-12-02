@@ -17,7 +17,9 @@ notifyPerson ::
     MonadFlow m,
     EncFlow m r,
     ToJSON a,
-    ToJSON b
+    ToJSON b,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PayTM.PayTMConfig ->
   Interface.NotificationReq a b ->

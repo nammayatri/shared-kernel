@@ -54,7 +54,8 @@ getDistancesWrapper ::
     ToJSON a,
     ToJSON b,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   GetDistancesReq a b ->
@@ -81,7 +82,8 @@ getDistances ::
     ToJSON a,
     ToJSON b,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   GoogleCfg ->
@@ -139,7 +141,8 @@ getRoutes ::
     CoreMetrics m,
     Log m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   Bool ->
@@ -319,7 +322,8 @@ snapToRoad ::
     EncFlow m r,
     CoreMetrics m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   GoogleCfg ->
@@ -344,7 +348,8 @@ autoComplete ::
     CoreMetrics m,
     HasShortDurationRetryCfg r c,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   GoogleCfg ->
@@ -380,7 +385,8 @@ autoCompleteNew ::
   ( EncFlow m r,
     CoreMetrics m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   GoogleCfg ->
@@ -435,7 +441,8 @@ getPlaceDetails ::
   ( EncFlow m r,
     CoreMetrics m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   GoogleCfg ->
@@ -453,7 +460,8 @@ getPlaceName ::
   ( EncFlow m r,
     CoreMetrics m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   GoogleCfg ->

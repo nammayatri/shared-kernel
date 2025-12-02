@@ -63,7 +63,9 @@ verifyDLAPI = Proxy
 
 verifyDLAsync ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -91,7 +93,9 @@ verifyRCAPI = Proxy
 
 verifyRCAsync ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -119,7 +123,9 @@ validateImageAPI = Proxy
 
 validateImage ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -147,7 +153,9 @@ extractRCAPI = Proxy
 
 extractRCImage ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -175,7 +183,9 @@ extractDLAPI = Proxy
 
 extractDLImage ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -203,7 +213,9 @@ extractPanAPI = Proxy
 
 extractPanImage ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -231,7 +243,9 @@ extractGSTAPI = Proxy
 
 extractGSTImage ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -259,7 +273,9 @@ extractAadhaarAPI = Proxy
 
 extractAadhaarImage ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -287,7 +303,9 @@ nameCompareAPI = Proxy
 
 nameCompare ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -315,7 +333,9 @@ getTaskApi = Proxy
 
 getTask ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -337,5 +357,5 @@ getTask apiKey accountId url request_id = do
       DA.Error err -> throwError $ IdfyCallError ("Could not parse Idfy getTask resp. Reason: " <> DT.pack err <> "Resp: " <> show rsp)
       DA.Success pyload -> return pyload
 
-callIdfyAPI :: CallAPI env api res
+callIdfyAPI :: CallAPI m r api res
 callIdfyAPI = callApiUnwrappingApiError (identity @IdfyError) (Just $ T.ManagerSelector idfyHttpManagerKey) (Just "IDFY_ERROR") Nothing

@@ -52,7 +52,9 @@ import Kernel.Utils.Common
 
 verifyDLAsync ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   VerifyDLAsyncReq ->
@@ -108,7 +110,9 @@ verifyRC' serviceConfig req = case serviceConfig of
 
 validateImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   ValidateImageReq ->
@@ -122,7 +126,9 @@ validateImage serviceConfig req = case serviceConfig of
 
 validateFaceImage ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   FaceValidationReq ->
@@ -136,7 +142,9 @@ validateFaceImage serviceConfig req = case serviceConfig of
 
 extractRCImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   ExtractRCImageReq ->
@@ -150,7 +158,9 @@ extractRCImage serviceConfig req = case serviceConfig of
 
 extractDLImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   ExtractDLImageReq ->
@@ -164,7 +174,9 @@ extractDLImage serviceConfig req = case serviceConfig of
 
 extractPanImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   ExtractPanImage ->
@@ -178,7 +190,9 @@ extractPanImage serviceConfig req = case serviceConfig of
 
 extractGSTImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   ExtractGSTImage ->
@@ -192,7 +206,9 @@ extractGSTImage serviceConfig req = case serviceConfig of
 
 extractAadhaarImage ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   ExtractAadhaarImageReq ->
@@ -206,7 +222,9 @@ extractAadhaarImage serviceConfig req = case serviceConfig of
 
 nameCompare ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   NameCompareReq ->
@@ -220,7 +238,9 @@ nameCompare serviceConfig req = case serviceConfig of
 
 searchAgent ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   DriverBackgroundVerificationServiceConfig ->
   Agent ->
@@ -230,7 +250,9 @@ searchAgent serviceConfig req = case serviceConfig of
 
 verifySdkResp ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   VerifySdkDataReq ->
@@ -244,7 +266,9 @@ verifySdkResp serviceConfig req = case serviceConfig of
 
 getTask ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   GetTaskReq ->

@@ -41,7 +41,9 @@ defaultBaseUrlSms sid exoUrl =
 
 sendOTPApi ::
   ( CoreMetrics m,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ExotelURL ->
   BasicAuthData ->
@@ -68,7 +70,7 @@ sendOTPApi
     where
       callExotel auth submitSmsReq = ET.client API.exotelConnectAPI auth submitSmsReq
 
-callExotelAPI :: CallAPI env api a
+callExotelAPI :: CallAPI m r api a
 callExotelAPI =
   callApiUnwrappingApiError
     (identity @ExotelError)

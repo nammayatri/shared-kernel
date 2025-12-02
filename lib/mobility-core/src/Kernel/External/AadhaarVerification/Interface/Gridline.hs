@@ -21,10 +21,13 @@ import Kernel.External.AadhaarVerification.Interface.Types
 import Kernel.External.Encryption
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Utils.Servant.Client
 
 generateAadhaarOtp ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   GridlineCfg ->
   AadhaarOtpReq ->
@@ -49,7 +52,9 @@ generateAadhaarOtp cfg req = do
 
 verifyAadhaarOtp ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   GridlineCfg ->
   AadhaarOtpVerifyReq ->

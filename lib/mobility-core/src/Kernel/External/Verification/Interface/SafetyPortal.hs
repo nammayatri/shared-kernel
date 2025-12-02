@@ -22,10 +22,12 @@ import Kernel.External.Verification.SafetyPortal.Types as Reexport
 import qualified Kernel.External.Verification.SafetyPortal.Types as SafetyPortal
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Utils.Servant.Client
 
 searchAgent ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r
   ) =>
   SafetyPortalCfg ->
   SafetyPortal.Agent ->

@@ -10,6 +10,7 @@ import Kernel.Prelude
 import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
+import Kernel.Utils.Servant.Client
 
 formatUtcTime :: Maybe UTCTime -> Maybe String
 formatUtcTime Nothing = Nothing
@@ -19,7 +20,9 @@ getTransitRoutes ::
   ( EncFlow m r,
     CoreMetrics m,
     Log m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   GoogleCfg ->

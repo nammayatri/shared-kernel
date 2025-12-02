@@ -29,7 +29,9 @@ import Kernel.Utils.Common
 
 createOrder ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -43,7 +45,9 @@ createOrder serviceConfig mRoutingId req = case serviceConfig of
 
 orderStatus ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -55,7 +59,9 @@ orderStatus serviceConfig mRoutingId req = case serviceConfig of
 
 updateOrder ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -67,7 +73,9 @@ updateOrder serviceConfig mRoutingId req = case serviceConfig of
 
 offerList ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -79,7 +87,9 @@ offerList serviceConfig mRoutingId req = case serviceConfig of
 
 offerApply ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -91,7 +101,9 @@ offerApply serviceConfig mRoutingId req = case serviceConfig of
 
 offerNotify ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -103,7 +115,9 @@ offerNotify serviceConfig mRoutingId req = case serviceConfig of
 
 mandateRevoke ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -115,7 +129,9 @@ mandateRevoke serviceConfig mRoutingId req = case serviceConfig of
 
 mandateNotification ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -127,7 +143,9 @@ mandateNotification serviceConfig mRoutingId req = case serviceConfig of
 
 mandateNotificationStatus ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -139,7 +157,9 @@ mandateNotificationStatus serviceConfig mRoutingId req = case serviceConfig of
 
 mandateExecution ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -151,7 +171,9 @@ mandateExecution serviceConfig mRoutingId req = case serviceConfig of
 
 autoRefunds ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->
@@ -163,7 +185,9 @@ autoRefunds serviceConfig mRoutingId req = case serviceConfig of
 
 createIndividualConnectAccount ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   IndividualConnectAccountReq ->
@@ -174,7 +198,9 @@ createIndividualConnectAccount serviceConfig req = case serviceConfig of
 
 retryAccountLink ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Stripe.AccountId ->
@@ -185,7 +211,9 @@ retryAccountLink config accountId = case config of
 
 getAccount ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Stripe.AccountId ->
@@ -196,7 +224,9 @@ getAccount config accountId = case config of
 
 createCustomer ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   CreateCustomerReq ->
@@ -207,7 +237,9 @@ createCustomer config req = case config of
 
 getCustomer ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   CustomerId ->
@@ -218,7 +250,9 @@ getCustomer config customerId = case config of
 
 createEphemeralKeys ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   CustomerId ->
@@ -229,7 +263,9 @@ createEphemeralKeys config customerId = case config of
 
 deleteCard ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   PaymentMethodId ->
@@ -240,7 +276,9 @@ deleteCard config cardId = case config of
 
 getCardList ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   CustomerId ->
@@ -251,7 +289,9 @@ getCardList config customerId = case config of
 
 createPaymentIntent ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   CreatePaymentIntentReq ->
@@ -262,7 +302,9 @@ createPaymentIntent config req = case config of
 
 updatePaymentMethodInIntent ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   PaymentIntentId ->
@@ -274,7 +316,9 @@ updatePaymentMethodInIntent config paymentIntentId paymentMethodId = case config
 
 getPaymentIntent ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   PaymentIntentId ->
@@ -285,7 +329,9 @@ getPaymentIntent config paymentIntentId = case config of
 
 capturePaymentIntent ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   PaymentIntentId ->
@@ -298,7 +344,9 @@ capturePaymentIntent config paymentIntentId amount applicationFeeAmount = case c
 
 updateAmountInPaymentIntent ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   PaymentIntentId ->
@@ -311,7 +359,9 @@ updateAmountInPaymentIntent config paymentIntentId amount applicationFeeAmount =
 
 createSetupIntent ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   CustomerId ->
@@ -322,7 +372,9 @@ createSetupIntent config customerId = case config of
 
 getCard ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   PaymentMethodId ->
@@ -334,7 +386,9 @@ getCard config cardId customerId = case config of
 
 cancelPaymentIntent ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   PaymentIntentId ->
@@ -345,7 +399,9 @@ cancelPaymentIntent config paymentIntentId = case config of
 
 verifyVPA ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   PaymentServiceConfig ->
   Maybe Text ->

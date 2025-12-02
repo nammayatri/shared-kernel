@@ -38,7 +38,7 @@ import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Utils.Common
 import Servant
 
-callCheckrAPI :: CallAPI' m api res res
+callCheckrAPI :: (MonadFlow m, HasRequestId r, MonadReader r m) => CallAPI' m r api res res
 callCheckrAPI = callApiUnwrappingApiError (identity @CheckrError) Nothing (Just "CHECKR_ERROR") Nothing
 
 mkBasicAuthData :: Text -> BasicAuthData
@@ -57,7 +57,9 @@ type CreateCandidateAPI =
 createCandidate ::
   ( Metrics.CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   CheckrCfg ->
   CreateCandidateReq ->
@@ -77,7 +79,9 @@ type CreateInvitationAPI =
 createCheckrInvitation ::
   ( Metrics.CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   CheckrCfg ->
   CreateInvitationReq ->
@@ -100,7 +104,9 @@ getInvitationAPI = Proxy
 getInvitation ::
   ( Metrics.CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   CheckrCfg ->
   Text ->
@@ -120,7 +126,9 @@ type GetReportAPI =
 getReport ::
   ( Metrics.CoreMetrics m,
     MonadFlow m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   CheckrCfg ->
   Text ->

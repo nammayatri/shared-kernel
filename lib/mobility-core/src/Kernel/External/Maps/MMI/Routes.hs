@@ -51,7 +51,9 @@ mmiRoute ::
   ( EncFlow m r,
     CoreMetrics m,
     MonadFlow m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   Maybe Text ->
   IT.GetRoutesReq ->
@@ -70,7 +72,7 @@ mmiRoute entityId req url apiKey points = do
     ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiRoute" "MMI" entityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
-callMMIAPI :: CallAPI env api a
+callMMIAPI :: CallAPI m r api a
 callMMIAPI =
   callApiUnwrappingApiError
     (identity @MMIError)

@@ -24,8 +24,9 @@ import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.App (MandatoryQueryParam, MonadFlow)
 import Kernel.Types.Error (GenericError (InternalError))
-import Kernel.Utils.Common (callAPI, fork, fromEitherM, throwError)
+import Kernel.Utils.Common (fork, fromEitherM, throwError)
 import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
+import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
 type SnapToRoadResponse = SnapToRoadResponse' LatLong
@@ -64,7 +65,8 @@ snapToRoad ::
     Metrics.CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasKafkaProducer r
+    HasKafkaProducer r,
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsInterfaceTypes.SnapToRoadReq ->

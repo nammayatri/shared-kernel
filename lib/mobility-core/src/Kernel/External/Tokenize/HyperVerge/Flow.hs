@@ -36,7 +36,9 @@ tokenizeClient = client (Proxy :: Proxy HyperVergeTokenizeAPI)
 tokenize ::
   ( HasCallStack,
     MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   BaseUrl ->
   HyperVergeTypes.HyperVergeTokenizeRequest ->

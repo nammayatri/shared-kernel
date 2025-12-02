@@ -25,12 +25,16 @@ where
 import qualified Kernel.External.Ticket.Interface.Kapture as Kapture
 import Kernel.External.Ticket.Interface.Types
 import qualified Kernel.External.Ticket.Kapture.Types as KT
+import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Utils.Servant.Client
 
 createTicket ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IssueTicketServiceConfig ->
   CreateTicketReq ->
@@ -40,7 +44,9 @@ createTicket serviceConfig req = case serviceConfig of
 
 updateTicket ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IssueTicketServiceConfig ->
   UpdateTicketReq ->
@@ -50,7 +56,9 @@ updateTicket serviceConfig req = case serviceConfig of
 
 addAndUpdateKaptureCustomer ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IssueTicketServiceConfig ->
   KaptureCustomerReq ->
@@ -60,7 +68,9 @@ addAndUpdateKaptureCustomer serviceConfig req = case serviceConfig of
 
 kaptureEncryption ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IssueTicketServiceConfig ->
   KaptureEncryptionReq ->
@@ -70,7 +80,9 @@ kaptureEncryption serviceConfig req = case serviceConfig of
 
 kapturePullTicket ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IssueTicketServiceConfig ->
   KapturePullTicketReq ->
@@ -80,7 +92,9 @@ kapturePullTicket serviceConfig req = case serviceConfig of
 
 kaptureGetTicket ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IssueTicketServiceConfig ->
   GetTicketReq ->

@@ -18,13 +18,13 @@ type CreateInsuranceAPI =
     :> ReqBody '[JSON] AckoInsuranceRequest
     :> Post '[JSON] [AckoInsuranceResponse]
 
-createInsurance :: (Metrics.CoreMetrics m, EncFlow m r) => BaseUrl -> Text -> AckoInsuranceRequest -> m [AckoInsuranceResponse]
+createInsurance :: (Metrics.CoreMetrics m, EncFlow m r, HasRequestId r, MonadReader r m) => BaseUrl -> Text -> AckoInsuranceRequest -> m [AckoInsuranceResponse]
 createInsurance url authHeader request = do
   let proxy = Proxy @CreateInsuranceAPI
       eulerClient = Euler.client proxy request.partner_id (Just authHeader) (Just "application/json") request
   callAckoAPI url eulerClient "create-insurance" proxy
 
-callAckoAPI :: CallAPI' m api res res
+callAckoAPI :: (MonadFlow m, HasRequestId r, MonadReader r m) => CallAPI' m r api res res
 callAckoAPI url eulerClient description proxy = do
   callAPI url eulerClient description proxy
     >>= fromEitherM (\err -> InternalError $ "Failed to call " <> description <> " API: " <> show err)

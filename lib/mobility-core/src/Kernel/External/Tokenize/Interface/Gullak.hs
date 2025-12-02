@@ -20,10 +20,13 @@ import qualified Kernel.External.Tokenize.Gullak.Types as GullakTypes
 import qualified Kernel.External.Tokenize.Interface.Types as InterfaceTypes
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Utils.Servant.Client
 
 gullakLogin ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   GullakTypes.GullakConfig ->
   InterfaceTypes.LoginReq ->
@@ -37,7 +40,9 @@ gullakLogin config req = do
 
 gullakOnboarding ::
   ( CoreMetrics m,
-    EncFlow m r
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   GullakTypes.GullakConfig ->
   InterfaceTypes.OnboardingReq ->

@@ -170,7 +170,9 @@ notifyPerson ::
   ( CoreMetrics m,
     ToJSON a,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   FCMConfig ->
   m () ->
@@ -184,7 +186,9 @@ notifyPersonWithPriority ::
     ToJSON a,
     ToJSON b,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   FCMConfig ->
   Maybe FCMAndroidMessagePriority ->
@@ -216,7 +220,9 @@ sendMessage ::
     ToJSON a,
     ToJSON b,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   FCMConfig ->
   FCMRequest a b ->
@@ -262,7 +268,7 @@ sendMessage config fcmMsg action toWhom = fork desc $ do
 
 -- | try to get FCM text token
 getTokenText ::
-  (Redis.HedisFlow m r, MonadFlow m) =>
+  (Redis.HedisFlow m r, MonadFlow m, HasRequestId r, MonadReader r m) =>
   FCMConfig ->
   m (Either Text Text)
 getTokenText config = do
@@ -276,7 +282,7 @@ redisFcmKey = "mobility:fcm_token"
 
 -- | Get token (refresh token if expired / invalid)
 getToken ::
-  (Redis.HedisFlow m r, MonadFlow m) =>
+  (Redis.HedisFlow m r, MonadFlow m, HasRequestId r, MonadReader r m) =>
   FCMConfig ->
   m (Either String JWT.JWToken)
 getToken config = do
@@ -303,10 +309,10 @@ parseFCMAccount fcmServiceAccount = do
     Right bs -> Aeson.eitherDecode bs
     _ -> Left "FCM JSON file is not set in configs"
 
-getNewToken :: (Redis.HedisFlow m r, MonadFlow m) => FCMConfig -> m (Either String JWT.JWToken)
+getNewToken :: (Redis.HedisFlow m r, MonadFlow m, HasRequestId r, MonadReader r m) => FCMConfig -> m (Either String JWT.JWToken)
 getNewToken config = either (pure . Left) (refreshToken config) $ parseFCMAccount config.fcmServiceAccount
 
-refreshToken :: (Redis.HedisFlow m r, MonadFlow m) => FCMConfig -> JWT.ServiceAccount -> m (Either String JWT.JWToken)
+refreshToken :: (Redis.HedisFlow m r, MonadFlow m, HasRequestId r, MonadReader r m) => FCMConfig -> JWT.ServiceAccount -> m (Either String JWT.JWToken)
 refreshToken config fcmAcc = do
   logTagInfo fcmTag "Refreshing token"
   refreshRes <- liftIO $ JWT.doRefreshToken fcmAcc
@@ -324,7 +330,9 @@ refreshToken config fcmAcc = do
 updateLiveActivity ::
   ( CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   FCMConfig ->
   FCMNotificationRecipient ->
@@ -345,7 +353,9 @@ updateLiveActivity config recipient apnsReq = do
 sendLiveActivityApns ::
   ( CoreMetrics m,
     Redis.HedisFlow m r,
-    MonadFlow m
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   FCMConfig ->
   ApnsAPIRequest ->

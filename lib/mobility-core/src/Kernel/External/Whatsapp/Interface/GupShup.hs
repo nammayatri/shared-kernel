@@ -36,7 +36,9 @@ whatsAppOptApi ::
   ( CoreMetrics m,
     MonadFlow m,
     EncFlow m r,
-    Log m
+    Log m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   GupShupCfg ->
   IT.OptApiReq ->
@@ -51,7 +53,9 @@ whatsAppOTPApi ::
   ( CoreMetrics m,
     MonadFlow m,
     EncFlow m r,
-    Log m
+    Log m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   GupShupCfg ->
   IT.SendOtpApiReq ->
@@ -66,7 +70,9 @@ whatsAppSendMessageWithTemplateIdAPI ::
   ( CoreMetrics m,
     MonadFlow m,
     EncFlow m r,
-    Log m
+    Log m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   GupShupCfg ->
   IT.SendWhatsAppMessageWithTemplateIdApIReq ->
