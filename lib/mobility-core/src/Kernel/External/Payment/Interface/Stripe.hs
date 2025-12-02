@@ -30,6 +30,7 @@ createIndividualConnectAccount config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
   let accountReq = mkAccountReq
+  logDebug $ "createIndividualConnectAccount: " <> encodeToText accountReq
   accountResp <- Stripe.createAccount url apiKey accountReq
   let accountId = accountResp.id
   let chargesEnabled = accountResp.charges_enabled
