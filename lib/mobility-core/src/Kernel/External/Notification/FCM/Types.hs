@@ -42,14 +42,6 @@ import Kernel.Utils.JSON
 import Kernel.Utils.TH
 import Kernel.Utils.Text (decodeFromText, encodeToText)
 
-data FCMConfig = FCMConfig
-  { fcmUrl :: BaseUrl,
-    fcmServiceAccount :: Text,
-    fcmTokenKeyPrefix :: Text
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (PrettyShow, FromJSON, ToJSON)
-
 data FCMNotificationRecipient = FCMNotificationRecipient
   { id :: Text,
     token :: Maybe FCMRecipientToken
@@ -217,6 +209,22 @@ data FCMNotificationType
   deriving (PrettyShow) via Showable FCMNotificationType
 
 $(mkBeamInstancesForEnum ''FCMNotificationType)
+
+data FCMNotificationObj = FCMNotificationObj
+  { fcmNotificationSound :: Text,
+    fcmNotificationType :: FCMNotificationType
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (PrettyShow, FromJSON, ToJSON)
+
+data FCMConfig = FCMConfig
+  { fcmUrl :: BaseUrl,
+    fcmServiceAccount :: Text,
+    fcmTokenKeyPrefix :: Text,
+    fcmNotificationObj :: Maybe FCMNotificationObj
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (PrettyShow, FromJSON, ToJSON)
 
 -- | Entity types types
 data FCMEntityType = SearchRequest | Product | Merchant | Person | PaymentOrder | EditLocation
