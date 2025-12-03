@@ -484,6 +484,33 @@ withWaitOnLockRedisWithExpiry' recursionTimedOutKey key timeout func = do
         Nothing -> do
           tryLockRedis key timeout
 
+-- Just Like withWaitOnLockRedisWithExpiry, but returns True if the function was executed, False otherwise
+withWaitOnLockRedisWithExpiryAndExecution :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> ExpirationTime -> m () -> m Bool
+withWaitOnLockRedisWithExpiryAndExecution key timeout recursionTimeOut func = do
+  uuid <- T.pack <$> liftIO (RS.randomString (RS.onlyAlphaNum RS.randomASCII) 10)
+  let keyE = "recursion timeout for:" <> uuid
+  setExp keyE True recursionTimeOut
+  withMasterRedis $ withWaitOnLockRedisWithExpiryAndExecution' keyE key timeout func
+
+withWaitOnLockRedisWithExpiryAndExecution' :: (HedisFlow m env, TryException m, MonadMask m) => Text -> Text -> ExpirationTime -> m () -> m Bool
+withWaitOnLockRedisWithExpiryAndExecution' recursionTimedOutKey key timeout func = do
+  toExecute <- getLock recursionTimedOutKey
+  when toExecute $ do
+    finally func $ do
+      unlockRedis key
+      del recursionTimedOutKey
+  pure toExecute
+  where
+    getLock recurrsionTimedOutKey' = do
+      get recurrsionTimedOutKey' >>= \case
+        Just a -> do
+          lockAvailable <- tryLockRedis key timeout
+          if not lockAvailable && a
+            then getLock recurrsionTimedOutKey'
+            else return True
+        Nothing -> do
+          tryLockRedis key timeout
+
 buildLockResourceName :: (IsString a) => Text -> a
 buildLockResourceName key = fromString $ "mobility:locker:" <> Text.unpack key
 
