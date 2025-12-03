@@ -9,7 +9,7 @@ import Kernel.Prelude
 import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Utils.IOLogging (LoggerEnv)
 
-type HasARTFlow r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools))
+type HasARTFlow r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "sessionId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools))
 
 data RequestInfo' = RequestInfo'
   { requestMethod :: Text,

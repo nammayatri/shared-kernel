@@ -45,7 +45,7 @@ runLoggerIO logEnv (LoggerIO rdr) = runReaderT rdr logEnv
 
 logFunc :: ToLogStr msg => LoggerEnv -> BLogging.LogLevel -> msg -> IO ()
 logFunc logEnv logLevel msg =
-  logOutputIO logEnv logLevel . decodeUtf8 . fromLogStr $ toLogStr msg
+  logOutputIO logEnv logLevel (decodeUtf8 . fromLogStr $ toLogStr msg) Nothing Nothing
 
 logLevelCMtoB :: CMLogger.LogLevel -> BLogging.LogLevel
 logLevelCMtoB cmLogLevel = case cmLogLevel of

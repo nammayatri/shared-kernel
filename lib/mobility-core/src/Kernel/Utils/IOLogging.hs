@@ -38,7 +38,7 @@ import Kernel.Types.Logging
 import Kernel.Types.Time
 import System.Log.FastLogger
 
-type HasLog r = HasField "loggerEnv" r LoggerEnv
+type HasLog r = (HasField "loggerEnv" r LoggerEnv, HasField "requestId" r (Maybe Text), HasField "sessionId" r (Maybe Text))
 
 data Logger = Logger
   { printLogFunc :: FastLogger,
@@ -86,16 +86,18 @@ releaseLoggerEnv LoggerEnv {..} = do
   whenJust fileLogger $ \logger -> logger.cleanUpFunc
   whenJust consoleLogger $ \logger -> logger.cleanUpFunc
 
-logOutputImplementation :: (HasLog r, MonadReader r m, MonadIO m, MonadTime m) => LogLevel -> Text -> m ()
+logOutputImplementation :: (HasLog r, MonadReader r m, MonadIO m, MonadTime m, HasField "requestId" r (Maybe Text), HasField "sessionId" r (Maybe Text)) => LogLevel -> Text -> m ()
 logOutputImplementation logLevel message = do
   logEnv <- asks (.loggerEnv)
-  logOutputIO logEnv logLevel message
+  requestId <- asks (.requestId)
+  sessionId <- asks (.sessionId)
+  logOutputIO logEnv logLevel message requestId sessionId
 
-logOutputIO :: (MonadIO m, MonadTime m) => LoggerEnv -> LogLevel -> Text -> m ()
-logOutputIO logEnv logLevel message = do
+logOutputIO :: (MonadIO m, MonadTime m) => LoggerEnv -> LogLevel -> Text -> Maybe Text -> Maybe Text -> m ()
+logOutputIO logEnv logLevel message requestId sessionId = do
   when (logLevel >= logEnv.level) $ do
     now <- getCurrentTime
-    let formattedMessage = logFormatterText now logEnv.hostName logLevel logEnv.tags message
+    let formattedMessage = logFormatterText now logEnv.hostName logLevel logEnv.tags message requestId sessionId
     whenJust logEnv.fileLogger $ \logger ->
       liftIO . logger.printLogFunc $ toLogStr (A.encode formattedMessage <> "\n")
     whenJust logEnv.consoleLogger $ \logger ->
@@ -127,8 +129,8 @@ updateLogLevelAndRawSql mbNewLogLevel logEnv =
 formatTags :: [Text] -> Text
 formatTags tag = "[" <> T.intercalate ", " (reverse tag) <> "]"
 
-logFormatterText :: Time.UTCTime -> Maybe Text -> LogLevel -> [Text] -> Text -> A.Value
-logFormatterText timestamp hostname lvl tags msg = res
+logFormatterText :: Time.UTCTime -> Maybe Text -> LogLevel -> [Text] -> Text -> Maybe Text -> Maybe Text -> A.Value
+logFormatterText timestamp hostname lvl tags msg requestId sessionId = res
   where
     tag = if null tags then "" else formatTags tags
     log =
@@ -141,4 +143,9 @@ logFormatterText timestamp hostname lvl tags msg = res
         <> tag
         <> " |> "
         <> msg
-    res = A.Object $ AKM.insert "log" (A.String log) AKM.empty
+    res =
+      A.Object
+        . AKM.insert "timestamp" (A.String $ show timestamp)
+        . maybe (\a -> a) (AKM.insert "requestId" . A.String) requestId
+        . maybe (\a -> a) (AKM.insert "sessionId" . A.String) sessionId
+        $ AKM.insert "log" (A.String log) AKM.empty

@@ -222,10 +222,10 @@ logRequestAndResponseGeneric logInfoIO f req respF =
       logInfoIO "Request&Response" $ "Request: " <> show (toRequestInfo req) <> " || Response: " <> respLogText
       respF resp
 
-withModifiedEnv :: (HasLog f, HasField "requestId" f (Maybe Text)) => (EnvR f -> Application) -> EnvR f -> Application
-withModifiedEnv = withModifiedEnvFn $ \_ env requestId -> do
+withModifiedEnv :: HasLog f => (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv = withModifiedEnvFn $ \_ env requestId sessionId -> do
   let appEnv = env.appEnv
-      updLogEnv = appendLogTag requestId appEnv.loggerEnv
+      updLogEnv = appendLogTag requestId $ appendLogTag sessionId appEnv.loggerEnv
   newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
   newOptionsLocal <- newMVar mempty
   pure $
@@ -234,55 +234,59 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId -> do
        }
 
 withModifiedEnv' :: (HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => (EnvR f -> Application) -> EnvR f -> Application
-withModifiedEnv' = withModifiedEnvFn $ \req env requestId -> do
+withModifiedEnv' = withModifiedEnvFn $ \req env requestId sessionId -> do
   let url = cs $ Wai.rawPathInfo req
       sanitizedUrl = removeUUIDs url
   mbDynamicLogLevelConfig <- runFlowR env.flowRuntime env.appEnv $ getDynamicLogLevelConfig
-  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId url (removeNumerics sanitizedUrl)
+  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId sessionId url (removeNumerics sanitizedUrl)
   where
     removeUUIDs path = T.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ T.unpack path
     removeNumerics path = T.pack $ TR.subRegex (TR.mkRegex "/[0-9]+") (T.unpack path) "/:numeric"
-    modifyEnvR env mbLogLevel requestId url sanitizedUrl = do
+    modifyEnvR env mbLogLevel requestId sessionId url sanitizedUrl = do
       let appEnv = env.appEnv
-          updLogEnv = appendLogTag requestId appEnv.loggerEnv
-          updLogEnv' = updateLogLevelAndRawSql mbLogLevel updLogEnv
+          updLogEnv' = updateLogLevelAndRawSql mbLogLevel appEnv.loggerEnv
+      let requestId' = bool Nothing (Just requestId) appEnv.shouldLogRequestId
+          sessionId' = bool Nothing (Just sessionId) appEnv.shouldLogRequestId
       newFlowRt <- L.updateLoggerContext (L.appendLogContext $ requestId <> " " <> url) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = Just requestId, url = Just sanitizedUrl},
+        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', sessionId = sessionId', url = Just sanitizedUrl},
             flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
            }
 
-withModifiedEnvFn :: HasLog f => (Wai.Request -> EnvR f -> Text -> IO (EnvR f)) -> (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnvFn :: HasLog f => (Wai.Request -> EnvR f -> Text -> Text -> IO (EnvR f)) -> (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnvFn modifierFn f env = \req resp -> do
-  requestId <- getRequestId $ Wai.requestHeaders req
-  modifiedEnv <- modifierFn req env requestId
+  (requestId, sessionId) <- getSessionInfo $ Wai.requestHeaders req
+  modifiedEnv <- modifierFn req env requestId sessionId
   let app = f modifiedEnv
   app req resp
   where
-    getRequestId headers = do
-      let value = lookup "x-request-id" headers
-      case value of
-        Just val -> pure ("requestId-" <> decodeUtf8 val)
-        Nothing -> pure "randomRequestId-" <> show <$> nextRandom
+    getSessionInfo headers = do
+      let requestId = lookup "x-request-id" headers
+      let sessionId = lookup "session_id" headers
+      case (requestId, sessionId) of
+        (Just val, Just sVal) -> pure ("requestId-" <> decodeUtf8 val, "sessionId-" <> decodeUtf8 sVal)
+        (Just val, Nothing) -> pure ("requestId-" <> decodeUtf8 val, "")
+        (Nothing, Just sVal) -> (,"sessionId-" <> decodeUtf8 sVal) <$> (pure "randomRequestId-" <> show <$> nextRandom)
+        (Nothing, Nothing) -> (,"") <$> (pure "randomRequestId-" <> show <$> nextRandom)
 
 withModifiedEnvGeneric :: HasLog env => (env -> Application) -> env -> Application
 withModifiedEnvGeneric f env = \req resp -> do
-  requestId <- getRequestId $ Wai.requestHeaders req
-  let modifiedEnv = modifyEnv requestId
+  (requestId, sessionId) <- getSessionInfo $ Wai.requestHeaders req
+  let modifiedEnv = modifyEnv requestId sessionId
   let app = f modifiedEnv
   app req resp
   where
-    modifyEnv requestId = do
-      let appEnv = env
-          updLogEnv = appendLogTag requestId appEnv.loggerEnv
-      env{loggerEnv = updLogEnv
-         }
-    getRequestId headers = do
-      let value = lookup "x-request-id" headers
-      case value of
-        Just val -> pure ("requestId-" <> decodeUtf8 val)
-        Nothing -> pure "randomRequestId-" <> show <$> nextRandom
+    modifyEnv requestId sessionId =
+      env{requestId = Just requestId, sessionId = Just sessionId}
+    getSessionInfo headers = do
+      let requestId = lookup "x-request-id" headers
+      let sessionId = lookup "session_id" headers
+      case (requestId, sessionId) of
+        (Just val, Just sVal) -> pure ("requestId-" <> decodeUtf8 val, "sessionId-" <> decodeUtf8 sVal)
+        (Just val, Nothing) -> pure ("requestId-" <> decodeUtf8 val, "")
+        (Nothing, Just sVal) -> (,"sessionId-" <> decodeUtf8 sVal) <$> (pure "randomRequestId-" <> show <$> nextRandom)
+        (Nothing, Nothing) -> (,"") <$> (pure "randomRequestId-" <> show <$> nextRandom)
 
 getPodName :: IO (Maybe Text)
 getPodName = fmap T.pack <$> lookupEnv "POD_NAME"

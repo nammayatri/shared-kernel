@@ -76,7 +76,7 @@ instance MonadTime (MockM e) where
 instance MonadClock (MockM e) where
   getClockTime = liftIO getClockTime
 
-instance (HasLog e) => Log (MockM e) where
+instance (HasLog e, HasField "requestId" e (Maybe Text), HasField "sessionId" e (Maybe Text)) => Log (MockM e) where
   logOutput = logOutputImplementation
   withLogTag = withLogTagImplementation
 

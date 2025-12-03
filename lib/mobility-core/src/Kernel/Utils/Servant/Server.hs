@@ -112,6 +112,7 @@ runServer ::
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
     HasField "requestId" env (Maybe Text),
+    HasField "sessionId" env (Maybe Text),
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
@@ -154,6 +155,8 @@ runServerGeneric ::
     HasField "isShuttingDown" env Shutdown,
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
+    HasField "requestId" env (Maybe Text),
+    HasField "sessionId" env (Maybe Text),
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
@@ -179,7 +182,7 @@ runServerGeneric appEnv serverAPI serverHandler waiMiddleware waiSettings servan
           & setPort port
           & waiSettings
   let server = withModifiedEnvGeneric $ \modifiedEnv ->
-        let loggerFunc = \tag info -> logOutputIO (appendLogTag tag $ modifiedEnv.loggerEnv) INFO info
+        let loggerFunc = \tag info -> logOutputIO (appendLogTag tag $ modifiedEnv.loggerEnv) INFO info modifiedEnv.requestId modifiedEnv.sessionId
          in runGeneric serverAPI serverHandler servantCtx modifiedEnv runMonad
               & logRequestAndResponseGeneric loggerFunc
               & Metrics.addServantInfo appEnv.version serverAPI
@@ -197,6 +200,8 @@ runHealthCheckServerWithService ::
     HasField "isShuttingDown" env Shutdown,
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
+    HasField "requestId" env (Maybe Text),
+    HasField "sessionId" env (Maybe Text),
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
     HasField "requestId" env (Maybe Text),
@@ -224,6 +229,8 @@ runServerWithHealthCheck ::
     HasField "loggerConfig" env L.LoggerConfig,
     HasField "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
+    HasField "requestId" env (Maybe Text),
+    HasField "sessionId" env (Maybe Text),
     HasField "version" env Metrics.DeploymentVersion,
     HasField "requestId" env (Maybe Text),
     Metrics.SanitizedUrl api,
@@ -250,6 +257,8 @@ runServerWithHealthCheckAndSlackNotification ::
     HasField "loggerEnv" env LoggerEnv,
     HasField "requestId" env (Maybe Text),
     HasSlackEnv env,
+    HasField "requestId" env (Maybe Text),
+    HasField "sessionId" env (Maybe Text),
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
