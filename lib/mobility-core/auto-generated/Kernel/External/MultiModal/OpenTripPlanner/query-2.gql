@@ -11,7 +11,7 @@ query MultiModePlan(
   $busItineraries: Int!
   $bestTransportModes: [TransportMode]!,
   $bestItineraries: Int!
-  $walkSpeed: Float!
+  $walkSpeed: Float
 ) {
   metro: plan(
     from: $from,
