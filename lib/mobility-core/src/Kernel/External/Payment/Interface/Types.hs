@@ -480,7 +480,8 @@ data OfferResp = OfferResp
     offerDescription :: OfferDescription,
     orderAmount :: HighPrecMoney,
     finalOrderAmount :: HighPrecMoney,
-    discountAmount :: HighPrecMoney
+    discountAmount :: HighPrecMoney,
+    offerCode :: Text
   }
   deriving (Generic, Show, FromJSON, ToJSON)
   deriving anyclass (ToSchema)
