@@ -162,7 +162,18 @@ data PriceAPIEntity = PriceAPIEntity
     currency :: Currency
   }
   deriving stock (Generic, Show, Read, Eq, Ord)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
+  deriving anyclass (FromJSON, ToSchema)
+
+instance ToJSON PriceAPIEntity where
+  toJSON PriceAPIEntity {..} =
+    Data.Aeson.object
+      [ "amount" .= roundAmountByCurrency currency amount,
+        "currency" .= currency
+      ]
+
+roundAmountByCurrency :: Currency -> HighPrecMoney -> HighPrecMoney
+roundAmountByCurrency EUR amount = roundHighPrecMoney @HighPrecMoney (getAccuracy EUR) amount
+roundAmountByCurrency _ amount = amount -- for backward compatibility
 
 mkPriceAPIEntity :: Price -> PriceAPIEntity
 mkPriceAPIEntity Price {..} = PriceAPIEntity {..}
@@ -231,7 +242,7 @@ toHighPrecMoney = HighPrecMoney . toRational
 showPriceWithRounding :: Price -> Text
 showPriceWithRounding price = case getAccuracy price.currency of
   0 -> KP.show @Text @Integer (round price.amount) <> " " <> KP.show price.currency
-  accuracy -> KP.show @Text @Double (fromIntegral (round (price.amount.getHighPrecMoney * 10 ^ accuracy) :: Integer) / 10 ^ accuracy) <> " " <> KP.show price.currency
+  accuracy -> KP.show @Text @Double (roundHighPrecMoney @Double accuracy price.amount) <> " " <> KP.show price.currency
 
 getAccuracy :: Currency -> Int
 getAccuracy INR = 0
@@ -241,4 +252,8 @@ getAccuracy EUR = 2
 showPriceWithRoundingWithoutCurrency :: Price -> Text
 showPriceWithRoundingWithoutCurrency price = case getAccuracy price.currency of
   0 -> KP.show @Text @Integer (round price.amount)
-  accuracy -> KP.show @Text @Double (fromIntegral (round (price.amount.getHighPrecMoney * 10 ^ accuracy) :: Integer) / 10 ^ accuracy)
+  accuracy -> KP.show @Text @Double (roundHighPrecMoney @Double accuracy price.amount)
+
+roundHighPrecMoney :: forall a. Fractional a => Int -> HighPrecMoney -> a
+roundHighPrecMoney accuracy amount =
+  fromIntegral @Integer @a (round (amount.getHighPrecMoney * 10 ^ accuracy) :: Integer) / 10 ^ accuracy
