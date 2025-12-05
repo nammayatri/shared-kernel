@@ -20,7 +20,7 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data PaymentService = AAJuspay | Juspay | Stripe
+data PaymentService = AAJuspay | Juspay | Stripe | StripeTest
   deriving (Show, Read, Eq, Ord, Generic)
 
 $(mkBeamInstancesForEnumAndList ''PaymentService)
