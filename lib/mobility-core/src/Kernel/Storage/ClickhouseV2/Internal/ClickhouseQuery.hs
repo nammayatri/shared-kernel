@@ -166,6 +166,9 @@ instance ClickhouseTable t => ClickhouseQuery (T14 (Column a t) v1 v2 v3 v4 v5 v
 instance ClickhouseTable t => ClickhouseQuery (T15 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15) where
   toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8, toClickhouseQuery c9, toClickhouseQuery c10, toClickhouseQuery c11, toClickhouseQuery c12, toClickhouseQuery c13, toClickhouseQuery c14, toClickhouseQuery c15]
 
+instance ClickhouseTable t => ClickhouseQuery (T16 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16) where
+  toClickhouseQuery (c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16) = intercalate ", " [toClickhouseQuery c1, toClickhouseQuery c2, toClickhouseQuery c3, toClickhouseQuery c4, toClickhouseQuery c5, toClickhouseQuery c6, toClickhouseQuery c7, toClickhouseQuery c8, toClickhouseQuery c9, toClickhouseQuery c10, toClickhouseQuery c11, toClickhouseQuery c12, toClickhouseQuery c13, toClickhouseQuery c14, toClickhouseQuery c15, toClickhouseQuery c16]
+
 instance ClickhouseTable t => ClickhouseQuery (AvailableAllColumns db t) where
   toClickhouseQuery _ = do
     let tableName = dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)
