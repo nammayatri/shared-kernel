@@ -244,7 +244,8 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId sessionId -> do
     removeNumerics path = T.pack $ TR.subRegex (TR.mkRegex "/[0-9]+") (T.unpack path) "/:numeric"
     modifyEnvR env mbLogLevel requestId sessionId url sanitizedUrl = do
       let appEnv = env.appEnv
-          updLogEnv' = updateLogLevelAndRawSql mbLogLevel appEnv.loggerEnv
+          updLogEnv = appendLogTag sessionId $ appendLogTag requestId appEnv.loggerEnv
+          updLogEnv' = updateLogLevelAndRawSql mbLogLevel updLogEnv
       let requestId' = bool Nothing (Just requestId) appEnv.shouldLogRequestId
           sessionId' = bool Nothing (Just sessionId) appEnv.shouldLogRequestId
       newFlowRt <- L.updateLoggerContext (L.appendLogContext $ requestId <> " " <> url) $ flowRuntime env
@@ -277,8 +278,9 @@ withModifiedEnvGeneric f env = \req resp -> do
   let app = f modifiedEnv
   app req resp
   where
-    modifyEnv requestId sessionId =
-      env{requestId = Just requestId, sessionId = Just sessionId}
+    modifyEnv requestId sessionId = do
+      let updLogEnv = appendLogTag requestId $ appendLogTag sessionId env.loggerEnv
+      env{loggerEnv = updLogEnv, requestId = Just requestId, sessionId = Just sessionId}
     getSessionInfo headers = do
       let requestId = lookup "x-request-id" headers
       let sessionId = lookup "session_id" headers
