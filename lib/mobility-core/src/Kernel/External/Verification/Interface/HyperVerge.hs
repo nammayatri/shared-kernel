@@ -166,7 +166,7 @@ getVerificationStatus cfg rqst@InterfaceTypes.GetTaskReq {..} updateResp = do
                   dateOfIssue = reverseDateFormat <$> issue_date,
                   ..
                 }
-        _ -> if (result <&> ((.statusCode) &&& (.status)) . (.apiOutput)) == Just ("422", "failure") then makeInvalidRCDLResp else throwError $ HVError ("Failed to parse getTask response data of Hyperverge properly. Resp : " <> show statRsp)
+        _ -> if (result <&> ((.statusCode) &&& (.status)) . (.apiOutput)) == Just (422, "failure") then makeInvalidRCDLResp else throwError $ HVError ("Failed to parse getTask response data of Hyperverge properly. Resp : " <> show statRsp)
 
     formatValidityTimeFormat :: Maybe Text -> Maybe Text
     formatValidityTimeFormat = (reverseDateFormat <$>) . (\val -> bool val Nothing (val == Just ""))
