@@ -449,6 +449,7 @@ library
       Kernel.Utils.Forkable
       Kernel.Utils.GenericPretty
       Kernel.Utils.Geometry
+      Kernel.Utils.InternalAPICallLogging
       Kernel.Utils.IOLogging
       Kernel.Utils.JSON
       Kernel.Utils.JWT
