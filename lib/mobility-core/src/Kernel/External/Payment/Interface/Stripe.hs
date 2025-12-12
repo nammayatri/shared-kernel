@@ -1,4 +1,8 @@
-module Kernel.External.Payment.Interface.Stripe where
+module Kernel.External.Payment.Interface.Stripe
+  ( module Kernel.External.Payment.Interface.Stripe,
+    module Reexport,
+  )
+where
 
 import Control.Applicative ((<|>))
 import Data.Time

@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -20,19 +21,9 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data PaymentService = AAJuspay | Juspay | Stripe
-  deriving (Show, Read, Eq, Ord, Generic)
+data PaymentService = AAJuspay | Juspay | Stripe | StripeTest
+  deriving stock (Show, Read, Eq, Ord, Generic)
+  deriving anyclass (ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnumAndList ''PaymentService)
 derivePersistField "PaymentService"
-
--- Generic instances for type with single value will not work
-instance FromJSON PaymentService where
-  parseJSON (String "Juspay") = pure Juspay
-  parseJSON (String "AAJuspay") = pure AAJuspay
-  parseJSON (String "Stripe") = pure Stripe
-  parseJSON (String _) = parseFail "Expected \"Juspay\""
-  parseJSON e = typeMismatch "String" e
-
-instance ToJSON PaymentService where
-  toJSON = String . show
