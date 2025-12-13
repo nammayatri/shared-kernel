@@ -14,13 +14,11 @@ import Kernel.External.SMS.PinbixSms.Types
 import Kernel.External.SMS.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
-import Kernel.Utils.Servant.Client
 
 sendOTP ::
   ( CoreMetrics m,
     MonadFlow m,
     EncFlow m r,
-    HasRequestId r,
     MonadReader r m,
     Log m
   ) =>
