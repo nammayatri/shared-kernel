@@ -18,7 +18,6 @@ import Servant.Client
 sendOTPApi ::
   ( CoreMetrics m,
     MonadFlow m,
-    HasRequestId r,
     MonadReader r m,
     B.Log m
   ) =>
