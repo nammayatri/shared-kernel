@@ -9,7 +9,7 @@ import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 import Kernel.Utils.JSON
 import Web.FormUrlEncoded
-import Web.HttpApiData (ToHttpApiData (..))
+import Web.HttpApiData (FromHttpApiData, ToHttpApiData (..))
 
 -- Only one of `charge` and `payment_intent` is mandatory
 data RefundReq = RefundReq
@@ -41,7 +41,7 @@ instance ToForm RefundReq where
 
 newtype RefundId = RefundId {getRefundId :: Text}
   deriving stock (Generic, Show, Eq)
-  deriving newtype (FromJSON, ToJSON, ToSchema) --, FromHttpApiData, ToHttpApiData)
+  deriving newtype (FromJSON, ToJSON, ToSchema, FromHttpApiData, ToHttpApiData)
 
 data RefundObject = RefundObject
   { id :: RefundId,

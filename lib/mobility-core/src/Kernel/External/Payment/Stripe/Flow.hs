@@ -568,27 +568,27 @@ createRefund url apiKey refundReq = do
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) refundReq
   callStripeAPI url eulerClient "create-refund" proxy
 
--- type GetRefundAPI =
---   "v1"
---     :> "refunds"
---     :> Capture "id" RefundId
---     :> BasicAuth "secretkey-password" BasicAuthData
---     :> Get '[JSON] RefundObject
+type GetRefundAPI =
+  "v1"
+    :> "refunds"
+    :> Capture "id" RefundId
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Get '[JSON] RefundObject
 
--- getRefund ::
---   ( Metrics.CoreMetrics m,
---     MonadFlow m,
---     HasRequestId r,
---     MonadReader r m
---   ) =>
---   BaseUrl ->
---   Text ->
---   RefundId ->
---   m RefundObject
--- getRefund url apiKey refundId = do
---   let proxy = Proxy @GetRefundAPI
---       eulerClient = Euler.client proxy refundId (mkBasicAuthData apiKey)
---   callStripeAPI url eulerClient "get-refund" proxy
+getRefund ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  RefundId ->
+  m RefundObject
+getRefund url apiKey refundId = do
+  let proxy = Proxy @GetRefundAPI
+      eulerClient = Euler.client proxy refundId (mkBasicAuthData apiKey)
+  callStripeAPI url eulerClient "get-refund" proxy
 
 -- type CancelRefundAPI =
 --   "v1"
