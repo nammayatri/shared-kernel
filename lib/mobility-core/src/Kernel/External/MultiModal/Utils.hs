@@ -114,7 +114,7 @@ convertGoogleToGeneric gResponse =
             Distance.Distance
               { value =
                   Distance.HighPrecDistance
-                    { getHighPrecDistance = toRational gStep.distanceMeters
+                    { getHighPrecDistance = toRational (fromMaybe 0 gStep.distanceMeters)
                     },
                 unit = Distance.Meter
               }
