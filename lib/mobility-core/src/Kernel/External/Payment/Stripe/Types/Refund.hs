@@ -1,0 +1,96 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
+module Kernel.External.Payment.Stripe.Types.Refund where
+
+import Data.Aeson
+import qualified Data.HashMap.Strict as HM
+import Kernel.External.Payment.Stripe.Types.Common
+import Kernel.Prelude
+import Kernel.Utils.JSON
+import Web.FormUrlEncoded
+import Web.HttpApiData (ToHttpApiData (..))
+
+-- Only one of `charge` and `payment_intent` is mandatory
+data RefundReq = RefundReq
+  { charge :: Maybe Text, -- The identifier of the charge to refund
+    payment_intent :: Maybe Text, -- The identifier of the PaymentIntent to refund
+    amount :: Maybe Int, -- Amount to refund (in smallest currency unit)
+    metadata :: Metadata, -- Set of key-value pairs for metadata
+    reason :: Maybe Text, -- Reason for the refund ('duplicate', 'fraudulent', or 'requested_by_customer')
+    refund_application_fee :: Maybe Bool, -- Whether to refund the application fee
+    reverse_transfer :: Maybe Bool, -- Whether to reverse the transfer
+    instructions_email :: Maybe Text -- Email where instructions to submit bank account info will be sent
+  }
+  deriving (Show, Generic)
+
+instance ToForm RefundReq where
+  toForm RefundReq {..} =
+    Form $
+      HM.fromList $
+        catMaybes
+          [ ("charge",) . pure . toQueryParam <$> charge,
+            ("payment_intent",) . pure . toQueryParam <$> payment_intent,
+            ("amount",) . pure . toQueryParam <$> amount,
+            ("metadata[order_short_id]",) . pure . toQueryParam <$> metadata.order_short_id,
+            ("reason",) . pure . toQueryParam <$> reason,
+            ("refund_application_fee",) . pure . toQueryParam <$> refund_application_fee,
+            ("reverse_transfer",) . pure . toQueryParam <$> reverse_transfer,
+            ("instructions_email",) . pure . toQueryParam <$> instructions_email
+          ]
+
+newtype RefundId = RefundId {getRefundId :: Text}
+  deriving stock (Generic, Show, Eq)
+  deriving newtype (FromJSON, ToJSON, ToSchema) --, FromHttpApiData, ToHttpApiData)
+
+data RefundObject = RefundObject
+  { id :: RefundId,
+    _object :: Text, -- Value is 'refund'
+    amount :: Int, -- Amount refunded in smallest currency unit
+    balance_transaction :: Maybe Text, -- Balance transaction that describes the impact of this refund on your account balance
+    charge :: Maybe Text, -- ID of the charge that was refunded
+    created :: Int, -- Time at which the refund was created
+    currency :: Text, -- Currency of the refund
+    metadata :: Maybe Metadata, -- Set of key-value pairs attached to the refund
+    payment_intent :: Maybe Text, -- ID of the PaymentIntent that was refunded
+    reason :: Maybe Text, -- Reason for the refund
+    receipt_number :: Maybe Text, -- Receipt number for the refund
+    source_transfer_reversal :: Maybe Text, -- Transfer reversal that is associated with the refund
+    status :: RefundStatus, -- Status of the refund ('pending', 'succeeded', 'failed', 'canceled')
+    transfer_reversal :: Maybe Text -- ID of the transfer reversal
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON RefundObject where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON RefundObject where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data RefundStatus
+  = RefundSucceeded
+  | RefundPending
+  | RefundFailed
+  | RefundCanceled
+  | RefundRequiresAction
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+refundStatusJsonOptions :: Options
+refundStatusJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "RefundSucceeded" -> "succeeded"
+        "RefundPending" -> "pending"
+        "RefundFailed" -> "failed"
+        "RefundCanceled" -> "canceled"
+        "RefundRequiresAction" -> "requires_action"
+        x -> x
+    }
+
+instance FromJSON RefundStatus where
+  parseJSON = genericParseJSON refundStatusJsonOptions
+
+instance ToJSON RefundStatus where
+  toJSON = genericToJSON refundStatusJsonOptions

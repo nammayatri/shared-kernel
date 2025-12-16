@@ -25,7 +25,7 @@ import Data.Time
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
 import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
 import qualified Kernel.External.Payment.Stripe.Config as Stripe
-import Kernel.External.Payment.Stripe.Types as Reexport
+import Kernel.External.Payment.Stripe.Types as Reexport hiding (RefundStatus (..))
 import Kernel.Prelude
 import Kernel.Types.APISuccess (APISuccess)
 import qualified Kernel.Types.Beckn.Context as Context
