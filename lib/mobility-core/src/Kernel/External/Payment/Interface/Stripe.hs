@@ -632,3 +632,80 @@ mkChargeObject Stripe.Charge {..} =
       receiptUrl = receipt_url,
       ..
     }
+
+createRefund ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeCfg ->
+  CreateRefundReq ->
+  m CreateRefundResp
+createRefund config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  case config.chargeDestination of
+    -- Platform receives payment, transfers to driver (Destination Charges)
+    Platform -> createPlatformRefund url apiKey
+    -- Driver receives payment directly (Direct Charges)
+    ConnectedAccount -> createConnectedAccountRefund url apiKey
+  where
+    -- Platform Charge: Need to reverse transfer
+    createPlatformRefund url apiKey = do
+      let reverseTransfer = Just True
+          refundReq = mkRefundReq req reverseTransfer
+      mkRefundResp <$> Stripe.createRefund url apiKey Nothing refundReq
+
+    -- Connected Account Charge: Need to send driver account id in header
+    createConnectedAccountRefund url apiKey = do
+      let reverseTransfer = Nothing
+          refundReq = mkRefundReq req reverseTransfer
+      mkRefundResp <$> Stripe.createRefund url apiKey (Just req.driverAccountId) refundReq
+
+    mkRefundReq :: CreateRefundReq -> Maybe Bool -> Stripe.RefundReq
+    mkRefundReq CreateRefundReq {amount = amonutInUsd, ..} reverse_transfer =
+      let charge = Nothing
+          payment_intent = Just req.paymentIntentId
+          amountInCents = eurToCents <$> amonutInUsd
+          metadata = Metadata {order_short_id = Just orderShortId}
+          refund_application_fee = Just req.refundApplicationFee
+          instructions_email = req.email
+       in Stripe.RefundReq {amount = amountInCents, ..}
+
+    mkRefundResp :: Stripe.RefundObject -> CreateRefundResp
+    mkRefundResp Stripe.RefundObject {..} =
+      let reverseTransferId = transfer_reversal
+       in CreateRefundResp {status = castRefundStatus status, ..}
+
+castRefundStatus :: Stripe.RefundStatus -> RefundStatus
+castRefundStatus = \case
+  Stripe.RefundSucceeded -> REFUND_SUCCESS
+  Stripe.RefundPending -> REFUND_PENDING
+  Stripe.RefundFailed -> REFUND_FAILURE
+  Stripe.RefundCanceled -> REFUND_CANCELED
+  Stripe.RefundRequiresAction -> REFUND_REQUIRES_ACTION
+
+getRefund ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeCfg ->
+  GetRefundReq ->
+  m GetRefundResp
+getRefund _config _req = do
+  error "TODO"
+
+cancelRefund ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeCfg ->
+  CancelRefundReq ->
+  m CancelRefundResp
+cancelRefund _config _req = do
+  error "TODO"

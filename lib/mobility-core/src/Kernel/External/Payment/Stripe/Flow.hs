@@ -550,6 +550,7 @@ type CreateRefundAPI =
   "v1"
     :> "refunds"
     :> BasicAuth "secretkey-password" BasicAuthData
+    :> Header "Stripe-Account" Text -- Optional connected account ID header
     :> ReqBody '[FormUrlEncoded] RefundReq
     :> Post '[JSON] RefundObject
 
@@ -561,11 +562,12 @@ createRefund ::
   ) =>
   BaseUrl ->
   Text ->
+  Maybe Text ->
   RefundReq ->
   m RefundObject
-createRefund url apiKey refundReq = do
+createRefund url apiKey connectedAccountId refundReq = do
   let proxy = Proxy @CreateRefundAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) refundReq
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId refundReq
   callStripeAPI url eulerClient "create-refund" proxy
 
 type GetRefundAPI =

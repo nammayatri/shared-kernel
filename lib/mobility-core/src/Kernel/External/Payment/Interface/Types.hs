@@ -700,3 +700,38 @@ data VerifyVPAResp = VerifyVPAResp
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CreateRefundReq = CreateRefundReq
+  { orderShortId :: Text,
+    paymentIntentId :: PaymentIntentId,
+    amount :: Maybe HighPrecMoney,
+    reason :: Maybe Text,
+    refundApplicationFee :: Bool,
+    driverAccountId :: AccountId,
+    email :: Maybe Text
+  }
+
+data CreateRefundResp = CreateRefundResp
+  { id :: RefundId,
+    status :: RefundStatus,
+    reverseTransferId :: Maybe Text
+  }
+
+newtype GetRefundReq = GetRefundReq
+  { id :: RefundId
+  }
+
+data GetRefundResp = GetRefundResp
+  { id :: RefundId,
+    orderShortId :: Text,
+    paymentIntentId :: PaymentIntentId,
+    amount :: HighPrecMoney,
+    currency :: Currency,
+    status :: RefundStatus,
+    reason :: Maybe Text,
+    reverseTransferId :: Maybe Text
+  }
+
+type CancelRefundReq = GetRefundReq
+
+type CancelRefundResp = GetRefundResp
