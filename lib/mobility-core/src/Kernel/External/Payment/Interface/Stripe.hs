@@ -695,8 +695,10 @@ getRefund ::
   StripeCfg ->
   GetRefundReq ->
   m GetRefundResp
-getRefund _config _req = do
-  error "TODO"
+getRefund config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  mkGetRefundResp <$> Stripe.getRefund url apiKey req.id
 
 cancelRefund ::
   ( Metrics.CoreMetrics m,
@@ -707,5 +709,20 @@ cancelRefund ::
   StripeCfg ->
   CancelRefundReq ->
   m CancelRefundResp
-cancelRefund _config _req = do
-  error "TODO"
+cancelRefund config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  mkGetRefundResp <$> Stripe.cancelRefund url apiKey req.id
+
+mkGetRefundResp :: Stripe.RefundObject -> GetRefundResp
+mkGetRefundResp Stripe.RefundObject {..} =
+  GetRefundResp
+    { id,
+      orderShortId = metadata >>= (.order_short_id),
+      paymentIntentId = payment_intent,
+      amount = centsToUsd amount,
+      currency,
+      status = castRefundStatus status,
+      reason,
+      reverseTransferId = transfer_reversal
+    }

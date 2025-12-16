@@ -723,8 +723,8 @@ newtype GetRefundReq = GetRefundReq
 
 data GetRefundResp = GetRefundResp
   { id :: RefundId,
-    orderShortId :: Text,
-    paymentIntentId :: PaymentIntentId,
+    orderShortId :: Maybe Text,
+    paymentIntentId :: Maybe PaymentIntentId,
     amount :: HighPrecMoney,
     currency :: Currency,
     status :: RefundStatus,
