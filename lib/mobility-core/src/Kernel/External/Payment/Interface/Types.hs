@@ -717,8 +717,9 @@ data CreateRefundResp = CreateRefundResp
     reverseTransferId :: Maybe Text
   }
 
-newtype GetRefundReq = GetRefundReq
-  { id :: RefundId
+data GetRefundReq = GetRefundReq
+  { id :: RefundId,
+    driverAccountId :: AccountId
   }
 
 data GetRefundResp = GetRefundResp

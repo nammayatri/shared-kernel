@@ -698,7 +698,9 @@ getRefund ::
 getRefund config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  mkGetRefundResp <$> Stripe.getRefund url apiKey req.id
+  case config.chargeDestination of
+    Platform -> mkGetRefundResp <$> Stripe.getRefund url apiKey Nothing req.id
+    ConnectedAccount -> mkGetRefundResp <$> Stripe.getRefund url apiKey (Just req.driverAccountId) req.id
 
 cancelRefund ::
   ( Metrics.CoreMetrics m,
@@ -712,7 +714,9 @@ cancelRefund ::
 cancelRefund config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  mkGetRefundResp <$> Stripe.cancelRefund url apiKey req.id
+  case config.chargeDestination of
+    Platform -> mkGetRefundResp <$> Stripe.cancelRefund url apiKey Nothing req.id
+    ConnectedAccount -> mkGetRefundResp <$> Stripe.cancelRefund url apiKey (Just req.driverAccountId) req.id
 
 mkGetRefundResp :: Stripe.RefundObject -> GetRefundResp
 mkGetRefundResp Stripe.RefundObject {..} =

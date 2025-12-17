@@ -574,6 +574,7 @@ type GetRefundAPI =
   "v1"
     :> "refunds"
     :> BasicAuth "secretkey-password" BasicAuthData
+    :> Header "Stripe-Account" Text
     :> Capture "id" RefundId
     :> Get '[JSON] RefundObject
 
@@ -585,17 +586,19 @@ getRefund ::
   ) =>
   BaseUrl ->
   Text ->
+  Maybe Text ->
   RefundId ->
   m RefundObject
-getRefund url apiKey refundId = do
+getRefund url apiKey connectedAccountId refundId = do
   let proxy = Proxy @GetRefundAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) refundId
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId refundId
   callStripeAPI url eulerClient "get-refund" proxy
 
 type CancelRefundAPI =
   "v1"
     :> "refunds"
     :> BasicAuth "secretkey-password" BasicAuthData
+    :> Header "Stripe-Account" Text
     :> Capture "id" RefundId
     :> "cancel"
     :> Post '[JSON] RefundObject
@@ -608,9 +611,10 @@ cancelRefund ::
   ) =>
   BaseUrl ->
   Text ->
+  Maybe Text ->
   RefundId ->
   m RefundObject
-cancelRefund url apiKey refundId = do
+cancelRefund url apiKey connectedAccountId refundId = do
   let proxy = Proxy @CancelRefundAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) refundId
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId refundId
   callStripeAPI url eulerClient "cancel-refund" proxy
