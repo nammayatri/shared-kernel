@@ -111,7 +111,7 @@ createApnsPayload androidData iosModifier =
           fcmCategory = Just androidData.fcmNotificationType,
           fcmMutableContent = 1,
           fcmSound = Just $ fromMaybe "" androidData.fcmNotificationJSON.fcmdSound,
-          fcmContentAvailable = 1,
+          fcmContentAvailable = 0,
           fcmBadge = if androidData.fcmShowNotification == DO_NOT_SHOW then Just 0 else Nothing
          }
     title :: Maybe FCMNotificationTitle
