@@ -714,7 +714,8 @@ data CreateRefundReq = CreateRefundReq
 data CreateRefundResp = CreateRefundResp
   { id :: RefundId,
     status :: RefundStatus,
-    reverseTransferId :: Maybe Text
+    reverseTransferId :: Maybe Text,
+    errorCode :: Maybe Text
   }
 
 data GetRefundReq = GetRefundReq
@@ -730,7 +731,8 @@ data GetRefundResp = GetRefundResp
     currency :: Currency,
     status :: RefundStatus,
     reason :: Maybe Text,
-    reverseTransferId :: Maybe Text
+    reverseTransferId :: Maybe Text,
+    errorCode :: Maybe Text
   }
 
 type CancelRefundReq = GetRefundReq

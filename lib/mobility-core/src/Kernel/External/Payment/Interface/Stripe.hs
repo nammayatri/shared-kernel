@@ -676,7 +676,7 @@ createRefund config req = do
     mkRefundResp :: Stripe.RefundObject -> CreateRefundResp
     mkRefundResp Stripe.RefundObject {..} =
       let reverseTransferId = transfer_reversal
-       in CreateRefundResp {status = castRefundStatus status, ..}
+       in CreateRefundResp {status = castRefundStatus status, errorCode = failure_reason, ..}
 
 castRefundStatus :: Stripe.RefundStatus -> RefundStatus
 castRefundStatus = \case
@@ -728,5 +728,6 @@ mkGetRefundResp Stripe.RefundObject {..} =
       currency,
       status = castRefundStatus status,
       reason,
-      reverseTransferId = transfer_reversal
+      reverseTransferId = transfer_reversal,
+      errorCode = failure_reason
     }

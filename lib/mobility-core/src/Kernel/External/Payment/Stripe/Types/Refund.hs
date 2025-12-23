@@ -58,6 +58,8 @@ data RefundObject = RefundObject
     receipt_number :: Maybe Text, -- Receipt number for the refund
     source_transfer_reversal :: Maybe Text, -- Transfer reversal that is associated with the refund
     status :: RefundStatus, -- Status of the refund ('pending', 'succeeded', 'failed', 'canceled')
+    failure_balance_transaction :: Maybe Text, -- Balance transaction ID when refund fails
+    failure_reason :: Maybe Text, -- Reason code for the refund failure
     transfer_reversal :: Maybe Text -- ID of the transfer reversal
   }
   deriving stock (Show, Generic)
