@@ -25,7 +25,7 @@ latinLC = charRange 'a' 'z'
 latin = latinUC \/ latinLC
 alphanum = latin \/ digit
 latinOrSpace = latin \/ " "
-latinWithSymbols = latinOrSpace \/ "_" \/ "-"
+latinWithSymbols = latinOrSpace \/ basicSpecialSymbols
 
 mobileNumber :: LengthInRange `And` Regex
 mobileNumber = LengthInRange 8 15 `And` star digit
@@ -51,8 +51,19 @@ inputName = star latinWithSymbols
 indianMobileNumber :: ExactLength `And` Regex
 indianMobileNumber = ExactLength 10 `And` (charRange '6' '9' <> star digit)
 
+mobileNumberByCountryCode :: Text -> LengthInRange `And` Regex
+mobileNumberByCountryCode countryCode =
+  case countryCode of
+    "+91" -> LengthInRange 10 10 `And` (charRange '6' '9' <> star digit)
+    "+358" -> LengthInRange 9 12 `And` star digit
+    _ -> LengthInRange 10 10 `And` (charRange '6' '9' <> star digit)
+
 plus :: Regex -> Regex
 plus r = r <> star r
+
+basicSpecialSymbols :: Regex
+basicSpecialSymbols =
+  unions $ map (fromString . singleton) "!#,.$%&'*+-/=?^_`{|}~()"
 
 -- sublocal#1.sublocal#2@subdomain-1.subdomain-2.zone
 email :: LengthInRange `And` Regex
