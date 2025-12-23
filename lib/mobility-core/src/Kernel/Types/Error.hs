@@ -888,6 +888,23 @@ instance FromResponse KarixSmsError where
 
 instance IsAPIError KarixSmsError
 
+data PinbixSmsError = PinbixSmsError
+  { pinbixStatus :: Text,
+    pinbixStatusCode :: Maybe Text,
+    pinbixReason :: Maybe Text
+  }
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''PinbixSmsError
+
+instance IsBaseError PinbixSmsError where
+  toMessage err = pinbixReason err <|> Just "Pinbix SMS request failed."
+
+instance IsHTTPError PinbixSmsError where
+  toErrorCode _ = "PINBIX_SMS_API_ERROR"
+
+instance IsAPIError PinbixSmsError
+
 data TwillioError
   = TwillioBadRequest
   | TwillioForbidden

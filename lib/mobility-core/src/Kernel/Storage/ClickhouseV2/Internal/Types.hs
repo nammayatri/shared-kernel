@@ -207,6 +207,8 @@ instance (ClickhouseTable t, C14 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 
 
 instance (ClickhouseTable t, C15 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15) => IsOrderColumns (T15 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15)
 
+instance (ClickhouseTable t, C16 ClickhouseValue v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16) => IsOrderColumns (T16 (Column a t) v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 v16)
+
 data Q db table cols ord acols = (ClickhouseDb db) =>
   Q
   { tableQ :: AvailableColumns db table acols,
@@ -315,6 +317,8 @@ type T14 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 = (c
 
 type T15 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13, c x14, c x15)
 
+type T16 (c :: Type -> Type) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13, c x14, c x15, c x16)
+
 type C2 (c :: Type -> Constraint) x1 x2 = (c x1, c x2)
 
 type C3 (c :: Type -> Constraint) x1 x2 x3 = (c x1, c x2, c x3)
@@ -342,6 +346,8 @@ type C13 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 = 
 type C14 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13, c x14)
 
 type C15 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13, c x14, c x15)
+
+type C16 (c :: Type -> Constraint) x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 = (c x1, c x2, c x3, c x4, c x5, c x6, c x7, c x8, c x9, c x10, c x11, c x12, c x13, c x14, c x15, c x16)
 
 newtype SubQueryLevel = SubQueryLevel {getSubQueryLevel :: Int}
   deriving newtype (Show, Num, Eq)

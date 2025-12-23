@@ -441,6 +441,16 @@ withWaitAndLockRedis key timeout delay func = do
       threadDelay delay
       unless lockAvailable getLock
 
+withWaitAndLockCrossAppRedis :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> Int -> m a -> m a
+withWaitAndLockCrossAppRedis key timeout delay func = do
+  withCrossAppRedis getLock
+  finally func (withCrossAppRedis $ unlockRedis key)
+  where
+    getLock = do
+      lockAvailable <- tryLockRedis key timeout
+      threadDelay delay
+      unless lockAvailable getLock
+
 withLockRedis :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> m () -> m ()
 withLockRedis key timeout func = do
   getLock

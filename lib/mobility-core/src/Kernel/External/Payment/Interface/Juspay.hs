@@ -785,7 +785,8 @@ mkOfferResp Juspay.OfferResp {..} = do
       offerDescription = mkOfferDescription offer_description,
       orderAmount = read $ T.unpack order_breakup.final_order_amount,
       finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
-      discountAmount = read $ T.unpack order_breakup.discount_amount
+      discountAmount = read $ T.unpack order_breakup.discount_amount,
+      offerCode = offer_code
     }
 
 mkOfferDescription :: Juspay.OfferDescription -> OfferDescription

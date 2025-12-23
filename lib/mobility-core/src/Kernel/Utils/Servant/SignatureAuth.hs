@@ -102,6 +102,7 @@ instance
     HasLog r,
     HasField "hostName" r Text,
     HasField "disableSignatureAuth" r Bool,
+    HasField "noSignatureSubscribers" r [Text],
     Registry (FlowR r),
     HasCoreMetrics r,
     SingI domain,
@@ -148,6 +149,7 @@ authCheck ::
   ( HasLog r,
     HasField "hostName" r Text,
     HasField "disableSignatureAuth" r Bool,
+    HasField "noSignatureSubscribers" r [Text],
     Registry (FlowR r),
     HasCoreMetrics r,
     HasARTFlow r
@@ -252,6 +254,7 @@ verifySignature ::
     Metrics.CoreMetrics m,
     HasField "hostName" r Text,
     HasField "disableSignatureAuth" r Bool,
+    HasField "noSignatureSubscribers" r [Text],
     Registry m,
     HasLog r
   ) =>
@@ -277,8 +280,9 @@ verifySignature headerName signPayload bodyHash merchantId subscriberType domain
           }
   registryLookup lookupRequest >>= \case
     Just subscriber -> do
-      disableSignatureAuth <- asks (.disableSignatureAuth)
-      unless disableSignatureAuth do
+      -- disableSignatureAuth <- asks (.disableSignatureAuth)
+      noSignatureSubscribers <- asks (.noSignatureSubscribers)
+      unless (subscriberId `elem` noSignatureSubscribers) do
         let publicKey = subscriber.signing_public_key
         isVerified <- performVerification publicKey hostName
         unless isVerified $ do
