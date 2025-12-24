@@ -25,7 +25,7 @@ latinLC = charRange 'a' 'z'
 latin = latinUC \/ latinLC
 alphanum = latin \/ digit
 latinOrSpace = latin \/ " "
-latinWithSymbols = latinOrSpace \/ "_" \/ "-"
+latinWithSymbols = latinOrSpace \/ basicSpecialSymbols
 
 mobileNumber :: LengthInRange `And` Regex
 mobileNumber = LengthInRange 8 15 `And` star digit
@@ -47,6 +47,10 @@ nameWithNumber = star $ alphanum \/ " "
 
 inputName :: Regex
 inputName = star latinWithSymbols
+
+basicSpecialSymbols :: Regex
+basicSpecialSymbols =
+  unions $ map (fromString . singleton) "!#,.$%&'*+-/=?^_`{|}~()"
 
 indianMobileNumber :: LengthInRange `And` Regex
 indianMobileNumber = LengthInRange 10 10 `And` (charRange '6' '9' <> star digit)
