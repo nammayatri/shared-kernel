@@ -15,7 +15,9 @@
 
 module Kernel.External.Payment.Interface.Events.Types where
 
+import Kernel.External.Payment.Juspay.Types (RefundStatus (..))
 import qualified Kernel.External.Payment.Stripe.Types.Common as Stripe
+import qualified Kernel.External.Payment.Stripe.Types.Refund as Refund
 import Kernel.Prelude
 import Kernel.Types.Common
 import Kernel.Types.Id
@@ -47,7 +49,7 @@ data EventObject
   | ChargeRefundedEvent Charge
   | ChargeDisputeCreatedEvent Charge
   | ChargeDisputeClosedEvent Charge
-  | ChargeRefundUpdatedEvent Charge
+  | ChargeRefundUpdatedEvent Refund
   | CustomEvent Text
   deriving stock (Show)
 
@@ -171,5 +173,18 @@ data Charge = Charge
     refunded :: Bool,
     refunds :: Maybe Value, -- This would be a list of refund objects
     status :: Stripe.ChargeStatus
+  }
+  deriving stock (Show)
+
+data Refund = Refund
+  { id :: Refund.RefundId,
+    orderShortId :: Maybe Text,
+    paymentIntentId :: Maybe Stripe.PaymentIntentId,
+    amount :: HighPrecMoney,
+    currency :: Currency,
+    status :: RefundStatus,
+    reason :: Maybe Text,
+    reverseTransferId :: Maybe Text,
+    errorCode :: Maybe Text
   }
   deriving stock (Show)

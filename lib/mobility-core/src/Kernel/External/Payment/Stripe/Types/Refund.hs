@@ -5,10 +5,13 @@ module Kernel.External.Payment.Stripe.Types.Refund where
 
 import Data.Aeson
 import qualified Data.HashMap.Strict as HM
+import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
+import Kernel.Types.HideSecrets
 import Kernel.Types.Price (Currency)
 import Kernel.Utils.JSON
+import qualified Kernel.Utils.Schema as S
 import Web.FormUrlEncoded
 import Web.HttpApiData (FromHttpApiData, ToHttpApiData (..))
 
@@ -63,13 +66,18 @@ data RefundObject = RefundObject
     transfer_reversal :: Maybe Text -- ID of the transfer reversal
   }
   deriving stock (Show, Generic)
-  deriving anyclass (ToSchema)
+
+instance HideSecrets RefundObject where
+  hideSecrets = identity
 
 instance FromJSON RefundObject where
   parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
 
 instance ToJSON RefundObject where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+instance ToSchema RefundObject where
+  declareNamedSchema = genericDeclareNamedSchema S.stripPrefixUnderscoreIfAny
 
 data RefundStatus
   = RefundSucceeded

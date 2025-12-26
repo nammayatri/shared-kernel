@@ -530,7 +530,7 @@ buildEventObject eventType stripeObject = case (eventType, stripeObject) of
   (Stripe.ChargeRefunded, Stripe.ObjectCharge obj) -> pure $ Events.ChargeRefundedEvent $ mkChargeObject obj
   (Stripe.ChargeDisputeCreated, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeCreatedEvent $ mkChargeObject obj
   (Stripe.ChargeDisputeClosed, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeClosedEvent $ mkChargeObject obj
-  (Stripe.ChargeRefundUpdated, Stripe.ObjectCharge obj) -> pure $ Events.ChargeRefundUpdatedEvent $ mkChargeObject obj
+  (Stripe.ChargeRefundUpdated, Stripe.ObjectRefund obj) -> pure $ Events.ChargeRefundUpdatedEvent $ mkRefundObject obj
   (Stripe.CustomEvent eventName, Stripe.CustomObject _objectName _obj) -> pure $ Events.CustomEvent eventName
   (_, _) -> throwError (InvalidRequest $ "Invalid object: " <> Stripe.getObjectType stripeObject <> "found for event:" <> Stripe.eventTypeToText eventType)
 
@@ -632,6 +632,12 @@ mkChargeObject Stripe.Charge {..} =
       receiptUrl = receipt_url,
       ..
     }
+
+mkRefundObject :: Stripe.Refund -> Events.Refund
+mkRefundObject = castRefunds . mkGetRefundResp
+
+castRefunds :: GetRefundResp -> Events.Refund
+castRefunds GetRefundResp {..} = Events.Refund {..}
 
 createRefund ::
   ( Metrics.CoreMetrics m,
