@@ -25,7 +25,7 @@ latinLC = charRange 'a' 'z'
 latin = latinUC \/ latinLC
 alphanum = latin \/ digit
 latinOrSpace = latin \/ " "
-latinWithSymbols = latinOrSpace \/ "_" \/ "-"
+latinWithSymbols = latinOrSpace \/ basicSpecialSymbols
 
 mobileNumber :: LengthInRange `And` Regex
 mobileNumber = LengthInRange 8 15 `And` star digit
@@ -36,8 +36,8 @@ mobileCountryCode = LengthInRange 2 4 `And` ("+" <> star digit)
 fullMobilePhone :: LengthInRange `And` Regex
 fullMobilePhone = LengthInRange 12 14 `And` ("+" <> star digit)
 
-mobileIndianCode :: Regex
-mobileIndianCode = "+91"
+mobileIndianCode :: LengthInRange `And` Regex
+mobileIndianCode = LengthInRange 3 3 `And` "+91" -- Added redundant LengthInRange to have same types for refactoring
 
 name :: Regex
 name = star latinOrSpace
@@ -48,8 +48,18 @@ nameWithNumber = star $ alphanum \/ " "
 inputName :: Regex
 inputName = star latinWithSymbols
 
-indianMobileNumber :: ExactLength `And` Regex
-indianMobileNumber = ExactLength 10 `And` (charRange '6' '9' <> star digit)
+basicSpecialSymbols :: Regex
+basicSpecialSymbols =
+  unions $ map (fromString . singleton) "!#,.$%&'*+-/=?^_`{|}~()"
+
+indianMobileNumber :: LengthInRange `And` Regex
+indianMobileNumber = LengthInRange 10 10 `And` (charRange '6' '9' <> star digit)
+
+finnishMobileNumber :: LengthInRange `And` Regex
+finnishMobileNumber = LengthInRange 9 12 `And` star digit
+
+finnishCountryCode :: LengthInRange `And` Regex
+finnishCountryCode = LengthInRange 4 4 `And` "+358"
 
 plus :: Regex -> Regex
 plus r = r <> star r
