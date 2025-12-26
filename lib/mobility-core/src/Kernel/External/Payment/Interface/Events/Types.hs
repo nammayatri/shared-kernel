@@ -50,6 +50,9 @@ data EventObject
   | ChargeDisputeCreatedEvent Charge
   | ChargeDisputeClosedEvent Charge
   | ChargeRefundUpdatedEvent Refund
+  | RefundCreatedEvent Refund
+  | RefundUpdatedEvent Refund
+  | RefundFailedEvent Refund
   | CustomEvent Text
   deriving stock (Show)
 

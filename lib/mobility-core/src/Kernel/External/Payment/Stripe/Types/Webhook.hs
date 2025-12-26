@@ -79,6 +79,9 @@ data EventType
     -- | PaymentMethodDetached
     -- Refunds
     ChargeRefundUpdated
+  | RefundCreated
+  | RefundFailed
+  | RefundUpdated
   | -- Account
 
     -- | AccountUpdated
@@ -114,9 +117,6 @@ data EventType
   deriving anyclass (ToSchema)
 
 -- charge.refund.updated: this we can skip
--- refund.created: TODO
--- refund.failed: TODO
--- refund.updated: TODO
 eventTypeBimap :: BM.Bimap EventType Text
 eventTypeBimap =
   BM.fromList
@@ -169,7 +169,10 @@ eventTypeBimap =
       -- (PaymentMethodDetached, "payment_method.detached"),
 
       -- Refunds
-      (ChargeRefundUpdated, "charge.refund.updated")
+      (ChargeRefundUpdated, "charge.refund.updated"),
+      (RefundCreated, "refund.created"),
+      (RefundFailed, "refund.failed"),
+      (RefundUpdated, "refund.updated")
       -- Account
       -- (AccountUpdated, "account.updated"),
       -- (AccountApplicationAuthorized, "account.application.authorized"),

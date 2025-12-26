@@ -531,6 +531,9 @@ buildEventObject eventType stripeObject = case (eventType, stripeObject) of
   (Stripe.ChargeDisputeCreated, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeCreatedEvent $ mkChargeObject obj
   (Stripe.ChargeDisputeClosed, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeClosedEvent $ mkChargeObject obj
   (Stripe.ChargeRefundUpdated, Stripe.ObjectRefund obj) -> pure $ Events.ChargeRefundUpdatedEvent $ mkRefundObject obj
+  (Stripe.RefundCreated, Stripe.ObjectRefund obj) -> pure $ Events.RefundCreatedEvent $ mkRefundObject obj
+  (Stripe.RefundUpdated, Stripe.ObjectRefund obj) -> pure $ Events.RefundUpdatedEvent $ mkRefundObject obj
+  (Stripe.RefundFailed, Stripe.ObjectRefund obj) -> pure $ Events.RefundFailedEvent $ mkRefundObject obj
   (Stripe.CustomEvent eventName, Stripe.CustomObject _objectName _obj) -> pure $ Events.CustomEvent eventName
   (_, _) -> throwError (InvalidRequest $ "Invalid object: " <> Stripe.getObjectType stripeObject <> "found for event:" <> Stripe.eventTypeToText eventType)
 
@@ -686,11 +689,11 @@ createRefund config req = do
 
 castRefundStatus :: Stripe.RefundStatus -> RefundStatus
 castRefundStatus = \case
-  Stripe.RefundSucceeded -> REFUND_SUCCESS
-  Stripe.RefundPending -> REFUND_PENDING
-  Stripe.RefundFailed -> REFUND_FAILURE
-  Stripe.RefundCanceled -> REFUND_CANCELED
-  Stripe.RefundRequiresAction -> REFUND_REQUIRES_ACTION
+  Stripe.REFUND_SUCCEEDED -> REFUND_SUCCESS
+  Stripe.REFUND_PENDING -> REFUND_PENDING
+  Stripe.REFUND_FAILED -> REFUND_FAILURE
+  Stripe.REFUND_CANCELED -> REFUND_CANCELED
+  Stripe.REFUND_REQUIRES_ACTION -> REFUND_REQUIRES_ACTION
 
 getRefund ::
   ( Metrics.CoreMetrics m,

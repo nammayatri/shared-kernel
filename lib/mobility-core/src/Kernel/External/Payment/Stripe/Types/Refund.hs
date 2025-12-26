@@ -80,11 +80,11 @@ instance ToSchema RefundObject where
   declareNamedSchema = genericDeclareNamedSchema S.stripPrefixUnderscoreIfAny
 
 data RefundStatus
-  = RefundSucceeded
-  | RefundPending
-  | RefundFailed
-  | RefundCanceled
-  | RefundRequiresAction
+  = REFUND_SUCCEEDED
+  | REFUND_PENDING
+  | REFUND_FAILED
+  | REFUND_CANCELED
+  | REFUND_REQUIRES_ACTION
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToSchema)
 
@@ -92,11 +92,11 @@ refundStatusJsonOptions :: Options
 refundStatusJsonOptions =
   defaultOptions
     { constructorTagModifier = \case
-        "RefundSucceeded" -> "succeeded"
-        "RefundPending" -> "pending"
-        "RefundFailed" -> "failed"
-        "RefundCanceled" -> "canceled"
-        "RefundRequiresAction" -> "requires_action"
+        "REFUND_SUCCEEDED" -> "succeeded"
+        "REFUND_PENDING" -> "pending"
+        "REFUND_FAILED" -> "failed"
+        "REFUND_CANCELED" -> "canceled"
+        "REFUND_REQUIRES_ACTION" -> "requires_action"
         x -> x
     }
 
