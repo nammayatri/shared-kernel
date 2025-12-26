@@ -16,6 +16,7 @@ module Kernel.Utils.Predicates where
 
 import Data.List (singleton)
 import Kernel.Prelude
+import Kernel.Types.Beckn.Country (Country (..))
 import Kernel.Types.Predicate
 
 digit, latinUC, latinLC, latin, alphanum, latinOrSpace, latinWithSymbols :: Regex
@@ -38,6 +39,25 @@ fullMobilePhone = LengthInRange 12 14 `And` ("+" <> star digit)
 
 mobileIndianCode :: LengthInRange `And` Regex
 mobileIndianCode = LengthInRange 3 3 `And` "+91" -- Added redundant LengthInRange to have same types for refactoring
+
+getMobileNumberPredicate :: Country -> (LengthInRange `And` Regex)
+getMobileNumberPredicate country
+  | country == India = indianMobileNumber
+  | country == Finland = finnishMobileNumber
+  | otherwise = mobileNumber
+
+getMobileCountryCodePredicate :: Country -> (LengthInRange `And` Regex)
+getMobileCountryCodePredicate country
+  | country == India = mobileIndianCode
+  | country == Finland = finnishCountryCode
+  | otherwise = mobileCountryCode
+
+getCountryMobileCode :: Country -> Text
+getCountryMobileCode country =
+  case country of
+    India -> "+91"
+    Finland -> "+358"
+    _ -> "+91"
 
 name :: Regex
 name = star latinOrSpace
