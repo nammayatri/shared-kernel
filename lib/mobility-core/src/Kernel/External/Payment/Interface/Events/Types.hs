@@ -15,7 +15,7 @@
 
 module Kernel.External.Payment.Interface.Events.Types where
 
-import Kernel.External.Payment.Juspay.Types (RefundStatus (..))
+import Kernel.External.Payment.Interface.Types (RefundStatus (..))
 import qualified Kernel.External.Payment.Stripe.Types.Common as Stripe
 import qualified Kernel.External.Payment.Stripe.Types.Refund as Refund
 import Kernel.Prelude

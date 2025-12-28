@@ -96,21 +96,20 @@ instance ToJSON NotificationStatus where
   toJSON PENDING = "PENDING"
   toJSON SUCCESS = "SUCCESS"
 
--- TODO should we create separate type for interface?
-data RefundStatus = REFUND_PENDING | REFUND_FAILURE | REFUND_SUCCESS | MANUAL_REVIEW | REFUND_CANCELED | REFUND_REQUIRES_ACTION
+data RefundStatus = REFUND_PENDING | REFUND_FAILURE | REFUND_SUCCESS | MANUAL_REVIEW
   deriving stock (Show, Eq, Read, Ord, Generic)
 
-derivePersistField "RefundStatus"
+-- interface type would be used for db
 
-$(mkBeamInstancesForEnum ''RefundStatus)
+-- derivePersistField "RefundStatus"
+
+-- $(mkBeamInstancesForEnum ''RefundStatus)
 
 instance FromJSON RefundStatus where
   parseJSON (String "FAILURE") = pure REFUND_FAILURE
   parseJSON (String "PENDING") = pure REFUND_PENDING
   parseJSON (String "SUCCESS") = pure REFUND_SUCCESS
   parseJSON (String "MANUAL_REVIEW") = pure MANUAL_REVIEW
-  parseJSON (String "REFUND_CANCELED") = pure REFUND_CANCELED
-  parseJSON (String "REFUND_REQUIRES_ACTION") = pure REFUND_REQUIRES_ACTION
   parseJSON (String _) = parseFail "Expected type"
   parseJSON e = typeMismatch "String" e
 
@@ -119,8 +118,6 @@ instance ToJSON RefundStatus where
   toJSON REFUND_PENDING = "PENDING"
   toJSON REFUND_SUCCESS = "SUCCESS"
   toJSON MANUAL_REVIEW = "MANUAL_REVIEW"
-  toJSON REFUND_CANCELED = "REFUND_CANCELED"
-  toJSON REFUND_REQUIRES_ACTION = "REFUND_REQUIRES_ACTION"
 
 instance ToSchema RefundStatus where
   declareNamedSchema _ =
@@ -128,7 +125,7 @@ instance ToSchema RefundStatus where
       NamedSchema (Just "RefundStatus") $
         mempty
           & type_ ?~ OpenApiString
-          & enum_ ?~ (map toJSON [REFUND_PENDING, REFUND_FAILURE, REFUND_SUCCESS, MANUAL_REVIEW, REFUND_CANCELED, REFUND_REQUIRES_ACTION])
+          & enum_ ?~ (map toJSON [REFUND_PENDING, REFUND_FAILURE, REFUND_SUCCESS, MANUAL_REVIEW])
 
 data OfferState = OFFER_INITIATED | OFFER_AVAILED | OFFER_REFUNDED | OFFER_FAILED
   deriving stock (Show, Read, Eq, Generic)
