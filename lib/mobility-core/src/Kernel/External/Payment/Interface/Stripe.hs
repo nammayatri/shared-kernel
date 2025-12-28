@@ -509,6 +509,7 @@ buildServiceEventResp Stripe.WebhookReq {..} = do
         eventData,
         livemode,
         pendingWebhooks = pending_webhooks,
+        eventType = _type,
         ..
       }
 

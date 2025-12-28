@@ -18,6 +18,7 @@ module Kernel.External.Payment.Interface.Events.Types where
 import Kernel.External.Payment.Interface.Types (RefundStatus (..))
 import qualified Kernel.External.Payment.Stripe.Types.Common as Stripe
 import qualified Kernel.External.Payment.Stripe.Types.Refund as Refund
+import qualified Kernel.External.Payment.Stripe.Types.Webhook as Stripe
 import Kernel.Prelude
 import Kernel.Types.Common
 import Kernel.Types.Id
@@ -28,7 +29,8 @@ data ServiceEventResp = ServiceEventResp
     createdAt :: UTCTime,
     eventData :: EventObject,
     livemode :: Bool,
-    pendingWebhooks :: Integer
+    pendingWebhooks :: Integer,
+    eventType :: Stripe.EventType
   }
   deriving stock (Show)
 
