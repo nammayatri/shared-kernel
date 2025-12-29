@@ -15,9 +15,8 @@
 
 module Kernel.External.Payment.Interface.Events.Types where
 
-import Kernel.External.Payment.Interface.Types (RefundStatus (..))
+import Kernel.External.Payment.Interface.Types (GetRefundResp)
 import qualified Kernel.External.Payment.Stripe.Types.Common as Stripe
-import qualified Kernel.External.Payment.Stripe.Types.Refund as Refund
 import qualified Kernel.External.Payment.Stripe.Types.Webhook as Stripe
 import Kernel.Prelude
 import Kernel.Types.Common
@@ -181,15 +180,19 @@ data Charge = Charge
   }
   deriving stock (Show)
 
-data Refund = Refund
-  { id :: Refund.RefundId,
-    orderShortId :: Maybe Text,
-    paymentIntentId :: Maybe Stripe.PaymentIntentId,
-    amount :: HighPrecMoney,
-    currency :: Currency,
-    status :: RefundStatus,
-    reason :: Maybe Text,
-    reverseTransferId :: Maybe Text,
-    errorCode :: Maybe Text
-  }
-  deriving stock (Show)
+type Refund = GetRefundResp
+
+-- data Refund = Refund
+--   { id :: Refund.RefundId,
+--     orderShortId :: Maybe Text,
+--     orderId :: Maybe Text,
+--     refundsId :: Maybe Text,
+--     paymentIntentId :: Maybe Stripe.PaymentIntentId,
+--     amount :: HighPrecMoney,
+--     currency :: Currency,
+--     status :: RefundStatus,
+--     reason :: Maybe Text,
+--     reverseTransferId :: Maybe Text,
+--     errorCode :: Maybe Text
+--   }
+--   deriving stock (Show)

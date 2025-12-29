@@ -276,7 +276,7 @@ createPaymentIntent config req = do
               confirmation_method = Stripe.AutomaticConfirmationMethod
               use_stripe_sdk = True
               return_url = showBaseUrl config.returnUrl
-              metadata = Metadata {order_short_id = Just orderShortId}
+              metadata = Metadata {order_short_id = Just orderShortId, order_id = Nothing, refunds_id = Nothing}
            in Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
     -- Connected Account Charge: Clone payment method, use on_behalf_of
@@ -308,7 +308,7 @@ createPaymentIntent config req = do
           let confirmation_method = Stripe.AutomaticConfirmationMethod
           let use_stripe_sdk = True
           let return_url = showBaseUrl config.returnUrl
-          let metadata = Metadata {order_short_id = Just orderShortId}
+          let metadata = Metadata {order_short_id = Just orderShortId, order_id = Nothing, refunds_id = Nothing}
           Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
 createSetupIntent ::
@@ -531,10 +531,10 @@ buildEventObject eventType stripeObject = case (eventType, stripeObject) of
   (Stripe.ChargeRefunded, Stripe.ObjectCharge obj) -> pure $ Events.ChargeRefundedEvent $ mkChargeObject obj
   (Stripe.ChargeDisputeCreated, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeCreatedEvent $ mkChargeObject obj
   (Stripe.ChargeDisputeClosed, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeClosedEvent $ mkChargeObject obj
-  (Stripe.ChargeRefundUpdated, Stripe.ObjectRefund obj) -> pure $ Events.ChargeRefundUpdatedEvent $ mkRefundObject obj
-  (Stripe.RefundCreated, Stripe.ObjectRefund obj) -> pure $ Events.RefundCreatedEvent $ mkRefundObject obj
-  (Stripe.RefundUpdated, Stripe.ObjectRefund obj) -> pure $ Events.RefundUpdatedEvent $ mkRefundObject obj
-  (Stripe.RefundFailed, Stripe.ObjectRefund obj) -> pure $ Events.RefundFailedEvent $ mkRefundObject obj
+  (Stripe.ChargeRefundUpdated, Stripe.ObjectRefund obj) -> pure $ Events.ChargeRefundUpdatedEvent $ mkGetRefundResp obj
+  (Stripe.RefundCreated, Stripe.ObjectRefund obj) -> pure $ Events.RefundCreatedEvent $ mkGetRefundResp obj
+  (Stripe.RefundUpdated, Stripe.ObjectRefund obj) -> pure $ Events.RefundUpdatedEvent $ mkGetRefundResp obj
+  (Stripe.RefundFailed, Stripe.ObjectRefund obj) -> pure $ Events.RefundFailedEvent $ mkGetRefundResp obj
   (Stripe.CustomEvent eventName, Stripe.CustomObject _objectName _obj) -> pure $ Events.CustomEvent eventName
   (_, _) -> throwError (InvalidRequest $ "Invalid object: " <> Stripe.getObjectType stripeObject <> "found for event:" <> Stripe.eventTypeToText eventType)
 
@@ -637,11 +637,11 @@ mkChargeObject Stripe.Charge {..} =
       ..
     }
 
-mkRefundObject :: Stripe.Refund -> Events.Refund
-mkRefundObject = castRefunds . mkGetRefundResp
+-- mkRefundObject :: Stripe.Refund -> Events.Refund
+-- mkRefundObject = castRefunds . mkGetRefundResp
 
-castRefunds :: GetRefundResp -> Events.Refund
-castRefunds GetRefundResp {..} = Events.Refund {..}
+-- castRefunds :: GetRefundResp -> Events.Refund
+-- castRefunds GetRefundResp {..} = Events.Refund {..}
 
 createRefund ::
   ( Metrics.CoreMetrics m,
@@ -678,7 +678,7 @@ createRefund config req = do
       let charge = Nothing
           payment_intent = Just req.paymentIntentId
           amountInCents = eurToCents <$> amonutInUsd
-          metadata = Metadata {order_short_id = Just orderShortId}
+          metadata = Metadata {order_short_id = Just orderShortId, order_id = Just orderId, refunds_id = Just refundsId}
           refund_application_fee = Just req.refundApplicationFee
           instructions_email = req.email
        in Stripe.RefundReq {amount = amountInCents, ..}
@@ -733,6 +733,8 @@ mkGetRefundResp Stripe.RefundObject {..} =
   GetRefundResp
     { id,
       orderShortId = metadata >>= (.order_short_id),
+      orderId = metadata >>= (.order_id),
+      refundsId = metadata >>= (.refunds_id),
       paymentIntentId = payment_intent,
       amount = centsToUsd amount,
       currency,

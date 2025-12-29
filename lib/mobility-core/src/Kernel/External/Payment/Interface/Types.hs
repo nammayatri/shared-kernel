@@ -738,6 +738,8 @@ data VerifyVPAResp = VerifyVPAResp
 
 data CreateRefundReq = CreateRefundReq
   { orderShortId :: Text,
+    orderId :: Text,
+    refundsId :: Text,
     paymentIntentId :: PaymentIntentId,
     amount :: Maybe HighPrecMoney,
     reason :: Maybe Text,
@@ -761,6 +763,8 @@ data GetRefundReq = GetRefundReq
 data GetRefundResp = GetRefundResp
   { id :: RefundId,
     orderShortId :: Maybe Text,
+    orderId :: Maybe Text,
+    refundsId :: Maybe Text,
     paymentIntentId :: Maybe PaymentIntentId,
     amount :: HighPrecMoney,
     currency :: Currency,
@@ -769,6 +773,7 @@ data GetRefundResp = GetRefundResp
     reverseTransferId :: Maybe Text,
     errorCode :: Maybe Text
   }
+  deriving stock (Show)
 
 type CancelRefundReq = GetRefundReq
 
