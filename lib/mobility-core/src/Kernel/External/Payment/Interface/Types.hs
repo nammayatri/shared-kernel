@@ -543,6 +543,8 @@ data AutoRefundReq = AutoRefundReq
     amount :: HighPrecMoney,
     splitSettlementDetails :: Maybe RefundSplitSettlementDetails
   }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data AutoRefundResp = AutoRefundResp
   { orderId :: Text,
