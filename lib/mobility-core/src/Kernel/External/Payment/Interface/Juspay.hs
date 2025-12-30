@@ -913,6 +913,7 @@ autoRefund ::
   AutoRefundReq ->
   m AutoRefundResp
 autoRefund config mRoutingId req = do
+  logDebug $ "autoRefund req: " <> show req
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
