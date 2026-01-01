@@ -153,6 +153,22 @@ incrementSchedulerFailureCounterImplementation context = do
   version <- asks (.version)
   incrementSchedulerFailureCounterImplementation' cmContainer context version
 
+incrementProducerErrorImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementProducerErrorImplementation operation = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  L.runIO $
+    P.withLabel
+      cmContainer.producerError
+      (operation, version.getDeploymentVersion)
+      P.incCounter
+
 addRequestLatencyImplementation' ::
   L.MonadFlow m =>
   CoreMetricsContainer ->

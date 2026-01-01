@@ -63,6 +63,7 @@ instance CoreMetrics (MockM e) where
   incrementStreamFailedCounter _ = return ()
   addGenericLatency _ _ = return ()
   incrementSchedulerFailureCounter _ = return ()
+  incrementProducerError _ = return ()
   incrementGenericMetrics _ = return ()
   incrementSystemConfigsFailedCounter _ = return ()
   addGenericLatencyMetrics _ _ = return ()
