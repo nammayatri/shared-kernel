@@ -42,6 +42,7 @@ tokenize config _ = do
     makeJourneyMonitoringTokenizeResp JourneyMonitoringTypes.JourneyMonitoringTokenizeResponse {..} = do
       token <- fromMaybeM (TokenNotFound "JourneyMonitoring") $ ((.accessToken) =<< tokenData)
       let expiresAt = parseTime =<< (.expiresAt) =<< tokenData
+          scope = Nothing
       return $ InterfaceTypes.TokenizationResp {..}
 
 parseTime :: Text -> Maybe UTCTime
