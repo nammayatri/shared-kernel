@@ -31,6 +31,7 @@ where
 import qualified Control.Monad.Catch as C
 import Data.Aeson as A
 import qualified Data.Aeson.KeyMap as AKM
+import Data.List (partition)
 import qualified Data.Text as T
 import qualified Data.Time as Time
 import Kernel.Prelude
@@ -126,13 +127,18 @@ updateLogLevelAndRawSql mbNewLogLevel logEnv =
     (\newLogLevel -> logEnv{level = newLogLevel, logRawSql = newLogLevel == DEBUG})
     mbNewLogLevel
 
-formatTags :: [Text] -> Text
-formatTags tag = "[" <> T.intercalate ", " (reverse tag) <> "]"
+formatTags :: [Text] -> Maybe Text -> Text
+formatTags tags mUrl =
+  "[" <> T.intercalate ", " (reverse tags)
+    <> maybe "" (\url -> ", url-" <> url) mUrl
+    <> "]"
 
 logFormatterText :: Time.UTCTime -> Maybe Text -> LogLevel -> [Text] -> Text -> Maybe Text -> Maybe Text -> A.Value
 logFormatterText timestamp hostname lvl tags msg requestId sessionId = res
   where
-    tag = if null tags then "" else formatTags tags
+    (urlTags, otherTags) = partition (T.isPrefixOf "url:") tags
+    mUrl = listToMaybe urlTags <&> T.drop 4
+    tag = if null otherTags then "" else formatTags otherTags mUrl
     log =
       show timestamp
         <> " "
@@ -148,4 +154,5 @@ logFormatterText timestamp hostname lvl tags msg requestId sessionId = res
         . AKM.insert "timestamp" (A.String $ show timestamp)
         . maybe (\a -> a) (AKM.insert "requestId" . A.String) requestId
         . maybe (\a -> a) (AKM.insert "sessionId" . A.String) sessionId
+        . maybe (\a -> a) (AKM.insert "url" . A.String) mUrl
         $ AKM.insert "log" (A.String log) AKM.empty

@@ -222,11 +222,19 @@ logRequestAndResponseGeneric logInfoIO f req respF =
       logInfoIO "Request&Response" $ "Request: " <> show (toRequestInfo req) <> " || Response: " <> respLogText
       respF resp
 
+removeUUIDs :: Text -> Text
+removeUUIDs path = T.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ T.unpack path
+
+removeNumerics :: Text -> Text
+removeNumerics path = T.pack $ TR.subRegex (TR.mkRegex "/[0-9]+") (T.unpack path) "/:numeric"
+
 withModifiedEnv :: HasLog f => (EnvR f -> Application) -> EnvR f -> Application
-withModifiedEnv = withModifiedEnvFn $ \_ env requestId sessionId -> do
-  let appEnv = env.appEnv
-      updLogEnv = appendLogTag requestId $ appendLogTag sessionId appEnv.loggerEnv
-  newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
+withModifiedEnv = withModifiedEnvFn $ \req env requestId sessionId -> do
+  let url = cs $ Wai.rawPathInfo req
+      sanitizedUrl = removeNumerics $ removeUUIDs url
+      appEnv = env.appEnv
+      updLogEnv = appendLogTag ("url:" <> sanitizedUrl) $ appendLogTag requestId $ appendLogTag sessionId appEnv.loggerEnv
+  newFlowRt <- L.updateLoggerContext (L.appendLogContext $ requestId <> " " <> url) $ flowRuntime env
   newOptionsLocal <- newMVar mempty
   pure $
     env{appEnv = appEnv{loggerEnv = updLogEnv, requestId = Just requestId},
@@ -236,15 +244,13 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId sessionId -> do
 withModifiedEnv' :: (HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv' = withModifiedEnvFn $ \req env requestId sessionId -> do
   let url = cs $ Wai.rawPathInfo req
-      sanitizedUrl = removeUUIDs url
+      uuidSanitizedUrl = removeUUIDs url
   mbDynamicLogLevelConfig <- runFlowR env.flowRuntime env.appEnv $ getDynamicLogLevelConfig
-  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId sessionId url (removeNumerics sanitizedUrl)
+  modifyEnvR env (HM.lookup uuidSanitizedUrl =<< mbDynamicLogLevelConfig) requestId sessionId url (removeNumerics uuidSanitizedUrl)
   where
-    removeUUIDs path = T.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ T.unpack path
-    removeNumerics path = T.pack $ TR.subRegex (TR.mkRegex "/[0-9]+") (T.unpack path) "/:numeric"
     modifyEnvR env mbLogLevel requestId sessionId url sanitizedUrl = do
       let appEnv = env.appEnv
-          updLogEnv = appendLogTag sessionId $ appendLogTag requestId appEnv.loggerEnv
+          updLogEnv = appendLogTag ("url:" <> sanitizedUrl) $ appendLogTag sessionId $ appendLogTag requestId appEnv.loggerEnv
           updLogEnv' = updateLogLevelAndRawSql mbLogLevel updLogEnv
       let requestId' = bool Nothing (Just requestId) appEnv.shouldLogRequestId
           sessionId' = bool Nothing (Just sessionId) appEnv.shouldLogRequestId
@@ -274,12 +280,14 @@ withModifiedEnvFn modifierFn f env = \req resp -> do
 withModifiedEnvGeneric :: HasLog env => (env -> Application) -> env -> Application
 withModifiedEnvGeneric f env = \req resp -> do
   (requestId, sessionId) <- getSessionInfo $ Wai.requestHeaders req
-  let modifiedEnv = modifyEnv requestId sessionId
+  let url = cs $ Wai.rawPathInfo req
+      sanitizedUrl = removeNumerics $ removeUUIDs url
+      modifiedEnv = modifyEnv requestId sessionId sanitizedUrl
   let app = f modifiedEnv
   app req resp
   where
-    modifyEnv requestId sessionId = do
-      let updLogEnv = appendLogTag requestId $ appendLogTag sessionId env.loggerEnv
+    modifyEnv requestId sessionId sanitizedUrl = do
+      let updLogEnv = appendLogTag ("url:" <> sanitizedUrl) $ appendLogTag requestId $ appendLogTag sessionId env.loggerEnv
       env{loggerEnv = updLogEnv, requestId = Just requestId, sessionId = Just sessionId}
     getSessionInfo headers = do
       let requestId = lookup "x-request-id" headers
