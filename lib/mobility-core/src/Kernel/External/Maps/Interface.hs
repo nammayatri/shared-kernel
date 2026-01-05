@@ -243,7 +243,6 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
       logError $ "Snap to road rectification failed with all the configured providers"
       return ([], Left "Snap to road rectification failed with all the configured providers")
     callSnapToRoadWithRectification mapServiceCfg (preferredProvider : restProviders) = do
-      mapsConfig <- getProviderConfig preferredProvider
       droppedPointsThreshold <- asks (.droppedPointsThreshold)
       maxStraightLineRectificationThreshold <- asks (.maxStraightLineRectificationThreshold)
       let straightDistancePoints = getEverySnippetWhichIsNot (< droppedPointsThreshold) req.points -- point with dist > 2000
@@ -261,7 +260,7 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
       let (pointsOutOfThreshold, distance) = foldl' (\(accPoints, accDis) (x1, dis) -> (accPoints <> [x1], accDis + dis)) ([], 0) distanceRectified
       let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
       logDebug $ "Split snap-to-road calls: " <> show splitSnapToRoadCalls
-      pointsRes <- withTryCatch "callSnapToRoadWithRectification" $ mapM (\section -> snapToRoad entityId mapsConfig (req {points = section})) splitSnapToRoadCalls
+      pointsRes <- withTryCatch "callSnapToRoadWithRectification" $ mapM (\section -> snapToRoadWithFallback' (preferredProvider : restProviders) (req {points = section} :: SnapToRoadReq)) splitSnapToRoadCalls
       logDebug $ "Snap-to-road results: " <> show pointsRes
       case pointsRes of
         Right result -> do
@@ -269,7 +268,7 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
           let snapToRoadResp =
                 SnapToRoadResp
                   { distance = totalSectorsDistance + (if includeRectifiedDistance then distance else 0),
-                    distanceWithUnit = convertHighPrecMetersToDistance req.distanceUnit $ totalSectorsDistance + distance,
+                    distanceWithUnit = convertHighPrecMetersToDistance req.distanceUnit $ totalSectorsDistance + (if includeRectifiedDistance then distance else 0),
                     confidence = 1,
                     snappedPoints = snappedPoints
                   }
@@ -278,6 +277,28 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
           logError $ "Snap to road rectification failed with error : " <> show err <> " - Provider : " <> show preferredProvider
           (servicesUsed, snapResponse) <- callSnapToRoadWithRectification mapServiceCfg restProviders
           return (servicesUsed ++ [preferredProvider, SelfTuned], snapResponse)
+
+    snapToRoadWithFallback' providersList req' = do
+      case providersList of
+        [] ->
+          throwError $ InternalError "Snap to road failed with all the configured providers"
+        (preferredProvider : restProviders) -> do
+          confidenceThreshold <- getConfidenceThreshold
+          mapsConfig <- getProviderConfig preferredProvider
+          result <- withTryCatch "snapToRoadWithFallback'" $ snapToRoad entityId mapsConfig req'
+          case result of
+            Left err -> do
+              logError $ "Snap to road failed with error' : " <> show err <> " - Provider : " <> show preferredProvider
+              snapToRoadWithFallback' restProviders req'
+            Right res ->
+              if res.confidence < confidenceThreshold
+                then
+                  if null restProviders
+                    then do
+                      logError $ "Snap to road fallback' confidence threshold not met with all the configured providers"
+                      return res
+                    else snapToRoadWithFallback' restProviders req'
+                else return res
 
 snapToRoad ::
   ( EncFlow m r,
