@@ -51,6 +51,7 @@ library
       Kernel.External.BackgroundVerification.Interface.Checkr
       Kernel.External.BackgroundVerification.Interface.Types
       Kernel.External.BackgroundVerification.Types
+      Kernel.External.BapHostRedirect
       Kernel.External.Call
       Kernel.External.Call.Exotel.Client
       Kernel.External.Call.Exotel.Config
