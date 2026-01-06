@@ -111,3 +111,14 @@ instance MonadTime IO where
 
 instance MonadClock IO where
   getClockTime = Clock.getTime Clock.Monotonic
+
+data TimeWithZone = TimeWithZone
+  { twzTime :: UTCTime,
+    twzZone :: TimeZone
+  }
+  deriving stock (Show, Read, Eq, Ord, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data TimeZone = UTC | IST
+  deriving stock (Show, Read, Eq, Ord, Enum, Bounded, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
