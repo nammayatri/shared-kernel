@@ -54,3 +54,9 @@ getPrepareLocationDBReplicaConnection :: IO Bool
 getPrepareLocationDBReplicaConnection = do
   envVal <- lookupEnv "PREPARE_LOCATION_DB_REPLICA_CONNECTION"
   pure (Just False /= (readMaybe . toTitle =<< envVal))
+
+-- Secondary Cloud Redis connection
+getPrepareSecondaryRedisClusterConnection :: IO Bool
+getPrepareSecondaryRedisClusterConnection = do
+  envVal <- lookupEnv "PREPARE_SECONDARY_REDIS_CLUSTER_CONNECTION"
+  pure (Just False /= (readMaybe . toTitle =<< envVal))

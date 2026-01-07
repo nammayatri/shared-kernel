@@ -370,15 +370,16 @@
         "tinylog": "tinylog"
       },
       "locked": {
-        "lastModified": 1758700676,
-        "narHash": "sha256-FV3U7xqBqg8qADd7kR/hrl5GqHZJzIonXrQIVzlAmPo=",
+        "lastModified": 1767782376,
+        "narHash": "sha256-IQ7EZJO2PtPZeMZKarodl3B85g1QXU6pVg3UkWhZheY=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "8b13d3ab3c434e53f516689d5641860e2f561cc8",
+        "rev": "adeaeb19d63633b445104c03115a08f678f94845",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
+        "ref": "backend/multi-cloud-setup-euler",
         "repo": "euler-hs",
         "type": "github"
       }

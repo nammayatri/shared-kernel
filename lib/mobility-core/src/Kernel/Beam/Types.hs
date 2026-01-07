@@ -97,3 +97,10 @@ data KafkaConn = KafkaConn
   deriving anyclass (ToJSON, FromJSON)
 
 instance OptionEntity KafkaConn KafkaProducerTools
+
+-- Flag to enable multi-cloud Redis reads for a query
+data MultiCloudEnabled = MultiCloudEnabled
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity MultiCloudEnabled Bool
