@@ -38,6 +38,7 @@ module Kernel.Beam.Functions
     getReplicaBeamConfig,
     runInMasterRedis,
     runInMasterDbAndRedis,
+    runInMultiCloud,
   )
 where
 
@@ -107,6 +108,8 @@ meshConfig =
       meshDBName = "postgres",
       ecRedisDBStream = "driver-db-sync-stream",
       kvRedis = "KVRedis",
+      kvRedisSecondary = "KVRedisSecondary",
+      secondaryRedisEnabled = False,
       redisTtl = 18000,
       kvHardKilled = True,
       cerealEnabled = False,
@@ -145,6 +148,17 @@ runInMasterDbAndRedis m = do
   L.setOptionLocal UseMasterRedis False
   pure res
 
+-- | Run a findAll query with multi-cloud Redis enabled.
+-- When enabled, findAll queries will read from both primary and secondary Redis instances.
+-- Note: This only affects findAllWithKV, findAllWithOptionsKV and similar findAll queries.
+-- Other operations (findOne, update, delete, create) are not affected.
+runInMultiCloud :: (L.MonadFlow m, Log m) => m a -> m a
+runInMultiCloud m = do
+  L.setOptionLocal MultiCloudEnabled True
+  res <- m
+  L.setOptionLocal MultiCloudEnabled False
+  pure res
+
 allowedSchema :: [Text]
 allowedSchema = ["atlas_driver_offer_bpp", "atlas_app"]
 
@@ -162,11 +176,41 @@ setMeshConfig modelName mSchema meshConfig' = do
           let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
           let tableShardModRange' = HM.lookupDefault (0, tables'.defaultShardMod) modelName tables'.tableShardModRange
           let redisKeyPrefix' = HM.lookupDefault meshConfig'.redisKeyPrefix modelName tables'.tableRedisKeyPrefix
-          pure $ meshConfig' {meshEnabled = True, kvHardKilled = False, ecRedisDBStream = redisStream, redisTtl = redisTtl', tableShardModRange = tableShardModRange', redisKeyPrefix = redisKeyPrefix'}
+          -- Enable secondary Redis if table is configured for secondary cloud in Tables config
+          let secondaryEnabled =
+                fromMaybe False tables'.enableSecondaryCloudRead
+                  && modelName `elem` fromMaybe [] tables'.tablesForSecondaryCloudRead
+          pure $
+            meshConfig'
+              { meshEnabled = True,
+                kvHardKilled = False,
+                ecRedisDBStream = redisStream,
+                redisTtl = redisTtl',
+                tableShardModRange = tableShardModRange',
+                redisKeyPrefix = redisKeyPrefix',
+                secondaryRedisEnabled = secondaryEnabled
+              }
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do
   updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
+  mkAction updatedMeshConfig
+
+-- | Get mesh config for findAll queries with multi-cloud support.
+-- Checks if runInMultiCloud is enabled and sets secondaryRedisEnabled accordingly.
+setMeshConfigForFindAll :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
+setMeshConfigForFindAll modelName mSchema meshConfig' = do
+  baseMeshConfig <- setMeshConfig modelName mSchema meshConfig'
+  -- Check if multi-cloud is explicitly enabled via runInMultiCloud
+  isMultiCloudEnabled <- L.getOptionLocal MultiCloudEnabled
+  pure $
+    if fromMaybe False isMultiCloudEnabled
+      then baseMeshConfig {secondaryRedisEnabled = True}
+      else baseMeshConfig
+
+withUpdatedMeshConfigForFindAll :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
+withUpdatedMeshConfigForFindAll _ mkAction = do
+  updatedMeshConfig <- setMeshConfigForFindAll (modelTableName @table) (modelSchemaName @table) meshConfig
   mkAction updatedMeshConfig
 
 getMasterDBConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
@@ -307,7 +351,7 @@ findAllWithKV ::
   ) =>
   Where Postgres table ->
   m [a]
-findAllWithKV where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+findAllWithKV where' = withUpdatedMeshConfigForFindAll (Proxy @table) $ \updatedMeshConfig -> do
   findAllInternal updatedMeshConfig fromTType' where'
 
 findAllWithKVScheduler ::
@@ -318,7 +362,7 @@ findAllWithKVScheduler ::
   ) =>
   Where Postgres table ->
   m [a]
-findAllWithKVScheduler where' = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+findAllWithKVScheduler where' = withUpdatedMeshConfigForFindAll (Proxy @table) $ \updatedMeshConfig -> do
   findAllInternal updatedMeshConfig fromTType'' where'
 
 findAllWithDb ::
@@ -343,7 +387,7 @@ findAllWithKVAndConditionalDB ::
   Maybe (OrderBy table) ->
   m [a]
 findAllWithKVAndConditionalDB where' orderBy = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
+  updatedMeshConfig <- setMeshConfigForFindAll (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
   case result of
@@ -363,7 +407,7 @@ findAllFromKvRedis ::
   Maybe (OrderBy table) ->
   m [a]
 findAllFromKvRedis where' orderBy = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
+  updatedMeshConfig <- setMeshConfigForFindAll (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllFromKvRedis dbConf' updatedMeshConfig where' orderBy
   case result of
@@ -386,7 +430,7 @@ findAllWithOptionsKV ::
   Maybe Int ->
   Maybe Int ->
   m [a]
-findAllWithOptionsKV where' orderBy mbLimit mbOffset = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+findAllWithOptionsKV where' orderBy mbLimit mbOffset = withUpdatedMeshConfigForFindAll (Proxy @table) $ \updatedMeshConfig -> do
   findAllWithOptionsInternal updatedMeshConfig fromTType' where' orderBy mbLimit mbOffset
 
 findAllWithOptionsKV' ::
@@ -401,7 +445,7 @@ findAllWithOptionsKV' ::
   Maybe Int ->
   m [a]
 findAllWithOptionsKV' where' mbLimit mbOffset = do
-  updatedMeshConfig <- setMeshConfig (modelTableName @table) (modelSchemaName @table) meshConfig
+  updatedMeshConfig <- setMeshConfigForFindAll (modelTableName @table) (modelSchemaName @table) meshConfig
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllWithOptionsKVConnector' dbConf' updatedMeshConfig where' mbLimit mbOffset
   case result of
@@ -421,7 +465,7 @@ findAllWithOptionsKVScheduler ::
   Maybe Int ->
   Maybe Int ->
   m [a]
-findAllWithOptionsKVScheduler where' orderBy mbLimit mbOffset = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+findAllWithOptionsKVScheduler where' orderBy mbLimit mbOffset = withUpdatedMeshConfigForFindAll (Proxy @table) $ \updatedMeshConfig -> do
   findAllWithOptionsInternal updatedMeshConfig fromTType'' where' orderBy mbLimit mbOffset
 
 findAllWithOptionsDb ::
@@ -585,6 +629,7 @@ findOneInternal ::
   m (Maybe a)
 findOneInternal updatedMeshConfig fromTType where' = do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
+  -- KV connector automatically queries both primary and secondary Redis when secondaryRedisEnabled = True
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
   case result of
     Right (Just res) -> fromTType res
@@ -600,6 +645,9 @@ findAllInternal ::
   m [a]
 findAllInternal updatedMeshConfig fromTType where' = do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
+  -- KV connector automatically handles multi-cloud when secondaryRedisEnabled = True:
+  -- - Fetches from primary Redis, secondary Redis, and DB in parallel
+  -- - Merges and deduplicates results from all sources
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
   case result of
     Right res -> do
@@ -619,6 +667,9 @@ findAllWithOptionsInternal ::
   m [a]
 findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mbOffset = do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
+  -- KV connector automatically handles multi-cloud when secondaryRedisEnabled = True:
+  -- - Fetches from both Redis instances in parallel
+  -- - Applies offset/limit after merging and deduplicating
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
   case result of
     Right res -> do
@@ -643,6 +694,10 @@ updateInternal ::
 updateInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
   dbConf <- getMasterDBConfig
   replicaDbConf <- getReplicaDbConfig
+  -- KV connector automatically handles multi-cloud when secondaryRedisEnabled = True:
+  -- - Fetches from primary Redis, secondary Redis, and DB in parallel
+  -- - Updates primary Redis matches in primary Redis
+  -- - Updates secondary Redis matches in secondary Redis
   res <- KV.updateAllReturningWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
   case res of
     Right res' -> do
@@ -667,6 +722,9 @@ updateOneInternal ::
 updateOneInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
   dbConf <- getMasterDBConfig
   replicaDbConf <- getReplicaDbConfig
+  -- KV connector automatically handles multi-cloud when secondaryRedisEnabled = True:
+  -- - First checks primary Redis, then secondary Redis if not found
+  -- - Updates in the Redis instance where data was found
   res <- KV.updateWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
   case res of
     Right obj -> do
@@ -692,6 +750,8 @@ createInternal ::
 createInternal updatedMeshConfig toTType a = do
   let tType = toTType a
   dbConf' <- getMasterDBConfig
+  -- New rows are always created in primary Redis (kvRedis)
+  -- Secondary Redis is only for read fallback and update routing
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
   case result of
     Right _ -> do
@@ -714,6 +774,10 @@ deleteInternal ::
   m ()
 deleteInternal updatedMeshConfig whereClause = runInMasterRedis $ do
   dbConf <- getMasterDBConfig
+  -- KV connector automatically handles multi-cloud when secondaryRedisEnabled = True:
+  -- - Fetches from both Redis instances and DB in parallel
+  -- - Deletes from primary Redis if found there
+  -- - Deletes from secondary Redis if found there
   res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
   case res of
     Right _ -> do
