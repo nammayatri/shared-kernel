@@ -19,9 +19,10 @@ import qualified Kernel.External.Tokenize.Digilocker.Types as DLT
 import qualified Kernel.External.Tokenize.Gullak.Types as GUKTypes
 import qualified Kernel.External.Tokenize.HyperVerge.Types as HVTypes
 import Kernel.External.Tokenize.JourneyMonitoring.Types as JMTypes
+import qualified Kernel.External.Tokenize.Tten.Types as TtenTypes
 import Kernel.Prelude
 
-data TokenizationServiceConfig = HyperVergeTokenizationServiceConfig HVTypes.HyperVergeTokenizeConfig | JourneyMonitoringTokenizationServiceConfig JMTypes.JourneyMonitoringTokenizeConfig | GullakTokenizationServiceConfig GUKTypes.GullakConfig | DigilockerTokenizationServiceConfig DLT.DigilockerTokenizeConfig
+data TokenizationServiceConfig = HyperVergeTokenizationServiceConfig HVTypes.HyperVergeTokenizeConfig | JourneyMonitoringTokenizationServiceConfig JMTypes.JourneyMonitoringTokenizeConfig | GullakTokenizationServiceConfig GUKTypes.GullakConfig | DigilockerTokenizationServiceConfig DLT.DigilockerTokenizeConfig | TtenTokenizationServiceConfig TtenTypes.TtenTokenizationConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data TokenizationReq = TokenizationReq

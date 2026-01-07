@@ -51,6 +51,7 @@ import qualified Kernel.External.Verification.Interface.HyperVerge as HyperVerge
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
 import qualified Kernel.External.Verification.Interface.SafetyPortal as SafetyPortal
+import qualified Kernel.External.Verification.Interface.Tten as Tten
 import Kernel.External.Verification.Interface.Types as Reexport
 import Kernel.External.Verification.InternalScripts.Types
 import Kernel.External.Verification.SafetyPortal.Types
@@ -76,6 +77,7 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.verifyDLAsync cfg req
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyRC ::
   ( EncFlow m r,
@@ -119,6 +121,7 @@ verifyRC' serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.verifyRCAsync cfg req
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig cfg -> Tten.verifyTten cfg req
 
 validateImage ::
   ( EncFlow m r,
@@ -136,6 +139,7 @@ validateImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateFaceImage ::
   ( CoreMetrics m,
@@ -153,6 +157,7 @@ validateFaceImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractRCImage ::
   ( EncFlow m r,
@@ -170,6 +175,7 @@ extractRCImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
   ( EncFlow m r,
@@ -187,6 +193,7 @@ extractDLImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractPanImage ::
   ( EncFlow m r,
@@ -204,6 +211,7 @@ extractPanImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractGSTImage ::
   ( EncFlow m r,
@@ -221,6 +229,7 @@ extractGSTImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractAadhaarImage ::
   ( EncFlow m r,
@@ -238,6 +247,7 @@ extractAadhaarImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 nameCompare ::
   ( EncFlow m r,
@@ -255,6 +265,7 @@ nameCompare serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 searchAgent ::
   ( EncFlow m r,
@@ -284,6 +295,7 @@ verifySdkResp serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfig cfg -> HyperVerge.verifySdkResp cfg req
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 getTask ::
   ( EncFlow m r,
@@ -302,6 +314,7 @@ getTask serviceConfig req updateResp = case serviceConfig of
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.getVerificationStatus cfg req updateResp
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 fetchAndExtractVerifiedDL ::
   ( EncFlow m r,

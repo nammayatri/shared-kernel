@@ -18,6 +18,7 @@ import qualified Kernel.External.Tokenize.Interface.Digilocker as DigilockerInt
 import qualified Kernel.External.Tokenize.Interface.Gullak as GullakInt
 import qualified Kernel.External.Tokenize.Interface.HyperVerge as HyperVergeInt
 import qualified Kernel.External.Tokenize.Interface.JourneyMonitoring as JourneyMonitoringInt
+import qualified Kernel.External.Tokenize.Interface.Tten as TtenInt
 import qualified Kernel.External.Tokenize.Interface.Types as InterfaceTypes
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -39,6 +40,7 @@ tokenize serviceConfig req =
     InterfaceTypes.HyperVergeTokenizationServiceConfig config -> HyperVergeInt.tokenize config req
     InterfaceTypes.JourneyMonitoringTokenizationServiceConfig config -> JourneyMonitoringInt.tokenize config req
     InterfaceTypes.DigilockerTokenizationServiceConfig config -> DigilockerInt.tokenize config req
+    InterfaceTypes.TtenTokenizationServiceConfig config -> TtenInt.tokenize config
     _ -> throwError (InternalError "Unsupported Tokenization Service")
 
 onboard ::

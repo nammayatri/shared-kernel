@@ -254,10 +254,13 @@ library
       Kernel.External.Tokenize.Interface.Gullak
       Kernel.External.Tokenize.Interface.HyperVerge
       Kernel.External.Tokenize.Interface.JourneyMonitoring
+      Kernel.External.Tokenize.Interface.Tten
       Kernel.External.Tokenize.Interface.Types
       Kernel.External.Tokenize.JourneyMonitoring.Error
       Kernel.External.Tokenize.JourneyMonitoring.Flow
       Kernel.External.Tokenize.JourneyMonitoring.Types
+      Kernel.External.Tokenize.Tten.Flow
+      Kernel.External.Tokenize.Tten.Types
       Kernel.External.Tokenize.Types
       Kernel.External.Types
       Kernel.External.Verification
@@ -284,6 +287,7 @@ library
       Kernel.External.Verification.Interface.Idfy
       Kernel.External.Verification.Interface.InternalScripts
       Kernel.External.Verification.Interface.SafetyPortal
+      Kernel.External.Verification.Interface.Tten
       Kernel.External.Verification.Interface.Types
       Kernel.External.Verification.InternalScripts.Error
       Kernel.External.Verification.InternalScripts.FaceVerification
@@ -293,6 +297,8 @@ library
       Kernel.External.Verification.SafetyPortal.Config
       Kernel.External.Verification.SafetyPortal.Error
       Kernel.External.Verification.SafetyPortal.Types
+      Kernel.External.Verification.Tten.Flow
+      Kernel.External.Verification.Tten.Types
       Kernel.External.Verification.Types
       Kernel.External.Wallet
       Kernel.External.Wallet.Interface
