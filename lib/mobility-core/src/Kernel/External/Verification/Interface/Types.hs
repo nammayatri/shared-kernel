@@ -27,10 +27,11 @@ import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import qualified Kernel.External.Verification.InternalScripts.Types as FV
 import qualified Kernel.External.Verification.SafetyPortal.Config as SafetyPortal
 import Kernel.External.Verification.SafetyPortal.Types
+import qualified Kernel.External.Verification.Tten.Types as TtenTypes
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -50,7 +51,9 @@ type VerifyDLAsyncResp = VerifyAsyncResp
 
 data VerifyRCReq = VerifyRCReq
   { rcNumber :: Text,
-    driverId :: Text
+    driverId :: Text,
+    token :: Maybe Text,
+    udinNo :: Maybe Text
   }
   deriving stock (Show, Generic)
 
@@ -239,3 +242,8 @@ newtype ExtractedDigiLockerAadhaarResp = ExtractedDigiLockerAadhaarResp
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
+
+data VerifyTtenReq = VerifyTtenReq
+  { ttenCertificateNumber :: Text
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
