@@ -491,6 +491,7 @@ library
       Kernel.Utils.Text
       Kernel.Utils.TH
       Kernel.Utils.Time
+      Kernel.Utils.UUID
       Kernel.Utils.Validation
       Kernel.Utils.Version
       Kernel.Utils.XML
