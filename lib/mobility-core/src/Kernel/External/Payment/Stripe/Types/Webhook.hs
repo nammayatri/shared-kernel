@@ -21,6 +21,7 @@ import qualified Data.Bimap as BM
 import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Data.Time.Clock.POSIX (POSIXTime)
 import Kernel.External.Payment.Stripe.Types.Common
+import qualified Kernel.External.Payment.Stripe.Types.Refund as Refund
 import Kernel.Prelude
 import Kernel.Types.HideSecrets
 import Kernel.Types.Id
@@ -78,6 +79,9 @@ data EventType
     -- | PaymentMethodDetached
     -- Refunds
     ChargeRefundUpdated
+  | RefundCreated
+  | RefundFailed
+  | RefundUpdated
   | -- Account
 
     -- | AccountUpdated
@@ -112,6 +116,7 @@ data EventType
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (ToSchema)
 
+-- charge.refund.updated: this we can skip
 eventTypeBimap :: BM.Bimap EventType Text
 eventTypeBimap =
   BM.fromList
@@ -164,7 +169,10 @@ eventTypeBimap =
       -- (PaymentMethodDetached, "payment_method.detached"),
 
       -- Refunds
-      (ChargeRefundUpdated, "charge.refund.updated")
+      (ChargeRefundUpdated, "charge.refund.updated"),
+      (RefundCreated, "refund.created"),
+      (RefundFailed, "refund.failed"),
+      (RefundUpdated, "refund.updated")
       -- Account
       -- (AccountUpdated, "account.updated"),
       -- (AccountApplicationAuthorized, "account.application.authorized"),
@@ -269,6 +277,8 @@ data WebhookRequest = WebhookRequest
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+type Refund = Refund.RefundObject
+
 data StripeObject
   = ObjectPaymentIntent PaymentIntent
   | ObjectSetupIntent SetupIntent
@@ -277,8 +287,8 @@ data StripeObject
     --   | ObjectInvoice Invoice
     ObjectCharge Charge
   | --   | ObjectPaymentMethod PaymentMethod
-    --   | ObjectRefund Refund
-    --   | ObjectAccount Account
+    ObjectRefund Refund
+  | --   | ObjectAccount Account
     --   | ObjectPayout Payout
     --   | ObjectTaxRate TaxRate
     --   | ObjectBillingPortalConfiguration BillingPortalConfiguration
@@ -308,6 +318,7 @@ getObjectType = \case
   ObjectPaymentIntent obj -> obj._object
   ObjectSetupIntent obj -> obj._object
   ObjectCharge obj -> obj._object
+  ObjectRefund obj -> obj._object
   CustomObject objType _val -> objType
 
 instance HideSecrets StripeObject where
@@ -315,6 +326,7 @@ instance HideSecrets StripeObject where
     ObjectSetupIntent a -> ObjectSetupIntent $ hideSecrets @SetupIntent a
     ObjectPaymentIntent a -> ObjectPaymentIntent $ hideSecrets @PaymentIntent a
     ObjectCharge a -> ObjectCharge $ hideSecrets @Charge a
+    ObjectRefund a -> ObjectRefund $ hideSecrets @Refund a
     CustomObject objType _val -> CustomObject objType A.Null
 
 instance ToJSON StripeObject where
@@ -322,6 +334,7 @@ instance ToJSON StripeObject where
     ObjectSetupIntent a -> toJSON @SetupIntent a
     ObjectPaymentIntent a -> toJSON @PaymentIntent a
     ObjectCharge a -> toJSON @Charge a
+    ObjectRefund a -> toJSON @Refund a
     CustomObject _objType val -> val
 
 instance FromJSON StripeObject where
@@ -331,6 +344,7 @@ instance FromJSON StripeObject where
       "setup_intent" -> ObjectSetupIntent <$> parseJSON @SetupIntent val
       "payment_intent" -> ObjectPaymentIntent <$> parseJSON @PaymentIntent val
       "charge" -> ObjectCharge <$> parseJSON @Charge val
+      "refund" -> ObjectRefund <$> parseJSON @Refund val
       unknown -> pure $ CustomObject unknown val
 
 --- SetupIntent Object ---
