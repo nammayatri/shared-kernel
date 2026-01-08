@@ -165,6 +165,7 @@ library
       Kernel.External.Payment.Stripe.Types.Customer
       Kernel.External.Payment.Stripe.Types.Error
       Kernel.External.Payment.Stripe.Types.PaymentIntent
+      Kernel.External.Payment.Stripe.Types.Refund
       Kernel.External.Payment.Stripe.Types.SetupIntent
       Kernel.External.Payment.Stripe.Types.Webhook
       Kernel.External.Payment.Stripe.Webhook

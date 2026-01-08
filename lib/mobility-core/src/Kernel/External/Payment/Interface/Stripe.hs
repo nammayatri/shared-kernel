@@ -276,7 +276,7 @@ createPaymentIntent config req = do
               confirmation_method = Stripe.AutomaticConfirmationMethod
               use_stripe_sdk = True
               return_url = showBaseUrl config.returnUrl
-              metadata = Metadata {order_short_id = Just orderShortId}
+              metadata = Metadata {order_short_id = Just orderShortId, order_id = Nothing, refunds_id = Nothing}
            in Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
     -- Connected Account Charge: Clone payment method, use on_behalf_of
@@ -308,7 +308,7 @@ createPaymentIntent config req = do
           let confirmation_method = Stripe.AutomaticConfirmationMethod
           let use_stripe_sdk = True
           let return_url = showBaseUrl config.returnUrl
-          let metadata = Metadata {order_short_id = Just orderShortId}
+          let metadata = Metadata {order_short_id = Just orderShortId, order_id = Nothing, refunds_id = Nothing}
           Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
 createSetupIntent ::
@@ -509,6 +509,7 @@ buildServiceEventResp Stripe.WebhookReq {..} = do
         eventData,
         livemode,
         pendingWebhooks = pending_webhooks,
+        eventType = _type,
         ..
       }
 
@@ -530,7 +531,10 @@ buildEventObject eventType stripeObject = case (eventType, stripeObject) of
   (Stripe.ChargeRefunded, Stripe.ObjectCharge obj) -> pure $ Events.ChargeRefundedEvent $ mkChargeObject obj
   (Stripe.ChargeDisputeCreated, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeCreatedEvent $ mkChargeObject obj
   (Stripe.ChargeDisputeClosed, Stripe.ObjectCharge obj) -> pure $ Events.ChargeDisputeClosedEvent $ mkChargeObject obj
-  (Stripe.ChargeRefundUpdated, Stripe.ObjectCharge obj) -> pure $ Events.ChargeRefundUpdatedEvent $ mkChargeObject obj
+  (Stripe.ChargeRefundUpdated, Stripe.ObjectRefund obj) -> pure $ Events.ChargeRefundUpdatedEvent $ mkGetRefundResp obj
+  (Stripe.RefundCreated, Stripe.ObjectRefund obj) -> pure $ Events.RefundCreatedEvent $ mkGetRefundResp obj
+  (Stripe.RefundUpdated, Stripe.ObjectRefund obj) -> pure $ Events.RefundUpdatedEvent $ mkGetRefundResp obj
+  (Stripe.RefundFailed, Stripe.ObjectRefund obj) -> pure $ Events.RefundFailedEvent $ mkGetRefundResp obj
   (Stripe.CustomEvent eventName, Stripe.CustomObject _objectName _obj) -> pure $ Events.CustomEvent eventName
   (_, _) -> throwError (InvalidRequest $ "Invalid object: " <> Stripe.getObjectType stripeObject <> "found for event:" <> Stripe.eventTypeToText eventType)
 
@@ -631,4 +635,104 @@ mkChargeObject Stripe.Charge {..} =
       receiptEmail = receipt_email,
       receiptUrl = receipt_url,
       ..
+    }
+
+createRefund ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeCfg ->
+  CreateRefundReq ->
+  m CreateRefundResp
+createRefund config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  case config.chargeDestination of
+    -- Platform receives payment, transfers to driver (Destination Charges)
+    Platform -> createPlatformRefund url apiKey
+    -- Driver receives payment directly (Direct Charges)
+    ConnectedAccount -> createConnectedAccountRefund url apiKey
+  where
+    -- Platform Charge: Need to reverse transfer
+    createPlatformRefund url apiKey = do
+      let reverseTransfer = Just True
+          refundReq = mkRefundReq req reverseTransfer
+      mkRefundResp <$> Stripe.createRefund url apiKey Nothing refundReq
+
+    -- Connected Account Charge: Need to send driver account id in header
+    createConnectedAccountRefund url apiKey = do
+      let reverseTransfer = Nothing
+          refundReq = mkRefundReq req reverseTransfer
+      mkRefundResp <$> Stripe.createRefund url apiKey (Just req.driverAccountId) refundReq
+
+    mkRefundReq :: CreateRefundReq -> Maybe Bool -> Stripe.RefundReq
+    mkRefundReq CreateRefundReq {amount = amonutInUsd, ..} reverse_transfer =
+      let charge = Nothing
+          payment_intent = Just req.paymentIntentId
+          amountInCents = eurToCents <$> amonutInUsd
+          metadata = Metadata {order_short_id = Just orderShortId, order_id = Just orderId, refunds_id = Just refundsId}
+          refund_application_fee = Just req.refundApplicationFee
+          instructions_email = req.email
+       in Stripe.RefundReq {amount = amountInCents, reason = Just Stripe.REQUESTED_BY_CUSTOMER, ..}
+
+    mkRefundResp :: Stripe.RefundObject -> CreateRefundResp
+    mkRefundResp Stripe.RefundObject {..} =
+      let reverseTransferId = transfer_reversal
+       in CreateRefundResp {status = castRefundStatus status, errorCode = failure_reason, ..}
+
+castRefundStatus :: Stripe.RefundStatus -> RefundStatus
+castRefundStatus = \case
+  Stripe.REFUND_SUCCEEDED -> REFUND_SUCCESS
+  Stripe.REFUND_PENDING -> REFUND_PENDING
+  Stripe.REFUND_FAILED -> REFUND_FAILURE
+  Stripe.REFUND_CANCELED -> REFUND_CANCELED
+  Stripe.REFUND_REQUIRES_ACTION -> REFUND_REQUIRES_ACTION
+
+getRefund ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeCfg ->
+  GetRefundReq ->
+  m GetRefundResp
+getRefund config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  case config.chargeDestination of
+    Platform -> mkGetRefundResp <$> Stripe.getRefund url apiKey Nothing req.id
+    ConnectedAccount -> mkGetRefundResp <$> Stripe.getRefund url apiKey (Just req.driverAccountId) req.id
+
+cancelRefund ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeCfg ->
+  CancelRefundReq ->
+  m CancelRefundResp
+cancelRefund config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  case config.chargeDestination of
+    Platform -> mkGetRefundResp <$> Stripe.cancelRefund url apiKey Nothing req.id
+    ConnectedAccount -> mkGetRefundResp <$> Stripe.cancelRefund url apiKey (Just req.driverAccountId) req.id
+
+mkGetRefundResp :: Stripe.RefundObject -> GetRefundResp
+mkGetRefundResp Stripe.RefundObject {..} =
+  GetRefundResp
+    { id,
+      orderShortId = metadata >>= (.order_short_id),
+      orderId = metadata >>= (.order_id),
+      refundsId = metadata >>= (.refunds_id),
+      paymentIntentId = payment_intent,
+      amount = centsToUsd amount,
+      currency,
+      status = castRefundStatus status,
+      reverseTransferId = transfer_reversal,
+      errorCode = failure_reason
     }

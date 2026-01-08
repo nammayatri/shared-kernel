@@ -188,8 +188,10 @@ chargeStatusJsonOptions =
     }
 
 -- up to 50 custom defined fields
-newtype Metadata = Metadata
-  { order_short_id :: Maybe Text
+data Metadata = Metadata
+  { order_short_id :: Maybe Text,
+    order_id :: Maybe Text, -- used only for refunds
+    refunds_id :: Maybe Text -- used only for refunds
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
