@@ -397,7 +397,6 @@ cancelPaymentIntent config paymentIntentId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Cancel Payment Intent not supported."
   StripeConfig cfg -> Stripe.cancelPaymentIntent cfg paymentIntentId
 
--- Should we reuse autoRefunds func for both Stripe and Juspay?
 createRefund ::
   ( CoreMetrics m,
     EncFlow m r,

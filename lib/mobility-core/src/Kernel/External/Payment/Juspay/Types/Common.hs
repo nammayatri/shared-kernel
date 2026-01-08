@@ -99,12 +99,6 @@ instance ToJSON NotificationStatus where
 data RefundStatus = REFUND_PENDING | REFUND_FAILURE | REFUND_SUCCESS | MANUAL_REVIEW
   deriving stock (Show, Eq, Read, Ord, Generic)
 
--- interface type would be used for db
-
--- derivePersistField "RefundStatus"
-
--- $(mkBeamInstancesForEnum ''RefundStatus)
-
 instance FromJSON RefundStatus where
   parseJSON (String "FAILURE") = pure REFUND_FAILURE
   parseJSON (String "PENDING") = pure REFUND_PENDING

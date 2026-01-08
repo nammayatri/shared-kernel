@@ -37,6 +37,8 @@ instance ToForm RefundReq where
             ("payment_intent",) . pure . toQueryParam <$> payment_intent,
             ("amount",) . pure . toQueryParam <$> amount,
             ("metadata[order_short_id]",) . pure . toQueryParam <$> metadata.order_short_id,
+            ("metadata[order_id]",) . pure . toQueryParam <$> metadata.order_id,
+            ("metadata[refunds_id]",) . pure . toQueryParam <$> metadata.refunds_id,
             ("reason",) . pure . toQueryParam <$> reason,
             ("refund_application_fee",) . pure . toQueryParam <$> refund_application_fee,
             ("reverse_transfer",) . pure . toQueryParam <$> reverse_transfer,
@@ -60,7 +62,7 @@ data RefundObject = RefundObject
     reason :: Maybe RefundReason, -- Reason for the refund
     receipt_number :: Maybe Text, -- Receipt number for the refund
     source_transfer_reversal :: Maybe Text, -- Transfer reversal that is associated with the refund
-    status :: RefundStatus, -- Status of the refund ('pending', 'succeeded', 'failed', 'canceled')
+    status :: RefundStatus, -- Status of the refund
     failure_balance_transaction :: Maybe Text, -- Balance transaction ID when refund fails
     failure_reason :: Maybe Text, -- Reason code for the refund failure
     transfer_reversal :: Maybe Text -- ID of the transfer reversal

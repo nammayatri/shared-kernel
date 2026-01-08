@@ -637,12 +637,6 @@ mkChargeObject Stripe.Charge {..} =
       ..
     }
 
--- mkRefundObject :: Stripe.Refund -> Events.Refund
--- mkRefundObject = castRefunds . mkGetRefundResp
-
--- castRefunds :: GetRefundResp -> Events.Refund
--- castRefunds GetRefundResp {..} = Events.Refund {..}
-
 createRefund ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,

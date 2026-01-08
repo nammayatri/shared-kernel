@@ -181,18 +181,3 @@ data Charge = Charge
   deriving stock (Show)
 
 type Refund = GetRefundResp
-
--- data Refund = Refund
---   { id :: Refund.RefundId,
---     orderShortId :: Maybe Text,
---     orderId :: Maybe Text,
---     refundsId :: Maybe Text,
---     paymentIntentId :: Maybe Stripe.PaymentIntentId,
---     amount :: HighPrecMoney,
---     currency :: Currency,
---     status :: RefundStatus,
---     reason :: Maybe Text,
---     reverseTransferId :: Maybe Text,
---     errorCode :: Maybe Text
---   }
---   deriving stock (Show)
