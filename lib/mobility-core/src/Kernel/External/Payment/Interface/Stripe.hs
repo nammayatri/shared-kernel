@@ -681,7 +681,7 @@ createRefund config req = do
           metadata = Metadata {order_short_id = Just orderShortId, order_id = Just orderId, refunds_id = Just refundsId}
           refund_application_fee = Just req.refundApplicationFee
           instructions_email = req.email
-       in Stripe.RefundReq {amount = amountInCents, ..}
+       in Stripe.RefundReq {amount = amountInCents, reason = Just Stripe.REQUESTED_BY_CUSTOMER, ..}
 
     mkRefundResp :: Stripe.RefundObject -> CreateRefundResp
     mkRefundResp Stripe.RefundObject {..} =
@@ -739,7 +739,6 @@ mkGetRefundResp Stripe.RefundObject {..} =
       amount = centsToUsd amount,
       currency,
       status = castRefundStatus status,
-      reason,
       reverseTransferId = transfer_reversal,
       errorCode = failure_reason
     }

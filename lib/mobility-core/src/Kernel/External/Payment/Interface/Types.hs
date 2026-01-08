@@ -744,7 +744,6 @@ data CreateRefundReq = CreateRefundReq
     refundsId :: Text,
     paymentIntentId :: PaymentIntentId,
     amount :: Maybe HighPrecMoney,
-    reason :: Maybe Text,
     refundApplicationFee :: Bool,
     driverAccountId :: AccountId,
     email :: Maybe Text
@@ -771,7 +770,6 @@ data GetRefundResp = GetRefundResp
     amount :: HighPrecMoney,
     currency :: Currency,
     status :: RefundStatus,
-    reason :: Maybe Text,
     reverseTransferId :: Maybe Text,
     errorCode :: Maybe Text
   }

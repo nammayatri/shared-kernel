@@ -21,7 +21,7 @@ data RefundReq = RefundReq
     payment_intent :: Maybe Text, -- The identifier of the PaymentIntent to refund
     amount :: Maybe Int, -- Amount to refund (in smallest currency unit)
     metadata :: Metadata, -- Set of key-value pairs for metadata
-    reason :: Maybe Text, -- Reason for the refund ('duplicate', 'fraudulent', or 'requested_by_customer')
+    reason :: Maybe RefundReason, -- Reason for the refund
     refund_application_fee :: Maybe Bool, -- Whether to refund the application fee
     reverse_transfer :: Maybe Bool, -- Whether to reverse the transfer
     instructions_email :: Maybe Text -- Email where instructions to submit bank account info will be sent
@@ -57,7 +57,7 @@ data RefundObject = RefundObject
     currency :: Currency, -- Currency of the refund
     metadata :: Maybe Metadata, -- Set of key-value pairs attached to the refund
     payment_intent :: Maybe Text, -- ID of the PaymentIntent that was refunded
-    reason :: Maybe Text, -- Reason for the refund
+    reason :: Maybe RefundReason, -- Reason for the refund
     receipt_number :: Maybe Text, -- Receipt number for the refund
     source_transfer_reversal :: Maybe Text, -- Transfer reversal that is associated with the refund
     status :: RefundStatus, -- Status of the refund ('pending', 'succeeded', 'failed', 'canceled')
@@ -105,3 +105,31 @@ instance FromJSON RefundStatus where
 
 instance ToJSON RefundStatus where
   toJSON = genericToJSON refundStatusJsonOptions
+
+data RefundReason
+  = DUPLICATE
+  | FRAUDULENT
+  | REQUESTED_BY_CUSTOMER
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+refundReasonJsonOptions :: Options
+refundReasonJsonOptions =
+  defaultOptions
+    { constructorTagModifier = \case
+        "DUPLICATE" -> "duplicate"
+        "FRAUDULENT" -> "fraudulent"
+        "REQUESTED_BY_CUSTOMER" -> "requested_by_customer"
+        x -> x
+    }
+
+instance FromJSON RefundReason where
+  parseJSON = genericParseJSON refundReasonJsonOptions
+
+instance ToJSON RefundReason where
+  toJSON = genericToJSON refundReasonJsonOptions
+
+instance ToHttpApiData RefundReason where
+  toQueryParam DUPLICATE = "duplicate"
+  toQueryParam FRAUDULENT = "fraudulent"
+  toQueryParam REQUESTED_BY_CUSTOMER = "requested_by_customer"
