@@ -13,6 +13,7 @@ prepareConnectionDriver conf kvConfigUpdateFrequency = do
   RC.prepareRedisConnectionsDriver conf
   PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
   L.setOptionLocal ReplicaEnabled False
+  L.setOptionLocal MultiCloudEnabled False
 
 prepareConnectionRider :: L.MonadFlow m => ECT.ConnectionConfigRider -> Int -> m ()
 prepareConnectionRider conf kvConfigUpdateFrequency = do
@@ -20,6 +21,7 @@ prepareConnectionRider conf kvConfigUpdateFrequency = do
   RC.prepareRedisConnectionsRider conf
   PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
   L.setOptionLocal ReplicaEnabled False
+  L.setOptionLocal MultiCloudEnabled False
 
 prepareConnectionDashboard :: L.MonadFlow m => ECT.ConnectionConfigDashboard -> Int -> m ()
 prepareConnectionDashboard conf kvConfigUpdateFrequency = do
@@ -27,3 +29,4 @@ prepareConnectionDashboard conf kvConfigUpdateFrequency = do
   RC.prepareRedisConnectionsDashboard conf
   PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
   L.setOptionLocal ReplicaEnabled False
+  L.setOptionLocal MultiCloudEnabled False

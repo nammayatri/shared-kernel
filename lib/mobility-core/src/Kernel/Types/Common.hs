@@ -76,7 +76,9 @@ data Tables = Tables
     defaultShardMod :: Int,
     tableShardModRange :: HM.HashMap Text (Int, Int),
     tableRedisKeyPrefix :: HM.HashMap Text Text,
-    allTablesDisabled :: Maybe Bool
+    allTablesDisabled :: Maybe Bool,
+    enableSecondaryCloudRead :: Maybe Bool,
+    tablesForSecondaryCloudRead :: Maybe [Text]
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
@@ -91,7 +93,9 @@ defaultTableData =
       defaultShardMod = 128,
       tableShardModRange = HM.empty,
       tableRedisKeyPrefix = HM.empty,
-      allTablesDisabled = Just True
+      allTablesDisabled = Just True,
+      enableSecondaryCloudRead = Nothing,
+      tablesForSecondaryCloudRead = Nothing
     }
 
 data KafkaProperties = KafkaProperties
