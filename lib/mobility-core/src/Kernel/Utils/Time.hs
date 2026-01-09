@@ -159,8 +159,8 @@ utcTimeToText = T.pack . formatTime defaultTimeLocale "%FT%T%z"
 utcToEpochSeconds :: UTCTime -> Seconds
 utcToEpochSeconds = nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds
 
-toTimeWithZone :: TimeZone -> UTCTime -> TimeWithZone
-toTimeWithZone tz utc = TimeWithZone utc tz
+toTimeWithZone :: Kernel.Types.Time.TimeZone -> UTCTime -> TimeWithZone
+toTimeWithZone tz utcTime = TimeWithZone utcTime tz
 
 toIST :: UTCTime -> TimeWithZone
 toIST = toTimeWithZone IST
@@ -171,35 +171,35 @@ toUTCZone = toTimeWithZone UTC
 fromTimeWithZone :: TimeWithZone -> UTCTime
 fromTimeWithZone = twzTime
 
-getTimeZoneOffset :: TimeZone -> Time.TimeZone
+getTimeZoneOffset :: Kernel.Types.Time.TimeZone -> Time.TimeZone
 getTimeZoneOffset UTC = Time.utc
 getTimeZoneOffset IST = Time.minutesToTimeZone 330 -- UTC+5:30
 
 getLocalHour :: TimeWithZone -> Int
-getLocalHour (TimeWithZone utc z) =
-  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utc
+getLocalHour (TimeWithZone utcTime z) =
+  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utcTime
    in Time.todHour $ Time.localTimeOfDay localTime
 
 getLocalMinute :: TimeWithZone -> Int
-getLocalMinute (TimeWithZone utc z) =
-  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utc
+getLocalMinute (TimeWithZone utcTime z) =
+  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utcTime
    in Time.todMin $ Time.localTimeOfDay localTime
 
 addDaysToTimeWithZone :: Integer -> TimeWithZone -> TimeWithZone
-addDaysToTimeWithZone n (TimeWithZone utc z) =
-  TimeWithZone (Time.addUTCTime (fromInteger n * 86400) utc) z
+addDaysToTimeWithZone n (TimeWithZone utcTime z) =
+  TimeWithZone (Time.addUTCTime (fromInteger n * 86400) utcTime) z
 
 setTimeOfDay :: Int -> Int -> Int -> TimeWithZone -> TimeWithZone
-setTimeOfDay hour minute sec (TimeWithZone utc z) =
-  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utc
+setTimeOfDay hour minute sec (TimeWithZone utcTime z) =
+  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utcTime
       localDay = Time.localDay localTime
       newLocalTime = Time.LocalTime localDay (Time.TimeOfDay hour minute (fromIntegral sec))
       newUTC = Time.localTimeToUTC (getTimeZoneOffset z) newLocalTime
    in TimeWithZone newUTC z
 
 formatTimeWithZone :: String -> TimeWithZone -> String
-formatTimeWithZone fmt (TimeWithZone utc z) =
-  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utc
+formatTimeWithZone fmt (TimeWithZone utcTime z) =
+  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utcTime
    in Time.formatTime Time.defaultTimeLocale fmt localTime
         ++ " "
         ++ show z
