@@ -16,19 +16,12 @@
 -}
 module Kernel.External.Wallet.Interface.Types
   ( module Kernel.External.Wallet.Interface.Types,
-    module Reexport,
   )
 where
 
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
-import qualified Kernel.External.Wallet.Juspay.Config as Juspay
-import Kernel.External.Wallet.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.Common
-
-data WalletServiceConfig = JuspayWalletConfig Juspay.JuspayWalletConfig
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
 
 data CreateWalletReq = CreateWalletReq
   { operationId :: Text,

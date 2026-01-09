@@ -17,9 +17,11 @@ module Kernel.External.Wallet.Interface
   )
 where
 
+import qualified Kernel.External.Payment.Interface.Types as Payment
 import qualified Kernel.External.Wallet.Interface.Juspay as Juspay
 import Kernel.External.Wallet.Interface.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Error (GenericError (InvalidRequest))
 import Kernel.Utils.Common
 
 createWallet ::
@@ -27,52 +29,57 @@ createWallet ::
     CoreMetrics m,
     HasRequestId r
   ) =>
-  WalletServiceConfig ->
+  Payment.PaymentServiceConfig ->
   CreateWalletReq ->
   m CreateWalletResp
 createWallet config req = case config of
-  JuspayWalletConfig cfg -> Juspay.createWallet cfg req
+  Payment.JuspayConfig cfg -> Juspay.createWallet cfg req
+  Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
 
 walletPosting ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r
   ) =>
-  WalletServiceConfig ->
+  Payment.PaymentServiceConfig ->
   WalletPostingReq ->
   m WalletPostingResp
 walletPosting config req = case config of
-  JuspayWalletConfig cfg -> Juspay.walletPosting cfg req
+  Payment.JuspayConfig cfg -> Juspay.walletPosting cfg req
+  Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
 
 walletReversal ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r
   ) =>
-  WalletServiceConfig ->
+  Payment.PaymentServiceConfig ->
   WalletReversalReq ->
   m WalletReversalResp
 walletReversal config req = case config of
-  JuspayWalletConfig cfg -> Juspay.walletReversal cfg req
+  Payment.JuspayConfig cfg -> Juspay.walletReversal cfg req
+  Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
 
 walletBalance ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r
   ) =>
-  WalletServiceConfig ->
+  Payment.PaymentServiceConfig ->
   WalletBalanceReq ->
   m WalletBalanceResp
 walletBalance config req = case config of
-  JuspayWalletConfig cfg -> Juspay.walletBalance cfg req
+  Payment.JuspayConfig cfg -> Juspay.walletBalance cfg req
+  Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
 
 walletVerifyTxn ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r
   ) =>
-  WalletServiceConfig ->
+  Payment.PaymentServiceConfig ->
   WalletVerifyTxnReq ->
   m WalletVerifyTxnResp
 walletVerifyTxn config req = case config of
-  JuspayWalletConfig cfg -> Juspay.walletVerifyTxn cfg req
+  Payment.JuspayConfig cfg -> Juspay.walletVerifyTxn cfg req
+  Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
