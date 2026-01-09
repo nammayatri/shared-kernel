@@ -295,7 +295,6 @@ library
       Kernel.External.Wallet.Juspay
       Kernel.External.Wallet.Juspay.Config
       Kernel.External.Wallet.Juspay.Flow
-      Kernel.External.Wallet.Types
       Kernel.External.Whatsapp.GupShup.Config
       Kernel.External.Whatsapp.GupShup.Flow
       Kernel.External.Whatsapp.GupShup.Types

@@ -13,8 +13,7 @@
 -}
 
 module Kernel.External.Wallet.Interface.Juspay
-  ( module Reexport,
-    createWallet,
+  ( createWallet,
     walletPosting,
     walletReversal,
     walletBalance,
@@ -23,11 +22,13 @@ module Kernel.External.Wallet.Interface.Juspay
 where
 
 import Kernel.External.Encryption
+import qualified Kernel.External.Payment.Juspay.Config as PaymentJuspay
 import Kernel.External.Wallet.Interface.Types
-import Kernel.External.Wallet.Juspay.Config as Reexport
 import qualified Kernel.External.Wallet.Juspay.Flow as Juspay
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.Error (GenericError (InvalidRequest))
+import Kernel.Utils.Error.Throwing (fromMaybeM)
 import Kernel.Utils.Servant.Client (HasRequestId)
 
 createWallet ::
@@ -35,57 +36,63 @@ createWallet ::
     EncFlow m r,
     HasRequestId r
   ) =>
-  JuspayWalletConfig ->
+  PaymentJuspay.JuspayCfg ->
   CreateWalletReq ->
   m CreateWalletResp
 createWallet config req = do
+  issuer <- fromMaybeM (InvalidRequest "walletIssuer is required in Juspay config") config.walletIssuer
   apiKey <- decrypt config.apiKey
-  Juspay.createWallet config.url apiKey config.issuer req
+  Juspay.createWallet config.url apiKey issuer req
 
 walletPosting ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
     HasRequestId r
   ) =>
-  JuspayWalletConfig ->
+  PaymentJuspay.JuspayCfg ->
   WalletPostingReq ->
   m WalletPostingResp
 walletPosting config req = do
+  issuer <- fromMaybeM (InvalidRequest "walletIssuer is required in Juspay config") config.walletIssuer
+  rewardApiVersion <- fromMaybeM (InvalidRequest "walletRewardApiVersion is required in Juspay config") config.walletRewardApiVersion
   apiKey <- decrypt config.apiKey
-  Juspay.walletPosting config.url apiKey config.issuer (Just config.rewardApiVersion) req
+  Juspay.walletPosting config.url apiKey issuer (Just rewardApiVersion) req
 
 walletReversal ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
     HasRequestId r
   ) =>
-  JuspayWalletConfig ->
+  PaymentJuspay.JuspayCfg ->
   WalletReversalReq ->
   m WalletReversalResp
 walletReversal config req = do
+  issuer <- fromMaybeM (InvalidRequest "walletIssuer is required in Juspay config") config.walletIssuer
   apiKey <- decrypt config.apiKey
-  Juspay.walletReversal config.url apiKey config.issuer req
+  Juspay.walletReversal config.url apiKey issuer req
 
 walletBalance ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
     HasRequestId r
   ) =>
-  JuspayWalletConfig ->
+  PaymentJuspay.JuspayCfg ->
   WalletBalanceReq ->
   m WalletBalanceResp
 walletBalance config req = do
+  issuer <- fromMaybeM (InvalidRequest "walletIssuer is required in Juspay config") config.walletIssuer
   apiKey <- decrypt config.apiKey
-  Juspay.walletBalance config.url apiKey config.issuer req
+  Juspay.walletBalance config.url apiKey issuer req
 
 walletVerifyTxn ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
     HasRequestId r
   ) =>
-  JuspayWalletConfig ->
+  PaymentJuspay.JuspayCfg ->
   WalletVerifyTxnReq ->
   m WalletVerifyTxnResp
 walletVerifyTxn config req = do
+  issuer <- fromMaybeM (InvalidRequest "walletIssuer is required in Juspay config") config.walletIssuer
   apiKey <- decrypt config.apiKey
-  Juspay.walletVerifyTxn config.url apiKey config.issuer req
+  Juspay.walletVerifyTxn config.url apiKey issuer req

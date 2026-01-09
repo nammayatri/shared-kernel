@@ -35,7 +35,9 @@ data JuspayCfg = JuspayCfg
     isPercentageSplit :: Maybe Bool,
     paymentOrderValidity :: Maybe Seconds,
     offerSKUConfig :: Maybe Text,
-    autoRefundConflictThresholdMinutes :: Maybe Int
+    autoRefundConflictThresholdMinutes :: Maybe Int,
+    walletIssuer :: Maybe Text,
+    walletRewardApiVersion :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
