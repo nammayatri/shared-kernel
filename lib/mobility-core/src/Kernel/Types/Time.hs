@@ -32,6 +32,25 @@ import Kernel.Utils.GenericPretty
 import Servant (FromHttpApiData, ToHttpApiData)
 import qualified System.Clock as Clock
 
+data TimeAPIEntity = TimeAPIEntity
+  { value :: Int,
+    unit :: TimeUnit
+  }
+  deriving stock (Generic, Show, Read, Eq, Ord)
+  deriving anyclass (FromJSON, ToSchema)
+
+data TimeUnit
+  = MICROSECOND
+  | MILLISECOND
+  | SECOND
+  | MINUTE
+  | HOUR
+  | DAY
+  | MONTH
+  | YEAR
+  deriving stock (Generic, Show, Read, Eq, Ord)
+  deriving anyclass (FromJSON, ToSchema)
+
 newtype Microseconds = Microseconds
   { getMicroseconds :: Int
   }
