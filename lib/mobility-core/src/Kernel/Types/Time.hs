@@ -114,11 +114,29 @@ instance MonadClock IO where
 
 data TimeWithZone = TimeWithZone
   { twzTime :: UTCTime,
-    twzZone :: TimeZone
+    twzZone :: TZone
   }
   deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
-data TimeZone = UTC | IST
+data TZone = UTC | IST
   deriving stock (Show, Read, Eq, Ord, Enum, Bounded, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+-- Beam instances for TimeWithZone
+-- Store ONLY UTCTime in database (no schema change!)
+instance HasSqlValueSyntax be UTCTime => HasSqlValueSyntax be TimeWithZone where
+  sqlValueSyntax (TimeWithZone utcTime _) = sqlValueSyntax utcTime
+
+-- ✅ Only stores UTCTime, ignores TZone
+
+instance FromBackendRow Postgres TimeWithZone where
+  fromBackendRow = do
+    utcTime <- fromBackendRow @Postgres @UTCTime
+    pure $ TimeWithZone utcTime IST
+
+-- ✅ Always reconstructs with IST timezone
+
+instance BeamSqlBackend be => B.HasSqlEqualityCheck be TimeWithZone
+
+instance BeamSqlBackend be => B.HasSqlQuantifiedEqualityCheck be TimeWithZone

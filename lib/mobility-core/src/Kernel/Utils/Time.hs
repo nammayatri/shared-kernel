@@ -159,7 +159,7 @@ utcTimeToText = T.pack . formatTime defaultTimeLocale "%FT%T%z"
 utcToEpochSeconds :: UTCTime -> Seconds
 utcToEpochSeconds = nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds
 
-toTimeWithZone :: Kernel.Types.Time.TimeZone -> UTCTime -> TimeWithZone
+toTimeWithZone :: TZone -> UTCTime -> TimeWithZone
 toTimeWithZone tz utcTime = TimeWithZone utcTime tz
 
 toIST :: UTCTime -> TimeWithZone
@@ -171,7 +171,7 @@ toUTCZone = toTimeWithZone UTC
 fromTimeWithZone :: TimeWithZone -> UTCTime
 fromTimeWithZone = twzTime
 
-getTimeZoneOffset :: Kernel.Types.Time.TimeZone -> Time.TimeZone
+getTimeZoneOffset :: TZone -> Time.TimeZone
 getTimeZoneOffset UTC = Time.utc
 getTimeZoneOffset IST = Time.minutesToTimeZone 330 -- UTC+5:30
 
