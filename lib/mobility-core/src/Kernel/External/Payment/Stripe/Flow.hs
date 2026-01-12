@@ -544,3 +544,77 @@ createEphemeralKeys url apiKey ephemeralKeysReq = do
   let proxy = Proxy @CreateEphemeralKeysAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just "2024-04-10") ephemeralKeysReq
   callStripeAPI url eulerClient "create-ephemeralKeys" proxy
+
+-------------------------------------------- Refund APIs ------------------------------------------
+type CreateRefundAPI =
+  "v1"
+    :> "refunds"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Header "Stripe-Account" Text -- Optional connected account ID header
+    :> ReqBody '[FormUrlEncoded] RefundReq
+    :> Post '[JSON] RefundObject
+
+createRefund ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Maybe Text ->
+  RefundReq ->
+  m RefundObject
+createRefund url apiKey connectedAccountId refundReq = do
+  let proxy = Proxy @CreateRefundAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId refundReq
+  callStripeAPI url eulerClient "create-refund" proxy
+
+type GetRefundAPI =
+  "v1"
+    :> "refunds"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Header "Stripe-Account" Text
+    :> Capture "id" RefundId
+    :> Get '[JSON] RefundObject
+
+getRefund ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Maybe Text ->
+  RefundId ->
+  m RefundObject
+getRefund url apiKey connectedAccountId refundId = do
+  let proxy = Proxy @GetRefundAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId refundId
+  callStripeAPI url eulerClient "get-refund" proxy
+
+type CancelRefundAPI =
+  "v1"
+    :> "refunds"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Header "Stripe-Account" Text
+    :> Capture "id" RefundId
+    :> "cancel"
+    :> Post '[JSON] RefundObject
+
+cancelRefund ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Maybe Text ->
+  RefundId ->
+  m RefundObject
+cancelRefund url apiKey connectedAccountId refundId = do
+  let proxy = Proxy @CancelRefundAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId refundId
+  callStripeAPI url eulerClient "cancel-refund" proxy

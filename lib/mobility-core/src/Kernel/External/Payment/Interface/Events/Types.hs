@@ -15,7 +15,9 @@
 
 module Kernel.External.Payment.Interface.Events.Types where
 
+import Kernel.External.Payment.Interface.Types (GetRefundResp)
 import qualified Kernel.External.Payment.Stripe.Types.Common as Stripe
+import qualified Kernel.External.Payment.Stripe.Types.Webhook as Stripe
 import Kernel.Prelude
 import Kernel.Types.Common
 import Kernel.Types.Id
@@ -26,7 +28,8 @@ data ServiceEventResp = ServiceEventResp
     createdAt :: UTCTime,
     eventData :: EventObject,
     livemode :: Bool,
-    pendingWebhooks :: Integer
+    pendingWebhooks :: Integer,
+    eventType :: Stripe.EventType
   }
   deriving stock (Show)
 
@@ -47,7 +50,10 @@ data EventObject
   | ChargeRefundedEvent Charge
   | ChargeDisputeCreatedEvent Charge
   | ChargeDisputeClosedEvent Charge
-  | ChargeRefundUpdatedEvent Charge
+  | ChargeRefundUpdatedEvent Refund
+  | RefundCreatedEvent Refund
+  | RefundUpdatedEvent Refund
+  | RefundFailedEvent Refund
   | CustomEvent Text
   deriving stock (Show)
 
@@ -173,3 +179,5 @@ data Charge = Charge
     status :: Stripe.ChargeStatus
   }
   deriving stock (Show)
+
+type Refund = GetRefundResp

@@ -944,7 +944,7 @@ mkRefundsData =
         RefundsData
           { idAssignedByServiceProvider = id,
             amount = realToFrac amount,
-            status = status,
+            status = castStatus status,
             errorMessage = error_message,
             errorCode = error_code,
             initiatedBy = initiated_by,
@@ -959,6 +959,13 @@ mkOffersData =
       ( \Juspay.Offer {..} ->
           Offer {offerId = offer_id, offerCode = offer_code, status = status}
       )
+
+castStatus :: Juspay.RefundStatus -> RefundStatus
+castStatus = \case
+  Juspay.REFUND_PENDING -> REFUND_PENDING
+  Juspay.REFUND_FAILURE -> REFUND_FAILURE
+  Juspay.REFUND_SUCCESS -> REFUND_SUCCESS
+  Juspay.MANUAL_REVIEW -> MANUAL_REVIEW
 
 parseRetargetAndRetryData ::
   Maybe Juspay.MetaData ->

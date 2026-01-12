@@ -13,6 +13,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wwarn=incomplete-record-updates #-}
 
 module Kernel.External.Payment.Interface.Types
@@ -21,12 +22,17 @@ module Kernel.External.Payment.Interface.Types
   )
 where
 
+import Control.Lens
+import Data.Aeson.Types
+import Data.OpenApi hiding (description, email, name, title)
 import Data.Time
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), TransactionStatus (..))
 import qualified Kernel.External.Payment.Stripe.Config as Stripe
-import Kernel.External.Payment.Stripe.Types as Reexport
+import Kernel.External.Payment.Stripe.Types as Reexport hiding (RefundStatus (..))
 import Kernel.Prelude
+import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.APISuccess (APISuccess)
 import qualified Kernel.Types.Beckn.Context as Context
 import Kernel.Types.Common
@@ -557,6 +563,35 @@ data AutoRefundResp = AutoRefundResp
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data RefundStatus = REFUND_PENDING | REFUND_FAILURE | REFUND_SUCCESS | MANUAL_REVIEW | REFUND_CANCELED | REFUND_REQUIRES_ACTION
+  deriving stock (Show, Eq, Read, Ord, Generic)
+
+instance FromJSON RefundStatus where
+  parseJSON (String "FAILURE") = pure REFUND_FAILURE
+  parseJSON (String "PENDING") = pure REFUND_PENDING
+  parseJSON (String "SUCCESS") = pure REFUND_SUCCESS
+  parseJSON (String "MANUAL_REVIEW") = pure MANUAL_REVIEW
+  parseJSON (String "REFUND_CANCELED") = pure REFUND_CANCELED
+  parseJSON (String "REFUND_REQUIRES_ACTION") = pure REFUND_REQUIRES_ACTION
+  parseJSON (String _) = parseFail "Expected type"
+  parseJSON e = typeMismatch "String" e
+
+instance ToJSON RefundStatus where
+  toJSON REFUND_FAILURE = "FAILURE"
+  toJSON REFUND_PENDING = "PENDING"
+  toJSON REFUND_SUCCESS = "SUCCESS"
+  toJSON MANUAL_REVIEW = "MANUAL_REVIEW"
+  toJSON REFUND_CANCELED = "REFUND_CANCELED"
+  toJSON REFUND_REQUIRES_ACTION = "REFUND_REQUIRES_ACTION"
+
+instance ToSchema RefundStatus where
+  declareNamedSchema _ =
+    pure $
+      NamedSchema (Just "RefundStatus") $
+        mempty
+          & type_ ?~ OpenApiString
+          & enum_ ?~ (map toJSON [REFUND_PENDING, REFUND_FAILURE, REFUND_SUCCESS, MANUAL_REVIEW, REFUND_CANCELED, REFUND_REQUIRES_ACTION])
+
 data RefundsData = RefundsData
   { idAssignedByServiceProvider :: Maybe Text,
     amount :: HighPrecMoney,
@@ -702,3 +737,48 @@ data VerifyVPAResp = VerifyVPAResp
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CreateRefundReq = CreateRefundReq
+  { orderShortId :: Text,
+    orderId :: Text,
+    refundsId :: Text,
+    paymentIntentId :: PaymentIntentId,
+    amount :: Maybe HighPrecMoney,
+    refundApplicationFee :: Bool,
+    driverAccountId :: AccountId,
+    email :: Maybe Text
+  }
+
+data CreateRefundResp = CreateRefundResp
+  { id :: RefundId,
+    status :: RefundStatus,
+    reverseTransferId :: Maybe Text,
+    errorCode :: Maybe Text
+  }
+
+data GetRefundReq = GetRefundReq
+  { id :: RefundId,
+    driverAccountId :: AccountId
+  }
+
+data GetRefundResp = GetRefundResp
+  { id :: RefundId,
+    orderShortId :: Maybe Text,
+    orderId :: Maybe Text,
+    refundsId :: Maybe Text,
+    paymentIntentId :: Maybe PaymentIntentId,
+    amount :: HighPrecMoney,
+    currency :: Currency,
+    status :: RefundStatus,
+    reverseTransferId :: Maybe Text,
+    errorCode :: Maybe Text
+  }
+  deriving stock (Show)
+
+type CancelRefundReq = GetRefundReq
+
+type CancelRefundResp = GetRefundResp
+
+derivePersistField "RefundStatus"
+
+$(mkBeamInstancesForEnum ''RefundStatus)
