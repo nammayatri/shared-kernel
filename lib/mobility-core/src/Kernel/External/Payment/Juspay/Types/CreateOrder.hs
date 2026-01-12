@@ -16,6 +16,7 @@
 module Kernel.External.Payment.Juspay.Types.CreateOrder where
 
 import Data.Aeson
+import Data.Aeson.Types (Parser)
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
@@ -215,6 +216,16 @@ instance FromJSON CreateOrderReq where
 instance ToJSON CreateOrderReq where
   toJSON = genericToJSON jsonReqOptions {omitNothingFields = True}
 
+parseCreateOrderResp :: (TransactionStatus -> Text -> Text -> Maybe PaymentLinks -> sdkPayload -> sdkPayloadJson -> v) -> Object -> Parser sdkPayload -> Parser sdkPayloadJson -> Parser v
+parseCreateOrderResp constructor v sdkPayloadParser sdkPayloadJsonParser = do
+  status <- v .: "status"
+  order_id <- v .: "order_id"
+  id <- v .: "id"
+  payment_links <- v .: "payment_links"
+  sdk_payload <- sdkPayloadParser
+  sdk_payload_json <- sdkPayloadJsonParser
+  return (constructor status id order_id payment_links sdk_payload sdk_payload_json)
+
 data CreateOrderResp = CreateOrderResp
   { status :: TransactionStatus,
     id :: Text,
@@ -227,14 +238,23 @@ data CreateOrderResp = CreateOrderResp
   deriving anyclass (ToJSON, ToSchema)
 
 instance FromJSON CreateOrderResp where
-  parseJSON = withObject "CreateOrderResp" $ \v -> do
-    status <- v .: "status"
-    order_id <- v .: "order_id"
-    id <- v .: "id"
-    payment_links <- v .: "payment_links"
-    sdk_payload <- v .: "sdk_payload"
-    sdk_payload_json <- v .: "sdk_payload"
-    return (CreateOrderResp status id order_id payment_links sdk_payload sdk_payload_json)
+  parseJSON = withObject "CreateOrderResp" $ \v ->
+    parseCreateOrderResp CreateOrderResp v (v .: "sdk_payload") (v .: "sdk_payload")
+
+data CreateOrderRespForUI = CreateOrderRespForUI
+  { status :: TransactionStatus,
+    id :: Text,
+    order_id :: Text,
+    payment_links :: Maybe PaymentLinks,
+    sdk_payload :: Maybe Value,
+    sdk_payload_json :: Maybe Value
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, ToSchema)
+
+instance FromJSON CreateOrderRespForUI where
+  parseJSON = withObject "CreateOrderRespForUI" $ \v ->
+    parseCreateOrderResp CreateOrderRespForUI v (v .: "sdk_payload") (v .: "sdk_payload")
 
 data PaymentLinks = PaymentLinks
   { web :: Maybe BaseUrl,

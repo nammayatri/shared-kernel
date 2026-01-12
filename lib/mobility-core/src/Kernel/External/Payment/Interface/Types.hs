@@ -23,7 +23,7 @@ where
 
 import Data.Time
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), CreateOrderRespForUI (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), RefundStatus (..), TransactionStatus (..))
 import qualified Kernel.External.Payment.Stripe.Config as Stripe
 import Kernel.External.Payment.Stripe.Types as Reexport
 import Kernel.Prelude
