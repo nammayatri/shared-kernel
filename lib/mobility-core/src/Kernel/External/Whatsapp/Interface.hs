@@ -23,8 +23,10 @@ where
 import EulerHS.Prelude
 import Kernel.External.Whatsapp.GupShup.Config as Reexport
 import qualified Kernel.External.Whatsapp.Interface.GupShup as GupShup
+import qualified Kernel.External.Whatsapp.Interface.Karix as Karix
 import qualified Kernel.External.Whatsapp.Interface.TataCommunications as TataCommunications
 import Kernel.External.Whatsapp.Interface.Types as Reexport
+import Kernel.External.Whatsapp.Karix.Config as Reexport
 import Kernel.External.Whatsapp.TataCommunications.Config as Reexport
 import Kernel.External.Whatsapp.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -62,6 +64,9 @@ whatsAppOptApi' serviceConfig req = case serviceConfig of
   TataCommunicationsConfig _ -> do
     logDebug $ "Skipping WhatsApp opt-in API call for Tata Communications as it is not required."
     pure Nothing
+  KarixConfig _ -> do
+    logDebug $ "Skipping WhatsApp opt-in API call for Karix as it is not required."
+    pure Nothing
 
 whatsAppOtpApi :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendOtpApiReq -> m SendOtpApiResp
 whatsAppOtpApi WhatsappHandler {..} req = do
@@ -89,6 +94,7 @@ whatsAppOtpApi' ::
 whatsAppOtpApi' serviceConfig req = case serviceConfig of
   GupShupConfig cfg -> GupShup.whatsAppOTPApi cfg req
   TataCommunicationsConfig cfg -> TataCommunications.whatsAppOTPApi cfg req
+  KarixConfig cfg -> Karix.whatsAppOTPApi cfg req
 
 whatsAppSendMessageWithTemplateIdAPI :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendWhatsAppMessageWithTemplateIdApIReq -> m SendOtpApiResp
 whatsAppSendMessageWithTemplateIdAPI WhatsappHandler {..} req = do
@@ -119,3 +125,4 @@ whatsAppSendMessageWithTemplateIdAPI' ::
 whatsAppSendMessageWithTemplateIdAPI' serviceConfig req = case serviceConfig of
   GupShupConfig cfg -> GupShup.whatsAppSendMessageWithTemplateIdAPI cfg req
   TataCommunicationsConfig cfg -> TataCommunications.whatsAppSendMessageWithTemplateIdAPI cfg req
+  KarixConfig _ -> throwError $ InternalError "whatsAppSendMessageWithTemplateIdAPI is not supported for Karix provider"

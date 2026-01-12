@@ -1704,5 +1704,64 @@ instance FromResponse TataCommunicationsWhatsappError where
 
 instance IsAPIError TataCommunicationsWhatsappError
 
+data KarixWhatsappError
+  = KarixWhatsappInvalidRequest
+  | KarixWhatsappNotConfigured
+  | KarixWhatsappUserIdNotFound
+  | KarixWhatsappInvalidPhoneNumber
+  | KarixWhatsappUnauthorized
+  | KarixWhatsappWrongMethodService
+  | KarixWhatsappInterNationalPhoneNumber
+  | KarixWhatsappTooManyRequests
+  | KarixWhatsappPermissionDenied
+  | KarixWhatsappServiceUnavailable
+  | KarixWhatsappUnknownServerError
+  | KarixWhatsappGenericError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''KarixWhatsappError
+
+instance IsBaseError KarixWhatsappError where
+  toMessage = \case
+    KarixWhatsappInvalidRequest -> Just "Invalid request to KarixWhatsapp."
+    KarixWhatsappNotConfigured -> Just "KarixWhatsapp env variables aren't properly set."
+    KarixWhatsappUserIdNotFound -> Just "KarixWhatsapp Authentication Failed as userid does not exist."
+    KarixWhatsappInvalidPhoneNumber -> Just "The phone number is not a valid phone number."
+    KarixWhatsappUnauthorized -> Just "Your access token has expired."
+    KarixWhatsappWrongMethodService -> Just "The method is not supported."
+    KarixWhatsappInterNationalPhoneNumber -> Just "The INTERNATIONAL_PHONE service is disabled for you. Kindly get the service enabled before using this action"
+    KarixWhatsappTooManyRequests -> Just "The phone number has already been marked as requested"
+    KarixWhatsappPermissionDenied -> Just "Permission is either not granted or has been removed."
+    KarixWhatsappServiceUnavailable -> Just "Temporary due to downtime or due to being overloaded."
+    KarixWhatsappUnknownServerError -> Just "An unknown exception has occurred. Please retry the request after some time."
+    KarixWhatsappGenericError msg -> Just ("Error: " <> msg)
+
+instance IsHTTPError KarixWhatsappError where
+  toErrorCode = \case
+    KarixWhatsappNotConfigured -> "KARIX_WHATSAPP_NOT_CONFIGURED"
+    KarixWhatsappInvalidRequest -> "KARIX_WHATSAPP_INVALID_REQUEST"
+    KarixWhatsappUserIdNotFound -> "KARIX_WHATSAPP_USER_NOT_FOUND"
+    KarixWhatsappInvalidPhoneNumber -> "KARIX_WHATSAPP_INVALID_PHONE_NUMBER"
+    KarixWhatsappUnauthorized -> "KARIX_WHATSAPP_AUTHENTICATION_FAILED"
+    KarixWhatsappWrongMethodService -> "KARIX_WHATSAPP_WRONG_METHOD_SERVICE"
+    KarixWhatsappInterNationalPhoneNumber -> "KARIX_WHATSAPP_INTERNATIONAL_PHONE_DISABLED"
+    KarixWhatsappTooManyRequests -> "KARIX_WHATSAPP_TOO_MANY_REQUEST_FOR_SAME"
+    KarixWhatsappPermissionDenied -> "KARIX_WHATSAPP_PERMISSION_DENIED"
+    KarixWhatsappServiceUnavailable -> "KARIX_WHATSAPP_SERVICE_UNAVAILABLE"
+    KarixWhatsappUnknownServerError -> "KARIX_WHATSAPP_UNKNOWN_ERROR"
+    KarixWhatsappGenericError msg -> "KARIX_WHATSAPP_ERROR: " <> msg
+
+instance FromResponse KarixWhatsappError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just KarixWhatsappInvalidRequest
+    401 -> Just KarixWhatsappUnauthorized
+    403 -> Just KarixWhatsappPermissionDenied
+    500 -> Just KarixWhatsappUnknownServerError
+    503 -> Just KarixWhatsappServiceUnavailable
+    404 -> Just KarixWhatsappUserIdNotFound
+    _ -> Just KarixWhatsappNotConfigured
+
+instance IsAPIError KarixWhatsappError
+
 instance ToJSON ClientError where
   toJSON = DA.String . show

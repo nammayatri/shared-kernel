@@ -23,12 +23,13 @@ where
 import Deriving.Aeson
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Whatsapp.GupShup.Config as GupShup
+import qualified Kernel.External.Whatsapp.Karix.Config as Karix
 import qualified Kernel.External.Whatsapp.TataCommunications.Config as TataCommunications
 import qualified Kernel.External.Whatsapp.Types as T
 import Kernel.Prelude
 import Kernel.Utils.JSON
 
-data WhatsappServiceConfig = GupShupConfig GupShup.GupShupCfg | TataCommunicationsConfig TataCommunications.TataCommunicationsCfg
+data WhatsappServiceConfig = GupShupConfig GupShup.GupShupCfg | TataCommunicationsConfig TataCommunications.TataCommunicationsCfg | KarixConfig Karix.KarixCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] WhatsappServiceConfig
 
