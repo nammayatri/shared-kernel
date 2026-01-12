@@ -300,8 +300,13 @@ library
       Kernel.External.Whatsapp.GupShup.Types
       Kernel.External.Whatsapp.Interface
       Kernel.External.Whatsapp.Interface.GupShup
+      Kernel.External.Whatsapp.Interface.Karix
       Kernel.External.Whatsapp.Interface.TataCommunications
       Kernel.External.Whatsapp.Interface.Types
+      Kernel.External.Whatsapp.Karix.Api
+      Kernel.External.Whatsapp.Karix.Config
+      Kernel.External.Whatsapp.Karix.Flow
+      Kernel.External.Whatsapp.Karix.Types
       Kernel.External.Whatsapp.TataCommunications.Config
       Kernel.External.Whatsapp.TataCommunications.Flow
       Kernel.External.Whatsapp.TataCommunications.Types
