@@ -37,7 +37,8 @@ data JuspayCfg = JuspayCfg
     offerSKUConfig :: Maybe Text,
     autoRefundConflictThresholdMinutes :: Maybe Int,
     walletIssuer :: Maybe Text,
-    walletRewardApiVersion :: Maybe Text
+    walletRewardApiVersion :: Maybe Text,
+    mockStatusUrl :: Maybe BaseUrl
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

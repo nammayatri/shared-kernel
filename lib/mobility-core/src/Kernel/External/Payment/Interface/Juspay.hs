@@ -56,8 +56,8 @@ import Kernel.Types.Beckn.Ack
 import Kernel.Types.Error
 import Kernel.Utils.Common (HighPrecMoney, Log, MonadTime, fromMaybeM, getCurrentTime)
 import Kernel.Utils.Logging (logDebug)
-import Kernel.Utils.Servant.Client
-import Servant hiding (throwError)
+import Kernel.Utils.Servant.Client (HasRequestId)
+import Servant (BasicAuthData)
 
 createOrder ::
   ( Metrics.CoreMetrics m,
@@ -389,10 +389,15 @@ orderStatus ::
   OrderStatusReq ->
   m OrderStatusResp
 orderStatus config mRoutingId req = do
-  let url = config.url
-      merchantId = config.merchantId
-  apiKey <- decrypt config.apiKey
-  mkOrderStatusResp <$> Juspay.orderStatus url apiKey merchantId mRoutingId req.orderShortId
+  case config.mockStatusUrl of
+    Just mockBaseUrl -> do
+      logDebug $ "Redirecting orderStatus to mock server: " <> show mockBaseUrl
+      mkOrderStatusResp <$> Juspay.mockOrderStatus mockBaseUrl req.orderShortId
+    Nothing -> do
+      let url = config.url
+          merchantId = config.merchantId
+      apiKey <- decrypt config.apiKey
+      mkOrderStatusResp <$> Juspay.orderStatus url apiKey merchantId mRoutingId req.orderShortId
 
 mkOrderStatusResp :: Juspay.OrderStatusResp -> OrderStatusResp
 mkOrderStatusResp Juspay.OrderData {..} =
