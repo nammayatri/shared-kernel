@@ -133,6 +133,28 @@ orderStatus url apiKey merchantId mRoutingId orderId = do
       eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) mRoutingId version
   callJuspayAPI url eulerClient "order-status" proxy
 
+type MockOrderStatusAPI =
+  "payment"
+    :> "internal"
+    :> "orders"
+    :> Capture "orderShortId" Text
+    :> "status"
+    :> Get '[JSON] OrderStatusResp
+
+mockOrderStatus ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  m OrderStatusResp
+mockOrderStatus mockBaseUrl orderShortId = do
+  let proxy = Proxy @MockOrderStatusAPI
+      eulerClient = Euler.client proxy orderShortId
+  callJuspayAPI mockBaseUrl eulerClient "mock-order-status" proxy
+
 getCurrentDate :: MonadFlow m => m Text
 getCurrentDate = do
   currentTime <- getCurrentTime
