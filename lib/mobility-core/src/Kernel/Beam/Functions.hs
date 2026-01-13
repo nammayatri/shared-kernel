@@ -206,7 +206,7 @@ setMeshConfigForFindAll modelName mSchema meshConfig' = do
   pure $
     if fromMaybe False isMultiCloudEnabled
       then baseMeshConfig {secondaryRedisEnabled = True}
-      else baseMeshConfig
+      else baseMeshConfig {secondaryRedisEnabled = False}
 
 withUpdatedMeshConfigForFindAll :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfigForFindAll _ mkAction = do
