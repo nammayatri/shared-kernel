@@ -386,8 +386,7 @@ findAllWithKVAndConditionalDB ::
   Where Postgres table ->
   Maybe (OrderBy table) ->
   m [a]
-findAllWithKVAndConditionalDB where' orderBy = do
-  updatedMeshConfig <- setMeshConfigForFindAll (modelTableName @table) (modelSchemaName @table) meshConfig
+findAllWithKVAndConditionalDB where' orderBy = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
   case result of
@@ -406,8 +405,7 @@ findAllFromKvRedis ::
   Where Postgres table ->
   Maybe (OrderBy table) ->
   m [a]
-findAllFromKvRedis where' orderBy = do
-  updatedMeshConfig <- setMeshConfigForFindAll (modelTableName @table) (modelSchemaName @table) meshConfig
+findAllFromKvRedis where' orderBy = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   result <- KV.findAllFromKvRedis dbConf' updatedMeshConfig where' orderBy
   case result of
