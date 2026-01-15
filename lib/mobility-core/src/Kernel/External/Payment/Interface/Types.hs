@@ -783,3 +783,18 @@ type CancelRefundResp = GetRefundResp
 derivePersistField "RefundStatus"
 
 $(mkBeamInstancesForEnum ''RefundStatus)
+
+data TransferAccount = TransferConnectedAccount AccountId | TransferPlatformAccount
+
+data CreateTransferReq = CreateTransferReq
+  { amount :: HighPrecMoney,
+    currency :: Currency,
+    senderConnectedAccountId :: AccountId,
+    destinationAccount :: TransferAccount,
+    description :: Maybe Text
+  }
+
+data CreateTransferResp = CreateTransferResp
+  { transferId :: TransferId,
+    status :: TransferStatus
+  }
