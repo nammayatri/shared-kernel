@@ -22,6 +22,7 @@ where
 import Data.Aeson
 import Kernel.External.Encryption
 import Kernel.External.Payment.Stripe.Types.Accounts as Reexport (BusinessProfile (..))
+import Kernel.External.Payment.Stripe.Types.Common (AccountId)
 import Kernel.Prelude
 import Kernel.Types.Common
 
@@ -38,7 +39,8 @@ data StripeCfg = StripeCfg
     chargeDestination :: ChargeDestination,
     webhookEndpointSecret :: Maybe (EncryptedField 'AsEncrypted Text),
     webhookToleranceSeconds :: Maybe Seconds,
-    serviceMode :: Maybe ServiceMode
+    serviceMode :: Maybe ServiceMode,
+    platformAccountId :: Maybe AccountId
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
