@@ -27,11 +27,13 @@ import qualified Kernel.External.SMS.Interface.ExotelSms as ExotelSms
 import qualified Kernel.External.SMS.Interface.GupShup as GupShup
 import qualified Kernel.External.SMS.Interface.KarixSms as KarixSms
 import qualified Kernel.External.SMS.Interface.MyValueFirst as MyValueFirst
+import qualified Kernel.External.SMS.Interface.PinbixSms as PinbixSms
 import qualified Kernel.External.SMS.Interface.TwillioSms as TwillioSms
 import Kernel.External.SMS.Interface.Types as Reexport
 import qualified Kernel.External.SMS.Interface.VonageSms as VonageSms
 import Kernel.External.SMS.KarixSms.Config as Reexport
 import Kernel.External.SMS.MyValueFirst.Config as Reexport
+import Kernel.External.SMS.PinbixSms.Config as Reexport
 import Kernel.External.SMS.Types as Reexport
 import Kernel.External.SMS.VonageSms.Config as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -55,6 +57,7 @@ sendSMS' serviceConfig req = do
     DigoEngageSmsConfig cfg -> DigoEngageSms.sendOTP cfg req
     VonageSmsConfig cfg -> VonageSms.sendOTP cfg req
     KarixSmsConfig cfg -> KarixSms.sendOTP cfg req
+    PinbixSmsConfig cfg -> PinbixSms.sendOTP cfg req
 
 checkSmsResult ::
   (Log m, MonadThrow m) => SendSMSRes -> m ()
@@ -73,7 +76,8 @@ sendSMS ::
 sendSMS SmsHandler {..} req = do
   providers <- getProvidersPriorityList
   when (null providers) $
-    throwError $ InternalError "No sms serive provider configured"
+    throwError $
+      InternalError "No sms serive provider configured"
   let totalCount = length providers
       phoneNum = req.phoneNumber
       lastDigit =
@@ -86,7 +90,8 @@ sendSMS SmsHandler {..} req = do
   where
     circularAttempt providers totalCount startIndex currentAttempts = do
       when (currentAttempts >= totalCount) $
-        throwError $ InternalError "Not able to send sms with all the configured providers"
+        throwError $
+          InternalError "Not able to send sms with all the configured providers"
 
       let currentIndex = (startIndex + currentAttempts) `mod` totalCount
           preferredProvider = providers !! currentIndex
