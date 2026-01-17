@@ -30,6 +30,7 @@ library
       Kernel.Beam.Lib.SqlObjectInstances
       Kernel.Beam.Lib.Utils
       Kernel.Beam.Lib.UtilsTH
+      Kernel.Beam.Operators
       Kernel.Beam.Types
       Kernel.Exit
       Kernel.External.AadhaarVerification
