@@ -24,6 +24,7 @@ import Kernel.External.Whatsapp.Karix.Flow as Flow
 import qualified Kernel.External.Whatsapp.Karix.Types as KC
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Utils.Logging
 import Kernel.Utils.Servant.Client
 
 whatsAppOTPApi ::
