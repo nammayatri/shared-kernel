@@ -153,6 +153,18 @@ incrementSchedulerFailureCounterImplementation context = do
   version <- asks (.version)
   incrementSchedulerFailureCounterImplementation' cmContainer context version
 
+incrementSchedulerJobDisabledCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementSchedulerJobDisabledCounterImplementation context = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  incrementSchedulerJobDisabledCounterImplementation' cmContainer context version
+
 incrementProducerErrorImplementation ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
@@ -290,6 +302,15 @@ addGenericLatencyImplementation operation latency = do
 incrementSchedulerFailureCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
 incrementSchedulerFailureCounterImplementation' cmContainers context version = do
   let sortedSetMetric = cmContainers.schedulerFailureCounter
+  L.runIO $
+    P.withLabel
+      sortedSetMetric
+      (context, version.getDeploymentVersion)
+      P.incCounter
+
+incrementSchedulerJobDisabledCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
+incrementSchedulerJobDisabledCounterImplementation' cmContainers context version = do
+  let sortedSetMetric = cmContainers.schedulerJobDisabledCounter
   L.runIO $
     P.withLabel
       sortedSetMetric

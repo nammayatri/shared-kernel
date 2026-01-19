@@ -63,6 +63,7 @@ instance Metrics.CoreMetrics IO where
   incrementStreamFailedCounter _ = return ()
   addGenericLatency _ _ = return ()
   incrementSchedulerFailureCounter _ = return ()
+  incrementSchedulerJobDisabledCounter _ = return ()
   incrementGenericMetrics _ = return ()
   incrementSystemConfigsFailedCounter _ = return ()
   addGenericLatencyMetrics _ _ = return ()

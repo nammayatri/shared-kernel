@@ -50,6 +50,8 @@ type GenericLatencyMetric = P.Vector P.Label2 P.Histogram
 
 type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
 
+type SchedulerJobDisabledMetric = P.Vector P.Label2 P.Counter
+
 type ProducerErrorMetric = P.Vector P.Label2 P.Counter
 
 type GenericCounter = P.Vector P.Label1 P.Counter
@@ -82,6 +84,7 @@ class CoreMetrics m where
   incrementStreamFailedCounter :: Text -> m ()
   addGenericLatency :: Text -> Milliseconds -> m ()
   incrementSchedulerFailureCounter :: Text -> m ()
+  incrementSchedulerJobDisabledCounter :: Text -> m ()
   incrementProducerError :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
   incrementSystemConfigsFailedCounter :: Text -> m ()
@@ -102,6 +105,7 @@ data CoreMetricsContainer = CoreMetricsContainer
     streamCounter :: StreamMetric,
     streamFailedCounter :: StreamFailedMetric,
     schedulerFailureCounter :: SchedulerFailureMetric,
+    schedulerJobDisabledCounter :: SchedulerJobDisabledMetric,
     producerError :: ProducerErrorMetric,
     genericCounter :: GenericCounter,
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
@@ -124,6 +128,7 @@ registerCoreMetricsContainer = do
   streamCounter <- registerStreamCounter
   streamFailedCounter <- registerStreamFailedCounter
   schedulerFailureCounter <- registerSchedulerFailureCounter
+  schedulerJobDisabledCounter <- registerSchedulerJobDisabledCounter
   producerError <- registerProducerErrorMetric
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
@@ -220,6 +225,14 @@ registerSchedulerFailureCounter =
       P.counter info
   where
     info = P.Info "scheduler_jobs_fail_counter" ""
+
+registerSchedulerJobDisabledCounter :: IO SchedulerJobDisabledMetric
+registerSchedulerJobDisabledCounter =
+  P.register $
+    P.vector ("job_type", "version") $
+      P.counter info
+  where
+    info = P.Info "scheduler_jobs_disabled_counter" ""
 
 registerProducerErrorMetric :: IO ProducerErrorMetric
 registerProducerErrorMetric =
