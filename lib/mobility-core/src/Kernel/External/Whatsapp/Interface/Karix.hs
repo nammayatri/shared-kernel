@@ -37,6 +37,8 @@ whatsAppOTPApi ::
   IT.SendOtpApiReq ->
   m SendOtpApiResp
 whatsAppOTPApi karixCfg req = do
+  logDebug $ "KarixCfg: " <> show karixCfg
+  logDebug $ "SendOtpApiReq: " <> show req
   let convertReq =
         KC.KarixWhatsAppMessageReq
           { message =
