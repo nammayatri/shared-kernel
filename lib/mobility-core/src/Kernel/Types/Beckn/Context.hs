@@ -65,7 +65,7 @@ instance Example Context where
         message_id = idExample,
         timestamp = UTCTimeRFC3339 example,
         country = India,
-        city = Kochi,
+        city = City "Kochi",
         max_callbacks = Just 1
       }
 
