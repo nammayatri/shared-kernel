@@ -116,7 +116,13 @@ data City
   | Malappuram
   | Mayiladuthurai
   | Helsinki
+  | Turku
+  | Tampere
+  | Ahmedabad
+  | Surat
+  | Vadodara
   | Rajkot
+  | Jamnagar
   | Somnath
   | Dwarka
   | Birbhum
@@ -295,8 +301,20 @@ instance FromJSON City where
   parseJSON (String "Mayiladuthurai") = pure Mayiladuthurai
   parseJSON (String "fin:009") = pure Helsinki
   parseJSON (String "Helsinki") = pure Helsinki
+  parseJSON (String "fin:002") = pure Turku
+  parseJSON (String "Turku") = pure Turku
+  parseJSON (String "fin:003") = pure Tampere
+  parseJSON (String "Tampere") = pure Tampere
+  parseJSON (String "std:079") = pure Ahmedabad
+  parseJSON (String "Ahmedabad") = pure Ahmedabad
+  parseJSON (String "std:0261") = pure Surat
+  parseJSON (String "Surat") = pure Surat
+  parseJSON (String "std:0265") = pure Vadodara
+  parseJSON (String "Vadodara") = pure Vadodara
   parseJSON (String "std:0281") = pure Rajkot
   parseJSON (String "Rajkot") = pure Rajkot
+  parseJSON (String "std:0288") = pure Jamnagar
+  parseJSON (String "Jamnagar") = pure Jamnagar
   parseJSON (String "std:02871") = pure Somnath
   parseJSON (String "Somnath") = pure Somnath
   parseJSON (String "std:02892") = pure Dwarka
@@ -391,7 +409,13 @@ instance ToJSON City where
   toJSON Malappuram = String "std:0483"
   toJSON Mayiladuthurai = String "std:04364"
   toJSON Helsinki = String "fin:009"
+  toJSON Turku = String "fin:002"
+  toJSON Tampere = String "fin:003"
+  toJSON Ahmedabad = String "std:079"
+  toJSON Surat = String "std:0261"
+  toJSON Vadodara = String "std:0265"
   toJSON Rajkot = String "std:0281"
+  toJSON Jamnagar = String "std:0288"
   toJSON Somnath = String "std:02871"
   toJSON Dwarka = String "std:02892"
   toJSON Birbhum = String "std:03462"
@@ -571,8 +595,20 @@ instance FromHttpApiData City where
       parseLowerCaseCity "mayiladuthurai" = Right Mayiladuthurai
       parseLowerCaseCity "fin:009" = Right Helsinki
       parseLowerCaseCity "helsinki" = Right Helsinki
+      parseLowerCaseCity "fin:002" = Right Turku
+      parseLowerCaseCity "turku" = Right Turku
+      parseLowerCaseCity "fin:003" = Right Tampere
+      parseLowerCaseCity "tampere" = Right Tampere
+      parseLowerCaseCity "std:079" = Right Ahmedabad
+      parseLowerCaseCity "ahmedabad" = Right Ahmedabad
+      parseLowerCaseCity "std:0261" = Right Surat
+      parseLowerCaseCity "surat" = Right Surat
+      parseLowerCaseCity "std:0265" = Right Vadodara
+      parseLowerCaseCity "vadodara" = Right Vadodara
       parseLowerCaseCity "std:0281" = Right Rajkot
       parseLowerCaseCity "rajkot" = Right Rajkot
+      parseLowerCaseCity "std:0288" = Right Jamnagar
+      parseLowerCaseCity "jamnagar" = Right Jamnagar
       parseLowerCaseCity "std:02871" = Right Somnath
       parseLowerCaseCity "somnath" = Right Somnath
       parseLowerCaseCity "std:02892" = Right Dwarka
@@ -662,12 +698,18 @@ instance ToHttpApiData City where
   toUrlPiece Ballari = "std:08392"
   toUrlPiece Amsterdam = "nld:020"
   toUrlPiece Helsinki = "fin:009"
+  toUrlPiece Turku = "fin:002"
+  toUrlPiece Tampere = "fin:003"
+  toUrlPiece Ahmedabad = "std:079"
+  toUrlPiece Surat = "std:0261"
+  toUrlPiece Vadodara = "std:0265"
   toUrlPiece Digha = "std:03216"
   toUrlPiece Jharsuguda = "std:06645"
   toUrlPiece Sambalpur = "std:0663"
   toUrlPiece Malappuram = "std:0483"
   toUrlPiece Mayiladuthurai = "std:04364"
   toUrlPiece Rajkot = "std:0281"
+  toUrlPiece Jamnagar = "std:0288"
   toUrlPiece Somnath = "std:02871"
   toUrlPiece Dwarka = "std:02892"
   toUrlPiece Birbhum = "std:03462"
