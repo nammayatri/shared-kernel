@@ -151,9 +151,9 @@ withNonCriticalRedis f = do
 -- Run the action on both primary and secondary Redis clusters (if secondary exists)
 -- First runs on primary Redis, then on secondary Redis by temporarily modifying hedisEnv
 -- Returns the result from primary Redis; secondary Redis failures are logged but don't affect the result
-runInSecondaryRedis ::
+runInMultiCloudRedis ::
   (HedisFlow m env, TryException m) => m a -> m a
-runInSecondaryRedis action = do
+runInMultiCloudRedis action = do
   -- First, run on primary Redis (normal execution)
   primaryResult <- action
   -- Then, if secondary exists, run on secondary Redis by temporarily modifying hedisEnv
@@ -163,7 +163,7 @@ runInSecondaryRedis action = do
     Just secondaryEnv -> do
       -- Run on secondary Redis, but don't fail if it errors - just log and return primary result
       secondaryResult <-
-        withTryCatch "runInSecondaryRedis" $
+        withTryCatch "runInMultiCloudRedis" $
           local (\env -> env{hedisEnv = secondaryEnv}) action
       case secondaryResult of
         Left err -> do
