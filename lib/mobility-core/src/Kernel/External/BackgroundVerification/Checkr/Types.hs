@@ -27,8 +27,7 @@ import Web.FormUrlEncoded (ToForm, toForm)
 import Web.Internal.HttpApiData
 
 castCityToCheckrCity :: City -> Text
-castCityToCheckrCity Minneapolis = "Minneapolis"
-castCityToCheckrCity _ = "Minneapolis"
+castCityToCheckrCity (City city) = city
 
 castCountryToCheckrCountry :: Country -> Text
 castCountryToCheckrCountry USA = "US"
