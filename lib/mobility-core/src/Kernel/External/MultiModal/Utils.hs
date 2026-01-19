@@ -190,7 +190,8 @@ convertGoogleToGeneric gResponse =
               toDepartureTime = toDepartureTime',
               routeDetails = [],
               entrance = Nothing,
-              exit = Nothing
+              exit = Nothing,
+              providerRouteId = Nothing
             } :
           genericLegs
     mergeWalkingLegs :: [MultiModalLeg] -> [MultiModalLeg]
@@ -233,7 +234,8 @@ convertGoogleToGeneric gResponse =
               toDepartureTime = leg2.toDepartureTime,
               routeDetails = leg1.routeDetails,
               entrance = leg1.entrance,
-              exit = leg2.exit
+              exit = leg2.exit,
+              providerRouteId = Nothing
             }
     adjustWalkingLegs :: [MultiModalLeg] -> [MultiModalLeg]
     adjustWalkingLegs [] = []
@@ -505,7 +507,8 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
               toArrivalTime = max <$> leg1.toArrivalTime <*> leg2.toArrivalTime,
               toDepartureTime = max <$> leg1.toDepartureTime <*> leg2.toDepartureTime,
               entrance = leg1.entrance,
-              exit = leg2.exit
+              exit = leg2.exit,
+              providerRouteId = Nothing
             }
 
     accumulateItineraries :: Maybe OTP.OTPPlanPlanItineraries -> ([MultiModalRoute], HM.HashMap T.Text [T.Text]) -> ([MultiModalRoute], HM.HashMap T.Text [T.Text])
@@ -673,7 +676,8 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
                     toArrivalTime = toArrivalTime',
                     toDepartureTime = toDepartureTime',
                     entrance = (maybeEntranceToGate otpLeg'.entrance),
-                    exit = (maybeExitToGate otpLeg'.exit)
+                    exit = (maybeExitToGate otpLeg'.exit),
+                    providerRouteId = Nothing
                   }
            in (leg : genericLegs, genericDistance + distance, newFreqMap)
 

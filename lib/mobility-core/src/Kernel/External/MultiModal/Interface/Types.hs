@@ -103,7 +103,8 @@ data MultiModalLeg = MultiModalLeg
     toArrivalTime :: Maybe UTCTime,
     toDepartureTime :: Maybe UTCTime,
     entrance :: Maybe MultiModalLegGate,
-    exit :: Maybe MultiModalLegGate
+    exit :: Maybe MultiModalLegGate,
+    providerRouteId :: Maybe Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
