@@ -77,6 +77,8 @@ whatsAppOtpApi WhatsappHandler {..} req = do
     callWithFallback [] = throwError $ InternalError "Not able to opt whatsapp with all the configured providers"
     callWithFallback (preferredProvider : restProviders) = do
       whatsappConfig <- getProviderConfig preferredProvider
+      logDebug $ "whatsappConfig: " <> show whatsappConfig
+      logDebug $ "SendOtpApiReq: " <> show req
       result <- withTryCatch "whatsAppOtpApi" $ whatsAppOtpApi' whatsappConfig req
       case result of
         Left _ -> callWithFallback restProviders
