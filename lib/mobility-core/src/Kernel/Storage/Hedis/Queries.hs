@@ -148,6 +148,45 @@ withNonCriticalRedis ::
 withNonCriticalRedis f = do
   local (\env -> env{hedisEnv = env.hedisNonCriticalEnv, hedisClusterEnv = env.hedisNonCriticalClusterEnv}) f
 
+-- Run the action on both primary and secondary Redis clusters (if secondary exists)
+-- If isWriteOperation is True: writes to both primary and secondary (returns primary result)
+-- If isWriteOperation is False: reads from primary first, falls back to secondary if primary returns Nothing
+-- Returns the result from primary Redis; secondary Redis failures are logged but don't affect the result
+runInMultiCloudRedis ::
+  (HedisFlow m env, TryException m) => Bool -> m (Maybe a) -> m (Maybe a)
+runInMultiCloudRedis isWriteOperation action = do
+  mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
+  case mbSecondaryEnv of
+    Nothing -> action
+    Just secondaryEnv
+      | isWriteOperation -> do
+        -- Write operation: write to both primary and secondary
+        primaryResult <- action
+        -- Run on secondary Redis, but don't fail if it errors - just log
+        secondaryResult <-
+          withTryCatch "runInMultiCloudRedis" $
+            local (\env -> env{hedisEnv = secondaryEnv}) action
+        case secondaryResult of
+          Left err -> do
+            logTagInfo "SECONDARY_CLUSTER:FAILED_TO_RUN_IN_SECONDARY_REDIS" $ show err
+            pure primaryResult
+          Right _ -> pure primaryResult
+      | otherwise -> do
+        -- Read operation: try primary first, fallback to secondary if Nothing
+        primaryResult <- action
+        case primaryResult of
+          Just _ -> pure primaryResult -- Primary has result, return immediately
+          Nothing -> do
+            -- Primary returned Nothing, try secondary
+            secondaryResult <-
+              withTryCatch "runInMultiCloudRedis" $
+                local (\env -> env{hedisEnv = secondaryEnv}) action
+            case secondaryResult of
+              Left err -> do
+                logTagInfo "SECONDARY_CLUSTER:FAILED_TO_RUN_IN_SECONDARY_REDIS" $ show err
+                pure Nothing
+              Right result -> pure result
+
 buildKey :: (HedisFlow m env, TryException m) => Text -> m BS.ByteString
 buildKey key = do
   keyModifier <- asks (.hedisEnv.keyModifier)
