@@ -49,7 +49,7 @@ whatsAppOTPApi karixCfg req = do
                         mediaTemplate =
                           Just
                             KC.KarixTemplate
-                              { autoTemplate = req.var1 <> karixCfg.otpTemplate,
+                              { autoTemplate = "*" <> req.var1 <> "*" <> karixCfg.otpTemplate,
                                 buttons = Nothing
                               },
                         shorten_url = Just False
