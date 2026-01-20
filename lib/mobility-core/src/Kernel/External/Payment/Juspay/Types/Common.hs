@@ -241,6 +241,18 @@ data PaymentGatewayResponse = PaymentGatewayResponse
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data PaymentGatewayResponse = PaymentGatewayResponse
+  { resp_code :: Maybe Text,
+    rrn :: Maybe Text,
+    created :: Maybe UTCTime,
+    epg_txn_id :: Maybe Text,
+    resp_message :: Maybe Text,
+    auth_id_code :: Maybe Text,
+    txn_id :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data MandateData = MandateData
   { mandate_status :: MandateStatus,
     start_date :: Text,
