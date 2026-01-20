@@ -24,6 +24,7 @@ import qualified Kernel.External.Notification.GRPC.Types as GRPC
 import qualified Kernel.External.Notification.PayTM.Types as PayTM
 import qualified Kernel.External.Notification.Types as Interface
 import Kernel.Prelude
+import Kernel.Utils.JSON (removeNullFields)
 
 data NotificationServiceConfig = FCMConfig FCM.FCMConfig | PayTMConfig PayTM.PayTMConfig | GRPCConfig GRPC.GRPCConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -182,7 +183,13 @@ data NotificationReq a b = NotificationReq
     ttl :: Maybe UTCTime,
     sound :: Maybe Text
   }
-  deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
+  deriving (Show, Eq, Read, Generic)
+
+instance (FromJSON a, FromJSON b) => FromJSON (NotificationReq a b) where
+  parseJSON = genericParseJSON removeNullFields
+
+instance (ToJSON a, ToJSON b) => ToJSON (NotificationReq a b) where
+  toJSON = genericToJSON removeNullFields
 
 data NotficationServiceHandler m a b = NotficationServiceHandler
   { getNotificationServiceList :: m [Interface.NotificationService],
