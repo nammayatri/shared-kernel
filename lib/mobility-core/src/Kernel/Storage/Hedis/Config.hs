@@ -15,6 +15,7 @@
 module Kernel.Storage.Hedis.Config where
 
 import qualified Control.Monad.Catch as C
+import Data.Text as T
 import Data.Word (Word16)
 import Database.Redis
 import GHC.Records.Extra
@@ -25,6 +26,7 @@ import Kernel.Types.Time
 import Kernel.Types.TryException
 import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
+import qualified System.Environment as SE
 
 type HedisFlow m env =
   (MonadTime m, MonadClock m, CoreMetrics m, MonadCatch m, MonadReader env m, HedisFlowEnv env, MonadIO m, C.MonadThrow m, Log m, TryException m)
@@ -32,6 +34,9 @@ type HedisFlow m env =
 type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, HasField "secondaryHedisClusterEnv" env (Maybe HedisEnv))
 
 type KeyModifierFunc = (Text -> Text)
+
+prefixEnvironmentKey :: String
+prefixEnvironmentKey = "Environment"
 
 data HedisCfg = HedisCfg
   { connectHost :: HostName,
@@ -67,13 +72,20 @@ defaultHedisCfg =
 withHedisEnv :: HedisCfg -> KeyModifierFunc -> (HedisEnv -> IO a) -> IO a
 withHedisEnv cfg keyModifier = C.bracket (connectHedis cfg keyModifier) disconnectHedis
 
+getNewModifierFunction :: KeyModifierFunc -> Maybe [Char] -> KeyModifierFunc
+getNewModifierFunction keyModifier prefixValue =
+  case prefixValue of
+    Nothing -> keyModifier
+    Just value -> (\key -> keyModifier ((T.pack value) <> key))
+
 connectHedisCluster :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
 connectHedisCluster cfg keyModifier = do
   conn <- connectCluster connectInfo
+  prefixValue <- SE.lookupEnv prefixEnvironmentKey
   return $
     HedisEnv
       { hedisConnection = conn,
-        keyModifier = keyModifier
+        keyModifier = getNewModifierFunction keyModifier prefixValue
       }
   where
     connectInfo :: ConnectInfo
@@ -92,10 +104,11 @@ connectHedisCluster cfg keyModifier = do
 connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
 connectHedis cfg keyModifier = do
   conn <- checkedConnect connectInfo
+  prefixValue <- SE.lookupEnv prefixEnvironmentKey
   return $
     HedisEnv
       { hedisConnection = conn,
-        keyModifier = keyModifier
+        keyModifier = getNewModifierFunction keyModifier prefixValue
       }
   where
     connectInfo :: ConnectInfo
