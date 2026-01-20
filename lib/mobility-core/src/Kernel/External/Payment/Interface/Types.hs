@@ -605,7 +605,7 @@ data RefundsData = RefundsData
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 -- | Request to create a Connect Account
-data IndividualConnectAccountReq = IndividualConnectAccountReq
+data CreateConnectAccountReq = CreateConnectAccountReq
   { country :: Context.Country,
     email :: Maybe Text,
     mobileNumber :: Text,
@@ -614,12 +614,13 @@ data IndividualConnectAccountReq = IndividualConnectAccountReq
     lastName :: Maybe Text,
     ssnLast4 :: Maybe Text,
     idNumber :: Maybe Text,
-    address :: Maybe Address
+    address :: Maybe Address,
+    businessType :: BusinessType
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data IndividualConnectAccountResp = IndividualConnectAccountResp
+data CreateConnectAccountResp = CreateConnectAccountResp
   { accountId :: AccountId,
     accountUrl :: Text,
     accountUrlExpiry :: UTCTime,
