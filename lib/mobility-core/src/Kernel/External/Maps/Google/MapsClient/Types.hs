@@ -301,7 +301,7 @@ data LegV2 = LegV2
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
 data StepV2 = StepV2
-  { distanceMeters :: Int,
+  { distanceMeters :: Maybe Int,
     staticDuration :: Text,
     endLocation :: LocationV2,
     polyline :: Polyline,
