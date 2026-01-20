@@ -125,4 +125,4 @@ whatsAppSendMessageWithTemplateIdAPI' ::
 whatsAppSendMessageWithTemplateIdAPI' serviceConfig req = case serviceConfig of
   GupShupConfig cfg -> GupShup.whatsAppSendMessageWithTemplateIdAPI cfg req
   TataCommunicationsConfig cfg -> TataCommunications.whatsAppSendMessageWithTemplateIdAPI cfg req
-  KarixConfig _ -> throwError $ InternalError "whatsAppSendMessageWithTemplateIdAPI is not supported for Karix provider"
+  KarixConfig cfg -> Karix.whatsAppSendMessageWithTemplateIdAPI cfg req

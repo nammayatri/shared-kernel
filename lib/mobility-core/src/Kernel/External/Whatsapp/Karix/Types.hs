@@ -53,8 +53,7 @@ instance FromJSON KarixMessage where
 data KarixContent = KarixContent
   { preview_url :: Maybe Bool,
     type_ :: Text,
-    mediaTemplate :: Maybe KarixTemplate,
-    shorten_url :: Maybe Bool
+    template :: Maybe KarixTemplate
   }
   deriving (Show, Generic)
 
@@ -67,21 +66,14 @@ instance FromJSON KarixContent where
 renameContentFields :: String -> String
 renameContentFields "type_" = "type"
 renameContentFields "preview_url" = "preview_url"
-renameContentFields "shorten_url" = "shorten_url"
 renameContentFields other = other
 
 -- Template structure for simple template messages
 data KarixTemplate = KarixTemplate
-  { autoTemplate :: Text,
-    buttons :: Maybe (Map Text Text)
+  { templateId :: Text,
+    parameterValues :: Map Text Text
   }
-  deriving (Show, Generic)
-
-instance ToJSON KarixTemplate where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
-
-instance FromJSON KarixTemplate where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 -- Media structure
 data KarixMedia = KarixMedia

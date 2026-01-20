@@ -57,7 +57,7 @@ whatsAppSendMessageWithTemplateIdAPI tataCommunicationsCfg req = do
           }
 
   res <- Flow.sendMessageApi tataCommunicationsCfg convertReq
-  return $ toOptApiResp req.sendTo res
+  return $ toOtpApiResp req.sendTo res
 
 whatsAppOTPApi ::
   ( CoreMetrics m,
@@ -89,10 +89,10 @@ whatsAppOTPApi tataCommunicationsCfg req = do
           }
 
   res <- Flow.sendMessageApi tataCommunicationsCfg convertReq
-  return $ toOptApiResp req.sendTo res
+  return $ toOtpApiResp req.sendTo res
 
-toOptApiResp :: Text -> TC.WhatsappSubmitRes -> IT.SendOtpApiResp
-toOptApiResp phone (TC.WhatsappSuccess (TC.WhatsAppResponse wid)) =
+toOtpApiResp :: Text -> TC.WhatsappSubmitRes -> IT.SendOtpApiResp
+toOtpApiResp phone (TC.WhatsappSuccess (TC.WhatsAppResponse wid)) =
   let resp =
         IT.OptApiResponse
           { IT.id = wid,
@@ -104,7 +104,7 @@ toOptApiResp phone (TC.WhatsappSuccess (TC.WhatsAppResponse wid)) =
         { IT._response = resp,
           IT._data = Just $ IT.OptApiRespData [resp]
         }
-toOptApiResp phone (TC.WhatsAppError (TC.WhatsAppErrorResponse (TC.WhatsAppErrorDetails _code msg typ))) =
+toOtpApiResp phone (TC.WhatsAppError (TC.WhatsAppErrorResponse (TC.WhatsAppErrorDetails _code msg typ))) =
   let resp =
         IT.OptApiResponse
           { IT.id = "",
