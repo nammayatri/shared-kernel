@@ -610,6 +610,13 @@ instance (FromJSON a) => FromJSON (FCMData a) where
       parseNotificationJson str =
         maybe (typeMismatch "Json string" (String str)) pure $ decodeFromText str
 
+data IOSFCMData a = IOSFCMData
+  { fcmEntityIds :: Text
+  }
+  deriving (Eq, Show, Generic, PrettyShow, ToJSON, FromJSON)
+
+$(makeLenses ''IOSFCMData)
+
 -- | Android specific options for messages sent through FCM connection server
 data FCMAndroidConfig a = FCMAndroidConfig
   { fcmdCollapseKey :: !(Maybe Text),
@@ -660,7 +667,7 @@ instance Default FCMAlert where
 
 data FCMaps a = FCMaps
   { fcmAlert :: !(Maybe FCMAlert),
-    fcmData :: !(Maybe (FCMData a)),
+    fcmData :: !(Maybe (IOSFCMData a)),
     fcmCategory :: !(Maybe FCMNotificationType),
     fcmMutableContent :: !Int,
     fcmSound :: !(Maybe Text),
@@ -707,7 +714,17 @@ newtype FCMApnPayload a = FCMApnPayload
 
 $(makeLenses ''FCMApnPayload)
 
-$(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMApnPayload)
+instance (ToJSON a) => ToJSON (FCMApnPayload a) where
+  toJSON FCMApnPayload {..} =
+    object $
+      catMaybes
+        [ ("aps" .=) <$> fcmAps
+        ]
+
+instance (FromJSON a) => FromJSON (FCMApnPayload a) where
+  parseJSON = withObject "FCMApnPayload" \o ->
+    FCMApnPayload
+      <$> o .:? "aps"
 
 instance Default (FCMApnPayload a) where
   def = FCMApnPayload Nothing
@@ -743,7 +760,21 @@ data FCMApnsConfig a = FCMApnsConfig
 
 $(makeLenses ''FCMApnsConfig)
 
-$(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMApnsConfig)
+instance (ToJSON a) => ToJSON (FCMApnsConfig a) where
+  toJSON FCMApnsConfig {..} =
+    object $
+      catMaybes
+        [ ("headers" .=) <$> fcmaHeaders,
+          ("payload" .=) <$> fcmaPayload,
+          ("options" .=) <$> fcmaOptions
+        ]
+
+instance (FromJSON a) => FromJSON (FCMApnsConfig a) where
+  parseJSON = withObject "FCMApnsConfig" \o ->
+    FCMApnsConfig
+      <$> o .:? "headers"
+      <*> o .:? "payload"
+      <*> o .:? "options"
 
 instance Default (FCMApnsConfig a) where
   def = FCMApnsConfig Nothing Nothing Nothing
@@ -780,7 +811,31 @@ data FCMMessage a b = FCMMessage
 
 $(makeLenses ''FCMMessage)
 
-$(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMMessage)
+instance (ToJSON a, ToJSON b) => ToJSON (FCMMessage a b) where
+  toJSON FCMMessage {..} =
+    object $
+      catMaybes
+        [ ("token" .=) <$> fcmToken,
+          ("topic" .=) <$> fcmTopic,
+          ("condition" .=) <$> fcmCondition,
+          ("notification" .=) <$> fcmNotification,
+          ("android" .=) <$> fcmAndroid,
+          ("webpush" .=) <$> fcmWebpush,
+          ("apns" .=) <$> fcmApns,
+          ("options" .=) <$> fcmOptions
+        ]
+
+instance (FromJSON a, FromJSON b) => FromJSON (FCMMessage a b) where
+  parseJSON = withObject "FCMMessage" \o ->
+    FCMMessage
+      <$> o .:? "token"
+      <*> o .:? "topic"
+      <*> o .:? "condition"
+      <*> o .:? "notification"
+      <*> o .:? "android"
+      <*> o .:? "webpush"
+      <*> o .:? "apns"
+      <*> o .:? "options"
 
 instance Default (FCMMessage a b) where
   def =
@@ -795,7 +850,16 @@ newtype FCMRequest a b = FCMRequest
 
 $(makeLenses ''FCMRequest)
 
-$(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMRequest)
+instance (ToJSON a, ToJSON b) => ToJSON (FCMRequest a b) where
+  toJSON FCMRequest {..} =
+    object
+      [ "message" .= fcmeMessage
+      ]
+
+instance (FromJSON a, FromJSON b) => FromJSON (FCMRequest a b) where
+  parseJSON = withObject "FCMRequest" \o ->
+    FCMRequest
+      <$> o .: "message"
 
 -- | Priority levels of a notification
 data FCMErrorCode
