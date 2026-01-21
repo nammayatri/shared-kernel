@@ -403,6 +403,7 @@ library
       Kernel.Types.GuidLike
       Kernel.Types.HideSecrets
       Kernel.Types.Id
+      Kernel.Types.JsonParam
       Kernel.Types.Logging
       Kernel.Types.MonadGuid
       Kernel.Types.Predicate
