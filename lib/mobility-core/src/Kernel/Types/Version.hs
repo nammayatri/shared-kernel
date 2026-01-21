@@ -16,11 +16,13 @@
 module Kernel.Types.Version where
 
 import Control.Lens
+import Data.Aeson (eitherDecode, encode)
 import Data.OpenApi (OpenApiType (OpenApiString), ToParamSchema (..))
 import Data.OpenApi.Lens as L
 import Data.Text as T
-import Kernel.Beam.Lib.UtilsTH
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum, mkBeamInstancesForEnumAndList)
 import Kernel.Prelude as Prelude
+import Kernel.Utils.TH (mkHttpInstancesForEnum)
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
 import Text.Regex
 
@@ -54,6 +56,8 @@ comparePre (Just x) (Just y) = compare x y
 
 data DeviceType = IOS | ANDROID
   deriving (Show, Eq, Ord, Generic, Read, ToJSON, FromJSON, ToSchema, ToParamSchema)
+
+data CloudType = AWS | GCP deriving (Eq, Ord, Show, Read, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
 
 data Device = Device
   { deviceType :: DeviceType,
@@ -99,3 +103,7 @@ instance FromHttpApiData DeviceType where
     "ios" -> Right IOS
     "android" -> Right ANDROID
     _ -> Left "Invalid DeviceType"
+
+$(mkBeamInstancesForEnumAndList ''CloudType)
+
+$(mkHttpInstancesForEnum ''CloudType)
