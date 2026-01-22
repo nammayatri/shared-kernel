@@ -11,21 +11,23 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.External.Call.Types
-  ( module Kernel.External.Call.Types,
+module Kernel.External.Call.Ozonetel.Config
+  ( OzonetelCfg (..),
   )
 where
 
-import Data.OpenApi
-import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.External.Encryption
+import Kernel.Prelude
 
-data CallService = Exotel | Knowlarity | TwillioCall | TataClickToCall | Ozonetel
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
-
-$(mkBeamInstancesForEnum ''CallService)
-
-derivePersistField "CallService"
+-- | Ozonetel Service config
+data OzonetelCfg = OzonetelCfg
+  { url :: BaseUrl,
+    apiKey :: EncryptedField 'AsEncrypted Text,
+    userName :: Text,
+    campaignName :: Text,
+    checkDuplicate :: Bool,
+    action :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
