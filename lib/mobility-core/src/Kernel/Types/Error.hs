@@ -1005,6 +1005,67 @@ instance IsHTTPError ExotelError where
 
 instance IsAPIError ExotelError
 
+data OzonetelError
+  = OzonetelNotConfigured
+  | OzonetelBadRequest
+  | OzonetelUnauthorized
+  | OzonetelPaymentRequired
+  | OzonetelAccessDenied
+  | OzonetelNotFound
+  | OzonetelConflict
+  | OzonetelTooManyRequests
+  | OzonetelServerError
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''OzonetelError
+
+instance FromResponse OzonetelError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just OzonetelBadRequest
+    401 -> Just OzonetelUnauthorized
+    402 -> Just OzonetelPaymentRequired
+    403 -> Just OzonetelAccessDenied
+    404 -> Just OzonetelNotFound
+    409 -> Just OzonetelConflict
+    429 -> Just OzonetelTooManyRequests
+    _ -> Just OzonetelServerError
+
+instance IsBaseError OzonetelError where
+  toMessage = \case
+    OzonetelNotConfigured -> Just "Ozonetel env variables aren't properly set."
+    OzonetelBadRequest -> Just "Something in your header or request body was malformed."
+    OzonetelUnauthorized -> Just "Necessary credentials were either missing or invalid."
+    OzonetelPaymentRequired -> Just "The action is not available on your plan, or you have exceeded usage limits for your current plan."
+    OzonetelAccessDenied -> Just "Your credentials are valid, but you don't have access to the requested resource."
+    OzonetelNotFound -> Just "The object you're requesting doesn't exist."
+    OzonetelConflict -> Just "You might be trying to update the same resource concurrently."
+    OzonetelTooManyRequests -> Just "You are calling our APIs more frequently than we allow."
+    OzonetelServerError -> Just "Something went wrong on our end. Please try again."
+
+instance IsHTTPError OzonetelError where
+  toErrorCode = \case
+    OzonetelNotConfigured -> "OZONETEL_NOT_CONFIGURED"
+    OzonetelBadRequest -> "OZONETEL_BAD_REQUEST"
+    OzonetelUnauthorized -> "OZONETEL_UNAUTHORIZED"
+    OzonetelPaymentRequired -> "OZONETEL_PAYMENT_REQUIRED"
+    OzonetelAccessDenied -> "OZONETEL_ACCESS_DENIED"
+    OzonetelNotFound -> "OZONETEL_NOT_FOUND"
+    OzonetelConflict -> "OZONETEL_CONFLICT"
+    OzonetelTooManyRequests -> "OZONETEL_TOO_MANY_REQUESTS"
+    OzonetelServerError -> "OZONETEL_SERVER_ERROR"
+  toHttpCode = \case
+    OzonetelNotConfigured -> E500
+    OzonetelBadRequest -> E400
+    OzonetelUnauthorized -> E401
+    OzonetelPaymentRequired -> E402
+    OzonetelAccessDenied -> E403
+    OzonetelNotFound -> E404
+    OzonetelConflict -> E409
+    OzonetelTooManyRequests -> E429
+    OzonetelServerError -> E500
+
+instance IsAPIError OzonetelError
+
 data KafkaError
   = KafkaUnableToBuildTools Kafka.KafkaError
   | KafkaUnableToReleaseTools Kafka.KafkaError

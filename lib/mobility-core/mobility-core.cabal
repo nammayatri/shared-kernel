@@ -59,6 +59,10 @@ library
       Kernel.External.Call.Interface.Exotel
       Kernel.External.Call.Interface.TataClickToCall
       Kernel.External.Call.Interface.Types
+      Kernel.External.Call.Ozonetel.Client
+      Kernel.External.Call.Ozonetel.Config
+      Kernel.External.Call.Ozonetel.Interface
+      Kernel.External.Call.Ozonetel.Types
       Kernel.External.Call.TataClickToCall.Client
       Kernel.External.Call.TataClickToCall.Config
       Kernel.External.Call.TataClickToCall.Types
