@@ -29,6 +29,7 @@ module Kernel.Utils.App
     withModifiedEnvGeneric,
     withModifiedEnv',
     logRequestAndResponse',
+    lookupCloudType,
   )
 where
 
@@ -58,6 +59,7 @@ import Kernel.Tools.Metrics.CoreMetrics (DeploymentVersion (..))
 import Kernel.Tools.Metrics.CoreMetrics.Types (HasCoreMetrics)
 import Kernel.Types.App
 import Kernel.Types.Flow
+import Kernel.Types.Version (CloudType (..))
 import Kernel.Utils.Common
 import qualified Kernel.Utils.FlowLogging as L
 import Kernel.Utils.IOLogging (HasLog, appendLogTag, updateLogLevelAndRawSql)
@@ -295,3 +297,7 @@ getPodName = fmap T.pack <$> lookupEnv "POD_NAME"
 
 lookupDeploymentVersion :: IO DeploymentVersion
 lookupDeploymentVersion = DeploymentVersion . T.pack . fromMaybe "DEV" <$> lookupEnv "DEPLOYMENT_VERSION"
+
+{-# INLINE lookupCloudType #-}
+lookupCloudType :: IO CloudType
+lookupCloudType = maybe UNAVAILABLE (fromMaybe UNAVAILABLE . readMaybe) <$> lookupEnv "CLOUD_TYPE"
