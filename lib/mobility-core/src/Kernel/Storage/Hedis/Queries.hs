@@ -165,10 +165,10 @@ runInMultiCloudRedis isWriteOperation action = do
         -- Run on secondary Redis, but don't fail if it errors - just log
         secondaryResult <-
           withTryCatch "runInMultiCloudRedis" $
-            local (\env -> env{hedisEnv = secondaryEnv}) action
+            local (\env -> env{hedisClusterEnv = secondaryEnv}) action
         case secondaryResult of
           Left err -> do
-            logTagInfo "SECONDARY_CLUSTER:FAILED_TO_RUN_IN_SECONDARY_REDIS" $ show err
+            logError $ "SECONDARY_CLUSTER:WRITE_FAILED " <> show err
             pure primaryResult
           Right _ -> pure primaryResult
       | otherwise -> do
@@ -177,13 +177,14 @@ runInMultiCloudRedis isWriteOperation action = do
         case primaryResult of
           Just _ -> pure primaryResult -- Primary has result, return immediately
           Nothing -> do
+            logError $ "SECONDARY_CLUSTER: Primary returned Nothing, trying secondary"
             -- Primary returned Nothing, try secondary
             secondaryResult <-
               withTryCatch "runInMultiCloudRedis" $
-                local (\env -> env{hedisEnv = secondaryEnv}) action
+                local (\env -> env{hedisClusterEnv = secondaryEnv}) action
             case secondaryResult of
               Left err -> do
-                logTagInfo "SECONDARY_CLUSTER:FAILED_TO_RUN_IN_SECONDARY_REDIS" $ show err
+                logError $ "SECONDARY_CLUSTER: Secondary read failed " <> show err
                 pure Nothing
               Right result -> pure result
 
