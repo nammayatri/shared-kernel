@@ -599,7 +599,8 @@ data RefundsData = RefundsData
     errorMessage :: Maybe Text,
     errorCode :: Maybe Text,
     initiatedBy :: Maybe Text,
-    requestId :: Text
+    requestId :: Text,
+    arn :: Maybe Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

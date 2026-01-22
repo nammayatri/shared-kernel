@@ -953,7 +953,8 @@ mkRefundsData =
             errorMessage = error_message,
             errorCode = error_code,
             initiatedBy = initiated_by,
-            requestId = unique_request_id
+            requestId = unique_request_id,
+            arn = arn
           }
     )
 
