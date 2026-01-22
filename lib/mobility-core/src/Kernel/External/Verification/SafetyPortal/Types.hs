@@ -16,6 +16,7 @@
 module Kernel.External.Verification.SafetyPortal.Types where
 
 import Data.Aeson
+import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
 import EulerHS.Prelude hiding (error, id, state)
 
@@ -40,7 +41,7 @@ data Summary = Summary
   { totalCount :: Int,
     count :: Int
   }
-  deriving (Generic, FromJSON, ToJSON, Show)
+  deriving (Generic, FromJSON, ToJSON, Show, ToSchema)
 
 data SearchAgent = SearchAgent
   { createdAt :: UTCTime,
