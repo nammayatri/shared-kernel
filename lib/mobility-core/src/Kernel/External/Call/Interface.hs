@@ -23,6 +23,9 @@ import Kernel.External.Call.Exotel.Config as Reexport
 import qualified Kernel.External.Call.Interface.Exotel as Exotel
 import qualified Kernel.External.Call.Interface.TataClickToCall as TataClickToCall
 import Kernel.External.Call.Interface.Types as Reexport
+import Kernel.External.Call.Ozonetel.Config as Reexport
+import qualified Kernel.External.Call.Ozonetel.Interface as Ozonetel
+import Kernel.External.Call.Ozonetel.Types as Reexport
 import Kernel.External.Call.TataClickToCall.Config as Reexport
 import Kernel.External.Call.Twillio.Config as Reexport
 import Kernel.External.Call.Types as Reexport
@@ -54,3 +57,26 @@ initiateCall config req = do
     ExotelConfig ec -> Exotel.initiateCall ec req
     TataClickToCallConfig ec -> TataClickToCall.initiateCall ec req
     TwillioCallConfig _ -> throwNotProvidedError "initiateCall" TwillioCall
+    OzonetelConfig _ -> throwNotProvidedError "initiateCall" Ozonetel
+
+-- | Add campaign data to Ozonetel
+addCampaignData ::
+  ( CoreMetrics m,
+    EncFlow m r,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  CallServiceConfig ->
+  OzonetelAddCampaignDataReq ->
+  m OzonetelAddCampaignDataResp
+addCampaignData config req = do
+  case config of
+    OzonetelConfig oc -> Ozonetel.addCampaignData oc req
+    _ -> throwNotProvidedError "addCampaignData" (getCallService config)
+  where
+    getCallService = \case
+      ExotelConfig _ -> Exotel
+      TwillioCallConfig _ -> TwillioCall
+      TataClickToCallConfig _ -> TataClickToCall
+      OzonetelConfig _ -> Ozonetel
