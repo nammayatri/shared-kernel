@@ -218,7 +218,7 @@ mkRoute req resp route = do
   if null route.legs
     then do
       logTagWarning "MMIRoutes" ("Empty route.legs, " <> show req)
-      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] []
+      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] [] False
     else do
       when (length route.legs > 1) $
         logTagWarning "MMIRoutes" ("More than one element in route.legs, " <> show req)
@@ -229,7 +229,7 @@ mkRoute req resp route = do
           distanceInM = Just $ Meters $ double2Int route.distance
           distanceWithUnit = Just $ Distance (toHighPrecDistance route.distance) Meter
           durationInS = Just $ Seconds $ double2Int route.duration
-      return $ RouteInfo durationInS Nothing distanceInM distanceWithUnit boundBox snappedWayPoints points
+      return $ RouteInfo durationInS Nothing distanceInM distanceWithUnit boundBox snappedWayPoints points False
   where
     createAcc = Acc {minLat = 91.0, maxLat = -91.0, minLon = 180.0, maxLon = -180.0}
     boundingBoxCal points = foldl' compareLatLong createAcc points
