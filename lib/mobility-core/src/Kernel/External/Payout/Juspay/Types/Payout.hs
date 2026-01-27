@@ -74,7 +74,9 @@ $(mkBeamInstancesForEnum ''AccountDetailsType)
 data AccountDetails = AccountDetails
   { name :: Text,
     vpa :: Maybe Text,
-    mobileNo :: Maybe Text
+    mobileNo :: Maybe Text,
+    account :: Maybe Text,
+    ifsc :: Maybe Text
   }
   deriving (Show, Generic, ToSchema)
   deriving anyclass (FromJSON, ToJSON)
