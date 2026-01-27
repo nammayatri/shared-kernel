@@ -16,7 +16,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Beckn.City (City (..)) where
+module Kernel.Types.Beckn.City (City (..), initCityMaps) where
 
 import Data.Aeson
 import Data.Aeson.Types
@@ -24,12 +24,15 @@ import Data.Char (isSpace)
 import qualified Data.HashMap.Strict as HM
 import Data.OpenApi hiding (Example, mapping)
 import qualified Data.Text as T
-import EulerHS.Prelude
+import EulerHS.Prelude hiding (swap)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Storage.Esqueleto.Config
+import qualified Kernel.Storage.Queries.MerchantOperatingCity as Queries
+import Kernel.Types.App
+import Kernel.Types.CacheFlow
 import Kernel.Utils.GenericPretty
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
-import System.Environment (lookupEnv)
 import System.IO.Unsafe (unsafePerformIO)
 import Text.Read (Read (..))
 import Text.Show (Show (..))
@@ -158,117 +161,9 @@ hardcodedCityToStdCode =
 -- Reverse mapping: std code to city name
 hardcodedStdCodeToCity :: HashMap Text Text
 hardcodedStdCodeToCity =
-  HM.fromList
-    [ ("std:080", "Bangalore"),
-      ("std:033", "Kolkata"),
-      ("std:001", "Paris"),
-      ("std:484", "Kochi"),
-      ("std:0484", "Kochi"),
-      ("std:011", "Delhi"),
-      ("std:040", "Hyderabad"),
-      ("std:022", "Mumbai"),
-      ("std:044", "Chennai"),
-      ("std:0422", "TamilNaduCities"),
-      ("std:0413", "Pondicherry"),
-      ("std:020", "Pune"),
-      ("std:0821", "Mysore"),
-      ("std:0816", "Tumakuru"),
-      ("std:01189", "Noida"),
-      ("std:0124", "Gurugram"),
-      ("std:0462", "Tirunelveli"),
-      ("std:04362", "Thanjavur"),
-      ("std:0416", "Vellore"),
-      ("std:0452", "Madurai"),
-      ("std:0427", "Salem"),
-      ("std:04344", "Hosur"),
-      ("std:0431", "Trichy"),
-      ("usa:0820", "Minneapolis"),
-      ("std:0471", "Trivandrum"),
-      ("std:0487", "Thrissur"),
-      ("std:0495", "Kozhikode"),
-      ("std:0172", "Chandigarh"),
-      ("std:0141", "Jaipur"),
-      ("std:0353", "Siliguri"),
-      ("std:0341", "Asansol"),
-      ("std:0342", "Durgapur"),
-      ("std:03215", "Petrapole"),
-      ("std:03592", "Gangtok"),
-      ("std:0354", "Darjeeling"),
-      ("std:08192", "Davanagere"),
-      ("std:08182", "Shivamogga"),
-      ("std:0836", "Hubli"),
-      ("std:0824", "Mangalore"),
-      ("std:08200", "Udupi"),
-      ("std:08472", "Gulbarga"),
-      ("std:0866", "Vijayawada"),
-      ("std:0891", "Vishakapatnam"),
-      ("std:0863", "Guntur"),
-      ("std:0877", "Tirupati"),
-      ("std:08518", "Kurnool"),
-      ("std:08742", "Khammam"),
-      ("std:08722", "Karimnagar"),
-      ("std:08463", "Nizamabad"),
-      ("std:08542", "Mahbubnagar"),
-      ("std:08684", "Suryapet"),
-      ("std:08682", "Nalgonda"),
-      ("std:08457", "Siddipet"),
-      ("std:0661", "Rourkela"),
-      ("std:0674", "Bhubaneshwar"),
-      ("std:0671", "Cuttack"),
-      ("std:06752", "Puri"),
-      ("std:0870", "Warangal"),
-      ("std:04322", "Pudukkottai"),
-      ("std:8482", "Bidar"),
-      ("std:0194", "Srinagar"),
-      ("std:0477", "Alapuzha"),
-      ("std:0486", "Idukki"),
-      ("std:04994", "Kasaragod"),
-      ("std:04936", "Wayanad"),
-      ("std:0497", "Kannur"),
-      ("std:0481", "Kottayam"),
-      ("std:0491", "Palakkad"),
-      ("std:0474", "Kollam"),
-      ("std:0468", "Pathanamthitta"),
-      ("std:0364", "Shillong"),
-      ("std:03637", "Cherrapunji"),
-      ("std:01933", "Pulwama"),
-      ("std:0191", "Jammu"),
-      ("std:01932", "Anantnag"),
-      ("std:0680", "Berhampur"),
-      ("std:0343", "Bardhaman"),
-      ("std:08392", "Ballari"),
-      ("nld:020", "Amsterdam"),
-      ("std:03216", "Digha"),
-      ("std:06645", "Jharsuguda"),
-      ("std:0663", "Sambalpur"),
-      ("std:0483", "Malappuram"),
-      ("std:04364", "Mayiladuthurai"),
-      ("fin:009", "Helsinki"),
-      ("fin:002", "Turku"),
-      ("fin:003", "Tampere"),
-      ("std:0281", "Rajkot"),
-      ("std:02871", "Somnath"),
-      ("std:02892", "Dwarka"),
-      ("std:03462", "Birbhum"),
-      ("std:079", "Ahmedabad"),
-      ("std:0261", "Surat"),
-      ("std:0265", "Vadodara"),
-      ("std:0288", "Jamnagar"),
-      ("std:03242", "Bankura"),
-      ("std:0342", "PurbaBardhaman"),
-      ("*", "AnyCity")
-    ]
-
--- Load environment variable mapping
-loadEnvVarMapping :: IO (HashMap Text Text)
-loadEnvVarMapping = do
-  mbEnvVar <- lookupEnv "CITY_TO_STD_CODE_MAP"
-  case mbEnvVar of
-    Nothing -> return HM.empty
-    Just envVar -> do
-      case eitherDecodeStrict (encodeUtf8 $ T.pack envVar) :: Either String (HashMap Text Text) of
-        Right mapping -> return mapping
-        Left _ -> return HM.empty
+  HM.fromList $ map swap $ HM.toList hardcodedCityToStdCode
+  where
+    swap (k, v) = (v, k)
 
 -- By marking a function that uses unsafePerformIO as NOINLINE,
 -- you ensure that the I/O action is performed only once (at most),
@@ -276,32 +171,41 @@ loadEnvVarMapping = do
 -- duplicated across various call sites.
 {-# NOINLINE cityToStdCodeMap #-}
 cityToStdCodeMap :: MVar (HashMap Text Text)
-cityToStdCodeMap = unsafePerformIO $ do
-  envMapping <- loadEnvVarMapping
-  let merged = HM.union envMapping hardcodedCityToStdCode
-  newMVar merged
+cityToStdCodeMap = unsafePerformIO $ newMVar HM.empty
 
 {-# NOINLINE stdCodeToCityMap #-}
 stdCodeToCityMap :: MVar (HashMap Text Text)
-stdCodeToCityMap = unsafePerformIO $ do
-  envMapping <- loadEnvVarMapping
-  -- Build reverse mapping from env var
-  let envReverse = HM.fromList $ map (\(k, v) -> (v, k)) $ HM.toList envMapping
-  let merged = HM.union envReverse hardcodedStdCodeToCity
-  newMVar merged
+stdCodeToCityMap = unsafePerformIO $ newMVar HM.empty
 
--- Helper functions for lookups
+-- Helper functions for lookups (Cache only)
 getCityToStdCodeMap :: HashMap Text Text
-getCityToStdCodeMap = unsafePerformIO $ readMVar cityToStdCodeMap
+getCityToStdCodeMap = unsafePerformIO $ do
+  m <- readMVar cityToStdCodeMap
+  pure $ if HM.null m then hardcodedCityToStdCode else m
 
 getStdCodeToCityMap :: HashMap Text Text
-getStdCodeToCityMap = unsafePerformIO $ readMVar stdCodeToCityMap
+getStdCodeToCityMap = unsafePerformIO $ do
+  m <- readMVar stdCodeToCityMap
+  pure $ if HM.null m then hardcodedStdCodeToCity else m
 
 cityToStdCode :: City -> Text
 cityToStdCode (City cityName) = HM.lookupDefault "*" cityName getCityToStdCodeMap
 
 stdCodeToCity :: Text -> Maybe City
 stdCodeToCity stdCode = City <$> HM.lookup stdCode getStdCodeToCityMap
+
+initCityMaps :: (EsqDBFlow m r, MonadFlow m, CacheFlow m r) => m ()
+initCityMaps = do
+  cache <- liftIO $ readMVar cityToStdCodeMap
+  when (HM.null cache) $ do
+    dbMappings <- Queries.findAll
+    let dbMap = HM.fromList $ reverse $ mapMaybe (\m -> (,) (m.city) <$> m.stdCode) dbMappings
+    let mergedMap = hardcodedCityToStdCode `HM.union` dbMap
+    void $ liftIO $ swapMVar cityToStdCodeMap mergedMap
+
+    let reverseDbMap = HM.fromList $ reverse $ mapMaybe (\m -> (,m.city) <$> m.stdCode) dbMappings
+    let mergedReverseMap = hardcodedStdCodeToCity `HM.union` reverseDbMap
+    void $ liftIO $ swapMVar stdCodeToCityMap mergedReverseMap
 
 instance FromJSON City where
   parseJSON (String s) = do

@@ -48,6 +48,7 @@ import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App
 import Kernel.Types.Beckn.Ack
+import Kernel.Types.Beckn.City (initCityMaps)
 import Kernel.Types.Common
 import Kernel.Types.Error as Err
 import Kernel.Types.Error.BaseError.HTTPError
@@ -68,7 +69,7 @@ withFlowHandler ::
   FlowHandlerR r a
 withFlowHandler flow = do
   (EnvR flowRt appEnv) <- ask
-  liftIO . runFlowR flowRt appEnv $ getAndSetKvConfigs >> flow
+  liftIO . runFlowR flowRt appEnv $ initCityMaps >> getAndSetKvConfigs >> flow
   where
     getAndSetKvConfigs = do
       now <- getCurrentTime
@@ -91,7 +92,7 @@ withDashboardFlowHandler ::
 withDashboardFlowHandler flow = do
   (EnvR flowRt appEnv) <- ask
   let newappEnv = appEnv{serviceClickhouseCfg = appEnv.dashboardClickhouseCfg, serviceClickhouseEnv = appEnv.dashboardClickhouseEnv}
-  liftIO . runFlowR flowRt newappEnv $ getAndSetKvConfigs >> flow
+  liftIO . runFlowR flowRt newappEnv $ initCityMaps >> getAndSetKvConfigs >> flow
   where
     getAndSetKvConfigs = do
       now <- getCurrentTime

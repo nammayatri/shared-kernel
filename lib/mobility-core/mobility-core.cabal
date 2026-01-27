@@ -331,6 +331,7 @@ library
       Kernel.Serviceability
       Kernel.Sms.Config
       Kernel.Storage.Beam.BecknRequest
+      Kernel.Storage.Beam.MerchantOperatingCity
       Kernel.Storage.Beam.SystemConfigs
       Kernel.Storage.Clickhouse.Config
       Kernel.Storage.Clickhouse.Operators
@@ -364,6 +365,7 @@ library
       Kernel.Storage.Hedis.Queries
       Kernel.Storage.InMem
       Kernel.Storage.Queries.BecknRequest
+      Kernel.Storage.Queries.MerchantOperatingCity
       Kernel.Storage.Queries.SystemConfigs
       Kernel.Streaming.Kafka.Commons
       Kernel.Streaming.Kafka.Consumer
@@ -434,6 +436,7 @@ library
       Kernel.Types.HideSecrets
       Kernel.Types.Id
       Kernel.Types.Logging
+      Kernel.Types.MerchantOperatingCity
       Kernel.Types.MonadGuid
       Kernel.Types.Predicate
       Kernel.Types.Price
