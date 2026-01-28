@@ -27,7 +27,67 @@ import Kernel.External.Whatsapp.Karix.Flow as Flow
 import qualified Kernel.External.Whatsapp.Karix.Types as KC
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Utils.Logging
 import Kernel.Utils.Servant.Client
+
+whatsAppOTPApi ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  KarixCfg ->
+  IT.SendOtpApiReq ->
+  m SendOtpApiResp
+whatsAppOTPApi karixCfg req = do
+  logDebug $ "KarixCfg: " <> show karixCfg
+  logDebug $ "SendOtpApiReq: " <> show req
+  let convertReq =
+        KC.KarixWhatsAppMessageReq
+          { message =
+              KC.KarixMessage
+                { channel = "WABA",
+                  content =
+                    KC.KarixContent
+                      { preview_url = Just True,
+                        type_ = "MEDIA_TEMPLATE",
+                        mediaTemplate =
+                          Just
+                            KC.KarixMediaTemplate
+                              { autoTemplate = "*" <> req.var1 <> "*" <> karixCfg.otpTemplate,
+                                buttons =
+                                  Just $
+                                    KC.KarixButtons
+                                      { actions =
+                                          [ KC.KarixAction
+                                              { type_ = "url",
+                                                index = "0",
+                                                payload = req.var1
+                                              }
+                                          ]
+                                      }
+                              },
+                        template = Nothing,
+                        shorten_url = Just False
+                      },
+                  recipient =
+                    KC.KarixRecipient
+                      { to = fromMaybe req.sendTo $ T.stripPrefix "+" req.sendTo,
+                        recipient_type = "individual",
+                        reference = Nothing
+                      },
+                  sender = KC.KarixSender {from = karixCfg.from},
+                  preferences = maybe Nothing (\webHookId -> Just $ KC.KarixPreferences {webHookDNId = Just webHookId}) karixCfg.webHookDNId
+                },
+            metaData = Just $ KC.KarixMetaData {version = karixCfg.version}
+          }
+
+  logDebug $ "KarixWhatsAppMessageReq: " <> show convertReq
+  res <- Flow.sendMessageApi karixCfg convertReq
+  logDebug $ "KarixWhatsappAPI response: " <> show res
+  logDebug $ "toOtpApiResp: " <> show (toOtpApiResp req.sendTo res)
+  return $ toOtpApiResp req.sendTo res
 
 listToIndexedMap :: [Text] -> Map.Map Text Text
 listToIndexedMap xs =
@@ -56,16 +116,18 @@ whatsAppApi karixCfg sendTo variables templateId = do
                     KC.KarixContent
                       { preview_url = Just False,
                         type_ = "TEMPLATE",
+                        mediaTemplate = Nothing,
                         template =
                           Just
                             KC.KarixTemplate
                               { templateId = templateId,
                                 parameterValues = listToIndexedMap variables
-                              }
+                              },
+                        shorten_url = Just False
                       },
                   recipient =
                     KC.KarixRecipient
-                      { to = sendTo,
+                      { to = fromMaybe sendTo $ T.stripPrefix "+" sendTo,
                         recipient_type = "individual",
                         reference = Nothing
                       },
@@ -75,20 +137,12 @@ whatsAppApi karixCfg sendTo variables templateId = do
             metaData = Just $ KC.KarixMetaData {version = karixCfg.version}
           }
 
+  logDebug $ "KarixWhatsAppMessageReq: " <> show convertReq
   res <- Flow.sendMessageApi karixCfg convertReq
-  return $ toOtpApiResp sendTo res
-
-whatsAppOTPApi ::
-  ( CoreMetrics m,
-    MonadFlow m,
-    EncFlow m r,
-    HasRequestId r,
-    MonadReader r m
-  ) =>
-  KarixCfg ->
-  IT.SendOtpApiReq ->
-  m SendOtpApiResp
-whatsAppOTPApi karixCfg req = whatsAppApi karixCfg req.sendTo [req.var1] karixCfg.otpTemplate
+  logDebug $ "KarixWhatsappAPI response: " <> show res
+  let response = toOtpApiResp sendTo res
+  logDebug $ "toOtpApiResp: " <> show response
+  return response
 
 whatsAppSendMessageWithTemplateIdAPI ::
   ( CoreMetrics m,
@@ -103,25 +157,13 @@ whatsAppSendMessageWithTemplateIdAPI ::
 whatsAppSendMessageWithTemplateIdAPI karixCfg req = whatsAppApi karixCfg req.sendTo (catMaybes req.variables) req.templateId
 
 toOtpApiResp :: Text -> KC.KarixWhatsappSubmitRes -> IT.SendOtpApiResp
-toOtpApiResp phone (KC.KarixWhatsappSuccess (KC.KarixWhatsAppResponse (Just wid) _ _)) =
+toOtpApiResp phone (KC.KarixWhatsappSuccess res) =
   let resp =
         IT.OptApiResponse
-          { IT.id = wid,
+          { IT.id = fromMaybe "" res.mid,
             IT.phone = phone,
-            IT.details = "Success",
-            IT.status = "sent"
-          }
-   in IT.OptApiResp
-        { IT._response = resp,
-          IT._data = Just $ IT.OptApiRespData [resp]
-        }
-toOtpApiResp phone (KC.KarixWhatsappSuccess (KC.KarixWhatsAppResponse Nothing _ _)) =
-  let resp =
-        IT.OptApiResponse
-          { IT.id = "",
-            IT.phone = phone,
-            IT.details = "Success",
-            IT.status = "sent"
+            IT.details = res.statusDesc,
+            IT.status = if res.statusCode == "200" then "success" else "failed"
           }
    in IT.OptApiResp
         { IT._response = resp,
