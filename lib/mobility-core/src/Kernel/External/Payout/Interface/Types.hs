@@ -57,7 +57,10 @@ data CreatePayoutOrderReq = CreatePayoutOrderReq
     remark :: Text,
     customerName :: Text,
     customerVpa :: Text,
-    isDynamicWebhookRequired :: Bool
+    isDynamicWebhookRequired :: Bool,
+    accountDetailsType :: Maybe Text,
+    accountNumber :: Maybe Text,
+    ifscCode :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
