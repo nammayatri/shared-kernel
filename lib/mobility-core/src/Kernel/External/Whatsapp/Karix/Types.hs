@@ -28,10 +28,10 @@ data KarixWhatsAppMessageReq = KarixWhatsAppMessageReq
   deriving (Show, Generic)
 
 instance ToJSON KarixWhatsAppMessageReq where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 instance FromJSON KarixWhatsAppMessageReq where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 -- Message structure
 data KarixMessage = KarixMessage
@@ -44,15 +44,17 @@ data KarixMessage = KarixMessage
   deriving (Show, Generic)
 
 instance ToJSON KarixMessage where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 instance FromJSON KarixMessage where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 -- Content structure - supports both TEMPLATE and MEDIA_TEMPLATE
 data KarixContent = KarixContent
   { preview_url :: Maybe Bool,
     type_ :: Text,
+    mediaTemplate :: Maybe KarixMediaTemplate,
+    shorten_url :: Maybe Bool,
     template :: Maybe KarixTemplate
   }
   deriving (Show, Generic)
@@ -68,12 +70,52 @@ renameContentFields "type_" = "type"
 renameContentFields "preview_url" = "preview_url"
 renameContentFields other = other
 
+data KarixMediaTemplate = KarixMediaTemplate
+  { autoTemplate :: Text,
+    buttons :: Maybe KarixButtons
+  }
+  deriving (Show, Generic, ToJSON, FromJSON)
+
 -- Template structure for simple template messages
 data KarixTemplate = KarixTemplate
   { templateId :: Text,
     parameterValues :: Map Text Text
   }
-  deriving (Show, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic)
+
+instance ToJSON KarixTemplate where
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
+
+instance FromJSON KarixTemplate where
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
+
+data KarixButtons = KarixButtons
+  { actions :: [KarixAction]
+  }
+  deriving (Show, Generic)
+
+instance ToJSON KarixButtons where
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
+
+instance FromJSON KarixButtons where
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
+
+data KarixAction = KarixAction
+  { type_ :: Text,
+    index :: Text,
+    payload :: Text
+  }
+  deriving (Show, Generic)
+
+instance ToJSON KarixAction where
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = renameActionFields}
+
+instance FromJSON KarixAction where
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = renameActionFields}
+
+renameActionFields :: String -> String
+renameActionFields "type_" = "type"
+renameActionFields other = other
 
 -- Media structure
 data KarixMedia = KarixMedia
@@ -103,10 +145,10 @@ data KarixRecipient = KarixRecipient
   deriving (Show, Generic)
 
 instance ToJSON KarixRecipient where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 instance FromJSON KarixRecipient where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 -- Reference structure
 data KarixReference = KarixReference
@@ -117,10 +159,10 @@ data KarixReference = KarixReference
   deriving (Show, Generic)
 
 instance ToJSON KarixReference where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 instance FromJSON KarixReference where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 -- Sender structure
 data KarixSender = KarixSender
@@ -129,10 +171,10 @@ data KarixSender = KarixSender
   deriving (Show, Generic)
 
 instance ToJSON KarixSender where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 instance FromJSON KarixSender where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 -- Preferences structure
 data KarixPreferences = KarixPreferences
@@ -141,10 +183,10 @@ data KarixPreferences = KarixPreferences
   deriving (Show, Generic)
 
 instance ToJSON KarixPreferences where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 instance FromJSON KarixPreferences where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 -- MetaData structure
 data KarixMetaData = KarixMetaData
@@ -153,10 +195,10 @@ data KarixMetaData = KarixMetaData
   deriving (Show, Generic)
 
 instance ToJSON KarixMetaData where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 instance FromJSON KarixMetaData where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = camelTo2 '_'}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 -- Response types
 data KarixWhatsappSubmitRes
@@ -173,15 +215,17 @@ instance ToJSON KarixWhatsappSubmitRes where
   toJSON (KarixWhatsAppError err) = toJSON err
 
 data KarixWhatsAppResponse = KarixWhatsAppResponse
-  { id :: Maybe Text,
-    status :: Maybe Text,
-    message :: Maybe Text
+  { statusCode :: Text,
+    statusDesc :: Text,
+    mid :: Maybe Text
   }
   deriving (Show, Generic)
 
-instance ToJSON KarixWhatsAppResponse
+instance ToJSON KarixWhatsAppResponse where
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
-instance FromJSON KarixWhatsAppResponse
+instance FromJSON KarixWhatsAppResponse where
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = (\s -> s)}
 
 data KarixWhatsAppErrorResponse = KarixWhatsAppErrorResponse
   { error :: KarixWhatsAppErrorDetails
