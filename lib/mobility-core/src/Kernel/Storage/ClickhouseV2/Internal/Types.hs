@@ -28,6 +28,9 @@ import Kernel.Storage.ClickhouseV2.ClickhouseValue
 data Select a db table cols gr ord acols where
   Select :: (ClickhouseTable table, ClickhouseColumns a cols) => cols -> GroupBy a gr -> Q db table cols ord acols -> Select a db table cols gr ord acols
 
+data Insert db table cols values where
+  Insert :: (ClickhouseTable table, ClickhouseColumns 'NOT_AGG cols) => cols -> values -> Insert db table cols values
+
 class ClickhouseColumns (a :: IsAggregated) cols where
   type ColumnsType a cols
   showClickhouseColumns :: Proxy a -> cols -> SubQueryLevel -> String

@@ -270,3 +270,12 @@ argMax ::
   Column 'NOT_AGG t v2 -> -- 'val'
   Column 'AGG t v1
 argMax = ArgMax
+
+-- | Helper function to construct INSERT queries
+--   Example: insert (table.id, table.name) ("123", "Alice")
+insert ::
+  (ClickhouseTable table, ClickhouseColumns 'NOT_AGG cols) =>
+  cols ->
+  values ->
+  Insert db table cols values
+insert = Insert

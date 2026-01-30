@@ -178,3 +178,63 @@ instance ClickhouseTable t => ClickhouseQuery (AvailableAllColumns db t) where
 
 instance ClickhouseQuery (AvailableSubSelectColumns db t subcols) where
   toClickhouseQuery (AvailableColumns (SubSelectColumns subSelect)) = addBrackets . toClickhouseQuery $ subSelect
+
+instance (ClickhouseTable t, ClickhouseColumns 'NOT_AGG cols, ClickhouseInsertValues values) => ClickhouseQuery (Insert db t cols values) where
+  toClickhouseQuery (Insert cols values) =
+    let tableName = dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)
+        colsStr = RawQuery $ showClickhouseColumns @'NOT_AGG @cols (Proxy @'NOT_AGG) cols 0
+        valsStr = toInsertValues values
+     in "INSERT INTO " <> fromString tableName <> " (" <> colsStr <> ") VALUES (" <> valsStr <> ")"
+    where
+      dropTSuffix str = take (length str - 1) str
+
+class ClickhouseInsertValues values where
+  toInsertValues :: values -> RawQuery
+
+instance ClickhouseValue v => ClickhouseInsertValues v where
+  toInsertValues = valToClickhouseQuery
+
+instance (ClickhouseValue v1, ClickhouseValue v2) => ClickhouseInsertValues (v1, v2) where
+  toInsertValues (v1, v2) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3) => ClickhouseInsertValues (v1, v2, v3) where
+  toInsertValues (v1, v2, v3) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4) => ClickhouseInsertValues (v1, v2, v3, v4) where
+  toInsertValues (v1, v2, v3, v4) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5) => ClickhouseInsertValues (v1, v2, v3, v4, v5) where
+  toInsertValues (v1, v2, v3, v4, v5) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6) where
+  toInsertValues (v1, v2, v3, v4, v5, v6) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7, ClickhouseValue v8) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7, v8) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7, v8) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7, valToClickhouseQuery v8]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7, ClickhouseValue v8, ClickhouseValue v9) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7, valToClickhouseQuery v8, valToClickhouseQuery v9]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7, ClickhouseValue v8, ClickhouseValue v9, ClickhouseValue v10) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7, valToClickhouseQuery v8, valToClickhouseQuery v9, valToClickhouseQuery v10]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7, ClickhouseValue v8, ClickhouseValue v9, ClickhouseValue v10, ClickhouseValue v11) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7, valToClickhouseQuery v8, valToClickhouseQuery v9, valToClickhouseQuery v10, valToClickhouseQuery v11]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7, ClickhouseValue v8, ClickhouseValue v9, ClickhouseValue v10, ClickhouseValue v11, ClickhouseValue v12) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7, valToClickhouseQuery v8, valToClickhouseQuery v9, valToClickhouseQuery v10, valToClickhouseQuery v11, valToClickhouseQuery v12]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7, ClickhouseValue v8, ClickhouseValue v9, ClickhouseValue v10, ClickhouseValue v11, ClickhouseValue v12, ClickhouseValue v13) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7, valToClickhouseQuery v8, valToClickhouseQuery v9, valToClickhouseQuery v10, valToClickhouseQuery v11, valToClickhouseQuery v12, valToClickhouseQuery v13]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7, ClickhouseValue v8, ClickhouseValue v9, ClickhouseValue v10, ClickhouseValue v11, ClickhouseValue v12, ClickhouseValue v13, ClickhouseValue v14) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7, valToClickhouseQuery v8, valToClickhouseQuery v9, valToClickhouseQuery v10, valToClickhouseQuery v11, valToClickhouseQuery v12, valToClickhouseQuery v13, valToClickhouseQuery v14]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7, ClickhouseValue v8, ClickhouseValue v9, ClickhouseValue v10, ClickhouseValue v11, ClickhouseValue v12, ClickhouseValue v13, ClickhouseValue v14, ClickhouseValue v15) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7, valToClickhouseQuery v8, valToClickhouseQuery v9, valToClickhouseQuery v10, valToClickhouseQuery v11, valToClickhouseQuery v12, valToClickhouseQuery v13, valToClickhouseQuery v14, valToClickhouseQuery v15]
+
+instance (ClickhouseValue v1, ClickhouseValue v2, ClickhouseValue v3, ClickhouseValue v4, ClickhouseValue v5, ClickhouseValue v6, ClickhouseValue v7, ClickhouseValue v8, ClickhouseValue v9, ClickhouseValue v10, ClickhouseValue v11, ClickhouseValue v12, ClickhouseValue v13, ClickhouseValue v14, ClickhouseValue v15, ClickhouseValue v16) => ClickhouseInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16) where
+  toInsertValues (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16) = intercalate ", " [valToClickhouseQuery v1, valToClickhouseQuery v2, valToClickhouseQuery v3, valToClickhouseQuery v4, valToClickhouseQuery v5, valToClickhouseQuery v6, valToClickhouseQuery v7, valToClickhouseQuery v8, valToClickhouseQuery v9, valToClickhouseQuery v10, valToClickhouseQuery v11, valToClickhouseQuery v12, valToClickhouseQuery v13, valToClickhouseQuery v14, valToClickhouseQuery v15, valToClickhouseQuery v16]

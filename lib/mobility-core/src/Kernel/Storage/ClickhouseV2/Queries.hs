@@ -18,6 +18,8 @@ module Kernel.Storage.ClickhouseV2.Queries
     -- findOne,
     runRawQuery,
     RawQuery (..),
+    insertOne,
+    runExecQuery,
   )
 where
 
@@ -89,3 +91,23 @@ runClickhouse db action = do
           L.runIO $ action con'''.connection
         else pure $ Left err
     Right val -> pure $ Right val
+
+insertOne ::
+  forall db t m cols values.
+  (HasClickhouseEnv db m, ClickhouseQuery (Insert db t cols values)) =>
+  Insert db t cols values ->
+  m (Either String ())
+insertOne insertClause = do
+  let rawQuery = toClickhouseQuery insertClause
+  logDebug $ "clickhouse insert query v2: " <> T.pack rawQuery.getRawQuery
+  runExecQuery @db (Proxy @db) rawQuery
+
+runExecQuery :: forall db m. (HasClickhouseEnv db m) => Proxy db -> RawQuery -> m (Either String ())
+runExecQuery db query = runClickhouse @db @() @m db action
+  where
+    action :: HttpConnection -> IO (Either String ())
+    action con = do
+      res <- exec (getRawQuery query) con
+      pure $ case res of
+        Left e -> Left (show e)
+        Right _ -> Right ()
