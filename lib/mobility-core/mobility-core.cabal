@@ -148,6 +148,7 @@ library
       Kernel.External.Payment.Interface
       Kernel.External.Payment.Interface.Events.Types
       Kernel.External.Payment.Interface.Juspay
+      Kernel.External.Payment.Interface.PaytmEDC
       Kernel.External.Payment.Interface.Stripe
       Kernel.External.Payment.Interface.Types
       Kernel.External.Payment.Juspay.Config
@@ -161,6 +162,9 @@ library
       Kernel.External.Payment.Juspay.Types.UpdateOrder
       Kernel.External.Payment.Juspay.Types.Webhook
       Kernel.External.Payment.Juspay.Webhook
+      Kernel.External.Payment.PaytmEDC.Config
+      Kernel.External.Payment.PaytmEDC.Flow
+      Kernel.External.Payment.PaytmEDC.Types
       Kernel.External.Payment.Stripe.Config
       Kernel.External.Payment.Stripe.Flow
       Kernel.External.Payment.Stripe.Types
