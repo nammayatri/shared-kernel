@@ -1,4 +1,3 @@
-{-# LANGUAGE DerivingStrategies #-}
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -12,18 +11,21 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingStrategies #-}
 
-module Kernel.External.Payment.Types where
+module Kernel.External.Payment.PaytmEDC.Config where
 
-import Data.Aeson.Types
-import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
-import Kernel.Storage.Esqueleto (derivePersistField)
+import Data.Aeson
+import Kernel.External.Encryption
+import Kernel.Prelude
 
-data PaymentService = AAJuspay | Juspay | Stripe | StripeTest | PaytmEDC
-  deriving stock (Show, Read, Eq, Ord, Generic)
-  deriving anyclass (ToJSON, FromJSON)
-
-$(mkBeamInstancesForEnumAndList ''PaymentService)
-derivePersistField "PaymentService"
+-- | PaytmEDC Configuration
+data PaytmEDCCfg = PaytmEDCCfg
+  { paytmMid :: Text, -- Merchant ID from Paytm
+    channelId :: Text, -- Channel ID from Paytm
+    merchantKey :: EncryptedField 'AsEncrypted Text, -- Secret key for checksum (encrypted)
+    baseUrl :: BaseUrl, -- API endpoint
+    callbackUrl :: BaseUrl -- Webhook callback URL
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)

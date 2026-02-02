@@ -35,6 +35,7 @@ createWallet ::
 createWallet config req = case config of
   Payment.JuspayConfig cfg -> Juspay.createWallet cfg req
   Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
+  Payment.PaytmEDCConfig _ -> throwError (InvalidRequest "PaytmEDC is not supported for wallet operations")
 
 walletPosting ::
   ( EncFlow m r,
@@ -47,6 +48,7 @@ walletPosting ::
 walletPosting config req = case config of
   Payment.JuspayConfig cfg -> Juspay.walletPosting cfg req
   Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
+  Payment.PaytmEDCConfig _ -> throwError (InvalidRequest "PaytmEDC is not supported for wallet operations")
 
 walletReversal ::
   ( EncFlow m r,
@@ -59,6 +61,7 @@ walletReversal ::
 walletReversal config req = case config of
   Payment.JuspayConfig cfg -> Juspay.walletReversal cfg req
   Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
+  Payment.PaytmEDCConfig _ -> throwError (InvalidRequest "PaytmEDC is not supported for wallet operations")
 
 walletBalance ::
   ( EncFlow m r,
@@ -71,6 +74,7 @@ walletBalance ::
 walletBalance config req = case config of
   Payment.JuspayConfig cfg -> Juspay.walletBalance cfg req
   Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
+  Payment.PaytmEDCConfig _ -> throwError (InvalidRequest "PaytmEDC is not supported for wallet operations")
 
 walletVerifyTxn ::
   ( EncFlow m r,
@@ -83,3 +87,4 @@ walletVerifyTxn ::
 walletVerifyTxn config req = case config of
   Payment.JuspayConfig cfg -> Juspay.walletVerifyTxn cfg req
   Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
+  Payment.PaytmEDCConfig _ -> throwError (InvalidRequest "PaytmEDC is not supported for wallet operations")
