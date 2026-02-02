@@ -32,4 +32,4 @@ $(enableKVPG ''MerchantOperatingCityT ['id] [])
 $(mkTableInstancesGenericSchema ''MerchantOperatingCityT "merchant_operating_city")
 
 instance HasSchemaName MerchantOperatingCityT where
-  schemaName _ = T.pack . fromMaybe "atlas_app" . unsafePerformIO $ lookupEnv "GET_MY_SCHEMA"
+  schemaName _ = T.pack . fromMaybe "atlas_app" . unsafePerformIO $ lookupEnv "CITY_SCHEMA"
