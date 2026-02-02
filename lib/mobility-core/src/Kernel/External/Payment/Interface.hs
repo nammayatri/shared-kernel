@@ -18,6 +18,7 @@ module Kernel.External.Payment.Interface
 where
 
 import qualified Kernel.External.Payment.Interface.Juspay as Juspay
+import qualified Kernel.External.Payment.Interface.PaytmEDC as PaytmEDC
 import qualified Kernel.External.Payment.Interface.Stripe as Stripe
 import Kernel.External.Payment.Interface.Types as Reexport
 import qualified Kernel.External.Payment.Stripe.Types as Stripe
@@ -42,6 +43,7 @@ createOrder serviceConfig mRoutingId req = case serviceConfig of
     let req' = req {metadataGatewayReferenceId = cfg.gatewayReferenceId}
     Juspay.createOrder cfg mRoutingId req'
   StripeConfig _ -> throwError $ InternalError "Stripe Create Order not supported."
+  PaytmEDCConfig cfg -> PaytmEDC.createOrder cfg mRoutingId req
 
 orderStatus ::
   ( EncFlow m r,
@@ -56,6 +58,7 @@ orderStatus ::
 orderStatus serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.orderStatus cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Order Status not supported."
+  PaytmEDCConfig cfg -> PaytmEDC.orderStatus cfg mRoutingId req.orderShortId
 
 updateOrder ::
   ( EncFlow m r,
@@ -70,6 +73,7 @@ updateOrder ::
 updateOrder serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.updateOrder cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Update Order not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Update Order not supported."
 
 offerList ::
   ( EncFlow m r,
@@ -84,6 +88,7 @@ offerList ::
 offerList serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.offerList cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Offer List not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Offer List not supported."
 
 offerApply ::
   ( EncFlow m r,
@@ -98,6 +103,7 @@ offerApply ::
 offerApply serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.offerApply cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Offer Apply not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Offer Apply not supported."
 
 offerNotify ::
   ( EncFlow m r,
@@ -112,6 +118,7 @@ offerNotify ::
 offerNotify serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.offerNotify cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Offer Notify not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Offer Notify not supported."
 
 mandateRevoke ::
   ( EncFlow m r,
@@ -126,6 +133,7 @@ mandateRevoke ::
 mandateRevoke serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateRevoke cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Revoke not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Mandate Revoke not supported."
 
 mandateNotification ::
   ( EncFlow m r,
@@ -140,6 +148,7 @@ mandateNotification ::
 mandateNotification serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateNotification cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Notification not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Mandate Notification not supported."
 
 mandateNotificationStatus ::
   ( EncFlow m r,
@@ -154,6 +163,7 @@ mandateNotificationStatus ::
 mandateNotificationStatus serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateNotificationStatus cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Notification Status not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Mandate Notification Status not supported."
 
 mandateExecution ::
   ( EncFlow m r,
@@ -168,6 +178,7 @@ mandateExecution ::
 mandateExecution serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateExecution cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Execution not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Mandate Execution not supported."
 
 autoRefunds ::
   ( EncFlow m r,
@@ -182,6 +193,7 @@ autoRefunds ::
 autoRefunds serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.autoRefund cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Auto Refunds not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Auto Refunds not supported."
 
 createIndividualConnectAccount ::
   ( EncFlow m r,
@@ -195,6 +207,7 @@ createIndividualConnectAccount ::
 createIndividualConnectAccount serviceConfig req = case serviceConfig of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Individual Connect Account not supported."
   StripeConfig cfg -> Stripe.createIndividualConnectAccount cfg req
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Create Individual Connect Account not supported."
 
 retryAccountLink ::
   ( CoreMetrics m,
@@ -208,6 +221,7 @@ retryAccountLink ::
 retryAccountLink config accountId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Retry Account Link not supported."
   StripeConfig cfg -> Stripe.retryAccountLink cfg accountId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Retry Account Link not supported."
 
 getAccount ::
   ( CoreMetrics m,
@@ -221,6 +235,7 @@ getAccount ::
 getAccount config accountId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Get Account not supported."
   StripeConfig cfg -> Stripe.getAccount cfg accountId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Get Account not supported."
 
 createCustomer ::
   ( CoreMetrics m,
@@ -234,6 +249,7 @@ createCustomer ::
 createCustomer config req = case config of
   JuspayConfig cfg -> Juspay.createCustomer cfg req
   StripeConfig cfg -> Stripe.createCustomer cfg req
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Create Customer not supported."
 
 getCustomer ::
   ( CoreMetrics m,
@@ -247,6 +263,7 @@ getCustomer ::
 getCustomer config customerId = case config of
   JuspayConfig cfg -> Juspay.getCustomer cfg customerId
   StripeConfig _ -> throwError $ InternalError "Stripe Get Customer not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Get Customer not supported."
 
 createEphemeralKeys ::
   ( CoreMetrics m,
@@ -260,6 +277,7 @@ createEphemeralKeys ::
 createEphemeralKeys config customerId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Ephemeral Keys not supported."
   StripeConfig cfg -> Stripe.createEphemeralKeys cfg customerId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Create Ephemeral Keys not supported."
 
 deleteCard ::
   ( CoreMetrics m,
@@ -273,6 +291,7 @@ deleteCard ::
 deleteCard config cardId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Delete Card not supported."
   StripeConfig cfg -> Stripe.deleteCard cfg cardId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Delete Card not supported."
 
 getCardList ::
   ( CoreMetrics m,
@@ -286,6 +305,7 @@ getCardList ::
 getCardList config customerId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Get Card List not supported."
   StripeConfig cfg -> Stripe.getCardList cfg customerId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Get Card List not supported."
 
 createPaymentIntent ::
   ( CoreMetrics m,
@@ -299,6 +319,7 @@ createPaymentIntent ::
 createPaymentIntent config req = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Payment Intent not supported."
   StripeConfig cfg -> Stripe.createPaymentIntent cfg req
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Create Payment Intent not supported."
 
 updatePaymentMethodInIntent ::
   ( CoreMetrics m,
@@ -313,6 +334,7 @@ updatePaymentMethodInIntent ::
 updatePaymentMethodInIntent config paymentIntentId paymentMethodId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Update Payment Method In Intent not supported."
   StripeConfig cfg -> Stripe.updatePaymentMethodInIntent cfg paymentIntentId paymentMethodId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Update Payment Method In Intent not supported."
 
 getPaymentIntent ::
   ( CoreMetrics m,
@@ -326,6 +348,7 @@ getPaymentIntent ::
 getPaymentIntent config paymentIntentId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Get Payment Intent not supported."
   StripeConfig cfg -> Stripe.getPaymentIntent cfg paymentIntentId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Get Payment Intent not supported."
 
 capturePaymentIntent ::
   ( CoreMetrics m,
@@ -341,6 +364,7 @@ capturePaymentIntent ::
 capturePaymentIntent config paymentIntentId amount applicationFeeAmount = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Capture Payment Intent not supported."
   StripeConfig cfg -> Stripe.capturePaymentIntent cfg paymentIntentId amount applicationFeeAmount
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Capture Payment Intent not supported."
 
 updateAmountInPaymentIntent ::
   ( CoreMetrics m,
@@ -356,6 +380,7 @@ updateAmountInPaymentIntent ::
 updateAmountInPaymentIntent config paymentIntentId amount applicationFeeAmount = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Update Amount In Payment Intent not supported."
   StripeConfig cfg -> Stripe.updateAmountInPaymentIntent cfg paymentIntentId amount applicationFeeAmount
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Update Amount In Payment Intent not supported."
 
 createSetupIntent ::
   ( CoreMetrics m,
@@ -369,6 +394,7 @@ createSetupIntent ::
 createSetupIntent config customerId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Setup Intent not supported."
   StripeConfig cfg -> Stripe.createSetupIntent cfg customerId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Create Setup Intent not supported."
 
 getCard ::
   ( CoreMetrics m,
@@ -383,6 +409,7 @@ getCard ::
 getCard config cardId customerId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Get Card not supported."
   StripeConfig cfg -> Stripe.getCard cfg cardId customerId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Get Card not supported."
 
 cancelPaymentIntent ::
   ( CoreMetrics m,
@@ -396,6 +423,7 @@ cancelPaymentIntent ::
 cancelPaymentIntent config paymentIntentId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Cancel Payment Intent not supported."
   StripeConfig cfg -> Stripe.cancelPaymentIntent cfg paymentIntentId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Cancel Payment Intent not supported."
 
 createRefund ::
   ( CoreMetrics m,
@@ -409,6 +437,7 @@ createRefund ::
 createRefund config paymentIntentId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Refund not supported."
   StripeConfig cfg -> Stripe.createRefund cfg paymentIntentId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Create Refund not supported."
 
 getRefund ::
   ( CoreMetrics m,
@@ -422,6 +451,7 @@ getRefund ::
 getRefund config paymentIntentId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Get Refund not supported."
   StripeConfig cfg -> Stripe.getRefund cfg paymentIntentId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Get Refund not supported."
 
 cancelRefund ::
   ( CoreMetrics m,
@@ -435,6 +465,7 @@ cancelRefund ::
 cancelRefund config paymentIntentId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Cancel Refund not supported."
   StripeConfig cfg -> Stripe.cancelRefund cfg paymentIntentId
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Cancel Refund not supported."
 
 verifyVPA ::
   ( CoreMetrics m,
@@ -449,28 +480,34 @@ verifyVPA ::
 verifyVPA config mRoutingId req = case config of
   JuspayConfig cfg -> Juspay.verifyVPA cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Verify VPA not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Verify VPA not supported."
 
 isSplitEnabled :: PaymentServiceConfig -> Bool
 isSplitEnabled = \case
   JuspayConfig cfg -> fromMaybe False cfg.isSplitEnabled
   StripeConfig _ -> False
+  PaytmEDCConfig _ -> False
 
 isPercentageSplit :: PaymentServiceConfig -> Bool
 isPercentageSplit = \case
   JuspayConfig cfg -> fromMaybe False cfg.isPercentageSplit
   StripeConfig _ -> False
+  PaytmEDCConfig _ -> False
 
 isRefundSplitEnabled :: PaymentServiceConfig -> Bool
 isRefundSplitEnabled = \case
   JuspayConfig cfg -> fromMaybe False cfg.isRefundSplitEnabled
   StripeConfig _ -> False
+  PaytmEDCConfig _ -> False
 
 getGatewayReferenceId :: PaymentServiceConfig -> Maybe Text
 getGatewayReferenceId = \case
   JuspayConfig cfg -> cfg.gatewayReferenceId
   StripeConfig _ -> Nothing
+  PaytmEDCConfig _ -> Nothing
 
 offerSKUConfig :: PaymentServiceConfig -> Maybe Text
 offerSKUConfig = \case
   JuspayConfig cfg -> cfg.offerSKUConfig
   StripeConfig _ -> Nothing
+  PaytmEDCConfig _ -> Nothing
