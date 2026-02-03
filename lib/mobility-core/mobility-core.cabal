@@ -469,6 +469,7 @@ library
       Kernel.Utils.ComputeIntersection
       Kernel.Utils.Context
       Kernel.Utils.DatastoreLatencyCalculator
+      Kernel.Utils.DESEncryption
       Kernel.Utils.Dhall
       Kernel.Utils.Error
       Kernel.Utils.Error.BaseError.HTTPError.APIError
@@ -553,6 +554,7 @@ library
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
+      PackageImports
   ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
   build-depends:
       aeson
@@ -719,6 +721,7 @@ test-suite mobility-core-tests
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
+      PackageImports
   ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
   build-depends:
       aeson
