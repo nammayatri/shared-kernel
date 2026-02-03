@@ -15,16 +15,10 @@
 
 module Kernel.External.Payment.PaytmEDC.Flow where
 
-import Crypto.Hash (SHA256)
-import Crypto.MAC.HMAC (HMAC, hmac, hmacGetDigest)
-import qualified Data.Aeson as A
-import qualified Data.ByteArray as BA
-import qualified Data.ByteString as BS
-import "base64-bytestring" Data.ByteString.Base64 as Base64
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Text as T
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import EulerHS.Types as Euler
+import Kernel.External.Payment.PaytmEDC.Checksum
 import Kernel.External.Payment.PaytmEDC.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -34,43 +28,15 @@ import Kernel.Utils.Common (fromEitherM)
 import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
--- HMAC-SHA256 using cryptonite
-hmacSHA256 :: BS.ByteString -> BS.ByteString -> BS.ByteString
-hmacSHA256 key msg =
-  let hmacResult :: HMAC SHA256
-      hmacResult = hmac key msg
-   in BA.convert $ hmacGetDigest hmacResult
-
--- Build checksum: Base64( HMAC-SHA256( merchantKey, JSON(body) ) )
-buildChecksum :: Text -> PaytmEDCSaleRequestBody -> Text
-buildChecksum merchantKey reqBody =
-  let bodyJson = LBS.toStrict $ A.encode reqBody
-      keyBytes = encodeUtf8 merchantKey
-      hmacResult = hmacSHA256 keyBytes bodyJson
-      checksum = Base64.encode hmacResult
-   in decodeUtf8 checksum
-
--- Build checksum for status request
-buildStatusChecksum :: Text -> PaytmEDCStatusRequestBody -> Text
-buildStatusChecksum merchantKey reqBody =
-  let bodyJson = LBS.toStrict $ A.encode reqBody
-      keyBytes = encodeUtf8 merchantKey
-      hmacResult = hmacSHA256 keyBytes bodyJson
-      checksum = Base64.encode hmacResult
-   in decodeUtf8 checksum
-
--- Verify checksum from Paytm response
-verifyChecksum :: Text -> PaytmEDCResponseBody -> Text -> Bool
-verifyChecksum merchantKey respBody receivedChecksum =
-  let bodyJson = LBS.toStrict $ A.encode respBody
-      keyBytes = encodeUtf8 merchantKey
-      hmacResult = hmacSHA256 keyBytes bodyJson
-      expectedChecksum = decodeUtf8 $ Base64.encode hmacResult
-   in expectedChecksum == receivedChecksum
-
 -- Format timestamp for Paytm API (yyyy-MM-dd HH:mm:ss)
 formatPaytmTimestamp :: UTCTime -> Text
 formatPaytmTimestamp = T.pack . formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S"
+
+-- Generate Checksum API
+type GenerateChecksumAPI =
+  "ecr" :> "generateChecksum"
+    :> ReqBody '[JSON] GenerateChecksumReq
+    :> Post '[JSON] GenerateChecksumResp
 
 -- Sale API
 type SaleAPI =
@@ -83,6 +49,21 @@ type StatusEnquiryAPI =
   "status"
     :> ReqBody '[JSON] PaytmEDCStatusRequest
     :> Post '[JSON] PaytmEDCResponse
+
+-- Call Generate Checksum API
+generateChecksum ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  GenerateChecksumReq ->
+  m GenerateChecksumResp
+generateChecksum url req = do
+  let proxy = Proxy @GenerateChecksumAPI
+      eulerClient = Euler.client proxy req
+  callPaytmEDCAPI url eulerClient "generateChecksum" proxy
 
 -- Initiate Sale on EDC terminal
 initiateSale ::

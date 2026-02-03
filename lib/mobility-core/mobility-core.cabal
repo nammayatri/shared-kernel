@@ -162,6 +162,7 @@ library
       Kernel.External.Payment.Juspay.Types.UpdateOrder
       Kernel.External.Payment.Juspay.Types.Webhook
       Kernel.External.Payment.Juspay.Webhook
+      Kernel.External.Payment.PaytmEDC.Checksum
       Kernel.External.Payment.PaytmEDC.Config
       Kernel.External.Payment.PaytmEDC.Flow
       Kernel.External.Payment.PaytmEDC.Types
