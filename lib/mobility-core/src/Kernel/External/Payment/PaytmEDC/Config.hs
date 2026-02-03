@@ -21,9 +21,10 @@ import Kernel.Prelude
 
 -- | PaytmEDC Configuration
 data PaytmEDCCfg = PaytmEDCCfg
-  { paytmMid :: Text, -- Merchant ID from Paytm
-    channelId :: Text, -- Channel ID from Paytm
-    merchantKey :: EncryptedField 'AsEncrypted Text, -- Secret key for checksum (encrypted)
+  { paytmMid :: EncryptedField 'AsEncrypted Text, -- Merchant ID from Paytm
+    channelId :: EncryptedField 'AsEncrypted Text, -- Channel ID from Paytm
+    clientId :: EncryptedField 'AsEncrypted Text, -- Client ID for checksum generation
+    merchantKey :: EncryptedField 'AsEncrypted Text, -- Secret key (not used for local checksum anymore but might be needed)
     baseUrl :: BaseUrl, -- API endpoint
     callbackUrl :: BaseUrl -- Webhook callback URL
   }
