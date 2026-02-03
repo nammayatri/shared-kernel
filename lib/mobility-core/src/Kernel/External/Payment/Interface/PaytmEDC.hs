@@ -132,12 +132,14 @@ orderStatus cfg _mRoutingId orderShortId = do
 -- Map PaytmEDC response to CreateOrderResp
 mkCreateOrderResp :: PaytmEDC.PaytmEDCResponse -> CreateOrderReq -> UTCTime -> CreateOrderResp
 mkCreateOrderResp response req now =
-  let txnStatus = case PaytmEDC.parsePaytmStatus (PaytmEDC.responseBody response).resultInfo.resultStatus of
-        PaytmEDC.EDC_ACCEPTED -> CHARGED
+  let respBody = PaytmEDC.responseBody response
+      resultCode = PaytmEDC.parseResultCodeId respBody.resultInfo.resultCodeId
+      txnStatus = case PaytmEDC.resultCodeToStatus resultCode of
+        PaytmEDC.EDC_ACCEPTED_SUCCESS -> CHARGED
         PaytmEDC.EDC_FAILED -> AUTHENTICATION_FAILED
         PaytmEDC.EDC_PENDING -> PENDING_VBV
    in CreateOrderResp
-        { id = fromMaybe req.orderId (PaytmEDC.responseBody response).merchantTransactionId,
+        { id = fromMaybe req.orderId respBody.merchantTransactionId,
           order_id = req.orderShortId,
           status = txnStatus,
           sdk_payload = defaultSDKPayload req now,
@@ -186,16 +188,19 @@ defaultSDKPayload req now =
 mkOrderStatusResp :: PaytmEDC.PaytmEDCResponse -> Text -> OrderStatusResp
 mkOrderStatusResp response orderId =
   let respBody = PaytmEDC.responseBody response
-      paytmStatus = PaytmEDC.parsePaytmStatus respBody.resultInfo.resultStatus
+      resultCode = PaytmEDC.parseResultCodeId respBody.resultInfo.resultCodeId
+      paytmStatus = PaytmEDC.resultCodeToStatus resultCode
       txnStatus = case paytmStatus of
-        PaytmEDC.EDC_ACCEPTED -> CHARGED
+        PaytmEDC.EDC_ACCEPTED_SUCCESS -> CHARGED
         PaytmEDC.EDC_FAILED -> AUTHORIZATION_FAILED
         PaytmEDC.EDC_PENDING -> PENDING_VBV
       paymentStatus = case paytmStatus of
-        PaytmEDC.EDC_ACCEPTED -> Just TXN_CHARGED
+        PaytmEDC.EDC_ACCEPTED_SUCCESS -> Just TXN_CHARGED
         PaytmEDC.EDC_FAILED -> Just TXN_FAILED
         PaytmEDC.EDC_PENDING -> Nothing
       txnAmount = maybe 0 (fromMaybe 0 . readMaybe . toString) respBody.transactionAmount
+      -- Use detailed error message from result code
+      errorMessage = PaytmEDC.getResultCodeMessage resultCode
    in OrderStatusResp
         { eventName = paymentStatus,
           orderShortId = orderId,
@@ -206,11 +211,11 @@ mkOrderStatusResp response orderId =
           paymentMethodType = respBody.paymentMode,
           paymentMethod = respBody.paymentMode,
           paymentGatewayResponse = Nothing,
-          respMessage = Just respBody.resultInfo.resultMsg,
-          respCode = Just respBody.resultInfo.resultCode,
+          respMessage = Just errorMessage, -- Use our detailed error message
+          respCode = respBody.resultInfo.resultCodeId, -- Pass the actual result code ID
           gatewayReferenceId = respBody.txnId,
-          bankErrorMessage = Nothing,
-          bankErrorCode = Nothing,
+          bankErrorMessage = if PaytmEDC.isSuccessCode resultCode then Nothing else Just respBody.resultInfo.resultMsg,
+          bankErrorCode = if PaytmEDC.isSuccessCode resultCode then Nothing else respBody.resultInfo.resultCodeId,
           amount = txnAmount / 100, -- Convert paise to rupees
           currency = INR,
           dateCreated = Nothing,
