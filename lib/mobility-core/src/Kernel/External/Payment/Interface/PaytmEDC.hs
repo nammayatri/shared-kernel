@@ -18,9 +18,11 @@ module Kernel.External.Payment.Interface.PaytmEDC
   )
 where
 
+import qualified Data.Map.Strict as Map
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Types
 import Kernel.External.Payment.Juspay.Types.CreateOrder (SDKPayload (..), SDKPayloadDetails (..))
+import Kernel.External.Payment.PaytmEDC.Checksum
 import Kernel.External.Payment.PaytmEDC.Config as Reexport
 import qualified Kernel.External.Payment.PaytmEDC.Flow as PaytmEDC
 import qualified Kernel.External.Payment.PaytmEDC.Types as PaytmEDC
@@ -42,16 +44,67 @@ createOrder ::
   m CreateOrderResp
 createOrder cfg _mRoutingId req = do
   now <- getCurrentTime
-  merchantKeyDecrypted <- decrypt cfg.merchantKey
+
+  -- Decrypt config
+  paytmMidDecrypted <- decrypt cfg.paytmMid
+  channelIdDecrypted <- decrypt cfg.channelId
+  clientIdDecrypted <- decrypt cfg.clientId
 
   let terminalId = req.metadataGatewayReferenceId -- TID passed via metadata
       amountInPaise = round (req.amount * 100) :: Int
       timestamp = PaytmEDC.formatPaytmTimestamp now
 
-      -- Build request body
-      saleBody =
+      -- Base params for checksum
+      baseParams =
+        Map.fromList
+          [ ("paytmMid", paytmMidDecrypted),
+            ("paytmTid", fromMaybe "" terminalId),
+            ("transactionDateTime", timestamp),
+            ("merchantTransactionId", req.orderShortId),
+            ("merchantReferenceNo", req.orderId),
+            ("transactionAmount", show amountInPaise)
+          ]
+
+      -- Add callback URL if present
+      paramsWithCallback =
+        let cb = showBaseUrl cfg.callbackUrl
+         in Map.insert "callbackUrl" cb baseParams
+
+      -- Extended info map
+      extendedInfoMap =
+        Map.fromList
+          [ ("autoAccept", "True"),
+            ("paymentMode", "ALL")
+          ]
+
+      -- Checksum Request
+      checksumReqBody =
+        ChecksumRequestBody
+          { params = paramsWithCallback,
+            mapParams = Just $ Map.fromList [("merchantExtendedInfo", extendedInfoMap)]
+          }
+
+      checksumReqHead =
+        ChecksumRequestHead
+          { mid = paytmMidDecrypted,
+            tid = terminalId,
+            clientId = clientIdDecrypted
+          }
+
+      checksumReq =
+        GenerateChecksumReq
+          { gcReqHead = checksumReqHead,
+            gcReqBody = checksumReqBody
+          }
+
+  -- Call Checksum API
+  checksumResp <- PaytmEDC.generateChecksum cfg.baseUrl checksumReq
+  let checksum = fromMaybe "" (checksumResp.gcRespBody.checksum)
+
+  -- Build Sale Request with checksum
+  let saleBody =
         PaytmEDC.PaytmEDCSaleRequestBody
-          { paytmMid = cfg.paytmMid,
+          { paytmMid = paytmMidDecrypted,
             paytmTid = terminalId,
             transactionDateTime = timestamp,
             merchantTransactionId = req.orderShortId,
@@ -63,15 +116,13 @@ createOrder cfg _mRoutingId req = do
                   { autoAccept = Just "True",
                     paymentMode = Just "ALL"
                   },
-            callbackUrl = Just $ showBaseUrl cfg.callbackUrl -- ye i think we  should ask for this.
+            callbackUrl = Just $ showBaseUrl cfg.callbackUrl
           }
-
-      checksum = PaytmEDC.buildChecksum merchantKeyDecrypted saleBody
 
       saleHead =
         PaytmEDC.PaytmEDCRequestHead
           { requestTimeStamp = timestamp,
-            channelId = cfg.channelId,
+            channelId = channelIdDecrypted,
             checksum = checksum,
             version = Just "1.0"
           }
@@ -98,24 +149,59 @@ orderStatus ::
   m OrderStatusResp
 orderStatus cfg _mRoutingId orderShortId = do
   now <- getCurrentTime
-  merchantKeyDecrypted <- decrypt cfg.merchantKey
+
+  -- Decrypt config
+  paytmMidDecrypted <- decrypt cfg.paytmMid
+  channelIdDecrypted <- decrypt cfg.channelId
+  clientIdDecrypted <- decrypt cfg.clientId
 
   let timestamp = PaytmEDC.formatPaytmTimestamp now
 
-      statusBody =
+      -- Base params for checksum
+      baseParams =
+        Map.fromList
+          [ ("paytmMid", paytmMidDecrypted),
+            ("merchantTransactionId", orderShortId),
+            ("transactionDateTime", timestamp)
+          ]
+
+      -- Checksum Request
+      checksumReqBody =
+        ChecksumRequestBody
+          { params = baseParams,
+            mapParams = Nothing
+          }
+
+      checksumReqHead =
+        ChecksumRequestHead
+          { mid = paytmMidDecrypted,
+            tid = Nothing,
+            clientId = clientIdDecrypted
+          }
+
+      checksumReq =
+        GenerateChecksumReq
+          { gcReqHead = checksumReqHead,
+            gcReqBody = checksumReqBody
+          }
+
+  -- Call Checksum API
+  checksumResp <- PaytmEDC.generateChecksum cfg.baseUrl checksumReq
+  let checksum = fromMaybe "" (checksumResp.gcRespBody.checksum)
+
+  -- Build Status Request with checksum
+  let statusBody =
         PaytmEDC.PaytmEDCStatusRequestBody
-          { paytmMid = cfg.paytmMid,
+          { paytmMid = paytmMidDecrypted,
             paytmTid = Nothing,
             merchantTransactionId = orderShortId,
             transactionDateTime = timestamp
           }
 
-      checksum = PaytmEDC.buildStatusChecksum merchantKeyDecrypted statusBody
-
       statusHead =
         PaytmEDC.PaytmEDCRequestHead
           { requestTimeStamp = timestamp,
-            channelId = cfg.channelId,
+            channelId = channelIdDecrypted,
             checksum = checksum,
             version = Just "1.0"
           }
