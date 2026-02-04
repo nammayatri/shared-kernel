@@ -199,6 +199,28 @@ data OrderData = OrderData
     refunds :: Maybe [RefundsData],
     split_settlement_response :: Maybe SplitSettlementResponse,
     effective_amount :: Maybe Double,
+    offers :: Maybe [Offer],
+    txn_list :: Maybe [TxnData]
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data TxnData = TxnData
+  { txn_uuid :: Maybe Text,
+    txn_id :: Maybe Text,
+    status :: TransactionStatus,
+    payment_method_type :: Maybe Text,
+    payment_method :: Maybe Text,
+    payment_gateway_response :: Maybe PaymentGatewayResponse,
+    resp_message :: Maybe Text,
+    resp_code :: Maybe Text,
+    gateway_reference_id :: Maybe Text,
+    bank_error_code :: Maybe Text,
+    bank_error_message :: Maybe Text,
+    upi :: Maybe Upi,
+    card :: Maybe CardInfo,
+    metadata :: Maybe MetaData,
+    effective_amount :: Maybe Double,
     offers :: Maybe [Offer]
   }
   deriving stock (Show, Generic)

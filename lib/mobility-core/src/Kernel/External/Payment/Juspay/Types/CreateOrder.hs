@@ -51,9 +51,35 @@ data CreateOrderReq = CreateOrderReq
     metadata_expiry_in_mins :: Maybe Int,
     split_settlement_details :: Maybe SplitSettlementDetails,
     basket :: Maybe Text,
-    auto_refund_conflict_threshold_minutes :: Maybe Int
+    auto_refund_conflict_threshold_minutes :: Maybe Int,
+    payment_rules :: Maybe PaymentRules
   }
   deriving stock (Show, Eq, Generic)
+
+data PaymentRules = PaymentRules
+  { payment_flows :: PaymentFlows
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+data PaymentFlows = PaymentFlows
+  { load_money :: LoadMoney
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+data LoadMoney = LoadMoney
+  { status :: Text,
+    info :: LoadMoneyInfo
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+data LoadMoneyInfo = LoadMoneyInfo
+  { wallet_id :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
 
 data SplitSettlementDetails
   = AmountBased SplitSettlementDetailsAmount
