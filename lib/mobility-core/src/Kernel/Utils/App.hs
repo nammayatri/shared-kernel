@@ -46,6 +46,7 @@ import Data.List (lookup)
 import Data.String.Conversions
 import qualified Data.Text as T (pack, unpack)
 import Data.UUID.V4 (nextRandom)
+import EulerHS.Api (ApiTag (..))
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
 import qualified EulerHS.Runtime as R
@@ -252,9 +253,11 @@ withModifiedEnv' = withModifiedEnvFn $ \req env requestId sessionId -> do
           sessionId' = bool Nothing (Just sessionId) appEnv.shouldLogRequestId
       newFlowRt <- L.updateLoggerContext (L.appendLogContext $ requestId <> " " <> url) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
+      let newFlowRt' = newFlowRt {R._optionsLocal = newOptionsLocal}
+      runFlowR newFlowRt' appEnv $ L.setOptionLocal ApiTag sanitizedUrl
       pure $
         env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', sessionId = sessionId', url = Just sanitizedUrl},
-            flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
+            flowRuntime = newFlowRt'
            }
 
 withModifiedEnvFn :: HasLog f => (Wai.Request -> EnvR f -> Text -> Text -> IO (EnvR f)) -> (EnvR f -> Application) -> EnvR f -> Application
