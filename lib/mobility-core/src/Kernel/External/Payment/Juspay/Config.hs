@@ -28,6 +28,8 @@ data JuspayCfg = JuspayCfg
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text,
     serviceMode :: Maybe ServiceMode,
+    walletGateway :: Maybe Text,
+    walletPaymentMethod :: Maybe Text,
     gatewayReferenceId :: Maybe Text,
     pseudoClientId :: Maybe Text, --- it is passed in response to for handling multiple merchants in same payment page
     isSplitEnabled :: Maybe Bool,

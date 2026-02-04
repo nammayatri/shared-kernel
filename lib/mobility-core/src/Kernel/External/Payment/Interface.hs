@@ -57,6 +57,32 @@ orderStatus serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.orderStatus cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Order Status not supported."
 
+createWallet ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PaymentServiceConfig ->
+  CreateWalletReq ->
+  m CreateWalletResp
+createWallet serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.createWallet cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Create Wallet not supported."
+
+refreshWallet ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PaymentServiceConfig ->
+  RefreshWalletReq ->
+  m RefreshWalletResp
+refreshWallet serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.refreshWallet cfg req
+  StripeConfig _ -> throwError $ InternalError "Stripe Refresh Wallet not supported."
+
 updateOrder ::
   ( EncFlow m r,
     CoreMetrics m,

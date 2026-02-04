@@ -23,12 +23,12 @@ module Kernel.External.Payment.Interface.Types
 where
 
 import Control.Lens
-import Data.Aeson.Types
-import Data.OpenApi hiding (description, email, name, title)
+import Data.Aeson.Types hiding (object)
+import Data.OpenApi hiding (description, email, info, name, title)
 import Data.Time
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), MetaData (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), TransactionStatus (..))
 import qualified Kernel.External.Payment.Stripe.Config as Stripe
 import Kernel.External.Payment.Stripe.Types as Reexport hiding (RefundStatus (..))
 import Kernel.Prelude
@@ -88,7 +88,33 @@ data CreateOrderReq = CreateOrderReq
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int,
     splitSettlementDetails :: Maybe SplitSettlementDetails,
-    basket :: Maybe [Basket]
+    basket :: Maybe [Basket],
+    paymentRules :: Maybe PaymentRules
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentRules = PaymentRules
+  { paymentFlows :: PaymentFlows
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFlows = PaymentFlows
+  { loadMoney :: LoadMoney
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data LoadMoney = LoadMoney
+  { status :: Text,
+    info :: LoadMoneyInfo
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data LoadMoneyInfo = LoadMoneyInfo
+  { walletId :: Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -100,6 +126,75 @@ data Basket = Basket
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data CreateWalletReq = CreateWalletReq
+  { customerId :: Text,
+    command :: Text,
+    deviceId :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RefreshWalletReq = RefreshWalletReq
+  { walletId :: Text,
+    command :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CreateWalletResp = CreateWalletResp
+  { token :: Text,
+    linked :: Bool,
+    id :: Text,
+    currentBalance :: Maybe HighPrecMoney,
+    wallet :: Text,
+    authParams :: Maybe WalletAuthParams,
+    lastRefreshed :: Maybe Text,
+    subDetails :: [WalletSubDetail],
+    object :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data WalletAuthParams = WalletAuthParams
+  { isResendAllowed :: Bool,
+    resendWaitTime :: Text,
+    isOtpRequired :: Bool,
+    isSubmitAllowed :: Bool
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data WalletSubDetail = WalletSubDetail
+  { currentBalance :: Maybe HighPrecMoney,
+    lastRefreshed :: Maybe Text,
+    paymentMethod :: Text,
+    paymentMethodType :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RefreshWalletResp = RefreshWalletResp
+  { token :: Text,
+    linked :: Bool,
+    id :: Text,
+    currentBalance :: Maybe HighPrecMoney,
+    wallet :: Text,
+    lastRefreshed :: Maybe Text,
+    subDetails :: [RefreshWalletSubDetail],
+    object :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RefreshWalletSubDetail = RefreshWalletSubDetail
+  { currentBalance :: Maybe HighPrecMoney,
+    lastRefreshed :: Maybe Text,
+    paymentMethod :: Text,
+    paymentMethodType :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data Split = Split
   { amount :: HighPrecMoney,
@@ -194,6 +289,27 @@ data Offer = Offer
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data TxnData = TxnData
+  { txnUuid :: Maybe Text,
+    txnId :: Maybe Text,
+    transactionStatus :: TransactionStatus,
+    paymentMethodType :: Maybe Text,
+    paymentMethod :: Maybe Text,
+    paymentGatewayResponse :: Maybe PaymentGatewayResponse,
+    respMessage :: Maybe Text,
+    respCode :: Maybe Text,
+    gatewayReferenceId :: Maybe Text,
+    bankErrorCode :: Maybe Text,
+    bankErrorMessage :: Maybe Text,
+    upi :: Maybe Upi,
+    card :: Maybe CardInfo,
+    metadata :: Maybe MetaData,
+    effectiveAmount :: Maybe HighPrecMoney,
+    offers :: Maybe [Offer]
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data OrderStatusResp
   = OrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -224,7 +340,8 @@ data OrderStatusResp
         card :: Maybe CardInfo,
         splitSettlementResponse :: Maybe SplitSettlementResponse,
         effectiveAmount :: Maybe HighPrecMoney,
-        offers :: Maybe [Offer]
+        offers :: Maybe [Offer],
+        txnList :: Maybe [TxnData]
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -252,7 +369,8 @@ data OrderStatusResp
         payerVpa :: Maybe Text,
         upi :: Maybe Upi,
         amountRefunded :: Maybe HighPrecMoney,
-        refunds :: [RefundsData]
+        refunds :: [RefundsData],
+        txnList :: Maybe [TxnData]
       }
   | MandateStatusResp
       { eventName :: Maybe PaymentStatus,

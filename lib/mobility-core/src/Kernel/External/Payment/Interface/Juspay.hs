@@ -15,6 +15,8 @@
 module Kernel.External.Payment.Interface.Juspay
   ( module Reexport,
     createOrder,
+    createWallet,
+    refreshWallet,
     createCustomer,
     getCustomer,
     orderStatus,
@@ -79,6 +81,34 @@ createOrder config mRoutingId req = do
   logDebug $ "createOrder mkCreateOrderReq: " <> show orderReq
   logDebug $ "createOrder splitSettlementDetails: " <> show req.splitSettlementDetails
   Juspay.createOrder url apiKey merchantId mRoutingId orderReq
+
+createWallet ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  JuspayCfg ->
+  CreateWalletReq ->
+  m CreateWalletResp
+createWallet config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  fromJuspayCreateWalletResp <$> Juspay.createWallet url apiKey req.customerId (mkCreateWalletReq config req)
+
+refreshWallet ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  JuspayCfg ->
+  RefreshWalletReq ->
+  m RefreshWalletResp
+refreshWallet config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  fromJuspayRefreshWalletResp <$> Juspay.refreshWallet url apiKey req.walletId (mkRefreshWalletReq req)
 
 updateOrder ::
   ( Metrics.CoreMetrics m,
@@ -295,6 +325,74 @@ mandateRevoke config mRoutingId req = do
   void $ Juspay.mandateRevoke url apiKey merchantId mRoutingId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
   return Success
 
+fromJuspayAuthParams :: Juspay.AuthParams -> WalletAuthParams
+fromJuspayAuthParams Juspay.AuthParams {..} =
+  WalletAuthParams
+    { isResendAllowed = is_resend_allowed,
+      resendWaitTime = resend_wait_time,
+      isOtpRequired = is_otp_required,
+      isSubmitAllowed = is_submit_allowed
+    }
+
+fromJuspaySubDetail :: Juspay.SubDetail -> WalletSubDetail
+fromJuspaySubDetail Juspay.SubDetail {..} =
+  WalletSubDetail
+    { currentBalance = (readMaybe . T.unpack) =<< current_balance,
+      lastRefreshed = last_refreshed,
+      paymentMethod = payment_method,
+      paymentMethodType = payment_method_type
+    }
+
+fromJuspayCreateWalletResp :: Juspay.CreateWalletResp -> CreateWalletResp
+fromJuspayCreateWalletResp Juspay.CreateWalletResp {..} =
+  CreateWalletResp
+    { token = token,
+      linked = linked,
+      id = id,
+      currentBalance = (readMaybe . T.unpack) =<< current_balance,
+      wallet = wallet,
+      authParams = fmap fromJuspayAuthParams auth_params,
+      lastRefreshed = last_refreshed,
+      subDetails = map fromJuspaySubDetail sub_details,
+      object = object
+    }
+
+mkCreateWalletReq :: JuspayCfg -> CreateWalletReq -> Juspay.CreateWalletReq
+mkCreateWalletReq config CreateWalletReq {..} =
+  Juspay.CreateWalletReq
+    { command = command,
+      device_id = fromMaybe "" deviceId,
+      gateway = fromMaybe "" config.walletGateway,
+      payment_method = fromMaybe "" config.walletPaymentMethod,
+      gateway_reference_id = fromMaybe "" config.gatewayReferenceId
+    }
+
+fromJuspayRefreshSubDetail :: Juspay.RefreshSubDetail -> RefreshWalletSubDetail
+fromJuspayRefreshSubDetail Juspay.RefreshSubDetail {..} =
+  RefreshWalletSubDetail
+    { currentBalance = realToFrac <$> current_balance,
+      lastRefreshed = last_refreshed,
+      paymentMethod = payment_method,
+      paymentMethodType = payment_method_type
+    }
+
+fromJuspayRefreshWalletResp :: Juspay.RefreshWalletResp -> RefreshWalletResp
+fromJuspayRefreshWalletResp Juspay.RefreshWalletResp {..} =
+  RefreshWalletResp
+    { token = token,
+      linked = linked,
+      id = id,
+      currentBalance = realToFrac <$> current_balance,
+      wallet = wallet,
+      lastRefreshed = last_refreshed,
+      subDetails = map fromJuspayRefreshSubDetail sub_details,
+      object = object
+    }
+
+mkRefreshWalletReq :: RefreshWalletReq -> Juspay.RefreshWalletReq
+mkRefreshWalletReq RefreshWalletReq {..} =
+  Juspay.RefreshWalletReq {command = command}
+
 mkCreateOrderReq :: (MonadTime m, MonadThrow m, Log m) => BaseUrl -> Maybe Int -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
 mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantId CreateOrderReq {..} =
   do
@@ -324,8 +422,34 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantI
           metadata_gateway_reference_id = metadataGatewayReferenceId,
           split_settlement_details = splitDetails,
           basket = decodeUtf8 . A.encode <$> basket,
-          auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes
+          auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
+          payment_rules = mkPaymentRules <$> paymentRules
         }
+
+mkPaymentRules :: PaymentRules -> Juspay.PaymentRules
+mkPaymentRules PaymentRules {..} =
+  Juspay.PaymentRules
+    { payment_flows = mkPaymentFlows paymentFlows
+    }
+
+mkPaymentFlows :: PaymentFlows -> Juspay.PaymentFlows
+mkPaymentFlows PaymentFlows {..} =
+  Juspay.PaymentFlows
+    { load_money = mkLoadMoney loadMoney
+    }
+
+mkLoadMoney :: LoadMoney -> Juspay.LoadMoney
+mkLoadMoney LoadMoney {..} =
+  Juspay.LoadMoney
+    { status = status,
+      info = mkLoadMoneyInfo info
+    }
+
+mkLoadMoneyInfo :: LoadMoneyInfo -> Juspay.LoadMoneyInfo
+mkLoadMoneyInfo LoadMoneyInfo {..} =
+  Juspay.LoadMoneyInfo
+    { wallet_id = walletId
+    }
 
 mkSplitSettlementDetails :: (MonadThrow m, Log m) => SplitSettlementDetails -> m Juspay.SplitSettlementDetails
 mkSplitSettlementDetails splitDetails = do
@@ -429,7 +553,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
           payerVpa = payer_vpa,
           upi = castUpi <$> upi,
           refunds = maybe [] mkRefundsData refunds,
-          amountRefunded = realToFrac <$> amount_refunded
+          amountRefunded = realToFrac <$> amount_refunded,
+          txnList = fmap (map mkTxnData) txn_list
         }
     Nothing -> do
       let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData metadata links additional_info
@@ -464,6 +589,10 @@ mkOrderStatusResp Juspay.OrderData {..} =
           bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
           bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
           dateCreated = date_created,
+          isRetriedOrder = isRetriedOrder,
+          isRetargetedOrder = isRetargetedOrder,
+          retargetPaymentLink = retargetPaymentLink,
+          retargetPaymentLinkExpiry = retargetPaymentLinkExpiry,
           refunds = maybe [] mkRefundsData refunds,
           amountRefunded = realToFrac <$> amount_refunded,
           payerVpa = payer_vpa,
@@ -471,7 +600,7 @@ mkOrderStatusResp Juspay.OrderData {..} =
           card = castCard <$> card,
           splitSettlementResponse = mkSplitSettlementResponse <$> split_settlement_response,
           offers = maybe Nothing mkOffersData offers,
-          ..
+          txnList = fmap (map mkTxnData) txn_list
         }
 
 castUpi :: Juspay.Upi -> Upi
@@ -479,6 +608,39 @@ castUpi Juspay.Upi {..} = Upi {payerApp = payer_app, payerAppName = payer_app_na
 
 castCard :: Juspay.CardInfo -> CardInfo
 castCard Juspay.CardInfo {..} = CardInfo {cardType = card_type, lastFourDigits = last_four_digits}
+
+mkTxnData :: Juspay.TxnData -> TxnData
+mkTxnData Juspay.TxnData {..} =
+  TxnData
+    { txnUuid = txn_uuid,
+      txnId = txn_id,
+      transactionStatus = status,
+      paymentMethodType = payment_method_type,
+      paymentMethod = payment_method,
+      paymentGatewayResponse =
+        payment_gateway_response
+          <&> ( \pgResp ->
+                  PaymentGatewayResponse
+                    { respCode = pgResp.resp_code,
+                      rrn = pgResp.rrn,
+                      created = pgResp.created,
+                      epgTxnId = pgResp.epg_txn_id,
+                      respMessage = pgResp.resp_message,
+                      authIdCode = pgResp.auth_id_code,
+                      txnId = pgResp.txn_id
+                    }
+              ),
+      respMessage = resp_message,
+      respCode = resp_code,
+      gatewayReferenceId = gateway_reference_id,
+      bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
+      bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
+      upi = castUpi <$> upi,
+      card = castCard <$> card,
+      metadata = metadata,
+      effectiveAmount = realToFrac <$> effective_amount,
+      offers = maybe Nothing mkOffersData offers
+    }
 
 mkNotificationReq :: MandateNotificationReq -> Juspay.MandateNotificationReq
 mkNotificationReq mandateNotificationReq =
@@ -599,7 +761,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               payerVpa = justOrder.payer_vpa,
               upi = castUpi <$> justOrder.upi,
               refunds = maybe [] mkRefundsData justOrder.refunds,
-              amountRefunded = realToFrac <$> justOrder.amount_refunded -- not adding split
+              amountRefunded = realToFrac <$> justOrder.amount_refunded,
+              txnList = fmap (map mkTxnData) justOrder.txn_list
             }
         Nothing -> do
           let (isRetriedOrder, retargetPaymentLink, retargetPaymentLinkExpiry, isRetargetedOrder) = parseRetargetAndRetryData justOrder.metadata justOrder.links justOrder.additional_info
@@ -634,6 +797,10 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               effectiveAmount = realToFrac <$> justOrder.effective_amount,
               currency = justOrder.currency,
               dateCreated = justOrder.date_created,
+              isRetriedOrder = isRetriedOrder,
+              isRetargetedOrder = isRetargetedOrder,
+              retargetPaymentLink = retargetPaymentLink,
+              retargetPaymentLinkExpiry = retargetPaymentLinkExpiry,
               refunds = maybe [] mkRefundsData justOrder.refunds,
               amountRefunded = realToFrac <$> justOrder.amount_refunded,
               payerVpa = justOrder.payer_vpa,
@@ -641,7 +808,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               card = castCard <$> justOrder.card,
               splitSettlementResponse = mkSplitSettlementResponse <$> justOrder.split_settlement_response,
               offers = maybe Nothing mkOffersData justOrder.offers,
-              ..
+              txnList = fmap (map mkTxnData) justOrder.txn_list
             }
     (Nothing, Just justMandate, _, _) ->
       MandateStatusResp
@@ -695,7 +862,11 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           splitSettlementResponse = Nothing,
           effectiveAmount = Just $ realToFrac justTransaction.txn_amount,
           offers = Nothing,
-          ..
+          isRetriedOrder = isRetriedOrder,
+          isRetargetedOrder = isRetargetedOrder,
+          retargetPaymentLink = retargetPaymentLink,
+          retargetPaymentLinkExpiry = retargetPaymentLinkExpiry,
+          txnList = Nothing
         }
     (_, _, Nothing, _) -> BadStatusResp
 

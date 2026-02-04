@@ -81,6 +81,53 @@ getCustomer url apiKey merchantId mRoutingId customerId req = do
       eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) (Just merchantId) mRoutingId req
   callJuspayAPI url eulerClient "get-customer" proxy
 
+type CreateWalletAPI =
+  "customers"
+    :> Capture "customer_id" Text
+    :> "wallets"
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] CreateWalletReq
+    :> Post '[JSON] CreateWalletResp
+
+createWallet ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  CreateWalletReq ->
+  m CreateWalletResp
+createWallet url apiKey customerId req = do
+  let proxy = Proxy @CreateWalletAPI
+      eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) req
+  callJuspayAPI url eulerClient "create-wallet" proxy
+
+type RefreshWalletAPI =
+  "wallets"
+    :> Capture "wallet_id" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] RefreshWalletReq
+    :> Post '[JSON] RefreshWalletResp
+
+refreshWallet ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  RefreshWalletReq ->
+  m RefreshWalletResp
+refreshWallet url apiKey walletId req = do
+  let proxy = Proxy @RefreshWalletAPI
+      eulerClient = Euler.client proxy walletId (mkBasicAuthData apiKey) req
+  callJuspayAPI url eulerClient "refresh-wallet" proxy
+
 type CreateOrderAPI =
   "session"
     :> BasicAuth "username-password" BasicAuthData
