@@ -60,3 +60,8 @@ getPrepareSecondaryRedisClusterConnection :: IO Bool
 getPrepareSecondaryRedisClusterConnection = do
   envVal <- lookupEnv "PREPARE_SECONDARY_REDIS_CLUSTER_CONNECTION"
   pure (Just False /= (readMaybe . toTitle =<< envVal))
+
+getRunInSecondaryCloudRedis :: IO Bool
+getRunInSecondaryCloudRedis = do
+  envVal <- lookupEnv "RUN_IN_SECONDARY_CLOUD"
+  pure (fromMaybe False (readMaybe =<< envVal))
