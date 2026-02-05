@@ -26,7 +26,7 @@ import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
 import EulerHS.Prelude (whenLeft)
 import GHC.Records.Extra
-import Kernel.Beam.Connection.EnvVars (getRunInSecondaryCloudRedis)
+import Kernel.Beam.Connection.EnvVars (getRunInMasterCloudRedisCell)
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Storage.Hedis.Error
@@ -189,15 +189,15 @@ runInMultiCloudRedis isWriteOperation action = do
                 pure Nothing
               Right result -> pure result
 
-runInSecondaryCloudRedis ::
+runInMasterCloudRedisCell ::
   (HedisFlow m env, TryException m) => m f -> m f
-runInSecondaryCloudRedis f = do
-  shouldRunInSecondaryCloud <- liftIO getRunInSecondaryCloudRedis
-  if shouldRunInSecondaryCloud
+runInMasterCloudRedisCell f = do
+  shouldRunInMasterCloudRedisCell <- liftIO getRunInMasterCloudRedisCell
+  if shouldRunInMasterCloudRedisCell
     then do
       mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
       case mbSecondaryEnv of
-        Nothing -> do logError "SECONDARY_CLUSTER: No secondary environment found using primary"; f
+        Nothing -> do logError "MASTER_CLOUD_REDIS_CELL: No secondary environment found using primary"; f
         Just secondaryEnv -> local (\env -> env{hedisClusterEnv = secondaryEnv}) f
     else f
 
