@@ -406,9 +406,9 @@ createRefund ::
   PaymentServiceConfig ->
   CreateRefundReq ->
   m CreateRefundResp
-createRefund config paymentIntentId = case config of
+createRefund config req = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Refund not supported."
-  StripeConfig cfg -> Stripe.createRefund cfg paymentIntentId
+  StripeConfig cfg -> Stripe.createRefund cfg req
 
 getRefund ::
   ( CoreMetrics m,
@@ -419,9 +419,9 @@ getRefund ::
   PaymentServiceConfig ->
   GetRefundReq ->
   m GetRefundResp
-getRefund config paymentIntentId = case config of
+getRefund config req = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Get Refund not supported."
-  StripeConfig cfg -> Stripe.getRefund cfg paymentIntentId
+  StripeConfig cfg -> Stripe.getRefund cfg req
 
 cancelRefund ::
   ( CoreMetrics m,
@@ -432,9 +432,22 @@ cancelRefund ::
   PaymentServiceConfig ->
   CancelRefundReq ->
   m CancelRefundResp
-cancelRefund config paymentIntentId = case config of
+cancelRefund config req = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Cancel Refund not supported."
-  StripeConfig cfg -> Stripe.cancelRefund cfg paymentIntentId
+  StripeConfig cfg -> Stripe.cancelRefund cfg req
+
+createTransfer ::
+  ( CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PaymentServiceConfig ->
+  CreateTransferReq ->
+  m CreateTransferResp
+createTransfer config req = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Create Refund not supported."
+  StripeConfig cfg -> Stripe.createTransfer cfg req
 
 verifyVPA ::
   ( CoreMetrics m,

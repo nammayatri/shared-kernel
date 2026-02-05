@@ -618,3 +618,27 @@ cancelRefund url apiKey connectedAccountId refundId = do
   let proxy = Proxy @CancelRefundAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId refundId
   callStripeAPI url eulerClient "cancel-refund" proxy
+
+type CreateTransferAPI =
+  "v1"
+    :> "transfers"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Header "Stripe-Account" Text
+    :> ReqBody '[FormUrlEncoded] TransferReq
+    :> Post '[JSON] TransferObject
+
+createTransfer ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Maybe Text ->
+  TransferReq ->
+  m TransferObject
+createTransfer url apiKey connectedAccountId transferReq = do
+  let proxy = Proxy @CreateTransferAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId transferReq
+  callStripeAPI url eulerClient "create-transfer" proxy
