@@ -16,6 +16,8 @@ module Kernel.External.Verification.Interface.Idfy
   ( module Reexport,
     verifyDLAsync,
     verifyRCAsync,
+    verifyPanAsync,
+    verifyGstAsync,
     validateImage,
     extractRCImage,
     extractDLImage,
@@ -26,6 +28,8 @@ module Kernel.External.Verification.Interface.Idfy
     convertDLOutputToDLVerificationOutput,
     convertRCOutputToRCVerificationResponse,
     nameCompare,
+    convertPanOutputToPanVerification,
+    convertGstOutputToGstVerification,
   )
 where
 
@@ -81,6 +85,49 @@ verifyDLAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyDLAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyPanAsync ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  IdfyCfg ->
+  VerifyPanAsyncReq ->
+  m VerifyPanAsyncResp
+verifyPanAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let dobDay = T.pack $ formatTime defaultTimeLocale "%F" req.dateOfBirth
+  let reqData =
+        Idfy.PanVerificationData
+          { id_number = req.panNumber,
+            full_name = req.fullName,
+            dob = dobDay
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyPanAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyGstAsync ::
+  ( EncFlow m r,
+    CoreMetrics m
+  ) =>
+  IdfyCfg ->
+  VerifyGstAsyncReq ->
+  m VerifyGstAsyncResp
+verifyGstAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.GstVerificationData
+          { gstin = req.gstNumber,
+            filing_details = req.filingDetails,
+            e_invoice_details = req.eInvoiceDetails
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyGstAsync apiKey accountId url idfyReq
   pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
 
 verifyRCAsync ::
@@ -349,14 +396,14 @@ getTask cfg req updateResp = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
   accountId <- decrypt cfg.accountId
-  (resp, respDump) <- Idfy.getTask apiKey accountId url req.requestId
+  (VerificationResponse resp, respDump) <- Idfy.getTask apiKey accountId url req.requestId
   updateResp resp.status (Just respDump) req.requestId
-  let dlOutput = join $ resp.result <&> (.source_output)
-      rcOutput = join $ resp.result <&> (.extraction_output)
-  case (dlOutput, rcOutput) of
-    (Just op, Nothing) -> return $ DLResp (convertDLOutputToDLVerificationOutput op)
-    (Nothing, Just op) -> return $ RCResp (convertRCOutputToRCVerificationResponse op)
-    _ -> throwError $ InternalError ("Unrecognized response from getTesk api. Resp : " <> show resp)
+  result <- resp.result & fromMaybeM (InternalError ("Missing result in getTask response: " <> show resp))
+  pure $ case result of
+    DLResult (SourceOutput out) -> DLResp $ convertDLOutputToDLVerificationOutput out
+    RCResult (ExtractionOutput out) -> RCResp $ convertRCOutputToRCVerificationResponse out
+    PanResult (SourceOutput out) -> PanResp $ convertPanOutputToPanVerification out
+    GstResult (SourceOutput out) -> GstResp $ convertGstOutputToGstVerification out
 
 convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
 convertDLOutputToDLVerificationOutput DLVerificationOutput {..} =
@@ -391,6 +438,51 @@ convertRCOutputToRCVerificationResponse RCVerificationOutput {..} =
       status = status,
       grossVehicleWeight = gross_vehicle_weight >>= convertValueToFloat,
       unladdenWeight = unladden_weight >>= convertValueToFloat
+    }
+
+convertPanOutputToPanVerification :: PanVerificationOutput -> VT.PanVerificationResponse
+convertPanOutputToPanVerification PanVerificationOutput {..} =
+  VT.PanVerificationResponse
+    { aadhaarSeedingStatus = aadhaar_seeding_status,
+      panStatus = pan_status,
+      nameMatch = name_match,
+      dobMatch = dob_match,
+      inputDetails = convertPanInputDetaills <$> input_details,
+      status = status
+    }
+
+convertPanInputDetaills :: PanInputDetails -> VT.PanInputDetails
+convertPanInputDetaills PanInputDetails {..} =
+  VT.PanInputDetails
+    { inputPanNumber = input_pan_number,
+      inputName = input_name,
+      inputDob = input_dob
+    }
+
+convertGstOutputToGstVerification :: GstVerificationOutput -> VT.GstVerificationResponse
+convertGstOutputToGstVerification GstVerificationOutput {..} =
+  VT.GstVerificationResponse
+    { additionalPlaceOfBusinessFields = additional_place_of_business_fields,
+      centreJurisdiction = centre_jurisdiction,
+      centreJurisdictionCode = centre_jurisdiction_code,
+      constitutionOfBusiness = constitution_of_business,
+      dateOfCancellation = date_of_cancellation,
+      dateOfRegistration = date_of_registration,
+      gstin = gstin,
+      gstinStatus = gstin_status,
+      lastUpdatedDate = last_updated_date,
+      legalName = legal_name,
+      natureOfBusinessActivity = nature_of_business_activity,
+      principalPlaceOfBusinessFields = principal_place_of_business_fields,
+      source = source,
+      stateJurisdictionCode = state_jurisdiction_code,
+      status = status,
+      taxpayerType = taxpayer_type,
+      tradeName = trade_name,
+      einvoiceStatus = einvoice_status,
+      statusDetails = status_details,
+      isSez = is_sez,
+      filingDetails = filing_details
     }
 
 convertValueToFloat :: A.Value -> Maybe Float
