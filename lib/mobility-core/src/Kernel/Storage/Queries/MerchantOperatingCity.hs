@@ -19,6 +19,13 @@ import Kernel.Types.Id
 import Kernel.Types.MerchantOperatingCity
 import qualified Sequelize as Se
 
+createIfNotExist :: (EsqDBFlow m r, MonadFlow m, CacheFlow m r) => MerchantOperatingCity -> m ()
+createIfNotExist merchantOperatingCity = do
+  city <- findAllWithKV [Se.Is Beam.city $ Se.Eq merchantOperatingCity.city] <&> listToMaybe
+  case city of
+    Just _ -> pure ()
+    Nothing -> createWithKV merchantOperatingCity
+
 findAll :: (EsqDBFlow m r, MonadFlow m, CacheFlow m r) => m [MerchantOperatingCity]
 findAll = findAllWithKV [Se.Is Beam.city $ Se.Not $ Se.Eq ""]
 
