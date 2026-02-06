@@ -125,7 +125,9 @@ verifyPanAPI = Proxy
 
 verifyPanAsync ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->
@@ -153,7 +155,9 @@ verifyGstAPI = Proxy
 
 verifyGstAsync ::
   ( MonadFlow m,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   ApiKey ->
   AccountId ->

@@ -89,7 +89,9 @@ verifyDLAsync cfg req = do
 
 verifyPanAsync ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   VerifyPanAsyncReq ->
@@ -111,7 +113,9 @@ verifyPanAsync cfg req = do
 
 verifyGstAsync ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   IdfyCfg ->
   VerifyGstAsyncReq ->

@@ -83,7 +83,9 @@ verifyDLAsync serviceConfig req = case serviceConfig of
 
 verifyPanAsync ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   VerifyPanAsyncReq ->
@@ -94,10 +96,14 @@ verifyPanAsync serviceConfig req = case serviceConfig of
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyGstAsync ::
   ( EncFlow m r,
-    CoreMetrics m
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   VerifyGstAsyncReq ->
@@ -108,6 +114,8 @@ verifyGstAsync serviceConfig req = case serviceConfig of
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyRC ::
   ( EncFlow m r,
@@ -115,7 +123,9 @@ verifyRC ::
     HasSchemaName BeamGRC.GovtDataRCT,
     MonadFlow m,
     EsqDBFlow m r,
-    CacheFlow m r
+    CacheFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   (VerificationService -> m VerificationServiceConfig) ->
   [VerificationService] ->
@@ -139,7 +149,9 @@ verifyRC' ::
     HasSchemaName BeamGRC.GovtDataRCT,
     MonadFlow m,
     EsqDBFlow m r,
-    CacheFlow m r
+    CacheFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   VerifyRCReq ->
