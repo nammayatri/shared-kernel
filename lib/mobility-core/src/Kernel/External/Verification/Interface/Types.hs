@@ -71,6 +71,13 @@ data VerifyBankAccountAsyncReq = VerifyBankAccountAsyncReq
   }
   deriving stock (Show, Generic)
 
+data VerifyPanAadhaarLinkAsyncReq = VerifyPanAadhaarLinkAsyncReq
+  { panNumber :: Text,
+    aadhaarNumber :: Text,
+    driverId :: Text
+  }
+  deriving stock (Show, Generic)
+
 type VerifyDLAsyncResp = VerifyAsyncResp
 
 type VerifyPanAsyncResp = VerifyAsyncResp
@@ -78,6 +85,8 @@ type VerifyPanAsyncResp = VerifyAsyncResp
 type VerifyGstAsyncResp = VerifyAsyncResp
 
 type VerifyBankAccountAsyncResp = VerifyAsyncResp
+
+type VerifyPanAadhaarLinkAsyncResp = VerifyAsyncResp
 
 data VerifyRCReq = VerifyRCReq
   { rcNumber :: Text,
@@ -172,7 +181,7 @@ newtype ExtractedGSTImageResp = ExtractedGSTImageResp
   deriving stock (Show, Generic)
 
 newtype ExtractedUdyogAadhaarImageResp = ExtractedUdyogAadhaarImageResp
-  { extractedUdyogAadhaar :: Maybe Idfy.UdyogAadhaarExtractionOutput
+  { extractedUdyogAadhaar :: Maybe Idfy.UdyogAadhaarOutput
   }
   deriving stock (Show, Generic)
 
@@ -206,7 +215,7 @@ data GetTaskReq = GetTaskReq
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
-data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface | PanResp VT.PanVerificationResponse | GstResp VT.GstVerificationResponse | BankAccountResp VT.BankAccountVerificationResponse | UdyogAadhaarResp VT.UdyogAadhaarVerificationResponse
+data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface | PanResp VT.PanVerificationResponse | GstResp VT.GstVerificationResponse | BankAccountResp VT.BankAccountVerificationResponse | PanAadhaarLinkResp VT.PanAadhaarLinkResponse | UdyogAadhaarResp VT.UdyogAadhaarVerificationResponse
   deriving (Generic, FromJSON, ToJSON, Show)
 
 data DLVerificationOutputInterface = DLVerificationOutputInterface

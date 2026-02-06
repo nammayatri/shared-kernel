@@ -117,29 +117,33 @@ data GstVerificationResponse = GstVerificationResponse
 
 data UdyogAadhaarVerificationResponse = UdyogAadhaarVerificationResponse
   { udyogAadhaarNumber :: Maybe Text,
-    nameOfEnterprise :: Maybe Text,
+    enterpriseName :: Maybe Text,
     enterpriseType :: Maybe Text,
     majorActivity :: Maybe Text,
     socialCategory :: Maybe Text,
-    dateOfCommencement :: Maybe Text,
+    commencementDate :: Maybe Text,
     dicName :: Maybe Text,
     state :: Maybe Text,
-    district :: Maybe Text,
-    pincode :: Maybe Text,
+    appliedDate :: Maybe Text,
+    expiryDate :: Maybe Text,
     address :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
 
 data BankAccountVerificationResponse = BankAccountVerificationResponse
-  { accountExists :: Maybe Bool,
-    accountHolderName :: Maybe Text,
-    bankName :: Maybe Text,
-    branchName :: Maybe Text,
-    city :: Maybe Text,
-    state :: Maybe Text,
-    pincode :: Maybe Text,
+  { accountExists :: Maybe Text,
+    amountDeposited :: Maybe Text,
+    bankAccountNumber :: Maybe Text,
     ifscCode :: Maybe Text,
-    micrCode :: Maybe Text,
+    message :: Maybe Text,
+    nameAtBank :: Maybe Text,
+    status :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data PanAadhaarLinkResponse = PanAadhaarLinkResponse
+  { isLinked :: Maybe Bool,
+    message :: Maybe Text,
     status :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)

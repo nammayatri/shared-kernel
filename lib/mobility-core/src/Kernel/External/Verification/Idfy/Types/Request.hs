@@ -39,6 +39,8 @@ type GstVerificationRequest = IdfyRequest GstVerificationData
 
 type BankAccountVerificationRequest = IdfyRequest BankAccountVerificationData
 
+type PanAadhaarLinkRequest = IdfyRequest PanAadhaarLinkData
+
 type UdyogAadhaarExtractionRequest = IdfyRequest UdyogAadhaarExtractionData
 
 type NameCompareRequest = IdfyRequest NameCompareRequestBody
@@ -103,6 +105,12 @@ data BankAccountVerificationData = BankAccountVerificationData
   { bank_account_no :: Text,
     bank_ifsc_code :: Text,
     nf_verification :: Bool
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data PanAadhaarLinkData = PanAadhaarLinkData
+  { pan_number :: Text,
+    aadhaar_number :: Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 

@@ -19,6 +19,7 @@ module Kernel.External.Verification.Interface.Idfy
     verifyPanAsync,
     verifyGstAsync,
     verifyBankAccountAsync,
+    verifyPanAadhaarLinkAsync,
     validateImage,
     extractRCImage,
     extractUdyogAadhaarAsync,
@@ -33,6 +34,7 @@ module Kernel.External.Verification.Interface.Idfy
     convertPanOutputToPanVerification,
     convertGstOutputToGstVerification,
     convertBankAccountOutputToBankAccountVerification,
+    convertPanAadhaarLinkOutputToPanAadhaarLinkVerification,
     convertUdyogAadhaarOutputToUdyogAadhaarVerification,
   )
 where
@@ -159,6 +161,28 @@ verifyBankAccountAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyBankAccountAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyPanAadhaarLinkAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  VerifyPanAadhaarLinkAsyncReq ->
+  m VerifyPanAadhaarLinkAsyncResp
+verifyPanAadhaarLinkAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.PanAadhaarLinkData
+          { pan_number = req.panNumber,
+            aadhaar_number = req.aadhaarNumber
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyPanAadhaarLinkAsync apiKey accountId url idfyReq
   pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
 
 verifyRCAsync ::
@@ -456,8 +480,9 @@ getTask cfg req updateResp = do
     RCResult (ExtractionOutput out) -> RCResp $ convertRCOutputToRCVerificationResponse out
     PanResult (SourceOutput out) -> PanResp $ convertPanOutputToPanVerification out
     GstResult (SourceOutput out) -> GstResp $ convertGstOutputToGstVerification out
-    BankAccountResult (SourceOutput out) -> BankAccountResp $ convertBankAccountOutputToBankAccountVerification out
-    UdyogAadhaarResult (ExtractionOutput out) -> UdyogAadhaarResp $ convertUdyogAadhaarOutputToUdyogAadhaarVerification out
+    BankAccountResult out -> BankAccountResp $ convertBankAccountOutputToBankAccountVerification out
+    PanAadhaarLinkResult (SourceOutput out) -> PanAadhaarLinkResp $ convertPanAadhaarLinkOutputToPanAadhaarLinkVerification out
+    UdyogAadhaarResult (SourceOutput out) -> UdyogAadhaarResp $ convertUdyogAadhaarOutputToUdyogAadhaarVerification out
 
 convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
 convertDLOutputToDLVerificationOutput DLVerificationOutput {..} =
@@ -543,32 +568,51 @@ convertBankAccountOutputToBankAccountVerification :: BankAccountVerificationOutp
 convertBankAccountOutputToBankAccountVerification BankAccountVerificationOutput {..} =
   VT.BankAccountVerificationResponse
     { accountExists = account_exists,
-      accountHolderName = account_holder_name,
-      bankName = bank_name,
-      branchName = branch_name,
-      city = city,
-      state = state,
-      pincode = pincode,
+      amountDeposited = amount_deposited,
+      bankAccountNumber = bank_account_number,
       ifscCode = ifsc_code,
-      micrCode = micr_code,
+      message = message,
+      nameAtBank = name_at_bank,
       status = status
     }
 
-convertUdyogAadhaarOutputToUdyogAadhaarVerification :: UdyogAadhaarExtractionOutput -> VT.UdyogAadhaarVerificationResponse
-convertUdyogAadhaarOutputToUdyogAadhaarVerification UdyogAadhaarExtractionOutput {..} =
-  VT.UdyogAadhaarVerificationResponse
-    { udyogAadhaarNumber = udyog_aadhaar_number,
-      nameOfEnterprise = name_of_enterprise,
-      enterpriseType = enterprise_type,
-      majorActivity = major_activity,
-      socialCategory = social_category,
-      dateOfCommencement = date_of_commencement,
-      dicName = dic_name,
-      state = state,
-      district = district,
-      pincode = pincode,
-      address = address
+convertPanAadhaarLinkOutputToPanAadhaarLinkVerification :: PanAadhaarLinkOutput -> VT.PanAadhaarLinkResponse
+convertPanAadhaarLinkOutputToPanAadhaarLinkVerification PanAadhaarLinkOutput {..} =
+  VT.PanAadhaarLinkResponse
+    { isLinked = is_linked,
+      message = message,
+      status = status
     }
+
+convertUdyogAadhaarOutputToUdyogAadhaarVerification :: UdyogAadhaarOutput -> VT.UdyogAadhaarVerificationResponse
+convertUdyogAadhaarOutputToUdyogAadhaarVerification UdyogAadhaarOutput {..} =
+  VT.UdyogAadhaarVerificationResponse
+    { udyogAadhaarNumber = Nothing, -- Not in provided JSON
+      enterpriseName = general_details >>= (.enterprise_name),
+      enterpriseType = general_details >>= (.enterprise_type),
+      majorActivity = general_details >>= (.major_activity),
+      socialCategory = general_details >>= (.social_category),
+      commencementDate = general_details >>= (.commencement_date),
+      dicName = general_details >>= (.dic_name),
+      state = general_details >>= (.state),
+      appliedDate = general_details >>= (.applied_date),
+      expiryDate = general_details >>= (.expiry_date),
+      address = address_details >>= listToMaybe >>= (.address_1) <&> formatAddress
+    }
+  where
+    formatAddress addr =
+      T.intercalate
+        ", "
+        $ catMaybes
+          [ addr.door,
+            addr.name_of_premises,
+            addr.road,
+            addr.area,
+            addr.city,
+            addr.district,
+            addr.state,
+            addr.pin
+          ]
 
 convertValueToFloat :: A.Value -> Maybe Float
 convertValueToFloat (A.String val) = readMaybe (T.unpack val)
