@@ -18,6 +18,7 @@ module Kernel.External.Verification.Interface.Idfy
     verifyRCAsync,
     verifyPanAsync,
     verifyGstAsync,
+    verifyBankAccountAsync,
     validateImage,
     extractRCImage,
     extractUdyogAadhaarAsync,
@@ -31,6 +32,7 @@ module Kernel.External.Verification.Interface.Idfy
     nameCompare,
     convertPanOutputToPanVerification,
     convertGstOutputToGstVerification,
+    convertBankAccountOutputToBankAccountVerification,
     convertUdyogAadhaarOutputToUdyogAadhaarVerification,
   )
 where
@@ -134,6 +136,29 @@ verifyGstAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyGstAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyBankAccountAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  VerifyBankAccountAsyncReq ->
+  m VerifyBankAccountAsyncResp
+verifyBankAccountAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.BankAccountVerificationData
+          { bank_account_no = req.bankAccountNo,
+            bank_ifsc_code = req.bankIfscCode,
+            nf_verification = req.nfVerification
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyBankAccountAsync apiKey accountId url idfyReq
   pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
 
 verifyRCAsync ::
@@ -431,6 +456,7 @@ getTask cfg req updateResp = do
     RCResult (ExtractionOutput out) -> RCResp $ convertRCOutputToRCVerificationResponse out
     PanResult (SourceOutput out) -> PanResp $ convertPanOutputToPanVerification out
     GstResult (SourceOutput out) -> GstResp $ convertGstOutputToGstVerification out
+    BankAccountResult (SourceOutput out) -> BankAccountResp $ convertBankAccountOutputToBankAccountVerification out
     UdyogAadhaarResult (ExtractionOutput out) -> UdyogAadhaarResp $ convertUdyogAadhaarOutputToUdyogAadhaarVerification out
 
 convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
@@ -511,6 +537,21 @@ convertGstOutputToGstVerification GstVerificationOutput {..} =
       statusDetails = status_details,
       isSez = is_sez,
       filingDetails = filing_details
+    }
+
+convertBankAccountOutputToBankAccountVerification :: BankAccountVerificationOutput -> VT.BankAccountVerificationResponse
+convertBankAccountOutputToBankAccountVerification BankAccountVerificationOutput {..} =
+  VT.BankAccountVerificationResponse
+    { accountExists = account_exists,
+      accountHolderName = account_holder_name,
+      bankName = bank_name,
+      branchName = branch_name,
+      city = city,
+      state = state,
+      pincode = pincode,
+      ifscCode = ifsc_code,
+      micrCode = micr_code,
+      status = status
     }
 
 convertUdyogAadhaarOutputToUdyogAadhaarVerification :: UdyogAadhaarExtractionOutput -> VT.UdyogAadhaarVerificationResponse
