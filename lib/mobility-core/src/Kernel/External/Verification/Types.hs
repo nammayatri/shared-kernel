@@ -129,3 +129,17 @@ data UdyogAadhaarVerificationResponse = UdyogAadhaarVerificationResponse
     address :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data BankAccountVerificationResponse = BankAccountVerificationResponse
+  { accountExists :: Maybe Bool,
+    accountHolderName :: Maybe Text,
+    bankName :: Maybe Text,
+    branchName :: Maybe Text,
+    city :: Maybe Text,
+    state :: Maybe Text,
+    pincode :: Maybe Text,
+    ifscCode :: Maybe Text,
+    micrCode :: Maybe Text,
+    status :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)

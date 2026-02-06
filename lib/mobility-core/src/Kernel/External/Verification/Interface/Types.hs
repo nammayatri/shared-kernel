@@ -63,11 +63,21 @@ data VerifyGstAsyncReq = VerifyGstAsyncReq
   }
   deriving stock (Show, Generic)
 
+data VerifyBankAccountAsyncReq = VerifyBankAccountAsyncReq
+  { bankAccountNo :: Text,
+    bankIfscCode :: Text,
+    nfVerification :: Bool,
+    driverId :: Text
+  }
+  deriving stock (Show, Generic)
+
 type VerifyDLAsyncResp = VerifyAsyncResp
 
 type VerifyPanAsyncResp = VerifyAsyncResp
 
 type VerifyGstAsyncResp = VerifyAsyncResp
+
+type VerifyBankAccountAsyncResp = VerifyAsyncResp
 
 data VerifyRCReq = VerifyRCReq
   { rcNumber :: Text,
@@ -196,7 +206,7 @@ data GetTaskReq = GetTaskReq
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
-data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface | PanResp VT.PanVerificationResponse | GstResp VT.GstVerificationResponse | UdyogAadhaarResp VT.UdyogAadhaarVerificationResponse
+data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface | PanResp VT.PanVerificationResponse | GstResp VT.GstVerificationResponse | BankAccountResp VT.BankAccountVerificationResponse | UdyogAadhaarResp VT.UdyogAadhaarVerificationResponse
   deriving (Generic, FromJSON, ToJSON, Show)
 
 data DLVerificationOutputInterface = DLVerificationOutputInterface

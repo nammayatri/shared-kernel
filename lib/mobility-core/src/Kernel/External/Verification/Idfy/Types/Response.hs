@@ -36,6 +36,8 @@ type GSTExtractionResponse = IdfyResponse (ExtractionOutput GSTExtractionOutput)
 
 type UdyogAadhaarExtractionResponse = IdfyResponse (ExtractionOutput UdyogAadhaarExtractionOutput)
 
+type BankAccountVerificationResponse = IdfyResponse (SourceOutput BankAccountVerificationOutput)
+
 type AadhaarExtractionResponse = IdfyResponse AadhaarResult
 
 newtype VerificationResponse = VerificationResponse (IdfyResponse IdfyResult)
@@ -52,6 +54,8 @@ instance FromJSON VerificationResponse where
         parseJSON @(IdfyResponse (SourceOutput GstVerificationOutput)) val <&> mapIdfyResponse GstResult
       Just "ind_rc" ->
         parseJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) val <&> mapIdfyResponse RCResult
+      Just "ind_bank_account" ->
+        parseJSON @(IdfyResponse (SourceOutput BankAccountVerificationOutput)) val <&> mapIdfyResponse BankAccountResult
       Just "ind_udyog_aadhaar" ->
         parseJSON @(IdfyResponse (ExtractionOutput UdyogAadhaarExtractionOutput)) val <&> mapIdfyResponse UdyogAadhaarResult
       Just docType ->
@@ -65,6 +69,7 @@ instance ToJSON VerificationResponse where
     Just (PanResult res) -> toJSON @(IdfyResponse (SourceOutput PanVerificationOutput)) IdfyResponse {result = Just res, ..}
     Just (GstResult res) -> toJSON @(IdfyResponse (SourceOutput GstVerificationOutput)) IdfyResponse {result = Just res, ..}
     Just (RCResult res) -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Just res, ..}
+    Just (BankAccountResult res) -> toJSON @(IdfyResponse (SourceOutput BankAccountVerificationOutput)) IdfyResponse {result = Just res, ..}
     Just (UdyogAadhaarResult res) -> toJSON @(IdfyResponse (ExtractionOutput UdyogAadhaarExtractionOutput)) IdfyResponse {result = Just res, ..}
     Nothing -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Nothing, ..}
 
@@ -78,6 +83,7 @@ data IdfyResult
   | PanResult (SourceOutput PanVerificationOutput)
   | GstResult (SourceOutput GstVerificationOutput)
   | RCResult (ExtractionOutput RCVerificationOutput)
+  | BankAccountResult (SourceOutput BankAccountVerificationOutput)
   | UdyogAadhaarResult (ExtractionOutput UdyogAadhaarExtractionOutput)
   deriving (Show)
 
@@ -269,6 +275,20 @@ data GstVerificationOutput = GstVerificationOutput
     status_details :: Maybe Text,
     is_sez :: Maybe Text,
     filing_details :: Maybe A.Value
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data BankAccountVerificationOutput = BankAccountVerificationOutput
+  { account_exists :: Maybe Bool,
+    account_holder_name :: Maybe Text,
+    bank_name :: Maybe Text,
+    branch_name :: Maybe Text,
+    city :: Maybe Text,
+    state :: Maybe Text,
+    pincode :: Maybe Text,
+    ifsc_code :: Maybe Text,
+    micr_code :: Maybe Text,
+    status :: Maybe Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 

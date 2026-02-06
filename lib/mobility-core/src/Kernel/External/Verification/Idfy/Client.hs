@@ -17,6 +17,7 @@ module Kernel.External.Verification.Idfy.Client
     verifyRCAsync,
     verifyPanAsync,
     verifyGstAsync,
+    verifyBankAccountAsync,
     validateImage,
     extractRCImage,
     extractDLImage,
@@ -28,6 +29,7 @@ module Kernel.External.Verification.Idfy.Client
     getTask,
     VerifyDLAPI,
     VerifyRCAPI,
+    VerifyBankAccountAPI,
     ValidateImage,
     ExtractDLImage,
     ExtractPanImage,
@@ -171,6 +173,36 @@ verifyGstAsync apiKey accountId url req = callIdfyAPI url task "verifyGstAsync" 
     task =
       T.client
         verifyGstAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type VerifyBankAccountAPI =
+  "v3" :> "tasks" :> "async" :> "verify_with_source" :> "validate_bank_account"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] BankAccountVerificationRequest
+    :> Post '[JSON] IdfySuccess
+
+verifyBankAccountAPI :: Proxy VerifyBankAccountAPI
+verifyBankAccountAPI = Proxy
+
+verifyBankAccountAsync ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  BankAccountVerificationRequest ->
+  m IdfySuccess
+verifyBankAccountAsync apiKey accountId url req = callIdfyAPI url task "verifyBankAccountAsync" verifyBankAccountAPI
+  where
+    task =
+      T.client
+        verifyBankAccountAPI
         (Just apiKey)
         (Just accountId)
         req
