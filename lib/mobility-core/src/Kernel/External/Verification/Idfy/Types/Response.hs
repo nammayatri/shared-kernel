@@ -34,9 +34,11 @@ type PanExtractionResponse = IdfyResponse (ExtractionOutput PanExtractionOutput)
 
 type GSTExtractionResponse = IdfyResponse (ExtractionOutput GSTExtractionOutput)
 
-type UdyogAadhaarExtractionResponse = IdfyResponse (ExtractionOutput UdyogAadhaarExtractionOutput)
+type UdyogAadhaarExtractionResponse = IdfyResponse (SourceOutput UdyogAadhaarOutput)
 
-type BankAccountVerificationResponse = IdfyResponse (SourceOutput BankAccountVerificationOutput)
+type BankAccountVerificationResponse = IdfyResponse BankAccountVerificationOutput
+
+type PanAadhaarLinkResponse = IdfyResponse (SourceOutput PanAadhaarLinkOutput)
 
 type AadhaarExtractionResponse = IdfyResponse AadhaarResult
 
@@ -54,10 +56,12 @@ instance FromJSON VerificationResponse where
         parseJSON @(IdfyResponse (SourceOutput GstVerificationOutput)) val <&> mapIdfyResponse GstResult
       Just "ind_rc" ->
         parseJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) val <&> mapIdfyResponse RCResult
-      Just "ind_bank_account" ->
-        parseJSON @(IdfyResponse (SourceOutput BankAccountVerificationOutput)) val <&> mapIdfyResponse BankAccountResult
-      Just "ind_udyog_aadhaar" ->
-        parseJSON @(IdfyResponse (ExtractionOutput UdyogAadhaarExtractionOutput)) val <&> mapIdfyResponse UdyogAadhaarResult
+      Just "validate_bank_account" ->
+        parseJSON @(IdfyResponse BankAccountVerificationOutput) val <&> mapIdfyResponse BankAccountResult
+      Just "pan_aadhaar_link" ->
+        parseJSON @(IdfyResponse (SourceOutput PanAadhaarLinkOutput)) val <&> mapIdfyResponse PanAadhaarLinkResult
+      Just "udyog_aadhaar" ->
+        parseJSON @(IdfyResponse (SourceOutput UdyogAadhaarOutput)) val <&> mapIdfyResponse UdyogAadhaarResult
       Just docType ->
         fail $ "Unable to decode document type: " <> T.unpack docType
       Nothing ->
@@ -69,8 +73,9 @@ instance ToJSON VerificationResponse where
     Just (PanResult res) -> toJSON @(IdfyResponse (SourceOutput PanVerificationOutput)) IdfyResponse {result = Just res, ..}
     Just (GstResult res) -> toJSON @(IdfyResponse (SourceOutput GstVerificationOutput)) IdfyResponse {result = Just res, ..}
     Just (RCResult res) -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Just res, ..}
-    Just (BankAccountResult res) -> toJSON @(IdfyResponse (SourceOutput BankAccountVerificationOutput)) IdfyResponse {result = Just res, ..}
-    Just (UdyogAadhaarResult res) -> toJSON @(IdfyResponse (ExtractionOutput UdyogAadhaarExtractionOutput)) IdfyResponse {result = Just res, ..}
+    Just (BankAccountResult res) -> toJSON @(IdfyResponse BankAccountVerificationOutput) IdfyResponse {result = Just res, ..}
+    Just (PanAadhaarLinkResult res) -> toJSON @(IdfyResponse (SourceOutput PanAadhaarLinkOutput)) IdfyResponse {result = Just res, ..}
+    Just (UdyogAadhaarResult res) -> toJSON @(IdfyResponse (SourceOutput UdyogAadhaarOutput)) IdfyResponse {result = Just res, ..}
     Nothing -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Nothing, ..}
 
 mapIdfyResponse :: forall a b. (a -> b) -> IdfyResponse a -> IdfyResponse b
@@ -83,8 +88,9 @@ data IdfyResult
   | PanResult (SourceOutput PanVerificationOutput)
   | GstResult (SourceOutput GstVerificationOutput)
   | RCResult (ExtractionOutput RCVerificationOutput)
-  | BankAccountResult (SourceOutput BankAccountVerificationOutput)
-  | UdyogAadhaarResult (ExtractionOutput UdyogAadhaarExtractionOutput)
+  | BankAccountResult BankAccountVerificationOutput
+  | PanAadhaarLinkResult (SourceOutput PanAadhaarLinkOutput)
+  | UdyogAadhaarResult (SourceOutput UdyogAadhaarOutput)
   deriving (Show)
 
 type NameCompareResponse = IdfyResponse NameCompareResponseData
@@ -279,15 +285,19 @@ data GstVerificationOutput = GstVerificationOutput
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data BankAccountVerificationOutput = BankAccountVerificationOutput
-  { account_exists :: Maybe Bool,
-    account_holder_name :: Maybe Text,
-    bank_name :: Maybe Text,
-    branch_name :: Maybe Text,
-    city :: Maybe Text,
-    state :: Maybe Text,
-    pincode :: Maybe Text,
+  { account_exists :: Maybe Text,
+    amount_deposited :: Maybe Text,
+    bank_account_number :: Maybe Text,
     ifsc_code :: Maybe Text,
-    micr_code :: Maybe Text,
+    message :: Maybe Text,
+    name_at_bank :: Maybe Text,
+    status :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data PanAadhaarLinkOutput = PanAadhaarLinkOutput
+  { is_linked :: Maybe Bool,
+    message :: Maybe Text,
     status :: Maybe Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
@@ -446,29 +456,43 @@ instance FromJSON GSTExtractionOutput where
 instance ToJSON GSTExtractionOutput where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
 
-data UdyogAadhaarExtractionOutput = UdyogAadhaarExtractionOutput
-  { udyog_aadhaar_number :: Maybe Text,
-    name_of_enterprise :: Maybe Text,
-    enterprise_type :: Maybe Text,
-    major_activity :: Maybe Text,
-    social_category :: Maybe Text,
-    date_of_commencement :: Maybe Text,
-    dic_name :: Maybe Text,
-    state :: Maybe Text,
-    district :: Maybe Text,
-    pincode :: Maybe Text,
-    address :: Maybe Text
+data UdyogAadhaarOutput = UdyogAadhaarOutput
+  { address_details :: Maybe [UdyogAadhaarAddressWrapper],
+    general_details :: Maybe UdyogAadhaarGeneralDetails,
+    status :: Maybe Text
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
-instance ToSchema UdyogAadhaarExtractionOutput where
-  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions stripPrefixUnderscoreIfAny
+data UdyogAadhaarAddressWrapper = UdyogAadhaarAddressWrapper
+  { address_1 :: Maybe UdyogAadhaarAddress
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
-instance FromJSON UdyogAadhaarExtractionOutput where
-  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+data UdyogAadhaarAddress = UdyogAadhaarAddress
+  { area :: Maybe Text,
+    city :: Maybe Text,
+    district :: Maybe Text,
+    door :: Maybe Text,
+    name_of_premises :: Maybe Text,
+    pin :: Maybe Text,
+    road :: Maybe Text,
+    state :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
-instance ToJSON UdyogAadhaarExtractionOutput where
-  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+data UdyogAadhaarGeneralDetails = UdyogAadhaarGeneralDetails
+  { applied_date :: Maybe Text,
+    commencement_date :: Maybe Text,
+    dic_name :: Maybe Text,
+    enterprise_name :: Maybe Text,
+    enterprise_type :: Maybe Text,
+    expiry_date :: Maybe Text,
+    major_activity :: Maybe Text,
+    modified_date :: Maybe Text,
+    social_category :: Maybe Text,
+    state :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data AadhaarExtractionOutput = AadhaarExtractionOutput
   { address :: Maybe Text,
