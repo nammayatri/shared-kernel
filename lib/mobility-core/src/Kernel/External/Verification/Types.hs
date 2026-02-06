@@ -22,7 +22,7 @@ where
 import Data.Aeson as A
 import Data.OpenApi
 import qualified Data.Text as T
-import EulerHS.Prelude
+import EulerHS.Prelude hiding (state)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
@@ -112,5 +112,20 @@ data GstVerificationResponse = GstVerificationResponse
     statusDetails :: Maybe Text,
     isSez :: Maybe Text,
     filingDetails :: Maybe A.Value
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data UdyogAadhaarVerificationResponse = UdyogAadhaarVerificationResponse
+  { udyogAadhaarNumber :: Maybe Text,
+    nameOfEnterprise :: Maybe Text,
+    enterpriseType :: Maybe Text,
+    majorActivity :: Maybe Text,
+    socialCategory :: Maybe Text,
+    dateOfCommencement :: Maybe Text,
+    dicName :: Maybe Text,
+    state :: Maybe Text,
+    district :: Maybe Text,
+    pincode :: Maybe Text,
+    address :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)

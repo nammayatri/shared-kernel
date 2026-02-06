@@ -127,6 +127,12 @@ type ExtractPanImage = ExtractImageReq
 
 type ExtractGSTImage = ExtractImageReq
 
+data ExtractUdyogAadhaarReq = ExtractUdyogAadhaarReq
+  { image1 :: Text,
+    driverId :: Text
+  }
+  deriving stock (Show, Generic)
+
 data ExtractImageReq = ExtractImageReq
   { image1 :: Text,
     image2 :: Maybe Text,
@@ -152,6 +158,11 @@ newtype ExtractAadhaarImageRes = ExtractAadhaarImageRes
 
 newtype ExtractedGSTImageResp = ExtractedGSTImageResp
   { extractedGST :: Maybe Idfy.GSTExtractionOutput
+  }
+  deriving stock (Show, Generic)
+
+newtype ExtractedUdyogAadhaarImageResp = ExtractedUdyogAadhaarImageResp
+  { extractedUdyogAadhaar :: Maybe Idfy.UdyogAadhaarExtractionOutput
   }
   deriving stock (Show, Generic)
 
@@ -185,7 +196,7 @@ data GetTaskReq = GetTaskReq
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
-data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface | PanResp VT.PanVerificationResponse | GstResp VT.GstVerificationResponse
+data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface | PanResp VT.PanVerificationResponse | GstResp VT.GstVerificationResponse | UdyogAadhaarResp VT.UdyogAadhaarVerificationResponse
   deriving (Generic, FromJSON, ToJSON, Show)
 
 data DLVerificationOutputInterface = DLVerificationOutputInterface
