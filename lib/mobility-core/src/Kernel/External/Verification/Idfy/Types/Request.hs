@@ -37,6 +37,8 @@ type PanVerificationRequest = IdfyRequest PanVerificationData
 
 type GstVerificationRequest = IdfyRequest GstVerificationData
 
+type BankAccountVerificationRequest = IdfyRequest BankAccountVerificationData
+
 type UdyogAadhaarExtractionRequest = IdfyRequest UdyogAadhaarExtractionData
 
 type NameCompareRequest = IdfyRequest NameCompareRequestBody
@@ -94,6 +96,13 @@ data GstVerificationData = GstVerificationData
   { gstin :: Text,
     filing_details :: Bool,
     e_invoice_details :: Bool
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data BankAccountVerificationData = BankAccountVerificationData
+  { bank_account_no :: Text,
+    bank_ifsc_code :: Text,
+    nf_verification :: Bool
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
