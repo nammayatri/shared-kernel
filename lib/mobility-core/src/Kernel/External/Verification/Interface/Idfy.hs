@@ -20,6 +20,7 @@ module Kernel.External.Verification.Interface.Idfy
     verifyGstAsync,
     validateImage,
     extractRCImage,
+    extractUdyogAadhaarAsync,
     extractDLImage,
     extractPanImage,
     extractGSTImage,
@@ -30,6 +31,7 @@ module Kernel.External.Verification.Interface.Idfy
     nameCompare,
     convertPanOutputToPanVerification,
     convertGstOutputToGstVerification,
+    convertUdyogAadhaarOutputToUdyogAadhaarVerification,
   )
 where
 
@@ -253,6 +255,27 @@ extractRCImage cfg req = do
             ExtractedRC {rcNumber = result.extraction_output.registration_number}
       }
 
+extractUdyogAadhaarAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  ExtractUdyogAadhaarReq ->
+  m VerifyAsyncResp
+extractUdyogAadhaarAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.UdyogAadhaarExtractionData
+          { document1 = req.image1
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.extractUdyogAadhaarAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
 extractDLImage ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -408,6 +431,7 @@ getTask cfg req updateResp = do
     RCResult (ExtractionOutput out) -> RCResp $ convertRCOutputToRCVerificationResponse out
     PanResult (SourceOutput out) -> PanResp $ convertPanOutputToPanVerification out
     GstResult (SourceOutput out) -> GstResp $ convertGstOutputToGstVerification out
+    UdyogAadhaarResult (ExtractionOutput out) -> UdyogAadhaarResp $ convertUdyogAadhaarOutputToUdyogAadhaarVerification out
 
 convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
 convertDLOutputToDLVerificationOutput DLVerificationOutput {..} =
@@ -487,6 +511,22 @@ convertGstOutputToGstVerification GstVerificationOutput {..} =
       statusDetails = status_details,
       isSez = is_sez,
       filingDetails = filing_details
+    }
+
+convertUdyogAadhaarOutputToUdyogAadhaarVerification :: UdyogAadhaarExtractionOutput -> VT.UdyogAadhaarVerificationResponse
+convertUdyogAadhaarOutputToUdyogAadhaarVerification UdyogAadhaarExtractionOutput {..} =
+  VT.UdyogAadhaarVerificationResponse
+    { udyogAadhaarNumber = udyog_aadhaar_number,
+      nameOfEnterprise = name_of_enterprise,
+      enterpriseType = enterprise_type,
+      majorActivity = major_activity,
+      socialCategory = social_category,
+      dateOfCommencement = date_of_commencement,
+      dicName = dic_name,
+      state = state,
+      district = district,
+      pincode = pincode,
+      address = address
     }
 
 convertValueToFloat :: A.Value -> Maybe Float

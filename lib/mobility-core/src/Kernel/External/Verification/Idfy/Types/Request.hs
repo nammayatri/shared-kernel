@@ -37,6 +37,8 @@ type PanVerificationRequest = IdfyRequest PanVerificationData
 
 type GstVerificationRequest = IdfyRequest GstVerificationData
 
+type UdyogAadhaarExtractionRequest = IdfyRequest UdyogAadhaarExtractionData
+
 type NameCompareRequest = IdfyRequest NameCompareRequestBody
 
 data IdfyRequest a = IdfyRequest
@@ -92,6 +94,11 @@ data GstVerificationData = GstVerificationData
   { gstin :: Text,
     filing_details :: Bool,
     e_invoice_details :: Bool
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyogAadhaarExtractionData = UdyogAadhaarExtractionData
+  { document1 :: Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
