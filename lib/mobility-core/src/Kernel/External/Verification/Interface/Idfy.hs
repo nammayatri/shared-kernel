@@ -16,8 +16,13 @@ module Kernel.External.Verification.Interface.Idfy
   ( module Reexport,
     verifyDLAsync,
     verifyRCAsync,
+    verifyPanAsync,
+    verifyGstAsync,
+    verifyBankAccountAsync,
+    verifyPanAadhaarLinkAsync,
     validateImage,
     extractRCImage,
+    extractUdyogAadhaarAsync,
     extractDLImage,
     extractPanImage,
     extractGSTImage,
@@ -26,6 +31,11 @@ module Kernel.External.Verification.Interface.Idfy
     convertDLOutputToDLVerificationOutput,
     convertRCOutputToRCVerificationResponse,
     nameCompare,
+    convertPanOutputToPanVerification,
+    convertGstOutputToGstVerification,
+    convertBankAccountOutputToBankAccountVerification,
+    convertPanAadhaarLinkOutputToPanAadhaarLinkVerification,
+    convertUdyogAadhaarOutputToUdyogAadhaarVerification,
   )
 where
 
@@ -81,6 +91,98 @@ verifyDLAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyDLAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyPanAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  VerifyPanAsyncReq ->
+  m VerifyPanAsyncResp
+verifyPanAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let dobDay = T.pack $ formatTime defaultTimeLocale "%F" req.dateOfBirth
+  let reqData =
+        Idfy.PanVerificationData
+          { id_number = req.panNumber,
+            full_name = req.fullName,
+            dob = dobDay
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyPanAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyGstAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  VerifyGstAsyncReq ->
+  m VerifyGstAsyncResp
+verifyGstAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.GstVerificationData
+          { gstin = req.gstNumber,
+            filing_details = req.filingDetails,
+            e_invoice_details = req.eInvoiceDetails
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyGstAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyBankAccountAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  VerifyBankAccountAsyncReq ->
+  m VerifyBankAccountAsyncResp
+verifyBankAccountAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.BankAccountVerificationData
+          { bank_account_no = req.bankAccountNo,
+            bank_ifsc_code = req.bankIfscCode,
+            nf_verification = req.nfVerification
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyBankAccountAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyPanAadhaarLinkAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  VerifyPanAadhaarLinkAsyncReq ->
+  m VerifyPanAadhaarLinkAsyncResp
+verifyPanAadhaarLinkAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.PanAadhaarLinkData
+          { pan_number = req.panNumber,
+            aadhaar_number = req.aadhaarNumber
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyPanAadhaarLinkAsync apiKey accountId url idfyReq
   pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
 
 verifyRCAsync ::
@@ -201,6 +303,27 @@ extractRCImage cfg req = do
           resp.result <&> \result -> do
             ExtractedRC {rcNumber = result.extraction_output.registration_number}
       }
+
+extractUdyogAadhaarAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  ExtractUdyogAadhaarReq ->
+  m VerifyAsyncResp
+extractUdyogAadhaarAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.UdyogAadhaarExtractionData
+          { document1 = req.image1
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.extractUdyogAadhaarAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
 
 extractDLImage ::
   ( EncFlow m r,
@@ -349,14 +472,17 @@ getTask cfg req updateResp = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
   accountId <- decrypt cfg.accountId
-  (resp, respDump) <- Idfy.getTask apiKey accountId url req.requestId
+  (VerificationResponse resp, respDump) <- Idfy.getTask apiKey accountId url req.requestId
   updateResp resp.status (Just respDump) req.requestId
-  let dlOutput = join $ resp.result <&> (.source_output)
-      rcOutput = join $ resp.result <&> (.extraction_output)
-  case (dlOutput, rcOutput) of
-    (Just op, Nothing) -> return $ DLResp (convertDLOutputToDLVerificationOutput op)
-    (Nothing, Just op) -> return $ RCResp (convertRCOutputToRCVerificationResponse op)
-    _ -> throwError $ InternalError ("Unrecognized response from getTesk api. Resp : " <> show resp)
+  result <- resp.result & fromMaybeM (InternalError ("Missing result in getTask response: " <> show resp))
+  pure $ case result of
+    DLResult (SourceOutput out) -> DLResp $ convertDLOutputToDLVerificationOutput out
+    RCResult (ExtractionOutput out) -> RCResp $ convertRCOutputToRCVerificationResponse out
+    PanResult (SourceOutput out) -> PanResp $ convertPanOutputToPanVerification out
+    GstResult (SourceOutput out) -> GstResp $ convertGstOutputToGstVerification out
+    BankAccountResult out -> BankAccountResp $ convertBankAccountOutputToBankAccountVerification out
+    PanAadhaarLinkResult (SourceOutput out) -> PanAadhaarLinkResp $ convertPanAadhaarLinkOutputToPanAadhaarLinkVerification out
+    UdyogAadhaarResult (SourceOutput out) -> UdyogAadhaarResp $ convertUdyogAadhaarOutputToUdyogAadhaarVerification out
 
 convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
 convertDLOutputToDLVerificationOutput DLVerificationOutput {..} =
@@ -392,6 +518,101 @@ convertRCOutputToRCVerificationResponse RCVerificationOutput {..} =
       grossVehicleWeight = gross_vehicle_weight >>= convertValueToFloat,
       unladdenWeight = unladden_weight >>= convertValueToFloat
     }
+
+convertPanOutputToPanVerification :: PanVerificationOutput -> VT.PanVerificationResponse
+convertPanOutputToPanVerification PanVerificationOutput {..} =
+  VT.PanVerificationResponse
+    { aadhaarSeedingStatus = aadhaar_seeding_status,
+      panStatus = pan_status,
+      nameMatch = name_match,
+      dobMatch = dob_match,
+      inputDetails = convertPanInputDetaills <$> input_details,
+      status = status
+    }
+
+convertPanInputDetaills :: PanInputDetails -> VT.PanInputDetails
+convertPanInputDetaills PanInputDetails {..} =
+  VT.PanInputDetails
+    { inputPanNumber = input_pan_number,
+      inputName = input_name,
+      inputDob = input_dob
+    }
+
+convertGstOutputToGstVerification :: GstVerificationOutput -> VT.GstVerificationResponse
+convertGstOutputToGstVerification GstVerificationOutput {..} =
+  VT.GstVerificationResponse
+    { additionalPlaceOfBusinessFields = additional_place_of_business_fields,
+      centreJurisdiction = centre_jurisdiction,
+      centreJurisdictionCode = centre_jurisdiction_code,
+      constitutionOfBusiness = constitution_of_business,
+      dateOfCancellation = date_of_cancellation,
+      dateOfRegistration = date_of_registration,
+      gstin = gstin,
+      gstinStatus = gstin_status,
+      lastUpdatedDate = last_updated_date,
+      legalName = legal_name,
+      natureOfBusinessActivity = nature_of_business_activity,
+      principalPlaceOfBusinessFields = principal_place_of_business_fields,
+      source = source,
+      stateJurisdictionCode = state_jurisdiction_code,
+      status = status,
+      taxpayerType = taxpayer_type,
+      tradeName = trade_name,
+      einvoiceStatus = einvoice_status,
+      statusDetails = status_details,
+      isSez = is_sez,
+      filingDetails = filing_details
+    }
+
+convertBankAccountOutputToBankAccountVerification :: BankAccountVerificationOutput -> VT.BankAccountVerificationResponse
+convertBankAccountOutputToBankAccountVerification BankAccountVerificationOutput {..} =
+  VT.BankAccountVerificationResponse
+    { accountExists = account_exists,
+      amountDeposited = amount_deposited,
+      bankAccountNumber = bank_account_number,
+      ifscCode = ifsc_code,
+      message = message,
+      nameAtBank = name_at_bank,
+      status = status
+    }
+
+convertPanAadhaarLinkOutputToPanAadhaarLinkVerification :: PanAadhaarLinkOutput -> VT.PanAadhaarLinkResponse
+convertPanAadhaarLinkOutputToPanAadhaarLinkVerification PanAadhaarLinkOutput {..} =
+  VT.PanAadhaarLinkResponse
+    { isLinked = is_linked,
+      message = message,
+      status = status
+    }
+
+convertUdyogAadhaarOutputToUdyogAadhaarVerification :: UdyogAadhaarOutput -> VT.UdyogAadhaarVerificationResponse
+convertUdyogAadhaarOutputToUdyogAadhaarVerification UdyogAadhaarOutput {..} =
+  VT.UdyogAadhaarVerificationResponse
+    { udyogAadhaarNumber = Nothing, -- Not in provided JSON
+      enterpriseName = general_details >>= (.enterprise_name),
+      enterpriseType = general_details >>= (.enterprise_type),
+      majorActivity = general_details >>= (.major_activity),
+      socialCategory = general_details >>= (.social_category),
+      commencementDate = general_details >>= (.commencement_date),
+      dicName = general_details >>= (.dic_name),
+      state = general_details >>= (.state),
+      appliedDate = general_details >>= (.applied_date),
+      expiryDate = general_details >>= (.expiry_date),
+      address = address_details >>= listToMaybe >>= (.address_1) <&> formatAddress
+    }
+  where
+    formatAddress addr =
+      T.intercalate
+        ", "
+        $ catMaybes
+          [ addr.door,
+            addr.name_of_premises,
+            addr.road,
+            addr.area,
+            addr.city,
+            addr.district,
+            addr.state,
+            addr.pin
+          ]
 
 convertValueToFloat :: A.Value -> Maybe Float
 convertValueToFloat (A.String val) = readMaybe (T.unpack val)

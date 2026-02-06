@@ -15,20 +15,28 @@
 module Kernel.External.Verification.Idfy.Client
   ( verifyDLAsync,
     verifyRCAsync,
+    verifyPanAsync,
+    verifyGstAsync,
+    verifyBankAccountAsync,
+    verifyPanAadhaarLinkAsync,
     validateImage,
     extractRCImage,
     extractDLImage,
     extractPanImage,
     extractGSTImage,
+    extractUdyogAadhaarAsync,
     extractAadhaarImage,
     nameCompare,
     getTask,
     VerifyDLAPI,
     VerifyRCAPI,
+    VerifyBankAccountAPI,
+    VerifyPanAadhaarLinkAPI,
     ValidateImage,
     ExtractDLImage,
     ExtractPanImage,
     ExtractGSTImage,
+    ExtractUdyogAadhaarAPI,
     ExtractRCAPI,
     ExtractAadhaarImage,
     NameCompareAPI,
@@ -107,6 +115,156 @@ verifyRCAsync apiKey accountId url req = callIdfyAPI url task "verifyRCAsync" ve
     task =
       T.client
         verifyRCAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type VerifyPanAPI =
+  "v3" :> "tasks" :> "async" :> "verify_with_source" :> "ind_pan"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] PanVerificationRequest
+    :> Post '[JSON] IdfySuccess
+
+verifyPanAPI :: Proxy VerifyPanAPI
+verifyPanAPI = Proxy
+
+verifyPanAsync ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  PanVerificationRequest ->
+  m IdfySuccess
+verifyPanAsync apiKey accountId url req = callIdfyAPI url task "verifyPanAsync" verifyPanAPI
+  where
+    task =
+      T.client
+        verifyPanAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type VerifyGstAPI =
+  "v3" :> "tasks" :> "async" :> "verify_with_source" :> "ind_gst_certificate"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] GstVerificationRequest
+    :> Post '[JSON] IdfySuccess
+
+verifyGstAPI :: Proxy VerifyGstAPI
+verifyGstAPI = Proxy
+
+verifyGstAsync ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  GstVerificationRequest ->
+  m IdfySuccess
+verifyGstAsync apiKey accountId url req = callIdfyAPI url task "verifyGstAsync" verifyGstAPI
+  where
+    task =
+      T.client
+        verifyGstAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type VerifyBankAccountAPI =
+  "v3" :> "tasks" :> "async" :> "verify_with_source" :> "validate_bank_account"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] BankAccountVerificationRequest
+    :> Post '[JSON] IdfySuccess
+
+verifyBankAccountAPI :: Proxy VerifyBankAccountAPI
+verifyBankAccountAPI = Proxy
+
+verifyBankAccountAsync ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  BankAccountVerificationRequest ->
+  m IdfySuccess
+verifyBankAccountAsync apiKey accountId url req = callIdfyAPI url task "verifyBankAccountAsync" verifyBankAccountAPI
+  where
+    task =
+      T.client
+        verifyBankAccountAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type VerifyPanAadhaarLinkAPI =
+  "v3" :> "tasks" :> "async" :> "verify_with_source" :> "pan_aadhaar_link"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] PanAadhaarLinkRequest
+    :> Post '[JSON] IdfySuccess
+
+verifyPanAadhaarLinkAPI :: Proxy VerifyPanAadhaarLinkAPI
+verifyPanAadhaarLinkAPI = Proxy
+
+verifyPanAadhaarLinkAsync ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  PanAadhaarLinkRequest ->
+  m IdfySuccess
+verifyPanAadhaarLinkAsync apiKey accountId url req = callIdfyAPI url task "verifyPanAadhaarLinkAsync" verifyPanAadhaarLinkAPI
+  where
+    task =
+      T.client
+        verifyPanAadhaarLinkAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type ExtractUdyogAadhaarAPI =
+  "v3" :> "tasks" :> "async" :> "extract" :> "ind_udyog_aadhaar"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] UdyogAadhaarExtractionRequest
+    :> Post '[JSON] IdfySuccess
+
+extractUdyogAadhaarAPI :: Proxy ExtractUdyogAadhaarAPI
+extractUdyogAadhaarAPI = Proxy
+
+extractUdyogAadhaarAsync ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  UdyogAadhaarExtractionRequest ->
+  m IdfySuccess
+extractUdyogAadhaarAsync apiKey accountId url req = callIdfyAPI url task "extractUdyogAadhaarAsync" extractUdyogAadhaarAPI
+  where
+    task =
+      T.client
+        extractUdyogAadhaarAPI
         (Just apiKey)
         (Just accountId)
         req

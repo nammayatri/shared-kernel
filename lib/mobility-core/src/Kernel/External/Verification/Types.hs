@@ -22,7 +22,7 @@ where
 import Data.Aeson as A
 import Data.OpenApi
 import qualified Data.Text as T
-import EulerHS.Prelude
+import EulerHS.Prelude hiding (state)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
@@ -70,5 +70,80 @@ data RCVerificationResponse = RCVerificationResponse
     status :: Maybe Text,
     grossVehicleWeight :: Maybe Float,
     unladdenWeight :: Maybe Float
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data PanInputDetails = PanInputDetails
+  { inputPanNumber :: Text,
+    inputName :: Maybe Text,
+    inputDob :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data PanVerificationResponse = PanVerificationResponse
+  { aadhaarSeedingStatus :: Maybe Bool,
+    panStatus :: Maybe Text,
+    nameMatch :: Maybe Bool,
+    dobMatch :: Maybe Bool,
+    inputDetails :: Maybe PanInputDetails,
+    status :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data GstVerificationResponse = GstVerificationResponse
+  { additionalPlaceOfBusinessFields :: Maybe A.Value,
+    centreJurisdiction :: Maybe Text,
+    centreJurisdictionCode :: Maybe Text,
+    constitutionOfBusiness :: Maybe Text,
+    dateOfCancellation :: Maybe Text,
+    dateOfRegistration :: Maybe Text,
+    gstin :: Maybe Text,
+    gstinStatus :: Maybe Text,
+    lastUpdatedDate :: Maybe Text,
+    legalName :: Maybe Text,
+    natureOfBusinessActivity :: Maybe A.Value,
+    principalPlaceOfBusinessFields :: Maybe A.Value,
+    source :: Maybe Text,
+    stateJurisdictionCode :: Maybe Text,
+    status :: Maybe Text,
+    taxpayerType :: Maybe Text,
+    tradeName :: Maybe Text,
+    einvoiceStatus :: Maybe Text,
+    statusDetails :: Maybe Text,
+    isSez :: Maybe Text,
+    filingDetails :: Maybe A.Value
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data UdyogAadhaarVerificationResponse = UdyogAadhaarVerificationResponse
+  { udyogAadhaarNumber :: Maybe Text,
+    enterpriseName :: Maybe Text,
+    enterpriseType :: Maybe Text,
+    majorActivity :: Maybe Text,
+    socialCategory :: Maybe Text,
+    commencementDate :: Maybe Text,
+    dicName :: Maybe Text,
+    state :: Maybe Text,
+    appliedDate :: Maybe Text,
+    expiryDate :: Maybe Text,
+    address :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data BankAccountVerificationResponse = BankAccountVerificationResponse
+  { accountExists :: Maybe Text,
+    amountDeposited :: Maybe Text,
+    bankAccountNumber :: Maybe Text,
+    ifscCode :: Maybe Text,
+    message :: Maybe Text,
+    nameAtBank :: Maybe Text,
+    status :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data PanAadhaarLinkResponse = PanAadhaarLinkResponse
+  { isLinked :: Maybe Bool,
+    message :: Maybe Text,
+    status :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)

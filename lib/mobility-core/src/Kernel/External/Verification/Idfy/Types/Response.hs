@@ -18,6 +18,7 @@ module Kernel.External.Verification.Idfy.Types.Response where
 import Data.Aeson hiding (Error)
 import qualified Data.Aeson as A
 import Data.OpenApi hiding (name)
+import Data.Text as T
 import EulerHS.Prelude hiding (state)
 import Kernel.Types.App ()
 import Kernel.Utils.JSON
@@ -33,13 +34,64 @@ type PanExtractionResponse = IdfyResponse (ExtractionOutput PanExtractionOutput)
 
 type GSTExtractionResponse = IdfyResponse (ExtractionOutput GSTExtractionOutput)
 
+type UdyogAadhaarExtractionResponse = IdfyResponse (SourceOutput UdyogAadhaarOutput)
+
+type BankAccountVerificationResponse = IdfyResponse BankAccountVerificationOutput
+
+type PanAadhaarLinkResponse = IdfyResponse (SourceOutput PanAadhaarLinkOutput)
+
 type AadhaarExtractionResponse = IdfyResponse AadhaarResult
 
-type VerificationResponse = IdfyResponse IdfyResult
+newtype VerificationResponse = VerificationResponse (IdfyResponse IdfyResult)
 
-type VerificationResponseList = [IdfyResponse IdfyResult]
+instance FromJSON VerificationResponse where
+  parseJSON val = do
+    mbDocType :: Maybe Text <- withObject "VerificationResponse" (\o -> o .:? "type") val
+    VerificationResponse <$> case mbDocType of
+      Just "ind_driving_license" ->
+        parseJSON @(IdfyResponse (SourceOutput DLVerificationOutput)) val <&> mapIdfyResponse DLResult
+      Just "ind_pan" ->
+        parseJSON @(IdfyResponse (SourceOutput PanVerificationOutput)) val <&> mapIdfyResponse PanResult
+      Just "ind_gst_certificate" ->
+        parseJSON @(IdfyResponse (SourceOutput GstVerificationOutput)) val <&> mapIdfyResponse GstResult
+      Just "ind_rc" ->
+        parseJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) val <&> mapIdfyResponse RCResult
+      Just "validate_bank_account" ->
+        parseJSON @(IdfyResponse BankAccountVerificationOutput) val <&> mapIdfyResponse BankAccountResult
+      Just "pan_aadhaar_link" ->
+        parseJSON @(IdfyResponse (SourceOutput PanAadhaarLinkOutput)) val <&> mapIdfyResponse PanAadhaarLinkResult
+      Just "udyog_aadhaar" ->
+        parseJSON @(IdfyResponse (SourceOutput UdyogAadhaarOutput)) val <&> mapIdfyResponse UdyogAadhaarResult
+      Just docType ->
+        fail $ "Unable to decode document type: " <> T.unpack docType
+      Nothing ->
+        parseJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) val <&> mapIdfyResponse RCResult
 
-type IdfyResult = Output DLVerificationOutput RCVerificationOutput
+instance ToJSON VerificationResponse where
+  toJSON (VerificationResponse IdfyResponse {..}) = case result of
+    Just (DLResult res) -> toJSON @(IdfyResponse (SourceOutput DLVerificationOutput)) IdfyResponse {result = Just res, ..}
+    Just (PanResult res) -> toJSON @(IdfyResponse (SourceOutput PanVerificationOutput)) IdfyResponse {result = Just res, ..}
+    Just (GstResult res) -> toJSON @(IdfyResponse (SourceOutput GstVerificationOutput)) IdfyResponse {result = Just res, ..}
+    Just (RCResult res) -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Just res, ..}
+    Just (BankAccountResult res) -> toJSON @(IdfyResponse BankAccountVerificationOutput) IdfyResponse {result = Just res, ..}
+    Just (PanAadhaarLinkResult res) -> toJSON @(IdfyResponse (SourceOutput PanAadhaarLinkOutput)) IdfyResponse {result = Just res, ..}
+    Just (UdyogAadhaarResult res) -> toJSON @(IdfyResponse (SourceOutput UdyogAadhaarOutput)) IdfyResponse {result = Just res, ..}
+    Nothing -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Nothing, ..}
+
+mapIdfyResponse :: forall a b. (a -> b) -> IdfyResponse a -> IdfyResponse b
+mapIdfyResponse f IdfyResponse {..} = IdfyResponse {result = f <$> result, ..}
+
+type VerificationResponseList = [VerificationResponse]
+
+data IdfyResult
+  = DLResult (SourceOutput DLVerificationOutput)
+  | PanResult (SourceOutput PanVerificationOutput)
+  | GstResult (SourceOutput GstVerificationOutput)
+  | RCResult (ExtractionOutput RCVerificationOutput)
+  | BankAccountResult BankAccountVerificationOutput
+  | PanAadhaarLinkResult (SourceOutput PanAadhaarLinkOutput)
+  | UdyogAadhaarResult (SourceOutput UdyogAadhaarOutput)
+  deriving (Show)
 
 type NameCompareResponse = IdfyResponse NameCompareResponseData
 
@@ -87,9 +139,6 @@ instance (ToSchema a) => ToSchema (SourceOutput a)
 instance (ToJSON a) => ToJSON (SourceOutput a)
 
 instance (FromJSON a) => FromJSON (SourceOutput a)
-
-data Output a b = Output {source_output :: Maybe a, extraction_output :: Maybe b}
-  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 -- RC verification response
 data RCVerificationOutput = RCVerificationOutput
@@ -190,6 +239,66 @@ data CovDetail = CovDetail
   { category :: Maybe Text,
     cov :: Text,
     issue_date :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data PanInputDetails = PanInputDetails
+  { input_pan_number :: Text,
+    input_name :: Maybe Text,
+    input_dob :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data PanVerificationOutput = PanVerificationOutput
+  { aadhaar_seeding_status :: Maybe Bool,
+    pan_status :: Maybe Text,
+    name_match :: Maybe Bool,
+    dob_match :: Maybe Bool,
+    status :: Maybe Text,
+    input_details :: Maybe PanInputDetails
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data GstVerificationOutput = GstVerificationOutput
+  { additional_place_of_business_fields :: Maybe A.Value,
+    centre_jurisdiction :: Maybe Text,
+    centre_jurisdiction_code :: Maybe Text,
+    constitution_of_business :: Maybe Text,
+    date_of_cancellation :: Maybe Text,
+    date_of_registration :: Maybe Text,
+    gstin :: Maybe Text,
+    gstin_status :: Maybe Text,
+    last_updated_date :: Maybe Text,
+    legal_name :: Maybe Text,
+    nature_of_business_activity :: Maybe A.Value,
+    principal_place_of_business_fields :: Maybe A.Value,
+    source :: Maybe Text,
+    state_jurisdiction_code :: Maybe Text,
+    status :: Maybe Text,
+    taxpayer_type :: Maybe Text,
+    trade_name :: Maybe Text,
+    einvoice_status :: Maybe Text,
+    status_details :: Maybe Text,
+    is_sez :: Maybe Text,
+    filing_details :: Maybe A.Value
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data BankAccountVerificationOutput = BankAccountVerificationOutput
+  { account_exists :: Maybe Text,
+    amount_deposited :: Maybe Text,
+    bank_account_number :: Maybe Text,
+    ifsc_code :: Maybe Text,
+    message :: Maybe Text,
+    name_at_bank :: Maybe Text,
+    status :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data PanAadhaarLinkOutput = PanAadhaarLinkOutput
+  { is_linked :: Maybe Bool,
+    message :: Maybe Text,
+    status :: Maybe Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -346,6 +455,44 @@ instance FromJSON GSTExtractionOutput where
 
 instance ToJSON GSTExtractionOutput where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data UdyogAadhaarOutput = UdyogAadhaarOutput
+  { address_details :: Maybe [UdyogAadhaarAddressWrapper],
+    general_details :: Maybe UdyogAadhaarGeneralDetails,
+    status :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyogAadhaarAddressWrapper = UdyogAadhaarAddressWrapper
+  { address_1 :: Maybe UdyogAadhaarAddress
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyogAadhaarAddress = UdyogAadhaarAddress
+  { area :: Maybe Text,
+    city :: Maybe Text,
+    district :: Maybe Text,
+    door :: Maybe Text,
+    name_of_premises :: Maybe Text,
+    pin :: Maybe Text,
+    road :: Maybe Text,
+    state :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyogAadhaarGeneralDetails = UdyogAadhaarGeneralDetails
+  { applied_date :: Maybe Text,
+    commencement_date :: Maybe Text,
+    dic_name :: Maybe Text,
+    enterprise_name :: Maybe Text,
+    enterprise_type :: Maybe Text,
+    expiry_date :: Maybe Text,
+    major_activity :: Maybe Text,
+    modified_date :: Maybe Text,
+    social_category :: Maybe Text,
+    state :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data AadhaarExtractionOutput = AadhaarExtractionOutput
   { address :: Maybe Text,

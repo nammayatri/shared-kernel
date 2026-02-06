@@ -33,6 +33,16 @@ type AadharVerificationReqest = IdfyRequest AadharVerificationData
 
 type RCVerificationRequest = IdfyRequest RCVerificationData
 
+type PanVerificationRequest = IdfyRequest PanVerificationData
+
+type GstVerificationRequest = IdfyRequest GstVerificationData
+
+type BankAccountVerificationRequest = IdfyRequest BankAccountVerificationData
+
+type PanAadhaarLinkRequest = IdfyRequest PanAadhaarLinkData
+
+type UdyogAadhaarExtractionRequest = IdfyRequest UdyogAadhaarExtractionData
+
 type NameCompareRequest = IdfyRequest NameCompareRequestBody
 
 data IdfyRequest a = IdfyRequest
@@ -75,6 +85,38 @@ data DLVerificationData = DLVerificationData
 -- RC verification request
 data RCVerificationData = RCVerificationData
   {rc_number :: Text, _a :: Maybe Text}
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data PanVerificationData = PanVerificationData
+  { id_number :: Text,
+    full_name :: Text,
+    dob :: Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data GstVerificationData = GstVerificationData
+  { gstin :: Text,
+    filing_details :: Bool,
+    e_invoice_details :: Bool
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data BankAccountVerificationData = BankAccountVerificationData
+  { bank_account_no :: Text,
+    bank_ifsc_code :: Text,
+    nf_verification :: Bool
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data PanAadhaarLinkData = PanAadhaarLinkData
+  { pan_number :: Text,
+    aadhaar_number :: Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyogAadhaarExtractionData = UdyogAadhaarExtractionData
+  { document1 :: Text
+  }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data AadharVerificationData = AadharVerificationData

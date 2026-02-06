@@ -15,6 +15,10 @@
 module Kernel.External.Verification.Interface
   ( module Reexport,
     verifyDLAsync,
+    verifyPanAsync,
+    verifyGstAsync,
+    verifyBankAccountAsync,
+    verifyPanAadhaarLinkAsync,
     verifyRC,
     validateImage,
     extractRCImage,
@@ -22,6 +26,7 @@ module Kernel.External.Verification.Interface
     extractPanImage,
     extractAadhaarImage,
     extractGSTImage,
+    extractUdyogAadhaarAsync,
     validateFaceImage,
     searchAgent,
     verifySdkResp,
@@ -79,13 +84,87 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
 
+verifyPanAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyPanAsyncReq ->
+  m VerifyPanAsyncResp
+verifyPanAsync serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.verifyPanAsync cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+
+verifyGstAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyGstAsyncReq ->
+  m VerifyGstAsyncResp
+verifyGstAsync serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.verifyGstAsync cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+
+verifyBankAccountAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyBankAccountAsyncReq ->
+  m VerifyAsyncResp
+verifyBankAccountAsync serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.verifyBankAccountAsync cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+
+verifyPanAadhaarLinkAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyPanAadhaarLinkAsyncReq ->
+  m VerifyPanAadhaarLinkAsyncResp
+verifyPanAadhaarLinkAsync serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.verifyPanAadhaarLinkAsync cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+
 verifyRC ::
   ( EncFlow m r,
     CoreMetrics m,
     HasSchemaName BeamGRC.GovtDataRCT,
     MonadFlow m,
     EsqDBFlow m r,
-    CacheFlow m r
+    CacheFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   (VerificationService -> m VerificationServiceConfig) ->
   [VerificationService] ->
@@ -109,7 +188,9 @@ verifyRC' ::
     HasSchemaName BeamGRC.GovtDataRCT,
     MonadFlow m,
     EsqDBFlow m r,
-    CacheFlow m r
+    CacheFlow m r,
+    HasRequestId r,
+    MonadReader r m
   ) =>
   VerificationServiceConfig ->
   VerifyRCReq ->
@@ -224,6 +305,24 @@ extractGSTImage ::
   m ExtractedGSTImageResp
 extractGSTImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractGSTImage cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+
+extractUdyogAadhaarAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  ExtractUdyogAadhaarReq ->
+  m VerifyAsyncResp
+extractUdyogAadhaarAsync serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.extractUdyogAadhaarAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
