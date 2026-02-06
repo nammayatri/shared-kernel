@@ -29,9 +29,11 @@ import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified Kafka.Producer as KafkaProd
 import Kernel.Beam.Types (KafkaConn (..))
+import qualified Kernel.Streaming.Kafka.Producer as KafkaProducer
 import Kernel.Types.App
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Logging (logError)
 import Text.Casing (camel, quietSnake)
 
 textToSnakeCaseText :: Text -> Text
@@ -67,8 +69,10 @@ pushToKafka messageRecord topic key = do
   case kafkaProducerTools of
     Nothing -> throwError $ InternalError "Kafka producer tools not found"
     Just kafkaProducerTools' -> do
-      mbErr <- KafkaProd.produceMessage kafkaProducerTools'.producer (kafkaMessage topic messageRecord key)
+      let msg = kafkaMessage topic messageRecord key
+      mbErr <- KafkaProd.produceMessage kafkaProducerTools'.producer msg
       whenJust mbErr (throwError . KafkaUnableToProduceMessage)
+      KafkaProducer.produceToSecondaryProducer kafkaProducerTools'.secondaryProducer msg logError
 
 kafkaMessage :: ToJSON a => Text -> a -> Text -> KafkaProd.ProducerRecord
 kafkaMessage topicName event key =

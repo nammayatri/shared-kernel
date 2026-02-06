@@ -16,10 +16,12 @@ module Kernel.Streaming.Kafka.Producer
   ( buildKafkaProducerTools,
     Kernel.Streaming.Kafka.Producer.produceMessage,
     produceMessageInPartition,
+    produceToSecondaryProducer,
     releaseKafkaProducerTools,
     (..=),
     A.Value (Object),
     A.emptyObject,
+    shouldProduceSecondary,
   )
 where
 
@@ -35,8 +37,13 @@ import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Types.Error
 import Kernel.Types.Logging
 import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Logging (logError)
+import System.Environment (lookupEnv)
 
 type KPartitionId = Int
+
+shouldProduceSecondary :: IO Bool
+shouldProduceSecondary = fromMaybe False . (readMaybe =<<) <$> lookupEnv "PRODUCE_SECONDARY_KAFKA"
 
 produceMessage :: (Log m, MonadThrow m, MonadIO m, MonadReader r m, HasKafkaProducer r, ToJSON a) => (KafkaTopic, Maybe KafkaKey) -> a -> m ()
 produceMessage (topic, key) event = produceMessageImpl (topic, key) event Nothing
@@ -44,12 +51,23 @@ produceMessage (topic, key) event = produceMessageImpl (topic, key) event Nothin
 produceMessageInPartition :: (Log m, MonadThrow m, MonadIO m, MonadReader r m, HasKafkaProducer r, ToJSON a) => (KafkaTopic, Maybe KafkaKey) -> a -> KPartitionId -> m ()
 produceMessageInPartition (topic, key) event partitionId = produceMessageImpl (topic, key) event $ Just partitionId
 
+-- | Push to secondary Kafka producer if present. Calls onError with message on failure (does not throw).
+produceToSecondaryProducer :: (MonadIO m) => Maybe KafkaProd.KafkaProducer -> KafkaProd.ProducerRecord -> (Text -> m ()) -> m ()
+produceToSecondaryProducer mbSecondaryProducer record onError = do
+  shouldProduce <- liftIO shouldProduceSecondary
+  when shouldProduce $
+    whenJust mbSecondaryProducer $ \secondaryProd -> do
+      mbErr <- liftIO $ KafkaProd.produceMessage secondaryProd record
+      whenJust mbErr $ \err ->
+        onError $ "Secondary Kafka produce failed: " <> show err
+
 produceMessageImpl :: (Log m, MonadThrow m, MonadIO m, MonadReader r m, HasKafkaProducer r, ToJSON a) => (KafkaTopic, Maybe KafkaKey) -> a -> Maybe KPartitionId -> m ()
 produceMessageImpl (topic, key) event mbPartitionId = do
   when (null topic) $ throwM KafkaTopicIsEmptyString
   kafkaProducerTools <- asks (.kafkaProducerTools)
   mbErr <- KafkaProd.produceMessage kafkaProducerTools.producer message
   whenJust mbErr (throwError . KafkaUnableToProduceMessage)
+  produceToSecondaryProducer kafkaProducerTools.secondaryProducer message logError
   where
     message =
       ProducerRecord

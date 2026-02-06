@@ -6,6 +6,7 @@ import Data.Default.Class
 import qualified Data.Text.Encoding as TE
 import qualified Kafka.Producer as KafkaProd
 import Kernel.Prelude
+import qualified Kernel.Streaming.Kafka.Producer as KafkaProducer
 import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Utils.IOLogging (LoggerEnv)
 
@@ -51,7 +52,9 @@ pushToKafka kafkaConn messageRecord topic key = do
   case kafkaConn of
     Nothing -> pure ()
     Just kafkaProducerTools' -> do
-      void $ KafkaProd.produceMessage kafkaProducerTools'.producer (kafkaMessage topic messageRecord key)
+      let msg = kafkaMessage topic messageRecord key
+      void $ KafkaProd.produceMessage kafkaProducerTools'.producer msg
+      KafkaProducer.produceToSecondaryProducer kafkaProducerTools'.secondaryProducer msg $ \_ -> pure ()
 
 kafkaMessage :: Text -> BL.ByteString -> Text -> KafkaProd.ProducerRecord
 kafkaMessage topicName event key =

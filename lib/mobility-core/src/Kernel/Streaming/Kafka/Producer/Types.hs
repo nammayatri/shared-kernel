@@ -14,7 +14,7 @@
 
 module Kernel.Streaming.Kafka.Producer.Types
   ( KafkaProducerCfg (..),
-    KafkaProducerTools,
+    KafkaProducerTools (..),
     buildKafkaProducerTools,
     buildKafkaProducerTools',
     releaseKafkaProducerTools,
@@ -41,8 +41,9 @@ data KafkaProducerCfg = KafkaProducerCfg
   }
   deriving (Generic, FromDhall)
 
-newtype KafkaProducerTools = KafkaProducerTools
-  { producer :: Producer.KafkaProducer
+data KafkaProducerTools = KafkaProducerTools
+  { producer :: Producer.KafkaProducer,
+    secondaryProducer :: Maybe Producer.KafkaProducer
   }
   deriving (Generic)
 
@@ -67,15 +68,25 @@ castCompression kafkaCompression =
     SNAPPY -> Snappy
     LZ4 -> Lz4
 
-buildKafkaProducerTools' :: KafkaProducerCfg -> [KTC.KafkaProperties] -> IO KafkaProducerTools
-buildKafkaProducerTools' kafkaProducerCfg kafkaProperties = do
+buildKafkaProducerTools' :: KafkaProducerCfg -> Maybe KafkaProducerCfg -> [KTC.KafkaProperties] -> IO KafkaProducerTools
+buildKafkaProducerTools' kafkaProducerCfg mbSecondaryCfg kafkaProperties = do
   producer <- newProducer (addProperties (producerProps kafkaProducerCfg) kafkaProperties) >>= either (throwM . KafkaUnableToBuildTools) return
+  secondaryProducer <- case mbSecondaryCfg of
+    Nothing -> pure Nothing
+    Just secondaryCfg ->
+      Just <$> (newProducer (producerProps secondaryCfg) >>= either (throwM . KafkaUnableToBuildTools) return)
   return $ KafkaProducerTools {..}
 
-buildKafkaProducerTools :: KafkaProducerCfg -> IO KafkaProducerTools
-buildKafkaProducerTools kafkaProducerCfg = do
+buildKafkaProducerTools :: KafkaProducerCfg -> Maybe KafkaProducerCfg -> IO KafkaProducerTools
+buildKafkaProducerTools kafkaProducerCfg mbSecondaryCfg = do
   producer <- newProducer (producerProps kafkaProducerCfg) >>= either (throwM . KafkaUnableToBuildTools) return
+  secondaryProducer <- case mbSecondaryCfg of
+    Nothing -> pure Nothing
+    Just secondaryCfg ->
+      Just <$> (newProducer (producerProps secondaryCfg) >>= either (throwM . KafkaUnableToBuildTools) return)
   return $ KafkaProducerTools {..}
 
 releaseKafkaProducerTools :: KafkaProducerTools -> IO ()
-releaseKafkaProducerTools kafkaProducerTools = closeProducer kafkaProducerTools.producer
+releaseKafkaProducerTools kafkaProducerTools = do
+  closeProducer kafkaProducerTools.producer
+  whenJust kafkaProducerTools.secondaryProducer closeProducer
