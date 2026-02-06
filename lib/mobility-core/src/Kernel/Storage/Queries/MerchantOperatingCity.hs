@@ -5,6 +5,7 @@
 module Kernel.Storage.Queries.MerchantOperatingCity where
 
 import Kernel.Beam.Functions
+import Kernel.Beam.Lib.UtilsTH
 import Kernel.External.Encryption
 import qualified Kernel.External.Maps.Types
 import Kernel.Prelude
@@ -19,14 +20,14 @@ import Kernel.Types.Id
 import Kernel.Types.MerchantOperatingCity
 import qualified Sequelize as Se
 
-createIfNotExist :: (EsqDBFlow m r, MonadFlow m, CacheFlow m r) => MerchantOperatingCity -> m ()
+createIfNotExist :: (HasSchemaName Beam.MerchantOperatingCityT, EsqDBFlow m r, MonadFlow m, CacheFlow m r) => MerchantOperatingCity -> m ()
 createIfNotExist merchantOperatingCity = do
   city <- findAllWithKV [Se.Is Beam.city $ Se.Eq merchantOperatingCity.city] <&> listToMaybe
   case city of
     Just _ -> pure ()
     Nothing -> createWithKV merchantOperatingCity
 
-findAll :: (EsqDBFlow m r, MonadFlow m, CacheFlow m r) => m [MerchantOperatingCity]
+findAll :: (HasSchemaName Beam.MerchantOperatingCityT, EsqDBFlow m r, MonadFlow m, CacheFlow m r) => m [MerchantOperatingCity]
 findAll = findAllWithKV [Se.Is Beam.city $ Se.Not $ Se.Eq ""]
 
 instance FromTType' Beam.MerchantOperatingCity MerchantOperatingCity where

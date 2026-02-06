@@ -25,7 +25,8 @@ import qualified Data.HashMap.Strict as HM
 import Data.OpenApi hiding (Example, mapping)
 import qualified Data.Text as T
 import EulerHS.Prelude hiding (swap)
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
+import Kernel.Beam.Lib.UtilsTH (HasSchemaName, mkBeamInstancesForEnumAndList)
+import qualified Kernel.Storage.Beam.MerchantOperatingCity as Beam
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Storage.Esqueleto.Config
 import qualified Kernel.Storage.Queries.MerchantOperatingCity as Queries
@@ -194,7 +195,7 @@ cityToStdCode (City cityName) = HM.lookupDefault "*" cityName getCityToStdCodeMa
 stdCodeToCity :: Text -> Maybe City
 stdCodeToCity stdCode = City <$> HM.lookup stdCode getStdCodeToCityMap
 
-initCityMaps :: (EsqDBFlow m r, MonadFlow m, CacheFlow m r) => m ()
+initCityMaps :: (HasSchemaName Beam.MerchantOperatingCityT, EsqDBFlow m r, MonadFlow m, CacheFlow m r) => m ()
 initCityMaps = do
   cache <- liftIO $ readMVar cityToStdCodeMap
   when (HM.null cache) $ do
