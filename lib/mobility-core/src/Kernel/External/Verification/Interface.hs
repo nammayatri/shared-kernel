@@ -24,6 +24,7 @@ module Kernel.External.Verification.Interface
     extractPanImage,
     extractAadhaarImage,
     extractGSTImage,
+    extractUdyogAadhaarAsync,
     validateFaceImage,
     searchAgent,
     verifySdkResp,
@@ -266,6 +267,24 @@ extractGSTImage ::
   m ExtractedGSTImageResp
 extractGSTImage serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.extractGSTImage cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+
+extractUdyogAadhaarAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  ExtractUdyogAadhaarReq ->
+  m VerifyAsyncResp
+extractUdyogAadhaarAsync serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.extractUdyogAadhaarAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
