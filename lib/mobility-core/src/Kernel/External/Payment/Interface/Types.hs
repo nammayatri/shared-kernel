@@ -29,6 +29,7 @@ import Data.Time
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
 import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), TransactionStatus (..))
+import qualified Kernel.External.Payment.PaytmEDC.Config as PaytmEDC
 import qualified Kernel.External.Payment.Stripe.Config as Stripe
 import Kernel.External.Payment.Stripe.Types as Reexport hiding (RefundStatus (..))
 import Kernel.Prelude
@@ -67,7 +68,7 @@ castChargeToTransactionStatus CHARGE_DISPUTED = CANCELLED -- does not have corre
 castChargeToTransactionStatus CHARGE_UNCAPTURED = STARTED
 castChargeToTransactionStatus CHARGE_CANCELED = CANCELLED
 
-data PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg | StripeConfig Stripe.StripeCfg
+data PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg | StripeConfig Stripe.StripeCfg | PaytmEDCConfig PaytmEDC.PaytmEDCCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data CreateOrderReq = CreateOrderReq

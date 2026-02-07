@@ -21,7 +21,7 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data PaymentService = AAJuspay | Juspay | Stripe | StripeTest
+data PaymentService = AAJuspay | Juspay | Stripe | StripeTest | PaytmEDC
   deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
