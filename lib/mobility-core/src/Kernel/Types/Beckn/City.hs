@@ -155,7 +155,7 @@ hardcodedCityToStdCode =
       ("Vadodara", "std:0265"),
       ("Jamnagar", "std:0288"),
       ("Bankura", "std:03242"),
-      ("PurbaBardhaman", "std:0342"),
+      ("PurbaBardhaman", "std:03453"),
       ("AnyCity", "*")
     ]
 
