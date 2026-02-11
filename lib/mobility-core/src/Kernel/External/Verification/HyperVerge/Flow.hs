@@ -216,8 +216,23 @@ checkHyperVergeGetVerificationStatusResp url resp = fromEitherM (hyperVergeError
 validateHyperVergeGetVerificationStatusResp :: (MonadThrow m, Log m) => HyperVergeTypes.GetVerificationStatusResp -> m HyperVergeTypes.GetVerificationStatusResp
 validateHyperVergeGetVerificationStatusResp resp = do
   logDebug $ "HyperVerge getVerificationStatus Response: " <> show resp
-  case resp.statusCode of
-    401 -> throwError HVUnauthorizedError
-    400 -> throwError $ HVBadRequestError (fromMaybe "No Message found in resp or Failed to parse error !!!!" resp.message)
-    200 -> if isNothing resp.result then throwError (HVMissingPayloadError $ fromMaybe ("Unknown reason !!!!! Resp : " <> show resp) resp.message) else return resp
-    _ -> throwError $ HVError ("The response from HV is : " <> show resp)
+
+  -- Check if it's the new format
+  case resp.verificationStatuses of
+    Just statuses -> do
+      -- New format: validate verificationStatuses array
+      if null statuses
+        then throwError $ HVError "No verification statuses found in response"
+        else do
+          -- Optionally check if all statuses are "success"
+          let hasFailures = any (\s -> s.status /= "success") statuses
+          when hasFailures $
+            logWarning $ "Some verification statuses are not successful: " <> show statuses
+          return resp
+    Nothing -> do
+      -- Old format: validate statusCode
+      case resp.statusCode of
+        Just 401 -> throwError HVUnauthorizedError
+        Just 400 -> throwError $ HVBadRequestError (fromMaybe "No Message found in resp or Failed to parse error !!!!" resp.message)
+        Just 200 -> if isNothing resp.result then throwError (HVMissingPayloadError $ fromMaybe ("Unknown reason !!!!! Resp : " <> show resp) resp.message) else return resp
+        _ -> throwError $ HVError ("The response from HV is : " <> show resp)

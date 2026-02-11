@@ -181,13 +181,61 @@ instance ToJSON HyperVergeDLVerificationReq where
 
 type HyperVergeDLVerificationResp = HyperVergeVerificationAsyncResp
 
-data GetVerificationStatusResp = GetVerificationStatusResp
-  { status :: Text,
-    statusCode :: Int,
-    result :: Maybe VerificationStatusResult,
-    message :: Maybe Text
+-- New format: Individual verification status object
+data VerificationStatus = VerificationStatus
+  { createdAt :: Text,
+    documentType :: Text,
+    requestId :: Text,
+    retryCount :: Int,
+    status :: Text,
+    verificationMessage :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+-- Response type that supports both old and new formats
+data GetVerificationStatusResp = GetVerificationStatusResp
+  { -- Old format fields
+    status :: Maybe Text,
+    statusCode :: Maybe Int,
+    result :: Maybe VerificationStatusResult,
+    message :: Maybe Text,
+    -- New format field
+    verificationStatuses :: Maybe [VerificationStatus]
+  }
+  deriving (Show, Eq, Generic, ToJSON)
+
+-- Custom FromJSON to handle both formats
+instance FromJSON GetVerificationStatusResp where
+  parseJSON v@(Object o) =
+    -- Try new format first
+    (do
+        statuses <- o .: "verificationStatuses"
+        return $
+          GetVerificationStatusResp
+            { status = Nothing,
+              statusCode = Nothing,
+              result = Nothing,
+              message = Nothing,
+              verificationStatuses = Just statuses
+            }
+      )
+      <|>
+      -- Fall back to old format
+      ( do
+          st <- o .: "status"
+          sc <- o .: "statusCode"
+          res <- o .:? "result"
+          msg <- o .:? "message"
+          return $
+            GetVerificationStatusResp
+              { status = Just st,
+                statusCode = Just sc,
+                result = res,
+                message = msg,
+                verificationStatuses = Nothing
+              }
+      )
+  parseJSON invalid = fail $ "Could not parse GetVerificationStatusResp: " <> show invalid
 
 data VerificationStatusResult = VerificationStatusResult
   { apiStatusCode :: Int,
