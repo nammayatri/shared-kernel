@@ -567,7 +567,11 @@ convertGstOutputToGstVerification GstVerificationOutput {..} =
 convertBankAccountOutputToBankAccountVerification :: BankAccountVerificationOutput -> VT.BankAccountVerificationResponse
 convertBankAccountOutputToBankAccountVerification BankAccountVerificationOutput {..} =
   VT.BankAccountVerificationResponse
-    { accountExists = account_exists,
+    { accountExists = case account_exists of
+        Just "YES" -> True
+        Just "NO" -> False
+        Just _ -> False
+        Nothing -> False,
       amountDeposited = amount_deposited,
       bankAccountNumber = bank_account_number,
       ifscCode = ifsc_code,
