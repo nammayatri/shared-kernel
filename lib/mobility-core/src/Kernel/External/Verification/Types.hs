@@ -131,7 +131,7 @@ data UdyogAadhaarVerificationResponse = UdyogAadhaarVerificationResponse
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
 
 data BankAccountVerificationResponse = BankAccountVerificationResponse
-  { accountExists :: Maybe Text,
+  { accountExists :: Bool,
     amountDeposited :: Maybe Text,
     bankAccountNumber :: Maybe Text,
     ifscCode :: Maybe Text,
