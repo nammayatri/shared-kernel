@@ -197,7 +197,7 @@ data VerificationStatusResult = VerificationStatusResult
 
 data VerificationAPIResp = VerificationAPIResp
   { status :: Text,
-    statusCode :: Int,
+    statusCode :: Text,
     result :: Maybe VerificationResultData,
     metaData :: Maybe VerifyRCDLAsyncMetaData,
     error :: Maybe Text
