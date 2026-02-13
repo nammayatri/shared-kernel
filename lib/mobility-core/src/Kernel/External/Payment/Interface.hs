@@ -58,7 +58,7 @@ orderStatus ::
 orderStatus serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.orderStatus cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Order Status not supported."
-  PaytmEDCConfig cfg -> PaytmEDC.orderStatus cfg mRoutingId req.orderShortId
+  PaytmEDCConfig cfg -> PaytmEDC.orderStatus cfg mRoutingId req
 
 updateOrder ::
   ( EncFlow m r,

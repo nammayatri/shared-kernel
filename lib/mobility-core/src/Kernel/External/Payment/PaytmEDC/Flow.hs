@@ -16,6 +16,7 @@
 module Kernel.External.Payment.PaytmEDC.Flow where
 
 import qualified Data.Text as T
+import Data.Time (addUTCTime)
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import EulerHS.Types as Euler
 import Kernel.External.Payment.PaytmEDC.Checksum
@@ -28,9 +29,17 @@ import Kernel.Utils.Common (fromEitherM)
 import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 
--- Format timestamp for Paytm API (yyyy-MM-dd HH:mm:ss)
+-- IST offset: UTC+5:30 = 5 hours 30 minutes = 19800 seconds
+istOffset :: NominalDiffTime
+istOffset = 60 * 330 -- 19800 seconds = 5.5 hours
+
+-- Convert UTC time to IST (Indian Standard Time)
+utcToIST :: UTCTime -> UTCTime
+utcToIST = addUTCTime istOffset
+
+-- Format timestamp for Paytm API (yyyy-MM-dd HH:mm:ss) in IST
 formatPaytmTimestamp :: UTCTime -> Text
-formatPaytmTimestamp = T.pack . formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S"
+formatPaytmTimestamp = T.pack . formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" . utcToIST
 
 -- Generate Checksum API
 type GenerateChecksumAPI =
@@ -40,13 +49,13 @@ type GenerateChecksumAPI =
 
 -- Sale API
 type SaleAPI =
-  "sale"
+  "ecr" :> "payment" :> "request"
     :> ReqBody '[JSON] PaytmEDCSaleRequest
     :> Post '[JSON] PaytmEDCResponse
 
 -- Status Enquiry API
 type StatusEnquiryAPI =
-  "status"
+  "ecr" :> "payment" :> "status"
     :> ReqBody '[JSON] PaytmEDCStatusRequest
     :> Post '[JSON] PaytmEDCResponse
 

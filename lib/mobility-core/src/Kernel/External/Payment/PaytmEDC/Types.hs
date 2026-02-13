@@ -20,14 +20,18 @@ module Kernel.External.Payment.PaytmEDC.Types
 where
 
 import Data.Aeson
+import qualified Data.Text as T
 import Kernel.Prelude
+
+-- Helper function to remove hyphens from text
+removeHyphens :: Text -> Text
+removeHyphens = T.replace "-" ""
 
 -- Req head for both sale and status enquiry
 data PaytmEDCRequestHead = PaytmEDCRequestHead
   { requestTimeStamp :: Text, -- Format: "yyyy-MM-dd HH:mm:ss"
     channelId :: Text,
-    checksum :: Text,
-    version :: Maybe Text
+    checksum :: Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
@@ -47,12 +51,21 @@ data PaytmEDCSaleRequestBody = PaytmEDCSaleRequestBody
     transactionDateTime :: Text,
     merchantTransactionId :: Text,
     merchantReferenceNo :: Maybe Text,
-    transactionAmount :: Text,
-    merchantExtendedInfo :: Maybe MerchantExtendedInfo,
-    callbackUrl :: Maybe Text
+    transactionAmount :: Text
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+  deriving anyclass (FromJSON)
+
+instance ToJSON PaytmEDCSaleRequestBody where
+  toJSON (PaytmEDCSaleRequestBody paytmMid paytmTid transactionDateTime merchantTransactionId merchantReferenceNo transactionAmount) =
+    object $
+      [ "paytmMid" .= paytmMid,
+        "transactionDateTime" .= transactionDateTime,
+        "merchantTransactionId" .= removeHyphens merchantTransactionId,
+        "transactionAmount" .= transactionAmount
+      ]
+        <> maybe [] (\tid -> ["paytmTid" .= tid]) paytmTid
+        <> maybe [] (\mrn -> ["merchantReferenceNo" .= removeHyphens mrn]) merchantReferenceNo
 
 -- Sale Request
 data PaytmEDCSaleRequest = PaytmEDCSaleRequest
@@ -82,7 +95,16 @@ data PaytmEDCStatusRequestBody = PaytmEDCStatusRequestBody
     transactionDateTime :: Text
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+  deriving anyclass (FromJSON)
+
+instance ToJSON PaytmEDCStatusRequestBody where
+  toJSON (PaytmEDCStatusRequestBody paytmMid paytmTid merchantTransactionId transactionDateTime) =
+    object $
+      [ "paytmMid" .= paytmMid,
+        "merchantTransactionId" .= removeHyphens merchantTransactionId,
+        "transactionDateTime" .= transactionDateTime
+      ]
+        <> maybe [] (\tid -> ["paytmTid" .= tid]) paytmTid
 
 -- Status Enquiry Request
 data PaytmEDCStatusRequest = PaytmEDCStatusRequest
@@ -289,5 +311,6 @@ resultCodeToStatus _ = EDC_FAILED
 -- Parse resultStatus (legacy - use parseResultCodeId for detailed info)
 parsePaytmStatus :: Text -> PaytmEDCStatus
 parsePaytmStatus "ACCEPTED_SUCCESS" = EDC_ACCEPTED_SUCCESS
+parsePaytmStatus "ACCEPTED" = EDC_ACCEPTED_SUCCESS
 parsePaytmStatus "FAIL" = EDC_FAILED
 parsePaytmStatus _ = EDC_PENDING

@@ -28,6 +28,7 @@ import qualified Kernel.External.Payment.PaytmEDC.Flow as PaytmEDC
 import qualified Kernel.External.Payment.PaytmEDC.Types as PaytmEDC
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.Error
 import Kernel.Utils.Common
 
 -- Create order -> PaytmEDC Sale API
@@ -36,7 +37,8 @@ createOrder ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
     HasRequestId r,
-    MonadReader r m
+    MonadReader r m,
+    MonadThrow m
   ) =>
   PaytmEDCCfg ->
   Maybe Text ->
@@ -46,49 +48,42 @@ createOrder cfg _mRoutingId req = do
   now <- getCurrentTime
 
   -- Decrypt config
-  paytmMidDecrypted <- decrypt cfg.paytmMid
-  channelIdDecrypted <- decrypt cfg.channelId
-  clientIdDecrypted <- decrypt cfg.clientId
+  let paytmMid = cfg.paytmMid
+      channelId = cfg.channelId
+      clientId = cfg.clientId
+
+  logDebug $ "createOrder req: " <> show req
+  logDebug $ "createOrder cfg: " <> show cfg
+  logDebug $ "createOrder paytmMid: " <> show paytmMid
+  logDebug $ "createOrder channelId: " <> show channelId
+  logDebug $ "createOrder clientId: " <> show clientId
 
   let terminalId = req.metadataGatewayReferenceId -- TID passed via metadata
       amountInPaise = round (req.amount * 100) :: Int
       timestamp = PaytmEDC.formatPaytmTimestamp now
 
-      -- Base params for checksum
-      baseParams =
-        Map.fromList
-          [ ("paytmMid", paytmMidDecrypted),
-            ("paytmTid", fromMaybe "" terminalId),
+      -- Checksum params — everything from the sale body including callbackUrl
+      checksumParams =
+        Map.fromList $
+          [ ("paytmMid", paytmMid),
             ("transactionDateTime", timestamp),
-            ("merchantTransactionId", req.orderShortId),
-            ("merchantReferenceNo", req.orderId),
+            ("merchantTransactionId", PaytmEDC.removeHyphens req.orderId),
+            ("merchantReferenceNo", req.orderShortId),
             ("transactionAmount", show amountInPaise)
           ]
-
-      -- Add callback URL if present
-      paramsWithCallback =
-        let cb = showBaseUrl cfg.callbackUrl
-         in Map.insert "callbackUrl" cb baseParams
-
-      -- Extended info map
-      extendedInfoMap =
-        Map.fromList
-          [ ("autoAccept", "True"),
-            ("paymentMode", "ALL")
-          ]
-
+            <> maybe [] (\tid -> [("paytmTid", tid)]) terminalId
       -- Checksum Request
       checksumReqBody =
         ChecksumRequestBody
-          { params = paramsWithCallback,
-            mapParams = Just $ Map.fromList [("merchantExtendedInfo", extendedInfoMap)]
+          { params = checksumParams,
+            mapParams = Nothing
           }
 
       checksumReqHead =
         ChecksumRequestHead
-          { mid = paytmMidDecrypted,
+          { mid = paytmMid,
             tid = terminalId,
-            clientId = clientIdDecrypted
+            clientId = clientId
           }
 
       checksumReq =
@@ -98,33 +93,38 @@ createOrder cfg _mRoutingId req = do
           }
 
   -- Call Checksum API
+  logDebug $ "createOrder checksumReq : " <> show (toJSON checksumReq)
   checksumResp <- PaytmEDC.generateChecksum cfg.baseUrl checksumReq
-  let checksum = fromMaybe "" (checksumResp.gcRespBody.checksum)
+  logDebug $ "createOrder checksumResp : " <> show (toJSON checksumResp)
+  let ri = checksumResp.gcRespBody.resultInfo
+  checksum <-
+    fromMaybeM
+      ( InternalError $
+          "PaytmEDC checksum failed - resultStatus: " <> PaytmEDC.resultStatus ri
+            <> ", resultCode: "
+            <> PaytmEDC.resultCode ri
+            <> ", resultMsg: "
+            <> PaytmEDC.resultMsg ri
+            <> maybe "" (", resultCodeId: " <>) (PaytmEDC.resultCodeId ri)
+      )
+      (checksumResp.gcRespBody.checksum)
 
   -- Build Sale Request with checksum
   let saleBody =
         PaytmEDC.PaytmEDCSaleRequestBody
-          { paytmMid = paytmMidDecrypted,
+          { paytmMid = paytmMid,
             paytmTid = terminalId,
             transactionDateTime = timestamp,
-            merchantTransactionId = req.orderShortId,
-            merchantReferenceNo = Just req.orderId,
-            transactionAmount = show amountInPaise,
-            merchantExtendedInfo =
-              Just
-                PaytmEDC.MerchantExtendedInfo
-                  { autoAccept = Just "True",
-                    paymentMode = Just "ALL"
-                  },
-            callbackUrl = Just $ showBaseUrl cfg.callbackUrl
+            merchantTransactionId = req.orderId,
+            merchantReferenceNo = Just req.orderShortId,
+            transactionAmount = show amountInPaise
           }
 
       saleHead =
         PaytmEDC.PaytmEDCRequestHead
           { requestTimeStamp = timestamp,
-            channelId = channelIdDecrypted,
-            checksum = checksum,
-            version = Just "1.0"
+            channelId = channelId,
+            checksum = checksum
           }
 
       saleRequest =
@@ -132,8 +132,9 @@ createOrder cfg _mRoutingId req = do
           { saleRequestHead = saleHead,
             saleRequestBody = saleBody
           }
-
+  logDebug $ "createOrder saleRequest: " <> show (toJSON saleRequest)
   response <- PaytmEDC.initiateSale cfg.baseUrl saleRequest
+  logDebug $ "createOrder response: " <> show (toJSON response)
   pure $ mkCreateOrderResp response req now
 
 -- Order status - maps to PaytmEDC Status Enquiry API
@@ -141,28 +142,34 @@ orderStatus ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
     HasRequestId r,
-    MonadReader r m
+    MonadReader r m,
+    MonadThrow m
   ) =>
   PaytmEDCCfg ->
   Maybe Text ->
-  Text -> -- orderShortId
+  OrderStatusReq ->
   m OrderStatusResp
-orderStatus cfg _mRoutingId orderShortId = do
+orderStatus cfg _mRoutingId orderStatusReq = do
   now <- getCurrentTime
 
   -- Decrypt config
-  paytmMidDecrypted <- decrypt cfg.paytmMid
-  channelIdDecrypted <- decrypt cfg.channelId
-  clientIdDecrypted <- decrypt cfg.clientId
+  let paytmMid = cfg.paytmMid
+      channelId = cfg.channelId
+      clientId = cfg.clientId
 
-  let timestamp = PaytmEDC.formatPaytmTimestamp now
-
-      -- Base params for checksum
-      baseParams =
+  logDebug $ "orderStatus cfg: " <> show cfg
+  logDebug $ "orderStatus paytmMid: " <> show paytmMid
+  logDebug $ "orderStatus channelId: " <> show channelId
+  logDebug $ "orderStatus clientId: " <> show clientId
+  paytmTid <- fromMaybeM (InternalError "Terminal ID is required") (orderStatusReq.terminalId)
+  let transactionDateTime = PaytmEDC.formatPaytmTimestamp $ fromMaybe now orderStatusReq.transactionDateTime
+  -- Base params for checksum
+  let baseParams =
         Map.fromList
-          [ ("paytmMid", paytmMidDecrypted),
-            ("merchantTransactionId", orderShortId),
-            ("transactionDateTime", timestamp)
+          [ ("paytmMid", paytmMid),
+            ("merchantTransactionId", PaytmEDC.removeHyphens orderStatusReq.orderId),
+            ("transactionDateTime", transactionDateTime),
+            ("paytmTid", paytmTid)
           ]
 
       -- Checksum Request
@@ -174,9 +181,9 @@ orderStatus cfg _mRoutingId orderShortId = do
 
       checksumReqHead =
         ChecksumRequestHead
-          { mid = paytmMidDecrypted,
-            tid = Nothing,
-            clientId = clientIdDecrypted
+          { mid = paytmMid,
+            tid = Just paytmTid,
+            clientId = clientId
           }
 
       checksumReq =
@@ -186,24 +193,36 @@ orderStatus cfg _mRoutingId orderShortId = do
           }
 
   -- Call Checksum API
+  logDebug $ "orderStatus checksumReq: " <> show (toJSON checksumReq)
   checksumResp <- PaytmEDC.generateChecksum cfg.baseUrl checksumReq
-  let checksum = fromMaybe "" (checksumResp.gcRespBody.checksum)
+  logDebug $ "orderStatus checksumResp: " <> show (toJSON checksumResp)
+  let ri = checksumResp.gcRespBody.resultInfo
+  checksum <-
+    fromMaybeM
+      ( InternalError $
+          "PaytmEDC checksum failed - resultStatus: " <> PaytmEDC.resultStatus ri
+            <> ", resultCode: "
+            <> PaytmEDC.resultCode ri
+            <> ", resultMsg: "
+            <> PaytmEDC.resultMsg ri
+            <> maybe "" (", resultCodeId: " <>) (PaytmEDC.resultCodeId ri)
+      )
+      (checksumResp.gcRespBody.checksum)
 
   -- Build Status Request with checksum
   let statusBody =
         PaytmEDC.PaytmEDCStatusRequestBody
-          { paytmMid = paytmMidDecrypted,
-            paytmTid = Nothing,
-            merchantTransactionId = orderShortId,
-            transactionDateTime = timestamp
+          { paytmMid = paytmMid,
+            paytmTid = Just paytmTid,
+            merchantTransactionId = PaytmEDC.removeHyphens orderStatusReq.orderId,
+            transactionDateTime = transactionDateTime
           }
 
       statusHead =
         PaytmEDC.PaytmEDCRequestHead
-          { requestTimeStamp = timestamp,
-            channelId = channelIdDecrypted,
-            checksum = checksum,
-            version = Just "1.0"
+          { requestTimeStamp = PaytmEDC.formatPaytmTimestamp now,
+            channelId = channelId,
+            checksum = checksum
           }
 
       statusRequest =
@@ -211,17 +230,20 @@ orderStatus cfg _mRoutingId orderShortId = do
           { statusRequestHead = statusHead,
             statusRequestBody = statusBody
           }
-
+  logDebug $ "orderStatus statusRequest: " <> show statusRequest
   response <- PaytmEDC.statusEnquiry cfg.baseUrl statusRequest
-  pure $ mkOrderStatusResp response orderShortId
+  logDebug $ "orderStatus response: " <> show response
+  pure $ mkOrderStatusResp response orderStatusReq.orderId
 
 -- Map PaytmEDC response to CreateOrderResp
+-- Note: For sale API, ACCEPTED_SUCCESS maps to NEW (not CHARGED)
+-- CHARGED status is only set when status API returns SUCCESS/ACCEPTED_SUCCESS
 mkCreateOrderResp :: PaytmEDC.PaytmEDCResponse -> CreateOrderReq -> UTCTime -> CreateOrderResp
 mkCreateOrderResp response req now =
   let respBody = PaytmEDC.responseBody response
       resultCode = PaytmEDC.parseResultCodeId respBody.resultInfo.resultCodeId
       txnStatus = case PaytmEDC.resultCodeToStatus resultCode of
-        PaytmEDC.EDC_ACCEPTED_SUCCESS -> CHARGED
+        PaytmEDC.EDC_ACCEPTED_SUCCESS -> NEW -- Sale API: ACCEPTED_SUCCESS means transaction initiated, not completed
         PaytmEDC.EDC_FAILED -> AUTHENTICATION_FAILED
         PaytmEDC.EDC_PENDING -> PENDING_VBV
    in CreateOrderResp
@@ -248,7 +270,7 @@ defaultSDKPayload req now =
           { clientId = Nothing,
             amount = show req.amount,
             merchantId = Nothing,
-            clientAuthToken = "",
+            clientAuthToken = "default token",
             clientAuthTokenExpiry = now, -- Use current time as placeholder
             environment = Nothing,
             options_getUpiDeepLinks = Nothing,
