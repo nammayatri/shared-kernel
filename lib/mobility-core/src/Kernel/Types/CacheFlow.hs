@@ -87,4 +87,6 @@ type HasInMemEnv r = HasField "inMemEnv" r InMemEnv
 
 type HasInMemConfig r = HasField "inMemConfig" r InMemConfig
 
-type CacheFlow m r = (HasCacheConfig r, HedisFlow m r, HasCacConfig r, HasInMemEnv r, HasTxnId r)
+type HasTxnId r = HasField "txnId" r Text
+
+type CacheFlow m r = (HasCacheConfig r, HedisFlow m r, HasCacConfig r, HasInMemEnv r)
