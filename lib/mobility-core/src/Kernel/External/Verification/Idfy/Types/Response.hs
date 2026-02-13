@@ -56,6 +56,8 @@ instance FromJSON VerificationResponse where
         parseJSON @(IdfyResponse (SourceOutput GstVerificationOutput)) val <&> mapIdfyResponse GstResult
       Just "ind_rc" ->
         parseJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) val <&> mapIdfyResponse RCResult
+      Just "ind_rc_plus" ->
+        parseJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) val <&> mapIdfyResponse RCResult
       Just "validate_bank_account" ->
         parseJSON @(IdfyResponse BankAccountVerificationOutput) val <&> mapIdfyResponse BankAccountResult
       Just "pan_aadhaar_link" ->
