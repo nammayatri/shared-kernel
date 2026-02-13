@@ -35,7 +35,11 @@ data ChecksumRequestBody = ChecksumRequestBody
     mapParams :: Maybe (Map Text (Map Text Text))
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+  deriving anyclass (FromJSON)
+
+instance ToJSON ChecksumRequestBody where
+  toJSON (ChecksumRequestBody params mapParams) =
+    object $ ["params" .= params] <> maybe [] (\mp -> ["mapParams" .= mp]) mapParams
 
 -- Generate Checksum Request
 data GenerateChecksumReq = GenerateChecksumReq
