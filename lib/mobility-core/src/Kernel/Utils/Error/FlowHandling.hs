@@ -48,7 +48,6 @@ import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App
 import Kernel.Types.Beckn.Ack
-import Kernel.Types.CacheFlow
 import Kernel.Types.Common
 import Kernel.Types.Error as Err
 import Kernel.Types.Error.BaseError.HTTPError
@@ -64,7 +63,7 @@ import Servant (ServerError (..))
 -- we are using find query and setoption here which requires the constraint HasFlowHandlerR  has
 -- we will be withFlowHandler only in case db or redis call is required as it has the constraint for db and redis env in HasFlowHandlerR
 withFlowHandler ::
-  (HasFlowHandlerR (FlowR r) r, HasTxnId r) =>
+  HasFlowHandlerR (FlowR r) r =>
   FlowR r a ->
   FlowHandlerR r a
 withFlowHandler flow = do
@@ -85,8 +84,7 @@ withDashboardFlowHandler ::
     HasField "dashboardClickhouseCfg" r ClickhouseCfg,
     HasField "dashboardClickhouseEnv" r ClickhouseEnv,
     HasFlowHandlerR (FlowR r) r,
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -129,8 +127,7 @@ withFlowHandlerAPI ::
   ( HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -144,8 +141,7 @@ withDashboardFlowHandlerAPI ::
     HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -156,8 +152,7 @@ withFlowHandlerAPI' ::
   ( Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
     Log (FlowR r),
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -171,8 +166,7 @@ withDashboardFlowHandlerAPI' ::
     Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
     Log (FlowR r),
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r a ->
   FlowHandlerR r a
@@ -182,8 +176,7 @@ withFlowHandlerBecknAPI ::
   ( HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
@@ -194,8 +187,7 @@ withFlowHandlerBecknAPI' ::
   ( Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
     Log (FlowR r),
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
@@ -207,8 +199,7 @@ handleIfUp ::
     MonadReader r m,
     HasField "isShuttingDown" r (TMVar ()),
     Metrics.CoreMetrics m,
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   m a ->
   m a
@@ -224,8 +215,7 @@ apiHandler ::
     Log m,
     Metrics.CoreMetrics m,
     MonadReader r m,
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   m a ->
   m a
@@ -236,8 +226,7 @@ becknApiHandler ::
     Log m,
     Metrics.CoreMetrics m,
     MonadReader r m,
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   m a ->
   m a
@@ -248,8 +237,7 @@ someExceptionToAPIErrorThrow ::
     Log m,
     Metrics.CoreMetrics m,
     MonadReader r m,
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   SomeException ->
   m a
@@ -264,8 +252,7 @@ someExceptionToBecknApiErrorThrow ::
     Log m,
     Metrics.CoreMetrics m,
     MonadReader r m,
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   SomeException ->
   m a
@@ -286,8 +273,7 @@ throwAPIError ::
     Exception e,
     Metrics.CoreMetrics m,
     MonadReader r m,
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   e ->
   m a
@@ -300,8 +286,7 @@ throwBecknApiError ::
     Exception e,
     Metrics.CoreMetrics m,
     MonadReader r m,
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   e ->
   m a
@@ -315,8 +300,7 @@ throwHTTPError ::
     Exception e,
     Metrics.CoreMetrics m,
     MonadReader r m,
-    HasField "url" r (Maybe Text),
-    HasTxnId r
+    HasField "url" r (Maybe Text)
   ) =>
   (e -> j) ->
   e ->

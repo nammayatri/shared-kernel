@@ -72,8 +72,7 @@ instance
     VerificationMethod verify,
     KnownSymbol header,
     HasLog r,
-    HasCoreMetrics r,
-    HasTxnId r
+    HasCoreMetrics r
   ) =>
   HasServer (HeaderAuth header verify :> api) ctx
   where
