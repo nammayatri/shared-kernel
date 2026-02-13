@@ -75,6 +75,7 @@ data SendWhatsAppMessageWithTemplateIdApIReq = SendWhatsAppMessageWithTemplateId
   { sendTo :: Text,
     templateId :: Text,
     variables :: [Maybe Text],
+    parameterPairs :: Maybe [(Text, Text)],
     ctaButtonUrl :: Maybe Text,
     containsUrlButton :: Maybe Bool
   }

@@ -89,11 +89,6 @@ whatsAppOTPApi karixCfg req = do
   logDebug $ "toOtpApiResp: " <> show (toOtpApiResp req.sendTo res)
   return $ toOtpApiResp req.sendTo res
 
-listToIndexedMap :: [Text] -> Map.Map Text Text
-listToIndexedMap xs =
-  Map.fromList $
-    zip (map (T.pack . show) [0 :: Int ..]) xs
-
 whatsAppApi ::
   ( CoreMetrics m,
     MonadFlow m,
@@ -103,10 +98,10 @@ whatsAppApi ::
   ) =>
   KarixCfg ->
   Text ->
-  [Text] ->
+  Maybe [(Text, Text)] ->
   Text ->
   m SendOtpApiResp
-whatsAppApi karixCfg sendTo variables templateId = do
+whatsAppApi karixCfg sendTo parameterPairs templateId = do
   let convertReq =
         KC.KarixWhatsAppMessageReq
           { message =
@@ -121,7 +116,7 @@ whatsAppApi karixCfg sendTo variables templateId = do
                           Just
                             KC.KarixTemplate
                               { templateId = templateId,
-                                parameterValues = listToIndexedMap variables
+                                parameterValues = maybe Map.empty Map.fromList parameterPairs
                               },
                         shorten_url = Just False
                       },
@@ -154,7 +149,7 @@ whatsAppSendMessageWithTemplateIdAPI ::
   KarixCfg ->
   IT.SendWhatsAppMessageWithTemplateIdApIReq ->
   m SendOtpApiResp
-whatsAppSendMessageWithTemplateIdAPI karixCfg req = whatsAppApi karixCfg req.sendTo (catMaybes req.variables) req.templateId
+whatsAppSendMessageWithTemplateIdAPI karixCfg req = whatsAppApi karixCfg req.sendTo req.parameterPairs req.templateId
 
 toOtpApiResp :: Text -> KC.KarixWhatsappSubmitRes -> IT.SendOtpApiResp
 toOtpApiResp phone (KC.KarixWhatsappSuccess res) =
