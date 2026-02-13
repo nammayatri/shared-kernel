@@ -183,8 +183,11 @@ data SplitPercentage = SplitPercentage
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, ToSchema)
 
-newtype OrderStatusReq = OrderStatusReq
-  { orderShortId :: Text
+data OrderStatusReq = OrderStatusReq
+  { orderShortId :: Text,
+    orderId :: Text,
+    transactionDateTime :: Maybe UTCTime,
+    terminalId :: Maybe Text
   }
 
 data Offer = Offer
