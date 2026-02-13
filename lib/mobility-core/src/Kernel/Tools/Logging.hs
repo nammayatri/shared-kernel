@@ -25,14 +25,14 @@ import Kernel.Storage.Hedis.Config
 import qualified Kernel.Storage.Queries.SystemConfigs as QSC
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics, incrementSystemConfigsFailedCounter)
 import Kernel.Types.App (MonadFlow)
-import Kernel.Types.CacheFlow (HasCacConfig, HasCacheConfig, HasInMemEnv)
+import Kernel.Types.CacheFlow (HasCacConfig, HasCacheConfig, HasInMemEnv, HasTxnId)
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import Kernel.Utils.IOLogging (HasLog, updateLogLevelAndRawSql)
 import Kernel.Utils.Text
 
 withDynamicLogLevel ::
-  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m, HasCacConfig f) =>
+  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m, HasCacConfig f, HasTxnId f) =>
   Text ->
   m a ->
   m a
@@ -46,7 +46,7 @@ withDynamicLogLevel keyName fn = do
       env{loggerEnv = updLogEnv}
 
 getDynamicLogLevelConfig ::
-  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m, HasCacConfig f) => m (Maybe (HM.HashMap Text LogLevel))
+  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m, HasCacConfig f, HasTxnId f) => m (Maybe (HM.HashMap Text LogLevel))
 getDynamicLogLevelConfig = do
   now <- getCurrentTime
   shouldFetchFromDB <-
