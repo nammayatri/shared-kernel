@@ -10,15 +10,28 @@ import EulerHS.Prelude
 data KarixSmsMessage = KarixSmsMessage
   { dest :: [Text],
     text :: Text,
-    send :: Text
+    send :: Text,
+    messageType :: Maybe Text
   }
   deriving (Generic, Show, Eq)
 
 instance ToJSON KarixSmsMessage where
-  toJSON = genericToJSON defaultOptions
+  toJSON =
+    genericToJSON
+      defaultOptions
+        { fieldLabelModifier = \case
+            "messageType" -> "type"
+            other -> other
+        }
 
 instance FromJSON KarixSmsMessage where
-  parseJSON = genericParseJSON defaultOptions
+  parseJSON =
+    genericParseJSON
+      defaultOptions
+        { fieldLabelModifier = \case
+            "messageType" -> "type"
+            other -> other
+        }
 
 -- top-level request
 data KarixSmsRequest = KarixSmsRequest
