@@ -73,6 +73,8 @@ library
       Kernel.External.GoogleTranslate.API
       Kernel.External.GoogleTranslate.Client
       Kernel.External.GoogleTranslate.Types
+      Kernel.External.GPS.Interface.Types
+      Kernel.External.GPS.Types
       Kernel.External.IncidentReport
       Kernel.External.IncidentReport.ERSS.Config
       Kernel.External.IncidentReport.ERSS.Flow
