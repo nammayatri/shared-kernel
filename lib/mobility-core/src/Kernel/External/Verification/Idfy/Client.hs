@@ -45,6 +45,7 @@ where
 
 import qualified Data.Aeson as DA
 import qualified Data.Text as DT
+import qualified Data.Vector as Vector
 import EulerHS.Prelude
 import qualified EulerHS.Types as T
 import Kernel.External.Verification.Idfy.Auth
@@ -511,6 +512,7 @@ getTask apiKey accountId url request_id = do
         (Just accountId)
         request_id
     convertValueToRespType :: (MonadThrow m, Log m) => DA.Value -> m VerificationResponse
+    convertValueToRespType (DA.Array arr) | length arr == 1 = convertValueToRespType (arr Vector.! 0)
     convertValueToRespType rsp = case DA.fromJSON rsp of
       DA.Error err -> throwError $ IdfyCallError ("Could not parse Idfy getTask resp. Reason: " <> DT.pack err <> "Resp: " <> show rsp)
       DA.Success pyload -> return pyload
