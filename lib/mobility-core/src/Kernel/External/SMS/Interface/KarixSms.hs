@@ -33,7 +33,7 @@ sendOTP karixSmsCfg SendSMSReq {..} = do
 
   karixSmsKey <- decrypt karixSmsCfg.accessKey
 
-  res <- KF.sendOTPApi karixSmsOtpSmsTemplate karixSmsPhoneNumber karixSmsSender karixSmsKey messageType karixSmsCfg
+  res <- KF.sendOTPApi karixSmsOtpSmsTemplate karixSmsPhoneNumber karixSmsSender karixSmsKey karixSmsCfg
   return $ returnSmsResultKarixSms res.response.status.code
 
 returnSmsResultKarixSms :: Text -> IT.SendSMSRes
