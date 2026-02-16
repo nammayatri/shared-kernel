@@ -18,6 +18,8 @@
 module Kernel.Types.Error where
 
 import qualified Data.Aeson as DA
+import qualified Data.Aeson.Types as DAT
+import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Text as T
 import EulerHS.Prelude
 import EulerHS.Types (KVDBReply)
@@ -29,7 +31,7 @@ import Kernel.Types.Error.BaseError.HTTPError.FromResponse (FromResponse (fromRe
 import Kernel.Utils.Servant.BaseUrl
 import Network.HTTP.Types (Header, Status (statusCode))
 import Network.HTTP.Types.Header (HeaderName)
-import Servant.Client (BaseUrl, ClientError, ResponseF (responseStatusCode))
+import Servant.Client (BaseUrl, ClientError, ResponseF (Response, responseStatusCode))
 
 -- TODO: sort out proper codes, namings and usages for Unauthorized and AccessDenied
 data AuthError
@@ -1026,7 +1028,7 @@ instance IsAPIError ExotelError
 
 data OzonetelError
   = OzonetelNotConfigured
-  | OzonetelBadRequest
+  | OzonetelBadRequest Text
   | OzonetelUnauthorized
   | OzonetelPaymentRequired
   | OzonetelAccessDenied
@@ -1039,8 +1041,8 @@ data OzonetelError
 instanceExceptionWithParent 'HTTPException ''OzonetelError
 
 instance FromResponse OzonetelError where
-  fromResponse resp = case statusCode $ responseStatusCode resp of
-    400 -> Just OzonetelBadRequest
+  fromResponse resp@(Response _ _ _ body) = case statusCode $ responseStatusCode resp of
+    400 -> Just $ OzonetelBadRequest (parseOzonetelErrorMessage body)
     401 -> Just OzonetelUnauthorized
     402 -> Just OzonetelPaymentRequired
     403 -> Just OzonetelAccessDenied
@@ -1048,11 +1050,16 @@ instance FromResponse OzonetelError where
     409 -> Just OzonetelConflict
     429 -> Just OzonetelTooManyRequests
     _ -> Just OzonetelServerError
+    where
+      parseOzonetelErrorMessage :: BSL.ByteString -> Text
+      parseOzonetelErrorMessage responseBody =
+        fromMaybe "Something in your header or request body was malformed." $
+          join $ DA.decode responseBody >>= DAT.parseMaybe (DAT.withObject "OzonetelError" $ \obj -> obj DAT..:? "message")
 
 instance IsBaseError OzonetelError where
   toMessage = \case
     OzonetelNotConfigured -> Just "Ozonetel env variables aren't properly set."
-    OzonetelBadRequest -> Just "Something in your header or request body was malformed."
+    OzonetelBadRequest msg -> Just msg
     OzonetelUnauthorized -> Just "Necessary credentials were either missing or invalid."
     OzonetelPaymentRequired -> Just "The action is not available on your plan, or you have exceeded usage limits for your current plan."
     OzonetelAccessDenied -> Just "Your credentials are valid, but you don't have access to the requested resource."
@@ -1064,7 +1071,7 @@ instance IsBaseError OzonetelError where
 instance IsHTTPError OzonetelError where
   toErrorCode = \case
     OzonetelNotConfigured -> "OZONETEL_NOT_CONFIGURED"
-    OzonetelBadRequest -> "OZONETEL_BAD_REQUEST"
+    OzonetelBadRequest _ -> "OZONETEL_BAD_REQUEST"
     OzonetelUnauthorized -> "OZONETEL_UNAUTHORIZED"
     OzonetelPaymentRequired -> "OZONETEL_PAYMENT_REQUIRED"
     OzonetelAccessDenied -> "OZONETEL_ACCESS_DENIED"
@@ -1074,7 +1081,7 @@ instance IsHTTPError OzonetelError where
     OzonetelServerError -> "OZONETEL_SERVER_ERROR"
   toHttpCode = \case
     OzonetelNotConfigured -> E500
-    OzonetelBadRequest -> E400
+    OzonetelBadRequest _ -> E400
     OzonetelUnauthorized -> E401
     OzonetelPaymentRequired -> E402
     OzonetelAccessDenied -> E403
