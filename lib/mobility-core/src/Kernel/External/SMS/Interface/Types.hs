@@ -50,7 +50,8 @@ data SendSMSReq = SendSMSReq
   { smsBody :: Text,
     phoneNumber :: Text,
     sender :: Text,
-    templateId :: Text
+    templateId :: Text,
+    messageType :: Maybe Text
   }
   deriving (Generic, FromJSON, ToJSON, ToSchema)
 
