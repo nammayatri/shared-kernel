@@ -28,18 +28,15 @@ sendOTPApi ::
   Text -> --  Phone number
   Text -> --  Sender
   Text -> --  Decrypted API key
-  Maybe Text -> --  Message type
   KarixSmsCfg ->
   m KarixSmsSubmitRes
-sendOTPApi otpSmsTemplate phoneNumber karixSmsSender karixSmsKey mbMessageType KarixSmsCfg {..} = do
+sendOTPApi otpSmsTemplate phoneNumber karixSmsSender karixSmsKey KarixSmsCfg {..} = do
   -- at first template then sender
-  let defaultMessageType = fromMaybe "PM" mbMessageType
   let msg =
         KarixSmsMessage
           { dest = [phoneNumber],
             text = otpSmsTemplate,
-            send = karixSmsSender,
-            messageType = Just defaultMessageType
+            send = karixSmsSender
           }
   let req =
         KarixSmsRequest
