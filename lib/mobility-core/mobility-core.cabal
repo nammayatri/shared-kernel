@@ -234,6 +234,22 @@ library
       Kernel.External.SMS.VonageSms.Config
       Kernel.External.SMS.VonageSms.Flow
       Kernel.External.SMS.VonageSms.Types
+      Kernel.External.SOS
+      Kernel.External.SOS.ERSS.API
+      Kernel.External.SOS.ERSS.Auth
+      Kernel.External.SOS.ERSS.Config
+      Kernel.External.SOS.ERSS.Flow
+      Kernel.External.SOS.ERSS.Types
+      Kernel.External.SOS.GJ112.API
+      Kernel.External.SOS.GJ112.Auth
+      Kernel.External.SOS.GJ112.Config
+      Kernel.External.SOS.GJ112.Flow
+      Kernel.External.SOS.GJ112.Types
+      Kernel.External.SOS.Interface
+      Kernel.External.SOS.Interface.ERSS
+      Kernel.External.SOS.Interface.GJ112
+      Kernel.External.SOS.Interface.Types
+      Kernel.External.SOS.Types
       Kernel.External.Ticket.Interface
       Kernel.External.Ticket.Interface.Kapture
       Kernel.External.Ticket.Interface.Types
