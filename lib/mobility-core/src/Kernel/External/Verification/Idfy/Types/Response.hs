@@ -17,7 +17,7 @@ module Kernel.External.Verification.Idfy.Types.Response where
 
 import Data.Aeson hiding (Error)
 import qualified Data.Aeson as A
-import Data.OpenApi hiding (name)
+import Data.OpenApi hiding (email, name)
 import Data.Text as T
 import EulerHS.Prelude hiding (state)
 import Kernel.Types.App ()
@@ -64,6 +64,8 @@ instance FromJSON VerificationResponse where
         parseJSON @(IdfyResponse (SourceOutput PanAadhaarLinkOutput)) val <&> mapIdfyResponse PanAadhaarLinkResult
       Just "udyog_aadhaar" ->
         parseJSON @(IdfyResponse (SourceOutput UdyogAadhaarOutput)) val <&> mapIdfyResponse UdyogAadhaarResult
+      Just "udyam_aadhaar" ->
+        parseJSON @(IdfyResponse (SourceOutput UdyamAadhaarOutput)) val <&> mapIdfyResponse UdyamAadhaarResult
       Just docType ->
         fail $ "Unable to decode document type: " <> T.unpack docType
       Nothing ->
@@ -78,6 +80,7 @@ instance ToJSON VerificationResponse where
     Just (BankAccountResult res) -> toJSON @(IdfyResponse BankAccountVerificationOutput) IdfyResponse {result = Just res, ..}
     Just (PanAadhaarLinkResult res) -> toJSON @(IdfyResponse (SourceOutput PanAadhaarLinkOutput)) IdfyResponse {result = Just res, ..}
     Just (UdyogAadhaarResult res) -> toJSON @(IdfyResponse (SourceOutput UdyogAadhaarOutput)) IdfyResponse {result = Just res, ..}
+    Just (UdyamAadhaarResult res) -> toJSON @(IdfyResponse (SourceOutput UdyamAadhaarOutput)) IdfyResponse {result = Just res, ..}
     Nothing -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Nothing, ..}
 
 mapIdfyResponse :: forall a b. (a -> b) -> IdfyResponse a -> IdfyResponse b
@@ -93,6 +96,7 @@ data IdfyResult
   | BankAccountResult BankAccountVerificationOutput
   | PanAadhaarLinkResult (SourceOutput PanAadhaarLinkOutput)
   | UdyogAadhaarResult (SourceOutput UdyogAadhaarOutput)
+  | UdyamAadhaarResult (SourceOutput UdyamAadhaarOutput)
   deriving (Show)
 
 type NameCompareResponse = IdfyResponse NameCompareResponseData
@@ -568,5 +572,92 @@ newtype NameMatchOutput = NameMatchOutput
 
 newtype NameCompareResponseData = NameCompareResponseData
   { match_output :: NameMatchOutput
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamAadhaarOutput = UdyamAadhaarOutput
+  { enterprise_type :: Maybe [UdyamEnterpriseTypeWrapper],
+    general_details :: Maybe UdyamGeneralDetails,
+    nic_details :: Maybe [UdyamNicDetailsWrapper],
+    official_address :: Maybe UdyamOfficialAddress,
+    status :: Maybe Text,
+    unit_details :: Maybe [UdyamUnitDetailsWrapper]
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamEnterpriseTypeWrapper = UdyamEnterpriseTypeWrapper
+  { enterprise_type_1 :: Maybe UdyamEnterpriseType,
+    enterprise_type_2 :: Maybe UdyamEnterpriseType
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamEnterpriseType = UdyamEnterpriseType
+  { classification_date :: Maybe Text,
+    classification_year :: Maybe Text,
+    enterprise_type :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamGeneralDetails = UdyamGeneralDetails
+  { applied_date :: Maybe Text,
+    commencement_date :: Maybe Text,
+    date_of_inc :: Maybe Text,
+    dic_name :: Maybe Text,
+    enterprise_name :: Maybe Text,
+    enterprise_type :: Maybe Text,
+    major_activity :: Maybe Text,
+    msme_di :: Maybe Text,
+    organization_type :: Maybe Text,
+    social_category :: Maybe Text,
+    state :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamNicDetailsWrapper = UdyamNicDetailsWrapper
+  { nic_details_1 :: Maybe UdyamNicDetails
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamNicDetails = UdyamNicDetails
+  { activity_type :: Maybe Text,
+    date :: Maybe Text,
+    nic_2_digit :: Maybe Text,
+    nic_4_digit :: Maybe Text,
+    nic_5_digit :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamOfficialAddress = UdyamOfficialAddress
+  { block :: Maybe Text,
+    city :: Maybe Text,
+    district :: Maybe Text,
+    door :: Maybe Text,
+    email :: Maybe Text,
+    mobile :: Maybe Text,
+    name_of_premises :: Maybe Text,
+    pin :: Maybe Text,
+    road :: Maybe Text,
+    state :: Maybe Text,
+    town :: Maybe Text,
+    area :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamUnitDetailsWrapper = UdyamUnitDetailsWrapper
+  { unit_1 :: Maybe UdyamUnitDetails
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamUnitDetails = UdyamUnitDetails
+  { block :: Maybe Text,
+    building :: Maybe Text,
+    city :: Maybe Text,
+    district :: Maybe Text,
+    flat :: Maybe Text,
+    pin :: Maybe Text,
+    road :: Maybe Text,
+    state :: Maybe Text,
+    unit_name :: Maybe Text,
+    village :: Maybe Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)

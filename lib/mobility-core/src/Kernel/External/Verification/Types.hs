@@ -20,7 +20,7 @@ module Kernel.External.Verification.Types
 where
 
 import Data.Aeson as A
-import Data.OpenApi
+import Data.OpenApi hiding (email)
 import qualified Data.Text as T
 import EulerHS.Prelude hiding (state)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
@@ -127,6 +127,25 @@ data UdyogAadhaarVerificationResponse = UdyogAadhaarVerificationResponse
     appliedDate :: Maybe Text,
     expiryDate :: Maybe Text,
     address :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data UdyamAadhaarVerificationResponse = UdyamAadhaarVerificationResponse
+  { udyamAadhaarNumber :: Maybe Text,
+    enterpriseName :: Maybe Text,
+    enterpriseType :: Maybe Text,
+    majorActivity :: Maybe Text,
+    socialCategory :: Maybe Text,
+    commencementDate :: Maybe Text,
+    dicName :: Maybe Text,
+    state :: Maybe Text,
+    appliedDate :: Maybe Text,
+    dateOfInc :: Maybe Text,
+    msmeDi :: Maybe Text,
+    organizationType :: Maybe Text,
+    address :: Maybe Text,
+    email :: Maybe Text,
+    mobile :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
 
