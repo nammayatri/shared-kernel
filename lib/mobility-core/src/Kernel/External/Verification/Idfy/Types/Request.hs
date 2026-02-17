@@ -41,6 +41,8 @@ type BankAccountVerificationRequest = IdfyRequest BankAccountVerificationData
 
 type PanAadhaarLinkRequest = IdfyRequest PanAadhaarLinkData
 
+type UdyamAadhaarRequest = IdfyRequest UdyamAadhaarData
+
 type UdyogAadhaarExtractionRequest = IdfyRequest UdyogAadhaarExtractionData
 
 type NameCompareRequest = IdfyRequest NameCompareRequestBody
@@ -111,6 +113,11 @@ data BankAccountVerificationData = BankAccountVerificationData
 data PanAadhaarLinkData = PanAadhaarLinkData
   { pan_number :: Text,
     aadhaar_number :: Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data UdyamAadhaarData = UdyamAadhaarData
+  { uam_number :: Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 

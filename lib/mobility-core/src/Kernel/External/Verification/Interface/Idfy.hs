@@ -20,6 +20,7 @@ module Kernel.External.Verification.Interface.Idfy
     verifyGstAsync,
     verifyBankAccountAsync,
     verifyPanAadhaarLinkAsync,
+    verifyUdyamAadhaarAsync,
     validateImage,
     extractRCImage,
     extractUdyogAadhaarAsync,
@@ -35,6 +36,7 @@ module Kernel.External.Verification.Interface.Idfy
     convertGstOutputToGstVerification,
     convertBankAccountOutputToBankAccountVerification,
     convertPanAadhaarLinkOutputToPanAadhaarLinkVerification,
+    convertUdyamAadhaarOutputToUdyamAadhaarVerification,
     convertUdyogAadhaarOutputToUdyogAadhaarVerification,
   )
 where
@@ -183,6 +185,27 @@ verifyPanAadhaarLinkAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyPanAadhaarLinkAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyUdyamAadhaarAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  VerifyUdyamAadhaarAsyncReq ->
+  m VerifyUdyamAadhaarAsyncResp
+verifyUdyamAadhaarAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.UdyamAadhaarData
+          { uam_number = req.uamNumber
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyUdyamAadhaarAsync apiKey accountId url idfyReq
   pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
 
 verifyRCAsync ::
@@ -482,6 +505,7 @@ getTask cfg req updateResp = do
     GstResult (SourceOutput out) -> GstResp $ convertGstOutputToGstVerification out
     BankAccountResult out -> BankAccountResp $ convertBankAccountOutputToBankAccountVerification out
     PanAadhaarLinkResult (SourceOutput out) -> PanAadhaarLinkResp $ convertPanAadhaarLinkOutputToPanAadhaarLinkVerification out
+    UdyamAadhaarResult (SourceOutput out) -> UdyamAadhaarResp $ convertUdyamAadhaarOutputToUdyamAadhaarVerification out
     UdyogAadhaarResult (SourceOutput out) -> UdyogAadhaarResp $ convertUdyogAadhaarOutputToUdyogAadhaarVerification out
 
 convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
@@ -587,6 +611,41 @@ convertPanAadhaarLinkOutputToPanAadhaarLinkVerification PanAadhaarLinkOutput {..
       message = message,
       status = status
     }
+
+convertUdyamAadhaarOutputToUdyamAadhaarVerification :: UdyamAadhaarOutput -> VT.UdyamAadhaarVerificationResponse
+convertUdyamAadhaarOutputToUdyamAadhaarVerification UdyamAadhaarOutput {..} =
+  VT.UdyamAadhaarVerificationResponse
+    { udyamAadhaarNumber = Nothing,
+      enterpriseName = general_details >>= (.enterprise_name),
+      enterpriseType = general_details >>= (.enterprise_type),
+      majorActivity = general_details >>= (.major_activity),
+      socialCategory = general_details >>= (.social_category),
+      commencementDate = general_details >>= (.commencement_date),
+      dicName = general_details >>= (.dic_name),
+      state = general_details >>= (.state),
+      appliedDate = general_details >>= (.applied_date),
+      dateOfInc = general_details >>= (.date_of_inc),
+      msmeDi = general_details >>= (.msme_di),
+      organizationType = general_details >>= (.organization_type),
+      address = official_address <&> formatOfficialAddress,
+      email = official_address >>= (.email),
+      mobile = official_address >>= (.mobile)
+    }
+  where
+    formatOfficialAddress addr =
+      T.intercalate
+        ", "
+        $ catMaybes
+          [ addr.door,
+            addr.name_of_premises,
+            addr.block,
+            addr.road,
+            addr.town,
+            addr.city,
+            addr.district,
+            addr.state,
+            addr.pin
+          ]
 
 convertUdyogAadhaarOutputToUdyogAadhaarVerification :: UdyogAadhaarOutput -> VT.UdyogAadhaarVerificationResponse
 convertUdyogAadhaarOutputToUdyogAadhaarVerification UdyogAadhaarOutput {..} =
