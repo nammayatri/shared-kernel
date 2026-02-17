@@ -237,6 +237,9 @@ instance ToSchema ERSSStatusUpdateReq
 -- | Type alias: Status Update Response from C-DAC
 type ERSSStatusUpdateRes = ERSSApiResponse Value
 
+-- | Type alias: Media Upload Response from C-DAC
+type ERSSMediaUploadRes = ERSSApiResponse Value
+
 -- | ERSS API Error types matching C-DAC API failure response format.
 -- C-DAC failure responses follow this structure:
 -- { "resultCode": "OPERATION_FAILURE", "resultString": null,

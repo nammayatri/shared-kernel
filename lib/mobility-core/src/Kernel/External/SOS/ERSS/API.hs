@@ -16,6 +16,7 @@ module Kernel.External.SOS.ERSS.API where
 
 import Kernel.External.SOS.ERSS.Types
 import Kernel.Prelude
+import Kernel.ServantMultipart
 import Servant
 
 -- | Authentication API (Keycloak OpenID Connect)
@@ -71,6 +72,21 @@ type ERSSStatusUpdateAPI =
     :> ReqBody '[JSON] ERSSStatusUpdateReq
     :> Post '[JSON] ERSSStatusUpdateRes
 
+-- | Media Upload API
+-- Endpoint: POST /erss/resource-manager/auth/upload/{auth-code}/{phone-number}/{file-name}
+-- Content-Type: multipart/form-data
+type ERSSMediaUploadAPI authCode phoneNumber fileName =
+  "erss"
+    :> "resource-manager"
+    :> "auth"
+    :> "upload"
+    :> Capture "authCode" authCode
+    :> Capture "phoneNumber" phoneNumber
+    :> Capture "fileName" fileName
+    :> Header "Authorization" ERSSAuthToken
+    :> MultipartForm Tmp (MultipartData Tmp)
+    :> Post '[JSON] ERSSMediaUploadRes
+
 -- Proxy types for Servant client
 erssPasswordAuthAPI :: Proxy ERSSPasswordAuthAPI
 erssPasswordAuthAPI = Proxy
@@ -86,3 +102,6 @@ erssTraceAPI = Proxy
 
 erssStatusUpdateAPI :: Proxy ERSSStatusUpdateAPI
 erssStatusUpdateAPI = Proxy
+
+erssMediaUploadAPI :: Proxy (ERSSMediaUploadAPI Text Text Text)
+erssMediaUploadAPI = Proxy

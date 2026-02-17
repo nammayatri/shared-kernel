@@ -25,6 +25,7 @@ module Kernel.External.SOS.Interface.Types
     SOSTraceRes (..),
     SOSStatusUpdateReq (..),
     SOSStatusUpdateRes (..),
+    SOSMediaUploadRes (..),
   )
 where
 
@@ -209,3 +210,16 @@ instance ToJSON SOSStatusUpdateRes
 instance FromJSON SOSStatusUpdateRes
 
 instance ToSchema SOSStatusUpdateRes
+
+-- | Unified Media Upload Response
+data SOSMediaUploadRes = SOSMediaUploadRes
+  { success :: Bool,
+    errorMessage :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON SOSMediaUploadRes
+
+instance FromJSON SOSMediaUploadRes
+
+instance ToSchema SOSMediaUploadRes

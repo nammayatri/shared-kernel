@@ -16,6 +16,7 @@ module Kernel.External.SOS.Interface.ERSS
   ( sendInitialSOS,
     sendSOSTrace,
     updateSOSStatus,
+    uploadMedia,
   )
 where
 
@@ -147,6 +148,31 @@ toERSSStatusUpdateReq config Interface.SOSStatusUpdateReq {..} =
 fromERSSStatusUpdateRes :: ERSS.ERSSStatusUpdateRes -> Interface.SOSStatusUpdateRes
 fromERSSStatusUpdateRes ERSS.ERSSApiResponse {..} =
   Interface.SOSStatusUpdateRes
+    { success = resultCode == "OPERATION_SUCCESS",
+      errorMessage = errorMsg
+    }
+
+-- | Upload Media
+uploadMedia ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ERSSCfg ->
+  Text ->
+  Text ->
+  FilePath ->
+  m Interface.SOSMediaUploadRes
+uploadMedia config phoneNumber fileName filePath = do
+  erssRes <- EF.uploadMedia config phoneNumber fileName filePath
+  pure $ fromERSSMediaUploadRes erssRes
+
+fromERSSMediaUploadRes :: ERSS.ERSSMediaUploadRes -> Interface.SOSMediaUploadRes
+fromERSSMediaUploadRes ERSS.ERSSApiResponse {..} =
+  Interface.SOSMediaUploadRes
     { success = resultCode == "OPERATION_SUCCESS",
       errorMessage = errorMsg
     }

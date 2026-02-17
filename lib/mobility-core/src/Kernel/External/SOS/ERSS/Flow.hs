@@ -18,10 +18,12 @@ module Kernel.External.SOS.ERSS.Flow
   ( sendInitialSOS,
     sendSOSTrace,
     updateSOSStatus,
+    uploadMedia,
     validateERSSResponse,
   )
 where
 
+import qualified EulerHS.Language as L
 import qualified EulerHS.Types as ET
 import Kernel.External.Encryption
 import Kernel.External.SOS.ERSS.API
@@ -29,6 +31,7 @@ import Kernel.External.SOS.ERSS.Auth
 import Kernel.External.SOS.ERSS.Config
 import Kernel.External.SOS.ERSS.Types
 import Kernel.Prelude
+import Kernel.ServantMultipart
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
@@ -122,6 +125,46 @@ updateSOSStatus config req = do
       erssStatusUpdateAPI
   logDebug $ "ERSS Status Update response: " <> show res
   validateERSSResponse "Status Update" res
+
+-- | Upload Media File to ERSS
+uploadMedia ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ERSSCfg ->
+  Text ->
+  Text ->
+  FilePath ->
+  m ERSSMediaUploadRes
+uploadMedia config phoneNumber fileName filePath = do
+  token <- getERSSToken config
+  let authToken = ERSSAuthToken token.accessToken
+  boundary <- L.runIO genBoundary
+  let multipartData =
+        MultipartData
+          []
+          [ FileData "file" fileName "" filePath
+          ]
+  let apiCall =
+        ET.client
+          erssMediaUploadAPI
+          config.authCode
+          phoneNumber
+          fileName
+          (Just authToken)
+          (boundary, multipartData)
+  res <-
+    callERSSAPI
+      config.baseUrl
+      apiCall
+      "ERSS Media Upload"
+      erssMediaUploadAPI
+  logDebug $ "ERSS Media Upload response: " <> show res
+  validateERSSResponse "Media Upload" res
 
 -- | Call ERSS API with error handling (following MMI pattern)
 callERSSAPI :: CallAPI m r api a

@@ -16,6 +16,7 @@ module Kernel.External.SOS.Interface
   ( sendInitialSOS,
     sendSOSTrace,
     updateSOSStatus,
+    uploadMedia,
     module Reexport,
   )
 where
@@ -77,3 +78,21 @@ updateSOSStatus ::
 updateSOSStatus config req = case config of
   ERSSConfig erssCfg -> ERSS.updateSOSStatus erssCfg req
   GJ112Config gj112Cfg -> GJ112.updateSOSStatus gj112Cfg req
+
+-- | Upload Media File - dispatches to appropriate provider
+uploadMedia ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  SOSServiceConfig ->
+  Text ->
+  Text ->
+  FilePath ->
+  m SOSMediaUploadRes
+uploadMedia config phoneNumber fileName filePath = case config of
+  ERSSConfig erssCfg -> ERSS.uploadMedia erssCfg phoneNumber fileName filePath
+  GJ112Config _gj112Cfg -> pure $ SOSMediaUploadRes False (Just "Media upload not implemented for GJ112")
