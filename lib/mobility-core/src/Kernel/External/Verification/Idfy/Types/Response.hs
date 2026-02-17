@@ -99,7 +99,7 @@ type NameCompareResponse = IdfyResponse NameCompareResponseData
 
 data IdfyResponse a = IdfyResponse
   { action :: Text,
-    completed_at :: UTCTime,
+    completed_at :: Maybe UTCTime,
     created_at :: UTCTime,
     group_id :: Text,
     request_id :: Text,
