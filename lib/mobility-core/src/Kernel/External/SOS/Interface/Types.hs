@@ -155,12 +155,10 @@ instance ToSchema InitialSOSRes
 
 -- | Unified SOS Trace Request (location updates)
 data SOSTraceReq = SOSTraceReq
-  { -- | From Initial SOS response
-    trackingId :: Text,
-    -- | "YYYY-MM-DD HH:MM:SS"
-    dateTime :: Text,
+  { dateTime :: Text,
     latitude :: Double,
     longitude :: Double,
+    mobileNo :: Text,
     speed :: Maybe Double,
     gpsAccuracy :: Maybe Double
   }
@@ -185,10 +183,15 @@ instance FromJSON SOSTraceRes
 
 instance ToSchema SOSTraceRes
 
--- | Unified Status Update Request
+-- | Unified Status Update Request.
+-- Represents the inbound webhook payload pushed by C-DAC to our exposed endpoint.
 data SOSStatusUpdateReq = SOSStatusUpdateReq
-  { trackingId :: Text,
-    status :: Text
+  { idSource :: Maybe Text,
+    idErss :: Maybe Text,
+    currentStatus :: Text,
+    statusDesc :: Maybe Text,
+    comments :: Maybe Text,
+    lastUpdatedTime :: Maybe Int
   }
   deriving (Show, Eq, Generic)
 

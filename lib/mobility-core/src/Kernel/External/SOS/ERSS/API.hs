@@ -12,7 +12,18 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.SOS.ERSS.API where
+module Kernel.External.SOS.ERSS.API
+  ( ERSSPasswordAuthAPI,
+    ERSSRefreshAuthAPI,
+    ERSSInitialSOSAPI,
+    ERSSTraceAPI,
+    erssPasswordAuthAPI,
+    erssRefreshAuthAPI,
+    erssInitialSOSAPI,
+    erssTraceAPI,
+    erssMediaUploadAPI
+  )
+where
 
 import Kernel.External.SOS.ERSS.Types
 import Kernel.Prelude
@@ -61,17 +72,6 @@ type ERSSTraceAPI =
     :> ReqBody '[JSON] ERSSTraceReq
     :> Post '[JSON] ERSSTraceRes
 
--- | Status Update API
--- Endpoint: POST /public/api/sos/status
-type ERSSStatusUpdateAPI =
-  "public"
-    :> "api"
-    :> "sos"
-    :> "status"
-    :> Header "Authorization" ERSSAuthToken
-    :> ReqBody '[JSON] ERSSStatusUpdateReq
-    :> Post '[JSON] ERSSStatusUpdateRes
-
 -- | Media Upload API
 -- Endpoint: POST /erss/resource-manager/auth/upload/{auth-code}/{phone-number}/{file-name}
 -- Content-Type: multipart/form-data
@@ -99,9 +99,6 @@ erssInitialSOSAPI = Proxy
 
 erssTraceAPI :: Proxy ERSSTraceAPI
 erssTraceAPI = Proxy
-
-erssStatusUpdateAPI :: Proxy ERSSStatusUpdateAPI
-erssStatusUpdateAPI = Proxy
 
 erssMediaUploadAPI :: Proxy (ERSSMediaUploadAPI Text Text Text)
 erssMediaUploadAPI = Proxy
