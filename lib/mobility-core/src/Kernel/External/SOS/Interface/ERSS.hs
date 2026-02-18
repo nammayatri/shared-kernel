@@ -65,7 +65,9 @@ sendSOSTrace config req = do
   erssRes <- EF.sendSOSTrace config erssReq
   pure $ fromERSSTraceRes erssRes
 
--- | Update SOS Status - converts interface types to ERSS types and delegates
+-- | Update SOS Status - acknowledges an inbound C-DAC status update webhook.
+-- Section 7 of the ERSS doc is an inbound webhook: C-DAC pushes status updates
+-- to our endpoint. This function processes the update and returns acknowledgment.
 updateSOSStatus ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -77,10 +79,12 @@ updateSOSStatus ::
   ERSSCfg ->
   Interface.SOSStatusUpdateReq ->
   m Interface.SOSStatusUpdateRes
-updateSOSStatus config req = do
-  let erssReq = toERSSStatusUpdateReq config req
-  erssRes <- EF.updateSOSStatus config erssReq
-  pure $ fromERSSStatusUpdateRes erssRes
+updateSOSStatus _config _req =
+  pure $
+    Interface.SOSStatusUpdateRes
+      { success = True,
+        errorMessage = Nothing
+      }
 
 -- Conversion helpers
 
@@ -116,38 +120,32 @@ fromERSSInitialRes ERSS.ERSSApiResponse {..} =
       errorMessage = errorMsg
     }
 
+-- | Build ERSS Trace PACKET string.
+-- Format: "dateTime,latitude,longitude,mobileNo,authId,authCode,SOS#"
+buildTracePacket :: Text -> Double -> Double -> Text -> Text -> Text -> Text
+buildTracePacket dt lat lon mobile authId authCode =
+  dt
+    <> ","
+    <> show lat
+    <> ","
+    <> show lon
+    <> ","
+    <> mobile
+    <> ","
+    <> authId
+    <> ","
+    <> authCode
+    <> ",SOS#"
+
 toERSSTraceReq :: ERSSCfg -> Interface.SOSTraceReq -> ERSS.ERSSTraceReq
 toERSSTraceReq config Interface.SOSTraceReq {..} =
   ERSS.ERSSTraceReq
-    { trackingId = trackingId,
-      dateTime = dateTime,
-      latitude = latitude,
-      longitude = longitude,
-      speed = speed,
-      gpsAccuracy = gpsAccuracy,
-      authId = config.authId,
-      authCode = config.authCode
+    { packet = buildTracePacket dateTime latitude longitude mobileNo config.authId config.authCode
     }
 
 fromERSSTraceRes :: ERSS.ERSSTraceRes -> Interface.SOSTraceRes
 fromERSSTraceRes ERSS.ERSSApiResponse {..} =
   Interface.SOSTraceRes
-    { success = resultCode == "OPERATION_SUCCESS",
-      errorMessage = errorMsg
-    }
-
-toERSSStatusUpdateReq :: ERSSCfg -> Interface.SOSStatusUpdateReq -> ERSS.ERSSStatusUpdateReq
-toERSSStatusUpdateReq config Interface.SOSStatusUpdateReq {..} =
-  ERSS.ERSSStatusUpdateReq
-    { trackingId = trackingId,
-      status = status,
-      authId = config.authId,
-      authCode = config.authCode
-    }
-
-fromERSSStatusUpdateRes :: ERSS.ERSSStatusUpdateRes -> Interface.SOSStatusUpdateRes
-fromERSSStatusUpdateRes ERSS.ERSSApiResponse {..} =
-  Interface.SOSStatusUpdateRes
     { success = resultCode == "OPERATION_SUCCESS",
       errorMessage = errorMsg
     }

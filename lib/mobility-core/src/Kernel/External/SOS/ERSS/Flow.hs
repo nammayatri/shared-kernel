@@ -17,7 +17,6 @@
 module Kernel.External.SOS.ERSS.Flow
   ( sendInitialSOS,
     sendSOSTrace,
-    updateSOSStatus,
     uploadMedia,
     validateERSSResponse,
   )
@@ -101,30 +100,6 @@ sendSOSTrace config req = do
       erssTraceAPI
   logDebug $ "ERSS SOS Trace response: " <> show res
   validateERSSResponse "SOS Trace" res
-
--- | Update SOS Status
-updateSOSStatus ::
-  ( EncFlow m r,
-    CoreMetrics m,
-    Redis.HedisFlow m r,
-    MonadFlow m,
-    HasRequestId r,
-    MonadReader r m
-  ) =>
-  ERSSCfg ->
-  ERSSStatusUpdateReq ->
-  m ERSSStatusUpdateRes
-updateSOSStatus config req = do
-  token <- getERSSToken config
-  let authToken = ERSSAuthToken token.accessToken
-  res <-
-    callERSSAPI
-      config.baseUrl
-      (ET.client erssStatusUpdateAPI (Just authToken) req)
-      "ERSS Status Update"
-      erssStatusUpdateAPI
-  logDebug $ "ERSS Status Update response: " <> show res
-  validateERSSResponse "Status Update" res
 
 -- | Upload Media File to ERSS
 uploadMedia ::

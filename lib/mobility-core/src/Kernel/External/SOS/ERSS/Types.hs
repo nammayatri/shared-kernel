@@ -32,8 +32,7 @@ import Web.Internal.HttpApiData (ToHttpApiData (..))
 
 -- | OAuth Token Request for password grant (initial authentication)
 data ERSSPasswordGrantReq = ERSSPasswordGrantReq
-  { -- | Always "password"
-    grant_type :: Text,
+  { grant_type :: Text,
     client_id :: Text,
     client_secret :: Text,
     username :: Text,
@@ -54,8 +53,7 @@ instance ToForm ERSSPasswordGrantReq where
 
 -- | OAuth Token Request for refresh grant
 data ERSSRefreshGrantReq = ERSSRefreshGrantReq
-  { -- | Always "refresh_token"
-    grant_type :: Text,
+  { grant_type :: Text,
     client_id :: Text,
     client_secret :: Text,
     refresh_token :: Text
@@ -76,11 +74,8 @@ instance ToForm ERSSRefreshGrantReq where
 data ERSSAuthResponse = ERSSAuthResponse
   { access_token :: Text,
     refresh_token :: Text,
-    -- | Access token TTL in seconds
     expires_in :: Int,
-    -- | Refresh token TTL in seconds
     refresh_expires_in :: Int,
-    -- | Usually "Bearer"
     token_type :: Text
   }
   deriving (Show, Eq, Generic)
@@ -91,43 +86,24 @@ instance ToJSON ERSSAuthResponse
 
 -- | Initial SOS Request matching C-DAC API spec
 data ERSSInitialSOSReq = ERSSInitialSOSReq
-  { -- | Unique ID from source (optional)
-    id :: Maybe Text,
-    -- | "YYYY-MM-DD HH:MM:SS"
+  { id :: Maybe Text,
     dateTime :: Text,
-    -- | User's latitude
     latitude :: Double,
-    -- | User's longitude
     longitude :: Double,
-    -- | Speed if available
     speed :: Maybe Double,
-    -- | User's mobile number (mandatory)
     mobileNo :: Text,
-    -- | Device IMEI
     imeiNo :: Maybe Text,
-    -- | GPS provider name
     gpsProvider :: Maybe Text,
-    -- | User's name
     senderName :: Maybe Text,
-    -- | User's address
     address :: Maybe Text,
-    -- | GPS accuracy in meters
     gpsAccuracy :: Maybe Double,
-    -- | State code assigned by C-DAC
     stateCode :: Maybe Text,
-    -- | "true"/"false" - can operator call?
     silentCommunication :: Maybe Text,
-    -- | Special assistance requirements
     specialNeeds :: Maybe Text,
-    -- | Date of birth "YYYY-MM-DD"
     dob :: Maybe Text,
-    -- | "MALE"/"FEMALE"/"OTHERS"
     gender :: Maybe Text,
-    -- | Media file name or URL
     attachmentFileName :: Maybe Text,
-    -- | Source identifier (mandatory)
     authId :: Text,
-    -- | Source verification code (mandatory)
     authCode :: Text
   }
   deriving (Show, Eq, Generic)
@@ -138,13 +114,7 @@ instance FromJSON ERSSInitialSOSReq
 
 instance ToSchema ERSSInitialSOSReq
 
--- | Generic ERSS API Response envelope matching C-DAC API spec.
--- All ERSS APIs return this envelope structure:
---   resultCode: "OPERATION_SUCCESS" or "OPERATION_FAILURE"
---   resultString: success description or null
---   errorMsg: error description on failure, null on success
---   message: additional message (optional)
---   payLoad: API-specific payload on success, null on failure
+-- | Generic ERSS API Response envelope (resultCode, resultString, errorMsg, message, payLoad)
 data ERSSApiResponse a = ERSSApiResponse
   { resultCode :: Text,
     resultString :: Maybe Text,
@@ -161,7 +131,6 @@ instance (ToJSON a) => ToJSON (ERSSApiResponse a)
 instance (ToSchema a) => ToSchema (ERSSApiResponse a)
 
 -- | Payload for Initial SOS success response
--- Contains: signalId (reference ID at ERSS), status (STARTED), remarks
 data ERSSSOSPayload = ERSSSOSPayload
   { signalId :: Int,
     status :: Text,
@@ -176,7 +145,6 @@ instance ToJSON ERSSSOSPayload
 instance ToSchema ERSSSOSPayload
 
 -- | Payload for SOS Trace success response
--- Contains: signalId, status (SOS_PROCESSED/SOS_CLOSED), statusUpdateTime, remarks
 data ERSSTracePayload = ERSSTracePayload
   { signalId :: Int,
     status :: Text,
@@ -194,47 +162,42 @@ instance ToSchema ERSSTracePayload
 -- | Type alias: Initial SOS Response from C-DAC
 type ERSSInitialSOSRes = ERSSApiResponse ERSSSOSPayload
 
--- | SOS Trace Request for location updates
-data ERSSTraceReq = ERSSTraceReq
-  { -- | ID from Initial SOS response
-    trackingId :: Text,
-    -- | "YYYY-MM-DD HH:MM:SS"
-    dateTime :: Text,
-    latitude :: Double,
-    longitude :: Double,
-    speed :: Maybe Double,
-    gpsAccuracy :: Maybe Double,
-    authId :: Text,
-    authCode :: Text
+-- | SOS Trace Request for location updates (PACKET field)
+newtype ERSSTraceReq = ERSSTraceReq
+  { packet :: Text
   }
   deriving (Show, Eq, Generic)
 
-instance ToJSON ERSSTraceReq
+instance ToJSON ERSSTraceReq where
+  toJSON (ERSSTraceReq pkt) = object ["PACKET" .= pkt]
 
-instance FromJSON ERSSTraceReq
+instance FromJSON ERSSTraceReq where
+  parseJSON = withObject "ERSSTraceReq" $ \o ->
+    ERSSTraceReq <$> o .: "PACKET"
 
 instance ToSchema ERSSTraceReq
 
 -- | Type alias: SOS Trace Response from C-DAC
 type ERSSTraceRes = ERSSApiResponse ERSSTracePayload
 
--- | Status Update Request
+-- | Inbound Status Update from C-DAC (Section 7)
 data ERSSStatusUpdateReq = ERSSStatusUpdateReq
-  { trackingId :: Text,
-    -- | Status to update
-    status :: Text,
-    authId :: Text,
-    authCode :: Text
+  { idSource :: Maybe Text,
+    idErss :: Maybe Text,
+    currentStatus :: Text,
+    statusDesc :: Maybe Text,
+    comments :: Maybe Text,
+    lastUpdatedTime :: Maybe Int
   }
   deriving (Show, Eq, Generic)
 
-instance ToJSON ERSSStatusUpdateReq
-
 instance FromJSON ERSSStatusUpdateReq
+
+instance ToJSON ERSSStatusUpdateReq
 
 instance ToSchema ERSSStatusUpdateReq
 
--- | Type alias: Status Update Response from C-DAC
+-- | Type alias: Status Update Response (acknowledgment we send back to C-DAC)
 type ERSSStatusUpdateRes = ERSSApiResponse Value
 
 -- | Type alias: Media Upload Response from C-DAC
@@ -245,12 +208,9 @@ type ERSSMediaUploadRes = ERSSApiResponse Value
 -- { "resultCode": "OPERATION_FAILURE", "resultString": null,
 --   "errorMsg": "<description>", "payLoad": null }
 data ERSSError
-  = -- | API returned OPERATION_FAILURE with errorMsg
-    ERSSOperationFailure Text
-  | -- | Authentication/authorization errors (Keycloak or API-level)
-    ERSSAuthError Text
-  | -- | Fallback for unparseable or unexpected errors
-    ERSSUnknownError Text
+  = ERSSOperationFailure Text
+  | ERSSAuthError Text
+  | ERSSUnknownError Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''ERSSError
@@ -274,8 +234,6 @@ instance IsHTTPError ERSSError where
 
 instance IsAPIError ERSSError
 
--- | Parse error from HTTP failure responses.
--- Handles both C-DAC ERSS envelope format and Keycloak OAuth error format.
 instance FromResponse ERSSError where
   fromResponse resp = do
     let body = responseBody resp
@@ -283,16 +241,10 @@ instance FromResponse ERSSError where
       Just err -> Just err
       Nothing -> Just $ ERSSUnknownError "Failed to parse ERSS error response"
 
--- | Parse from C-DAC ERSS API error envelope:
---   { "resultCode": "OPERATION_FAILURE", "errorMsg": "Unauthorized Access", ... }
--- Also handles Keycloak OAuth errors:
---   { "error": "unauthorized_client", "error_description": "Invalid client secret" }
 instance FromJSON ERSSError where
   parseJSON = withObject "ERSSError" $ \o -> do
-    -- Try C-DAC ERSS API error format
     mResultCode <- o .:? "resultCode"
     mErrorMsg <- o .:? "errorMsg"
-    -- Try Keycloak OAuth error format
     mKeycloakErr <- o .:? "error"
     mKeycloakDesc <- o .:? "error_description"
     case (mResultCode :: Maybe Text) of
@@ -318,11 +270,10 @@ instance ToJSON ERSSError where
         ERSSAuthError msg -> msg
         ERSSUnknownError msg -> msg
 
--- | Check if an ERSS API response indicates success
 isERSSSuccess :: ERSSApiResponse a -> Bool
 isERSSSuccess res = res.resultCode == "OPERATION_SUCCESS"
 
--- | Bearer token wrapper for Authorization header
+-- | Bearer token for Authorization header
 newtype ERSSAuthToken = ERSSAuthToken Text
   deriving (Show, Eq, Generic)
 
