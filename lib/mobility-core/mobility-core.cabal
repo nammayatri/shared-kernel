@@ -519,6 +519,8 @@ library
       Kernel.Utils.Validation
       Kernel.Utils.Version
       Kernel.Utils.XML
+      Kernel.Webhook.Flow
+      Kernel.Webhook.Types
       Kernel.External.MultiModal.OpenTripPlanner.Types
   other-modules:
       Paths_mobility_core
