@@ -149,45 +149,81 @@ withNonCriticalRedis ::
 withNonCriticalRedis f = do
   local (\env -> env{hedisEnv = env.hedisNonCriticalEnv, hedisClusterEnv = env.hedisNonCriticalClusterEnv}) f
 
--- Run the action on both primary and secondary Redis clusters (if secondary exists)
--- If isWriteOperation is True: writes to both primary and secondary (returns primary result)
--- If isWriteOperation is False: reads from primary first, falls back to secondary if primary returns Nothing
--- Returns the result from primary Redis; secondary Redis failures are logged but don't affect the result
-runInMultiCloudRedis ::
-  (HedisFlow m env, TryException m) => Bool -> m (Maybe a) -> m (Maybe a)
-runInMultiCloudRedis isWriteOperation action = do
+-- Read operation: reads from primary first, falls back to secondary if primary returns Nothing
+-- NOTE: This function only works for queries returning Maybe a, as it uses Nothing to detect "not found".
+-- For list queries, use runInMultiCloudRedisForList instead.
+-- For write operations, use runInMultiCloudRedisWrite instead.
+-- Usage: runInMultiCloudRedisMaybeResult $ get key
+runInMultiCloudRedisMaybeResult ::
+  (HedisFlow m env, TryException m) => m (Maybe a) -> m (Maybe a)
+runInMultiCloudRedisMaybeResult action = do
   mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
   case mbSecondaryEnv of
     Nothing -> action
-    Just secondaryEnv
-      | isWriteOperation -> do
-        -- Write operation: write to both primary and secondary
-        primaryResult <- action
-        -- Run on secondary Redis, but don't fail if it errors - just log
-        secondaryResult <-
-          withTryCatch "runInMultiCloudRedis" $
-            local (\env -> env{hedisClusterEnv = secondaryEnv}) action
-        case secondaryResult of
-          Left err -> do
-            logError $ "SECONDARY_CLUSTER:WRITE_FAILED " <> show err
-            pure primaryResult
-          Right _ -> pure primaryResult
-      | otherwise -> do
-        -- Read operation: try primary first, fallback to secondary if Nothing
-        primaryResult <- action
-        case primaryResult of
-          Just _ -> pure primaryResult -- Primary has result, return immediately
-          Nothing -> do
-            logError $ "SECONDARY_CLUSTER: Primary returned Nothing, trying secondary"
-            -- Primary returned Nothing, try secondary
-            secondaryResult <-
-              withTryCatch "runInMultiCloudRedis" $
-                local (\env -> env{hedisClusterEnv = secondaryEnv}) action
-            case secondaryResult of
-              Left err -> do
-                logError $ "SECONDARY_CLUSTER: Secondary read failed " <> show err
-                pure Nothing
-              Right result -> pure result
+    Just secondaryEnv -> do
+      -- Read operation: try primary first, fallback to secondary if Nothing
+      primaryResult <- action
+      case primaryResult of
+        Just _ -> pure primaryResult -- Primary has result, return immediately
+        Nothing -> do
+          logError $ "SECONDARY_CLUSTER: Primary returned Nothing, trying secondary"
+          -- Primary returned Nothing, try secondary
+          secondaryResult <-
+            withTryCatch "runInMultiCloudRedisMaybeResult" $
+              local (\env -> env{hedisClusterEnv = secondaryEnv}) action
+          case secondaryResult of
+            Left err -> do
+              logError $ "SECONDARY_CLUSTER: Secondary read failed " <> show err
+              pure Nothing
+            Right result -> pure result
+
+-- Generic write wrapper: writes to both primary and secondary Redis clusters
+-- Works for any return type - useful for write operations like geoAdd, incr, etc.
+-- Usage: runInMultiCloudRedisWrite $ geoAdd key geoInfo
+runInMultiCloudRedisWrite ::
+  (HedisFlow m env, TryException m) => m a -> m a
+runInMultiCloudRedisWrite action = do
+  mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
+  case mbSecondaryEnv of
+    Nothing -> action
+    Just secondaryEnv -> do
+      -- Write operation: write to both primary and secondary
+      primaryResult <- action
+      -- Run on secondary Redis, but don't fail if it errors - just log
+      secondaryResult <-
+        withTryCatch "runInMultiCloudRedisWrite" $
+          local (\env -> env{hedisClusterEnv = secondaryEnv}) action
+      case secondaryResult of
+        Left err -> do
+          logError $ "SECONDARY_CLUSTER:WRITE_FAILED " <> show err
+          pure primaryResult
+        Right _ -> pure primaryResult
+
+-- Read operation for list queries: if primary returns empty list [], fallback to secondary
+-- NOTE: Treats empty list as "not found" - this is intentional for migration purposes.
+-- For write operations on lists, use runInMultiCloudRedisWrite instead.
+-- Usage: runInMultiCloudRedisForList $ getList key
+runInMultiCloudRedisForList ::
+  (HedisFlow m env, TryException m) => m [a] -> m [a]
+runInMultiCloudRedisForList action = do
+  mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
+  case mbSecondaryEnv of
+    Nothing -> action
+    Just secondaryEnv -> do
+      -- Read operation: try primary first, fallback to secondary if empty
+      primaryResult <- action
+      case primaryResult of
+        [] -> do
+          logInfo "SECONDARY_CLUSTER: Primary returned empty list, trying secondary"
+          secondaryResult <-
+            withTryCatch "runInMultiCloudRedisForList" $
+              local (\env -> env{hedisClusterEnv = secondaryEnv}) action
+          case secondaryResult of
+            Left err -> do
+              logError $ "SECONDARY_CLUSTER:READ_FAILED " <> show err
+              pure []
+            Right result -> pure result
+        _ -> pure primaryResult
 
 runInMasterCloudRedisCell ::
   (HedisFlow m env, TryException m) => m f -> m f
