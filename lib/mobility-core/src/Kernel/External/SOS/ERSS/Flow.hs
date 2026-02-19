@@ -123,7 +123,6 @@ updateSOSStatus config req = do
   logDebug $ "ERSS Status Update response: " <> show res
   validateERSSResponse "Status Update" res
 
--- | Call ERSS API with error handling (following MMI pattern)
 callERSSAPI :: CallAPI m r api a
 callERSSAPI =
   callApiUnwrappingApiError

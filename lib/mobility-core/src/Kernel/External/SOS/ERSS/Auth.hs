@@ -47,7 +47,6 @@ redisERSSKey :: Text
 redisERSSKey = "Core:erss_token"
 
 -- | Get valid ERSS token (check cache, validate, refresh if needed)
--- Follows the same pattern as MMI and FCM auth
 getERSSToken ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -84,7 +83,6 @@ getNewPasswordToken ::
   ERSSCfg ->
   m ERSSToken
 getNewPasswordToken config = do
-  -- Decrypt credentials
   clientSecretDecrypted <- decrypt config.clientSecret
   usernameDecrypted <- decrypt config.username
   passwordDecrypted <- decrypt config.password
@@ -131,7 +129,6 @@ refreshAccessToken ::
   ERSSToken ->
   m ERSSToken
 refreshAccessToken config oldToken = do
-  -- Decrypt client secret
   clientSecretDecrypted <- decrypt config.clientSecret
 
   let req =

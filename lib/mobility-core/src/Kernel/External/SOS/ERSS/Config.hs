@@ -19,21 +19,13 @@ import Kernel.Prelude
 
 -- | Configuration for C-DAC ERSS (Emergency Response Support System)
 data ERSSCfg = ERSSCfg
-  { -- | ERSS base URL for both auth and API (e.g., https://lbn.erss.in)
-    baseUrl :: BaseUrl,
-    -- | OAuth client ID
+  { baseUrl :: BaseUrl,
     clientId :: Text,
-    -- | OAuth client secret (encrypted)
     clientSecret :: EncryptedField 'AsEncrypted Text,
-    -- | ERSS username (encrypted)
     username :: EncryptedField 'AsEncrypted Text,
-    -- | ERSS password (encrypted)
     password :: EncryptedField 'AsEncrypted Text,
-    -- | Source identifier for ERSS
     authId :: Text,
-    -- | Source verification code
     authCode :: Text,
-    -- | Redis key prefix for token caching
     tokenKeyPrefix :: Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

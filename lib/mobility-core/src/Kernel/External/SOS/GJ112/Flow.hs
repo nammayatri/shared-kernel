@@ -16,6 +16,7 @@
 
 module Kernel.External.SOS.GJ112.Flow
   ( sendSOS,
+    validateGJ112Response,
   )
 where
 
@@ -30,6 +31,21 @@ import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Utils.Common
+
+-- | Validate GJ112 API response.
+-- GJ112 may return HTTP 200 with non-200 responseCode in the body.
+-- This function checks the responseCode and throws an appropriate GJ112Error
+-- if the operation was not successful.
+validateGJ112Response ::
+  (MonadFlow m) =>
+  GJ112SOSRes ->
+  m GJ112SOSRes
+validateGJ112Response res
+  | isGJ112Success res = pure res
+  | otherwise = do
+    let errMsg = fromMaybe "Unknown error" res.message
+    logDebug $ "GJ112 validation error: " <> errMsg
+    throwM $ GJ112OperationFailure errMsg
 
 -- | Send SOS Event to GJ112
 sendSOS ::
@@ -46,11 +62,14 @@ sendSOS ::
 sendSOS config req = do
   gj112Token <- getGJ112Token config
   let authToken = GJ112AuthToken gj112Token.token
-  callGJ112API
-    config.apiUrl
-    (ET.client gj112SOSAPI (Just authToken) req)
-    "GJ112 SOS Event"
-    gj112SOSAPI
+  res <-
+    callGJ112API
+      config.baseUrl
+      (ET.client gj112SOSAPI (Just authToken) req)
+      "GJ112 SOS Event"
+      gj112SOSAPI
+  logDebug $ "GJ112 SOS response: " <> show res
+  validateGJ112Response res
 
 -- | Call GJ112 API with error handling (following ERSS/MMI pattern)
 callGJ112API :: CallAPI m r api a

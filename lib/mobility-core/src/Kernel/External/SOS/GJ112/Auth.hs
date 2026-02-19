@@ -39,14 +39,11 @@ import Kernel.Utils.Common
 
 -- | Cached token with expiry timestamp
 data GJ112Token = GJ112Token
-  { -- | Full token string (includes "Bearer")
-    token :: Text,
-    -- | Token expiry as UTCTime
+  { token :: Text,
     expiresAtUTC :: UTCTime
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
--- | Redis key for GJ112 token caching
 redisGJ112Key :: Text
 redisGJ112Key = "Core:gj112_token"
 
@@ -86,11 +83,9 @@ getNewToken ::
   GJ112Cfg ->
   m GJ112Token
 getNewToken config = do
-  -- Decrypt credentials
   userNameDecrypted <- decrypt config.userName
   passwordDecrypted <- decrypt config.password
 
-  -- Base64 encode the credentials
   let userNameB64 = TE.decodeUtf8 $ B64.encode $ TE.encodeUtf8 userNameDecrypted
       passwordB64 = TE.decodeUtf8 $ B64.encode $ TE.encodeUtf8 passwordDecrypted
 
@@ -100,16 +95,13 @@ getNewToken config = do
             password = passwordB64
           }
 
-  -- Call auth endpoint
   res <-
     callGJ112AuthAPI
-      config.apiUrl
+      config.baseUrl
       (ET.client gj112AuthAPI req)
       "GJ112 Auth"
       gj112AuthAPI
 
-  -- Calculate expiry: tokenCreationTime (epoch ms) + expiresAt (seconds) * 1000
-  -- Convert to UTCTime with 60s buffer
   let expiryEpochMs = res.tokenCreationTime + (fromIntegral res.expiresAt * 1000)
       expiryUTC = POSIX.posixSecondsToUTCTime (fromIntegral expiryEpochMs / 1000)
   now <- liftIO Time.getCurrentTime
@@ -121,13 +113,11 @@ getNewToken config = do
             expiresAtUTC = bufferedExpiry
           }
 
-  -- Cache in Redis
   let redisKey = config.tokenKeyPrefix <> ":" <> redisGJ112Key
   Redis.set redisKey gj112Token
 
   pure gj112Token
 
--- | Call GJ112 Auth API with error handling
 callGJ112AuthAPI :: CallAPI m r api a
 callGJ112AuthAPI =
   callApiUnwrappingApiError

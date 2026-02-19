@@ -19,6 +19,7 @@ module Kernel.External.SOS.Interface.GJ112
   )
 where
 
+import qualified Data.Text as T
 import Kernel.External.Encryption
 import Kernel.External.SOS.GJ112.Config
 import qualified Kernel.External.SOS.GJ112.Flow as GJ112Flow
@@ -101,9 +102,9 @@ toGJ112SOSReq config Interface.InitialSOSReq {..} =
       relativeName2 = emergencyContact2Name,
       relativeContact1 = emergencyContact1Phone,
       relativeContact2 = emergencyContact2Phone,
-      gender = gender,
+      gender = T.toLower <$> gender,
       simNo = Just mobileNo,
-      datetime = dateTime,
+      datetime = toGJ112DateTime dateTime,
       emergencyMessage = fromMaybe "SOS Emergency" emergencyMessage,
       latitude = show latitude,
       longitude = show longitude,
@@ -130,3 +131,7 @@ fromGJ112SOSRes res =
       trackingId = show <$> res.referenceId,
       errorMessage = if maybe False (== 200) res.responseCode then Nothing else res.message
     }
+
+-- | Convert "YYYY-MM-DD HH:MM:SS" to GJ112's ISO 8601 format "YYYY-MM-DDTHH:MM:SS+05:30"
+toGJ112DateTime :: Text -> Text
+toGJ112DateTime dt = T.replace " " "T" dt <> "+05:30"

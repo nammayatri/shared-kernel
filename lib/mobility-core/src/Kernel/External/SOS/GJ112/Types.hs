@@ -14,6 +14,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -42,16 +43,11 @@ instance FromJSON GJ112AuthReq
 
 -- | Authentication response from GJ112
 data GJ112AuthRes = GJ112AuthRes
-  { -- | Full token string (already includes "Bearer")
-    token :: Text,
-    -- | Token creation time in milliseconds since epoch
+  { token :: Text,
     tokenCreationTime :: Integer,
-    -- | Token TTL in seconds
     expiresAt :: Int,
-    -- | Role of authenticated identity
-    employeeRole :: Text,
-    -- | Name/label of authenticated identity
-    employeeName :: Text
+    employeeRole :: Maybe Text,
+    employeeName :: Maybe Text
   }
   deriving (Show, Eq, Generic)
 
@@ -59,69 +55,37 @@ instance FromJSON GJ112AuthRes
 
 instance ToJSON GJ112AuthRes
 
--- | SOS Event Creation Request matching GJ112 API spec
 data GJ112SOSReq = GJ112SOSReq
-  { -- | Unique client identifier (required)
-    clientId :: Text,
-    -- | Client short code/label (required)
+  { clientId :: Text,
     clientCode :: Text,
-    -- | User's name at event time (required)
     name :: Text,
-    -- | City of event/user (required)
     city :: Text,
-    -- | Address or area text
     address :: Maybe Text,
-    -- | Device unique identifier
     deviceUuid :: Maybe Text,
-    -- | Email for notifications/case updates
     email :: Maybe Text,
-    -- | Primary emergency contact name
     relativeName1 :: Maybe Text,
-    -- | Secondary emergency contact name
     relativeName2 :: Maybe Text,
-    -- | Primary emergency contact phone
     relativeContact1 :: Maybe Text,
-    -- | Secondary emergency contact phone
     relativeContact2 :: Maybe Text,
-    -- | Gender label (MALE/FEMALE/OTHER)
     gender :: Maybe Text,
-    -- | SIM/MSISDN associated with device
     simNo :: Maybe Text,
-    -- | Event timestamp (required)
     datetime :: Text,
-    -- | Context for SOS trigger (required)
     emergencyMessage :: Text,
-    -- | User latitude (required)
     latitude :: Text,
-    -- | User longitude (required)
     longitude :: Text,
-    -- | Video/telemetry tracking URL
     videoPath :: Maybe Text,
-    -- | Driver name (ride-hailing context)
     driverName :: Maybe Text,
-    -- | Driver phone
     driverContactNo :: Maybe Text,
-    -- | Vehicle registration/license plate
     vehicleNo :: Maybe Text,
-    -- | Vehicle model
     vehicleModel :: Maybe Text,
-    -- | Vehicle latitude
     vehLat :: Maybe Text,
-    -- | Vehicle longitude
     vehLng :: Maybe Text,
-    -- | Device type enum (client-defined)
     deviceType :: Maybe Int,
-    -- | Vehicle location tracking URL
     vehLocUrl :: Maybe Text,
-    -- | Provider/platform/vendor name
     vendorName :: Maybe Text,
-    -- | Vehicle exterior color
     vehicleColor :: Maybe Text,
-    -- | Vehicle category/type
     vehicleType :: Maybe Text,
-    -- | Manufacturer/brand
     vehicleMake :: Maybe Text,
-    -- | Distinctive visual markers
     vehicleAppearanceNotes :: Maybe Text
   }
   deriving (Show, Eq, Generic)
@@ -132,15 +96,10 @@ instance FromJSON GJ112SOSReq
 
 instance ToSchema GJ112SOSReq
 
--- | SOS Event Creation Response
 data GJ112SOSRes = GJ112SOSRes
-  { -- | Response message
-    message :: Maybe Text,
-    -- | HTTP-like response code
+  { message :: Maybe Text,
     responseCode :: Maybe Int,
-    -- | Reference ID for the SOS event
     referenceId :: Maybe Integer,
-    -- | Action taken (e.g. "Dispatch notified")
     action :: Maybe Text
   }
   deriving (Show, Eq, Generic)
@@ -151,37 +110,69 @@ instance ToJSON GJ112SOSRes
 
 instance ToSchema GJ112SOSRes
 
--- | GJ112 API Error
-newtype GJ112Error = GJ112Error Text
+-- | GJ112 API Error types.
+data GJ112Error
+  = GJ112OperationFailure Text
+  | GJ112AuthError Text
+  | GJ112UnknownError Text
   deriving (Eq, Show, IsBecknAPIError)
 
 instanceExceptionWithParent 'HTTPException ''GJ112Error
 
 instance IsBaseError GJ112Error where
-  toMessage (GJ112Error msg) = Just $ "GJ112 Error: " <> msg
+  toMessage = \case
+    GJ112OperationFailure msg -> Just $ "GJ112 Operation Failed: " <> msg
+    GJ112AuthError msg -> Just $ "GJ112 Auth Error: " <> msg
+    GJ112UnknownError msg -> Just $ "GJ112 Error: " <> msg
 
 instance IsHTTPError GJ112Error where
-  toErrorCode (GJ112Error _) = "GJ112_ERROR"
-  toHttpCode (GJ112Error _) = E500
+  toErrorCode = \case
+    GJ112OperationFailure _ -> "GJ112_OPERATION_FAILURE"
+    GJ112AuthError _ -> "GJ112_AUTH_ERROR"
+    GJ112UnknownError _ -> "GJ112_UNKNOWN_ERROR"
+
+  toHttpCode = \case
+    GJ112OperationFailure _ -> E500
+    GJ112AuthError _ -> E401
+    GJ112UnknownError _ -> E500
 
 instance IsAPIError GJ112Error
 
 instance FromResponse GJ112Error where
-  fromResponse resp =
-    case decode (responseBody resp) of
+  fromResponse resp = do
+    let body = responseBody resp
+    case decode body of
       Just err -> Just err
-      Nothing -> Just $ GJ112Error "Unknown GJ112 API error"
+      Nothing -> Just $ GJ112UnknownError "Failed to parse GJ112 error response"
 
 instance FromJSON GJ112Error where
   parseJSON = withObject "GJ112Error" $ \o -> do
-    errMsg <- o .:? "message" .!= "Unknown error"
-    pure $ GJ112Error errMsg
+    mResponseCode <- o .:? "responseCode"
+    mMessage <- o .:? "message"
+    mError <- o .:? "error"
+    case (mResponseCode :: Maybe Int) of
+      Just code
+        | code /= 200 ->
+          pure $ GJ112OperationFailure (fromMaybe ("Error code: " <> show code) mMessage)
+      _ -> case (mError :: Maybe Text) of
+        Just err ->
+          pure $ GJ112AuthError (err <> maybe "" (": " <>) mMessage)
+        Nothing ->
+          pure $ GJ112UnknownError (fromMaybe "Unknown error" mMessage)
 
 instance ToJSON GJ112Error where
-  toJSON (GJ112Error msg) = object ["message" .= msg]
+  toJSON err =
+    object ["message" .= toErrMsg err]
+    where
+      toErrMsg = \case
+        GJ112OperationFailure msg -> msg
+        GJ112AuthError msg -> msg
+        GJ112UnknownError msg -> msg
+
+isGJ112Success :: GJ112SOSRes -> Bool
+isGJ112Success res = maybe False (== 200) res.responseCode
 
 -- | Auth token wrapper for Authorization header
--- Note: GJ112 token already includes "Bearer " prefix
 newtype GJ112AuthToken = GJ112AuthToken Text
   deriving (Show, Eq, Generic)
 

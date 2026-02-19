@@ -38,7 +38,6 @@ type GJ112SOSAPI =
     :> ReqBody '[JSON] GJ112SOSReq
     :> Post '[JSON] GJ112SOSRes
 
--- Proxy types for Servant client
 gj112AuthAPI :: Proxy GJ112AuthAPI
 gj112AuthAPI = Proxy
 

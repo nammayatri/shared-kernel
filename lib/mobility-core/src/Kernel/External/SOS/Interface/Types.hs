@@ -34,7 +34,7 @@ import qualified Kernel.External.SOS.ERSS.Config as ERSSConfig
 import qualified Kernel.External.SOS.GJ112.Config as GJ112Config
 import Kernel.Prelude
 
--- | Handler pattern for SOS services (like SMS handler)
+-- | Handler pattern for SOS services
 data SOSHandler m = SOSHandler
   { getProviderConfig :: m SOSServiceConfig
   }
@@ -47,86 +47,44 @@ data SOSServiceConfig
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SOSServiceConfig
 
 -- | Unified Initial SOS Request (common across all providers)
--- Each provider's adapter picks the fields it needs; unused fields are ignored.
 data InitialSOSReq = InitialSOSReq
-  { -- | Optional source-generated ID
-    sosId :: Maybe Text,
-    -- | "YYYY-MM-DD HH:MM:SS"
+  { sosId :: Maybe Text,
     dateTime :: Text,
-    -- | User's current latitude
     latitude :: Double,
-    -- | User's current longitude
     longitude :: Double,
-    -- | Speed if available
     speed :: Maybe Double,
-    -- | User's mobile number (mandatory)
     mobileNo :: Text,
-    -- | Device IMEI
     imeiNo :: Maybe Text,
-    -- | GPS provider name
     gpsProvider :: Maybe Text,
-    -- | User's name
     senderName :: Maybe Text,
-    -- | User's address
     address :: Maybe Text,
-    -- | GPS accuracy in meters
     gpsAccuracy :: Maybe Double,
-    -- | State code
     stateCode :: Maybe Text,
-    -- | Can operator call user?
     silentCommunication :: Maybe Bool,
-    -- | Special assistance requirements
     specialNeeds :: Maybe Text,
-    -- | Date of birth "YYYY-MM-DD"
     dob :: Maybe Text,
-    -- | "MALE"/"FEMALE"/"OTHERS"
     gender :: Maybe Text,
-    -- | Media file name or URL (ERSS)
-    -- Ride context fields (used by GJ112 and similar providers)
     attachmentFileName :: Maybe Text,
-    -- | Driver name
     driverName :: Maybe Text,
-    -- | Driver phone number
     driverContactNo :: Maybe Text,
-    -- | Vehicle registration/license plate
     vehicleNo :: Maybe Text,
-    -- | Vehicle model
     vehicleModel :: Maybe Text,
-    -- | Vehicle exterior color
     vehicleColor :: Maybe Text,
-    -- | Vehicle category/type
     vehicleType :: Maybe Text,
-    -- | Manufacturer/brand
     vehicleMake :: Maybe Text,
-    -- | Distinctive visual markers
     vehicleAppearanceNotes :: Maybe Text,
-    -- | Vehicle latitude
     vehicleLat :: Maybe Double,
-    -- | Vehicle longitude
     vehicleLon :: Maybe Double,
-    -- | Vehicle location tracking URL
     vehicleLocationUrl :: Maybe Text,
-    -- | Video/telemetry tracking URL
-    -- Emergency contact fields
     videoPath :: Maybe Text,
-    -- | Primary emergency contact name
     emergencyContact1Name :: Maybe Text,
-    -- | Primary emergency contact phone
     emergencyContact1Phone :: Maybe Text,
-    -- | Secondary emergency contact name
     emergencyContact2Name :: Maybe Text,
-    -- | Secondary emergency contact phone
-    -- Additional context
     emergencyContact2Phone :: Maybe Text,
-    -- | City of event/user
     city :: Maybe Text,
-    -- | Context for SOS trigger
     emergencyMessage :: Maybe Text,
-    -- | User email
     email :: Maybe Text,
-    -- | Provider/platform/vendor name
     vendorName :: Maybe Text,
-    -- | Device type enum (client-defined)
     deviceType :: Maybe Int
   }
   deriving (Show, Eq, Generic)
@@ -140,7 +98,6 @@ instance ToSchema InitialSOSReq
 -- | Unified Initial SOS Response
 data InitialSOSRes = InitialSOSRes
   { success :: Bool,
-    -- | Tracking ID for subsequent calls
     trackingId :: Maybe Text,
     errorMessage :: Maybe Text
   }
@@ -154,9 +111,7 @@ instance ToSchema InitialSOSRes
 
 -- | Unified SOS Trace Request (location updates)
 data SOSTraceReq = SOSTraceReq
-  { -- | From Initial SOS response
-    trackingId :: Text,
-    -- | "YYYY-MM-DD HH:MM:SS"
+  { trackingId :: Text,
     dateTime :: Text,
     latitude :: Double,
     longitude :: Double,

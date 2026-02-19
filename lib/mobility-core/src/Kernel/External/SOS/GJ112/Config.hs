@@ -19,17 +19,11 @@ import Kernel.Prelude
 
 -- | Configuration for Gujarat 112 SOS (GJ112)
 data GJ112Cfg = GJ112Cfg
-  { -- | GJ112 API base URL
-    apiUrl :: BaseUrl,
-    -- | Username (encrypted, Base64-encoded on use)
+  { baseUrl :: BaseUrl,
     userName :: EncryptedField 'AsEncrypted Text,
-    -- | Password (encrypted, Base64-encoded on use)
     password :: EncryptedField 'AsEncrypted Text,
-    -- | Unique client identifier for SOS requests
     clientId :: Text,
-    -- | Client short code/label for SOS requests
     clientCode :: Text,
-    -- | Redis key prefix for token caching
     tokenKeyPrefix :: Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
