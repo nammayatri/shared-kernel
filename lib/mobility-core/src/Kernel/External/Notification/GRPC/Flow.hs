@@ -34,7 +34,7 @@ notifyPerson ::
   GRPCConfig ->
   GrpcNotificationData a ->
   m ()
-notifyPerson cfg notificationData = do
+notifyPerson cfg notificationData = Hedis.runInMasterCloudRedisCell $ do
   now <- getCurrentTime
   maxShards <- asks (.maxNotificationShards)
   let idToShardNumber uuidTxt = fromIntegral ((\(a, b) -> a + b) (UU.toWords64 uuidTxt)) `mod` (fromIntegral maxShards :: Integer)
