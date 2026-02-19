@@ -33,6 +33,8 @@ data ERSSCfg = ERSSCfg
     authId :: Text,
     -- | Source verification code
     authCode :: Text,
+    -- | State code assigned by C-DAC (e.g. "07" for Delhi)
+    stateCode :: Maybe Text,
     -- | Redis key prefix for token caching
     tokenKeyPrefix :: Text
   }
