@@ -149,6 +149,16 @@ withNonCriticalRedis ::
 withNonCriticalRedis f = do
   local (\env -> env{hedisEnv = env.hedisNonCriticalEnv, hedisClusterEnv = env.hedisNonCriticalClusterEnv}) f
 
+-- Helper function to set all Redis environment fields to the same value
+-- Requires HasField constraints (provided by HedisFlowEnv)
+withSecondaryRedisEnv ::
+  (HedisFlowEnv env) =>
+  HedisEnv ->
+  env ->
+  env
+withSecondaryRedisEnv secondaryEnv env =
+  env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv, hedisNonCriticalEnv = secondaryEnv, hedisNonCriticalClusterEnv = secondaryEnv}
+
 -- Read operation: reads from primary first, falls back to secondary if primary returns Nothing
 -- NOTE: This function only works for queries returning Maybe a, as it uses Nothing to detect "not found".
 -- For list queries, use runInMultiCloudRedisForList instead.
@@ -170,7 +180,7 @@ runInMultiCloudRedisMaybeResult action = do
           -- Primary returned Nothing, try secondary
           secondaryResult <-
             withTryCatch "runInMultiCloudRedisMaybeResult" $
-              local (\env -> env{hedisClusterEnv = secondaryEnv}) action
+              local (withSecondaryRedisEnv secondaryEnv) action
           case secondaryResult of
             Left err -> do
               logError $ "SECONDARY_CLUSTER: Secondary read failed " <> show err
@@ -192,7 +202,7 @@ runInMultiCloudRedisWrite action = do
       -- Run on secondary Redis, but don't fail if it errors - just log
       secondaryResult <-
         withTryCatch "runInMultiCloudRedisWrite" $
-          local (\env -> env{hedisClusterEnv = secondaryEnv}) action
+          local (withSecondaryRedisEnv secondaryEnv) action
       case secondaryResult of
         Left err -> do
           logError $ "SECONDARY_CLUSTER:WRITE_FAILED " <> show err
@@ -217,7 +227,7 @@ runInMultiCloudRedisForList action = do
           logInfo "SECONDARY_CLUSTER: Primary returned empty list, trying secondary"
           secondaryResult <-
             withTryCatch "runInMultiCloudRedisForList" $
-              local (\env -> env{hedisClusterEnv = secondaryEnv}) action
+              local (withSecondaryRedisEnv secondaryEnv) action
           case secondaryResult of
             Left err -> do
               logError $ "SECONDARY_CLUSTER:READ_FAILED " <> show err
@@ -234,7 +244,8 @@ runInMasterCloudRedisCell f = do
       mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
       case mbSecondaryEnv of
         Nothing -> do logError "MASTER_CLOUD_REDIS_CELL: No secondary environment found using primary"; f
-        Just secondaryEnv -> local (\env -> env{hedisClusterEnv = secondaryEnv}) f
+        Just secondaryEnv ->
+          local (withSecondaryRedisEnv secondaryEnv) f
     else f
 
 buildKey :: (HedisFlow m env, TryException m) => Text -> m BS.ByteString
