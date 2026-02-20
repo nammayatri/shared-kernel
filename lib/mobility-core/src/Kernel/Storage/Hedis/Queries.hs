@@ -1151,3 +1151,31 @@ setTtlIfNone key secs = do
   current <- ttl key
   when (current < 0) $
     expire key secs
+
+sAdd ::
+  (ToJSON a, HedisFlow m env, TryException m) =>
+  Text ->
+  [a] ->
+  m ()
+sAdd key members = withLogTag "Redis" $ do
+  let encoded = map (BSL.toStrict . Ae.encode) members
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    standaloneRes <-
+      withTimeRedis "RedisStandalone" "sAdd" $
+        withTryCatch "sAdd" $
+          runWithPrefix' key $ \prefKey ->
+            Hedis.sadd prefKey encoded
+    whenLeft standaloneRes $
+      \err ->
+        withLogTag "STANDALONE" $
+          logTagInfo "FAILED_TO_SADD" (show err)
+  clusterRes <-
+    withTimeRedis "RedisCluster" "sAdd" $
+      withTryCatch "sAdd" $
+        runWithPrefix key $ \prefKey ->
+          Hedis.sadd prefKey encoded
+  whenLeft clusterRes $
+    \err ->
+      withLogTag "CLUSTER" $
+        logTagInfo "FAILED_TO_SADD" (show err)
