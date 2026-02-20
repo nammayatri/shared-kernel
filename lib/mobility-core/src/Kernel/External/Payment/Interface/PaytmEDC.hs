@@ -68,7 +68,7 @@ createOrder cfg _mRoutingId req = do
           [ ("paytmMid", paytmMid),
             ("transactionDateTime", timestamp),
             ("merchantTransactionId", PaytmEDC.removeHyphens req.orderId),
-            ("merchantReferenceNo", req.orderShortId),
+            ("merchantReferenceNo", PaytmEDC.removeHyphens req.orderShortId),
             ("transactionAmount", show amountInPaise)
           ]
             <> maybe [] (\tid -> [("paytmTid", tid)]) terminalId
