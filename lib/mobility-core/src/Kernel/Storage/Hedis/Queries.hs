@@ -1132,3 +1132,103 @@ setTtlIfNone key secs = do
   current <- ttl key
   when (current < 0) $
     expire key secs
+
+scanOpts ::
+  (HedisFlow m env, TryException m) =>
+  Text ->
+  Hedis.Cursor ->
+  Integer ->
+  m (Hedis.Cursor, [BS.ByteString])
+scanOpts pattern' cursor count' = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    standaloneRes <- withTimeRedis "RedisStandalone" "scanOpts" $
+      withTryCatch "scanOpts" $
+        runWithPrefix' pattern' $ \prefPatt ->
+          Hedis.scanOpts
+            cursor
+            ( Hedis.defaultScanOpts
+                { Hedis.scanMatch = Just prefPatt,
+                  Hedis.scanCount = Just count'
+                }
+            )
+    whenLeft standaloneRes $
+      withLogTag "STANDALONE" . logTagInfo "FAILED_TO_SCANOPTS" . show
+  res <- withTimeRedis "RedisCluster" "scanOpts" $
+    withTryCatch "scanOpts" $
+      runWithPrefix pattern' $ \prefPatt ->
+        Hedis.scanOpts
+          cursor
+          ( Hedis.defaultScanOpts
+              { Hedis.scanMatch = Just prefPatt,
+                Hedis.scanCount = Just count'
+              }
+          )
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $
+        logTagInfo "FAILED_TO_SCANOPTS" $ show err
+      pure (Hedis.cursor0, [])
+    Right items ->
+      pure items
+
+sscanOpts ::
+  (HedisFlow m env, TryException m) =>
+  Text ->
+  Hedis.Cursor ->
+  Integer ->
+  m (Hedis.Cursor, [BS.ByteString])
+sscanOpts key cursor count' = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    standaloneRes <- withTimeRedis "RedisStandalone" "sscanOpts" $
+      withTryCatch "sscanOpts" $
+        runWithPrefix' key $ \prefKey ->
+          Hedis.sscanOpts
+            prefKey
+            cursor
+            (Hedis.defaultScanOpts {Hedis.scanCount = Just count'})
+    whenLeft standaloneRes $
+      withLogTag "STANDALONE" . logTagInfo "FAILED_TO_SSCANOPTS" . show
+  res <- withTimeRedis "RedisCluster" "sscanOpts" $
+    withTryCatch "sscanOpts" $
+      runWithPrefix key $ \prefKey ->
+        Hedis.sscanOpts
+          prefKey
+          cursor
+          (Hedis.defaultScanOpts {Hedis.scanCount = Just count'})
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $
+        logTagInfo "FAILED_TO_SSCANOPTS" $ show err
+      pure (Hedis.cursor0, [])
+    Right items ->
+      pure items
+
+sAdd ::
+  (ToJSON a, HedisFlow m env, TryException m) =>
+  Text ->
+  [a] ->
+  m ()
+sAdd key members = withLogTag "Redis" $ do
+  let encoded = map (BSL.toStrict . Ae.encode) members
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    standaloneRes <-
+      withTimeRedis "RedisStandalone" "sAdd" $
+        withTryCatch "sAdd" $
+          runWithPrefix' key $ \prefKey ->
+            Hedis.sadd prefKey encoded
+    whenLeft standaloneRes $
+      \err ->
+        withLogTag "STANDALONE" $
+          logTagInfo "FAILED_TO_SADD" (show err)
+  clusterRes <-
+    withTimeRedis "RedisCluster" "sAdd" $
+      withTryCatch "sAdd" $
+        runWithPrefix key $ \prefKey ->
+          Hedis.sadd prefKey encoded
+  whenLeft clusterRes $
+    \err ->
+      withLogTag "CLUSTER" $
+        logTagInfo "FAILED_TO_SADD" (show err)
