@@ -190,6 +190,14 @@ library
       Kernel.External.Payout.Juspay.Types.Webhook
       Kernel.External.Payout.Juspay.Webhook
       Kernel.External.Payout.Types
+      Kernel.External.Plasma
+      Kernel.External.Plasma.Interface
+      Kernel.External.Plasma.Interface.Types
+      Kernel.External.Plasma.LMS.Client
+      Kernel.External.Plasma.LMS.Config
+      Kernel.External.Plasma.LMS.Flow
+      Kernel.External.Plasma.LMS.Types
+      Kernel.External.Plasma.Types
       Kernel.External.SharedLogic.DigiLocker.Error
       Kernel.External.SharedLogic.HyperVerge.Error
       Kernel.External.SharedLogic.HyperVerge.Functions
