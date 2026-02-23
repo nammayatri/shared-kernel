@@ -26,7 +26,7 @@ import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
 import EulerHS.Prelude (whenLeft)
 import GHC.Records.Extra
-import Kernel.Beam.Connection.EnvVars (getRunInMasterCloudRedisCell)
+import Kernel.Beam.Connection.EnvVars (getRunInMasterCloudRedisCell, getRunInMasterLTSRedisCell)
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Storage.Hedis.Error
@@ -246,6 +246,20 @@ runInMasterCloudRedisCell f = do
         Nothing -> do logError "MASTER_CLOUD_REDIS_CELL: No secondary environment found using primary"; f
         Just secondaryEnv ->
           local (withSecondaryRedisEnv secondaryEnv) f
+    else f
+
+runInMasterLTSRedisCell ::
+  (HedisFlow m env, TryException m, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) => m f -> m f
+runInMasterLTSRedisCell f = do
+  shouldRunInMasterLTSRedisCell <- liftIO getRunInMasterLTSRedisCell
+  if shouldRunInMasterLTSRedisCell
+    then do
+      mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
+      case mbSecondaryEnv of
+        Nothing -> do
+          logError "MASTER_LTS_REDIS_CELL: No secondary LTS environment found, using primary"
+          f
+        Just secondaryEnv -> local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) f
     else f
 
 buildKey :: (HedisFlow m env, TryException m) => Text -> m BS.ByteString
