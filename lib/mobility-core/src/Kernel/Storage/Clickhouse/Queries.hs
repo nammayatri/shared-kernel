@@ -1,14 +1,15 @@
--- support only read operation for now
 module Kernel.Storage.Clickhouse.Queries
   ( findAll,
     findOne,
     runRawQuery',
+    runExecQuery',
     findOneWithOrder,
     retryClickhouseConnection,
   )
 where
 
 import qualified Control.Concurrent.MVar as M
+import qualified Data.ByteString.Lazy.Char8 as C8
 import Data.Text as T hiding (null)
 import Data.Typeable (typeRep)
 import Database.ClickHouseDriver.HTTP
@@ -82,6 +83,37 @@ runRawQuery query db = do
 runRawQuery' :: (MonadFlow m, ClickhouseFlow m env, FromJSON a) => ClickhouseExpr -> ClickhouseDb -> m (Either String a)
 runRawQuery' (ExprStr query) db = runRawQuery query db
 runRawQuery' _ _ = throwError $ InternalError "can't call this function with unresolved clickhouseExpr"
+
+runExecQuery :: (MonadFlow m, ClickhouseFlow m env) => String -> ClickhouseDb -> m (Either String String)
+runExecQuery query db = do
+  logDebug $ "clickhouse exec query v1: " <> T.pack query
+  con <- case db of
+    APP_SERVICE_CLICKHOUSE -> do
+      conn' <- asks (.serviceClickhouseEnv)
+      conn <- liftIO $ M.readMVar $ conn'.connectionData
+      return conn.connection
+    ATLAS_KAFKA -> do
+      conn' <- asks (.kafkaClickhouseEnv)
+      conn <- liftIO $ M.readMVar $ conn'.connectionData
+      return conn.connection
+  res <- L.runIO $ exec query con
+  case res of
+    Left errBS -> do
+      let err = C8.unpack errBS
+      if (T.pack "ConnectionFailure") `T.isInfixOf` T.pack err
+        then do
+          logError $ "Clickhouse error: " <> T.pack err
+          retryClickhouseConnection db
+          retryRes <- L.runIO $ exec query con
+          case retryRes of
+            Left retryErrBS -> pure $ Left (C8.unpack retryErrBS)
+            Right msg -> pure $ Right msg
+        else pure $ Left err
+    Right msg -> pure $ Right msg
+
+runExecQuery' :: (MonadFlow m, ClickhouseFlow m env) => ClickhouseExpr -> ClickhouseDb -> m (Either String String)
+runExecQuery' (ExprStr query) db = runExecQuery query db
+runExecQuery' _ _ = throwError $ InternalError "can't call this function with unresolved clickhouseExpr"
 
 constructQuery :: Typeable a => Proxy a -> [Text] -> Maybe String -> ClickhouseExpr -> Maybe Limit -> Maybe Offset -> Maybe Order -> String
 constructQuery proxyTable columns maybeGroupBy expr mbLimit mbOffset mbOrder = do
