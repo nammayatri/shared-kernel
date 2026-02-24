@@ -252,15 +252,20 @@ runInMasterLTSRedisCell ::
   (HedisFlow m env, TryException m, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) => m f -> m f
 runInMasterLTSRedisCell f = do
   shouldRunInMasterLTSRedisCell <- liftIO getRunInMasterLTSRedisCell
+  logInfo $ "LTS_REDIS_ROUTING: RUN_IN_MASTER_LTS_REDIS_CELL=" <> show shouldRunInMasterLTSRedisCell
   if shouldRunInMasterLTSRedisCell
     then do
       mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
       case mbSecondaryEnv of
         Nothing -> do
-          logError "MASTER_LTS_REDIS_CELL: No secondary LTS environment found, using primary"
+          logError "LTS_REDIS_ROUTING: No secondary LTS Redis configured! Using primary LTS Redis (may have no data)"
           f
-        Just secondaryEnv -> local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) f
-    else f
+        Just secondaryEnv -> do
+          logInfo "LTS_REDIS_ROUTING: Switching to secondary LTS Redis (AWS master)"
+          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) f
+    else do
+      logInfo "LTS_REDIS_ROUTING: Using primary LTS Redis (current deployment Redis)"
+      f
 
 buildKey :: (HedisFlow m env, TryException m) => Text -> m BS.ByteString
 buildKey key = do
