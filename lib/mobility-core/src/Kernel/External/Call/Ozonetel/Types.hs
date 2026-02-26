@@ -38,7 +38,12 @@ data OzonetelAddCampaignDataReq = OzonetelAddCampaignDataReq
     name :: Text,
     action :: Text,
     userName :: Text,
-    checkDuplicate :: Bool
+    checkDuplicate :: Bool,
+    expiryDate :: Maybe Text,
+    priority :: Maybe Int,
+    skill :: Maybe Text,
+    agentId :: Maybe Text,
+    skipNameFieldValidation :: Maybe Bool
   }
   deriving (Show, Generic, Eq, ToJSON, FromJSON, ToSchema)
 
