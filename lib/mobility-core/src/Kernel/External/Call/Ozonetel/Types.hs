@@ -45,7 +45,9 @@ data OzonetelAddCampaignDataReq = OzonetelAddCampaignDataReq
     agentId :: Maybe Text,
     skipNameFieldValidation :: Maybe Bool
   }
-  deriving (Show, Generic, Eq, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Generic, Eq, ToSchema)
+
+$(deriveJSON defaultOptions {omitNothingFields = True} ''OzonetelAddCampaignDataReq)
 
 -- | Ozonetel Add Campaign Data Response
 data OzonetelAddCampaignDataResp = OzonetelAddCampaignDataResp
