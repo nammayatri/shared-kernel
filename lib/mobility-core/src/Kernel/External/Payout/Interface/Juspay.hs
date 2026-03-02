@@ -65,6 +65,28 @@ createPayoutOrder config mRoutingId req = do
       webhookDetails <- case isDynamicWebhookRequired of
         True -> Just <$> mkDynamicWebhookDetails
         False -> pure Nothing
+      let (accountDetails, detailsType') = case accountDetailsType of
+            Just "ACCOUNT_IFSC" ->
+              ( Payout.AccountDetails
+                  { name = customerName,
+                    vpa = Nothing,
+                    mobileNo = Just customerPhone,
+                    account = accountNumber,
+                    ifsc = ifscCode
+                  },
+                Juspay.ACCOUNT_IFSC
+              )
+            _ ->
+              -- Default to UPI_ID
+              ( Payout.AccountDetails
+                  { name = customerName,
+                    vpa = Just customerVpa,
+                    mobileNo = Just customerPhone,
+                    account = Nothing,
+                    ifsc = Nothing
+                  },
+                Juspay.UPI_ID
+              )
       return $
         Juspay.CreatePayoutOrderReq
           { amount = realToFrac amount,
@@ -75,14 +97,8 @@ createPayoutOrder config mRoutingId req = do
                       beneficiaryDetails =
                         Just $
                           Juspay.BeneficiaryDetails
-                            { details =
-                                Just
-                                  Payout.AccountDetails
-                                    { name = customerName,
-                                      vpa = Just customerVpa,
-                                      mobileNo = Just customerPhone
-                                    },
-                              detailsType = Just Juspay.UPI_ID
+                            { details = Just accountDetails,
+                              detailsType = Just detailsType'
                             },
                       additionalInfo =
                         Just $
