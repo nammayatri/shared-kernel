@@ -52,12 +52,14 @@ getDeviceFromText deviceText = do
   case deviceInfo of
     _ : deviceModel : version' : xs -> do
       let mbManufacturer = getManufacturer xs
-      let [deviceTypeStr, deviceVersion] = T.splitOn " v" version'
-      deviceType <- case T.toLower deviceTypeStr of
-        "android" -> Just ANDROID
-        "ios" -> Just IOS
+      case T.splitOn " v" version' of
+        [deviceTypeStr, deviceVersion] -> do
+          deviceType <- case T.toLower deviceTypeStr of
+            "android" -> Just ANDROID
+            "ios" -> Just IOS
+            _ -> Nothing
+          return Device {deviceType = deviceType, deviceVersion = deviceVersion, deviceModel = deviceModel, deviceManufacturer = mbManufacturer}
         _ -> Nothing
-      return Device {deviceType = deviceType, deviceVersion = deviceVersion, deviceModel = deviceModel, deviceManufacturer = mbManufacturer}
     _ -> Nothing
 
 mkClientDevice :: Maybe DeviceType -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Device
