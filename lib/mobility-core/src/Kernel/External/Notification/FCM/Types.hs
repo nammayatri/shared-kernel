@@ -209,6 +209,10 @@ data FCMNotificationType
   | FULFILLMENT_PENDING
   | FULFILLMENT_SUCCESS
   | FEEDBACK_BADGE_PN
+  | DOCUMENT_EXPIRY_REMINDER
+  | TRAINING_VIDEO
+  | DRIVER_INSPECTION
+  | VEHICLE_INSPECTION
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
   deriving (PrettyShow) via Showable FCMNotificationType
 
