@@ -171,6 +171,10 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.REFUND_REQUEST_REJECTED -> FCM.REFUND_REQUEST_REJECTED
   Interface.FULFILLMENT_PENDING -> FCM.FULFILLMENT_PENDING
   Interface.FULFILLMENT_SUCCESS -> FCM.FULFILLMENT_SUCCESS
+  Interface.DOCUMENT_EXPIRY_REMINDER -> FCM.DOCUMENT_EXPIRY_REMINDER
+  Interface.TRAINING_VIDEO -> FCM.TRAINING_VIDEO
+  Interface.DRIVER_INSPECTION -> FCM.DRIVER_INSPECTION
+  Interface.VEHICLE_INSPECTION -> FCM.VEHICLE_INSPECTION
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case

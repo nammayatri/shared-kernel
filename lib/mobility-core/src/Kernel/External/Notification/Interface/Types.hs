@@ -132,6 +132,10 @@ data Category
   | REFUND_REQUEST_REJECTED
   | FULFILLMENT_PENDING
   | FULFILLMENT_SUCCESS
+  | DOCUMENT_EXPIRY_REMINDER
+  | TRAINING_VIDEO
+  | DRIVER_INSPECTION
+  | VEHICLE_INSPECTION
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
