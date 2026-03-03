@@ -2,6 +2,7 @@ module Kernel.External.Insurance.Interface.Types where
 
 import Data.Aeson
 import qualified Kernel.External.Insurance.Acko.Types as Acko
+import qualified Kernel.External.Insurance.IffcoTokio.Types as IffcoTokio
 import Kernel.Prelude
 
 data InsuranceRequest = InsuranceRequest
@@ -56,7 +57,10 @@ data Customer = Customer
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
-data InsuranceConfig = AckoInsuranceConfig Acko.AckoInsuranceConfig deriving (Show, Eq, Generic, ToJSON, FromJSON)
+data InsuranceConfig
+  = AckoInsuranceConfig Acko.AckoInsuranceConfig
+  | IffcoTokioInsuranceConfig IffcoTokio.IffcoTokioConfig
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data InsuranceResponse = InsuranceResponse
   { policyId :: Text,
@@ -91,5 +95,41 @@ data Premium = Premium
     cgst :: Maybe Double,
     igst :: Maybe Double,
     breakup :: Maybe [Value]
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+-- ---------------------------------------------------------------------------
+-- IFFCO Tokio home declaration types
+
+-- | Interface-level request for RegisterHomeDeclaration.
+-- |invoiceRequestNumber| is the correlation key: it is returned immediately
+-- in |HomeDeclarationInstantResp| and later echoed in |HomeDeclarationAsyncResp|
+-- so the caller can match the async result to the original request.
+data HomeDeclarationReq = HomeDeclarationReq
+  { insuredAddress :: Text,
+    insuredEmail :: Text,
+    insuredMobile :: Text,
+    insuredName :: Text,
+    -- | Date in MM/DD/YYYY format as required by IFFCO Tokio
+    invoiceDate :: Text,
+    -- | Caller-generated correlation ID
+    invoiceRequestNumber :: Text,
+    ewCommencesOn :: Maybe Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+-- | Returned immediately after firing the async API call.
+newtype HomeDeclarationInstantResp = HomeDeclarationInstantResp
+  { invoiceRequestNumber :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+-- | Delivered to the callback once the IFFCO Tokio API responds.
+data HomeDeclarationAsyncResp = HomeDeclarationAsyncResp
+  { -- | Echoed back so callers can correlate with the instant response
+    invoiceRequestNumber :: Text,
+    certificateNumber :: Text,
+    declarationId :: Text,
+    status :: Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
