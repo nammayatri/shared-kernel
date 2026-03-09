@@ -15,10 +15,15 @@
 
 module Kernel.Utils.Servant.Server where
 
+import qualified Database.Esqueleto.Experimental as Esq
+import qualified Database.Persist.Sql as Persist
+import qualified Database.Redis as Hedis
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as E
 import GHC.Records.Extra (HasField)
 import Kernel.Prelude (identity)
+import Kernel.Storage.Esqueleto.Config (EsqDBEnv (..))
+import Kernel.Storage.Hedis.Config (HedisEnv (..))
 import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Metrics
 import qualified Kernel.Tools.Metrics.Init as Metrics
 import Kernel.Tools.Slack.Internal
@@ -191,8 +196,24 @@ runServerGeneric appEnv serverAPI serverHandler waiMiddleware waiSettings servan
 
 type HealthCheckAPI = Get '[JSON] Text
 
-healthCheck :: (Monad m) => ServerT HealthCheckAPI m
-healthCheck = pure "App is UP"
+healthCheck ::
+  (HasField "esqDBEnv" env EsqDBEnv, HasField "hedisClusterEnv" env HedisEnv) =>
+  ServerT HealthCheckAPI (FlowHandlerR env)
+healthCheck = do
+  env <- asks (.appEnv)
+  (pgResult :: Either SomeException ()) <-
+    liftIO $
+      try $
+        Esq.runSqlPool (Persist.rawExecute "SELECT 1" []) env.esqDBEnv.connPool
+  (redisResult :: Either SomeException ()) <- liftIO $
+    try $ do
+      res <- Hedis.runRedis env.hedisClusterEnv.hedisConnection Hedis.ping
+      case res of
+        Right Hedis.Pong -> pure ()
+        _ -> throwM err503 {errBody = "Redis ping failed"}
+  case (pgResult, redisResult) of
+    (Right _, Right _) -> pure "Healthy"
+    _ -> throwM err503 {errBody = "Service Unavailable"}
 
 runHealthCheckServerWithService ::
   forall env ctx.
@@ -205,6 +226,8 @@ runHealthCheckServerWithService ::
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
     HasField "requestId" env (Maybe Text),
+    HasField "esqDBEnv" env EsqDBEnv,
+    HasField "hedisClusterEnv" env HedisEnv,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters
   ) =>
   env ->
@@ -233,6 +256,8 @@ runServerWithHealthCheck ::
     HasField "sessionId" env (Maybe Text),
     HasField "version" env Metrics.DeploymentVersion,
     HasField "requestId" env (Maybe Text),
+    HasField "esqDBEnv" env EsqDBEnv,
+    HasField "hedisClusterEnv" env HedisEnv,
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
@@ -261,6 +286,8 @@ runServerWithHealthCheckAndSlackNotification ::
     HasField "sessionId" env (Maybe Text),
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
+    HasField "esqDBEnv" env EsqDBEnv,
+    HasField "hedisClusterEnv" env HedisEnv,
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
