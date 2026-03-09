@@ -672,6 +672,9 @@ hGetAll key = withTimeRedis "RedisCluster" "hGetAll" $ do
   hMap <- runWithPrefix key Hedis.hgetall
   pure $ mapMaybe (\(k, val) -> (cs k,) <$> Ae.decode (BSL.fromStrict val)) hMap
 
+hLen :: (HedisFlow m env, TryException m) => Text -> m Integer
+hLen key = withTimeRedis "RedisCluster" "hLen" $ runWithPrefix key Hedis.hlen
+
 zAddExp :: (ToJSON Integer, HedisFlow m env, TryException m) => Text -> Text -> Integer -> ExpirationTime -> m ()
 zAddExp key field value expirationTime = withLogTag "Redis" $ do
   prefKey <- buildKey key
