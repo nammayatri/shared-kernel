@@ -204,7 +204,7 @@ healthCheck = do
   (pgResult :: Either SomeException ()) <-
     liftIO $
       try $
-        Esq.runSqlPool (Persist.rawExecute "SELECT 1" []) env.esqDBEnv.connPool
+        void $ Esq.runSqlPool (Persist.rawSql @(Persist.Single Int) "SELECT 1" []) env.esqDBEnv.connPool
   (redisResult :: Either SomeException ()) <- liftIO $
     try $ do
       res <- Hedis.runRedis env.hedisClusterEnv.hedisConnection Hedis.ping
@@ -213,7 +213,18 @@ healthCheck = do
         _ -> throwM err503 {errBody = "Redis ping failed"}
   case (pgResult, redisResult) of
     (Right _, Right _) -> pure "Healthy"
-    _ -> throwM err503 {errBody = "Service Unavailable"}
+    (Left pgErr, Left redisErr) -> do
+      let msg = "HealthCheck failed: PG error: " <> show pgErr <> ", Redis error: " <> show redisErr
+      liftIO $ putStrLn @String msg
+      throwM err503 {errBody = encodeUtf8 msg}
+    (Left pgErr, _) -> do
+      let msg = "HealthCheck failed: PG error: " <> show pgErr
+      liftIO $ putStrLn @String msg
+      throwM err503 {errBody = encodeUtf8 msg}
+    (_, Left redisErr) -> do
+      let msg = "HealthCheck failed: Redis error: " <> show redisErr
+      liftIO $ putStrLn @String msg
+      throwM err503 {errBody = encodeUtf8 msg}
 
 runHealthCheckServerWithService ::
   forall env ctx.
