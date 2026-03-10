@@ -132,6 +132,7 @@ data Category
   | REFUND_REQUEST_REJECTED
   | FULFILLMENT_PENDING
   | FULFILLMENT_SUCCESS
+  | FEEDBACK_BADGE_PN
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

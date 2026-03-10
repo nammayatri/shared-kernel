@@ -171,6 +171,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.REFUND_REQUEST_REJECTED -> FCM.REFUND_REQUEST_REJECTED
   Interface.FULFILLMENT_PENDING -> FCM.FULFILLMENT_PENDING
   Interface.FULFILLMENT_SUCCESS -> FCM.FULFILLMENT_SUCCESS
+  Interface.FEEDBACK_BADGE_PN -> FCM.FEEDBACK_BADGE_PN
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
