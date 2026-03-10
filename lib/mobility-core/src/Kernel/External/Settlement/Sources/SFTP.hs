@@ -19,13 +19,14 @@ module Kernel.External.Settlement.Sources.SFTP
 where
 
 import qualified Data.ByteString.Lazy as LBS
+import Kernel.External.Encryption
 import Kernel.Prelude
 
 data SFTPConfig = SFTPConfig
   { host :: Text,
     port :: Int,
     username :: Text,
-    password :: Text,
+    password :: EncryptedField 'AsEncrypted Text,
     remotePath :: Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)

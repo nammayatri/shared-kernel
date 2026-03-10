@@ -14,20 +14,32 @@
 
 module Kernel.External.Settlement.Interface
   ( module Reexport,
-    parseSettlementCsv,
+    parsePaymentSettlementCsv,
+    parsePayoutSettlementCsv,
   )
 where
 
 import qualified Data.ByteString.Lazy as LBS
-import qualified Kernel.External.Settlement.HyperPG.Parser as HyperPG
+import qualified Kernel.External.Settlement.BillDesk.PaymentParser as BillDeskPayment
+import qualified Kernel.External.Settlement.HyperPG.PaymentParser as HyperPGPayment
+import qualified Kernel.External.Settlement.HyperPG.PayoutParser as HyperPGPayout
 import Kernel.External.Settlement.Interface.Types as Reexport
 import Kernel.External.Settlement.Types as Reexport
 
--- | Parse a settlement CSV file based on the service provider.
--- Dispatches to the correct parser implementation.
-parseSettlementCsv ::
+-- | Parse a payment settlement CSV based on the service provider.
+parsePaymentSettlementCsv ::
   SettlementService ->
   LBS.ByteString ->
-  ParseSettlementResult
-parseSettlementCsv service csvData = case service of
-  HyperPG -> HyperPG.parseHyperPGCsv csvData
+  ParsePaymentSettlementResult
+parsePaymentSettlementCsv service csvData = case service of
+  HyperPG -> HyperPGPayment.parseHyperPGCsv csvData
+  BillDesk -> BillDeskPayment.parseBillDeskCsv csvData
+
+-- | Parse a payout settlement CSV based on the service provider.
+parsePayoutSettlementCsv ::
+  SettlementService ->
+  LBS.ByteString ->
+  ParsePayoutSettlementResult
+parsePayoutSettlementCsv service csvData = case service of
+  HyperPG -> HyperPGPayout.parseHyperPGPayoutCsv csvData
+  BillDesk -> ParseResult [] 0 0 ["Payout parsing not supported for BillDesk"]

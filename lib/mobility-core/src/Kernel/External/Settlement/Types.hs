@@ -23,7 +23,7 @@ where
 import Data.Aeson
 import Kernel.Prelude
 
-data SettlementService = HyperPG
+data SettlementService = HyperPG | BillDesk
   deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (ToJSON, FromJSON)
 

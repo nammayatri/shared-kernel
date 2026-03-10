@@ -19,13 +19,14 @@ module Kernel.External.Settlement.Sources.Email
 where
 
 import qualified Data.ByteString.Lazy as LBS
+import Kernel.External.Encryption
 import Kernel.Prelude
 
 data EmailConfig = EmailConfig
   { imapHost :: Text,
     imapPort :: Int,
     username :: Text,
-    password :: Text,
+    password :: EncryptedField 'AsEncrypted Text,
     folderName :: Text,
     subjectFilter :: Maybe Text
   }

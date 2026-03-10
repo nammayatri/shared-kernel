@@ -12,7 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.Settlement.HyperPG.Types where
+module Kernel.External.Settlement.HyperPG.PaymentTypes where
 
 import qualified Data.Aeson as A
 import qualified Data.Csv as Csv

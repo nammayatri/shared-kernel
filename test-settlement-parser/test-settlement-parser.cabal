@@ -1,0 +1,61 @@
+cabal-version: 2.4
+name:          test-settlement-parser
+version:       0.1.0.0
+build-type:    Simple
+
+executable test-settlement-parser
+  main-is:          Main.hs
+  other-modules:
+    -- Shims (lightweight replacements for mobility-core internals)
+      Kernel.Prelude
+    , Kernel.Prelude.OrphanInstances
+    , Kernel.Types.Common
+    -- Real Settlement modules from mobility-core
+    , Kernel.External.Settlement.Types
+    , Kernel.External.Settlement.Interface
+    , Kernel.External.Settlement.Interface.Types
+    , Kernel.External.Settlement.BillDesk.PaymentTypes
+    , Kernel.External.Settlement.BillDesk.PaymentParser
+    , Kernel.External.Settlement.HyperPG.PaymentTypes
+    , Kernel.External.Settlement.HyperPG.PaymentParser
+    , Kernel.External.Settlement.HyperPG.PayoutTypes
+    , Kernel.External.Settlement.HyperPG.PayoutParser
+    , Kernel.External.Settlement.Sources.SFTP
+    , Kernel.External.Settlement.Sources.Email
+  hs-source-dirs:
+      src
+    , shims
+    , ../lib/mobility-core/src
+  default-language:  Haskell2010
+  default-extensions:
+      NoImplicitPrelude
+    , OverloadedStrings
+    , OverloadedRecordDot
+    , DeriveGeneric
+    , DeriveAnyClass
+    , DuplicateRecordFields
+    , RecordWildCards
+    , DerivingStrategies
+    , ScopedTypeVariables
+    , TypeApplications
+    , FlexibleContexts
+    , FlexibleInstances
+    , MultiParamTypeClasses
+    , GADTs
+    , TypeFamilies
+    , TypeOperators
+    , DataKinds
+    , ConstraintKinds
+    , RankNTypes
+    , BlockArguments
+  ghc-options:      -Wall -Wno-orphans
+  build-depends:
+      base >= 4.7 && < 5
+    , aeson
+    , bytestring
+    , cassava
+    , directory
+    , filepath
+    , text
+    , time
+    , vector

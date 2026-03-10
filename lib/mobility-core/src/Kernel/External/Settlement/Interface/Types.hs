@@ -13,20 +13,71 @@
 -}
 
 module Kernel.External.Settlement.Interface.Types
-  ( PaymentSettlementReport (..),
-    TxnType (..),
+  ( -- * Common enums (shared across payment & payout)
     TxnStatus (..),
     SettlementType (..),
     SettlementMode (..),
+
+    -- * Generic parse result
+    ParseResult (..),
+
+    -- * Payment settlement
+    PaymentSettlementReport (..),
+    TxnType (..),
     PaymentMethodType (..),
     DisputeType (..),
-    ParseSettlementResult (..),
+    ParsePaymentSettlementResult,
+
+    -- * Payout settlement
+    PayoutSettlementReport (..),
+    FulfillmentInstrument (..),
+    ParsePayoutSettlementResult,
   )
 where
 
 import Data.Aeson (Value)
 import Kernel.Prelude
 import Kernel.Types.Common (Currency, HighPrecMoney)
+
+-- ---------------------------------------------------------------------------
+-- Common enums shared by payment and payout reports
+-- ---------------------------------------------------------------------------
+
+data TxnStatus = SUCCESS | FAILED
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
+
+data SettlementType = CREDIT | DEBIT
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
+
+data SettlementMode = GROSS | NET | NETTING
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
+
+-- ---------------------------------------------------------------------------
+-- Generic parse result (parameterised over report type)
+-- ---------------------------------------------------------------------------
+
+data ParseResult a = ParseResult
+  { reports :: [a],
+    totalRows :: Int,
+    failedRows :: Int,
+    errors :: [Text]
+  }
+  deriving (Show, Generic)
+
+-- ---------------------------------------------------------------------------
+-- Payment settlement report
+-- ---------------------------------------------------------------------------
+
+type ParsePaymentSettlementResult = ParseResult PaymentSettlementReport
+
+data TxnType = ORDER | REFUND | CHARGEBACK
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
+
+data PaymentMethodType = UPI | CREDIT_CARD | DEBIT_CARD | NETBANKING | WALLET
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
+
+data DisputeType = FRAUD | CONSUMER | PROCESSING_ERROR | OTHER_DISPUTE
+  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 data PaymentSettlementReport = PaymentSettlementReport
   { orderId :: Text,
@@ -65,28 +116,44 @@ data PaymentSettlementReport = PaymentSettlementReport
   }
   deriving (Show, Eq, Generic)
 
-data TxnType = ORDER | REFUND
+-- ---------------------------------------------------------------------------
+-- Payout settlement report
+-- ---------------------------------------------------------------------------
+
+type ParsePayoutSettlementResult = ParseResult PayoutSettlementReport
+
+data FulfillmentInstrument = IMPS | NEFT | RTGS | FI_UPI | OTHER_INSTRUMENT
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
-data TxnStatus = SUCCESS | FAILED
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
-
-data SettlementType = CREDIT | DEBIT
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
-
-data SettlementMode = GROSS | NET | NETTING
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
-
-data PaymentMethodType = UPI | CREDIT_CARD | DEBIT_CARD | NETBANKING | WALLET
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
-
-data DisputeType = FRAUD | CONSUMER | PROCESSING_ERROR | OTHER_DISPUTE
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
-
-data ParseSettlementResult = ParseSettlementResult
-  { reports :: [PaymentSettlementReport],
-    totalRows :: Int,
-    failedRows :: Int,
-    errors :: [Text]
+data PayoutSettlementReport = PayoutSettlementReport
+  { orderId :: Text,
+    txnId :: Maybe Text,
+    rrn :: Maybe Text,
+    utr :: Maybe Text,
+    txnStatus :: TxnStatus,
+    txnDate :: Maybe UTCTime,
+    txnAmount :: HighPrecMoney,
+    settlementAmount :: HighPrecMoney,
+    currency :: Currency,
+    payoutCustomerId :: Text,
+    paymentGateway :: Maybe Text,
+    beneficiaryIfsc :: Maybe Text,
+    beneficiaryAccountNumber :: Maybe Text,
+    beneficiaryType :: Maybe Text,
+    bankName :: Maybe Text,
+    settlementType :: Maybe SettlementType,
+    settlementMode :: Maybe SettlementMode,
+    settlementId :: Maybe Text,
+    settlementDate :: Maybe UTCTime,
+    payoutRequestId :: Maybe Text,
+    fulfillmentId :: Maybe Text,
+    fulfillmentInstrumentType :: Maybe FulfillmentInstrument,
+    fulfillmentMethod :: Maybe Text,
+    fulfillmentStatus :: Maybe Text,
+    fulfillmentResponseCode :: Maybe Text,
+    fulfillmentResponseMessage :: Maybe Text,
+    fulfillmentDate :: Maybe UTCTime,
+    fulfillmentAmount :: Maybe HighPrecMoney,
+    rawData :: Maybe Value
   }
-  deriving (Show, Generic)
+  deriving (Show, Eq, Generic)

@@ -201,8 +201,12 @@ library
       Kernel.External.Plasma.LMS.Flow
       Kernel.External.Plasma.LMS.Types
       Kernel.External.Plasma.Types
-      Kernel.External.Settlement.HyperPG.Parser
-      Kernel.External.Settlement.HyperPG.Types
+      Kernel.External.Settlement.BillDesk.PaymentParser
+      Kernel.External.Settlement.BillDesk.PaymentTypes
+      Kernel.External.Settlement.HyperPG.PaymentParser
+      Kernel.External.Settlement.HyperPG.PaymentTypes
+      Kernel.External.Settlement.HyperPG.PayoutParser
+      Kernel.External.Settlement.HyperPG.PayoutTypes
       Kernel.External.Settlement.Interface
       Kernel.External.Settlement.Interface.Types
       Kernel.External.Settlement.Sources.Email
