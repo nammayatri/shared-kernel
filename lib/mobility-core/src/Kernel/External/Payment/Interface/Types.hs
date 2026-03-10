@@ -228,7 +228,8 @@ data OrderStatusResp
         card :: Maybe CardInfo,
         splitSettlementResponse :: Maybe SplitSettlementResponse,
         effectiveAmount :: Maybe HighPrecMoney,
-        offers :: Maybe [Offer]
+        offers :: Maybe [Offer],
+        txnDetail :: Maybe TxnDetail
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -313,7 +314,20 @@ data Upi = Upi
 
 data CardInfo = CardInfo
   { lastFourDigits :: Maybe Text,
-    cardType :: Maybe Text
+    cardType :: Maybe Text,
+    nameOnCard :: Maybe Text,
+    cardBrand :: Maybe Text,
+    cardIsin :: Maybe Text,
+    cardIssuer :: Maybe Text
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data TxnDetail = TxnDetail
+  { gateway :: Maybe Text,
+    surchargeAmount :: Maybe HighPrecMoney,
+    taxAmount :: Maybe HighPrecMoney,
+    netAmount :: Maybe HighPrecMoney
   }
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

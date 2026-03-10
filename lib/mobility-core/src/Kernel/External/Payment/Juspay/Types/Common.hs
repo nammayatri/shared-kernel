@@ -199,7 +199,8 @@ data OrderData = OrderData
     refunds :: Maybe [RefundsData],
     split_settlement_response :: Maybe SplitSettlementResponse,
     effective_amount :: Maybe Double,
-    offers :: Maybe [Offer]
+    offers :: Maybe [Offer],
+    txn_detail :: Maybe TxnDetail
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -242,6 +243,15 @@ data PaymentGatewayResponse = PaymentGatewayResponse
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data TxnDetail = TxnDetail
+  { gateway :: Maybe Text,
+    surcharge_amount :: Maybe Double,
+    tax_amount :: Maybe Double,
+    net_amount :: Maybe Double
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data MandateData = MandateData
   { mandate_status :: MandateStatus,
     start_date :: Text,
@@ -264,7 +274,11 @@ data Upi = Upi
 
 data CardInfo = CardInfo
   { card_type :: Maybe Text,
-    last_four_digits :: Maybe Text
+    last_four_digits :: Maybe Text,
+    name_on_card :: Maybe Text,
+    card_brand :: Maybe Text,
+    card_isin :: Maybe Text,
+    card_issuer :: Maybe Text
   }
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

@@ -338,5 +338,6 @@ mkOrderStatusResp response orderId =
           card = Nothing,
           splitSettlementResponse = Nothing,
           effectiveAmount = Nothing,
-          offers = Nothing
+          offers = Nothing,
+          txnDetail = Nothing
         }
