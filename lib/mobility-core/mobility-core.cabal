@@ -201,6 +201,13 @@ library
       Kernel.External.Plasma.LMS.Flow
       Kernel.External.Plasma.LMS.Types
       Kernel.External.Plasma.Types
+      Kernel.External.Settlement.HyperPG.Parser
+      Kernel.External.Settlement.HyperPG.Types
+      Kernel.External.Settlement.Interface
+      Kernel.External.Settlement.Interface.Types
+      Kernel.External.Settlement.Sources.Email
+      Kernel.External.Settlement.Sources.SFTP
+      Kernel.External.Settlement.Types
       Kernel.External.SharedLogic.DigiLocker.Error
       Kernel.External.SharedLogic.HyperVerge.Error
       Kernel.External.SharedLogic.HyperVerge.Functions
@@ -599,6 +606,7 @@ library
     , bytestring
     , case-insensitive
     , casing
+    , cassava
     , cereal
     , clickhouse-haskell
     , clock
@@ -765,6 +773,7 @@ test-suite mobility-core-tests
     , bytestring
     , case-insensitive
     , casing
+    , cassava
     , cereal
     , clickhouse-haskell
     , clock
