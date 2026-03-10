@@ -80,7 +80,9 @@ createPayoutOrder config mRoutingId req = do
                                   Payout.AccountDetails
                                     { name = customerName,
                                       vpa = Just customerVpa,
-                                      mobileNo = Just customerPhone
+                                      mobileNo = Just customerPhone,
+                                      account = Nothing,
+                                      ifsc = Nothing
                                     },
                               detailsType = Just Juspay.UPI_ID
                             },

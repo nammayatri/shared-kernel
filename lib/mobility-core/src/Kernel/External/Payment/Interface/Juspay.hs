@@ -471,6 +471,7 @@ mkOrderStatusResp Juspay.OrderData {..} =
           card = castCard <$> card,
           splitSettlementResponse = mkSplitSettlementResponse <$> split_settlement_response,
           offers = maybe Nothing mkOffersData offers,
+          txnDetail = castTxnDetail <$> txn_detail,
           ..
         }
 
@@ -478,7 +479,10 @@ castUpi :: Juspay.Upi -> Upi
 castUpi Juspay.Upi {..} = Upi {payerApp = payer_app, payerAppName = payer_app_name, txnFlowType = txn_flow_type, payerVpa = payer_vpa}
 
 castCard :: Juspay.CardInfo -> CardInfo
-castCard Juspay.CardInfo {..} = CardInfo {cardType = card_type, lastFourDigits = last_four_digits}
+castCard Juspay.CardInfo {..} = CardInfo {cardType = card_type, lastFourDigits = last_four_digits, nameOnCard = name_on_card, cardBrand = card_brand, cardIsin = card_isin, cardIssuer = card_issuer}
+
+castTxnDetail :: Juspay.TxnDetail -> TxnDetail
+castTxnDetail Juspay.TxnDetail {..} = TxnDetail {gateway = gateway, surchargeAmount = realToFrac <$> surcharge_amount, taxAmount = realToFrac <$> tax_amount, netAmount = realToFrac <$> net_amount}
 
 mkNotificationReq :: MandateNotificationReq -> Juspay.MandateNotificationReq
 mkNotificationReq mandateNotificationReq =
@@ -641,6 +645,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               card = castCard <$> justOrder.card,
               splitSettlementResponse = mkSplitSettlementResponse <$> justOrder.split_settlement_response,
               offers = maybe Nothing mkOffersData justOrder.offers,
+              txnDetail = castTxnDetail <$> justOrder.txn_detail,
               ..
             }
     (Nothing, Just justMandate, _, _) ->
@@ -695,6 +700,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           splitSettlementResponse = Nothing,
           effectiveAmount = Just $ realToFrac justTransaction.txn_amount,
           offers = Nothing,
+          txnDetail = castTxnDetail <$> justTransaction.txn_detail,
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp
