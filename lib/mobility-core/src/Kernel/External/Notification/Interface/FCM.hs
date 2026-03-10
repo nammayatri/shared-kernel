@@ -175,6 +175,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.TRAINING_VIDEO -> FCM.TRAINING_VIDEO
   Interface.DRIVER_INSPECTION -> FCM.DRIVER_INSPECTION
   Interface.VEHICLE_INSPECTION -> FCM.VEHICLE_INSPECTION
+  Interface.FEEDBACK_BADGE_PN -> FCM.FEEDBACK_BADGE_PN
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case

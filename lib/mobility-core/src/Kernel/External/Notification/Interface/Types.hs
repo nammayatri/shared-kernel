@@ -136,6 +136,7 @@ data Category
   | TRAINING_VIDEO
   | DRIVER_INSPECTION
   | VEHICLE_INSPECTION
+  | FEEDBACK_BADGE_PN
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
