@@ -12,7 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.Settlement.HyperPG.Parser
+module Kernel.External.Settlement.HyperPG.PaymentParser
   ( parseHyperPGCsv,
     parseHyperPGRow,
   )
@@ -25,16 +25,16 @@ import Data.Either (partitionEithers)
 import qualified Data.Text as T
 import Data.Time (defaultTimeLocale, parseTimeM)
 import qualified Data.Vector as V
-import Kernel.External.Settlement.HyperPG.Types
+import Kernel.External.Settlement.HyperPG.PaymentTypes
 import Kernel.External.Settlement.Interface.Types
 import Kernel.Prelude
 import Kernel.Types.Common (Currency (..), HighPrecMoney)
 
-parseHyperPGCsv :: LBS.ByteString -> ParseSettlementResult
+parseHyperPGCsv :: LBS.ByteString -> ParsePaymentSettlementResult
 parseHyperPGCsv csvData =
   case Csv.decodeByName csvData of
     Left err ->
-      ParseSettlementResult
+      ParseResult
         { reports = [],
           totalRows = 0,
           failedRows = 0,
@@ -44,7 +44,7 @@ parseHyperPGCsv csvData =
       let rowList = V.toList rows
           results = zipWith convertRow [1 :: Int ..] rowList
           (errs, goods) = partitionEithers results
-       in ParseSettlementResult
+       in ParseResult
             { reports = goods,
               totalRows = length rowList,
               failedRows = length errs,
