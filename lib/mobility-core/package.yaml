@@ -152,6 +152,7 @@ dependencies:
   - clickhouse-haskell
   - beam-postgres
   - beam-core
+  - cassava
   - cereal
   - beam-mysql
   - sequelize
