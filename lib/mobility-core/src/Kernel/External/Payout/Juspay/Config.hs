@@ -16,6 +16,7 @@ module Kernel.External.Payout.Juspay.Config where
 import Data.Aeson
 import Kernel.External.Encryption
 import Kernel.Prelude
+import Kernel.Types.Common (HighPrecMoney)
 
 data JuspayConfig = JuspayConfig
   { apiKey :: EncryptedField 'AsEncrypted Text,
@@ -25,7 +26,9 @@ data JuspayConfig = JuspayConfig
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text,
     gatewayReferenceId :: Maybe Text,
-    dynamicWebhookUrl :: Maybe Text
+    dynamicWebhookUrl :: Maybe Text,
+    pgBaseFee :: Maybe HighPrecMoney,
+    pgGstRate :: Maybe Double
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
