@@ -33,6 +33,7 @@ import Data.Aeson
 import Deriving.Aeson
 import qualified Kernel.External.SOS.ERSS.Config as ERSSConfig
 import qualified Kernel.External.SOS.GJ112.Config as GJ112Config
+import qualified Kernel.External.SOS.Trinity.Config as TrinityConfig
 import Kernel.Prelude
 
 -- | Handler pattern for SOS services
@@ -44,6 +45,7 @@ data SOSHandler m = SOSHandler
 data SOSServiceConfig
   = ERSSConfig ERSSConfig.ERSSCfg
   | GJ112Config GJ112Config.GJ112Cfg
+  | TrinityConfig TrinityConfig.TrinityCfg
   deriving (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SOSServiceConfig
 
