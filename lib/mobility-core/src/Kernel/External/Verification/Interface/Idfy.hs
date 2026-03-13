@@ -323,8 +323,22 @@ extractRCImage cfg req = do
   pure
     ExtractRCImageResp
       { extractedRC =
-          resp.result <&> \result -> do
-            ExtractedRC {rcNumber = result.extraction_output.registration_number}
+          resp.result <&> \result ->
+            let eo = result.extraction_output
+             in ExtractedRC
+                  { rcNumber = eo.registration_number,
+                    vehicleClass = eo._class,
+                    manufacturer = eo.manufacturer,
+                    model = eo.model,
+                    fuelType = eo.fuel,
+                    colour = eo.colour,
+                    chassisNumber = eo.chassis_number,
+                    engineNumber = eo.engine_number,
+                    registrationDate = eo.registration_date,
+                    ownerName = eo.owner_name,
+                    manufacturingDate = eo.manufacturing_date,
+                    bodyType = eo.body
+                  }
       }
 
 extractUdyogAadhaarAsync ::
