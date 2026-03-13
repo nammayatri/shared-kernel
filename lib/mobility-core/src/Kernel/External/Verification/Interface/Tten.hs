@@ -30,7 +30,15 @@ verifyTten cfg req = do
     else do
       case mbFirstTtenDetail of
         Just ttenDetail | ttenDetail.udin_number == req.udinNo -> do
-          return $ InterfaceTypes.SyncResp $ convertTtenResponseToRCVerificationResponse ttenDetail
+          let rcResp = convertTtenResponseToRCVerificationResponse ttenDetail
+          return $
+            InterfaceTypes.SyncResp
+              InterfaceTypes.VerifySyncResp
+                { requestId = Nothing,
+                  requestor = VT.Tten,
+                  transactionId = Nothing,
+                  response = rcResp
+                }
         _ -> do
           throwError $ InvalidRequest "UDIN number mismatch"
   where

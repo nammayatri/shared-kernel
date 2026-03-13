@@ -25,13 +25,14 @@ import qualified Kernel.External.Verification.HyperVerge.Types as HyperVergeType
 import qualified Kernel.External.Verification.Idfy.Config as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import qualified Kernel.External.Verification.InternalScripts.Types as FV
+import qualified Kernel.External.Verification.Morth.Types as MorthTypes
 import qualified Kernel.External.Verification.SafetyPortal.Config as SafetyPortal
 import Kernel.External.Verification.SafetyPortal.Types
 import qualified Kernel.External.Verification.Tten.Types as TtenTypes
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -100,12 +101,27 @@ data VerifyRCReq = VerifyRCReq
   { rcNumber :: Text,
     driverId :: Text,
     token :: Maybe Text,
-    udinNo :: Maybe Text
+    udinNo :: Maybe Text,
+    -- | Engine number (required for MoRTH RC verification)
+    engineNumber :: Maybe Text,
+    -- | Chassis number (required for MoRTH RC verification)
+    chassisNumber :: Maybe Text,
+    -- | Applicant's mobile number (used by MoRTH RC verification)
+    applicantMobile :: Maybe Text
   }
   deriving stock (Show, Generic)
 
-data VerifyRCResp = AsyncResp VerifyAsyncResp | SyncResp VT.RCVerificationResponse
+data VerifyRCResp = AsyncResp VerifyAsyncResp | SyncResp VerifySyncResp
   deriving (Show, Generic)
+
+data VerifySyncResp = VerifySyncResp
+  { requestId :: Maybe Text,
+    requestor :: VT.VerificationService,
+    transactionId :: Maybe Text,
+    response :: VT.RCVerificationResponse
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 instance ToJSON VerifyRCResp where
   toJSON (AsyncResp a) = toJSON a
@@ -198,10 +214,22 @@ newtype ExtractRCImageResp = ExtractRCImageResp
   }
   deriving stock (Show, Generic)
 
-newtype ExtractedRC = ExtractedRC
-  { rcNumber :: Maybe Text
+data ExtractedRC = ExtractedRC
+  { rcNumber :: Maybe Text,
+    vehicleClass :: Maybe Text,
+    manufacturer :: Maybe Text,
+    model :: Maybe Text,
+    fuelType :: Maybe Text,
+    colour :: Maybe Text,
+    chassisNumber :: Maybe Text,
+    engineNumber :: Maybe Text,
+    registrationDate :: Maybe Text,
+    ownerName :: Maybe Text,
+    manufacturingDate :: Maybe Text,
+    bodyType :: Maybe Text
   }
   deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 newtype ExtractDLImageResp = ExtractDLImageResp
   { extractedDL :: Maybe ExtractedDL

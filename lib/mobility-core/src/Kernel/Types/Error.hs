@@ -1824,5 +1824,28 @@ instance FromResponse KarixWhatsappError where
 
 instance IsAPIError KarixWhatsappError
 
+data MorthError
+  = MorthEngineNumberRequired
+  | MorthChassisNumberRequired
+  | MorthEngineAndChassisNumberRequired
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''MorthError
+
+instance IsBaseError MorthError where
+  toMessage = \case
+    MorthEngineNumberRequired -> Just "engineNumber is required for MoRTH RC verification."
+    MorthChassisNumberRequired -> Just "chassisNumber is required for MoRTH RC verification."
+    MorthEngineAndChassisNumberRequired -> Just "engineNumber and chassisNumber are required for MoRTH RC verification."
+
+instance IsHTTPError MorthError where
+  toErrorCode = \case
+    MorthEngineNumberRequired -> "ENGINE_NUMBER_REQUIRED"
+    MorthChassisNumberRequired -> "CHASSIS_NUMBER_REQUIRED"
+    MorthEngineAndChassisNumberRequired -> "ENGINE_NUMBER_AND_CHASSIS_NUMBER_REQUIRED"
+  toHttpCode _ = E400
+
+instance IsAPIError MorthError
+
 instance ToJSON ClientError where
   toJSON = DA.String . show
