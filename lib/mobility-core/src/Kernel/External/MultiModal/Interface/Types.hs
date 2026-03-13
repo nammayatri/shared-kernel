@@ -156,3 +156,44 @@ data GetTransitRoutesReq = GetTransitRoutesReq
     walkSpeed :: Maybe Double
   }
   deriving (Generic, ToJSON, FromJSON, Show, ToSchema)
+
+-- | Time constraint for journey planning
+data JourneyTimeConstraint
+  = LeaveNow
+  | DepartAt UTCTime
+  | ArriveBy UTCTime
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+-- | Time mode enum for simpler storage/API usage
+data JourneyTimeMode
+  = TimeModeLeaveNow
+  | TimeModeDepartAt
+  | TimeModeArriveBy
+  deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON, Read, ToSchema, ToParamSchema)
+
+$(mkHttpInstancesForEnum ''JourneyTimeMode)
+
+$(mkBeamInstancesForEnumAndList ''JourneyTimeMode)
+
+-- | Risk level for departure advisory
+data DepartureRiskLevel
+  = Comfortable -- >= 12 min buffer
+  | Good -- 5-12 min buffer
+  | Tight -- < 5 min buffer
+  | TooLate -- cannot make it on time
+  deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON, Read, ToSchema, ToParamSchema)
+
+$(mkHttpInstancesForEnum ''DepartureRiskLevel)
+
+$(mkBeamInstancesForEnumAndList ''DepartureRiskLevel)
+
+-- | Departure advisory computed for a time-constrained journey
+data DepartureAdvisory = DepartureAdvisory
+  { latestDeparture :: UTCTime,
+    recommendedDeparture :: UTCTime,
+    comfortableDeparture :: UTCTime,
+    riskLevel :: DepartureRiskLevel,
+    bufferMinutes :: Int,
+    advisoryMessage :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
