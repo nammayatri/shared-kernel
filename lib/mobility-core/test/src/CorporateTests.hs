@@ -65,7 +65,23 @@ stateMachineTests =
         length results @?= 1
         case results of
           (r : _) -> isOk r @?= False
-          _ -> assertFailure "Expected at least one result"
+          _ -> assertFailure "Expected at least one result",
+      testCase "Validate empty sequence returns empty" $ do
+        let results = validateSequence ([] :: [BookingState])
+        results @?= [],
+      testCase "Validate single state sequence returns empty" $ do
+        let results = validateSequence [PENDING]
+        results @?= [],
+      testCase "Self-transition is invalid for PENDING" $ do
+        let result = transition PENDING PENDING
+        result @?= InvalidTransition PENDING PENDING [CONFIRMED, CANCELLED],
+      testCase "CANCELLED to CANCELLED is invalid" $ do
+        let result = transition CANCELLED CANCELLED
+        result @?= InvalidTransition CANCELLED CANCELLED [],
+      testCase "Multi-step valid path through state machine" $ do
+        let results = validateSequence [PENDING, CONFIRMED, CANCELLED]
+        length results @?= 2
+        all isOk results @?= True
     ]
   where
     isOk (TransitionOk _) = True
@@ -121,7 +137,26 @@ routingTests =
             reordered = applyGenderConstraints constraints femaleFirstStops
         case reordered of
           (first : _) -> first.gender @?= "FEMALE"
-          _ -> assertFailure "List should not be empty"
+          _ -> assertFailure "List should not be empty",
+      testCase "Single stop returns unchanged" $ do
+        let singleStop = [RouteStop "s1" (LatLong 12.97 77.59) 1 "e1" "MALE" PICKUP]
+            optimized = optimizeStopSequence (LatLong 12.95 77.58) singleStop
+        length optimized @?= 1,
+      testCase "Split into routes with empty list returns empty" $ do
+        let routes = splitIntoRoutes 3 ([] :: [RouteStop])
+        routes @?= [],
+      testCase "Cluster with capacity larger than stops returns single cluster" $ do
+        let twoStops = take 2 sampleStops
+            clusters = clusterStops 10 twoStops
+        sum (map length clusters) @?= 2,
+      testCase "Split into routes with capacity 1 creates one route per stop" $ do
+        let routes = splitIntoRoutes 1 sampleStops
+        length routes @?= length sampleStops
+        all (\r -> length r == 1) routes @?= True,
+      testCase "Gender constraints on empty stops returns empty" $ do
+        let constraints = GenderConstraints True True True
+            reordered = applyGenderConstraints constraints ([] :: [RouteStop])
+        reordered @?= []
     ]
 
 -- ==================== Billing Tests ====================
@@ -197,7 +232,45 @@ billingTests =
       testCase "Validate billing entry - valid" $ do
         let policy = CorporatePolicy (Just (HighPrecMoney 1000)) Nothing Nothing [PER_TRIP] True
             result = validateBillingEntry policy PER_TRIP (HighPrecMoney 500) 5.0 Nothing
-        result @?= BillingValid
+        result @?= BillingValid,
+      testCase "Validate billing entry - distance exceeds limit" $ do
+        let policy = CorporatePolicy Nothing (Just 10.0) Nothing [PER_TRIP] True
+            result = validateBillingEntry policy PER_TRIP (HighPrecMoney 500) 15.0 Nothing
+        result @?= DistanceExceedsLimit 15.0 10.0,
+      testCase "Validate billing entry - surge not allowed" $ do
+        let policy = CorporatePolicy Nothing Nothing Nothing [PER_TRIP] False
+            result = validateBillingEntry policy PER_TRIP (HighPrecMoney 500) 5.0 (Just 1.5)
+        result @?= SurgeNotAllowed,
+      testCase "Surge multiplier <= 1.0 is not applied" $ do
+        let config = (mkConfig PER_TRIP) {surgeCap = Just 2.0}
+            input = mkInput {surgeMultiplier = Just 1.0}
+            result = calculateCorporateFare config input
+        result.surgeApplied @?= False
+        result.surgeCapped @?= False,
+      testCase "Surge without cap applies full multiplier" $ do
+        let config = (mkConfig PER_TRIP) {surgeCap = Nothing}
+            input = mkInput {surgeMultiplier = Just 1.5}
+            result = calculateCorporateFare config input
+        result.surgeApplied @?= True
+        result.surgeCapped @?= False,
+      testCase "Corporate discount reduces final fare" $ do
+        let config = (mkConfig PER_TRIP) {corporateDiscountPct = Just 10.0}
+            result = calculateCorporateFare config mkInput
+        result.corporateDiscount @?= HighPrecMoney (toRational (0.1 :: Double) * 500)
+        result.finalFare @?= HighPrecMoney (500 - toRational (0.1 :: Double) * 500),
+      testCase "Zero discount has no effect" $ do
+        let config = (mkConfig PER_TRIP) {corporateDiscountPct = Just 0.0}
+            result = calculateCorporateFare config mkInput
+        result.finalFare @?= HighPrecMoney 500,
+      testCase "FLAT_ROUTE sets policyOverride to True" $ do
+        let config = (mkConfig FLAT_ROUTE) {flatRate = Just (HighPrecMoney 250)}
+            result = calculateCorporateFare config mkInput
+        result.policyOverride @?= True,
+      testCase "PER_SEAT_KM with zero seats gives zero distance fare" $ do
+        let config = (mkConfig PER_SEAT_KM) {ratePerSeatKm = Just (HighPrecMoney 10)}
+            input = mkInput {seats = 0, distanceKm = 5.0}
+            result = calculateCorporateFare config input
+        result.distanceFare @?= HighPrecMoney 0
     ]
 
 -- ==================== Gender Safety Tests ====================
@@ -270,7 +343,57 @@ genderSafetyTests =
                 mkStopWithGender "s3" "MALE" 3
               ]
             outliers = detectOutlierStops 1000.0 stops
-        length outliers @?= 1
+        length outliers @?= 1,
+      testCase "No outlier when stops are close together" $ do
+        let stops =
+              [ mkStopWithGender "s1" "MALE" 1,
+                mkStopWithGender "s2" "MALE" 2,
+                mkStopWithGender "s3" "MALE" 3
+              ]
+            outliers = detectOutlierStops 1000.0 stops
+        outliers @?= [],
+      testCase "No outliers with fewer than 3 stops" $ do
+        let stops =
+              [ mkStopWithGender "s1" "MALE" 1,
+                mkStopWithGender "s2" "MALE" 2
+              ]
+            outliers = detectOutlierStops 1.0 stops
+        outliers @?= [],
+      testCase "Validate empty stops returns no violations" $ do
+        let constraints = GenderConstraints True True True
+            violations = validateRouteGenderSafety constraints ([] :: [RouteStopWithGender])
+        violations @?= [],
+      testCase "All-female stops keeps order unchanged after reorder attempt" $ do
+        let constraints = GenderConstraints True True True
+            stops =
+              [ mkStopWithGender "s1" "FEMALE" 1,
+                mkStopWithGender "s2" "FEMALE" 2,
+                mkStopWithGender "s3" "FEMALE" 3
+              ]
+            reordered = reorderForGenderSafety constraints stops
+        length reordered @?= 3
+        -- When no male stops exist, order should be preserved since no swap is possible
+        (head reordered).gender @?= "FEMALE",
+      testCase "Both first and last violations detected simultaneously" $ do
+        let constraints = GenderConstraints True True True
+            stops =
+              [ mkStopWithGender "s1" "FEMALE" 1,
+                mkStopWithGender "s2" "MALE" 2,
+                mkStopWithGender "s3" "FEMALE" 3
+              ]
+            violations = validateRouteGenderSafety constraints stops
+        length violations @?= 2,
+      testCase "Reorder fixes female last drop" $ do
+        let constraints = GenderConstraints True False True
+            stops =
+              [ mkStopWithGender "s1" "MALE" 1,
+                mkStopWithGender "s2" "MALE" 2,
+                mkStopWithGender "s3" "FEMALE" 3
+              ]
+            reordered = reorderForGenderSafety constraints stops
+        case reverse reordered of
+          (lst : _) -> lst.gender @?= "MALE"
+          _ -> assertFailure "Reordered list should not be empty"
     ]
   where
     isFirstPickup (FemaleFirstPickup _) = True
