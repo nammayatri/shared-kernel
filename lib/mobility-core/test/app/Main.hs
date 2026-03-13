@@ -17,6 +17,7 @@ module Main where
 import APIExceptions
 import Centesimal
 import ComputeIntersectionTests
+import CorporateTests
 import DistanceCalculation
 import EulerHS.Prelude
 import SignatureAuth
@@ -41,5 +42,6 @@ specs = return $ testGroup "Tests" [unitTests]
           slidingWindowLimiterTests,
           distanceCalculation,
           readVersionTests,
-          snippetsCheckTests
+          snippetsCheckTests,
+          corporateTests
         ]

@@ -465,6 +465,7 @@ library
       Kernel.Types.Centesimal
       Kernel.Types.Common
       Kernel.Types.Confidence
+      Kernel.Types.CorporateTypes
       Kernel.Types.Credentials
       Kernel.Types.Distance
       Kernel.Types.Documents
@@ -510,6 +511,8 @@ library
       Kernel.Utils.Callback
       Kernel.Utils.Common
       Kernel.Utils.ComputeIntersection
+      Kernel.Utils.CorporateBilling
+      Kernel.Utils.CorporateRouting
       Kernel.Utils.Context
       Kernel.Utils.DatastoreLatencyCalculator
       Kernel.Utils.Dhall
@@ -524,6 +527,7 @@ library
       Kernel.Utils.ExternalAPICallLogging
       Kernel.Utils.FlowLogging
       Kernel.Utils.Forkable
+      Kernel.Utils.GenderSafetyRules
       Kernel.Utils.GenericPretty
       Kernel.Utils.Geometry
       Kernel.Utils.InternalAPICallLogging
@@ -550,6 +554,7 @@ library
       Kernel.Utils.SignatureAuth
       Kernel.Utils.SlidingWindowCounters
       Kernel.Utils.SlidingWindowLimiter
+      Kernel.Utils.StateMachine
       Kernel.Utils.Text
       Kernel.Utils.TH
       Kernel.Utils.Time
@@ -719,6 +724,7 @@ test-suite mobility-core-tests
       APIExceptions
       Centesimal
       ComputeIntersectionTests
+      CorporateTests
       DistanceCalculation
       SignatureAuth
       SlidingWindowLimiter
