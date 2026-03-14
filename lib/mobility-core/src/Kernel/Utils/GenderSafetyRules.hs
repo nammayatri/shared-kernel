@@ -18,6 +18,7 @@ import qualified Data.List as L
 import Kernel.External.Maps.Types (LatLong (..))
 import Kernel.Prelude
 import Kernel.Types.CorporateTypes (GenderConstraints (..), RouteDirection (..), RouteStop (..))
+import Kernel.Utils.CorporateRouting (haversineDistanceMeters)
 
 -- | A route stop annotated with gender for safety analysis
 data RouteStopWithGender = RouteStopWithGender
@@ -137,17 +138,4 @@ detectOutlierStops thresholdMeters stops
             else []
 
     routeDistance :: [RouteStopWithGender] -> Double
-    routeDistance ss = sum $ zipWith (\a b -> haversine a.location b.location) ss (drop 1 ss)
-
-    haversine :: LatLong -> LatLong -> Double
-    haversine (LatLong lat1 lon1) (LatLong lat2 lon2) =
-      let r = 6371000.0
-          dlat = deg2Rad (lat2 - lat1)
-          dlon = deg2Rad (lon2 - lon1)
-          rlat1 = deg2Rad lat1
-          rlat2 = deg2Rad lat2
-          a = sin (dlat / 2) ^ (2 :: Int) + cos rlat1 * cos rlat2 * sin (dlon / 2) ^ (2 :: Int)
-       in 2 * r * atan2 (sqrt a) (sqrt (1 - a))
-
-    deg2Rad :: Double -> Double
-    deg2Rad d = d * pi / 180
+    routeDistance ss = sum $ zipWith (\a b -> haversineDistanceMeters a.location b.location) ss (drop 1 ss)

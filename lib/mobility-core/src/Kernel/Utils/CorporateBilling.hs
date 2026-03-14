@@ -138,7 +138,7 @@ addMoney :: HighPrecMoney -> HighPrecMoney -> HighPrecMoney
 addMoney (HighPrecMoney a) (HighPrecMoney b) = HighPrecMoney (a + b)
 
 subtractMoney :: HighPrecMoney -> HighPrecMoney -> HighPrecMoney
-subtractMoney (HighPrecMoney a) (HighPrecMoney b) = HighPrecMoney (a - b)
+subtractMoney (HighPrecMoney a) (HighPrecMoney b) = HighPrecMoney (max 0 (a - b))
 
 scaleMoney :: Double -> HighPrecMoney -> HighPrecMoney
 scaleMoney factor (HighPrecMoney a) = HighPrecMoney (a * toRational factor)
