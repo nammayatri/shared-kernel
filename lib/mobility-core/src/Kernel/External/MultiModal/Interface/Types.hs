@@ -194,6 +194,7 @@ data DepartureAdvisory = DepartureAdvisory
     comfortableDeparture :: UTCTime,
     riskLevel :: DepartureRiskLevel,
     bufferMinutes :: Int,
-    advisoryMessage :: Text
+    advisoryMessage :: Text,
+    validUntil :: UTCTime
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
