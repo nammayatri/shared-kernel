@@ -179,6 +179,19 @@ Both `Beam` and `Esqueleto` are maintained as storage backends. Esqueleto appear
 ### TD-5: `unsafePerformIO` Usage
 `Kernel/Types/Beckn/City.hs` uses `unsafePerformIO` with `MVar` for a city mapping cache. While guarded by `NOINLINE`, this is fragile and should be replaced with proper initialization in the Reader environment.
 
+### TD-6: No Cache Invalidation Strategy for Beam+KV
+The Beam ORM integrates with Redis via `findOneWithKV` / `findAllWithKV` (try cache first, fall back to DB). However, there is no documented or enforced cache invalidation mechanism. If the database is updated by another service or direct SQL, cached values become stale with no expiry or invalidation signal.
+
+### TD-7: Fragile String-Based Error Detection in Clickhouse
+**File:** `Kernel/Storage/Clickhouse/Queries.hs`
+
+Uses `T.isInfixOf "ConnectionFailure"` to detect connection errors. This is fragile and version-dependent — a library update changing the error message format would silently break retry logic.
+
+### TD-8: PostgreSQL Pool Destruction on Fatal Errors
+**File:** `Kernel/Storage/Esqueleto/Transactionable.hs`
+
+`destroyAllConnAndRetryIfExpired` destroys the entire connection pool and recreates it on `PostgresFatalError`. This can cause connection storms under load — all in-flight requests lose their connections simultaneously, then all race to reconnect.
+
 ---
 
 ## 5. Code Duplication
@@ -206,6 +219,9 @@ External service calls repeat: decrypt credentials → build request → call AP
 
 ### D-4: Redis Query Patterns
 `Hedis/Queries.hs` repeats the same encode/decode/error-handling wrapper for every Redis data type (String, List, Set, Hash, SortedSet). Each operation re-implements JSON encoding, error wrapping, and TTL management.
+
+### D-5: Storage Error Handling
+Each storage backend (Esqueleto, Hedis, Clickhouse) implements its own error recovery strategy with no shared retry/backoff combinator. PostgreSQL retries immediately on fatal errors, Clickhouse uses time-based retry with MVar locking, and Hedis has no retry logic at all.
 
 ---
 
@@ -340,10 +356,14 @@ Define and track SLIs:
 | 13 | **Retire Esqueleto / ClickhouseV1** | Tech Debt | Medium — reduces maintenance surface | High | Medium |
 | 14 | **Add Kafka consumer lag monitoring** | Observability | Medium — early warning for processing delays | Low | Low |
 | 15 | **Extract HTTP client combinator** (decrypt → call → validate → convert) | Duplication | Medium — reduces provider boilerplate | Medium | Low |
-| 16 | **Add jitter to exponential backoff** | Performance | Low — prevents thundering herd on correlated failures | Low | Low |
-| 17 | **Replace `unsafePerformIO` city cache** | Tech Debt | Low — eliminates unsafe code | Low | Low |
-| 18 | **Batch Kafka offset commits** | Performance | Low — marginal throughput improvement | Low | Low |
-| 19 | **Use strict `foldl'` in Kafka properties** | Performance | Low — prevents minor space leak | Low | Low |
+| 16 | **Add Beam+KV cache invalidation strategy** | Reliability | Medium — prevents stale reads across services | Medium | Medium |
+| 17 | **Replace pool-destroy-on-fatal with graceful reconnect** | Reliability | Medium — prevents connection storms under load | Medium | Low |
+| 18 | **Unify storage error recovery** (shared retry/backoff combinator) | Duplication | Low — consistent resilience across backends | Medium | Low |
+| 19 | **Add jitter to exponential backoff** | Performance | Low — prevents thundering herd on correlated failures | Low | Low |
+| 20 | **Replace `unsafePerformIO` city cache** | Tech Debt | Low — eliminates unsafe code | Low | Low |
+| 21 | **Fix string-based Clickhouse error detection** | Tech Debt | Low — prevents silent retry breakage on library updates | Low | Low |
+| 22 | **Batch Kafka offset commits** | Performance | Low — marginal throughput improvement | Low | Low |
+| 23 | **Use strict `foldl'` in Kafka properties** | Performance | Low — prevents minor space leak | Low | Low |
 
 ---
 
