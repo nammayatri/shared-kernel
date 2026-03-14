@@ -19,7 +19,11 @@ import Kernel.External.Maps.Types (LatLong (..))
 import Kernel.Prelude
 import Kernel.Types.CorporateTypes
 
--- | Haversine distance between two points in meters (pure computation)
+-- | Haversine distance between two points in meters (pure computation).
+--   NOTE: This is intentionally kept as a local pure Double-returning variant.
+--   Kernel.Utils.CalculateDistance.distanceBetweenInMeters provides the canonical
+--   HighPrecMeters version. This function returns raw Double for use in
+--   clustering/optimization where HighPrecMeters would add unnecessary overhead.
 haversineDistanceMeters :: LatLong -> LatLong -> Double
 haversineDistanceMeters (LatLong lat1 lon1) (LatLong lat2 lon2) =
   let r = 6371000.0

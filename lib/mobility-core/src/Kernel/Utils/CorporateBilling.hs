@@ -137,8 +137,24 @@ applySurge surgeCap (Just mult) fare
 addMoney :: HighPrecMoney -> HighPrecMoney -> HighPrecMoney
 addMoney (HighPrecMoney a) (HighPrecMoney b) = HighPrecMoney (a + b)
 
+-- | Subtract money, clamping to zero to prevent negative balances
 subtractMoney :: HighPrecMoney -> HighPrecMoney -> HighPrecMoney
 subtractMoney (HighPrecMoney a) (HighPrecMoney b) = HighPrecMoney (max 0 (a - b))
 
 scaleMoney :: Double -> HighPrecMoney -> HighPrecMoney
 scaleMoney factor (HighPrecMoney a) = HighPrecMoney (a * toRational factor)
+
+-- | Validate a wallet top-up amount and currency
+validateTopUpAmount :: HighPrecMoney -> Text -> CorporateWalletInfo -> Either Text ()
+validateTopUpAmount (HighPrecMoney amt) currency walletInfo
+  | amt <= 0 = Left "Top-up amount must be positive"
+  | currency /= walletInfo.walletCurrency = Left "Currency mismatch: top-up currency does not match wallet currency"
+  | not walletInfo.walletActive = Left "Wallet is not active"
+  | otherwise = Right ()
+
+-- | Minimal wallet info needed for top-up validation (avoids depending on full domain types)
+data CorporateWalletInfo = CorporateWalletInfo
+  { walletCurrency :: Text,
+    walletActive :: Bool
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON)
