@@ -324,8 +324,27 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantI
           metadata_gateway_reference_id = metadataGatewayReferenceId,
           split_settlement_details = splitDetails,
           basket = decodeUtf8 . A.encode <$> basket,
-          auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes
+          auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
+          payment_rules = mkPaymentRules <$> paymentRules
         }
+
+mkPaymentRules :: PaymentRules -> Juspay.PaymentRules
+mkPaymentRules PaymentRules {..} =
+  Juspay.PaymentRules
+    { payment_flows = mkPaymentFlows paymentFlows
+    }
+
+mkPaymentFlows :: PaymentFlows -> Juspay.PaymentFlows
+mkPaymentFlows PaymentFlows {..} =
+  Juspay.PaymentFlows
+    { loyalty_os_topup = mkPaymentFlowStatus loyaltyOsTopup
+    }
+
+mkPaymentFlowStatus :: PaymentFlowStatus -> Juspay.PaymentFlowStatus
+mkPaymentFlowStatus PaymentFlowStatus {..} =
+  Juspay.PaymentFlowStatus
+    { status = status
+    }
 
 mkSplitSettlementDetails :: (MonadThrow m, Log m) => SplitSettlementDetails -> m Juspay.SplitSettlementDetails
 mkSplitSettlementDetails splitDetails = do
@@ -472,6 +491,8 @@ mkOrderStatusResp Juspay.OrderData {..} =
           splitSettlementResponse = mkSplitSettlementResponse <$> split_settlement_response,
           offers = maybe Nothing mkOffersData offers,
           txnDetail = castTxnDetail <$> txn_detail,
+          loyaltyInfo = loyalty_info,
+          txnList = txn_list,
           ..
         }
 
@@ -482,7 +503,7 @@ castCard :: Juspay.CardInfo -> CardInfo
 castCard Juspay.CardInfo {..} = CardInfo {cardType = card_type, lastFourDigits = last_four_digits, nameOnCard = name_on_card, cardBrand = card_brand, cardIsin = card_isin, cardIssuer = card_issuer}
 
 castTxnDetail :: Juspay.TxnDetail -> TxnDetail
-castTxnDetail Juspay.TxnDetail {..} = TxnDetail {gateway = gateway, surchargeAmount = realToFrac <$> surcharge_amount, taxAmount = realToFrac <$> tax_amount, netAmount = realToFrac <$> net_amount}
+castTxnDetail Juspay.TxnDetail {..} = TxnDetail {..}
 
 mkNotificationReq :: MandateNotificationReq -> Juspay.MandateNotificationReq
 mkNotificationReq mandateNotificationReq =
@@ -646,6 +667,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               splitSettlementResponse = mkSplitSettlementResponse <$> justOrder.split_settlement_response,
               offers = maybe Nothing mkOffersData justOrder.offers,
               txnDetail = castTxnDetail <$> justOrder.txn_detail,
+              loyaltyInfo = justOrder.loyalty_info,
+              txnList = justOrder.txn_list,
               ..
             }
     (Nothing, Just justMandate, _, _) ->
@@ -701,6 +724,8 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           effectiveAmount = Just $ realToFrac justTransaction.txn_amount,
           offers = Nothing,
           txnDetail = castTxnDetail <$> justTransaction.txn_detail,
+          loyaltyInfo = Nothing,
+          txnList = Nothing, --Not Sure
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp
