@@ -16,7 +16,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Beckn.City (City (..), initCityMaps) where
+module Kernel.Types.Beckn.City (City (..), initCityMaps, appendCityToStdCodeMap) where
 
 import Data.Aeson
 import Data.Aeson.Types
@@ -208,6 +208,10 @@ initCityMaps = do
     let mergedReverseMap = hardcodedStdCodeToCity `HM.union` reverseDbMap
     void $ liftIO $ swapMVar stdCodeToCityMap mergedReverseMap
 
+appendCityToStdCodeMap :: (MonadIO m) => Text -> Text -> m ()
+appendCityToStdCodeMap city stdCode = do
+  void $ liftIO $ swapMVar cityToStdCodeMap (HM.insert city stdCode getCityToStdCodeMap)
+
 instance FromJSON City where
   parseJSON (String s) = do
     -- First try to parse as std code
@@ -223,7 +227,10 @@ instance FromJSON City where
             let lowerCityName = T.toLower cityName
             case findCityByNameIgnoreCase lowerCityName of
               Just city -> pure city
-              Nothing -> pure (City "AnyCity")
+              Nothing ->
+                if lowerCityName == "*" || lowerCityName == "anycity"
+                  then pure (City "AnyCity")
+                  else pure $ City cityName
     where
       findCityByNameIgnoreCase :: Text -> Maybe City
       findCityByNameIgnoreCase lowerName =
@@ -252,7 +259,7 @@ instance FromHttpApiData City where
                   Nothing ->
                     if lowerInput == "*" || lowerInput == "anycity"
                       then Right $ City "AnyCity"
-                      else Left $ T.pack ("ParseFail: Unable to parse city: " <> T.unpack a)
+                      else Right $ City a
     where
       findCityByNameIgnoreCase :: Text -> HashMap Text Text -> Maybe City
       findCityByNameIgnoreCase lowerName cityMap =
