@@ -26,7 +26,29 @@ import Kernel.External.Payment.Types as Reexport
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Error
+import Kernel.Utils.CircuitBreaker (defaultCircuitBreakerConfig, getOrCreateCircuitBreaker, withCircuitBreaker)
 import Kernel.Utils.Common
+
+-- | Derive a circuit breaker service name from the payment provider config.
+paymentServiceName :: PaymentServiceConfig -> Text
+paymentServiceName = \case
+  JuspayConfig _ -> "Payment:Juspay"
+  StripeConfig _ -> "Payment:Stripe"
+  PaytmEDCConfig _ -> "Payment:PaytmEDC"
+
+-- | Wrap a payment call with a per-provider circuit breaker.
+withPaymentCircuitBreaker ::
+  ( MonadIO m,
+    MonadCatch m,
+    Log m
+  ) =>
+  PaymentServiceConfig ->
+  m a ->
+  m a
+withPaymentCircuitBreaker cfg action = do
+  let name = paymentServiceName cfg
+  cb <- getOrCreateCircuitBreaker name (defaultCircuitBreakerConfig name)
+  withCircuitBreaker cb action
 
 createOrder ::
   ( EncFlow m r,
@@ -38,7 +60,7 @@ createOrder ::
   Maybe Text ->
   CreateOrderReq ->
   m CreateOrderResp
-createOrder serviceConfig mRoutingId req = case serviceConfig of
+createOrder serviceConfig mRoutingId req = withPaymentCircuitBreaker serviceConfig $ case serviceConfig of
   JuspayConfig cfg -> do
     let req' = req {metadataGatewayReferenceId = cfg.gatewayReferenceId}
     Juspay.createOrder cfg mRoutingId req'
@@ -55,7 +77,7 @@ orderStatus ::
   Maybe Text ->
   OrderStatusReq ->
   m OrderStatusResp
-orderStatus serviceConfig mRoutingId req = case serviceConfig of
+orderStatus serviceConfig mRoutingId req = withPaymentCircuitBreaker serviceConfig $ case serviceConfig of
   JuspayConfig cfg -> Juspay.orderStatus cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Order Status not supported."
   PaytmEDCConfig cfg -> PaytmEDC.orderStatus cfg mRoutingId req
@@ -145,7 +167,7 @@ mandateNotification ::
   Maybe Text ->
   MandateNotificationReq ->
   m MandateNotificationRes
-mandateNotification serviceConfig mRoutingId req = case serviceConfig of
+mandateNotification serviceConfig mRoutingId req = withPaymentCircuitBreaker serviceConfig $ case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateNotification cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Notification not supported."
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Mandate Notification not supported."
@@ -175,7 +197,7 @@ mandateExecution ::
   Maybe Text ->
   MandateExecutionReq ->
   m MandateExecutionRes
-mandateExecution serviceConfig mRoutingId req = case serviceConfig of
+mandateExecution serviceConfig mRoutingId req = withPaymentCircuitBreaker serviceConfig $ case serviceConfig of
   JuspayConfig cfg -> Juspay.mandateExecution cfg mRoutingId req
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Execution not supported."
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Mandate Execution not supported."

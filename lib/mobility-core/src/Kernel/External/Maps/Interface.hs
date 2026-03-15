@@ -49,6 +49,7 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common hiding (id)
 import Kernel.Types.Error
 import Kernel.Utils.CalculateDistance
+import Kernel.Utils.CircuitBreaker (defaultCircuitBreakerConfig, getOrCreateCircuitBreaker, withCircuitBreaker)
 import Kernel.Utils.Common hiding (id)
 
 getDistance ::
@@ -92,6 +93,30 @@ getDistancesProvided = \case
   NextBillion -> False
   SelfTuned -> False
 
+-- | Derive a circuit breaker service name from the provider config.
+mapsServiceName :: MapsServiceConfig -> Text
+mapsServiceName = \case
+  GoogleConfig _ -> "Maps:Google"
+  OSRMConfig _ -> "Maps:OSRM"
+  MMIConfig _ -> "Maps:MMI"
+  NextBillionConfig _ -> "Maps:NextBillion"
+
+-- | Wrap a maps call with a per-provider circuit breaker. If the provider has
+-- experienced @failureThreshold@ (default 5) consecutive failures the breaker
+-- opens and subsequent calls fail fast for @cooldownSeconds@ (default 30 s).
+withMapsCircuitBreaker ::
+  ( MonadIO m,
+    MonadCatch m,
+    Log m
+  ) =>
+  MapsServiceConfig ->
+  m a ->
+  m a
+withMapsCircuitBreaker cfg action = do
+  let name = mapsServiceName cfg
+  cb <- getOrCreateCircuitBreaker name (defaultCircuitBreakerConfig name)
+  withCircuitBreaker cb action
+
 -- FIXME this logic is redundant, because we throw error always when getDistancesProvided service = False
 getDistances ::
   ( EncFlow m r,
@@ -107,7 +132,7 @@ getDistances ::
   MapsServiceConfig ->
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
-getDistances entityId serviceConfig req = case serviceConfig of
+getDistances entityId serviceConfig req = withMapsCircuitBreaker serviceConfig $ case serviceConfig of
   GoogleConfig cfg -> Google.getDistances entityId cfg req
   OSRMConfig cfg -> OSRM.getDistances entityId cfg req
   MMIConfig cfg -> MMI.getDistanceMatrix entityId cfg req
@@ -133,7 +158,7 @@ getRoutes ::
   MapsServiceConfig ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes entityId isAvoidToll serviceConfig req = case serviceConfig of
+getRoutes entityId isAvoidToll serviceConfig req = withMapsCircuitBreaker serviceConfig $ case serviceConfig of
   GoogleConfig cfg -> Google.getRoutes entityId isAvoidToll cfg req
   OSRMConfig osrmCfg -> OSRM.getRoutes entityId osrmCfg req
   MMIConfig cfg -> MMI.getRoutes entityId cfg req
@@ -289,7 +314,7 @@ snapToRoad ::
   MapsServiceConfig ->
   SnapToRoadReq ->
   m SnapToRoadResp
-snapToRoad entityId serviceConfig req =
+snapToRoad entityId serviceConfig req = withMapsCircuitBreaker serviceConfig $
   case serviceConfig of
     GoogleConfig cfg -> Google.snapToRoad entityId cfg req
     OSRMConfig osrmCfg -> OSRM.callOsrmMatch entityId osrmCfg req
@@ -316,7 +341,7 @@ autoComplete ::
   MapsServiceConfig ->
   AutoCompleteReq ->
   m AutoCompleteResp
-autoComplete entityId serviceConfig req = case serviceConfig of
+autoComplete entityId serviceConfig req = withMapsCircuitBreaker serviceConfig $ case serviceConfig of
   GoogleConfig cfg -> Google.autoComplete entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "autoComplete" OSRM
   MMIConfig cfg -> MMI.autoSuggest entityId cfg req
@@ -340,7 +365,7 @@ getPlaceDetails ::
   MapsServiceConfig ->
   GetPlaceDetailsReq ->
   m GetPlaceDetailsResp
-getPlaceDetails entityId serviceConfig req = case serviceConfig of
+getPlaceDetails entityId serviceConfig req = withMapsCircuitBreaker serviceConfig $ case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceDetails entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
   MMIConfig cfg -> MMI.getPlaceDetails entityId cfg req
@@ -365,7 +390,7 @@ getPlaceName ::
   MapsServiceConfig ->
   GetPlaceNameReq ->
   m GetPlaceNameResp
-getPlaceName entityId serviceConfig req = case serviceConfig of
+getPlaceName entityId serviceConfig req = withMapsCircuitBreaker serviceConfig $ case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceName entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
   MMIConfig cfg -> MMI.geocode entityId cfg req

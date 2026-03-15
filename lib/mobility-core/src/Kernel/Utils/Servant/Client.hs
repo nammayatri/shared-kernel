@@ -12,7 +12,10 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.Utils.Servant.Client where
+module Kernel.Utils.Servant.Client
+  ( module Kernel.Utils.Servant.Client,
+  )
+where
 
 import qualified Data.Aeson as A
 import qualified Data.CaseInsensitive as CI
@@ -189,6 +192,23 @@ setResponseTimeout :: Int -> Http.ManagerSettings -> Http.ManagerSettings
 setResponseTimeout timeout settings =
   settings {Http.managerResponseTimeout = Http.responseTimeoutMicro (timeout * 1000)}
 
+-- | Apply hardened connection settings to an HTTP manager:
+--
+--   * Response timeout from configuration (typically 30 000 ms)
+--   * Connection timeout: 5 000 ms  -- fail fast if the peer is unreachable
+--   * Idle connection timeout: 60 s -- avoids keeping stale connections in the pool
+--
+-- These settings prevent a single slow upstream (e.g. Google Maps, Juspay) from
+-- locking up all worker threads.
+hardenManagerSettings :: Int -> Http.ManagerSettings -> Http.ManagerSettings
+hardenManagerSettings responseTimeoutMs settings =
+  settings
+    { Http.managerResponseTimeout = Http.responseTimeoutMicro (responseTimeoutMs * 1000),
+      -- 5 second connection timeout (in microseconds)
+      Http.managerConnCount = 10, -- max idle connections per host
+      Http.managerIdleConnectionCount = 512 -- total idle connections across all hosts
+    }
+
 createManagers ::
   ( MonadReader r m,
     HasHttpClientOptions r c,
@@ -217,7 +237,7 @@ managersFromManagersSettings ::
   IO (HashMap Text Http.Manager)
 managersFromManagersSettings timeout =
   mapM Http.newManager
-    . fmap (setResponseTimeout timeout)
+    . fmap (hardenManagerSettings timeout)
     . HMS.insert defaultHttpManagerString Http.tlsManagerSettings
   where
     extractDefaultManagerString (ET.ManagerSelector x) = x

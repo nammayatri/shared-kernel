@@ -17,6 +17,7 @@ module Kernel.External.Notification.Interface
   )
 where
 
+import Control.Concurrent.QSem (newQSem, signalQSem, waitQSem)
 import EulerHS.Prelude
 import Kernel.External.Notification.FCM.Types (LiveActivityReq)
 import qualified Kernel.External.Notification.Interface.FCM as FCM
@@ -54,6 +55,40 @@ notifyPerson serviceConfig req liveAcitvityRequest action = do
     FCMConfig cfg -> FCM.notifyPerson cfg req liveAcitvityRequest action (Just notificationId) EulerHS.Prelude.id
     PayTMConfig cfg -> PayTM.notifyPerson cfg req
     GRPCConfig _ -> throwError $ InternalError "GRPC notification type not supported."
+
+-- | Send notifications to a batch of recipients with bounded concurrency.
+-- At most @maxConcurrency@ (default 10) notifications are in-flight at once,
+-- preventing a large fan-out from overwhelming FCM or saturating local resources.
+notifyPersonBatch ::
+  ( MonadFlow m,
+    EncFlow m r,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    ToJSON a,
+    ToJSON b,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  NotificationServiceConfig ->
+  Int -> -- max concurrency (e.g. 10)
+  [(NotificationReq a b, Maybe LiveActivityReq, m ())] -> -- (request, liveActivity, tokenCleanup action)
+  m ()
+notifyPersonBatch serviceConfig maxConcurrency items = do
+  sem <- liftIO $ newQSem maxConcurrency
+  forM_ items $ \(req, liveActivityReq, action) ->
+    fork ("notifyPersonBatch " <> req.auth.recipientId) $ do
+      liftIO $ waitQSem sem
+      finally
+        (notifyPerson serviceConfig req liveActivityReq action)
+        (liftIO $ signalQSem sem)
+  where
+    finally :: (MonadCatch m) => m a -> m () -> m a
+    finally act cleanup = do
+      result <- try act
+      cleanup
+      case result of
+        Right val -> pure val
+        Left (e :: SomeException) -> throwM e
 
 notifyPersonWithAllProviders ::
   ( EsqDBFlow m r,
