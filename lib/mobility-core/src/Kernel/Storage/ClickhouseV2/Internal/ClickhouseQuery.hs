@@ -171,7 +171,7 @@ instance ClickhouseTable t => ClickhouseQuery (T16 (Column a t) v1 v2 v3 v4 v5 v
 
 instance ClickhouseTable t => ClickhouseQuery (AvailableAllColumns db t) where
   toClickhouseQuery _ = do
-    let tableName = dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)
+    let tableName = validateSqlIdentifier . dropBeforeDot $ camelToSnakeCase . dropTSuffix . show $ typeRep (Proxy @t)
     fromString tableName
     where
       dropTSuffix str = take (length str - 1) str

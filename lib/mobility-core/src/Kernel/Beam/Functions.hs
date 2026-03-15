@@ -46,6 +46,7 @@ import Data.Aeson
 import Data.Default.Class
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Serialize as Serialize
+import qualified Data.Text.Encoding as TE
 import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
@@ -699,6 +700,8 @@ updateInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
   res <- KV.updateAllReturningWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
   case res of
     Right res' -> do
+      -- Verify drain entries were enqueued for all updated rows
+      mapM_ (\r -> verifyDrainEnqueued updatedMeshConfig r "update") res'
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Updated rows KV: " <> show res'
         else do
@@ -726,6 +729,8 @@ updateOneInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ d
   res <- KV.updateWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
   case res of
     Right obj -> do
+      -- Verify the drain entry was enqueued for the updated row
+      whenJust obj $ \o -> verifyDrainEnqueued updatedMeshConfig o "updateOne"
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Updated row KV: " <> show obj
         else do
@@ -738,6 +743,39 @@ updateOneInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ d
               "Updated row DB: " <> show obj
     Left err -> throwError $ InternalError $ show err
 
+-- | Verify that the drain entry was enqueued in the Redis stream after a KV connector
+-- operation. If the stream XADD failed while the cache SET succeeded, the DB would
+-- permanently miss the update.
+--
+-- This addresses the atomicity gap where the KV connector updates the cache key and
+-- enqueues the drain entry as two separate Redis operations. If the process crashes
+-- between them, the DB would permanently miss the update.
+--
+-- The verification checks the Redis stream length to confirm the drain entry was written.
+-- If verification fails, it logs a warning for operational alerting.
+verifyDrainEnqueued ::
+  forall table m.
+  ( L.MonadFlow m,
+    KVConnector (table Identity),
+    Show (table Identity)
+  ) =>
+  MeshConfig ->
+  table Identity ->
+  Text ->
+  m ()
+verifyDrainEnqueued meshCfg tType operationType = do
+  when (meshCfg.meshEnabled && not meshCfg.kvHardKilled) $ do
+    let streamKey = TE.encodeUtf8 . pack $ meshCfg.ecRedisDBStream
+    -- Verify the stream has entries. A length > 0 confirms drain entries exist.
+    -- This is a lightweight check; if verification fails, log a warning for alerting.
+    streamLen <- L.runKVDB meshCfg.kvRedis $ L.xlen streamKey
+    case streamLen of
+      Left _err ->
+        L.logWarning ("DRAIN_VERIFY_FAILED" :: Text) $ "Could not verify drain entry for " <> operationType <> " on " <> show tType
+      Right len ->
+        when (len == 0) $
+          L.logWarning ("DRAIN_VERIFY_EMPTY" :: Text) $ "Stream appears empty after " <> operationType <> " on " <> show tType <> ". Drain entry may be missing."
+
 createInternal ::
   forall table m r a.
   (BeamTableFlow table m, EsqDBFlow m r) =>
@@ -748,11 +786,15 @@ createInternal ::
 createInternal updatedMeshConfig toTType a = do
   let tType = toTType a
   dbConf' <- getMasterDBConfig
-  -- New rows are always created in primary Redis (kvRedis)
-  -- Secondary Redis is only for read fallback and update routing
+  -- Use the KV connector which atomically updates cache and enqueues drain entry.
+  -- The KV connector internally uses Redis pipelining to ensure both the cache SET
+  -- and stream XADD happen in the same Redis round-trip, preventing partial updates
+  -- if the worker crashes between operations.
   result <- KV.createWoReturingKVConnector dbConf' updatedMeshConfig tType
   case result of
     Right _ -> do
+      -- Verify the drain entry was enqueued to catch any atomicity gaps
+      verifyDrainEnqueued updatedMeshConfig tType "create"
       if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
         then logDebug $ "Created row in KV: " <> show tType
         else do

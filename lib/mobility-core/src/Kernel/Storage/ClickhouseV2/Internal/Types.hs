@@ -17,6 +17,7 @@
 module Kernel.Storage.ClickhouseV2.Internal.Types where
 
 import qualified Data.Aeson.Types as A
+import qualified Data.Char as Char
 import Data.Kind (Constraint)
 import qualified Data.List as List
 import qualified Data.Time as Time
@@ -256,8 +257,16 @@ type AvailableAllColumns db table = AvailableColumns db table (AllColumns db tab
 
 type AvailableSubSelectColumns db table subcols = AvailableColumns db table (SubSelectColumns db table subcols)
 
+-- | Validate that a SQL identifier contains only safe characters (alphanumeric + underscore).
+-- Prevents SQL injection through table or column names.
+validateSqlIdentifier :: String -> String
+validateSqlIdentifier identifier
+  | null identifier = error "Empty SQL identifier"
+  | all (\c -> Char.isAlphaNum c || c == '_') identifier = identifier
+  | otherwise = error $ "Invalid SQL identifier: " <> identifier <> " (only alphanumeric and underscore allowed)"
+
 showColumn :: Column a t v -> String
-showColumn (Column column) = getFieldModification column
+showColumn (Column column) = validateSqlIdentifier $ getFieldModification column
 showColumn (Group column) = showColumn column
 showColumn (SubColumn _column n l) = getColumnSynonym n l
 showColumn (Sum column) = "SUM" <> addBrackets' (showColumn column)
