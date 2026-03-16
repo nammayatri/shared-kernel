@@ -1,18 +1,12 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-
 module Kernel.Storage.Beam.MerchantOperatingCity where
 
-import qualified Data.Text as T
 import qualified Database.Beam as B
 import Kernel.Beam.Lib.UtilsTH
-import Kernel.External.Encryption
 import Kernel.Prelude
 import qualified Kernel.Prelude
-import System.Environment (lookupEnv)
-import System.IO.Unsafe (unsafePerformIO)
 
 data MerchantOperatingCityT f = MerchantOperatingCityT
   { id :: B.C f Kernel.Prelude.Text,

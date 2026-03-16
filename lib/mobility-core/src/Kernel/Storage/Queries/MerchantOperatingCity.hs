@@ -1,21 +1,14 @@
 {-# OPTIONS_GHC -Wno-dodgy-exports #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-
 module Kernel.Storage.Queries.MerchantOperatingCity where
 
 import Kernel.Beam.Functions
 import Kernel.Beam.Lib.UtilsTH
-import Kernel.External.Encryption
-import qualified Kernel.External.Maps.Types
 import Kernel.Prelude
-import qualified Kernel.Prelude
 import qualified Kernel.Storage.Beam.MerchantOperatingCity as Beam
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Types.App
 import Kernel.Types.CacheFlow
-import qualified Kernel.Types.Common
-import Kernel.Types.Error
 import Kernel.Types.Id
 import Kernel.Types.MerchantOperatingCity
 import qualified Sequelize as Se

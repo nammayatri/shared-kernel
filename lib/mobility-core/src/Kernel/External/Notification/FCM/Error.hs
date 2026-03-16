@@ -33,3 +33,33 @@ newtype ErrorDetail = ErrorDetail
   { errorCode :: Maybe String
   }
   deriving (Show, Generic, FromJSON, ToJSON)
+
+data FCMErrorCategory
+  = FCMTransientError
+  | FCMPermanentError
+  | FCMInvalidTokenError
+  deriving (Show, Eq)
+
+categorizeErrorCode :: String -> FCMErrorCategory
+categorizeErrorCode "UNREGISTERED" = FCMInvalidTokenError
+categorizeErrorCode "NOT_FOUND" = FCMInvalidTokenError
+categorizeErrorCode "QUOTA_EXCEEDED" = FCMTransientError
+categorizeErrorCode "INTERNAL" = FCMTransientError
+categorizeErrorCode "UNAVAILABLE" = FCMTransientError
+categorizeErrorCode _ = FCMPermanentError
+
+categorizeHttpStatus :: Int -> FCMErrorCategory
+categorizeHttpStatus 429 = FCMTransientError
+categorizeHttpStatus 500 = FCMTransientError
+categorizeHttpStatus 503 = FCMTransientError
+categorizeHttpStatus 401 = FCMPermanentError
+categorizeHttpStatus 403 = FCMPermanentError
+categorizeHttpStatus 404 = FCMInvalidTokenError
+categorizeHttpStatus _ = FCMPermanentError
+
+classifyFcmError :: FcmError -> FCMErrorCategory
+classifyFcmError (FcmError Nothing) = FCMPermanentError
+classifyFcmError (FcmError (Just errRes)) =
+  case errRes.details >>= listToMaybe of
+    Just (ErrorDetail (Just code)) -> categorizeErrorCode code
+    _ -> maybe FCMPermanentError categorizeHttpStatus errRes.code

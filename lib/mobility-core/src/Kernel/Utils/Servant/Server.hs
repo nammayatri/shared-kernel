@@ -15,6 +15,8 @@
 
 module Kernel.Utils.Servant.Server where
 
+import qualified Data.Aeson as A
+import Data.Time.Clock (NominalDiffTime, UTCTime, diffUTCTime, getCurrentTime)
 import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Persist.Sql as Persist
 import qualified Database.Redis as Hedis
@@ -47,6 +49,8 @@ import Network.Wai.Handler.Warp
   )
 import Servant
 import Servant.Server.Internal.DelayedIO (DelayedIO, delayedFailFatal)
+import System.IO.Unsafe (unsafePerformIO)
+import System.Timeout (timeout)
 
 class HasEnvEntry r (context :: [Type]) | context -> r where
   getEnvEntry :: Context context -> EnvR r
@@ -194,37 +198,83 @@ runServerGeneric appEnv serverAPI serverHandler waiMiddleware waiSettings servan
               & waiMiddleware
   serverStartAction appEnv $ runSettings settings $ server appEnv
 
-type HealthCheckAPI = Get '[JSON] Text
+-- | Process start time, captured once for uptime calculation.
+processStartTimeRef :: IORef UTCTime
+processStartTimeRef = unsafePerformIO (getCurrentTime >>= newIORef)
+{-# NOINLINE processStartTimeRef #-}
+
+data HealthStatus = HealthStatus
+  { status :: Text,
+    db :: Text,
+    redis :: Text,
+    uptime :: Text
+  }
+  deriving (Generic, Show)
+
+instance A.ToJSON HealthStatus
+
+instance A.FromJSON HealthStatus
+
+type HealthCheckAPI = Get '[JSON] HealthStatus
+
+-- | Timeout for each dependency check (2 seconds).
+healthCheckTimeoutMicros :: Int
+healthCheckTimeoutMicros = 2000000
 
 healthCheck ::
   (HasField "esqDBEnv" env EsqDBEnv, HasField "hedisClusterEnv" env HedisEnv) =>
   ServerT HealthCheckAPI (FlowHandlerR env)
 healthCheck = do
   env <- asks (.appEnv)
-  (pgResult :: Either SomeException ()) <-
+  startTime <- liftIO $ readIORef processStartTimeRef
+  now <- liftIO getCurrentTime
+  let uptimeText = formatUptime (diffUTCTime now startTime)
+  (pgResult :: Maybe (Either SomeException ())) <-
     liftIO $
-      try $
-        void $ Esq.runSqlPool (Persist.rawSql @(Persist.Single Int) "SELECT 1" []) env.esqDBEnv.connPool
-  (redisResult :: Either SomeException ()) <- liftIO $
-    try $ do
-      res <- Hedis.runRedis env.hedisClusterEnv.hedisConnection Hedis.ping
-      case res of
-        Right Hedis.Pong -> pure ()
-        _ -> throwM err503 {errBody = "Redis ping failed"}
-  case (pgResult, redisResult) of
-    (Right _, Right _) -> pure "Healthy"
-    (Left pgErr, Left redisErr) -> do
-      let msg = "HealthCheck failed: PG error: " <> show pgErr <> ", Redis error: " <> show redisErr
-      liftIO $ putStrLn @String msg
-      throwM err503 {errBody = encodeUtf8 msg}
-    (Left pgErr, _) -> do
-      let msg = "HealthCheck failed: PG error: " <> show pgErr
-      liftIO $ putStrLn @String msg
-      throwM err503 {errBody = encodeUtf8 msg}
-    (_, Left redisErr) -> do
-      let msg = "HealthCheck failed: Redis error: " <> show redisErr
-      liftIO $ putStrLn @String msg
-      throwM err503 {errBody = encodeUtf8 msg}
+      timeout healthCheckTimeoutMicros $
+        try $
+          void $ Esq.runSqlPool (Persist.rawSql @(Persist.Single Int) "SELECT 1" []) env.esqDBEnv.connPool
+  (redisResult :: Maybe (Either SomeException ())) <-
+    liftIO $
+      timeout healthCheckTimeoutMicros $
+        try $ do
+          res <- Hedis.runRedis env.hedisClusterEnv.hedisConnection Hedis.ping
+          case res of
+            Right Hedis.Pong -> pure ()
+            _ -> throwM err503 {errBody = "Redis ping failed"}
+  let dbStatus = case pgResult of
+        Just (Right _) -> "ok"
+        Just (Left _) -> "error"
+        Nothing -> "timeout"
+      redisStatus = case redisResult of
+        Just (Right _) -> "ok"
+        Just (Left _) -> "error"
+        Nothing -> "timeout"
+      isHealthy = dbStatus == "ok" && redisStatus == "ok"
+      healthStatus =
+        HealthStatus
+          { status = if isHealthy then "healthy" else "unhealthy",
+            db = dbStatus,
+            redis = redisStatus,
+            uptime = uptimeText
+          }
+  if isHealthy
+    then pure healthStatus
+    else
+      throwM
+        err503
+          { errBody = A.encode healthStatus,
+            errHeaders = [("Content-Type", "application/json")]
+          }
+
+formatUptime :: NominalDiffTime -> Text
+formatUptime diff =
+  let totalSecs = floor diff :: Integer
+      days = totalSecs `div` 86400
+      hours = (totalSecs `mod` 86400) `div` 3600
+      mins = (totalSecs `mod` 3600) `div` 60
+      secs = totalSecs `mod` 60
+   in show days <> "d " <> show hours <> "h " <> show mins <> "m " <> show secs <> "s"
 
 runHealthCheckServerWithService ::
   forall env ctx.
