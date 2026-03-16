@@ -1,6 +1,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+
 module Kernel.Storage.Beam.MerchantOperatingCity where
 
 import qualified Database.Beam as B

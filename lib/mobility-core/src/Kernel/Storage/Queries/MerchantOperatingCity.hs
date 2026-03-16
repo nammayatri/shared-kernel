@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wno-dodgy-exports #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+
 module Kernel.Storage.Queries.MerchantOperatingCity where
 
 import Kernel.Beam.Functions
