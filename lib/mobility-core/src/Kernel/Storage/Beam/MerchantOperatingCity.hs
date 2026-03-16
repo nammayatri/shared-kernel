@@ -7,7 +7,6 @@ module Kernel.Storage.Beam.MerchantOperatingCity where
 import qualified Database.Beam as B
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.Prelude
-import qualified Kernel.Prelude
 
 data MerchantOperatingCityT f = MerchantOperatingCityT
   { id :: B.C f Kernel.Prelude.Text,
