@@ -44,6 +44,7 @@ module Kernel.External.Notification.FCM.Flow
   )
 where
 
+import qualified Control.Concurrent as Conc
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
@@ -51,7 +52,6 @@ import qualified Data.Text as T'
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Base64 as B64
 import Data.Time.Clock.POSIX (getPOSIXTime)
-import qualified Control.Concurrent as Conc
 import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
 import Kernel.External.Notification.FCM.Error
@@ -241,7 +241,6 @@ sendMessage config fcmMsg action toWhom = fork desc $ do
 
     retryDelayMs :: Int -> Int
     retryDelayMs attempt = 100000 * (2 ^ attempt) -- 100ms, 200ms, 400ms (in microseconds)
-
     sendWithRetry attempt = do
       authToken <- getTokenText config
       case authToken of
@@ -270,9 +269,9 @@ sendMessage config fcmMsg action toWhom = fork desc $ do
           action
         FCMTransientError
           | attempt < maxRetries -> do
-              logTagWarning fcm $ "FCM transient error for person " <> toWhom <> " (attempt " <> show (attempt + 1) <> "/" <> show maxRetries <> "): " <> show fcmError
-              liftIO $ Conc.threadDelay (retryDelayMs attempt)
-              sendWithRetry (attempt + 1)
+            logTagWarning fcm $ "FCM transient error for person " <> toWhom <> " (attempt " <> show (attempt + 1) <> "/" <> show maxRetries <> "): " <> show fcmError
+            liftIO $ Conc.threadDelay (retryDelayMs attempt)
+            sendWithRetry (attempt + 1)
         FCMTransientError -> do
           logTagError fcm $ "FCM transient error exhausted retries for person " <> toWhom <> ": " <> show fcmError
         FCMPermanentError -> do
