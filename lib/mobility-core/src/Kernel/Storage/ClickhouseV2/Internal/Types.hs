@@ -60,7 +60,7 @@ data Column (a :: IsAggregated) t v where
   CoerceNum :: (ClickhouseTable t, ClickhouseNum v1, ClickhouseNum v2) => Column a t v1 -> Column a t v2
   ToDate :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Time.Day) => Column a t DateTime -> Column a t Time.Day -- FIXME create some generic constructor for different clickhouse functions
   ToHour :: (ClickhouseTable t, ClickhouseValue DateTime, ClickhouseValue Int) => Column a t DateTime -> Column a t Int
-  TimeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
+  TimeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
   ToStartOfWeek :: (ClickhouseTable t, ClickhouseValue Time.Day, ClickhouseValue Int) => Column a t Time.Day -> Column a t Int -> Column a t Time.Day
   ToStartOfMonth :: (ClickhouseTable t, ClickhouseValue Time.Day) => Column a t Time.Day -> Column a t Time.Day
   ValColumn :: (ClickhouseTable t, ClickhouseValue v) => v -> Column a t v

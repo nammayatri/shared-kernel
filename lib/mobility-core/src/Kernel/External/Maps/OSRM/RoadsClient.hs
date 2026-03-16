@@ -269,8 +269,7 @@ callOsrmGetDistancesAPI ::
     HasKafkaProducer r,
     ToJSON a,
     ToJSON b,
-    HasRequestId r,
-    MonadReader r m
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsInterfaceTypes.GetDistancesReq a b ->
@@ -297,8 +296,7 @@ callOsrmRouteAPI ::
     MonadFlow m,
     MonadReader r m,
     HasKafkaProducer r,
-    HasRequestId r,
-    MonadReader r m
+    HasRequestId r
   ) =>
   Maybe Text ->
   MapsInterfaceTypes.GetRoutesReq ->

@@ -286,7 +286,6 @@ runHealthCheckServerWithService ::
     HasField "sessionId" env (Maybe Text),
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
-    HasField "requestId" env (Maybe Text),
     HasField "esqDBEnv" env EsqDBEnv,
     HasField "hedisClusterEnv" env HedisEnv,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters
@@ -316,7 +315,6 @@ runServerWithHealthCheck ::
     HasField "requestId" env (Maybe Text),
     HasField "sessionId" env (Maybe Text),
     HasField "version" env Metrics.DeploymentVersion,
-    HasField "requestId" env (Maybe Text),
     HasField "esqDBEnv" env EsqDBEnv,
     HasField "hedisClusterEnv" env HedisEnv,
     Metrics.SanitizedUrl api,
@@ -343,7 +341,6 @@ runServerWithHealthCheckAndSlackNotification ::
     HasField "loggerEnv" env LoggerEnv,
     HasField "requestId" env (Maybe Text),
     HasSlackEnv env,
-    HasField "requestId" env (Maybe Text),
     HasField "sessionId" env (Maybe Text),
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
