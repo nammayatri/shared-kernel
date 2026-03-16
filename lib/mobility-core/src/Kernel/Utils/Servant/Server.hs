@@ -16,7 +16,8 @@
 module Kernel.Utils.Servant.Server where
 
 import qualified Data.Aeson as A
-import Data.Time.Clock (NominalDiffTime, UTCTime, diffUTCTime, getCurrentTime)
+import Data.Time.Clock (NominalDiffTime, UTCTime, diffUTCTime)
+import qualified Data.Time.Clock as Clock
 import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Persist.Sql as Persist
 import qualified Database.Redis as Hedis
@@ -200,7 +201,7 @@ runServerGeneric appEnv serverAPI serverHandler waiMiddleware waiSettings servan
 
 -- | Process start time, captured once for uptime calculation.
 processStartTimeRef :: IORef UTCTime
-processStartTimeRef = unsafePerformIO (getCurrentTime >>= newIORef)
+processStartTimeRef = unsafePerformIO (Clock.getCurrentTime >>= newIORef)
 {-# NOINLINE processStartTimeRef #-}
 
 data HealthStatus = HealthStatus
@@ -227,7 +228,7 @@ healthCheck ::
 healthCheck = do
   env <- asks (.appEnv)
   startTime <- liftIO $ readIORef processStartTimeRef
-  now <- liftIO getCurrentTime
+  now <- liftIO Clock.getCurrentTime
   let uptimeText = formatUptime (diffUTCTime now startTime)
   (pgResult :: Maybe (Either SomeException ())) <-
     liftIO $
