@@ -26,6 +26,7 @@ data TrinityCfg = TrinityCfg
     password :: EncryptedField 'AsEncrypted Text,
     clientId :: Text,
     clientCode :: Text,
-    tokenKeyPrefix :: Text
+    tokenKeyPrefix :: Text,
+    deviceType :: Int
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
