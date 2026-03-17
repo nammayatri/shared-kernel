@@ -28,12 +28,13 @@ type TrinityAuthAPI =
     :> Post '[JSON] TrinityAuthRes
 
 -- | SOS Trigger API
--- Endpoint: POST /ngcadIntService/1.0.0/externalIntegration/triggerSOSMessage
+-- Endpoint: POST /trinityRespondSOS/1.0.0/sos/transport/trigger
 type TrinitySOSAPI =
-  "ngcadIntService"
+  "trinityRespondSOS"
     :> "1.0.0"
-    :> "externalIntegration"
-    :> "triggerSOSMessage"
+    :> "sos"
+    :> "transport"
+    :> "trigger"
     :> Header "Authorization" TrinityAuthToken
     :> ReqBody '[JSON] TrinitySOSReq
     :> Post '[JSON] TrinitySOSRes
