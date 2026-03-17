@@ -106,15 +106,25 @@ data Premium = Premium
 -- in |HomeDeclarationInstantResp| and later echoed in |HomeDeclarationAsyncResp|
 -- so the caller can match the async result to the original request.
 data HomeDeclarationReq = HomeDeclarationReq
-  { insuredAddress :: Text,
-    insuredEmail :: Text,
+  { insuredAddress :: Maybe Text,
+    insuredEmail :: Maybe Text,
     insuredMobile :: Text,
     insuredName :: Text,
     -- | Date in MM/DD/YYYY format as required by IFFCO Tokio
     invoiceDate :: Text,
     -- | Caller-generated correlation ID
     invoiceRequestNumber :: Text,
-    ewCommencesOn :: Maybe Text
+    ewCommencesOn :: Maybe Text,
+    customerId :: Maybe Text,
+    extraAttrib01 :: Maybe Text,
+    extraAttrib02 :: Maybe Text,
+    insurancePlan :: Maybe Text,
+    insuredProductCode :: Maybe Text,
+    itemDetail :: Maybe Text,
+    masterPolicyClient :: Maybe Text,
+    riskEndDate :: Maybe Text, -- MM/DD/YYYY
+    riskStartDate :: Maybe Text, -- MM/DD/YYYY
+    sumInsured :: Maybe Double
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
