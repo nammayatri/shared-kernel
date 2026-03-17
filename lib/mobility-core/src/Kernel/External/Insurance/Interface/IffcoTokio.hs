@@ -28,7 +28,7 @@ registerHomeDeclaration config req onComplete = do
     logInfo $
       "IffcoTokio: firing RegisterHomeDeclaration for invoiceRequestNumber="
         <> req.invoiceRequestNumber
-    result <- IffcoFlow.registerHomeDeclarationEither config (toIffcoReq req)
+    result <- IffcoFlow.registerHomeDeclarationEither config req
     case result of
       Left err -> do
         logError $
@@ -45,18 +45,6 @@ registerHomeDeclaration config req onComplete = do
             <> resp.status
         onComplete (Right $ fromIffcoResp req.invoiceRequestNumber resp)
   return HomeDeclarationInstantResp {invoiceRequestNumber = req.invoiceRequestNumber}
-
-toIffcoReq :: HomeDeclarationReq -> IffcoTypes.HomeDeclarationReq
-toIffcoReq req =
-  IffcoTypes.HomeDeclarationReq
-    { insuredAddress = req.insuredAddress,
-      insuredEmail = req.insuredEmail,
-      insuredMobile = req.insuredMobile,
-      insuredName = req.insuredName,
-      invoiceDate = req.invoiceDate,
-      invoiceRequestNumber = req.invoiceRequestNumber,
-      ewCommencesOn = req.ewCommencesOn
-    }
 
 fromIffcoResp :: Text -> IffcoTypes.HomeDeclarationResp -> HomeDeclarationAsyncResp
 fromIffcoResp invoiceReqNum resp =
