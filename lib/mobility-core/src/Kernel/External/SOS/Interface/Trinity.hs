@@ -114,7 +114,7 @@ toTrinitySOSReq config Interface.InitialSOSReq {..} =
       vehicleModel = vehicleModel,
       vehLat = maybe (show latitude) show vehicleLat,
       vehLng = maybe (show longitude) show vehicleLon,
-      deviceType = fromMaybe 6 deviceType,
+      deviceType = config.deviceType,
       vehLocUrl = vehicleLocationUrl
     }
 
