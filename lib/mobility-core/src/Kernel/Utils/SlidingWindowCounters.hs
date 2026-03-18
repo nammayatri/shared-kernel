@@ -28,6 +28,9 @@ module Kernel.Utils.SlidingWindowCounters
     incrementPeriod,
     convertPeriodTypeToSeconds,
     deleteCurrentWindowValues,
+    incrementBatchCounter,
+    getBatchCountInWindow,
+    getAverageBatchMetric,
   )
 where
 
@@ -426,3 +429,52 @@ deleteCurrentWindowValues key swo = do
   utcTime <- L.runIO getCurrentTime
   let keysToDel = getkeysForLastPeriods swo utcTime $ makeSlidingWindowKey (periodType swo) key
   mapM_ Redis.del keysToDel
+
+-- ========================== Batch Metric Counters ==========================
+
+-- | Increment a batch-specific counter within a sliding window.
+-- The key is prefixed with "batch:" to namespace batch metrics separately.
+incrementBatchCounter ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r,
+    TryException m
+  ) =>
+  Text ->
+  Text ->
+  SlidingWindowOptions ->
+  m ()
+incrementBatchCounter metricName entityId swo =
+  let key = "batch:" <> metricName <> ":" <> entityId
+   in incrementWindowCount key swo
+
+-- | Get the total count of a batch metric within the current sliding window.
+getBatchCountInWindow ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r,
+    TryException m
+  ) =>
+  Text ->
+  Text ->
+  SlidingWindowOptions ->
+  m Integer
+getBatchCountInWindow metricName entityId swo =
+  let key = "batch:" <> metricName <> ":" <> entityId
+   in getCurrentWindowCount key swo
+
+-- | Get the average of a batch metric over the sliding window periods.
+-- Sums all values across the window and divides by the number of periods.
+getAverageBatchMetric ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r,
+    TryException m
+  ) =>
+  Text ->
+  Text ->
+  SlidingWindowOptions ->
+  m Double
+getAverageBatchMetric metricName entityId swo = do
+  let key = "batch:" <> metricName <> ":" <> entityId
+  values <- getCurrentWindowValues key swo
+  let total = sum $ catMaybes values
+      periodCount = max 1 (swo.period)
+  return $ fromIntegral total / fromIntegral periodCount

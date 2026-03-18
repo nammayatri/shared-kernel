@@ -62,6 +62,8 @@ type OpenTripPlannerResponseMetric = P.Vector P.Label4 P.Counter
 
 type OpenTripPlannerLatencyMetric = P.Vector P.Label3 P.Histogram
 
+type BatchPipelineLatencyMetric = P.Vector P.Label3 P.Histogram
+
 newBuckets :: [Double]
 newBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 20, 25, 30, 40, 50]
 
@@ -91,6 +93,7 @@ class CoreMetrics m where
   addGenericLatencyMetrics :: Text -> Seconds -> m ()
   addOpenTripPlannerResponse :: Text -> Text -> Text -> m ()
   addOpenTripPlannerLatency :: Text -> Text -> Milliseconds -> m ()
+  addBatchPipelineLatency :: Text -> Text -> Text -> Milliseconds -> m ()
   incrementTryExceptionCounter :: Text -> SomeException -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
@@ -112,7 +115,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     kvRedisMetricsContainer :: KVMetrics.KVMetricHandler,
     genericLatencyMetrics :: GenericLatencyMetric,
     openTripPlannerResponseMetric :: OpenTripPlannerResponseMetric,
-    openTripPlannerLatencyMetric :: OpenTripPlannerLatencyMetric
+    openTripPlannerLatencyMetric :: OpenTripPlannerLatencyMetric,
+    batchPipelineLatency :: BatchPipelineLatencyMetric
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -136,6 +140,7 @@ registerCoreMetricsContainer = do
   genericLatencyMetrics <- registerLatencyMetrics
   openTripPlannerResponseMetric <- registerOpenTripPlannerResponseMetric
   openTripPlannerLatencyMetric <- registerOpenTripPlannerLatencyMetric
+  batchPipelineLatency <- registerBatchPipelineLatencyMetric
   return CoreMetricsContainer {..}
 
 registerDatastoresLatencyMetrics :: IO DatastoresLatencyMetric
@@ -281,3 +286,11 @@ registerOpenTripPlannerLatencyMetric =
       P.histogram info newBuckets
   where
     info = P.Info "open_trip_planner_latency_seconds" "OpenTripPlanner request latency in seconds"
+
+registerBatchPipelineLatencyMetric :: IO BatchPipelineLatencyMetric
+registerBatchPipelineLatencyMetric =
+  P.register $
+    P.vector ("merchant_id", "city_id", "stage") $
+      P.histogram info newBuckets
+  where
+    info = P.Info "batch_pipeline_latency_seconds" "Batch pipeline latency by merchant, city and stage"

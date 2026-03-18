@@ -400,6 +400,24 @@ addOpenTripPlannerLatencyImplementation queryType status latency = do
       (queryType, status, version.getDeploymentVersion)
       (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
 
+addBatchPipelineLatencyImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Text ->
+  Text ->
+  Milliseconds ->
+  m ()
+addBatchPipelineLatencyImplementation merchantId cityId stage latency = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $
+    P.withLabel
+      cmContainer.batchPipelineLatency
+      (merchantId, cityId, stage)
+      (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
+
 incrementTryExceptionCounterImplementation ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
