@@ -24,7 +24,8 @@ import Kernel.Prelude
 data MorthVerificationCfg = MorthVerificationCfg
   { url :: BaseUrl,
     -- | API key passed as the @X-API-Key@ header
-    apiKey :: EncryptedField 'AsEncrypted Text
+    apiKey :: EncryptedField 'AsEncrypted Text,
+    applicantMobile :: Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
