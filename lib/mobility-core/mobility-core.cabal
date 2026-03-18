@@ -480,6 +480,7 @@ library
       Kernel.Types.Error.BaseError.HTTPError.FromResponse
       Kernel.Types.Error.BaseError.HTTPError.HttpCode
       Kernel.Types.Field
+      Kernel.Types.Finance.Audit
       Kernel.Types.Flow
       Kernel.Types.Forkable
       Kernel.Types.FromField

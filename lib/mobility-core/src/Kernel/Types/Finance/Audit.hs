@@ -11,8 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 -- | Canonical audit types for the financial system.
@@ -20,6 +18,9 @@
 --   finance-kernel imports these types directly via its YAML spec.
 --   Do NOT define duplicate AuditAction/AuditEntityType/AuditActorType in
 --   downstream services -- always import from this module.
+--
+-- TODO: Add contract tests for JSON round-trip, HTTP param round-trip, and Beam storage round-trip.
+-- TODO: Add derivePersistField for these enums if downstream services use Persistent/Esqueleto code paths.
 module Kernel.Types.Finance.Audit
   ( -- * Entity types that can be audited
     AuditEntityType (..),
@@ -35,6 +36,8 @@ where
 import Data.Aeson
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Prelude
+-- TODO: HTTP param instances use JSON encoding (quoted strings) which may cause interoperability
+-- issues with plain-text enum expectations. Consider switching to Show/Read-based instances for HTTP params.
 import Kernel.Utils.TH (mkHttpInstancesForEnum)
 
 -- | Types of entities tracked in the financial audit trail.
@@ -66,6 +69,10 @@ data AuditAction
   | Settled
   | Disputed
   | Resolved
+  | Approved
+  | Rejected
+  | SubmittedForApproval
+  | Escalated
   deriving (Eq, Ord, Show, Read, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
 
 $(mkBeamInstancesForEnumAndList ''AuditAction)
@@ -81,6 +88,8 @@ data AuditActorType
   | Customer
   | Scheduler
   | Webhook
+  | Maker
+  | Checker
   deriving (Eq, Ord, Show, Read, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
 
 $(mkBeamInstancesForEnumAndList ''AuditActorType)
