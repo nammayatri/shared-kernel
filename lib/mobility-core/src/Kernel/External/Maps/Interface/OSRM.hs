@@ -51,8 +51,13 @@ callOsrmMatch ::
   SnapToRoadReq ->
   m SnapToRoadResp
 callOsrmMatch entityId osrmCfg req@(SnapToRoadReq wps distanceUnit calculateDistanceFrom) = do
+  let wps' =
+        if length wps == 1
+          then [head wps, head wps] -- OSRM requires at least 2 points or it will throw an error
+          else wps
+  let req' = req {points = wps'} :: SnapToRoadReq
   let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
-  res <- OSRM.callOsrmMatchAPI entityId req osrmCfg.osrmUrl mbRadius CAR (OSRM.PointsList wps)
+  res <- OSRM.callOsrmMatchAPI entityId req' osrmCfg.osrmUrl mbRadius CAR (OSRM.PointsList wps')
   (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
   pure $ case calculateDistanceFrom of
     Just _ -> do
