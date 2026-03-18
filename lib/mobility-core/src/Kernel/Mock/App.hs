@@ -70,6 +70,7 @@ instance CoreMetrics (MockM e) where
   addGenericLatencyMetrics _ _ = return ()
   addOpenTripPlannerResponse _ _ _ = return ()
   addOpenTripPlannerLatency _ _ _ = return ()
+  addBatchPipelineLatency _ _ _ _ = return ()
   incrementTryExceptionCounter _ _ = return ()
 
 instance MonadTime (MockM e) where
