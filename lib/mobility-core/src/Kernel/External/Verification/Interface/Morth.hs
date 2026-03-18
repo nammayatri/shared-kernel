@@ -50,7 +50,7 @@ verifyRCAsync cfg req = do
     throwError MorthEngineAndChassisNumberRequired
   engNo <- req.engineNumber & maybe (throwError MorthEngineNumberRequired) pure
   chasiNo <- req.chassisNumber & maybe (throwError MorthChassisNumberRequired) pure
-  let morthReq = makeMorthReq req engNo chasiNo
+  let morthReq = makeMorthReq req engNo chasiNo cfg.applicantMobile
   resp <- MorthFlow.getVehicleBasicInfo cfg morthReq
   let rcResp = convertToRCVerificationResponse req resp
   return $
@@ -62,11 +62,11 @@ verifyRCAsync cfg req = do
           response = rcResp
         }
   where
-    makeMorthReq :: InterfaceTypes.VerifyRCReq -> Text -> Text -> VehicleBasicInfoReq
-    makeMorthReq InterfaceTypes.VerifyRCReq {..} engNo chasiNo =
+    makeMorthReq :: InterfaceTypes.VerifyRCReq -> Text -> Text -> Text -> VehicleBasicInfoReq
+    makeMorthReq InterfaceTypes.VerifyRCReq {rcNumber} engNo chasiNo applicantMobile =
       VehicleBasicInfoReq
         { regnNo = rcNumber,
-          applicantMobile = fromMaybe "" applicantMobile,
+          applicantMobile = applicantMobile,
           engNo = engNo,
           chasiNo = chasiNo
         }
