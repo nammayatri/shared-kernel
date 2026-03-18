@@ -15,9 +15,19 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
+-- | Canonical audit types for the financial system.
+--   These are the SINGLE SOURCE OF TRUTH for audit enums across all services.
+--   finance-kernel imports these types directly via its YAML spec.
+--   Do NOT define duplicate AuditAction/AuditEntityType/AuditActorType in
+--   downstream services -- always import from this module.
 module Kernel.Types.Finance.Audit
-  ( AuditEntityType (..),
+  ( -- * Entity types that can be audited
+    AuditEntityType (..),
+
+    -- * Actions that can be performed on audited entities
     AuditAction (..),
+
+    -- * Types of actors who perform audit-worthy actions
     AuditActorType (..),
   )
 where
@@ -27,6 +37,8 @@ import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Prelude
 import Kernel.Utils.TH (mkHttpInstancesForEnum)
 
+-- | Types of entities tracked in the financial audit trail.
+--   Add new entity types here when introducing new auditable financial objects.
 data AuditEntityType
   = Account
   | LedgerEntry
@@ -42,6 +54,9 @@ $(mkBeamInstancesForEnumAndList ''AuditEntityType)
 
 $(mkHttpInstancesForEnum ''AuditEntityType)
 
+-- | Actions that can be taken on financial entities.
+--   This is the unified set used by both shared-kernel and finance-kernel.
+--   The finance-kernel YAML spec imports this type directly.
 data AuditAction
   = Created
   | Updated
@@ -57,6 +72,8 @@ $(mkBeamInstancesForEnumAndList ''AuditAction)
 
 $(mkHttpInstancesForEnum ''AuditAction)
 
+-- | Types of actors who perform auditable actions.
+--   Used for attribution and compliance reporting.
 data AuditActorType
   = System
   | AdminUser
