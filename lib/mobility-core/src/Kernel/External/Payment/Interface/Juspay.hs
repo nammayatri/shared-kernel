@@ -150,7 +150,8 @@ createCustomer config req = do
       CreateCustomerResp
         { customerId = object_reference_id,
           clientAuthToken = Customer.client_auth_token <$> juspay,
-          clientAuthTokenExpiry = Customer.client_auth_token_expiry <$> juspay
+          clientAuthTokenExpiry = Customer.client_auth_token_expiry <$> juspay,
+          isLiveMode = Nothing
         }
 
 getCustomer ::
@@ -173,7 +174,8 @@ getCustomer config customerId = do
       CreateCustomerResp
         { customerId = object_reference_id,
           clientAuthToken = Customer.client_auth_token <$> juspay,
-          clientAuthTokenExpiry = Customer.client_auth_token_expiry <$> juspay
+          clientAuthTokenExpiry = Customer.client_auth_token_expiry <$> juspay,
+          isLiveMode = Nothing
         }
     mkGetCustomerReq =
       Juspay.GetCustomerReq
