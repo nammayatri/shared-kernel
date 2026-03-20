@@ -96,7 +96,6 @@ registerHomeDeclarationEither ::
   m (Either Text HomeDeclarationResp)
 registerHomeDeclarationEither config req = do
   decryptedPassword <- decrypt config.password
-  baseUrl <- parseBaseUrl (T.strip config.url)
   let soapBody = buildSoapEnvelope config.username decryptedPassword config req
       eulerClient =
         registerHomeDeclarationClient
@@ -105,7 +104,7 @@ registerHomeDeclarationEither config req = do
           -- SOAPAction value includes surrounding double-quotes as per SOAP spec
           (Just "\"document/http://siebel.com/CustomUI:RegisterHomeDeclaration_New\"")
           soapBody
-  result <- callAPI baseUrl eulerClient "IFFCO-Tokio-register-home-declaration" (Proxy @RegisterHomeDeclarationAPI)
+  result <- callAPI config.url eulerClient "IFFCO-Tokio-register-home-declaration" (Proxy @RegisterHomeDeclarationAPI)
   return $ case result of
     Left err -> Left (T.pack (show err))
     Right resp -> Right resp

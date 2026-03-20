@@ -5,7 +5,7 @@ import Kernel.External.Encryption
 import Kernel.Prelude
 
 data IffcoTokioConfig = IffcoTokioConfig
-  { url :: Text,
+  { url :: BaseUrl,
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text,
     masterPolicyClient :: Text,
