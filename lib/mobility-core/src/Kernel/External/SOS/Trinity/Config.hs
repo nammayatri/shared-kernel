@@ -11,27 +11,22 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# LANGUAGE DeriveGeneric #-}
 
-module Kernel.External.SOS.Types
-  ( SOSService (..),
-    availableSOSServices,
-  )
-where
+module Kernel.External.SOS.Trinity.Config where
 
-import Data.Aeson
+import Kernel.External.Encryption
 import Kernel.Prelude
 
--- | Enum of SOS service providers (extensible for future providers)
-data SOSService
-  = -- | C-DAC Emergency Response Support System
-    ERSS
-  | -- | Gujarat 112 SOS
-    GJ112
-  | -- | Trinity (Bangalore Safe City)
-    Trinity
-  deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
-
--- | List of all available SOS services
-availableSOSServices :: [SOSService]
-availableSOSServices = [ERSS, GJ112, Trinity]
+-- | Configuration for Trinity (Bangalore Safe City)
+data TrinityCfg = TrinityCfg
+  { baseUrl :: BaseUrl,
+    sosUrl :: BaseUrl,
+    authorizationKey :: EncryptedField 'AsEncrypted Text,
+    username :: EncryptedField 'AsEncrypted Text,
+    password :: EncryptedField 'AsEncrypted Text,
+    clientId :: Text,
+    clientCode :: Text,
+    tokenKeyPrefix :: Text,
+    deviceType :: Int
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)

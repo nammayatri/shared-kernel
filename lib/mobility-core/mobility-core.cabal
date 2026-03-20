@@ -253,7 +253,13 @@ library
       Kernel.External.SOS.Interface
       Kernel.External.SOS.Interface.ERSS
       Kernel.External.SOS.Interface.GJ112
+      Kernel.External.SOS.Interface.Trinity
       Kernel.External.SOS.Interface.Types
+      Kernel.External.SOS.Trinity.API
+      Kernel.External.SOS.Trinity.Auth
+      Kernel.External.SOS.Trinity.Config
+      Kernel.External.SOS.Trinity.Flow
+      Kernel.External.SOS.Trinity.Types
       Kernel.External.SOS.Types
       Kernel.External.Ticket.Interface
       Kernel.External.Ticket.Interface.Kapture
