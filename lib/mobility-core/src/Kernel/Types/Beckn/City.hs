@@ -16,7 +16,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Beckn.City (City (..), initCityMaps, appendCityToStdCodeMap, validateCityStdCodeMapping) where
+module Kernel.Types.Beckn.City (City (..), initCityMaps, appendCityToStdCodeMap, validateAndAppendCityStdCodeMapping) where
 
 import Data.Aeson
 import Data.Aeson.Types
@@ -213,20 +213,25 @@ appendCityToStdCodeMap city stdCode = do
   void $ liftIO $ swapMVar cityToStdCodeMap (HM.insert city stdCode getCityToStdCodeMap)
   void $ liftIO $ swapMVar stdCodeToCityMap (HM.insert stdCode city getStdCodeToCityMap)
 
--- | Validates that the city and stdCode are not already mapped to different values.
--- Returns Nothing if valid, Just errorMessage if a conflicting mapping exists.
-validateCityStdCodeMapping :: (MonadIO m) => Text -> Text -> m (Maybe Text)
-validateCityStdCodeMapping city stdCode = do
-  let cityMap = getCityToStdCodeMap
-      reverseMap = getStdCodeToCityMap
-  case (HM.lookup city cityMap, HM.lookup stdCode reverseMap) of
-    (Just existingStdCode, _)
-      | existingStdCode /= stdCode ->
-        pure $ Just $ "City " <> city <> " is already mapped to stdCode " <> existingStdCode
-    (_, Just existingCity)
-      | existingCity /= city ->
-        pure $ Just $ "StdCode " <> stdCode <> " is already mapped to city " <> existingCity
-    _ -> pure Nothing
+-- | Atomically validates that the city and stdCode are not already mapped to
+-- different values, and if valid, inserts the mapping into both maps.
+-- Returns Nothing on success, Just errorMessage if a conflicting mapping exists.
+validateAndAppendCityStdCodeMapping :: (MonadIO m) => Text -> Text -> m (Maybe Text)
+validateAndAppendCityStdCodeMapping city stdCode = liftIO $
+  modifyMVar cityToStdCodeMap $ \cityMap ->
+    modifyMVar stdCodeToCityMap $ \reverseMap ->
+      case (HM.lookup city cityMap, HM.lookup stdCode reverseMap) of
+        (Just existing, _)
+          | existing /= stdCode ->
+            pure (reverseMap, (cityMap, Just $ "City " <> city <> " is already mapped to stdCode " <> existing))
+        (_, Just existingCity)
+          | existingCity /= city ->
+            pure (reverseMap, (cityMap, Just $ "StdCode " <> stdCode <> " is already mapped to city " <> existingCity))
+        _ ->
+          pure
+            ( HM.insert stdCode city reverseMap,
+              (HM.insert city stdCode cityMap, Nothing)
+            )
 
 instance FromJSON City where
   parseJSON (String s) = do
