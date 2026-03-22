@@ -16,7 +16,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Beckn.City (City (..), initCityMaps, appendCityToStdCodeMap, validateAndAppendCityStdCodeMapping) where
+module Kernel.Types.Beckn.City (City (..), initCityMaps, validateAndAppendCityStdCodeMapping) where
 
 import Data.Aeson
 import Data.Aeson.Types
@@ -24,6 +24,7 @@ import Data.Char (isSpace)
 import qualified Data.HashMap.Strict as HM
 import Data.OpenApi hiding (Example, mapping)
 import qualified Data.Text as T
+import Control.Concurrent.MVar (modifyMVar)
 import EulerHS.Prelude hiding (swap)
 import Kernel.Beam.Lib.UtilsTH (HasSchemaName, mkBeamInstancesForEnumAndList)
 import qualified Kernel.Storage.Beam.MerchantOperatingCity as Beam
@@ -207,11 +208,6 @@ initCityMaps = do
     let reverseDbMap = HM.fromList $ reverse $ mapMaybe (\m -> (,m.city) <$> m.stdCode) dbMappings
     let mergedReverseMap = hardcodedStdCodeToCity `HM.union` reverseDbMap
     void $ liftIO $ swapMVar stdCodeToCityMap mergedReverseMap
-
-appendCityToStdCodeMap :: (MonadIO m) => Text -> Text -> m ()
-appendCityToStdCodeMap city stdCode = do
-  void $ liftIO $ swapMVar cityToStdCodeMap (HM.insert city stdCode getCityToStdCodeMap)
-  void $ liftIO $ swapMVar stdCodeToCityMap (HM.insert stdCode city getStdCodeToCityMap)
 
 -- | Atomically validates that the city and stdCode are not already mapped to
 -- different values, and if valid, inserts the mapping into both maps.
