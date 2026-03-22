@@ -222,10 +222,10 @@ validateCityStdCodeMapping city stdCode = do
   case (HM.lookup city cityMap, HM.lookup stdCode reverseMap) of
     (Just existingStdCode, _)
       | existingStdCode /= stdCode ->
-          pure $ Just $ "City " <> city <> " is already mapped to stdCode " <> existingStdCode
+        pure $ Just $ "City " <> city <> " is already mapped to stdCode " <> existingStdCode
     (_, Just existingCity)
       | existingCity /= city ->
-          pure $ Just $ "StdCode " <> stdCode <> " is already mapped to city " <> existingCity
+        pure $ Just $ "StdCode " <> stdCode <> " is already mapped to city " <> existingCity
     _ -> pure Nothing
 
 instance FromJSON City where
