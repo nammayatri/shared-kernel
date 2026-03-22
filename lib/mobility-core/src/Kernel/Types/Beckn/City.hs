@@ -190,7 +190,7 @@ getStdCodeToCityMap = unsafePerformIO $ do
   pure $ if HM.null m then hardcodedStdCodeToCity else m
 
 cityToStdCode :: City -> Text
-cityToStdCode (City cityName) = HM.lookupDefault "*" cityName getCityToStdCodeMap
+cityToStdCode (City cityName) = HM.lookupDefault cityName cityName getCityToStdCodeMap
 
 stdCodeToCity :: Text -> Maybe City
 stdCodeToCity stdCode = City <$> HM.lookup stdCode getStdCodeToCityMap
@@ -211,6 +211,7 @@ initCityMaps = do
 appendCityToStdCodeMap :: (MonadIO m) => Text -> Text -> m ()
 appendCityToStdCodeMap city stdCode = do
   void $ liftIO $ swapMVar cityToStdCodeMap (HM.insert city stdCode getCityToStdCodeMap)
+  void $ liftIO $ swapMVar stdCodeToCityMap (HM.insert stdCode city getStdCodeToCityMap)
 
 instance FromJSON City where
   parseJSON (String s) = do
