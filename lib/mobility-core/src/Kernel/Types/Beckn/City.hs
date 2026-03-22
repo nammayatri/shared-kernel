@@ -18,13 +18,13 @@
 
 module Kernel.Types.Beckn.City (City (..), initCityMaps, validateAndAppendCityStdCodeMapping) where
 
+import Control.Concurrent.MVar (modifyMVar)
 import Data.Aeson
 import Data.Aeson.Types
 import Data.Char (isSpace)
 import qualified Data.HashMap.Strict as HM
 import Data.OpenApi hiding (Example, mapping)
 import qualified Data.Text as T
-import Control.Concurrent.MVar (modifyMVar)
 import EulerHS.Prelude hiding (swap)
 import Kernel.Beam.Lib.UtilsTH (HasSchemaName, mkBeamInstancesForEnumAndList)
 import qualified Kernel.Storage.Beam.MerchantOperatingCity as Beam
