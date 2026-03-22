@@ -16,7 +16,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Beckn.City (City (..), initCityMaps, appendCityToStdCodeMap) where
+module Kernel.Types.Beckn.City (City (..), initCityMaps, appendCityToStdCodeMap, validateCityStdCodeMapping) where
 
 import Data.Aeson
 import Data.Aeson.Types
@@ -212,6 +212,21 @@ appendCityToStdCodeMap :: (MonadIO m) => Text -> Text -> m ()
 appendCityToStdCodeMap city stdCode = do
   void $ liftIO $ swapMVar cityToStdCodeMap (HM.insert city stdCode getCityToStdCodeMap)
   void $ liftIO $ swapMVar stdCodeToCityMap (HM.insert stdCode city getStdCodeToCityMap)
+
+-- | Validates that the city and stdCode are not already mapped to different values.
+-- Returns Nothing if valid, Just errorMessage if a conflicting mapping exists.
+validateCityStdCodeMapping :: (MonadIO m) => Text -> Text -> m (Maybe Text)
+validateCityStdCodeMapping city stdCode = do
+  let cityMap = getCityToStdCodeMap
+      reverseMap = getStdCodeToCityMap
+  case (HM.lookup city cityMap, HM.lookup stdCode reverseMap) of
+    (Just existingStdCode, _)
+      | existingStdCode /= stdCode ->
+          pure $ Just $ "City " <> city <> " is already mapped to stdCode " <> existingStdCode
+    (_, Just existingCity)
+      | existingCity /= city ->
+          pure $ Just $ "StdCode " <> stdCode <> " is already mapped to city " <> existingCity
+    _ -> pure Nothing
 
 instance FromJSON City where
   parseJSON (String s) = do
