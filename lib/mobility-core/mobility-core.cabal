@@ -88,6 +88,7 @@ library
       Kernel.External.Infobip.Types
       Kernel.External.Insurance.Acko.Flow
       Kernel.External.Insurance.Acko.Types
+      Kernel.External.Insurance.IffcoTokio.Config
       Kernel.External.Insurance.IffcoTokio.Flow
       Kernel.External.Insurance.IffcoTokio.Types
       Kernel.External.Insurance.Interface
