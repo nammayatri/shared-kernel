@@ -102,17 +102,17 @@ verifyRCAsync cfg req = do
 
 -- | Verify Driving License (DL) validity via the MoRTH Parivahan API.
 -- Sync API: returns immediately with DL validity info.
--- The caller must supply @applicantMobile@ in 'InterfaceTypes.VerifyDLAsyncReq' for MoRTH.
-verifyDLAsync ::
+-- The caller must supply @applicantMobile@ in 'InterfaceTypes.VerifyDLReq' for MoRTH.
+verifyDL ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r,
     MonadReader r m
   ) =>
   MorthVerificationCfg ->
-  InterfaceTypes.VerifyDLAsyncReq ->
-  m InterfaceTypes.VerifyDLAsyncResp
-verifyDLAsync cfg req = do
+  InterfaceTypes.VerifyDLReq ->
+  m InterfaceTypes.VerifyDLResp
+verifyDL cfg req = do
   let dobStr = pack (formatTime defaultTimeLocale "%F" req.dateOfBirth)
       morthReq =
         DrivingLicenseClassWiseValidityReq
@@ -131,7 +131,7 @@ verifyDLAsync cfg req = do
           response = dlResp
         }
   where
-    convertToDLVerificationResponse :: InterfaceTypes.VerifyDLAsyncReq -> DrivingLicenseClassWiseValidityResp -> InterfaceTypes.DLVerificationOutputInterface
+    convertToDLVerificationResponse :: InterfaceTypes.VerifyDLReq -> DrivingLicenseClassWiseValidityResp -> InterfaceTypes.DLVerificationOutputInterface
     convertToDLVerificationResponse reqInner DrivingLicenseClassWiseValidityResp {..} =
       let dataList = fromMaybe [] data_
           validityDates =

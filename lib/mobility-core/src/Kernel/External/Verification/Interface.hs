@@ -14,7 +14,7 @@
 
 module Kernel.External.Verification.Interface
   ( module Reexport,
-    verifyDLAsync,
+    verifyDL,
     verifyPanAsync,
     verifyGstAsync,
     verifyBankAccountAsync,
@@ -70,16 +70,16 @@ import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
 
-verifyDLAsync ::
+verifyDL ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r,
     MonadReader r m
   ) =>
   VerificationServiceConfig ->
-  VerifyDLAsyncReq ->
-  m VerifyDLAsyncResp
-verifyDLAsync serviceConfig req = case serviceConfig of
+  VerifyDLReq ->
+  m VerifyDLResp
+verifyDL serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyDLAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -87,7 +87,7 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.verifyDLAsync cfg req
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  MorthConfig cfg -> Morth.verifyDLAsync cfg req
+  MorthConfig cfg -> Morth.verifyDL cfg req
 
 verifyPanAsync ::
   ( EncFlow m r,
@@ -583,8 +583,8 @@ verifyDLMorth ::
     MonadReader r m
   ) =>
   VerificationServiceConfig ->
-  VerifyDLAsyncReq ->
-  m VerifyDLAsyncResp
+  VerifyDLReq ->
+  m VerifyDLResp
 verifyDLMorth serviceConfig req = case serviceConfig of
-  MorthConfig cfg -> Morth.verifyDLAsync cfg req
+  MorthConfig cfg -> Morth.verifyDL cfg req
   _ -> throwError $ InternalError "verifyDLMorth: MorthConfig expected but a different provider was supplied"

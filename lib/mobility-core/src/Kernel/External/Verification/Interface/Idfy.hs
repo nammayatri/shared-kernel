@@ -79,8 +79,8 @@ verifyDLAsync ::
     MonadReader r m
   ) =>
   IdfyCfg ->
-  VerifyDLAsyncReq ->
-  m VerifyDLAsyncResp
+  VerifyDLReq ->
+  m VerifyDLResp
 verifyDLAsync cfg req = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
