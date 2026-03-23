@@ -93,7 +93,7 @@ verifyDLAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyDLAsync apiKey accountId url idfyReq
-  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+  pure $ AsyncDLResp $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
 
 verifyPanAsync ::
   ( EncFlow m r,

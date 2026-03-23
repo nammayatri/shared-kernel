@@ -104,7 +104,7 @@ verifyDLAsync cfg req = do
           ..
         }
     makeDLResp :: (MonadThrow m, Log m) => HyperVergeTypes.HyperVergeDLVerificationResp -> m InterfaceTypes.VerifyDLAsyncResp
-    makeDLResp rsp@HyperVergeTypes.HyperVergeVerificationAsyncResp {..} = InterfaceTypes.VerifyAsyncResp <$> fromMaybeM (HVError $ "Could not find request id in a 200 response :" <> show rsp) (join (metaData <&> (.requestId))) <*> return VT.HyperVergeRCDL <*> return (join (metaData <&> (.transactionId)))
+    makeDLResp rsp@HyperVergeTypes.HyperVergeVerificationAsyncResp {..} = InterfaceTypes.AsyncDLResp <$> (InterfaceTypes.VerifyAsyncResp <$> fromMaybeM (HVError $ "Could not find request id in a 200 response :" <> show rsp) (join (metaData <&> (.requestId))) <*> return VT.HyperVergeRCDL <*> return (join (metaData <&> (.transactionId))))
 
 getVerificationStatus ::
   ( CoreMetrics m,

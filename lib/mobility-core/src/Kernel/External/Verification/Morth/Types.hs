@@ -119,3 +119,87 @@ vehicleBasicInfoRespOptions =
         "data_" -> "data"
         other -> other
     }
+
+-- ---------------------------------------------------------------------------
+-- Driving License validity API
+-- POST /dl/getDrivinglicenseValidityInfo
+-- ---------------------------------------------------------------------------
+
+data DrivingLicenseValidityReq = DrivingLicenseValidityReq
+  { drivingLicense :: Text,
+    applicantMobile :: Text,
+    dob :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data DrivingLicenseValidityData = DrivingLicenseValidityData
+  { dlvalidity :: Maybe Text,
+    dlUpto :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data DrivingLicenseValidityResp = DrivingLicenseValidityResp
+  { success :: Bool,
+    message :: Maybe Text,
+    statusCode :: Int,
+    data_ :: Maybe DrivingLicenseValidityData
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance FromJSON DrivingLicenseValidityResp where
+  parseJSON = genericParseJSON drivingLicenseValidityRespOptions
+
+instance ToJSON DrivingLicenseValidityResp where
+  toJSON = genericToJSON drivingLicenseValidityRespOptions
+
+drivingLicenseValidityRespOptions :: Options
+drivingLicenseValidityRespOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "data_" -> "data"
+        other -> other
+    }
+
+-- ---------------------------------------------------------------------------
+-- Driving License class-wise validity API
+-- POST /dl/getDrivinglicenseClassWiseValidity
+-- ---------------------------------------------------------------------------
+
+data DrivingLicenseClassWiseValidityReq = DrivingLicenseClassWiseValidityReq
+  { drivingLicense :: Text,
+    applicantMobile :: Text,
+    dob :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data DrivingLicenseClassWiseValidityData = DrivingLicenseClassWiseValidityData
+  { dlvehicleClass :: Maybe Text,
+    dlvalidityDate :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data DrivingLicenseClassWiseValidityResp = DrivingLicenseClassWiseValidityResp
+  { success :: Bool,
+    message :: Maybe Text,
+    statusCode :: Int,
+    data_ :: Maybe [DrivingLicenseClassWiseValidityData]
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance FromJSON DrivingLicenseClassWiseValidityResp where
+  parseJSON = genericParseJSON drivingLicenseClassWiseValidityRespOptions
+
+instance ToJSON DrivingLicenseClassWiseValidityResp where
+  toJSON = genericToJSON drivingLicenseClassWiseValidityRespOptions
+
+drivingLicenseClassWiseValidityRespOptions :: Options
+drivingLicenseClassWiseValidityRespOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "data_" -> "data"
+        other -> other
+    }

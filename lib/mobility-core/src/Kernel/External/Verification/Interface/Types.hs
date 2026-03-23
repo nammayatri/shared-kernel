@@ -44,7 +44,9 @@ data VerifyDLAsyncReq = VerifyDLAsyncReq
   { dlNumber :: Text,
     driverId :: Text,
     dateOfBirth :: UTCTime,
-    returnState :: Maybe Bool
+    returnState :: Maybe Bool,
+    -- | Applicant's mobile number (required for MoRTH DL verification)
+    applicantMobile :: Maybe Text
   }
   deriving stock (Show, Generic)
 
@@ -85,7 +87,26 @@ data VerifyUdyamAadhaarAsyncReq = VerifyUdyamAadhaarAsyncReq
   }
   deriving stock (Show, Generic)
 
-type VerifyDLAsyncResp = VerifyAsyncResp
+data VerifyDLSyncResp = VerifyDLSyncResp
+  { requestId :: Maybe Text,
+    requestor :: VT.VerificationService,
+    transactionId :: Maybe Text,
+    response :: DLVerificationOutputInterface
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data VerifyDLResp = AsyncDLResp VerifyAsyncResp | SyncDLResp VerifyDLSyncResp
+  deriving (Show, Generic)
+
+instance ToJSON VerifyDLResp where
+  toJSON (AsyncDLResp a) = toJSON a
+  toJSON (SyncDLResp s) = toJSON s
+
+instance FromJSON VerifyDLResp where
+  parseJSON v = (AsyncDLResp <$> parseJSON v) <|> (SyncDLResp <$> parseJSON v)
+
+type VerifyDLAsyncResp = VerifyDLResp
 
 type VerifyPanAsyncResp = VerifyAsyncResp
 
