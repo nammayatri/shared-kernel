@@ -40,7 +40,7 @@ newtype DriverBackgroundVerificationServiceConfig = SafetyPortalConfig SafetyPor
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
-data VerifyDLAsyncReq = VerifyDLAsyncReq
+data VerifyDLReq = VerifyDLReq
   { dlNumber :: Text,
     driverId :: Text,
     dateOfBirth :: UTCTime,

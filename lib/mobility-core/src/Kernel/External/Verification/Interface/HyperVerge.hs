@@ -89,21 +89,21 @@ verifyDLAsync ::
     MonadReader r m
   ) =>
   HyperVergeTypes.HyperVergeRCDLVerificationConfig ->
-  InterfaceTypes.VerifyDLAsyncReq ->
-  m InterfaceTypes.VerifyDLAsyncResp
+  InterfaceTypes.VerifyDLReq ->
+  m InterfaceTypes.VerifyDLResp
 verifyDLAsync cfg req = do
   transactionId <- liftIO UID.generateGUIDTextIO
   resp <- HyperVergeFlow.verifyDLAsync cfg transactionId $ makeHVDLAsyncReq req
   makeDLResp resp
   where
-    makeHVDLAsyncReq :: InterfaceTypes.VerifyDLAsyncReq -> HyperVergeTypes.HyperVergeDLVerificationReq
-    makeHVDLAsyncReq InterfaceTypes.VerifyDLAsyncReq {..} =
+    makeHVDLAsyncReq :: InterfaceTypes.VerifyDLReq -> HyperVergeTypes.HyperVergeDLVerificationReq
+    makeHVDLAsyncReq InterfaceTypes.VerifyDLReq {..} =
       HyperVergeTypes.HyperVergeDLVerificationReq
         { returnState = fromMaybe False returnState,
           dob = T.pack $ formatTime defaultTimeLocale "%d-%m-%Y" dateOfBirth,
           ..
         }
-    makeDLResp :: (MonadThrow m, Log m) => HyperVergeTypes.HyperVergeDLVerificationResp -> m InterfaceTypes.VerifyDLAsyncResp
+    makeDLResp :: (MonadThrow m, Log m) => HyperVergeTypes.HyperVergeDLVerificationResp -> m InterfaceTypes.VerifyDLResp
     makeDLResp rsp@HyperVergeTypes.HyperVergeVerificationAsyncResp {..} = InterfaceTypes.AsyncDLResp <$> (InterfaceTypes.VerifyAsyncResp <$> fromMaybeM (HVError $ "Could not find request id in a 200 response :" <> show rsp) (join (metaData <&> (.requestId))) <*> return VT.HyperVergeRCDL <*> return (join (metaData <&> (.transactionId))))
 
 getVerificationStatus ::
