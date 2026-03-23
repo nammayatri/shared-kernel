@@ -1,11 +1,13 @@
 module Kernel.External.Insurance.IffcoTokio.Flow where
 
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Text as DT
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
-import EulerHS.Types (EulerClient, client)
+import EulerHS.Types (EulerClient, ManagerSelector (..), client)
 import Kernel.External.Encryption
+import Kernel.External.Insurance.IffcoTokio.Config (iffcoTokioHttpManagerKey)
 import Kernel.External.Insurance.IffcoTokio.Types
 import Kernel.External.Insurance.Interface.Types (HomeDeclarationReq)
 import Kernel.Prelude
@@ -105,7 +107,7 @@ registerHomeDeclarationEither config req = do
           -- SOAPAction value includes surrounding double-quotes as per SOAP spec
           (Just "\"document/http://siebel.com/CustomUI:RegisterHomeDeclaration_New\"")
           soapBody
-  result <- callAPI baseUrl eulerClient "IFFCO-Tokio-register-home-declaration" (Proxy @RegisterHomeDeclarationAPI)
+  result <- callAPI' (Just $ ManagerSelector $ DT.pack iffcoTokioHttpManagerKey) baseUrl eulerClient "IFFCO-Tokio-register-home-declaration" (Proxy @RegisterHomeDeclarationAPI)
   return $ case result of
     Left err -> Left (T.pack (show err))
     Right resp -> Right resp

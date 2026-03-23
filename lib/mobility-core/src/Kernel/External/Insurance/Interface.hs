@@ -1,9 +1,11 @@
 module Kernel.External.Insurance.Interface
   ( module Reexport,
     module Kernel.External.Insurance.Interface,
+    prepareIffcoTokioHttpManager,
   )
 where
 
+import Kernel.External.Insurance.IffcoTokio.Config (prepareIffcoTokioHttpManager)
 import qualified Kernel.External.Insurance.IffcoTokio.Types as IffcoTokioTypes
 import qualified Kernel.External.Insurance.Interface.Acko as Acko
 import qualified Kernel.External.Insurance.Interface.IffcoTokio as IffcoTokio
