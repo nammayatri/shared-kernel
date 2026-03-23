@@ -20,7 +20,7 @@ import Kernel.External.Encryption
 import qualified Kernel.External.Verification.Morth.Types as MorthTypes
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Types.Error (ExternalAPICallError (..))
+import Kernel.Types.Error (ExternalAPICallError (..), GenericError (InternalError))
 import Kernel.Utils.Common
 import Servant hiding (throwError)
 import Servant.Client.Core (ClientError)
@@ -54,6 +54,36 @@ type GetVehicleBasicAPI =
 
 getVehicleBasicClient :: Maybe Text -> MorthTypes.VehicleBasicInfoReq -> EulerClient MorthTypes.VehicleBasicInfoResp
 getVehicleBasicClient = client (Proxy :: Proxy GetVehicleBasicAPI)
+
+-- ---------------------------------------------------------------------------
+-- Servant API definition
+-- POST /dl/getDrivinglicenseValidityInfo
+-- ---------------------------------------------------------------------------
+
+type GetDrivingLicenseValidityAPI =
+  "dl"
+    :> "getDrivinglicenseValidityInfo"
+    :> Header "X-API-Key" Text
+    :> ReqBody '[JSON] MorthTypes.DrivingLicenseValidityReq
+    :> Post '[JSON] MorthTypes.DrivingLicenseValidityResp
+
+getDrivingLicenseValidityClient :: Maybe Text -> MorthTypes.DrivingLicenseValidityReq -> EulerClient MorthTypes.DrivingLicenseValidityResp
+getDrivingLicenseValidityClient = client (Proxy :: Proxy GetDrivingLicenseValidityAPI)
+
+-- ---------------------------------------------------------------------------
+-- Servant API definition
+-- POST /dl/getDrivinglicenseClassWiseValidity
+-- ---------------------------------------------------------------------------
+
+type GetDrivingLicenseClassWiseValidityAPI =
+  "dl"
+    :> "getDrivinglicenseClassWiseValidity"
+    :> Header "X-API-Key" Text
+    :> ReqBody '[JSON] MorthTypes.DrivingLicenseClassWiseValidityReq
+    :> Post '[JSON] MorthTypes.DrivingLicenseClassWiseValidityResp
+
+getDrivingLicenseClassWiseValidityClient :: Maybe Text -> MorthTypes.DrivingLicenseClassWiseValidityReq -> EulerClient MorthTypes.DrivingLicenseClassWiseValidityResp
+getDrivingLicenseClassWiseValidityClient = client (Proxy :: Proxy GetDrivingLicenseClassWiseValidityAPI)
 
 -- ---------------------------------------------------------------------------
 -- High-level call
@@ -96,6 +126,48 @@ getVehicleBasicInfo cfg req = do
     >>= checkVehicleBasicResponse cfg.url
 
 -- ---------------------------------------------------------------------------
+-- High-level call: getDrivingLicenseValidityInfo
+-- ---------------------------------------------------------------------------
+
+getDrivingLicenseValidityInfo ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  MorthTypes.MorthVerificationCfg ->
+  MorthTypes.DrivingLicenseValidityReq ->
+  m MorthTypes.DrivingLicenseValidityResp
+getDrivingLicenseValidityInfo cfg req = do
+  apiKey <- decrypt cfg.apiKey
+  callAPI' Nothing cfg.url (getDrivingLicenseValidityClient (Just apiKey) req) "MORTH-GET_DRIVING_LICENSE_VALIDITY_INFO" (Proxy @GetDrivingLicenseValidityAPI)
+    >>= checkDrivingLicenseValidityResponse cfg.url
+
+-- ---------------------------------------------------------------------------
+-- High-level call: getDrivinglicenseClassWiseValidity
+-- ---------------------------------------------------------------------------
+
+getDrivinglicenseClassWiseValidity ::
+  ( HasCallStack,
+    Log m,
+    MonadFlow m,
+    CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  MorthTypes.MorthVerificationCfg ->
+  MorthTypes.DrivingLicenseClassWiseValidityReq ->
+  m MorthTypes.DrivingLicenseClassWiseValidityResp
+getDrivinglicenseClassWiseValidity cfg req = do
+  apiKey <- decrypt cfg.apiKey
+  logDebug $ "MoRTH getDrivinglicenseClassWiseValidity request: " <> encodeToText req
+  callAPI' Nothing cfg.url (getDrivingLicenseClassWiseValidityClient (Just apiKey) req) "MORTH-GET_DRIVING_LICENSE_CLASS_WISE_VALIDITY" (Proxy @GetDrivingLicenseClassWiseValidityAPI)
+    >>= checkDrivingLicenseClassWiseValidityResponse cfg.url
+
+-- ---------------------------------------------------------------------------
 -- Response validation helpers
 -- ---------------------------------------------------------------------------
 
@@ -129,6 +201,42 @@ checkVehicleBasicResponse url resp =
 validateVehicleBasicResponse :: (MonadThrow m, Log m) => MorthTypes.VehicleBasicInfoResp -> m MorthTypes.VehicleBasicInfoResp
 validateVehicleBasicResponse resp = do
   logDebug $ "MoRTH Vehicle Basic Info Response: " <> show resp
+  pure resp
+
+checkDrivingLicenseValidityResponse ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  BaseUrl ->
+  Either ClientError MorthTypes.DrivingLicenseValidityResp ->
+  m MorthTypes.DrivingLicenseValidityResp
+checkDrivingLicenseValidityResponse url resp =
+  fromEitherM (morthError url) resp >>= validateDrivingLicenseValidityResponse
+
+validateDrivingLicenseValidityResponse :: (MonadThrow m, Log m) => MorthTypes.DrivingLicenseValidityResp -> m MorthTypes.DrivingLicenseValidityResp
+validateDrivingLicenseValidityResponse resp = do
+  logDebug $ "MoRTH Driving License Validity Response: " <> show resp
+  when (resp.statusCode /= 200) $
+    throwError $ InternalError $ "DL verification failed: statusCode " <> show resp.statusCode <> maybe "" (": " <>) resp.message
+  pure resp
+
+checkDrivingLicenseClassWiseValidityResponse ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  BaseUrl ->
+  Either ClientError MorthTypes.DrivingLicenseClassWiseValidityResp ->
+  m MorthTypes.DrivingLicenseClassWiseValidityResp
+checkDrivingLicenseClassWiseValidityResponse url resp =
+  fromEitherM (morthError url) resp >>= validateDrivingLicenseClassWiseValidityResponse
+
+validateDrivingLicenseClassWiseValidityResponse :: (MonadThrow m, Log m) => MorthTypes.DrivingLicenseClassWiseValidityResp -> m MorthTypes.DrivingLicenseClassWiseValidityResp
+validateDrivingLicenseClassWiseValidityResponse resp = do
+  logDebug $ "MoRTH Driving License Class Wise Validity Response: " <> show resp
+  when (resp.statusCode /= 200) $
+    throwError $ InternalError $ "DL class-wise verification failed: statusCode " <> show resp.statusCode <> maybe "" (": " <>) resp.message
   pure resp
 
 morthError :: BaseUrl -> ClientError -> ExternalAPICallError

@@ -14,7 +14,11 @@
 
 module Kernel.External.Verification.Interface.Morth where
 
+import Data.Text (pack)
+import qualified Data.Text as T
+import Data.Time.Format (defaultTimeLocale, formatTime)
 import Kernel.External.Encryption
+import qualified Kernel.External.Verification.Idfy.Types.Response as IdfyTypes
 import qualified Kernel.External.Verification.Interface.Types as InterfaceTypes
 import qualified Kernel.External.Verification.Morth.Flow as MorthFlow
 import Kernel.External.Verification.Morth.Types
@@ -95,3 +99,67 @@ verifyRCAsync cfg req = do
           grossVehicleWeight = Nothing,
           unladdenWeight = Nothing
         }
+
+-- | Verify Driving License (DL) validity via the MoRTH Parivahan API.
+-- Sync API: returns immediately with DL validity info.
+-- The caller must supply @applicantMobile@ in 'InterfaceTypes.VerifyDLAsyncReq' for MoRTH.
+verifyDLAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  MorthVerificationCfg ->
+  InterfaceTypes.VerifyDLAsyncReq ->
+  m InterfaceTypes.VerifyDLAsyncResp
+verifyDLAsync cfg req = do
+  let dobStr = pack (formatTime defaultTimeLocale "%F" req.dateOfBirth)
+      morthReq =
+        DrivingLicenseClassWiseValidityReq
+          { drivingLicense = req.dlNumber,
+            applicantMobile = cfg.applicantMobile,
+            dob = dobStr
+          }
+  resp <- MorthFlow.getDrivinglicenseClassWiseValidity cfg morthReq
+  let dlResp = convertToDLVerificationResponse req resp
+  return $
+    InterfaceTypes.SyncDLResp
+      InterfaceTypes.VerifyDLSyncResp
+        { requestId = Nothing,
+          requestor = VT.Morth,
+          transactionId = Nothing,
+          response = dlResp
+        }
+  where
+    convertToDLVerificationResponse :: InterfaceTypes.VerifyDLAsyncReq -> DrivingLicenseClassWiseValidityResp -> InterfaceTypes.DLVerificationOutputInterface
+    convertToDLVerificationResponse reqInner DrivingLicenseClassWiseValidityResp {..} =
+      let dataList = fromMaybe [] data_
+          validityDates =
+            dataList
+              <&> (.dlvalidityDate)
+              & catMaybes
+              & map T.strip
+              & filter (\txt -> not (T.null txt) && T.toLower txt /= "not available")
+          covDetails =
+            dataList
+              <&> \dlClassWiseData ->
+                IdfyTypes.CovDetail
+                  { category = dlClassWiseData.dlvehicleClass,
+                    cov = fromMaybe "" dlClassWiseData.dlvehicleClass,
+                    issue_date = dlClassWiseData.dlvalidityDate
+                  }
+          latestValidityDate = foldl' (\acc dt -> Just $ maybe dt (max dt) acc) Nothing validityDates
+          dlStatus = Just $ if null validityDates then "INVALID" else "VALID"
+       in InterfaceTypes.DLVerificationOutputInterface
+            { driverName = Nothing,
+              dob = Just $ pack (formatTime defaultTimeLocale "%F" reqInner.dateOfBirth),
+              licenseNumber = Just reqInner.dlNumber,
+              nt_validity_from = Nothing,
+              nt_validity_to = latestValidityDate,
+              t_validity_from = Nothing,
+              t_validity_to = latestValidityDate,
+              covs = Just covDetails,
+              status = dlStatus,
+              dateOfIssue = Nothing,
+              message = message
+            }

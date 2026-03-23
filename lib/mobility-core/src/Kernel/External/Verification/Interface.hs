@@ -40,6 +40,7 @@ module Kernel.External.Verification.Interface
     fetchAndExtractVerifiedAadhaar,
     getVerifiedAadhaarXML,
     verifyRCMorth,
+    verifyDLMorth,
   )
 where
 
@@ -86,7 +87,7 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.verifyDLAsync cfg req
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig cfg -> Morth.verifyDLAsync cfg req
 
 verifyPanAsync ::
   ( EncFlow m r,
@@ -571,3 +572,19 @@ verifyRCMorth ::
 verifyRCMorth serviceConfig req = case serviceConfig of
   MorthConfig cfg -> Morth.verifyRCAsync cfg req
   _ -> throwError $ InternalError "verifyRCMorth: MorthConfig expected but a different provider was supplied"
+
+-- | Dedicated entry-point for the MoRTH Driving License validity check.
+-- Accepts a 'MorthConfig' directly so callers do not need to wire it through
+-- the generic verifyDLAsync dispatch.
+verifyDLMorth ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyDLAsyncReq ->
+  m VerifyDLAsyncResp
+verifyDLMorth serviceConfig req = case serviceConfig of
+  MorthConfig cfg -> Morth.verifyDLAsync cfg req
+  _ -> throwError $ InternalError "verifyDLMorth: MorthConfig expected but a different provider was supplied"
