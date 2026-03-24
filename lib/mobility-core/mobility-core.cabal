@@ -343,6 +343,7 @@ library
       Kernel.External.Verification.InternalScripts.Error
       Kernel.External.Verification.InternalScripts.FaceVerification
       Kernel.External.Verification.InternalScripts.Types
+      Kernel.External.Verification.Morth.Config
       Kernel.External.Verification.Morth.Flow
       Kernel.External.Verification.Morth.Types
       Kernel.External.Verification.SafetyPortal.API
