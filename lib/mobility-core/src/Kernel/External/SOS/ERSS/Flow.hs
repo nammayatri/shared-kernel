@@ -38,19 +38,19 @@ import Kernel.Utils.Common
 
 -- | Validate ERSS API response envelope.
 -- C-DAC APIs may return HTTP 200 with resultCode "OPERATION_FAILURE" in the body.
--- This function checks the resultCode and throws an appropriate ERSSError
--- if the operation was not successful, ensuring consistent error handling
--- regardless of whether the failure comes as an HTTP error or API-level error.
+-- On failure, logs the full ERSS error body under ERSS_API_ALL_ERROR and returns
+-- the response with errorMsg enriched with all available server-sent details,
+-- so callers receive a uniform response type without exception handling.
 validateERSSResponse ::
   (MonadFlow m) =>
   Text ->
   ERSSApiResponse a ->
   m (ERSSApiResponse a)
-validateERSSResponse _apiName res
+validateERSSResponse apiName res
   | isERSSSuccess res = pure res
   | otherwise = do
-    let errMsg = fromMaybe "Unknown error" res.errorMsg
-    throwM $ ERSSOperationFailure errMsg
+    let detailedMsg = buildErrorMsg apiName res
+    pure res {errorMsg = Just detailedMsg}
 
 -- | Send Initial SOS Signal to C-DAC ERSS
 sendInitialSOS ::
