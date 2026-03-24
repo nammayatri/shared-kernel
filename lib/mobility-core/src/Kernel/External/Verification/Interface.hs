@@ -41,6 +41,7 @@ module Kernel.External.Verification.Interface
     getVerifiedAadhaarXML,
     verifyRCMorth,
     verifyDLMorth,
+    prepareMorthHttpManager,
   )
 where
 
@@ -63,6 +64,7 @@ import qualified Kernel.External.Verification.Interface.SafetyPortal as SafetyPo
 import qualified Kernel.External.Verification.Interface.Tten as Tten
 import Kernel.External.Verification.Interface.Types as Reexport
 import Kernel.External.Verification.InternalScripts.Types
+import Kernel.External.Verification.Morth.Config (prepareMorthHttpManager)
 import Kernel.External.Verification.SafetyPortal.Types
 import Kernel.External.Verification.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics.Types

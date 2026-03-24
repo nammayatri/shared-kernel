@@ -15,8 +15,10 @@
 
 module Kernel.External.Verification.Morth.Flow where
 
-import EulerHS.Types (EulerClient, client)
+import qualified Data.Text as DT
+import EulerHS.Types (EulerClient, ManagerSelector (..), client)
 import Kernel.External.Encryption
+import Kernel.External.Verification.Morth.Config (morthHttpManagerKey)
 import qualified Kernel.External.Verification.Morth.Types as MorthTypes
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -102,7 +104,7 @@ getVehicleValidityInfo ::
   m MorthTypes.VehicleValidityResp
 getVehicleValidityInfo cfg req = do
   apiKey <- decrypt cfg.apiKey
-  callAPI' Nothing cfg.url (getVehicleValidityClient (Just apiKey) req) "MORTH-GET_VEHICLE_VALIDITY_INFO" (Proxy @GetVehicleValidityAPI)
+  callAPI' (Just $ ManagerSelector $ DT.pack morthHttpManagerKey) cfg.url (getVehicleValidityClient (Just apiKey) req) "MORTH-GET_VEHICLE_VALIDITY_INFO" (Proxy @GetVehicleValidityAPI)
     >>= checkVehicleValidityResponse cfg.url
 
 -- ---------------------------------------------------------------------------
@@ -122,7 +124,7 @@ getVehicleBasicInfo ::
   m MorthTypes.VehicleBasicInfoResp
 getVehicleBasicInfo cfg req = do
   apiKey <- decrypt cfg.apiKey
-  callAPI' Nothing cfg.url (getVehicleBasicClient (Just apiKey) req) "MORTH-GET_VEHICLE_BASIC_INFO" (Proxy @GetVehicleBasicAPI)
+  callAPI' (Just $ ManagerSelector $ DT.pack morthHttpManagerKey) cfg.url (getVehicleBasicClient (Just apiKey) req) "MORTH-GET_VEHICLE_BASIC_INFO" (Proxy @GetVehicleBasicAPI)
     >>= checkVehicleBasicResponse cfg.url
 
 -- ---------------------------------------------------------------------------
