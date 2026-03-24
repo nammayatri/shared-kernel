@@ -241,6 +241,16 @@ instance ToJSON ERSSError where
 isERSSSuccess :: ERSSApiResponse a -> Bool
 isERSSSuccess res = res.resultCode == "OPERATION_SUCCESS"
 
+buildErrorMsg :: Text -> ERSSApiResponse a -> Text
+buildErrorMsg apiName res =
+  "[" <> apiName <> "]"
+    <> " resultCode="
+    <> res.resultCode
+    <> maybe "" (" resultString=" <>) res.resultString
+    <> " errorMsg="
+    <> fromMaybe "Unknown error" res.errorMsg
+    <> maybe "" (" message=" <>) res.message
+
 -- | Bearer token for Authorization header
 newtype ERSSAuthToken = ERSSAuthToken Text
   deriving (Show, Eq, Generic)
