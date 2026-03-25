@@ -801,3 +801,71 @@ type CancelRefundResp = GetRefundResp
 derivePersistField "RefundStatus"
 
 $(mkBeamInstancesForEnum ''RefundStatus)
+
+-- | Unified payment creation request. Works for both Juspay (createOrder) and Stripe (createPaymentIntent).
+--   Gateway-specific fields are optional; the routing function ignores irrelevant fields.
+data CreatePaymentReq = CreatePaymentReq
+  { amount :: HighPrecMoney,
+    currency :: Currency,
+    customerId :: Text,
+    customerEmail :: Text,
+    customerPhone :: Text,
+    customerFirstName :: Maybe Text,
+    customerLastName :: Maybe Text,
+    orderShortId :: Text,
+    -- Stripe-specific
+    paymentMethodId :: Maybe PaymentMethodId,
+    driverAccountId :: Maybe AccountId,
+    applicationFeeAmount :: Maybe HighPrecMoney,
+    receiptEmail :: Maybe Text,
+    -- Juspay-specific
+    splitSettlementDetails :: Maybe SplitSettlementDetails,
+    createMandate :: Maybe MandateType,
+    mandateMaxAmount :: Maybe HighPrecMoney,
+    mandateFrequency :: Maybe MandateFrequency,
+    mandateStartDate :: Maybe Text,
+    mandateEndDate :: Maybe Text,
+    metadataGatewayReferenceId :: Maybe Text,
+    optionsGetUpiDeepLinks :: Maybe Bool,
+    metadataExpiryInMins :: Maybe Int,
+    basket :: Maybe [Basket]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- | Unified payment creation response.
+data CreatePaymentResp = CreatePaymentResp
+  { paymentServiceOrderId :: Text, -- Stripe: pi_xxx, Juspay: order_id
+    clientSecret :: Text, -- Stripe: client_secret, Juspay: encrypted sdk_payload
+    status :: TransactionStatus,
+    sdkPayload :: Maybe Value, -- Juspay SDK payload (Nothing for Stripe)
+    paymentLinks :: Maybe PaymentLinks -- Juspay payment links (Nothing for Stripe)
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- | Unified refund request. Works for both Juspay (autoRefunds) and Stripe (createRefund).
+data RefundPaymentReq = RefundPaymentReq
+  { orderId :: Text,
+    orderShortId :: Text,
+    refundsId :: Text,
+    amount :: Maybe HighPrecMoney,
+    -- Stripe-specific
+    paymentIntentId :: Maybe PaymentIntentId,
+    driverAccountId :: Maybe AccountId,
+    email :: Maybe Text,
+    -- Juspay-specific
+    splitSettlementDetails :: Maybe RefundSplitSettlementDetails
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- | Unified refund response.
+data RefundPaymentResp = RefundPaymentResp
+  { refundId :: Text,
+    status :: RefundStatus,
+    errorCode :: Maybe Text,
+    errorMessage :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)

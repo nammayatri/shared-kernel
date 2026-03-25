@@ -17,6 +17,7 @@ module Kernel.External.Payment.Interface
   )
 where
 
+import qualified Data.Aeson as A
 import qualified Kernel.External.Payment.Interface.Juspay as Juspay
 import qualified Kernel.External.Payment.Interface.PaytmEDC as PaytmEDC
 import qualified Kernel.External.Payment.Interface.Stripe as Stripe
@@ -40,7 +41,7 @@ createOrder ::
   m CreateOrderResp
 createOrder serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> do
-    let req' = req {metadataGatewayReferenceId = cfg.gatewayReferenceId}
+    let req' = (req :: CreateOrderReq) {metadataGatewayReferenceId = cfg.gatewayReferenceId}
     Juspay.createOrder cfg mRoutingId req'
   StripeConfig _ -> throwError $ InternalError "Stripe Create Order not supported."
   PaytmEDCConfig cfg -> PaytmEDC.createOrder cfg mRoutingId req
@@ -511,3 +512,182 @@ offerSKUConfig = \case
   JuspayConfig cfg -> cfg.offerSKUConfig
   StripeConfig _ -> Nothing
   PaytmEDCConfig _ -> Nothing
+
+-- | Unified payment creation. Routes to Juspay createOrder or Stripe createPaymentIntent
+--   based on PaymentServiceConfig. Domain code calls this single function.
+createPayment ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PaymentServiceConfig ->
+  Maybe Text ->
+  CreatePaymentReq ->
+  m CreatePaymentResp
+createPayment serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> do
+    let juspayReq =
+          CreateOrderReq
+            { orderId = req.orderShortId, -- Juspay uses orderShortId as orderId in their system
+              orderShortId = req.orderShortId,
+              amount = req.amount,
+              customerId = req.customerId,
+              customerEmail = req.customerEmail,
+              customerPhone = req.customerPhone,
+              customerFirstName = req.customerFirstName,
+              customerLastName = req.customerLastName,
+              createMandate = req.createMandate,
+              mandateMaxAmount = req.mandateMaxAmount,
+              mandateFrequency = req.mandateFrequency,
+              mandateStartDate = req.mandateStartDate,
+              mandateEndDate = req.mandateEndDate,
+              metadataGatewayReferenceId = cfg.gatewayReferenceId,
+              optionsGetUpiDeepLinks = req.optionsGetUpiDeepLinks,
+              metadataExpiryInMins = req.metadataExpiryInMins,
+              splitSettlementDetails = req.splitSettlementDetails,
+              basket = req.basket
+            }
+    resp <- Juspay.createOrder cfg mRoutingId juspayReq
+    let clientSecret' = maybe "" (\p -> p.payload.clientAuthToken) (Just resp.sdk_payload)
+    pure
+      CreatePaymentResp
+        { paymentServiceOrderId = resp.id,
+          clientSecret = clientSecret',
+          status = resp.status,
+          sdkPayload = Just (A.toJSON resp.sdk_payload),
+          paymentLinks = resp.payment_links
+        }
+  StripeConfig cfg -> do
+    paymentMethod <- req.paymentMethodId & fromMaybeM (InternalError "paymentMethodId required for Stripe")
+    driverAccount <- req.driverAccountId & fromMaybeM (InternalError "driverAccountId required for Stripe")
+    let stripeReq =
+          CreatePaymentIntentReq
+            { orderShortId = req.orderShortId,
+              amount = req.amount,
+              applicationFeeAmount = fromMaybe 0 req.applicationFeeAmount,
+              currency = req.currency,
+              customer = req.customerId,
+              paymentMethod = paymentMethod,
+              receiptEmail = req.receiptEmail,
+              driverAccountId = driverAccount
+            }
+    resp <- Stripe.createPaymentIntent cfg stripeReq
+    pure
+      CreatePaymentResp
+        { paymentServiceOrderId = resp.paymentIntentId,
+          clientSecret = resp.clientSecret,
+          status = castToTransactionStatus resp.status,
+          sdkPayload = Nothing,
+          paymentLinks = Nothing
+        }
+  PaytmEDCConfig cfg -> do
+    let paytmReq =
+          CreateOrderReq
+            { orderId = req.orderShortId,
+              orderShortId = req.orderShortId,
+              amount = req.amount,
+              customerId = req.customerId,
+              customerEmail = req.customerEmail,
+              customerPhone = req.customerPhone,
+              customerFirstName = req.customerFirstName,
+              customerLastName = req.customerLastName,
+              createMandate = req.createMandate,
+              mandateMaxAmount = req.mandateMaxAmount,
+              mandateFrequency = req.mandateFrequency,
+              mandateStartDate = req.mandateStartDate,
+              mandateEndDate = req.mandateEndDate,
+              metadataGatewayReferenceId = req.metadataGatewayReferenceId,
+              optionsGetUpiDeepLinks = req.optionsGetUpiDeepLinks,
+              metadataExpiryInMins = req.metadataExpiryInMins,
+              splitSettlementDetails = req.splitSettlementDetails,
+              basket = req.basket
+            }
+    resp <- PaytmEDC.createOrder cfg mRoutingId paytmReq
+    let clientSecret' = maybe "" (\p -> p.payload.clientAuthToken) (Just resp.sdk_payload)
+    pure
+      CreatePaymentResp
+        { paymentServiceOrderId = resp.id,
+          clientSecret = clientSecret',
+          status = resp.status,
+          sdkPayload = Just (A.toJSON resp.sdk_payload),
+          paymentLinks = resp.payment_links
+        }
+
+-- | Unified refund creation. Routes to Juspay autoRefunds or Stripe createRefund
+--   based on PaymentServiceConfig.
+refundPayment ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PaymentServiceConfig ->
+  Maybe Text ->
+  RefundPaymentReq ->
+  m RefundPaymentResp
+refundPayment serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> do
+    let juspayReq =
+          AutoRefundReq
+            { orderId = req.orderShortId,
+              requestId = req.refundsId,
+              amount = fromMaybe 0 req.amount,
+              splitSettlementDetails = req.splitSettlementDetails
+            }
+    resp <- Juspay.autoRefund cfg mRoutingId juspayReq
+    let firstRefund = listToMaybe resp.refunds
+    pure
+      RefundPaymentResp
+        { refundId = req.refundsId,
+          status = maybe REFUND_PENDING (.status) firstRefund,
+          errorCode = firstRefund >>= (.errorCode),
+          errorMessage = firstRefund >>= (.errorMessage)
+        }
+  StripeConfig cfg -> do
+    paymentIntentId' <- req.paymentIntentId & fromMaybeM (InternalError "paymentIntentId required for Stripe refund")
+    driverAccount <- req.driverAccountId & fromMaybeM (InternalError "driverAccountId required for Stripe refund")
+    let stripeReq =
+          CreateRefundReq
+            { orderShortId = req.orderShortId,
+              orderId = req.orderId,
+              refundsId = req.refundsId,
+              paymentIntentId = paymentIntentId',
+              amount = req.amount,
+              refundApplicationFee = False,
+              driverAccountId = driverAccount,
+              email = req.email
+            }
+    resp <- Stripe.createRefund cfg stripeReq
+    pure
+      RefundPaymentResp
+        { refundId = resp.id.getRefundId,
+          status = resp.status,
+          errorCode = resp.errorCode,
+          errorMessage = Nothing
+        }
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Refund not supported."
+
+-- | Unified refund status check. For Stripe: calls GET /v1/refunds/:id.
+--   For Juspay: refund status comes via orderStatus webhook — not a separate call.
+getRefundStatus ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PaymentServiceConfig ->
+  GetRefundReq ->
+  m RefundPaymentResp
+getRefundStatus serviceConfig req = case serviceConfig of
+  JuspayConfig _ -> throwError $ InternalError "Juspay getRefundStatus not supported — refund status comes via orderStatus webhook."
+  StripeConfig cfg -> do
+    resp <- Stripe.getRefund cfg req
+    pure
+      RefundPaymentResp
+        { refundId = resp.id.getRefundId,
+          status = resp.status,
+          errorCode = resp.errorCode,
+          errorMessage = Nothing
+        }
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC getRefundStatus not supported."
