@@ -84,9 +84,8 @@ pointCloseByOrWithin (lon, lat) radius = unsafeSqlFunction "st_Dwithin" args
 containsPoint :: (Double, Double) -> SqlExpr (Value b)
 containsPoint (lon, lat) = unsafeSqlFunction "st_contains" args
   where
-    args = (unsafeSqlValue "geom", geomFromText pointText)
-    geomFromText = unsafeSqlFunction "ST_GeomFromText"
-    pointText = val ("POINT (" <> show lon <> " " <> show lat <> ")") :: SqlExpr (Value Text)
+    args = (setSRID (unsafeSqlValue "geom", val (4326 :: Int)), getPoint (val lat, val lon))
+    setSRID = unsafeSqlFunction "ST_SetSRID"
 
 containsPointGeom :: (Double, Double) -> SqlExpr (Value b)
 containsPointGeom (lon, lat) = unsafeSqlFunction "st_contains" args
