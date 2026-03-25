@@ -35,24 +35,30 @@ verifyRC req = do
   res <- QGD.findByRCNumber req.rcNumber >>= fromMaybeM (InternalError "rcNumber is not found in GovtData.")
   pure $
     SyncResp
-      VT.RCVerificationResponse
-        { registrationDate = Nothing,
-          registrationNumber = res.registrationNumber,
-          fitnessUpto = res.permitValidityUpto,
-          insuranceValidity = res.permitValidityUpto,
-          vehicleClass = res.bodyType,
-          vehicleCategory = Nothing,
-          seatingCapacity = toJSON <$> res.seatingCapacity,
-          manufacturer = res.manufacturer,
-          permitValidityFrom = res.permitValidityFrom,
-          permitValidityUpto = res.permitValidityUpto,
-          pucValidityUpto = Nothing,
-          manufacturerModel = res.manufacturerModel,
-          mYManufacturing = Nothing,
-          color = Nothing,
-          fuelType = res.fuelType,
-          bodyType = res.bodyType,
-          status = Nothing,
-          grossVehicleWeight = Nothing,
-          unladdenWeight = Nothing
+      VerifySyncResp
+        { requestId = Nothing,
+          requestor = VT.GovtData,
+          transactionId = Nothing,
+          response =
+            VT.RCVerificationResponse
+              { registrationDate = Nothing,
+                registrationNumber = res.registrationNumber,
+                fitnessUpto = res.permitValidityUpto,
+                insuranceValidity = res.permitValidityUpto,
+                vehicleClass = res.bodyType,
+                vehicleCategory = Nothing,
+                seatingCapacity = toJSON <$> res.seatingCapacity,
+                manufacturer = res.manufacturer,
+                permitValidityFrom = res.permitValidityFrom,
+                permitValidityUpto = res.permitValidityUpto,
+                pucValidityUpto = Nothing,
+                manufacturerModel = res.manufacturerModel,
+                mYManufacturing = Nothing,
+                color = Nothing,
+                fuelType = res.fuelType,
+                bodyType = res.bodyType,
+                status = Nothing,
+                grossVehicleWeight = Nothing,
+                unladdenWeight = Nothing
+              }
         }

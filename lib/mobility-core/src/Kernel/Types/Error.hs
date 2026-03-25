@@ -1004,8 +1004,8 @@ instance IsBaseError ExotelError where
     ExotelBadRequest -> Just "Something in your header or request body was malformed."
     ExotelUnauthorized -> Just "Necessary credentials were either missing or invalid."
     ExitelPaymentRequired -> Just "The action is not available on your plan, or you have exceeded usage limits for your current plan."
-    ExotelAccessDenied -> Just "Your credentials are valid, but you don’t have access to the requested resource."
-    ExotelNotFound -> Just "The object you’re requesting doesn’t exist."
+    ExotelAccessDenied -> Just "Your credentials are valid, but you don't have access to the requested resource."
+    ExotelNotFound -> Just "The object you're requesting doesn't exist."
     ExotelConflict -> Just "You might be trying to update the same resource concurrently."
     ExotelTooManyRequests -> Just "You are calling our APIs more frequently than we allow."
     ExotelServerError -> Just "Something went wrong on our end. Please try again."
@@ -1189,8 +1189,8 @@ instance IsBaseError IdfyCallError where
   toMessage = \case
     IdfyBadRequest -> Just "Something in your header or request body was malformed."
     IdfyUnauthorized -> Just "Necessary credentials were either missing or invalid."
-    IdfyAccessDenied -> Just "Your credentials are valid, but you don’t have access to the requested resource."
-    IdfyNotFound -> Just "The object you’re requesting doesn’t exist."
+    IdfyAccessDenied -> Just "Your credentials are valid, but you don't have access to the requested resource."
+    IdfyNotFound -> Just "The object you're requesting doesn't exist."
     IdfySizeLimit -> Just "You might be trying to update the same resource concurrently."
     IdfyUnprocessableEntity -> Just "Unprocessable Entity"
     IdfyTooManyRequests -> Just "You are calling our APIs more frequently than we allow."
@@ -1250,7 +1250,7 @@ instance IsBaseError MMIError where
   toMessage = \case
     MMINotConfigured -> Just "MMI env variables aren't properly set."
     MMIBadRequest -> Just "Bad request; User made an error while creating a valid request."
-    MMIUnauthorized -> Just "Unauthorized, either clientID doesn’t exist or an invalid clientSecret is provided."
+    MMIUnauthorized -> Just "Unauthorized, either clientID doesn't exist or an invalid clientSecret is provided."
     MMIForbidden -> Just "Forbidden."
     MMIUnderMaintenance -> Just "Maintenance break."
     MMIDBConnectionError -> Just "DB Connection error"
@@ -1823,6 +1823,29 @@ instance FromResponse KarixWhatsappError where
     _ -> Just KarixWhatsappNotConfigured
 
 instance IsAPIError KarixWhatsappError
+
+data MorthError
+  = MorthEngineNumberRequired
+  | MorthChassisNumberRequired
+  | MorthEngineAndChassisNumberRequired
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''MorthError
+
+instance IsBaseError MorthError where
+  toMessage = \case
+    MorthEngineNumberRequired -> Just "engineNumber is required for MoRTH RC verification."
+    MorthChassisNumberRequired -> Just "chassisNumber is required for MoRTH RC verification."
+    MorthEngineAndChassisNumberRequired -> Just "engineNumber and chassisNumber are required for MoRTH RC verification."
+
+instance IsHTTPError MorthError where
+  toErrorCode = \case
+    MorthEngineNumberRequired -> "ENGINE_NUMBER_REQUIRED"
+    MorthChassisNumberRequired -> "CHASSIS_NUMBER_REQUIRED"
+    MorthEngineAndChassisNumberRequired -> "ENGINE_NUMBER_AND_CHASSIS_NUMBER_REQUIRED"
+  toHttpCode _ = E400
+
+instance IsAPIError MorthError
 
 instance ToJSON ClientError where
   toJSON = DA.String . show

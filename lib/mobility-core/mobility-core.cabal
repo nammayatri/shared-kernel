@@ -290,12 +290,16 @@ library
       Kernel.External.Verification.Interface.HyperVerge
       Kernel.External.Verification.Interface.Idfy
       Kernel.External.Verification.Interface.InternalScripts
+      Kernel.External.Verification.Interface.Morth
       Kernel.External.Verification.Interface.SafetyPortal
       Kernel.External.Verification.Interface.Tten
       Kernel.External.Verification.Interface.Types
       Kernel.External.Verification.InternalScripts.Error
       Kernel.External.Verification.InternalScripts.FaceVerification
       Kernel.External.Verification.InternalScripts.Types
+      Kernel.External.Verification.Morth.Config
+      Kernel.External.Verification.Morth.Flow
+      Kernel.External.Verification.Morth.Types
       Kernel.External.Verification.SafetyPortal.API
       Kernel.External.Verification.SafetyPortal.Client
       Kernel.External.Verification.SafetyPortal.Config

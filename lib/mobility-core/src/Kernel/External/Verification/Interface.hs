@@ -14,7 +14,7 @@
 
 module Kernel.External.Verification.Interface
   ( module Reexport,
-    verifyDLAsync,
+    verifyDL,
     verifyRC,
     validateImage,
     extractRCImage,
@@ -33,6 +33,9 @@ module Kernel.External.Verification.Interface
     fetchAndExtractVerifiedPan,
     fetchAndExtractVerifiedAadhaar,
     getVerifiedAadhaarXML,
+    verifyRCMorth,
+    verifyDLMorth,
+    prepareMorthHttpManager,
   )
 where
 
@@ -50,10 +53,12 @@ import qualified Kernel.External.Verification.Interface.Digilocker as DigiLocker
 import qualified Kernel.External.Verification.Interface.HyperVerge as HyperVerge
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
+import qualified Kernel.External.Verification.Interface.Morth as Morth
 import qualified Kernel.External.Verification.Interface.SafetyPortal as SafetyPortal
 import qualified Kernel.External.Verification.Interface.Tten as Tten
 import Kernel.External.Verification.Interface.Types as Reexport
 import Kernel.External.Verification.InternalScripts.Types
+import Kernel.External.Verification.Morth.Config (prepareMorthHttpManager)
 import Kernel.External.Verification.SafetyPortal.Types
 import Kernel.External.Verification.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics.Types
@@ -61,16 +66,16 @@ import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
 
-verifyDLAsync ::
+verifyDL ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r,
     MonadReader r m
   ) =>
   VerificationServiceConfig ->
-  VerifyDLAsyncReq ->
-  m VerifyDLAsyncResp
-verifyDLAsync serviceConfig req = case serviceConfig of
+  VerifyDLReq ->
+  m VerifyDLResp
+verifyDL serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyDLAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -78,6 +83,7 @@ verifyDLAsync serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.verifyDLAsync cfg req
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig cfg -> Morth.verifyDL cfg req
 
 verifyRC ::
   ( EncFlow m r,
@@ -97,11 +103,16 @@ verifyRC getServiceConfig verificationProvidersPriorityList req = do
   where
     verifyRCWithFallback [] = throwError $ InternalError "Not able to verify the RC with all the configured providers !!!!!"
     verifyRCWithFallback (preferredProvider : restProviders) = do
-      logDebug $ "Calling verifyRC for provider : " <> show preferredProvider
-      result <- withTryCatch "verifyRC" $ getServiceConfig preferredProvider >>= flip verifyRC' req
-      case result of
-        Left _ -> verifyRCWithFallback restProviders
-        Right res -> return $ RCRespWithRemPriorityList res restProviders
+      -- Morth requires engineNumber; skip to next provider if missing, Case case is when UI is not 100% released
+      let skipMorth = preferredProvider == Morth && isNothing req.engineNumber
+      if skipMorth
+        then verifyRCWithFallback restProviders
+        else do
+          logDebug $ "Calling verifyRC for provider : " <> show preferredProvider
+          result <- withTryCatch "verifyRC" $ getServiceConfig preferredProvider >>= flip verifyRC' req
+          case result of
+            Left _ -> verifyRCWithFallback restProviders
+            Right res -> return $ RCRespWithRemPriorityList res restProviders
 
 verifyRC' ::
   ( EncFlow m r,
@@ -122,6 +133,7 @@ verifyRC' serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.verifyRCAsync cfg req
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig cfg -> Tten.verifyTten cfg req
+  MorthConfig cfg -> Morth.verifyRCAsync cfg req
 
 validateImage ::
   ( EncFlow m r,
@@ -140,6 +152,7 @@ validateImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateFaceImage ::
   ( CoreMetrics m,
@@ -158,6 +171,7 @@ validateFaceImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractRCImage ::
   ( EncFlow m r,
@@ -176,6 +190,7 @@ extractRCImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
   ( EncFlow m r,
@@ -194,6 +209,7 @@ extractDLImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractPanImage ::
   ( EncFlow m r,
@@ -212,6 +228,7 @@ extractPanImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractGSTImage ::
   ( EncFlow m r,
@@ -230,6 +247,7 @@ extractGSTImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractAadhaarImage ::
   ( EncFlow m r,
@@ -248,6 +266,7 @@ extractAadhaarImage serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 nameCompare ::
   ( EncFlow m r,
@@ -266,6 +285,7 @@ nameCompare serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 searchAgent ::
   ( EncFlow m r,
@@ -296,6 +316,7 @@ verifySdkResp serviceConfig req = case serviceConfig of
   HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 getTask ::
   ( EncFlow m r,
@@ -315,6 +336,7 @@ getTask serviceConfig req updateResp = case serviceConfig of
   HyperVergeVerificationConfigRCDL cfg -> HyperVerge.getVerificationStatus cfg req updateResp
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 fetchAndExtractVerifiedDL ::
   ( EncFlow m r,
@@ -411,3 +433,36 @@ getVerifiedAadhaarXML ::
 getVerifiedAadhaarXML serviceConfig req = case serviceConfig of
   DigiLockerConfig cfg -> DigiLocker.getVerifiedAadhaarXML cfg req.accessToken
   _ -> throwError $ InternalError "Not Implemented!"
+
+-- | Dedicated entry-point for the MoRTH vehicle-RC validity check.
+-- Unlike the generic 'verifyRC' / 'verifyRC'' dispatch this function accepts
+-- a 'MorthConfig' directly so callers do not need to wire it through the
+-- priority-list mechanism.
+verifyRCMorth ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyRCReq ->
+  m VerifyRCResp
+verifyRCMorth serviceConfig req = case serviceConfig of
+  MorthConfig cfg -> Morth.verifyRCAsync cfg req
+  _ -> throwError $ InternalError "verifyRCMorth: MorthConfig expected but a different provider was supplied"
+
+-- | Dedicated entry-point for the MoRTH Driving License validity check.
+-- Accepts a 'MorthConfig' directly so callers do not need to wire it through
+-- the generic verifyDLAsync dispatch.
+verifyDLMorth ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyDLReq ->
+  m VerifyDLResp
+verifyDLMorth serviceConfig req = case serviceConfig of
+  MorthConfig cfg -> Morth.verifyDL cfg req
+  _ -> throwError $ InternalError "verifyDLMorth: MorthConfig expected but a different provider was supplied"

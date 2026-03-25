@@ -67,8 +67,8 @@ verifyDLAsync ::
     MonadReader r m
   ) =>
   IdfyCfg ->
-  VerifyDLAsyncReq ->
-  m VerifyDLAsyncResp
+  VerifyDLReq ->
+  m VerifyDLResp
 verifyDLAsync cfg req = do
   let url = cfg.url
   apiKey <- decrypt cfg.apiKey
@@ -81,7 +81,7 @@ verifyDLAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyDLAsync apiKey accountId url idfyReq
-  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+  pure $ AsyncDLResp $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
 
 verifyRCAsync ::
   ( EncFlow m r,
@@ -198,8 +198,22 @@ extractRCImage cfg req = do
   pure
     ExtractRCImageResp
       { extractedRC =
-          resp.result <&> \result -> do
-            ExtractedRC {rcNumber = result.extraction_output.registration_number}
+          resp.result <&> \result ->
+            let eo = result.extraction_output
+             in ExtractedRC
+                  { rcNumber = eo.registration_number,
+                    vehicleClass = eo._class,
+                    manufacturer = eo.manufacturer,
+                    model = eo.model,
+                    fuelType = eo.fuel,
+                    colour = eo.colour,
+                    chassisNumber = eo.chassis_number,
+                    engineNumber = eo.engine_number,
+                    registrationDate = eo.registration_date,
+                    ownerName = eo.owner_name,
+                    manufacturingDate = eo.manufacturing_date,
+                    bodyType = eo.body
+                  }
       }
 
 extractDLImage ::
