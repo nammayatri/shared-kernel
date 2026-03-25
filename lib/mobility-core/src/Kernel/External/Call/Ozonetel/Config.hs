@@ -28,6 +28,8 @@ data OzonetelCfg = OzonetelCfg
     userName :: Text,
     campaignName :: Text,
     checkDuplicate :: Bool,
+    expiryTime :: Maybe Text,
+    sosCampaignName :: Maybe Text,
     action :: Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
