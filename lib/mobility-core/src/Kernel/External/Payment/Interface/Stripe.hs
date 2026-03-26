@@ -5,6 +5,7 @@ module Kernel.External.Payment.Interface.Stripe
 where
 
 import Control.Applicative ((<|>))
+import qualified Data.Text as T
 import Data.Time
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Kernel.External.Encryption
@@ -35,6 +36,8 @@ createIndividualConnectAccount ::
 createIndividualConnectAccount config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "createIndividualConnectAccount" apiKeyServiceMode config.serviceMode
   let accountReq = mkAccountReq
   accountResp <- Stripe.createAccount url apiKey accountReq
   let accountId = accountResp.id
@@ -125,6 +128,8 @@ retryAccountLink ::
 retryAccountLink config accountId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "retryAccountLink" apiKeyServiceMode config.serviceMode
   let accountLinkReq = mkAccountLinkReq config accountId
   accountLinkResp <- Stripe.createAccountLink url apiKey accountLinkReq
   let accountUrlExpiry = posixSecondsToUTCTime accountLinkResp.expires_at
@@ -143,6 +148,8 @@ getAccount ::
 getAccount config accountId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "getAccount" apiKeyServiceMode config.serviceMode
   accountResp <- Stripe.getAccount url apiKey accountId
   let chargesEnabled = accountResp.charges_enabled
   let detailsSubmitted = accountResp.details_submitted
@@ -160,11 +167,14 @@ createCustomer ::
 createCustomer config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "createCustomer" apiKeyServiceMode config.serviceMode
   let customerReq = mkCustomerReq req
   customerResp <- Stripe.createCustomer url apiKey customerReq
   let customerId = customerResp.id
-  let clientAuthToken = Nothing
-  let clientAuthTokenExpiry = Nothing
+      clientAuthToken = Nothing
+      clientAuthTokenExpiry = Nothing
+      isLiveMode = customerResp.livemode
   return $ CreateCustomerResp {..}
   where
     mkCustomerReq :: CreateCustomerReq -> Stripe.CustomerReq
@@ -177,6 +187,26 @@ createCustomer config req = do
           phone = phone
         }
 
+getCustomer ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeCfg ->
+  CustomerId ->
+  m CreateCustomerResp
+getCustomer config customerId = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "getCustomer" apiKeyServiceMode config.serviceMode
+  customerResp <- Stripe.getCustomer url apiKey customerId
+  let clientAuthToken = Nothing
+      clientAuthTokenExpiry = Nothing
+      isLiveMode = customerResp.livemode
+  return $ CreateCustomerResp {customerId = customerResp.id, ..}
+
 createEphemeralKeys ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
@@ -185,13 +215,19 @@ createEphemeralKeys ::
   ) =>
   StripeCfg ->
   CustomerId ->
-  m Text
+  m CreateEphemeralKeysResp
 createEphemeralKeys config customerId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "createEphemeralKeys" apiKeyServiceMode config.serviceMode
   let ephemeralKeysReq = Stripe.EphemeralKeysReq {customer = customerId}
   ephemeralKeysResp <- Stripe.createEphemeralKeys url apiKey ephemeralKeysReq
-  return ephemeralKeysResp.secret
+  return
+    CreateEphemeralKeysResp
+      { ephemeralKeySecret = ephemeralKeysResp.secret,
+        isLiveMode = ephemeralKeysResp.livemode
+      }
 
 getCardList ::
   ( Metrics.CoreMetrics m,
@@ -205,6 +241,8 @@ getCardList ::
 getCardList config customerId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "getCardList" apiKeyServiceMode config.serviceMode
   paymentMethodListResp <- Stripe.getPaymentMethodList url apiKey customerId
   let cards = map mkCard paymentMethodListResp._data
   return cards
@@ -232,6 +270,8 @@ deleteCard ::
 deleteCard config paymentMethodId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "deleteCard" apiKeyServiceMode config.serviceMode
   void $ Stripe.detachPaymentMethod url apiKey paymentMethodId
 
 createPaymentIntent ::
@@ -246,6 +286,8 @@ createPaymentIntent ::
 createPaymentIntent config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "createPaymentIntent" apiKeyServiceMode config.serviceMode
   case config.chargeDestination of
     -- Platform receives payment, transfers to driver (Destination Charges)
     Platform -> createPlatformCharge url apiKey req
@@ -323,11 +365,14 @@ createSetupIntent ::
 createSetupIntent config customerId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "createSetupIntent" apiKeyServiceMode config.serviceMode
   let setupIntentReq = mkSetupIntentReq
   setupIntentResp <- Stripe.createSetupIntent url apiKey setupIntentReq
   let setupIntentId = setupIntentResp.id
-  let clientSecret = setupIntentResp.client_secret
-  let status = setupIntentResp.status
+      clientSecret = setupIntentResp.client_secret
+      status = setupIntentResp.status
+      isLiveMode = setupIntentResp.livemode
   return $ CreateSetupIntentResp {..}
   where
     mkSetupIntentReq :: Stripe.SetupIntentReq
@@ -353,6 +398,8 @@ cancelPaymentIntent ::
 cancelPaymentIntent config paymentIntentId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "cancelPaymentIntent" apiKeyServiceMode config.serviceMode
   paymentIntentResp <- Stripe.cancelPaymentIntent url apiKey paymentIntentId
   let clientSecret = paymentIntentResp.client_secret
   let status = paymentIntentResp.status
@@ -371,6 +418,8 @@ updatePaymentMethodInIntent ::
 updatePaymentMethodInIntent config paymentIntentId paymentMethodId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "updatePaymentMethodInIntent" apiKeyServiceMode config.serviceMode
   let confirmPaymentIntentReq = Stripe.ConfirmPaymentIntentReq {payment_method = paymentMethodId}
   void $ Stripe.confirmPaymentIntent url apiKey paymentIntentId confirmPaymentIntentReq
 
@@ -387,6 +436,8 @@ getCard ::
 getCard config paymentMethodId customerId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "getCard" apiKeyServiceMode config.serviceMode
   cardObjectResp <- Stripe.getCard url apiKey customerId paymentMethodId
   let card = mkCard cardObjectResp
   return card
@@ -414,6 +465,8 @@ getPaymentIntent ::
 getPaymentIntent config paymentIntentId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "getPaymentIntent" apiKeyServiceMode config.serviceMode
   paymentIntentResp <- Stripe.getPaymentIntent url apiKey paymentIntentId
   let clientSecret = paymentIntentResp.client_secret
   let status = paymentIntentResp.status
@@ -433,6 +486,8 @@ capturePaymentIntent ::
 capturePaymentIntent config paymentIntentId amount applicationFeeAmount = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "capturePaymentIntent" apiKeyServiceMode config.serviceMode
   let amount_to_capture = usdToCents amount
   let application_fee_amount = usdToCents applicationFeeAmount
   let req = Stripe.CapturePaymentIntentReq {..}
@@ -452,6 +507,8 @@ updateAmountInPaymentIntent ::
 updateAmountInPaymentIntent config paymentIntentId amount_ applicationFeeAmount = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "updateAmountInPaymentIntent" apiKeyServiceMode config.serviceMode
   let amount = usdToCents amount_
   let application_fee_amount = usdToCents applicationFeeAmount
   let req = Stripe.IncrementAuthorizationReq {..}
@@ -649,6 +706,8 @@ createRefund ::
 createRefund config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "createRefund" apiKeyServiceMode config.serviceMode
   case config.chargeDestination of
     -- Platform receives payment, transfers to driver (Destination Charges)
     Platform -> createPlatformRefund url apiKey
@@ -702,6 +761,8 @@ getRefund ::
 getRefund config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "getRefund" apiKeyServiceMode config.serviceMode
   case config.chargeDestination of
     Platform -> mkGetRefundResp <$> Stripe.getRefund url apiKey Nothing req.id
     ConnectedAccount -> mkGetRefundResp <$> Stripe.getRefund url apiKey (Just req.driverAccountId) req.id
@@ -718,6 +779,8 @@ cancelRefund ::
 cancelRefund config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
+  let apiKeyServiceMode = getServiceModeFromApiKey apiKey
+  logServiceModeMismatch "cancelRefund" apiKeyServiceMode config.serviceMode
   case config.chargeDestination of
     Platform -> mkGetRefundResp <$> Stripe.cancelRefund url apiKey Nothing req.id
     ConnectedAccount -> mkGetRefundResp <$> Stripe.cancelRefund url apiKey (Just req.driverAccountId) req.id
@@ -736,3 +799,35 @@ mkGetRefundResp Stripe.RefundObject {..} =
       reverseTransferId = transfer_reversal,
       errorCode = failure_reason
     }
+
+-- Debug payment mode mistmatch (do not expose any credentials)
+logServiceModeMismatch ::
+  Log m =>
+  Text ->
+  Maybe ServiceMode ->
+  Maybe ServiceMode ->
+  m ()
+logServiceModeMismatch action apiKeyServiceMode cfgServiceMode = do
+  if (Just (fromMaybe Live cfgServiceMode) == apiKeyServiceMode)
+    then do
+      logInfo $
+        "Stripe service api call:"
+          <> action
+          <> "; service mode: "
+          <> show apiKeyServiceMode
+    else do
+      logWarning $
+        "Payment mode mismatch while Stripe service api call: "
+          <> action
+          <> "; api key service mode: "
+          <> show apiKeyServiceMode
+          <> "; cfg service mode: "
+          <> show cfgServiceMode
+
+getServiceModeFromApiKey :: Text -> Maybe ServiceMode
+getServiceModeFromApiKey apiKey
+  | "sk_live_" `T.isPrefixOf` apiKey = Just Live
+  | "sk_test_" `T.isPrefixOf` apiKey = Just Test
+  | "rk_live_" `T.isPrefixOf` apiKey = Just Live -- restricted key
+  | "rk_test_" `T.isPrefixOf` apiKey = Just Test -- restricted key
+  | otherwise = Nothing

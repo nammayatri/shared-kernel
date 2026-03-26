@@ -679,10 +679,16 @@ data CreateCustomerReq = CreateCustomerReq
 data CreateCustomerResp = CreateCustomerResp
   { customerId :: CustomerId,
     clientAuthToken :: Maybe Text,
-    clientAuthTokenExpiry :: Maybe UTCTime
+    clientAuthTokenExpiry :: Maybe UTCTime,
+    isLiveMode :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CreateEphemeralKeysResp = CreateEphemeralKeysResp
+  { ephemeralKeySecret :: Text,
+    isLiveMode :: Maybe Bool
+  }
 
 data OrderUpdateReq = OrderUpdateReq
   { amount :: HighPrecMoney,
@@ -723,7 +729,8 @@ data CreatePaymentIntentResp = CreatePaymentIntentResp
 data CreateSetupIntentResp = CreateSetupIntentResp
   { setupIntentId :: SetupIntentId,
     clientSecret :: Text,
-    status :: PaymentIntentStatus
+    status :: PaymentIntentStatus,
+    isLiveMode :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

@@ -58,7 +58,8 @@ data SetupIntentObject = SetupIntentObject
     confirm :: Maybe Bool,
     customer :: Maybe CustomerId,
     description :: Maybe Text,
-    payment_method :: Maybe Text
+    payment_method :: Maybe Text,
+    livemode :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

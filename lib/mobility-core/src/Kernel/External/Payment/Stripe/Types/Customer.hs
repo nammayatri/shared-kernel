@@ -70,7 +70,8 @@ data CustomerObject = CustomerObject
     email :: Maybe Text,
     name :: Maybe Text,
     default_source :: Maybe Text,
-    phone :: Maybe Text
+    phone :: Maybe Text,
+    livemode :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -83,8 +84,9 @@ newtype EphemeralKeysReq = EphemeralKeysReq
 
 instance ToForm EphemeralKeysReq
 
-newtype EphemeralKeysResp = EphemeralKeysResp
-  { secret :: Text
+data EphemeralKeysResp = EphemeralKeysResp
+  { secret :: Text,
+    livemode :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

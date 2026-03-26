@@ -263,7 +263,7 @@ getCustomer ::
   m CreateCustomerResp
 getCustomer config customerId = case config of
   JuspayConfig cfg -> Juspay.getCustomer cfg customerId
-  StripeConfig _ -> throwError $ InternalError "Stripe Get Customer not supported."
+  StripeConfig cfg -> Stripe.getCustomer cfg customerId
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Get Customer not supported."
 
 createEphemeralKeys ::
@@ -274,7 +274,7 @@ createEphemeralKeys ::
   ) =>
   PaymentServiceConfig ->
   CustomerId ->
-  m Text
+  m CreateEphemeralKeysResp
 createEphemeralKeys config customerId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Ephemeral Keys not supported."
   StripeConfig cfg -> Stripe.createEphemeralKeys cfg customerId
