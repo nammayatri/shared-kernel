@@ -87,8 +87,20 @@ data Location = Location
 data UpdateTicketReq = UpdateTicketReq
   { comment :: Text,
     ticketId :: Text,
-    subStatus :: SubStatus
+    subStatus :: SubStatus,
+    rideDescription :: Maybe RideInfo,
+    issueDetails :: Maybe UpdateIssueDetails
   }
+
+data UpdateIssueDetails = UpdateIssueDetails
+  { issueDescription :: Maybe Text,
+    issueId :: Maybe Text,
+    mediaFiles :: Maybe [Text],
+    subCategory :: Maybe Text,
+    vehicleCategory :: Maybe Text,
+    category :: Maybe Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data SubStatus = OP | IN | RS | PE | CL | CRS
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)

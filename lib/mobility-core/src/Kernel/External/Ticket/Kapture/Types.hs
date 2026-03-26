@@ -48,11 +48,26 @@ instance ToJSON CreateTicketReq where
 data UpdateTicketReq = UpdateTicketReq
   { comment :: Text,
     ticket_id :: Text,
-    sub_status :: Text
+    sub_status :: Text,
+    rideDetails :: Maybe RideInfo,
+    issueDetails :: Maybe UpdateIssueDetails
   }
   deriving stock (Show, Eq, Generic)
 
 instance ToJSON UpdateTicketReq where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+data UpdateIssueDetails = UpdateIssueDetails
+  { issueDescription :: Maybe Text,
+    issueId :: Maybe Text,
+    mediaFiles :: Maybe [Text],
+    subCategory :: Maybe Text,
+    vehicleCategory :: Maybe Text,
+    category :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON UpdateIssueDetails where
   toJSON = genericToJSON constructorsWithSnakeCase
 
 data IssueDetails = IssueDetails
