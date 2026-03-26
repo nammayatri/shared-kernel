@@ -137,6 +137,7 @@ data Category
   | DRIVER_INSPECTION
   | VEHICLE_INSPECTION
   | FEEDBACK_BADGE_PN
+  | PICKUP_ZONE_REQUEST
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

@@ -176,6 +176,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.DRIVER_INSPECTION -> FCM.DRIVER_INSPECTION
   Interface.VEHICLE_INSPECTION -> FCM.VEHICLE_INSPECTION
   Interface.FEEDBACK_BADGE_PN -> FCM.FEEDBACK_BADGE_PN
+  Interface.PICKUP_ZONE_REQUEST -> FCM.PICKUP_ZONE_REQUEST
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
