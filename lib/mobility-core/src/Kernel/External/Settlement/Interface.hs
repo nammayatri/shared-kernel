@@ -16,17 +16,27 @@ module Kernel.External.Settlement.Interface
   ( module Reexport,
     parsePaymentSettlementCsv,
     parsePayoutSettlementCsv,
+    fetchSettlementCsv,
+    fetchAndParsePaymentSettlement,
+    fetchAndParsePayoutSettlement,
   )
 where
 
 import qualified Data.ByteString.Lazy as LBS
+import Kernel.External.Encryption
 import qualified Kernel.External.Settlement.BillDesk.PaymentParser as BillDeskPayment
 import qualified Kernel.External.Settlement.HyperPG.PaymentParser as HyperPGPayment
 import qualified Kernel.External.Settlement.HyperPG.PayoutParser as HyperPGPayout
 import Kernel.External.Settlement.Interface.Types as Reexport
+import qualified Kernel.External.Settlement.Sources.Email as EmailSource
+import qualified Kernel.External.Settlement.Sources.SFTP as SFTPSource
 import Kernel.External.Settlement.Types as Reexport
+import Kernel.Prelude
 
--- | Parse a payment settlement CSV based on the service provider.
+-- ---------------------------------------------------------------------------
+-- Pure parsers (CSV ByteString → ParseResult)
+-- ---------------------------------------------------------------------------
+
 parsePaymentSettlementCsv ::
   SettlementService ->
   LBS.ByteString ->
@@ -35,7 +45,6 @@ parsePaymentSettlementCsv service csvData = case service of
   HyperPG -> HyperPGPayment.parseHyperPGCsv csvData
   BillDesk -> BillDeskPayment.parseBillDeskCsv csvData
 
--- | Parse a payout settlement CSV based on the service provider.
 parsePayoutSettlementCsv ::
   SettlementService ->
   LBS.ByteString ->
@@ -43,3 +52,41 @@ parsePayoutSettlementCsv ::
 parsePayoutSettlementCsv service csvData = case service of
   HyperPG -> HyperPGPayout.parseHyperPGPayoutCsv csvData
   BillDesk -> ParseResult [] 0 0 ["Payout parsing not supported for BillDesk"]
+
+-- ---------------------------------------------------------------------------
+-- Source fetch (Email / SFTP → CSV ByteString)
+-- ---------------------------------------------------------------------------
+
+-- | Fetch CSV data from the configured source (Email or SFTP).
+fetchSettlementCsv ::
+  (EncFlow m r, MonadIO m) =>
+  SettlementSourceConfig ->
+  m (Either Text LBS.ByteString)
+fetchSettlementCsv (EmailSourceConfig emailCfg) =
+  EmailSource.fetchSettlementFile emailCfg
+fetchSettlementCsv (SFTPSourceConfig sftpCfg filePattern) =
+  SFTPSource.fetchSettlementFile sftpCfg filePattern
+
+-- ---------------------------------------------------------------------------
+-- End-to-end: fetch from source + parse
+-- ---------------------------------------------------------------------------
+
+-- | Fetch CSV from source and parse as a payment settlement report.
+fetchAndParsePaymentSettlement ::
+  (EncFlow m r, MonadIO m) =>
+  SettlementSourceConfig ->
+  SettlementService ->
+  m (Either Text ParsePaymentSettlementResult)
+fetchAndParsePaymentSettlement sourceConfig service = do
+  csvResult <- fetchSettlementCsv sourceConfig
+  pure $ parsePaymentSettlementCsv service <$> csvResult
+
+-- | Fetch CSV from source and parse as a payout settlement report.
+fetchAndParsePayoutSettlement ::
+  (EncFlow m r, MonadIO m) =>
+  SettlementSourceConfig ->
+  SettlementService ->
+  m (Either Text ParsePayoutSettlementResult)
+fetchAndParsePayoutSettlement sourceConfig service = do
+  csvResult <- fetchSettlementCsv sourceConfig
+  pure $ parsePayoutSettlementCsv service <$> csvResult

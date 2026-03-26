@@ -6,11 +6,13 @@ build-type:    Simple
 executable test-settlement-parser
   main-is:          Main.hs
   other-modules:
-    -- Shims (lightweight replacements for mobility-core internals)
+    -- Shims: lightweight stand-ins for mobility-core internals whose real
+    -- modules pull in Nix-only packages (euler-hs, passetto, beam, universum, etc.)
       Kernel.Prelude
     , Kernel.Prelude.OrphanInstances
     , Kernel.Types.Common
-    -- Real Settlement modules from mobility-core
+    , Kernel.External.Encryption
+    -- Real Settlement modules compiled from mobility-core
     , Kernel.External.Settlement.Types
     , Kernel.External.Settlement.Interface
     , Kernel.External.Settlement.Interface.Types
@@ -20,8 +22,8 @@ executable test-settlement-parser
     , Kernel.External.Settlement.HyperPG.PaymentParser
     , Kernel.External.Settlement.HyperPG.PayoutTypes
     , Kernel.External.Settlement.HyperPG.PayoutParser
-    , Kernel.External.Settlement.Sources.SFTP
     , Kernel.External.Settlement.Sources.Email
+    , Kernel.External.Settlement.Sources.SFTP
   hs-source-dirs:
       src
     , shims
@@ -52,10 +54,12 @@ executable test-settlement-parser
   build-depends:
       base >= 4.7 && < 5
     , aeson
+    , base64-bytestring
     , bytestring
     , cassava
     , directory
     , filepath
+    , process
     , text
     , time
     , vector
