@@ -28,7 +28,8 @@ data OzonetelCfg = OzonetelCfg
     userName :: Text,
     campaignName :: Text,
     checkDuplicate :: Bool,
-    expiryTime :: Maybe Text,
+    fromTime :: Maybe Text,
+    toTime :: Maybe Text,
     sosCampaignName :: Maybe Text,
     action :: Text
   }
