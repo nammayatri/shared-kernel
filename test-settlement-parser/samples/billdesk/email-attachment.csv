@@ -1,0 +1,20 @@
+,,,,,,,,,,,,,,,,,,
+SETTLED TRANSACTIONS,,,,,,,,,,,,,,,,,,
+Biller Id,Bank Id,Bank Ref. No.,PGI Ref. No.,Ref. 1,Ref. 2,Ref. 3,Ref. 4,Ref. 5,Ref. 6,Ref. 7,Ref. 8,Filler,Date of Txn,Settlement Date,Gross Amount(Rs.Ps),Charges (Rs.Ps),GST (Rs Ps),Net Amount(Rs.Ps)
+metropol_de6c3402,sid-1494266c37744e84a5ea2a178c667d61,YESAP60685556165,HYPERPG,cumta-j6HeABSyfz-1,,,,,,,,,2026-03-07 21:54:23 UTC,2026-03-07 21:54:23 UTC,35,0,0,35
+,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+REFUND TRANSACTIONS,,,,,,,,,,,,,,,,,,
+Biller Id,Bank Id,Bank Ref. No.,PGI Ref. No.,Ref. 1,Ref. 2,Ref. 3,Ref. 4,Ref. 5,Ref. 6,Ref. 7,Ref. 8,Filler,Date of Transaction,Settlement Date,Gross Amount(Rs.Ps),Refund ID,Refund Date,Refund Amount (Rs. Ps.)
+metropol_de6c3403,sid-1494266c37744e84a5ea2a178c667d62,YESAP60685556166,HYPERPG,cumta-j6HeABSyfa-1,,,,,,,,,2026-03-07 21:54:23 UTC,2026-03-07 11:54:23 UTC,45,0,0,45
+CHARGEBACK TRANSACTIONS,,,,,,,,,,,,,,,,,,
+Biller Id,Bank Id,Bank Ref. No.,PGI Ref. No.,Ref. 1,Ref. 2,Ref. 3,Ref. 4,Ref. 5,Ref. 6,Ref. 7,Ref. 8,Filler,Date of Transaction,Settlement Date,Gross Amount(Rs.Ps),Chargeback Reason,Chargeback date,Chargeback Amount (Rs Ps)
+metropol_ae6c3403,sid-1494266c37744e84a5ea2a178c667d62,YESAP70685556166,HYPERPG,cumta-k6HeABSyfa-1,,,,,,,,,2026-03-07 21:54:23 UTC,2026-03-07 11:54:23 UTC,35,0,0,35
+Notes,,,,,,,,,,,,,,,,,,
+PV Number is generated for all such reports for the day -- YYYYMMDD<Serial Number for the Report>,,,,,,,,,,,,,,,,,,
+Net Credit - Settled Transactions - Refund Transactions - Chargeback Transactions,,,,,,,,,,,,,,,,,,
+Settled Transactions -- order based on the transaction timestamp [descending order],,,,,,,,,,,,,,,,,,
+Refund Transactions -- order based on the refund timestamp [descending order],,,,,,,,,,,,,,,,,,
+Chargeback Transactions -- order based on the chargeback timestamp [descending order],,,,,,,,,,,,,,,,,,
+"Please store the gross amount, charges amount, tds amount, net amount fields in the system",,,,,,,,,,,,,,,,,,
+"Filler -- remains NA if there is no update done as per Settlement File Upload, else it will display the Filler field",,,,,,,,,,,,,,,,,,

@@ -2,10 +2,14 @@ module Main where
 
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Char as Char
-import Data.List (isSuffixOf)
+import Data.List (find, isSuffixOf)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
+import Kernel.External.Encryption (Encrypted (..))
 import Kernel.External.Settlement.Interface
+import Kernel.External.Settlement.Sources.Email (fetchSettlementFileDebugRaw, fetchSettlementFileWithPlainPassword)
+import Kernel.External.Settlement.Types (EmailConfig (..))
 import Kernel.Prelude
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, listDirectory)
 import System.Environment (getArgs)
@@ -16,6 +20,12 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
+    ["email", pgStr, user, pass] -> do
+      pg <- parsePG pgStr
+      testEmailFetch pg user pass Nothing
+    ["email", pgStr, user, pass, subj] -> do
+      pg <- parsePG pgStr
+      testEmailFetch pg user pass (Just subj)
     [pgStr, _listOrType] -> do
       pg <- parsePG pgStr
       listSamples pg
@@ -47,6 +57,67 @@ main = do
               liftIO $ TIO.putStrLn "Unknown report type. Use 'payment' or 'payout'."
               liftIO exitFailure
     _ -> usage
+
+testEmailFetch :: SettlementService -> String -> String -> Maybe String -> IO ()
+testEmailFetch pg user pass mbSubj = do
+  let pgDir = pgDirName pg
+      samplesDir = "samples" </> pgDir
+      outDir = "output" </> pgDir
+  liftIO $ createDirectoryIfMissing True samplesDir
+  liftIO $ createDirectoryIfMissing True outDir
+  liftIO $ TIO.putStrLn $ "Connecting to IMAP server (imap.gmail.com:993) for " <> T.pack pgDir <> " ..."
+  let emailConfig =
+        EmailConfig
+          { imapHost = "imap.gmail.com",
+            imapPort = 993,
+            username = T.pack user,
+            password = Encrypted (T.pack pass), -- dummy, not used
+            folderName = "INBOX",
+            subjectFilter = T.pack <$> mbSubj
+          }
+  -- Always dump raw MIME for debugging
+  liftIO $ TIO.putStrLn "Fetching raw MIME..."
+  debugResult <- fetchSettlementFileDebugRaw emailConfig (T.pack pass)
+  case debugResult of
+    Nothing -> liftIO $ TIO.putStrLn "(no matching email found — it may already be read/SEEN)"
+    Just rawMime -> do
+      let debugPath = outDir </> "debug-raw-mime.txt"
+      liftIO $ TIO.writeFile debugPath rawMime
+      liftIO $ TIO.putStrLn $ "Raw MIME dumped to " <> T.pack debugPath <> " (" <> show (T.length rawMime) <> " chars)"
+  -- Now try the actual parse
+  result <- fetchSettlementFileWithPlainPassword emailConfig (T.pack pass)
+  case result of
+    Left err -> do
+      liftIO $ TIO.putStrLn $ "Parse error: " <> err
+      liftIO exitFailure
+    Right csvBytes -> do
+      let csvFileName = extractAttachmentName debugResult
+          csvPath = samplesDir </> csvFileName
+          parsedPath = outDir </> csvFileName <> ".parsed.txt"
+      -- Save downloaded CSV to samples/<pg>/
+      liftIO $ LBS.writeFile csvPath csvBytes
+      liftIO $ TIO.putStrLn $ "CSV saved to: " <> T.pack csvPath <> " (" <> show (LBS.length csvBytes) <> " bytes)"
+      if LBS.length csvBytes == 0
+        then liftIO $ TIO.putStrLn "WARNING: extracted CSV is 0 bytes — check debug-raw-mime.txt"
+        else do
+          -- Parse and save to output/<pg>/
+          let parseResult = parsePaymentSettlementCsv pg csvBytes
+          writeResult parsedPath (formatPaymentResult parseResult)
+
+-- | Extract the attachment filename from raw MIME, fallback to "email-attachment.csv"
+extractAttachmentName :: Maybe Text -> FilePath
+extractAttachmentName Nothing = "email-attachment.csv"
+extractAttachmentName (Just rawMime) =
+  let lns = T.lines rawMime
+      filenameLine = find (\l -> "filename=" `T.isInfixOf` T.toLower l) lns
+   in case filenameLine of
+        Just l ->
+          let stripped = T.strip l
+              -- Extract value after filename=, remove quotes
+              afterEq = T.dropWhile (/= '=') stripped
+              name = T.filter (/= '"') (T.drop 1 afterEq)
+           in if T.null name then "email-attachment.csv" else T.unpack (T.strip name)
+        Nothing -> "email-attachment.csv"
 
 parsePG :: String -> IO SettlementService
 parsePG s = case map Char.toLower s of
@@ -84,10 +155,11 @@ listSamples pg = do
 
 usage :: IO ()
 usage = do
-  liftIO $ TIO.putStrLn "test-settlement-parser -- local CSV parsing test tool"
+  liftIO $ TIO.putStrLn "test-settlement-parser -- local CSV parsing & email fetch test tool"
   liftIO $ TIO.putStrLn ""
   liftIO $ TIO.putStrLn "Usage:"
   liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- <pg> <payment|payout> <csv-file>"
+  liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- email <pg> <user> <password> [subject-filter]"
   liftIO $ TIO.putStrLn ""
   liftIO $ TIO.putStrLn "  <pg>         Payment gateway: hyperpg | billdesk"
   liftIO $ TIO.putStrLn "  <csv-file>   Filename in samples/<pg>/ or a relative/absolute path"
@@ -101,7 +173,11 @@ usage = do
   liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- hyperpg list"
   liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- billdesk list"
   liftIO $ TIO.putStrLn ""
-  liftIO $ TIO.putStrLn "Output: output/<pg>/<filename>.parsed.txt"
+  liftIO $ TIO.putStrLn "Email fetch (IMAP → CSV attachment → parse):"
+  liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- email billdesk user@gmail.com app-password"
+  liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- email billdesk user@gmail.com app-password \"Settlement Report\""
+  liftIO $ TIO.putStrLn ""
+  liftIO $ TIO.putStrLn "Output: output/<pg>/<filename>.parsed.txt  or  output/email-attachment.csv"
   liftIO exitFailure
 
 writeResult :: FilePath -> Text -> IO ()

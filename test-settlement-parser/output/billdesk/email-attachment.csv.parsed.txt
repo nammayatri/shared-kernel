@@ -1,0 +1,99 @@
+========================================
+ Payment Settlement Parse Result
+========================================
+Total rows:    3
+Parsed OK:     3
+Failed rows:   0
+
+No parsing errors.
+
+--- Report #1 ---
+  orderId:                  cumta-j6HeABSyfz-1
+  txnId:                    HYPERPG
+  txnType:                  ORDER
+  txnStatus:                SUCCESS
+  txnDate:                  2026-03-07 21:54:23 UTC
+  txnAmount:                35.0
+  pgBaseFee:                0.0
+  pgTax:                    0.0
+  settlementAmount:         35.0
+  currency:                 INR
+  vendorId:                 metropol_de6c3402
+  uniqueSplitId:            <empty>
+  paymentGateway:           BILLDESK
+  paymentMethod:            <empty>
+  paymentMethodSubType:     <empty>
+  settlementType:           CREDIT
+  settlementMode:           <empty>
+  settlementId:             sid-1494266c37744e84a5ea2a178c667d61
+  settlementDate:           2026-03-07 21:54:23 UTC
+  rrn:                      <empty>
+  utr:                      YESAP60685556165
+  refundId:                 <empty>
+  refundDate:               <empty>
+  refundAmount:             <empty>
+  disputeId:                <empty>
+  cardIsin:                 <empty>
+  cardNetwork:              <empty>
+  cardType:                 <empty>
+
+--- Report #2 ---
+  orderId:                  cumta-j6HeABSyfa-1
+  txnId:                    HYPERPG
+  txnType:                  REFUND
+  txnStatus:                SUCCESS
+  txnDate:                  2026-03-07 21:54:23 UTC
+  txnAmount:                45.0
+  pgBaseFee:                0.0
+  pgTax:                    0.0
+  settlementAmount:         45.0
+  currency:                 INR
+  vendorId:                 metropol_de6c3403
+  uniqueSplitId:            <empty>
+  paymentGateway:           BILLDESK
+  paymentMethod:            <empty>
+  paymentMethodSubType:     <empty>
+  settlementType:           DEBIT
+  settlementMode:           <empty>
+  settlementId:             sid-1494266c37744e84a5ea2a178c667d62
+  settlementDate:           2026-03-07 11:54:23 UTC
+  rrn:                      <empty>
+  utr:                      YESAP60685556166
+  refundId:                 0
+  refundDate:               <empty>
+  refundAmount:             45.0
+  disputeId:                <empty>
+  cardIsin:                 <empty>
+  cardNetwork:              <empty>
+  cardType:                 <empty>
+
+--- Report #3 ---
+  orderId:                  cumta-k6HeABSyfa-1
+  txnId:                    HYPERPG
+  txnType:                  CHARGEBACK
+  txnStatus:                SUCCESS
+  txnDate:                  2026-03-07 21:54:23 UTC
+  txnAmount:                35.0
+  pgBaseFee:                0.0
+  pgTax:                    0.0
+  settlementAmount:         35.0
+  currency:                 INR
+  vendorId:                 metropol_ae6c3403
+  uniqueSplitId:            <empty>
+  paymentGateway:           BILLDESK
+  paymentMethod:            <empty>
+  paymentMethodSubType:     <empty>
+  settlementType:           DEBIT
+  settlementMode:           <empty>
+  settlementId:             sid-1494266c37744e84a5ea2a178c667d62
+  settlementDate:           2026-03-07 11:54:23 UTC
+  rrn:                      <empty>
+  utr:                      YESAP70685556166
+  refundId:                 <empty>
+  refundDate:               <empty>
+  refundAmount:             <empty>
+  disputeId:                0
+  cardIsin:                 <empty>
+  cardNetwork:              <empty>
+  cardType:                 <empty>
+

@@ -23,15 +23,18 @@ test-settlement-parser/
 │       ├── Prelude.hs
 │       ├── Prelude/OrphanInstances.hs
 │       └── Types/Common.hs
-├── samples/                      # Sample CSVs organised by payment gateway
-│   ├── hyperpg/
+├── samples/                      # Downloaded/sample CSVs organised by PG
+│   ├── hyperpg/                  #   (email command saves CSVs here)
 │   │   ├── metropol_de6c3402_YESAP60685556165_20260309.csv   (payment)
 │   │   └── cumta_tab_performance_table_...csv                 (payout)
 │   └── billdesk/
-│       └── billdesk_settlement_report.csv                     (payment)
-└── output/                       # Parsed output (auto-created per PG)
+│       └── billdesk_settlement_report_sample.csv              (payment)
+└── output/                       # Parsed output & debug files per PG
     ├── hyperpg/
+    │   └── *.csv.parsed.txt
     └── billdesk/
+        ├── *.csv.parsed.txt
+        └── debug-raw-mime.txt    # Raw MIME dump from email fetch
 ```
 
 The tool compiles the **real** parser modules from `shared-kernel/lib/mobility-core/src/Kernel/External/Settlement/` and uses minimal shims to satisfy internal imports (`Kernel.Prelude`, `Kernel.Types.Common`).
@@ -128,6 +131,80 @@ No parsing errors.
    ```bash
    cabal run test-settlement-parser -- newpg payment sample_report.csv
    ```
+
+## Email IMAP fetch (end-to-end validation)
+
+The tool can fetch a CSV attachment directly from an email inbox via IMAP, save it to `samples/<pg>/`, parse it, and write the result to `output/<pg>/` — all in one command. It bypasses the encryption layer so you can test with plain-text credentials.
+
+### Prerequisites
+
+- **curl** installed (ships with macOS)
+- A Gmail account with **2-Step Verification** enabled
+- A **Google App Password** (generate at https://myaccount.google.com/apppasswords)
+
+### Usage
+
+```bash
+cabal run test-settlement-parser -- email <pg> <user> <app-password> [subject-filter]
+```
+
+| Argument           | Description                                              |
+|--------------------|----------------------------------------------------------|
+| `<pg>`             | Payment gateway name: `hyperpg` or `billdesk`            |
+| `<user>`           | Gmail address                                            |
+| `<app-password>`   | Google App Password (16 characters)                      |
+| `[subject-filter]` | Optional email subject to match (e.g. `"Settlement Report"`) |
+
+### Examples
+
+```bash
+# Fetch the latest "Settlement Report" email for BillDesk
+cabal run test-settlement-parser -- email billdesk myuser@gmail.com 'abcdefghijklmnop' "Settlement Report"
+
+# Fetch the latest email for HyperPG (no subject filter)
+cabal run test-settlement-parser -- email hyperpg myuser@gmail.com 'abcdefghijklmnop'
+```
+
+### Output
+
+The email command produces three files, organised by PG:
+
+| File | Description |
+|------|-------------|
+| `samples/<pg>/<attachment-name>.csv` | Downloaded CSV attachment (uses the original filename from the email) |
+| `output/<pg>/<attachment-name>.csv.parsed.txt` | Parsed settlement report |
+| `output/<pg>/debug-raw-mime.txt` | Raw MIME dump (always generated, useful for debugging) |
+
+Example for `billdesk`:
+
+```
+samples/billdesk/billdesk_settlement_report_sample.csv       # downloaded CSV
+output/billdesk/billdesk_settlement_report_sample.csv.parsed.txt  # parsed output
+output/billdesk/debug-raw-mime.txt                            # raw MIME
+```
+
+### Switching between ALL / UNSEEN emails
+
+By default the tool searches **all emails** (including already-read) for easier testing.
+To switch to production behaviour (unread only), edit `Email.hs` and swap the commented lines:
+
+```haskell
+-- In Kernel.External.Settlement.Sources.Email, inside fetchSettlementFileWithPlainPassword:
+
+-- Testing (current): searches ALL emails including already-read
+searchQuery = maybe "ALL" (\s -> "SUBJECT \"" <> T.unpack s <> "\"") config.subjectFilter
+
+-- Production: uncomment this, comment the line above
+-- searchQuery = maybe "UNSEEN" (\s -> "SUBJECT \"" <> T.unpack s <> "\" UNSEEN") config.subjectFilter
+```
+
+### Troubleshooting
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `IMAP SEARCH failed (exit 67)` | Login denied | Use a Google App Password, not your regular password |
+| `No unread settlement emails found` | No matching emails (or all already read) | Switch to ALL mode (see above), or send a new test email |
+| `CSV saved to ... (0 bytes)` | MIME parser couldn't extract attachment | Check `output/<pg>/debug-raw-mime.txt` for the raw email structure |
 
 ## Supported payment gateways
 

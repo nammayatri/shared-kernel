@@ -17,16 +17,63 @@
 module Kernel.External.Settlement.Types
   ( SettlementService (..),
     SettlementSource (..),
+    ReportType (..),
+    SettlementServiceConfig (..),
+    SFTPConfig (..),
+    EmailConfig (..),
+    SettlementSourceConfig (..),
   )
 where
 
 import Data.Aeson
+import Kernel.External.Encryption (EncKind (..), EncryptedField)
 import Kernel.Prelude
 
 data SettlementService = HyperPG | BillDesk
-  deriving stock (Show, Read, Eq, Ord, Generic)
+  deriving stock (Show, Read, Eq, Ord, Generic, Enum, Bounded)
   deriving anyclass (ToJSON, FromJSON)
 
 data SettlementSource = SFTP | EMAIL | LOCAL_FILE
   deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (ToJSON, FromJSON)
+
+data ReportType = PAYMENT | PAYOUT
+  deriving stock (Show, Read, Eq, Ord, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+-- ---------------------------------------------------------------------------
+-- Per-provider service configuration (wraps SettlementSourceConfig)
+-- ---------------------------------------------------------------------------
+
+data SettlementServiceConfig
+  = HyperPGConfig SettlementSourceConfig
+  | BillDeskConfig SettlementSourceConfig
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+-- ---------------------------------------------------------------------------
+-- Source configuration (SFTP / Email)
+-- ---------------------------------------------------------------------------
+
+data SFTPConfig = SFTPConfig
+  { host :: Text,
+    port :: Int,
+    username :: Text,
+    password :: EncryptedField 'AsEncrypted Text,
+    remotePath :: Text
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data EmailConfig = EmailConfig
+  { imapHost :: Text,
+    imapPort :: Int,
+    username :: Text,
+    password :: EncryptedField 'AsEncrypted Text,
+    folderName :: Text,
+    subjectFilter :: Maybe Text
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data SettlementSourceConfig
+  = SFTPSourceConfig SFTPConfig Text
+  | EmailSourceConfig EmailConfig
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
