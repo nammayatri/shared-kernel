@@ -104,8 +104,13 @@ mkUpdateTicketReq IT.UpdateTicketReq {..} =
   Kapture.UpdateTicketReq
     { comment = comment,
       ticket_id = ticketId,
-      sub_status = show subStatus
+      sub_status = show subStatus,
+      rideDetails = mkRideDescriptionDriver <$> rideDescription,
+      issueDetails = mkUpdateIssueDetails <$> issueDetails
     }
+
+mkUpdateIssueDetails :: IT.UpdateIssueDetails -> Kapture.UpdateIssueDetails
+mkUpdateIssueDetails IT.UpdateIssueDetails {..} = Kapture.UpdateIssueDetails {..}
 
 addAndUpdateKaptureCustomer ::
   ( Metrics.CoreMetrics m,
