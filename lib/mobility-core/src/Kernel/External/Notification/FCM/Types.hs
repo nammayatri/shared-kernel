@@ -213,6 +213,7 @@ data FCMNotificationType
   | TRAINING_VIDEO
   | DRIVER_INSPECTION
   | VEHICLE_INSPECTION
+  | PICKUP_ZONE_REQUEST
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
   deriving (PrettyShow) via Showable FCMNotificationType
 
