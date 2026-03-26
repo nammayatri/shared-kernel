@@ -177,6 +177,26 @@ createCustomer config req = do
           phone = phone
         }
 
+getCustomer ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeCfg ->
+  CustomerId ->
+  m CreateCustomerResp
+getCustomer config customerId = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  customerResp <- Stripe.getCustomer url apiKey customerId
+  pure
+    CreateCustomerResp
+      { customerId = customerResp.id,
+        clientAuthToken = Nothing,
+        clientAuthTokenExpiry = Nothing
+      }
+
 createEphemeralKeys ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
