@@ -47,7 +47,6 @@ import qualified "base64-bytestring" Data.ByteString.Base64 as Base64
 import qualified Data.CaseInsensitive as CI
 import Data.List (lookup)
 import qualified Data.Text as T
-import qualified Data.Text as Text
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Time.Format
 import EulerHS.Prelude
@@ -106,9 +105,9 @@ encodeKeyId KeyId {..} = subscriberId <> "|" <> uniqueKeyId <> "|" <> encodeAlg 
 
 decodeKeyId :: Text -> Either String KeyId
 decodeKeyId input =
-  case Text.splitOn "|" input of
+  case T.splitOn "|" input of
     [subscriberId, uniqueKeyId, rAlg] -> do
-      alg <- maybeToRight "INVALID_ALG" . decodeAlg . Text.unpack $ rAlg
+      alg <- maybeToRight "INVALID_ALG" . decodeAlg . T.unpack $ rAlg
       pure KeyId {..}
     _ -> Left "INVALID_KEY_ID"
 
@@ -165,7 +164,7 @@ decode val = do
     Base64.decode
       =<< (maybeToRight "no valid signature" . fmap fromString . lookup "signature") values
   key <-
-    join . maybeToRight "no keyId" $ decodeKeyId . Text.pack <$> lookup "keyId" values
+    join . maybeToRight "no keyId" $ decodeKeyId . T.pack <$> lookup "keyId" values
   alg <-
     maybeToRight "no algorithm" $
       decodeAlg =<< lookup "algorithm" values

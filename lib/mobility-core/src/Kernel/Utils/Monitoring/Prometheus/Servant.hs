@@ -11,8 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
-
 module Kernel.Utils.Monitoring.Prometheus.Servant where
 
 import qualified Data.List as List
@@ -44,18 +42,16 @@ instance
   ) =>
   SanitizedUrl (path :> subroute)
   where
-  getSanitizedUrl _ req = do
-    let path = normalizedPathInfo req
-    if E.null path
-      then Nothing
-      else do
-        let (x : xs) = path
-            p = DT.pack $ symbolVal (Proxy :: Proxy path)
+  getSanitizedUrl _ req =
+    case normalizedPathInfo req of
+      (x : xs) -> do
+        let p = DT.pack $ symbolVal (Proxy :: Proxy path)
         if p == x
           then
             let maybeUrl = getSanitizedUrl (Proxy :: Proxy subroute) $ req {pathInfo = xs}
              in (\url -> Just (p <> "/" <> url)) =<< maybeUrl
           else Nothing
+      [] -> Nothing
 
 instance
   ( KnownSymbol (capture :: Symbol),
@@ -63,15 +59,13 @@ instance
   ) =>
   SanitizedUrl (Capture capture a :> subroute)
   where
-  getSanitizedUrl _ req = do
-    let path = normalizedPathInfo req
-    if E.null path
-      then Nothing
-      else
-        let (_ : xs) = path
-            p = DT.pack $ ":" <> symbolVal (Proxy :: Proxy capture)
+  getSanitizedUrl _ req =
+    case normalizedPathInfo req of
+      (_ : xs) ->
+        let p = DT.pack $ ":" <> symbolVal (Proxy :: Proxy capture)
             maybeUrl = getSanitizedUrl (Proxy :: Proxy subroute) $ req {pathInfo = xs}
          in (\url -> Just (p <> "/" <> url)) =<< maybeUrl
+      [] -> Nothing
 
 instance
   ReflectMethod m =>

@@ -11,8 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
-
 module Kernel.InternalAPI.Auth.Client where
 
 import qualified EulerHS.Types as E
@@ -44,3 +42,4 @@ auth token = do
       "INVALID_TOKEN" -> InvalidToken token
       "TOKEN_IS_NOT_VERIFIED" -> TokenIsNotVerified
       "TOKEN_EXPIRED" -> TokenExpired
+      _ -> InvalidAuthData
