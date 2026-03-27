@@ -29,7 +29,7 @@ import Data.Aeson
 import Kernel.External.Encryption (EncKind (..), EncryptedField)
 import Kernel.Prelude
 
-data SettlementService = HyperPG | BillDesk
+data SettlementService = HyperPG | BillDesk | YesBiz
   deriving stock (Show, Read, Eq, Ord, Generic, Enum, Bounded)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -48,6 +48,7 @@ data ReportType = PAYMENT | PAYOUT
 data SettlementServiceConfig
   = HyperPGConfig SettlementSourceConfig
   | BillDeskConfig SettlementSourceConfig
+  | YesBizConfig SettlementSourceConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 -- ---------------------------------------------------------------------------
@@ -59,7 +60,8 @@ data SFTPConfig = SFTPConfig
     port :: Int,
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text,
-    remotePath :: Text
+    remotePath :: Text,
+    privateKeyPath :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 

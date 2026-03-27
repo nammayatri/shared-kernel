@@ -31,6 +31,7 @@ import Kernel.External.Settlement.Interface.Types as Reexport
 import qualified Kernel.External.Settlement.Sources.Email as EmailSource
 import qualified Kernel.External.Settlement.Sources.SFTP as SFTPSource
 import Kernel.External.Settlement.Types as Reexport
+import qualified Kernel.External.Settlement.YesBiz.PaymentParser as YesBizPayment
 import Kernel.Prelude
 
 -- ---------------------------------------------------------------------------
@@ -44,6 +45,7 @@ parsePaymentSettlementCsv ::
 parsePaymentSettlementCsv service csvData = case service of
   HyperPG -> HyperPGPayment.parseHyperPGCsv csvData
   BillDesk -> BillDeskPayment.parseBillDeskCsv csvData
+  YesBiz -> YesBizPayment.parseYesBizCsv csvData
 
 parsePayoutSettlementCsv ::
   SettlementService ->
@@ -52,6 +54,7 @@ parsePayoutSettlementCsv ::
 parsePayoutSettlementCsv service csvData = case service of
   HyperPG -> HyperPGPayout.parseHyperPGPayoutCsv csvData
   BillDesk -> ParseResult [] 0 0 ["Payout parsing not supported for BillDesk"]
+  YesBiz -> ParseResult [] 0 0 ["Payout parsing not supported for YesBiz"]
 
 -- ---------------------------------------------------------------------------
 -- Source fetch (Email / SFTP → CSV ByteString)
