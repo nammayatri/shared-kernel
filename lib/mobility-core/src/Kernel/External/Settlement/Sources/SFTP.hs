@@ -34,12 +34,59 @@ fetchSettlementFile ::
   Text ->
   m (Either Text LBS.ByteString)
 fetchSettlementFile config fileName = do
-  decryptedPassword <- decrypt config.password
   tmpDir <- liftIO getTemporaryDirectory
   let localPath = tmpDir </> T.unpack fileName
       remoteFile = T.unpack config.remotePath </> T.unpack fileName
-      scpTarget = T.unpack config.username <> "@" <> T.unpack config.host <> ":" <> remoteFile
       portArg = P.show config.port
+  let userAtHost = T.unpack config.username <> "@" <> T.unpack config.host
+  result <- case config.privateKeyPath of
+    Just keyPath -> fetchWithKey keyPath userAtHost remoteFile localPath portArg
+    Nothing -> fetchWithPassword config remoteFile localPath portArg
+  case result of
+    Right _ -> do
+      contents <- liftIO $ LBS.readFile localPath
+      liftIO $ removeFile localPath
+      pure $ Right contents
+    Left err -> pure $ Left err
+
+fetchWithKey ::
+  (MonadIO m) =>
+  Text ->
+  String ->
+  String ->
+  String ->
+  String ->
+  m (Either Text ())
+fetchWithKey keyPath userAtHost remoteFile localPath portArg = do
+  let sftpCmd = "get " <> remoteFile <> " " <> localPath <> "\nquit\n"
+  (exitCode, _stdout, stderr) <-
+    liftIO $
+      readProcessWithExitCode
+        "sftp"
+        [ "-i",
+          T.unpack keyPath,
+          "-P",
+          portArg,
+          "-o",
+          "StrictHostKeyChecking=no",
+          userAtHost
+        ]
+        sftpCmd
+  case exitCode of
+    ExitSuccess -> pure $ Right ()
+    ExitFailure code ->
+      pure $ Left $ "SFTP failed (exit " <> show code <> "): " <> T.pack stderr
+
+fetchWithPassword ::
+  (EncFlow m r, MonadIO m) =>
+  SFTPConfig ->
+  String ->
+  String ->
+  String ->
+  m (Either Text ())
+fetchWithPassword config remoteFile localPath portArg = do
+  decryptedPassword <- decrypt config.password
+  let scpTarget = T.unpack config.username <> "@" <> T.unpack config.host <> ":" <> remoteFile
   (exitCode, _stdout, stderr) <-
     liftIO $
       readProcessWithExitCode
@@ -47,9 +94,6 @@ fetchSettlementFile config fileName = do
         ["-p", T.unpack decryptedPassword, "scp", "-P", portArg, "-o", "StrictHostKeyChecking=no", scpTarget, localPath]
         ""
   case exitCode of
-    ExitSuccess -> do
-      contents <- liftIO $ LBS.readFile localPath
-      liftIO $ removeFile localPath
-      pure $ Right contents
+    ExitSuccess -> pure $ Right ()
     ExitFailure code ->
       pure $ Left $ "SCP failed (exit " <> show code <> "): " <> T.pack stderr

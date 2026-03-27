@@ -22,6 +22,8 @@ executable test-settlement-parser
     , Kernel.External.Settlement.HyperPG.PaymentParser
     , Kernel.External.Settlement.HyperPG.PayoutTypes
     , Kernel.External.Settlement.HyperPG.PayoutParser
+    , Kernel.External.Settlement.YesBiz.PaymentTypes
+    , Kernel.External.Settlement.YesBiz.PaymentParser
     , Kernel.External.Settlement.Sources.Email
     , Kernel.External.Settlement.Sources.SFTP
   hs-source-dirs:
