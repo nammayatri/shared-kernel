@@ -291,7 +291,7 @@ createPaymentIntent config req = do
               transfer_data = Stripe.TransferData {destination = driverAccountId}
               confirm = True
               description = Nothing
-              setup_future_usage = Nothing
+              setup_future_usage = Just Stripe.FutureUsageOffSession -- off_session: enables SCA exemption for saved cards
               capture_method = Stripe.ManualCaptureMethod
               confirmation_method = Stripe.AutomaticConfirmationMethod
               use_stripe_sdk = True
@@ -320,10 +320,9 @@ createPaymentIntent config req = do
           let receipt_email = receiptEmail
           let on_behalf_of = Just driverAccountId
           let transfer_data = Stripe.TransferData {destination = driverAccountId}
-          -- let automatic_payment_methods = Stripe.AutomaticPaymentMethods {enabled = True, allow_redirects = Stripe.NeverRedirect}
           let confirm = True
           let description = Nothing
-          let setup_future_usage = Nothing
+          let setup_future_usage = Just Stripe.FutureUsageOffSession -- off_session: enables SCA exemption for saved cards
           let capture_method = Stripe.ManualCaptureMethod
           let confirmation_method = Stripe.AutomaticConfirmationMethod
           let use_stripe_sdk = True
@@ -356,7 +355,7 @@ createSetupIntent config customerId = do
       let confirm = False
       let customer = customerId
       let description = Nothing
-      let usage = Nothing
+      let usage = Just Stripe.FutureUsageOffSession -- off_session: triggers 3DS upfront during card setup for future off-session payments
       let payment_method = Nothing
       let use_stripe_sdk = True
       Stripe.SetupIntentReq {..}
