@@ -17,18 +17,19 @@
 {-# OPTIONS_GHC -Wwarn=incomplete-record-updates #-}
 
 module Kernel.External.Payment.Interface.Types
-  ( module Kernel.External.Payment.Interface.Types,
-    module Reexport,
+  ( module Reexport,
+    module Kernel.External.Payment.Interface.Types,
   )
 where
 
 import Control.Lens
 import Data.Aeson.Types
+-- import qualified Data.Map as Map
 import Data.OpenApi hiding (description, email, name, title)
 import Data.Time
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
-import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), MandateFrequency (..), MandateStatus (..), MandateType (..), NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), TransactionStatus (..))
+import Kernel.External.Payment.Juspay.Types as Reexport (CreateOrderResp (..), LoyaltyBurnApplicable (..), LoyaltyBurnDetail (..), LoyaltyBurnIneligibleReason (..), LoyaltyBurnOptionSelected (..), LoyaltyEarnApplied (..), LoyaltyEarnCampaign (..), LoyaltyEarnDetail (..), LoyaltyInfo (..), MandateFrequency (..), MandateStatus (..), MandateType, NotificationStatus (..), OfferListStatus (..), OfferState (..), OfferStatus (..), PaymentLinks (..), PaymentStatus (..), TransactionStatus (..), TxnAmountBreakup (..), TxnDetail (..), TxnList (..))
 import qualified Kernel.External.Payment.PaytmEDC.Config as PaytmEDC
 import qualified Kernel.External.Payment.Stripe.Config as Stripe
 import Kernel.External.Payment.Stripe.Types as Reexport hiding (RefundStatus (..))
@@ -89,7 +90,26 @@ data CreateOrderReq = CreateOrderReq
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int,
     splitSettlementDetails :: Maybe SplitSettlementDetails,
-    basket :: Maybe [Basket]
+    basket :: Maybe [Basket],
+    paymentRules :: Maybe PaymentRules
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentRules = PaymentRules
+  { paymentFlows :: PaymentFlows
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFlows = PaymentFlows
+  { loyaltyOsTopup :: PaymentFlowStatus
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFlowStatus = PaymentFlowStatus
+  { status :: Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -229,7 +249,9 @@ data OrderStatusResp
         splitSettlementResponse :: Maybe SplitSettlementResponse,
         effectiveAmount :: Maybe HighPrecMoney,
         offers :: Maybe [Offer],
-        txnDetail :: Maybe TxnDetail
+        txnDetail :: Maybe TxnDetail,
+        loyaltyInfo :: Maybe LoyaltyInfo,
+        txnList :: Maybe [TxnList]
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -323,14 +345,14 @@ data CardInfo = CardInfo
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data TxnDetail = TxnDetail
-  { gateway :: Maybe Text,
-    surchargeAmount :: Maybe HighPrecMoney,
-    taxAmount :: Maybe HighPrecMoney,
-    netAmount :: Maybe HighPrecMoney
-  }
-  deriving stock (Show, Read, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+-- data TxnDetail = TxnDetail
+--   { gateway :: Maybe Text,
+--     surchargeAmount :: Maybe HighPrecMoney,
+--     taxAmount :: Maybe HighPrecMoney,
+--     netAmount :: Maybe HighPrecMoney
+--   }
+--   deriving stock (Show, Read, Eq, Generic)
+--   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 -- notification request --
 data MandateNotificationReq = MandateNotificationReq

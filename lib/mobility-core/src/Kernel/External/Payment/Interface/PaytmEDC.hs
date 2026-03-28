@@ -339,5 +339,7 @@ mkOrderStatusResp response orderId =
           splitSettlementResponse = Nothing,
           effectiveAmount = Nothing,
           offers = Nothing,
-          txnDetail = Nothing
+          txnDetail = Nothing,
+          loyaltyInfo = Nothing, -- don't know about what this api gives... need to confirm TODO - HariKrishna (PaytmEDC)
+          txnList = Nothing -- endpoint of this api - "ecr" :> "payment" :> "status"
         }
