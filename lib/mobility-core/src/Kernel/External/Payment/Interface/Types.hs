@@ -155,8 +155,6 @@ data SplitSettlementDetailsPercentage = SplitSettlementDetailsPercentage
 
 data MBY = MARKETPLACE | VENDOR | ALL deriving (Show, Read, Eq, Ord, Generic, FromJSON, ToJSON, ToSchema)
 
-$(mkBeamInstancesForEnum ''MBY)
-
 newtype Marketplace = Marketplace
   { amount :: HighPrecMoney
   }
@@ -871,3 +869,5 @@ data RefundPaymentResp = RefundPaymentResp
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+$(mkBeamInstancesForEnum ''MBY)
