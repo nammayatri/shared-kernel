@@ -128,6 +128,8 @@ data OfferState = OFFER_INITIATED | OFFER_AVAILED | OFFER_REFUNDED | OFFER_FAILE
 
 derivePersistField "OfferState"
 
+$(mkBeamInstancesForEnum ''OfferState)
+
 instance FromJSON OfferState where
   parseJSON (String "INITIATED") = pure OFFER_INITIATED
   parseJSON (String "AVAILED") = pure OFFER_AVAILED
