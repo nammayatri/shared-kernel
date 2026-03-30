@@ -123,7 +123,7 @@ instance ToSchema RefundStatus where
           & enum_ ?~ (map toJSON [REFUND_PENDING, REFUND_FAILURE, REFUND_SUCCESS, MANUAL_REVIEW])
 
 data OfferState = OFFER_INITIATED | OFFER_AVAILED | OFFER_REFUNDED | OFFER_FAILED
-  deriving stock (Show, Read, Eq, Generic)
+  deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (ToSchema)
 
 derivePersistField "OfferState"

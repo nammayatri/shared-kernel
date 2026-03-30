@@ -801,6 +801,8 @@ type CancelRefundResp = GetRefundResp
 derivePersistField "RefundStatus"
 
 $(mkBeamInstancesForEnum ''RefundStatus)
+$(mkBeamInstancesForEnum ''OfferState)
+$(mkBeamInstancesForEnum ''MBY)
 
 -- | Unified payment creation request. Works for both Juspay (createOrder) and Stripe (createPaymentIntent).
 --   Gateway-specific fields are optional; the routing function ignores irrelevant fields.
