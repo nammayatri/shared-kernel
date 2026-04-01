@@ -132,3 +132,26 @@ walletVerifyTxn url apiKey issuer WalletVerifyTxnReq {..} = do
       eulerClient = Euler.client proxy operationId (Just issuer) (Just apiKey)
   callAPI url eulerClient "wallet-verify-txn" proxy
     >>= fromEitherM (\err -> InternalError $ "Failed to call wallet verify txn API: " <> show err)
+
+type LoyaltyInfoAPI =
+  "loyalty"
+    :> "programs"
+    :> Header "Authorization" Text
+    :> Header "X-MerchantId" Text
+    :> Header "x-tenant-id" Text
+    :> ReqBody '[JSON] LoyaltyInfoRequest
+    :> Post '[JSON] LoyaltyInfoResponse
+
+loyaltyInfo ::
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Text ->
+  LoyaltyInfoRequest ->
+  m LoyaltyInfoResponse
+loyaltyInfo url authHeader merchantId tenantId req = do
+  let proxy = Proxy @LoyaltyInfoAPI
+      eulerClient = Euler.client proxy (Just authHeader) (Just merchantId) (Just tenantId) req
+  callAPI url eulerClient "loyalty-info" proxy
+    >>= fromEitherM (\err -> InternalError $ "Failed to call loyalty info API: " <> show err)
