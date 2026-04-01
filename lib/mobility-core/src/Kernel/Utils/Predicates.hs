@@ -59,8 +59,11 @@ getCountryMobileCode country =
     Finland -> "+358"
     _ -> "+91"
 
+-- | ASCII-only names: one or more letters, then zero or more groups of (space, apostrophe, or hyphen) followed by letters; no doubled or leading\/trailing separators.
 name :: Regex
-name = star latinOrSpace
+name = plus latin <> star (nameSep <> plus latin)
+  where
+    nameSep = " " \/ "'" \/ "-"
 
 nameWithNumber :: Regex
 nameWithNumber = star $ alphanum \/ " "
