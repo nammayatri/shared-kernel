@@ -19,6 +19,7 @@ import Centesimal
 import ComputeIntersectionTests
 import DistanceCalculation
 import EulerHS.Prelude
+import Predicates
 import SettlementEmail
 import SignatureAuth
 import SlidingWindowLimiter
@@ -43,5 +44,6 @@ specs = return $ testGroup "Tests" [unitTests]
           distanceCalculation,
           readVersionTests,
           snippetsCheckTests,
+          predicatesTests,
           settlementEmailTests
         ]
