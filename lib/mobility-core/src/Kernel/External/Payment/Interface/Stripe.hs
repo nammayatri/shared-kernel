@@ -161,7 +161,7 @@ createCustomer config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
   let customerReq = mkCustomerReq req
-  customerResp <- Stripe.createCustomer url apiKey req.objectReferenceId customerReq
+  customerResp <- Stripe.createCustomer url apiKey customerReq
   let customerId = customerResp.id
   let clientAuthToken = Nothing
   let clientAuthTokenExpiry = Nothing

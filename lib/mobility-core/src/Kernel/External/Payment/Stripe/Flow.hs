@@ -105,13 +105,11 @@ createCustomer ::
   ) =>
   BaseUrl ->
   Text ->
-  Maybe Text ->
   CustomerReq ->
   m CustomerObject
-createCustomer url apiKey mbIdempotencyKey customerReq = do
+createCustomer url apiKey customerReq = do
   let proxy = Proxy @CreateCustomerAPI
-      baseClient = Euler.client proxy (mkBasicAuthData apiKey) customerReq
-      eulerClient = maybe baseClient (\k -> withHeaders [("Idempotency-Key", k)] baseClient) mbIdempotencyKey
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) customerReq
   callStripeAPI url eulerClient "create-customer" proxy
 
 type UpdateCustomerAPI =
