@@ -41,6 +41,7 @@ instance ToForm SetupIntentReq where
           ("automatic_payment_methods[allow_redirects]", [toQueryParam (automatic_payment_methods.allow_redirects)]),
           ("confirm", [toQueryParam confirm]),
           ("customer", [toQueryParam customer]),
+          ("payment_method_options[card][request_three_d_secure]", ["challenge"]),
           ("use_stripe_sdk", [toQueryParam use_stripe_sdk])
         ]
         <> maybeToForm "description" description
