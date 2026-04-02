@@ -2,34 +2,24 @@ module Main where
 
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Char as Char
-import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
+import Data.List (find, isSuffixOf)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
 import Kernel.External.Encryption (Encrypted (..))
 import Kernel.External.Settlement.Interface
 import Kernel.External.Settlement.Sources.Email (fetchSettlementFileDebugRaw, fetchSettlementFileWithPlainPassword)
-import qualified Kernel.External.Settlement.Sources.SFTP as SFTPSource
+import Kernel.External.Settlement.Types (EmailConfig (..))
 import Kernel.Prelude
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, listDirectory)
 import System.Environment (getArgs)
-import System.Exit (ExitCode (..), exitFailure)
-import System.FilePath (dropExtension, takeFileName, (</>))
-import System.Process (readProcessWithExitCode)
-import qualified Prelude as P
+import System.Exit (exitFailure)
+import System.FilePath (takeFileName, (</>))
 
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    ["sftp", pgStr, keyPath, userAtHost, remotePath] -> do
-      pg <- parsePG pgStr
-      testSftpFetch pg keyPath userAtHost 22 remotePath Nothing
-    ["sftp", pgStr, keyPath, userAtHost, remotePath, portStr] -> do
-      pg <- parsePG pgStr
-      testSftpFetch pg keyPath userAtHost (read portStr) remotePath Nothing
-    ["sftp", pgStr, keyPath, userAtHost, remotePath, portStr, pattern_] -> do
-      pg <- parsePG pgStr
-      testSftpFetch pg keyPath userAtHost (read portStr) remotePath (Just pattern_)
     ["email", pgStr, user, pass] -> do
       pg <- parsePG pgStr
       testEmailFetch pg user pass Nothing
@@ -114,113 +104,6 @@ testEmailFetch pg user pass mbSubj = do
           let parseResult = parsePaymentSettlementCsv pg csvBytes
           writeResult parsedPath (formatPaymentResult parseResult)
 
--- ---------------------------------------------------------------------------
--- SFTP fetch test (key-based auth, handles .csv.zip files)
--- ---------------------------------------------------------------------------
-
-testSftpFetch :: SettlementService -> String -> String -> Int -> String -> Maybe String -> IO ()
-testSftpFetch pg keyPath userAtHost port remotePath mbPattern = do
-  let pgDir = pgDirName pg
-      samplesDir = "samples" </> pgDir
-      outDir = "output" </> pgDir
-  liftIO $ createDirectoryIfMissing True samplesDir
-  liftIO $ createDirectoryIfMissing True outDir
-
-  -- Parse user@host into (username, host)
-  let (sftpUser, sftpHost) = case break (== '@') userAtHost of
-        (u, '@' : h) -> (T.pack u, T.pack h)
-        _ -> (T.pack userAtHost, T.pack userAtHost)
-
-  -- Build SFTPConfig that mirrors what production would use
-  let sftpConfig =
-        SFTPConfig
-          { host = sftpHost,
-            port = port,
-            username = sftpUser,
-            password = Encrypted "", -- not used for key-based auth
-            remotePath = T.pack remotePath,
-            privateKeyPath = Just (T.pack keyPath)
-          }
-
-  -- Step 1: List remote files (no list function in production, use sftp CLI)
-  liftIO $ TIO.putStrLn $ "Connecting to SFTP server: " <> T.pack userAtHost <> " (port " <> show port <> ") ..."
-  liftIO $ TIO.putStrLn $ "Remote path: " <> T.pack remotePath
-  let sftpArgs = ["-i", keyPath, "-P", P.show port, "-o", "StrictHostKeyChecking=no", userAtHost]
-  (listExit, listOut, listErr) <-
-    liftIO $
-      readProcessWithExitCode
-        "sftp"
-        sftpArgs
-        ("cd " <> remotePath <> "\nls\nquit\n")
-  case listExit of
-    ExitFailure code -> do
-      liftIO $ TIO.putStrLn $ "SFTP connection failed (exit " <> show code <> "): " <> T.pack listErr
-      liftIO exitFailure
-    ExitSuccess -> do
-      let allFiles = extractSftpFileList listOut
-          matchingFiles = case mbPattern of
-            Nothing -> filter (\f -> ".csv" `isSuffixOf` f || ".csv.zip" `isSuffixOf` f) allFiles
-            Just pat -> filter (\f -> pat `isInfixOf` f) allFiles
-      liftIO $ TIO.putStrLn $ "Remote files found: " <> show (length allFiles)
-      liftIO $ TIO.putStrLn $ "Matching files: " <> show (length matchingFiles)
-      if null matchingFiles
-        then do
-          liftIO $ TIO.putStrLn "No matching files found. All remote files:"
-          mapM_ (\f -> liftIO $ TIO.putStrLn $ "  " <> T.pack f) allFiles
-          liftIO exitFailure
-        else pure ()
-
-      -- Step 2: Download each file using the real fetchSettlementFile
-      forM_ matchingFiles $ \remoteFile -> do
-        liftIO $ TIO.putStrLn $ "\nDownloading via fetchSettlementFile: " <> T.pack remoteFile
-        dlResult <- SFTPSource.fetchSettlementFile sftpConfig (T.pack remoteFile)
-        case dlResult of
-          Left err -> do
-            liftIO $ TIO.putStrLn $ "  Download failed: " <> err
-          Right fileBytes -> do
-            let localPath = samplesDir </> remoteFile
-            liftIO $ LBS.writeFile localPath fileBytes
-            liftIO $ TIO.putStrLn $ "  Saved to: " <> T.pack localPath <> " (" <> show (LBS.length fileBytes) <> " bytes)"
-
-            -- Step 3: Unzip if needed, then parse
-            csvFiles <-
-              if ".zip" `isSuffixOf` remoteFile
-                then do
-                  liftIO $ TIO.putStrLn "  Unzipping..."
-                  (uzExit, _uzOut, uzErr) <-
-                    liftIO $
-                      readProcessWithExitCode "unzip" ["-o", localPath, "-d", samplesDir] ""
-                  case uzExit of
-                    ExitFailure code -> do
-                      liftIO $ TIO.putStrLn $ "  Unzip failed (exit " <> show code <> "): " <> T.pack uzErr
-                      pure []
-                    ExitSuccess -> do
-                      let csvName = dropExtension remoteFile -- strip .zip -> .csv
-                      let csvPath = samplesDir </> csvName
-                      exists <- liftIO $ doesFileExist csvPath
-                      if exists
-                        then pure [csvPath]
-                        else do
-                          dirFiles <- liftIO $ listDirectory samplesDir
-                          let newCsvs = filter (\f -> ".csv" `isSuffixOf` f && f /= remoteFile) dirFiles
-                          pure $ map (samplesDir </>) newCsvs
-                else pure [localPath]
-
-            -- Step 4: Parse each CSV
-            forM_ csvFiles $ \csvPath -> do
-              liftIO $ TIO.putStrLn $ "  Parsing: " <> T.pack csvPath
-              csvData <- liftIO $ LBS.readFile csvPath
-              let parsedPath = outDir </> takeFileName csvPath <> ".parsed.txt"
-                  parseResult = parsePaymentSettlementCsv pg csvData
-              writeResult parsedPath (formatPaymentResult parseResult)
-
--- | Extract file names from SFTP 'ls' output
-extractSftpFileList :: String -> [String]
-extractSftpFileList output =
-  let ls = lines output
-      candidates = filter (not . null) $ map (last . words) $ filter (\l -> not ("sftp>" `isPrefixOf` l) && not (null l)) ls
-   in filter (\f -> '.' `elem` f) candidates -- only keep entries with extensions
-
 -- | Extract the attachment filename from raw MIME, fallback to "email-attachment.csv"
 extractAttachmentName :: Maybe Text -> FilePath
 extractAttachmentName Nothing = "email-attachment.csv"
@@ -240,16 +123,14 @@ parsePG :: String -> IO SettlementService
 parsePG s = case map Char.toLower s of
   "hyperpg" -> pure HyperPG
   "billdesk" -> pure BillDesk
-  "yesbiz" -> pure YesBiz
   _ -> do
     liftIO $ TIO.putStrLn $ "Unknown PG: " <> T.pack s
-    liftIO $ TIO.putStrLn "Supported PGs: hyperpg, billdesk, yesbiz"
+    liftIO $ TIO.putStrLn "Supported PGs: hyperpg, billdesk"
     liftIO exitFailure
 
 pgDirName :: SettlementService -> FilePath
 pgDirName HyperPG = "hyperpg"
 pgDirName BillDesk = "billdesk"
-pgDirName YesBiz = "yesbiz"
 
 resolveCsvPath :: FilePath -> String -> FilePath
 resolveCsvPath pgDir csvFile =
@@ -279,7 +160,6 @@ usage = do
   liftIO $ TIO.putStrLn "Usage:"
   liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- <pg> <payment|payout> <csv-file>"
   liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- email <pg> <user> <password> [subject-filter]"
-  liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- sftp <pg> <key-path> <user@host> <remote-path> [port] [file-pattern]"
   liftIO $ TIO.putStrLn ""
   liftIO $ TIO.putStrLn "  <pg>         Payment gateway: hyperpg | billdesk"
   liftIO $ TIO.putStrLn "  <csv-file>   Filename in samples/<pg>/ or a relative/absolute path"
@@ -297,12 +177,7 @@ usage = do
   liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- email billdesk user@gmail.com app-password"
   liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- email billdesk user@gmail.com app-password \"Settlement Report\""
   liftIO $ TIO.putStrLn ""
-  liftIO $ TIO.putStrLn "SFTP fetch (key-based auth → download → unzip → parse):"
-  liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- sftp hyperpg ~/.ssh/my-key user@host /CUMTA/2026/01/01"
-  liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- sftp hyperpg ~/.ssh/my-key user@host /CUMTA/2026/01/01 22"
-  liftIO $ TIO.putStrLn "  cabal run test-settlement-parser -- sftp hyperpg ~/.ssh/my-key user@host /CUMTA/2026/01/01 22 UPI_YP"
-  liftIO $ TIO.putStrLn ""
-  liftIO $ TIO.putStrLn "Output: output/<pg>/<filename>.parsed.txt"
+  liftIO $ TIO.putStrLn "Output: output/<pg>/<filename>.parsed.txt  or  output/email-attachment.csv"
   liftIO exitFailure
 
 writeResult :: FilePath -> Text -> IO ()
