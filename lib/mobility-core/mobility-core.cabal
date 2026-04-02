@@ -213,8 +213,6 @@ library
       Kernel.External.Settlement.Sources.Email
       Kernel.External.Settlement.Sources.SFTP
       Kernel.External.Settlement.Types
-      Kernel.External.Settlement.YesBiz.PaymentParser
-      Kernel.External.Settlement.YesBiz.PaymentTypes
       Kernel.External.SharedLogic.DigiLocker.Error
       Kernel.External.SharedLogic.HyperVerge.Error
       Kernel.External.SharedLogic.HyperVerge.Functions
