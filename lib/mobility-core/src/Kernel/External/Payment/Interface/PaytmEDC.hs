@@ -339,5 +339,7 @@ mkOrderStatusResp response orderId =
           splitSettlementResponse = Nothing,
           effectiveAmount = Nothing,
           offers = Nothing,
-          txnDetail = Nothing
+          txnDetail = Nothing,
+          loyaltyInfo = respBody.loyaltyInfo,
+          txnList = respBody.txnDetails
         }

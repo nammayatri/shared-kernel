@@ -21,6 +21,7 @@ where
 
 import Data.Aeson
 import qualified Data.Text as T
+import Kernel.External.Payment.Juspay.Types.Common (LoyaltyInfo, TxnList)
 import Kernel.Prelude
 
 -- Helper function to remove hyphens from text
@@ -176,7 +177,9 @@ data PaytmEDCResponseBody = PaytmEDCResponseBody
     aid :: Maybe Text, -- Application ID (EMV)
     -- Payment method
     payMethod :: Maybe Text, -- "CARD", "UPI", etc.
-    paymentMode :: Maybe Text
+    paymentMode :: Maybe Text,
+    loyaltyInfo :: Maybe LoyaltyInfo,
+    txnDetails :: Maybe [TxnList]
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)

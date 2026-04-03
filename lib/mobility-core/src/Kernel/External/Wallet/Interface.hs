@@ -20,6 +20,7 @@ where
 import qualified Kernel.External.Payment.Interface.Types as Payment
 import qualified Kernel.External.Wallet.Interface.Juspay as Juspay
 import Kernel.External.Wallet.Interface.Types as Reexport
+import qualified Kernel.External.Wallet.Juspay.Config as WalletConfig
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Error (GenericError (InvalidRequest))
 import Kernel.Utils.Common
@@ -88,3 +89,13 @@ walletVerifyTxn config req = case config of
   Payment.JuspayConfig cfg -> Juspay.walletVerifyTxn cfg req
   Payment.StripeConfig _ -> throwError (InvalidRequest "Stripe is not supported for wallet operations")
   Payment.PaytmEDCConfig _ -> throwError (InvalidRequest "PaytmEDC is not supported for wallet operations")
+
+loyaltyInfo ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r
+  ) =>
+  WalletConfig.LoyaltyCfg ->
+  LoyaltyInfoRequest ->
+  m LoyaltyInfoResponse
+loyaltyInfo config req = Juspay.loyaltyInfo config req
