@@ -104,6 +104,7 @@ instance
     HasField "disableSignatureAuth" r Bool,
     HasField "noSignatureSubscribers" r [Text],
     Registry (FlowR r),
+    HasTxnId r,
     HasCoreMetrics r,
     SingI domain,
     HasARTFlow r
