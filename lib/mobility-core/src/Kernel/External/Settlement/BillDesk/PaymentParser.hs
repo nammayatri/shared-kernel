@@ -162,7 +162,11 @@ parseSettledRow row idx = do
         rawData = Just rawJson,
         cardIsin = Nothing,
         cardNetwork = Nothing,
-        cardType = Nothing
+        cardType = Nothing,
+        isOffer = Nothing,
+        offerCode = Nothing,
+        offerId = Nothing,
+        actualAmount = Nothing
       }
   where
     _ = idx -- used in error context if needed later
@@ -204,7 +208,11 @@ parseRefundRow row idx = do
         rawData = Just rawJson,
         cardIsin = Nothing,
         cardNetwork = Nothing,
-        cardType = Nothing
+        cardType = Nothing,
+        isOffer = Nothing,
+        offerCode = Nothing,
+        offerId = Nothing,
+        actualAmount = Nothing
       }
   where
     _ = idx
@@ -246,7 +254,11 @@ parseChargebackRow row idx = do
         rawData = Just rawJson,
         cardIsin = Nothing,
         cardNetwork = Nothing,
-        cardType = Nothing
+        cardType = Nothing,
+        isOffer = Nothing,
+        offerCode = Nothing,
+        offerId = Nothing,
+        actualAmount = Nothing
       }
   where
     _ = idx

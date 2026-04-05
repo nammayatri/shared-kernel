@@ -112,7 +112,11 @@ data PaymentSettlementReport = PaymentSettlementReport
     rawData :: Maybe Value,
     cardIsin :: Maybe Text,
     cardNetwork :: Maybe Text,
-    cardType :: Maybe Text
+    cardType :: Maybe Text,
+    isOffer :: Maybe Bool,
+    offerCode :: Maybe Text,
+    offerId :: Maybe Text,
+    actualAmount :: Maybe HighPrecMoney
   }
   deriving (Show, Eq, Generic)
 
