@@ -249,7 +249,8 @@ data TxnDetail = TxnDetail
   { gateway :: Maybe Text,
     surcharge_amount :: Maybe Double,
     tax_amount :: Maybe Double,
-    net_amount :: Maybe Double
+    net_amount :: Maybe Double,
+    offer_deduction_amount :: Maybe Double
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
