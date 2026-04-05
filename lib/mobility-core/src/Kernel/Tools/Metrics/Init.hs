@@ -19,7 +19,6 @@ module Kernel.Tools.Metrics.Init where
 import Data.CaseInsensitive (CI)
 import qualified Data.CaseInsensitive as CI
 import Data.Ratio ((%))
-import qualified Data.Text as DT
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
 import EulerHS.Prelude as E hiding (decodeUtf8)
@@ -77,7 +76,7 @@ addServantInfo ::
   Application
 addServantInfo version proxy app request respond =
   let mpath = getSanitizedUrl proxy request
-      fullpath = DT.intercalate "/" (normalizedPathInfo request)
+      fullpath = T.intercalate "/" (normalizedPathInfo request)
    in instrumentHandlerValueWithVersionLabel version.getDeploymentVersion (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
 
 instrumentHandlerValueWithVersionLabel ::

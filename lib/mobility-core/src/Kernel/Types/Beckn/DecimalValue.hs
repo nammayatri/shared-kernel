@@ -91,11 +91,11 @@ rationalToString precision rational
 -- Note: valueToString will fail with an error if the integer
 -- part of the number exceeds the precision (total number of digits).
 valueToString :: DecimalValue -> Text
-valueToString value =
+valueToString value@(DecimalValue r) =
   maybe
     (error ("Cannot convert " <> show value <> " to a string. " <> message))
     T.pack
-    (rationalToString maxPrecision (toRational value))
+    (rationalToString maxPrecision r)
 
 valueFromString :: Text -> Maybe DecimalValue
 valueFromString valueString =

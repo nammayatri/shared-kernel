@@ -214,7 +214,7 @@ toStartOfWeek = ToStartOfWeek
 toStartOfMonth :: (ClickhouseTable t, ClickhouseValue Time.Day) => Column a t Time.Day -> Column a t Time.Day
 toStartOfMonth = ToStartOfMonth
 
-timeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
+timeDiff :: (ClickhouseTable t, ClickhouseValue UTCTime, ClickhouseValue Int) => Column a t UTCTime -> Column a t UTCTime -> Column a t Int
 timeDiff = TimeDiff
 
 if_ :: (ClickhouseTable t, ClickhouseValue v) => Column a t Bool -> Column a t v -> Column a t v -> Column a t v
