@@ -5,7 +5,7 @@ import Data.Text (isInfixOf)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import EulerHS.Prelude
-import Kernel.External.Settlement.Sources.Email (extractCsvFromMime, extractMessageIds)
+import SettlementMimeCsv (extractCsvFromMime, extractMessageIds) -- not sure about this this one is only for testing
 import Test.Tasty
 import Test.Tasty.HUnit
 
