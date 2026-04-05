@@ -18,6 +18,7 @@ module Kernel.External.Settlement.Types
   ( SettlementService (..),
     SettlementSource (..),
     ReportType (..),
+    SplitSettlementCustomerType (..),
     SettlementServiceConfig (..),
     SFTPConfig (..),
     EmailConfig (..),
@@ -41,14 +42,22 @@ data ReportType = PAYMENT | PAYOUT
   deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
+data SplitSettlementCustomerType = VENDOR | MERCHANT
+  deriving stock (Show, Read, Eq, Ord, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
 -- ---------------------------------------------------------------------------
 -- Per-provider service configuration (wraps SettlementSourceConfig)
 -- ---------------------------------------------------------------------------
 
-data SettlementServiceConfig
-  = HyperPGConfig SettlementSourceConfig
-  | BillDeskConfig SettlementSourceConfig
-  | YesBizConfig SettlementSourceConfig
+data SettlementServiceConfig = SettlementServiceConfig
+  { settlementService :: SettlementService,
+    sourceConfig :: SettlementSourceConfig,
+    splitSettlementCustomerType :: Maybe SplitSettlementCustomerType,
+    juspayOrderStatusEnabled :: Maybe Bool,
+    juspayBaseUrl :: Maybe Text,
+    juspayApiKey :: Maybe (EncryptedField 'AsEncrypted Text)
+  }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 -- ---------------------------------------------------------------------------
@@ -61,7 +70,10 @@ data SFTPConfig = SFTPConfig
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text,
     remotePath :: Text,
-    privateKeyPath :: Maybe Text
+    privateKeyPath :: Maybe Text,
+    limit :: Maybe Int,
+    baseFileName :: Maybe Text,
+    csvChunkRowLimit :: Maybe Int
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
@@ -71,7 +83,9 @@ data EmailConfig = EmailConfig
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text,
     folderName :: Text,
-    subjectFilter :: Maybe Text
+    subjectFilter :: Maybe Text,
+    limit :: Maybe Int,
+    baseFileName :: Maybe Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 

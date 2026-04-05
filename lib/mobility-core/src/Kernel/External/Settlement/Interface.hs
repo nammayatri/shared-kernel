@@ -13,37 +13,38 @@
 -}
 
 module Kernel.External.Settlement.Interface
-  ( module Reexport,
-    parsePaymentSettlementCsv,
+  ( parsePaymentSettlementCsv,
     parsePayoutSettlementCsv,
-    fetchSettlementCsv,
-    fetchAndParsePaymentSettlement,
-    fetchAndParsePayoutSettlement,
+    parseAndEnrichPaymentSettlementCsv,
+    module Reexport,
   )
 where
 
 import qualified Data.ByteString.Lazy as LBS
-import Kernel.External.Encryption
+import qualified EulerHS.Language as L
+import Kernel.External.Encryption (EncFlow)
 import qualified Kernel.External.Settlement.BillDesk.PaymentParser as BillDeskPayment
+import qualified Kernel.External.Settlement.HyperPG.MerchantPaymentParser as HyperPGMerchantPayment
 import qualified Kernel.External.Settlement.HyperPG.PaymentParser as HyperPGPayment
 import qualified Kernel.External.Settlement.HyperPG.PayoutParser as HyperPGPayout
 import Kernel.External.Settlement.Interface.Types as Reexport
-import qualified Kernel.External.Settlement.Sources.Email as EmailSource
-import qualified Kernel.External.Settlement.Sources.SFTP as SFTPSource
 import Kernel.External.Settlement.Types as Reexport
+import Kernel.External.Settlement.Utils.JuspayOrderStatus as Reexport
 import qualified Kernel.External.Settlement.YesBiz.PaymentParser as YesBizPayment
 import Kernel.Prelude
+import Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Utils.Servant.Client (HasRequestId)
 
--- ---------------------------------------------------------------------------
--- Pure parsers (CSV ByteString → ParseResult)
--- ---------------------------------------------------------------------------
-
+-- | Parse a payment settlement CSV. For 'HyperPG', use 'Just' 'MERCHANT' for MPR-style merchant reports.
 parsePaymentSettlementCsv ::
   SettlementService ->
+  Maybe SplitSettlementCustomerType ->
   LBS.ByteString ->
   ParsePaymentSettlementResult
-parsePaymentSettlementCsv service csvData = case service of
-  HyperPG -> HyperPGPayment.parseHyperPGCsv csvData
+parsePaymentSettlementCsv settlementService mbSplit csvData = case settlementService of
+  HyperPG -> case fromMaybe VENDOR mbSplit of
+    VENDOR -> HyperPGPayment.parseHyperPGCsv csvData
+    MERCHANT -> HyperPGMerchantPayment.parseHyperPGMerchantCsv csvData
   BillDesk -> BillDeskPayment.parseBillDeskCsv csvData
   YesBiz -> YesBizPayment.parseYesBizCsv csvData
 
@@ -51,45 +52,29 @@ parsePayoutSettlementCsv ::
   SettlementService ->
   LBS.ByteString ->
   ParsePayoutSettlementResult
-parsePayoutSettlementCsv service csvData = case service of
+parsePayoutSettlementCsv settlementService csvData = case settlementService of
   HyperPG -> HyperPGPayout.parseHyperPGPayoutCsv csvData
   BillDesk -> ParseResult [] 0 0 ["Payout parsing not supported for BillDesk"]
   YesBiz -> ParseResult [] 0 0 ["Payout parsing not supported for YesBiz"]
 
--- ---------------------------------------------------------------------------
--- Source fetch (Email / SFTP → CSV ByteString)
--- ---------------------------------------------------------------------------
-
--- | Fetch CSV data from the configured source (Email or SFTP).
-fetchSettlementCsv ::
-  (EncFlow m r, MonadIO m) =>
-  SettlementSourceConfig ->
-  m (Either Text LBS.ByteString)
-fetchSettlementCsv (EmailSourceConfig emailCfg) =
-  EmailSource.fetchSettlementFile emailCfg
-fetchSettlementCsv (SFTPSourceConfig sftpCfg filePattern) =
-  SFTPSource.fetchSettlementFile sftpCfg filePattern
-
--- ---------------------------------------------------------------------------
--- End-to-end: fetch from source + parse
--- ---------------------------------------------------------------------------
-
--- | Fetch CSV from source and parse as a payment settlement report.
-fetchAndParsePaymentSettlement ::
-  (EncFlow m r, MonadIO m) =>
-  SettlementSourceConfig ->
-  SettlementService ->
-  m (Either Text ParsePaymentSettlementResult)
-fetchAndParsePaymentSettlement sourceConfig service = do
-  csvResult <- fetchSettlementCsv sourceConfig
-  pure $ parsePaymentSettlementCsv service <$> csvResult
-
--- | Fetch CSV from source and parse as a payout settlement report.
-fetchAndParsePayoutSettlement ::
-  (EncFlow m r, MonadIO m) =>
-  SettlementSourceConfig ->
-  SettlementService ->
-  m (Either Text ParsePayoutSettlementResult)
-fetchAndParsePayoutSettlement sourceConfig service = do
-  csvResult <- fetchSettlementCsv sourceConfig
-  pure $ parsePayoutSettlementCsv service <$> csvResult
+-- | Parse payment CSV bytes, then Juspay-enrich each row when enabled in 'SettlementServiceConfig'
+-- ('juspayOrderStatusEnabled', URL, API key). Fetch of bytes is the caller's responsibility.
+parseAndEnrichPaymentSettlementCsv ::
+  ( EncFlow m r,
+    Metrics.CoreMetrics m,
+    L.MonadFlow m,
+    HasRequestId r,
+    MonadReader r m,
+    MonadIO m
+  ) =>
+  SettlementServiceConfig ->
+  LBS.ByteString ->
+  m ParsePaymentSettlementResult
+parseAndEnrichPaymentSettlementCsv config csvBytes = do
+  let parsed0 =
+        parsePaymentSettlementCsv
+          config.settlementService
+          config.splitSettlementCustomerType
+          csvBytes
+  enrichedReports <- mapM (enrichPaymentReport config) (reports parsed0)
+  pure parsed0 {reports = catMaybes enrichedReports}

@@ -97,7 +97,11 @@ parseYesBizRow row = do
         rawData = Just rawJson,
         cardIsin = Nothing,
         cardNetwork = Nothing,
-        cardType = Nothing
+        cardType = Nothing,
+        isOffer = Nothing,
+        offerCode = Nothing,
+        offerId = Nothing,
+        actualAmount = Nothing
       }
 
 nonEmpty' :: Text -> Maybe Text

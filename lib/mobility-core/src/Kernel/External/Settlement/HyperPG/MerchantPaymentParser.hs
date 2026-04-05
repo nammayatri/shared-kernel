@@ -12,9 +12,9 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.Settlement.HyperPG.PaymentParser
-  ( parseHyperPGCsv,
-    parseHyperPGRow,
+module Kernel.External.Settlement.HyperPG.MerchantPaymentParser
+  ( parseHyperPGMerchantCsv,
+    parseHyperPGMerchantRow,
   )
 where
 
@@ -23,15 +23,16 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Csv as Csv
 import Data.Either (partitionEithers)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Data.Time (defaultTimeLocale, parseTimeM)
 import qualified Data.Vector as V
-import Kernel.External.Settlement.HyperPG.PaymentTypes
+import Kernel.External.Settlement.HyperPG.MerchantPaymentTypes
 import Kernel.External.Settlement.Interface.Types
 import Kernel.Prelude
 import Kernel.Types.Common (Currency (..), HighPrecMoney)
 
-parseHyperPGCsv :: LBS.ByteString -> ParsePaymentSettlementResult
-parseHyperPGCsv csvData =
+parseHyperPGMerchantCsv :: LBS.ByteString -> ParsePaymentSettlementResult
+parseHyperPGMerchantCsv csvData =
   case Csv.decodeByName csvData of
     Left err ->
       ParseResult
@@ -43,7 +44,8 @@ parseHyperPGCsv csvData =
     Right (_, rows) ->
       let rowList = V.toList rows
           results = zipWith convertRow [1 :: Int ..] rowList
-          (errs, goods) = partitionEithers results
+          (errs, maybeGoods) = partitionEithers results
+          goods = catMaybes maybeGoods
        in ParseResult
             { reports = goods,
               totalRows = length rowList,
@@ -52,12 +54,12 @@ parseHyperPGCsv csvData =
             }
   where
     convertRow idx row =
-      case parseHyperPGRow row of
+      case parseHyperPGMerchantRow row of
         Left e -> Left $ "Row " <> show idx <> ": " <> e
         Right r -> Right r
 
-parseHyperPGRow :: HyperPGRow -> Either Text PaymentSettlementReport
-parseHyperPGRow row = do
+parseHyperPGMerchantRow :: HyperPGMerchantRow -> Either Text (Maybe PaymentSettlementReport)
+parseHyperPGMerchantRow row = do
   txnType' <- parseTxnType row.transactionType
   txnStatus' <- parseTxnStatus row.transactionStatus
   let settlementType' = parseSettlementType row.txnSettlementType
@@ -65,48 +67,63 @@ parseHyperPGRow row = do
       paymentMethod' = parsePaymentMethod row.paymentMethodType
       txnDate' = parseDateTime row.transactionDate
       refundDate' = parseDateTime row.refundDate
-      vendorSettlementDate' = parseDateTime row.vendorSettlementDate
+      settlementDate' = parseDateTime row.settlementDate
       rawJson = A.toJSON row
-  Right
-    PaymentSettlementReport
-      { orderId = row.orderId,
-        txnId = nonEmpty' row.transactionId,
-        rrn = nonEmpty' row.rrn,
-        utr = nonEmpty' row.vendorUtr,
-        txnType = txnType',
-        txnStatus = txnStatus',
-        txnDate = txnDate',
-        txnAmount = parseAmount row.vendorTxnAmount,
-        pgBaseFee = parseAmount row.vendorMdrFees,
-        pgTax = parseAmount row.vendorTaxAmount,
-        settlementAmount = parseAmount row.vendorSettlementAmount,
-        currency = INR,
-        vendorId = nonEmpty' row.vendorId,
-        uniqueSplitId = nonEmpty' row.uniqueSplitId,
-        paymentGateway = Just "HYPERPG",
-        paymentMethod = paymentMethod',
-        paymentMethodSubType = nonEmpty' row.paymentMethodSubType,
-        settlementType = settlementType',
-        settlementMode = settlementMode',
-        settlementId = nonEmpty' row.vendorSettlementId,
-        settlementDate = vendorSettlementDate',
-        refundId = nonEmpty' row.refundId,
-        refundArn = Nothing,
-        refundDate = refundDate',
-        refundAmount = if txnType' == REFUND then Just (parseAmount row.vendorTxnAmount) else Nothing,
-        refundBaseFee = if txnType' == REFUND then Just (parseAmount row.vendorMdrFees) else Nothing,
-        refundTax = if txnType' == REFUND then Just (parseAmount row.vendorTaxAmount) else Nothing,
-        disputeId = nonEmpty' row.disputeId,
-        disputeType = Nothing,
-        rawData = Just rawJson,
-        cardIsin = Nothing,
-        cardNetwork = Nothing,
-        cardType = Nothing,
-        isOffer = Nothing,
-        offerCode = Nothing,
-        offerId = Nothing,
-        actualAmount = Nothing
-      }
+      totalSettlement = parseAmount row.settlementAmount
+      vendorTotal = computeVendorTotal row.transactionSplits
+      merchantAmt = totalSettlement - vendorTotal
+  if merchantAmt == 0
+    then Right Nothing
+    else
+      Right $
+        Just
+          PaymentSettlementReport
+            { orderId = row.orderId,
+              txnId = nonEmpty' row.transactionId,
+              rrn = nonEmpty' row.rrn,
+              utr = nonEmpty' row.utr,
+              txnType = txnType',
+              txnStatus = txnStatus',
+              txnDate = txnDate',
+              txnAmount = parseAmount row.amount,
+              pgBaseFee = parseAmount row.fee,
+              pgTax = parseAmount row.tax,
+              settlementAmount = merchantAmt,
+              currency = INR,
+              vendorId = Nothing,
+              uniqueSplitId = Nothing,
+              paymentGateway = Just "HYPERPG",
+              paymentMethod = paymentMethod',
+              paymentMethodSubType = nonEmpty' row.paymentMethodSubType,
+              settlementType = settlementType',
+              settlementMode = settlementMode',
+              settlementId = nonEmpty' row.settlementId,
+              settlementDate = settlementDate',
+              refundId = nonEmpty' row.refundId,
+              refundArn = nonEmpty' row.refundArn,
+              refundDate = refundDate',
+              refundAmount = if txnType' == REFUND then Just (parseAmount row.amount) else Nothing,
+              refundBaseFee = if txnType' == REFUND then Just (parseAmount row.fee) else Nothing,
+              refundTax = if txnType' == REFUND then Just (parseAmount row.tax) else Nothing,
+              disputeId = nonEmpty' row.disputeId,
+              disputeType = parseDisputeType row.disputeType,
+              rawData = Just rawJson,
+              cardIsin = Nothing,
+              cardNetwork = Nothing,
+              cardType = Nothing,
+              isOffer = Nothing,
+              offerCode = Nothing,
+              offerId = Nothing,
+              actualAmount = Nothing
+            }
+
+computeVendorTotal :: Text -> HighPrecMoney
+computeVendorTotal splitsText
+  | T.null (T.strip splitsText) = 0
+  | otherwise =
+    case A.eitherDecodeStrict (TE.encodeUtf8 $ T.strip splitsText) of
+      Left _ -> 0
+      Right splits -> sum $ map (parseAmount . grossAmount) (computedVendorsSplits splits)
 
 nonEmpty' :: Text -> Maybe Text
 nonEmpty' t
@@ -156,4 +173,12 @@ parsePaymentMethod t = case T.toUpper (T.strip t) of
   "DEBIT_CARD" -> Just DEBIT_CARD
   "NETBANKING" -> Just NETBANKING
   "WALLET" -> Just WALLET
+  _ -> Nothing
+
+parseDisputeType :: Text -> Maybe DisputeType
+parseDisputeType t = case T.toUpper (T.strip t) of
+  "FRAUD" -> Just FRAUD
+  "CONSUMER" -> Just CONSUMER
+  "PROCESSING_ERROR" -> Just PROCESSING_ERROR
+  "OTHER_DISPUTE" -> Just OTHER_DISPUTE
   _ -> Nothing

@@ -204,15 +204,16 @@ library
       Kernel.External.Plasma.Types
       Kernel.External.Settlement.BillDesk.PaymentParser
       Kernel.External.Settlement.BillDesk.PaymentTypes
+      Kernel.External.Settlement.HyperPG.MerchantPaymentParser
+      Kernel.External.Settlement.HyperPG.MerchantPaymentTypes
       Kernel.External.Settlement.HyperPG.PaymentParser
       Kernel.External.Settlement.HyperPG.PaymentTypes
       Kernel.External.Settlement.HyperPG.PayoutParser
       Kernel.External.Settlement.HyperPG.PayoutTypes
       Kernel.External.Settlement.Interface
       Kernel.External.Settlement.Interface.Types
-      Kernel.External.Settlement.Sources.Email
-      Kernel.External.Settlement.Sources.SFTP
       Kernel.External.Settlement.Types
+      Kernel.External.Settlement.Utils.JuspayOrderStatus
       Kernel.External.Settlement.YesBiz.PaymentParser
       Kernel.External.Settlement.YesBiz.PaymentTypes
       Kernel.External.SharedLogic.DigiLocker.Error
@@ -735,6 +736,7 @@ test-suite mobility-core-tests
       DistanceCalculation
       Predicates
       SettlementEmail
+      SettlementMimeCsv
       SignatureAuth
       SlidingWindowLimiter
       SnippetsCheck
