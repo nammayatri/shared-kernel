@@ -797,6 +797,7 @@ mkOfferResp Juspay.OfferResp {..} = do
       orderAmount = read $ T.unpack order_breakup.final_order_amount,
       finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
       discountAmount = read $ T.unpack order_breakup.discount_amount,
+      cashbackAmount = read $ T.unpack order_breakup.cashback_amount,
       offerCode = offer_code
     }
 
