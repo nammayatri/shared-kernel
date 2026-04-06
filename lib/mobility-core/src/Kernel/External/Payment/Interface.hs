@@ -513,6 +513,12 @@ offerSKUConfig = \case
   StripeConfig _ -> Nothing
   PaytmEDCConfig _ -> Nothing
 
+getUseDomainOffers :: PaymentServiceConfig -> Bool
+getUseDomainOffers = \case
+  JuspayConfig cfg -> fromMaybe False cfg.useDomainOffers
+  StripeConfig cfg -> fromMaybe False cfg.useDomainOffers
+  PaytmEDCConfig _ -> False
+
 -- | Unified payment creation. Routes to Juspay createOrder or Stripe createPaymentIntent
 --   based on PaymentServiceConfig. Domain code calls this single function.
 createPayment ::
