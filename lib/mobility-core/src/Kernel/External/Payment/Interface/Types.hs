@@ -506,6 +506,7 @@ data OfferResp = OfferResp
     finalOrderAmount :: HighPrecMoney,
     discountAmount :: HighPrecMoney,
     cashbackAmount :: HighPrecMoney,
+    benefitType :: Text, -- "CASHBACK" or "DISCOUNT"
     offerCode :: Text
   }
   deriving (Generic, Show, FromJSON, ToJSON)

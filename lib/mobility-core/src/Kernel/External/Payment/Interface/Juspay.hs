@@ -790,6 +790,7 @@ buildOfferListResp resp = do
 
 mkOfferResp :: Juspay.OfferResp -> OfferResp
 mkOfferResp Juspay.OfferResp {..} = do
+  let benefitType' = maybe "DISCOUNT" (._type) (listToMaybe order_breakup.benefits)
   OfferResp
     { offerId = offer_id,
       status,
@@ -798,6 +799,7 @@ mkOfferResp Juspay.OfferResp {..} = do
       finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
       discountAmount = read $ T.unpack order_breakup.discount_amount,
       cashbackAmount = read $ T.unpack order_breakup.cashback_amount,
+      benefitType = benefitType',
       offerCode = offer_code
     }
 
