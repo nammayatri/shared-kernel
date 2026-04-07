@@ -202,7 +202,8 @@ data OfferApplyOrder = OfferApplyOrder
     udf3 :: Text,
     udf4 :: Text,
     udf5 :: Text,
-    payment_channel :: Maybe Text
+    payment_channel :: Maybe Text,
+    basket :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -240,8 +241,11 @@ data OfferApplyOffer = OfferApplyOffer
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
-newtype OfferApplyOrderBreakup = OfferApplyOrderBreakup
-  { final_order_amount :: Text
+data OfferApplyOrderBreakup = OfferApplyOrderBreakup
+  { final_order_amount :: Text,
+    discount_amount :: Maybe Text,
+    cashback_amount :: Maybe Text,
+    product_discounts :: Maybe [JuspayProductDiscount]
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)

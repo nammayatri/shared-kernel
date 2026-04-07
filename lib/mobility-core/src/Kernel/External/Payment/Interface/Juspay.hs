@@ -876,7 +876,8 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
             udf3 = paymentMode,
             udf4 = pack $ formatTime defaultTimeLocale "%d_%m_%y" dutyDate,
             udf5 = show numOfRides,
-            payment_channel = Just "WEB"
+            payment_channel = Just "WEB",
+            basket = decodeUtf8 . A.encode <$> basket
           }
   Juspay.OfferApplyReq
     { txn_id = txnId,
@@ -890,10 +891,15 @@ buildOfferApplyResp :: (MonadThrow m, Log m) => Juspay.OfferApplyResp -> m Offer
 buildOfferApplyResp resp = do
   offers <- forM resp.offers $ \offer -> do
     finalOrderAmount <- parseMoney offer.order_breakup.final_order_amount "final_order_amount"
+    discountAmount <- parseMoney (fromMaybe "0" offer.order_breakup.discount_amount) "discount_amount"
+    cashbackAmount <- parseMoney (fromMaybe "0" offer.order_breakup.cashback_amount) "cashback_amount"
     pure
       OfferApplyRespItem
         { finalOrderAmount,
-          offerId = offer.offer_id
+          discountAmount,
+          cashbackAmount,
+          offerId = offer.offer_id,
+          productDiscounts = map mkProductDiscount <$> offer.order_breakup.product_discounts
         }
   pure OfferApplyResp {offers}
 

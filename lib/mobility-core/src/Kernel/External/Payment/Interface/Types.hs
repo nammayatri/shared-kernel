@@ -543,7 +543,8 @@ data OfferApplyReq = OfferApplyReq
     registrationDate :: UTCTime,
     dutyDate :: UTCTime,
     paymentMode :: Text,
-    numOfRides :: Int
+    numOfRides :: Int,
+    basket :: Maybe [Basket]
   }
 
 newtype OfferApplyResp = OfferApplyResp
@@ -552,7 +553,10 @@ newtype OfferApplyResp = OfferApplyResp
 
 data OfferApplyRespItem = OfferApplyRespItem
   { offerId :: Text,
-    finalOrderAmount :: HighPrecMoney
+    finalOrderAmount :: HighPrecMoney,
+    discountAmount :: HighPrecMoney,
+    cashbackAmount :: HighPrecMoney,
+    productDiscounts :: Maybe [ProductDiscount]
   }
 
 -- offer notify --
