@@ -771,7 +771,8 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
       udf5 = do
         let strNumRides = show numOfRides
         if strNumRides == "-1" then "DEFAULT" else strNumRides,
-      udf6 = parseUDF6 <$> offerListingMetric
+      udf6 = parseUDF6 <$> offerListingMetric,
+      basket = decodeUtf8 . A.encode <$> basket
     }
   where
     parseUDF6 offerListingMetric' = do
@@ -800,7 +801,16 @@ mkOfferResp Juspay.OfferResp {..} = do
       discountAmount = read $ T.unpack order_breakup.discount_amount,
       cashbackAmount = read $ T.unpack order_breakup.cashback_amount,
       benefitType = benefitType',
-      offerCode = offer_code
+      offerCode = offer_code,
+      productDiscounts = map mkProductDiscount <$> order_breakup.product_discounts
+    }
+
+mkProductDiscount :: Juspay.JuspayProductDiscount -> ProductDiscount
+mkProductDiscount Juspay.JuspayProductDiscount {..} =
+  ProductDiscount
+    { productId = product_id,
+      discountAmount = read $ T.unpack discount_amount,
+      cashbackAmount = read $ T.unpack cashback_amount
     }
 
 mkOfferDescription :: Juspay.OfferDescription -> OfferDescription

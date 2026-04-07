@@ -452,7 +452,8 @@ data UDF6 = IS_VISIBLE | IS_APPLICABLE | LIST_BASED_ON_DATE UTCTime
 data OfferOrder = OfferOrder
   { orderId :: Maybe Text,
     amount :: HighPrecMoney,
-    currency :: Currency
+    currency :: Currency,
+    basket :: Maybe [Basket]
   }
 
 data OfferCustomer = OfferCustomer
@@ -507,7 +508,16 @@ data OfferResp = OfferResp
     discountAmount :: HighPrecMoney,
     cashbackAmount :: HighPrecMoney,
     benefitType :: Text, -- "CASHBACK" or "DISCOUNT"
-    offerCode :: Text
+    offerCode :: Text,
+    productDiscounts :: Maybe [ProductDiscount]
+  }
+  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving anyclass (ToSchema)
+
+data ProductDiscount = ProductDiscount
+  { productId :: Text,
+    discountAmount :: HighPrecMoney,
+    cashbackAmount :: HighPrecMoney
   }
   deriving (Generic, Show, FromJSON, ToJSON)
   deriving anyclass (ToSchema)

@@ -42,7 +42,8 @@ data OfferOrder = OfferOrder
     udf3 :: Text,
     udf4 :: Text,
     udf5 :: Text,
-    udf6 :: Maybe Text
+    udf6 :: Maybe Text,
+    basket :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -110,7 +111,16 @@ data OrderBreakup = OrderBreakup
     merchant_discount_amount :: Text,
     cashback_amount :: Text,
     offer_amount :: Text,
-    benefits :: [BestOfferCombinationBenefit]
+    benefits :: [BestOfferCombinationBenefit],
+    product_discounts :: Maybe [JuspayProductDiscount]
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data JuspayProductDiscount = JuspayProductDiscount
+  { product_id :: Text,
+    discount_amount :: Text,
+    cashback_amount :: Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
