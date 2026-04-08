@@ -552,7 +552,8 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
               optionsGetUpiDeepLinks = req.optionsGetUpiDeepLinks,
               metadataExpiryInMins = req.metadataExpiryInMins,
               splitSettlementDetails = req.splitSettlementDetails,
-              basket = req.basket
+              basket = req.basket,
+              paymentRules = req.paymentRules
             }
     resp <- Juspay.createOrder cfg mRoutingId juspayReq
     let clientSecret' = maybe "" (\p -> p.payload.clientAuthToken) (Just resp.sdk_payload)
@@ -607,7 +608,8 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
               optionsGetUpiDeepLinks = req.optionsGetUpiDeepLinks,
               metadataExpiryInMins = req.metadataExpiryInMins,
               splitSettlementDetails = req.splitSettlementDetails,
-              basket = req.basket
+              basket = req.basket,
+              paymentRules = req.paymentRules
             }
     resp <- PaytmEDC.createOrder cfg mRoutingId paytmReq
     let clientSecret' = maybe "" (\p -> p.payload.clientAuthToken) (Just resp.sdk_payload)

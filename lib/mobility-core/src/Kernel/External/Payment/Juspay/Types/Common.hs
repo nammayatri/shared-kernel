@@ -18,12 +18,13 @@ module Kernel.External.Payment.Juspay.Types.Common where
 
 import Control.Lens
 import Data.Aeson.Types
-import Data.OpenApi hiding (components, description, links)
+import Data.OpenApi hiding (components, description, links, name)
 import qualified Data.Text as T
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common
+import Kernel.Utils.JSON (camelToSnakeCase)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 type CustomerId = Text
@@ -172,6 +173,226 @@ instance ToHttpApiData TransactionStatus where
 
 type OrderStatusResp = OrderData
 
+jsonSnakeOptions :: Options
+jsonSnakeOptions = defaultOptions {fieldLabelModifier = camelToSnakeCase}
+
+data LoyaltyBurnApplicable = LoyaltyBurnApplicable
+  { points :: Text,
+    discountAmount :: Text
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON LoyaltyBurnApplicable where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON LoyaltyBurnApplicable where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data LoyaltyBurnIneligibleReason = LoyaltyBurnIneligibleReason
+  { message :: Text
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON LoyaltyBurnIneligibleReason where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON LoyaltyBurnIneligibleReason where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data LoyaltyBurnOptionSelected = LoyaltyBurnOptionSelected
+  { id :: Text,
+    pointsSelected :: Text,
+    status :: Text,
+    ineligibleReasons :: Maybe [LoyaltyBurnIneligibleReason],
+    applicable :: Maybe LoyaltyBurnApplicable
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON LoyaltyBurnOptionSelected where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON LoyaltyBurnOptionSelected where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data LoyaltyBurnDetail = LoyaltyBurnDetail
+  { programId :: Text,
+    burnOptionsSelected :: Maybe [LoyaltyBurnOptionSelected]
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON LoyaltyBurnDetail where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON LoyaltyBurnDetail where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data LoyaltyEarnApplied = LoyaltyEarnApplied
+  { points :: Text
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON LoyaltyEarnApplied where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON LoyaltyEarnApplied where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data LoyaltyEarnCampaign = LoyaltyEarnCampaign
+  { id :: Text,
+    applied :: Maybe LoyaltyEarnApplied
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON LoyaltyEarnCampaign where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON LoyaltyEarnCampaign where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data LoyaltyEarnDetail = LoyaltyEarnDetail
+  { programId :: Text,
+    applied :: Maybe LoyaltyEarnApplied,
+    campaigns :: Maybe [LoyaltyEarnCampaign]
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON LoyaltyEarnDetail where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON LoyaltyEarnDetail where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data LoyaltyInfo = LoyaltyInfo
+  { burnDetails :: Maybe [LoyaltyBurnDetail],
+    earnDetails :: Maybe [LoyaltyEarnDetail]
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON LoyaltyInfo where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON LoyaltyInfo where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data TxnAmountBreakup = TxnAmountBreakup
+  { amount :: Double,
+    method :: Text,
+    sno :: Text,
+    name :: Text
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON TxnAmountBreakup where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON TxnAmountBreakup where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data TxnDetail = TxnDetail
+  { txnId :: Maybe Text,
+    orderId :: Maybe Text,
+    errorCode :: Maybe Text,
+    txnFlowType :: Maybe Text,
+    merchantIdentifier :: Maybe Text,
+    status :: Maybe TransactionStatus,
+    expressCheckout :: Maybe Bool,
+    gatewayId :: Maybe Int,
+    errorMessage :: Maybe Text,
+    offerDeductionAmount :: Maybe Double,
+    taxAmount :: Maybe HighPrecMoney,
+    currency :: Maybe Currency,
+    txnAmountBreakup :: Maybe [TxnAmountBreakup],
+    txnAmount :: Maybe Double,
+    loyaltyInfo :: Maybe LoyaltyInfo,
+    created :: Maybe UTCTime,
+    gateway :: Maybe Text,
+    surchargeAmount :: Maybe HighPrecMoney,
+    lastUpdated :: Maybe UTCTime,
+    txnUuid :: Maybe Text,
+    netAmount :: Maybe HighPrecMoney,
+    redirect :: Maybe Bool,
+    metadata :: Maybe Object,
+    isCvvLessTxn :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance Read TxnDetail where
+  readsPrec _ _ = []
+
+instance FromJSON TxnDetail where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON TxnDetail where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data TxnList = TxnList
+  { paymentMethod :: Maybe Text,
+    txnId :: Maybe Text,
+    gatewayReferenceId :: Maybe Text,
+    txnDetail :: Maybe TxnDetail,
+    status :: Maybe TransactionStatus,
+    respMessage :: Maybe Text,
+    refunded :: Maybe Bool,
+    gatewayId :: Maybe Int,
+    effectiveAmount :: Maybe Double,
+    authType :: Maybe Text,
+    respCode :: Maybe Text,
+    card :: Maybe Text,
+    paymentMethodType :: Maybe Text,
+    txnUuid :: Maybe Text,
+    respCategory :: Maybe Text,
+    bankErrorCode :: Maybe Text,
+    emiDetails :: Maybe Text,
+    bankErrorMessage :: Maybe Text,
+    s :: Maybe [Text]
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON TxnList where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON TxnList where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data OrderStatusWithLoyaltyResp = OrderStatusWithLoyaltyResp
+  { txnList :: Maybe [TxnList],
+    customerPhone :: Maybe Text,
+    orderId :: Text,
+    customerId :: Maybe Text,
+    amount :: Double,
+    status :: TransactionStatus,
+    dateCreated :: Maybe UTCTime,
+    id :: Text,
+    merchantId :: Maybe Text,
+    returnUrl :: Maybe Text,
+    effectiveAmount :: Maybe Double,
+    currency :: Currency,
+    loyaltyInfo :: Maybe LoyaltyInfo,
+    customerEmail :: Maybe Text,
+    customerPhoneCountryCode :: Maybe Text,
+    lastUpdated :: Maybe UTCTime,
+    amountRefunded :: Maybe Double
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON OrderStatusWithLoyaltyResp where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON OrderStatusWithLoyaltyResp where
+  toJSON = genericToJSON jsonSnakeOptions
+
 data OrderData = OrderData
   { order_id :: Text,
     txn_uuid :: Maybe Text,
@@ -202,7 +423,9 @@ data OrderData = OrderData
     split_settlement_response :: Maybe SplitSettlementResponse,
     effective_amount :: Maybe Double,
     offers :: Maybe [Offer],
-    txn_detail :: Maybe TxnDetail
+    txn_detail :: Maybe TxnDetail,
+    loyalty_info :: Maybe LoyaltyInfo,
+    txn_list :: Maybe [TxnList]
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -245,14 +468,14 @@ data PaymentGatewayResponse = PaymentGatewayResponse
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data TxnDetail = TxnDetail
-  { gateway :: Maybe Text,
-    surcharge_amount :: Maybe Double,
-    tax_amount :: Maybe Double,
-    net_amount :: Maybe Double
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+-- data TxnDetail = TxnDetail
+--   { gateway :: Maybe Text,
+--     surcharge_amount :: Maybe Double,
+--     tax_amount :: Maybe Double,
+--     net_amount :: Maybe Double
+--   }
+--   deriving stock (Show, Generic)
+--   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data MandateData = MandateData
   { mandate_status :: MandateStatus,
