@@ -1,3 +1,5 @@
+{-# LANGUAGE PackageImports #-}
+
 {-
   Copyright 2022-25, Juspay India Pvt Ltd
 
@@ -18,12 +20,14 @@ module Kernel.External.Wallet.Interface.Juspay
     walletReversal,
     walletBalance,
     walletVerifyTxn,
+    loyaltyInfo,
   )
 where
 
 import Kernel.External.Encryption
 import qualified Kernel.External.Payment.Juspay.Config as PaymentJuspay
 import Kernel.External.Wallet.Interface.Types
+import qualified Kernel.External.Wallet.Juspay.Config as WalletConfig
 import qualified Kernel.External.Wallet.Juspay.Flow as Juspay
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
@@ -96,3 +100,15 @@ walletVerifyTxn config req = do
   issuer <- fromMaybeM (InvalidRequest "walletIssuer is required in Juspay config") config.walletIssuer
   apiKey <- decrypt config.apiKey
   Juspay.walletVerifyTxn config.url apiKey issuer req
+
+loyaltyInfo ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r
+  ) =>
+  WalletConfig.LoyaltyCfg ->
+  LoyaltyInfoRequest ->
+  m LoyaltyInfoResponse
+loyaltyInfo config req = do
+  apiKey <- decrypt config.apiKey
+  Juspay.loyaltyInfo config.baseUrl apiKey req
