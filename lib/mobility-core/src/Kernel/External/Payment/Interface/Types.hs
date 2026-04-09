@@ -452,7 +452,8 @@ data UDF6 = IS_VISIBLE | IS_APPLICABLE | LIST_BASED_ON_DATE UTCTime
 data OfferOrder = OfferOrder
   { orderId :: Maybe Text,
     amount :: HighPrecMoney,
-    currency :: Currency
+    currency :: Currency,
+    basket :: Maybe [Basket]
   }
 
 data OfferCustomer = OfferCustomer
@@ -505,7 +506,18 @@ data OfferResp = OfferResp
     orderAmount :: HighPrecMoney,
     finalOrderAmount :: HighPrecMoney,
     discountAmount :: HighPrecMoney,
-    offerCode :: Text
+    cashbackAmount :: HighPrecMoney,
+    benefitType :: Text, -- "CASHBACK" or "DISCOUNT"
+    offerCode :: Text,
+    productDiscounts :: Maybe [ProductDiscount]
+  }
+  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving anyclass (ToSchema)
+
+data ProductDiscount = ProductDiscount
+  { productId :: Text,
+    discountAmount :: HighPrecMoney,
+    cashbackAmount :: HighPrecMoney
   }
   deriving (Generic, Show, FromJSON, ToJSON)
   deriving anyclass (ToSchema)
@@ -531,7 +543,8 @@ data OfferApplyReq = OfferApplyReq
     registrationDate :: UTCTime,
     dutyDate :: UTCTime,
     paymentMode :: Text,
-    numOfRides :: Int
+    numOfRides :: Int,
+    basket :: Maybe [Basket]
   }
 
 newtype OfferApplyResp = OfferApplyResp
@@ -540,7 +553,10 @@ newtype OfferApplyResp = OfferApplyResp
 
 data OfferApplyRespItem = OfferApplyRespItem
   { offerId :: Text,
-    finalOrderAmount :: HighPrecMoney
+    finalOrderAmount :: HighPrecMoney,
+    discountAmount :: HighPrecMoney,
+    cashbackAmount :: HighPrecMoney,
+    productDiscounts :: Maybe [ProductDiscount]
   }
 
 -- offer notify --
