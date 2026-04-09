@@ -14,6 +14,7 @@
 
 module Kernel.External.Wallet.Juspay.Flow where
 
+import qualified Data.Text.Encoding as DT
 import EulerHS.Types as Euler
 import Kernel.External.Wallet.Interface.Types
 import Kernel.Prelude
@@ -132,3 +133,29 @@ walletVerifyTxn url apiKey issuer WalletVerifyTxnReq {..} = do
       eulerClient = Euler.client proxy operationId (Just issuer) (Just apiKey)
   callAPI url eulerClient "wallet-verify-txn" proxy
     >>= fromEitherM (\err -> InternalError $ "Failed to call wallet verify txn API: " <> show err)
+
+type LoyaltyInfoAPI =
+  "loyalty"
+    :> "programs"
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[JSON] LoyaltyInfoRequest
+    :> Post '[JSON] LoyaltyInfoResponse
+
+loyaltyInfo ::
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
+  BaseUrl ->
+  Text ->
+  LoyaltyInfoRequest ->
+  m LoyaltyInfoResponse
+loyaltyInfo url apiKey req = do
+  let proxy = Proxy @LoyaltyInfoAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) req
+  callAPI url eulerClient "loyalty-info" proxy
+    >>= fromEitherM (\err -> InternalError $ "Failed to call loyalty info API: " <> show err)
+
+mkBasicAuthData :: Text -> BasicAuthData
+mkBasicAuthData apiKey =
+  BasicAuthData
+    { basicAuthUsername = DT.encodeUtf8 apiKey,
+      basicAuthPassword = ""
+    }
