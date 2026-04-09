@@ -19,6 +19,7 @@ module Kernel.External.Ticket.Kapture.Flow
     kaptureEncryption,
     kapturePullTicket,
     kaptureGetTicket,
+    kaptureSearchTicketById,
   )
 where
 
@@ -155,3 +156,23 @@ kaptureGetTicket url apiKey req = do
   let eulerClient = Euler.client (Proxy @KaptureGetTicketAPI) "v.2.0" (Just apiKey) (Just apiKey) (Just "TICKET") req
   callAPI url eulerClient "kaptureGetTicket" (Proxy @KaptureGetTicketAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call get ticket API: " <> show err)
+
+type KaptureSearchTicketByIdAPI =
+  "search-ticket-by-ticket-id.html"
+    :> Capture "version" Text
+    :> Header "Authorization" Text
+    :> Header "x-api-key" Text
+    :> Header "x-api-type" Text
+    :> ReqBody '[JSON] Kapture.SearchTicketByIdReq
+    :> Post '[JSON] [Kapture.KaptureTicketStatusItem]
+
+kaptureSearchTicketById ::
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
+  BaseUrl ->
+  Text ->
+  Kapture.SearchTicketByIdReq ->
+  m [Kapture.KaptureTicketStatusItem]
+kaptureSearchTicketById url apiKey req = do
+  let eulerClient = Euler.client (Proxy @KaptureSearchTicketByIdAPI) "v.2.0" (Just apiKey) (Just apiKey) (Just "TICKET") req
+  callAPI url eulerClient "kaptureSearchTicketById" (Proxy @KaptureSearchTicketByIdAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call search ticket by id API: " <> show err)
