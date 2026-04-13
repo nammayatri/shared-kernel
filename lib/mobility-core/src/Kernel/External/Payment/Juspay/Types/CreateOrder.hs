@@ -51,9 +51,35 @@ data CreateOrderReq = CreateOrderReq
     metadata_expiry_in_mins :: Maybe Int,
     split_settlement_details :: Maybe SplitSettlementDetails,
     basket :: Maybe Text,
-    auto_refund_conflict_threshold_minutes :: Maybe Int
+    auto_refund_conflict_threshold_minutes :: Maybe Int,
+    payment_rules :: Maybe PaymentRules
   }
   deriving stock (Show, Eq, Generic)
+
+data PaymentRules = PaymentRules
+  { payment_flows :: PaymentFlows
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFlows = PaymentFlows
+  { loyalty_os_topup :: PaymentFlowStatus
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFlowStatus = PaymentFlowStatus
+  { status :: Text,
+    info :: Maybe PaymentFlowInfo
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype PaymentFlowInfo = PaymentFlowInfo
+  { program_id :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data SplitSettlementDetails
   = AmountBased SplitSettlementDetailsAmount
@@ -206,6 +232,7 @@ jsonReqOptions =
         "metadata_expiry_in_mins" -> "metadata.expiryInMins"
         "split_settlement_details" -> "metadata.split_settlement_details"
         "auto_refund_conflict_threshold_minutes" -> "metadata.auto_refund_conflict_threshold_minutes"
+        "payment_rules" -> "payment_rules"
         other -> other
     }
 

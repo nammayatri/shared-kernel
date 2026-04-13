@@ -316,7 +316,7 @@ data AdvancementStats = AdvancementStats
   { bestStreak :: Maybe Int,
     completions :: Maybe Int,
     currentStreak :: Maybe Int,
-    totalEarned :: Maybe Text
+    totalEarned :: Maybe TotalEarned
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToSchema)
@@ -367,7 +367,8 @@ burnOptionOptions =
     }
 
 data BurnOption = BurnOption
-  { id_ :: Text,
+  { applicable :: Maybe BurnApplicable,
+    id_ :: Text,
     increment :: Maybe Text,
     partialAllowed :: Maybe Bool,
     status :: Maybe CommonStatus,
@@ -381,6 +382,35 @@ instance FromJSON BurnOption where
 
 instance ToJSON BurnOption where
   toJSON = genericToJSON burnOptionOptions
+
+data BurnApplicable = BurnApplicable
+  { label :: Maybe Text,
+    maxPoints :: Maybe Text,
+    maxValue :: Maybe Text,
+    minPoints :: Maybe Text,
+    rate :: Maybe BurnRate
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON BurnApplicable where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON BurnApplicable where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data BurnRate = BurnRate
+  { points :: Maybe Text,
+    value :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON BurnRate where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON BurnRate where
+  toJSON = genericToJSON jsonSnakeOptions
 
 data EarnInfo = EarnInfo
   { applicable :: Maybe EarnApplicable,
