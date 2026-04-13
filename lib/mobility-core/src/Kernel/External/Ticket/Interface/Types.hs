@@ -23,7 +23,7 @@ import qualified Data.Text as T
 import Deriving.Aeson
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Ticket.Kapture.Config as Kapture
-import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), GetTicketResp (..), KaptureCustomerResp (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), PullAdditionalDetails (..), RideIdObject (..), TicketSummary (..), UpdateTicketResp (..))
+import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), GetTicketResp (..), GetTicketStatusResp (..), KaptureCustomerResp (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), PullAdditionalDetails (..), RideIdObject (..), TicketSummary (..), UpdateTicketResp (..))
 import Kernel.External.Ticket.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
@@ -146,5 +146,10 @@ instance ToHttpApiData TicketType where
 data GetTicketReq = GetTicketReq
   { ticketIds :: Text,
     conversationType :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+newtype SearchTicketByIdReq = SearchTicketByIdReq
+  { ticketIds :: Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
