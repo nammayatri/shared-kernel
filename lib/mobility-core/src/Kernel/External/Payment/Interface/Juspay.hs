@@ -324,8 +324,34 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantI
           metadata_gateway_reference_id = metadataGatewayReferenceId,
           split_settlement_details = splitDetails,
           basket = decodeUtf8 . A.encode <$> basket,
-          auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes
+          auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
+          payment_rules = mkPaymentRules <$> paymentRules
         }
+
+mkPaymentRules :: PaymentRules -> Juspay.PaymentRules
+mkPaymentRules PaymentRules {..} =
+  Juspay.PaymentRules
+    { payment_flows = mkPaymentFlows paymentFlows
+    }
+
+mkPaymentFlows :: PaymentFlows -> Juspay.PaymentFlows
+mkPaymentFlows PaymentFlows {..} =
+  Juspay.PaymentFlows
+    { loyalty_os_topup = mkPaymentFlowStatus loyaltyOsTopup
+    }
+
+mkPaymentFlowStatus :: PaymentFlowStatus -> Juspay.PaymentFlowStatus
+mkPaymentFlowStatus PaymentFlowStatus {..} =
+  Juspay.PaymentFlowStatus
+    { status = status,
+      info = mkPaymentFlowInfo <$> info
+    }
+
+mkPaymentFlowInfo :: PaymentFlowInfo -> Juspay.PaymentFlowInfo
+mkPaymentFlowInfo PaymentFlowInfo {..} =
+  Juspay.PaymentFlowInfo
+    { program_id = programId
+    }
 
 mkSplitSettlementDetails :: (MonadThrow m, Log m) => SplitSettlementDetails -> m Juspay.SplitSettlementDetails
 mkSplitSettlementDetails splitDetails = do

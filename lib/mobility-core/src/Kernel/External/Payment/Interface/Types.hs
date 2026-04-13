@@ -24,7 +24,7 @@ where
 
 import Control.Lens
 import Data.Aeson.Types
-import Data.OpenApi hiding (description, email, name, title)
+import Data.OpenApi hiding (description, email, info, name, title)
 import Data.Time
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
@@ -89,7 +89,33 @@ data CreateOrderReq = CreateOrderReq
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int,
     splitSettlementDetails :: Maybe SplitSettlementDetails,
-    basket :: Maybe [Basket]
+    basket :: Maybe [Basket],
+    paymentRules :: Maybe PaymentRules
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentRules = PaymentRules
+  { paymentFlows :: PaymentFlows
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFlows = PaymentFlows
+  { loyaltyOsTopup :: PaymentFlowStatus
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFlowStatus = PaymentFlowStatus
+  { status :: Text,
+    info :: Maybe PaymentFlowInfo
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype PaymentFlowInfo = PaymentFlowInfo
+  { programId :: Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -844,7 +870,8 @@ data CreatePaymentReq = CreatePaymentReq
     metadataGatewayReferenceId :: Maybe Text,
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int,
-    basket :: Maybe [Basket]
+    basket :: Maybe [Basket],
+    paymentRules :: Maybe PaymentRules
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
