@@ -22,6 +22,7 @@ import Kernel.External.Payout.Interface.Types as Reexport
 import Kernel.External.Payout.Types as Reexport
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Error
 import Kernel.Utils.Common
 
 createPayoutOrder ::
@@ -37,6 +38,7 @@ createPayoutOrder ::
   m CreatePayoutOrderResp
 createPayoutOrder serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.createPayoutOrder cfg mRoutingId req
+  StripeConfig _ -> throwError $ InternalError "Stripe Create Payout Order not supported."
 
 payoutOrderStatus ::
   ( EncFlow m r,
@@ -50,3 +52,4 @@ payoutOrderStatus ::
   m PayoutOrderStatusResp
 payoutOrderStatus serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req.orderId mRoutingId req.mbExpand
+  StripeConfig _ -> throwError $ InternalError "Stripe Payout Order Status not supported."

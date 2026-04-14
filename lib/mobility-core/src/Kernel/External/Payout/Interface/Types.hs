@@ -25,12 +25,13 @@ where
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payout.Juspay.Config as Juspay
 import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), PayoutOrderStatus (..))
+import qualified Kernel.External.Payout.Stripe.Config as Stripe
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common hiding (Currency)
 import Servant.API (ToHttpApiData (..))
 
-data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig
+data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig | StripeConfig Stripe.StripeConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data OrderStatusPayoutResp
