@@ -19,6 +19,7 @@ module Kernel.External.Ticket.Interface.Kapture
     kaptureEncryption,
     kapturePullTicket,
     kaptureGetTicket,
+    getTicketStatus,
   )
 where
 
@@ -173,3 +174,17 @@ kaptureGetTicket config req = do
   KF.kaptureGetTicket config.url apiKey (mkGetTicketReq req)
   where
     mkGetTicketReq IT.GetTicketReq {..} = Kapture.GetTicketReq {..}
+
+getTicketStatus ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  KaptureCfg ->
+  IT.SearchTicketByIdReq ->
+  m [Kapture.GetTicketStatusResp]
+getTicketStatus config (IT.SearchTicketByIdReq ticketIds) = do
+  apiKey <- decrypt config.auth
+  items <- KF.kaptureSearchTicketById config.url apiKey (Kapture.SearchTicketByIdReq ticketIds)
+  return $ map (\item -> Kapture.GetTicketStatusResp {subStatus = item.taskDetails.substatus}) items
