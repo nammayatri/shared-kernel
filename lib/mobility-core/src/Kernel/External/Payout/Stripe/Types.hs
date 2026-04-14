@@ -156,24 +156,6 @@ instance ToJSON PayoutObject where
 instance ToSchema PayoutObject where
   declareNamedSchema = genericDeclareNamedSchema S.stripPrefixUnderscoreIfAny
 
--- instance FromJSON PayoutObject where
---   parseJSON = withObject "PayoutObject" $ \o -> do
---     payoutId <- PayoutId <$> o .: "id"
---     payoutAmount <- o .: "amount"
---     payoutCurrency <- o .: "currency"
---     payoutStatus <- o .: "status"
---     payoutType <- o .: "type"
---     payoutMethod <- o .: "method"
---     payoutDescription <- o .:? "description"
---     payoutDestination <- o .:? "destination"
---     payoutCreated <- o .: "created"
---     payoutArrivalDate <- o .:? "arrival_date"
---     payoutStatementDescriptor <- o .:? "statement_descriptor"
---     payoutMetadata <- o .:? "metadata" .!= mempty
---     payoutFailureCode <- o .:? "failure_code"
---     payoutFailureMessage <- o .:? "failure_message"
---     return PayoutObject {..}
-
 -- List Payouts Response
 data PayoutList = PayoutList
   { _data :: [PayoutObject],

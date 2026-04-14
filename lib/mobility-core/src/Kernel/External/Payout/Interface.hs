@@ -18,6 +18,7 @@ module Kernel.External.Payout.Interface
 where
 
 import qualified Kernel.External.Payout.Interface.Juspay as Juspay
+import qualified Kernel.External.Payout.Interface.Stripe as Stripe
 import Kernel.External.Payout.Interface.Types as Reexport
 import Kernel.External.Payout.Types as Reexport
 import Kernel.Prelude
@@ -38,7 +39,7 @@ createPayoutOrder ::
   m CreatePayoutOrderResp
 createPayoutOrder serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> Juspay.createPayoutOrder cfg mRoutingId req
-  StripeConfig _ -> throwError $ InternalError "Stripe Create Payout Order not supported."
+  StripeConfig cfg -> Stripe.createPayoutOrder cfg mRoutingId req
 
 payoutOrderStatus ::
   ( EncFlow m r,

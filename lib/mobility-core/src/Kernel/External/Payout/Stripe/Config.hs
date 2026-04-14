@@ -22,7 +22,7 @@ data StripeConfig = StripeConfig
   { apiKey :: EncryptedField 'AsEncrypted Text,
     -- returnUrl :: BaseUrl,
     -- refreshUrl :: BaseUrl,
-    -- url :: BaseUrl,
+    url :: BaseUrl,
     -- businessProfile :: Maybe BusinessProfile,
     -- chargeDestination :: ChargeDestination,
     webhookEndpointSecret :: Maybe (EncryptedField 'AsEncrypted Text),
