@@ -20,6 +20,7 @@ import ComputeIntersectionTests
 import DistanceCalculation
 import EulerHS.Prelude
 import Predicates
+import GSTEInvoiceTest (gstEInvoiceTests)
 import SettlementEmail
 import SignatureAuth
 import SlidingWindowLimiter
@@ -45,5 +46,6 @@ specs = return $ testGroup "Tests" [unitTests]
           readVersionTests,
           snippetsCheckTests,
           predicatesTests,
-          settlementEmailTests
+          settlementEmailTests,
+          gstEInvoiceTests
         ]
