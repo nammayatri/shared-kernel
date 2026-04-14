@@ -11,7 +11,7 @@ import Kernel.Prelude
 import Kernel.Utils.JSON
 import qualified Kernel.Utils.Schema as S
 import Web.FormUrlEncoded
-import Web.HttpApiData (FromHttpApiData, ToHttpApiData (..))
+import Web.HttpApiData (FromHttpApiData (..), ToHttpApiData (..))
 
 -- Payout Types
 newtype PayoutId = PayoutId Text
@@ -19,36 +19,44 @@ newtype PayoutId = PayoutId Text
   deriving newtype (FromJSON, ToJSON, ToSchema, FromHttpApiData, ToHttpApiData)
 
 data PayoutStatus
-  = PayoutPending
-  | PayoutInTransit
-  | PayoutPaid
-  | PayoutFailed
-  | PayoutCanceled
+  = PAYOUT_PENDING
+  | PAYOUT_IN_TRANSIT
+  | PAYOUT_PAID
+  | PAYOUT_FAILED
+  | PAYOUT_CANCELED
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToSchema)
 
 instance FromJSON PayoutStatus where
   parseJSON = withText "PayoutStatus" $ \case
-    "pending" -> pure PayoutPending
-    "in_transit" -> pure PayoutInTransit
-    "paid" -> pure PayoutPaid
-    "failed" -> pure PayoutFailed
-    "canceled" -> pure PayoutCanceled
+    "pending" -> pure PAYOUT_PENDING
+    "in_transit" -> pure PAYOUT_IN_TRANSIT
+    "paid" -> pure PAYOUT_PAID
+    "failed" -> pure PAYOUT_FAILED
+    "canceled" -> pure PAYOUT_CANCELED
     _ -> fail "Invalid payout status"
 
 instance ToJSON PayoutStatus where
-  toJSON PayoutPending = String "pending"
-  toJSON PayoutInTransit = String "in_transit"
-  toJSON PayoutPaid = String "paid"
-  toJSON PayoutFailed = String "failed"
-  toJSON PayoutCanceled = String "canceled"
+  toJSON PAYOUT_PENDING = String "pending"
+  toJSON PAYOUT_IN_TRANSIT = String "in_transit"
+  toJSON PAYOUT_PAID = String "paid"
+  toJSON PAYOUT_FAILED = String "failed"
+  toJSON PAYOUT_CANCELED = String "canceled"
 
--- instance ToHttpApiData PayoutStatus where
---   toQueryParam PayoutPending = "pending"
---   toQueryParam PayoutInTransit = "in_transit"
---   toQueryParam PayoutPaid = "paid"
---   toQueryParam PayoutFailed = "failed"
---   toQueryParam PayoutCanceled = "canceled"
+instance ToHttpApiData PayoutStatus where
+  toQueryParam PAYOUT_PENDING = "pending"
+  toQueryParam PAYOUT_IN_TRANSIT = "in_transit"
+  toQueryParam PAYOUT_PAID = "paid"
+  toQueryParam PAYOUT_FAILED = "failed"
+  toQueryParam PAYOUT_CANCELED = "canceled"
+
+instance FromHttpApiData PayoutStatus where
+  parseQueryParam "pending" = Right PAYOUT_PENDING
+  parseQueryParam "in_transit" = Right PAYOUT_IN_TRANSIT
+  parseQueryParam "paid" = Right PAYOUT_PAID
+  parseQueryParam "failed" = Right PAYOUT_FAILED
+  parseQueryParam "canceled" = Right PAYOUT_CANCELED
+  parseQueryParam _ = Left "Invalid payout status"
 
 data PayoutType = Card | BankAccount
   deriving stock (Show, Eq, Generic)

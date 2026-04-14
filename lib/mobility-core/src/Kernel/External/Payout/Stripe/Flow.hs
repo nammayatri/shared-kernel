@@ -108,7 +108,7 @@ type ListPayoutsAPI =
     :> QueryParam "limit" Int
     :> QueryParam "starting_after" Text
     :> QueryParam "ending_before" Text
-    :> QueryParam "status" Text
+    :> QueryParam "status" PayoutStatus
     :> Get '[JSON] PayoutList
 
 listPayouts ::
@@ -127,12 +127,5 @@ listPayouts ::
   m PayoutList
 listPayouts url apiKey connectedAccountId limit startingAfter endingBefore status = do
   let proxy = Proxy @ListPayoutsAPI
-      statusText = fmap payoutStatusToText status
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId limit startingAfter endingBefore statusText
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId limit startingAfter endingBefore status
   callStripeAPI url eulerClient "list-payouts" proxy
-  where
-    payoutStatusToText PayoutPending = "pending"
-    payoutStatusToText PayoutInTransit = "in_transit"
-    payoutStatusToText PayoutPaid = "paid"
-    payoutStatusToText PayoutFailed = "failed"
-    payoutStatusToText PayoutCanceled = "canceled"
