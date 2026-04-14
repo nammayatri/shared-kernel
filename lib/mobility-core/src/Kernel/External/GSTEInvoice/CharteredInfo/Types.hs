@@ -22,7 +22,12 @@ data CharteredInfoConfig = CharteredInfoConfig
     password :: EncryptedField 'AsEncrypted Text,
     gstin :: Text,
     userName :: Text,
-    eInvPwd :: EncryptedField 'AsEncrypted Text
+    eInvPwd :: EncryptedField 'AsEncrypted Text,
+    sellerGstinLegalName :: Text,
+    sellerGstinAddr :: Text,
+    sellerGstinLocation :: Text,
+    sellerGstinPinCode :: Int,
+    sellerGstinStcd :: Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
