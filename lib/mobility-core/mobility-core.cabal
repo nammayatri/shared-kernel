@@ -196,6 +196,7 @@ library
       Kernel.External.Payout.Juspay.Webhook
       Kernel.External.Payout.Stripe.Config
       Kernel.External.Payout.Stripe.Flow
+      Kernel.External.Payout.Stripe.Types
       Kernel.External.Payout.Types
       Kernel.External.Plasma
       Kernel.External.Plasma.Interface

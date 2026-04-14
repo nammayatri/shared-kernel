@@ -33,6 +33,7 @@ data StripeConfig = StripeConfig
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
+-- TODO reuse
 data ServiceMode = Test | Live
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
