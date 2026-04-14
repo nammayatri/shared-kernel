@@ -73,6 +73,12 @@ library
       Kernel.External.GoogleTranslate.API
       Kernel.External.GoogleTranslate.Client
       Kernel.External.GoogleTranslate.Types
+      Kernel.External.GSTEInvoice.CharteredInfo.Flow
+      Kernel.External.GSTEInvoice.CharteredInfo.Types
+      Kernel.External.GSTEInvoice.Interface
+      Kernel.External.GSTEInvoice.Interface.CharteredInfo
+      Kernel.External.GSTEInvoice.Interface.Types
+      Kernel.External.GSTEInvoice.Types
       Kernel.External.IncidentReport
       Kernel.External.IncidentReport.ERSS.Config
       Kernel.External.IncidentReport.ERSS.Flow
