@@ -1,5 +1,6 @@
 module Kernel.External.Payout.Interface.Stripe
   ( createPayoutOrder,
+    payoutOrderStatus,
   )
 where
 
@@ -27,7 +28,7 @@ createPayoutOrder config mConnectedAccountId req = do
   apiKey <- decrypt config.apiKey
   let url = config.url
   stripeResp <- Stripe.createPayout url apiKey mConnectedAccountId (mkCreatePayoutReq req)
-  pure $ mkCreatePayoutOrderResp req stripeResp
+  pure $ mkCreatePayoutOrderResp (Just req) stripeResp
   where
     -- Interface request is payout-order shaped (Juspay), so map to Stripe payout request.
     mkCreatePayoutReq CreatePayoutOrderReq {..} =
@@ -39,40 +40,50 @@ createPayoutOrder config mConnectedAccountId req = do
           method = Nothing,
           sourceType = Nothing,
           statementDescriptor = Nothing,
-          metadata = Nothing
-          -- Just $
-          --   fromList
-          --     [ ("orderId", orderId),
-          --       ("customerId", customerId),
-          --       ("customerPhone", customerPhone),
-          --       ("customerEmail", customerEmail),
-          --       ("customerName", customerName),
-          --       ("orderType", orderType)
-          --     ]
+          metadata = Just Stripe.Metadata {order_id = Just orderId}
         }
 
-    mkCreatePayoutOrderResp request stripeResp =
-      CreatePayoutOrderResp
-        { orderId = unPayoutId stripeResp.id,
-          status = mkPayoutOrderStatus stripeResp.status,
-          orderType = Just request.orderType,
-          udf1 = Nothing,
-          udf2 = Nothing,
-          udf3 = Nothing,
-          udf4 = Nothing,
-          udf5 = Nothing,
-          amount = fromIntegral stripeResp.amount,
-          refunds = Nothing,
-          payments = Nothing,
-          fulfillments = Nothing,
-          customerId = Just request.customerId
-        }
+payoutOrderStatus ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeConfig ->
+  Text ->
+  Maybe Text ->
+  m PayoutOrderStatusResp
+payoutOrderStatus config payoutId mConnectedAccountId = do
+  apiKey <- decrypt config.apiKey
+  let url = config.url
+  stripeResp <- Stripe.getPayout url apiKey mConnectedAccountId (Stripe.PayoutId payoutId)
+  pure $ mkCreatePayoutOrderResp Nothing stripeResp
 
-    unPayoutId (Stripe.PayoutId payoutId) = payoutId
+mkCreatePayoutOrderResp :: Maybe CreatePayoutOrderReq -> Stripe.PayoutObject -> CreatePayoutOrderResp
+mkCreatePayoutOrderResp mbRequest stripeResp =
+  CreatePayoutOrderResp
+    { orderId = unPayoutId stripeResp.id,
+      status = mkPayoutOrderStatus stripeResp.status,
+      orderType = (.orderType) <$> mbRequest,
+      udf1 = Nothing,
+      udf2 = Nothing,
+      udf3 = Nothing,
+      udf4 = Nothing,
+      udf5 = Nothing,
+      amount = fromIntegral stripeResp.amount,
+      refunds = Nothing,
+      payments = Nothing,
+      fulfillments = Nothing,
+      customerId = (.customerId) <$> mbRequest
+    }
 
-    mkPayoutOrderStatus = \case
-      Stripe.PAYOUT_PENDING -> Juspay.INITIATED
-      Stripe.PAYOUT_IN_TRANSIT -> Juspay.INITIATED
-      Stripe.PAYOUT_PAID -> Juspay.SUCCESS
-      Stripe.PAYOUT_FAILED -> Juspay.FAILURE
-      Stripe.PAYOUT_CANCELED -> Juspay.CANCELLED
+unPayoutId :: Stripe.PayoutId -> Text
+unPayoutId (Stripe.PayoutId payoutId) = payoutId
+
+mkPayoutOrderStatus :: Stripe.PayoutStatus -> Juspay.PayoutOrderStatus
+mkPayoutOrderStatus = \case
+  Stripe.PAYOUT_PENDING -> Juspay.INITIATED
+  Stripe.PAYOUT_IN_TRANSIT -> Juspay.INITIATED
+  Stripe.PAYOUT_PAID -> Juspay.SUCCESS
+  Stripe.PAYOUT_FAILED -> Juspay.FAILURE
+  Stripe.PAYOUT_CANCELED -> Juspay.CANCELLED
