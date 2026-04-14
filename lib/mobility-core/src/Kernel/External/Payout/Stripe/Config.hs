@@ -15,6 +15,7 @@ module Kernel.External.Payout.Stripe.Config where
 
 import Data.Aeson
 import Kernel.External.Encryption
+import qualified Kernel.External.Payment.Stripe.Config as PaymentConfig
 import Kernel.Prelude
 import Kernel.Types.Common
 
@@ -27,13 +28,8 @@ data StripeConfig = StripeConfig
     -- chargeDestination :: ChargeDestination,
     webhookEndpointSecret :: Maybe (EncryptedField 'AsEncrypted Text),
     webhookToleranceSeconds :: Maybe Seconds,
-    serviceMode :: Maybe ServiceMode
+    serviceMode :: Maybe PaymentConfig.ServiceMode
     -- useDomainOffers :: Maybe Bool
   }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
--- TODO reuse
-data ServiceMode = Test | Live
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

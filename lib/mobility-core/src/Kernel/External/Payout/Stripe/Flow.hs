@@ -1,27 +1,13 @@
 module Kernel.External.Payout.Stripe.Flow where
 
-import qualified Data.Text.Encoding as DT
 import qualified EulerHS.Types as Euler
-import Kernel.External.Payment.Stripe.Types (StripeError)
+import qualified Kernel.External.Payment.Stripe.Flow as PaymentFlow
 import Kernel.External.Payout.Stripe.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
-
--- TODO reuse
-callStripeAPI :: CallAPI m r api res
-callStripeAPI url eulerClient description proxy = do
-  callApiUnwrappingApiError (identity @StripeError) Nothing Nothing Nothing url eulerClient description proxy
-
--- TODO reuse
-mkBasicAuthData :: Text -> BasicAuthData
-mkBasicAuthData apiKey =
-  BasicAuthData
-    { basicAuthUsername = DT.encodeUtf8 apiKey,
-      basicAuthPassword = ""
-    }
 
 -- Create Payout API
 type CreatePayoutAPI =
@@ -45,8 +31,8 @@ createPayout ::
   m PayoutObject
 createPayout url apiKey connectedAccountId payoutReq = do
   let proxy = Proxy @CreatePayoutAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId payoutReq
-  callStripeAPI url eulerClient "create-payout" proxy
+      eulerClient = Euler.client proxy (PaymentFlow.mkBasicAuthData apiKey) connectedAccountId payoutReq
+  PaymentFlow.callStripeAPI url eulerClient "create-payout" proxy
 
 -- Get Payout API
 type GetPayoutAPI =
@@ -70,8 +56,8 @@ getPayout ::
   m PayoutObject
 getPayout url apiKey connectedAccountId (PayoutId payoutId) = do
   let proxy = Proxy @GetPayoutAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId payoutId
-  callStripeAPI url eulerClient "get-payout" proxy
+      eulerClient = Euler.client proxy (PaymentFlow.mkBasicAuthData apiKey) connectedAccountId payoutId
+  PaymentFlow.callStripeAPI url eulerClient "get-payout" proxy
 
 -- Cancel Payout API
 type CancelPayoutAPI =
@@ -96,8 +82,8 @@ cancelPayout ::
   m PayoutObject
 cancelPayout url apiKey connectedAccountId (PayoutId payoutId) = do
   let proxy = Proxy @CancelPayoutAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId payoutId
-  callStripeAPI url eulerClient "cancel-payout" proxy
+      eulerClient = Euler.client proxy (PaymentFlow.mkBasicAuthData apiKey) connectedAccountId payoutId
+  PaymentFlow.callStripeAPI url eulerClient "cancel-payout" proxy
 
 -- List Payouts API
 type ListPayoutsAPI =
@@ -127,5 +113,5 @@ listPayouts ::
   m PayoutList
 listPayouts url apiKey connectedAccountId limit startingAfter endingBefore status = do
   let proxy = Proxy @ListPayoutsAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) connectedAccountId limit startingAfter endingBefore status
-  callStripeAPI url eulerClient "list-payouts" proxy
+      eulerClient = Euler.client proxy (PaymentFlow.mkBasicAuthData apiKey) connectedAccountId limit startingAfter endingBefore status
+  PaymentFlow.callStripeAPI url eulerClient "list-payouts" proxy
