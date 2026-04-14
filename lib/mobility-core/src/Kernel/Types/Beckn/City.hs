@@ -16,8 +16,9 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Kernel.Types.Beckn.City (City (..), initCityMaps) where
+module Kernel.Types.Beckn.City (City (..), initCityMaps, validateAndAppendCityStdCodeMapping) where
 
+import Control.Concurrent.MVar (modifyMVar)
 import Data.Aeson
 import Data.Aeson.Types
 import Data.Char (isSpace)
@@ -190,7 +191,7 @@ getStdCodeToCityMap = unsafePerformIO $ do
   pure $ if HM.null m then hardcodedStdCodeToCity else m
 
 cityToStdCode :: City -> Text
-cityToStdCode (City cityName) = HM.lookupDefault "*" cityName getCityToStdCodeMap
+cityToStdCode (City cityName) = HM.lookupDefault cityName cityName getCityToStdCodeMap
 
 stdCodeToCity :: Text -> Maybe City
 stdCodeToCity stdCode = City <$> HM.lookup stdCode getStdCodeToCityMap
@@ -208,6 +209,26 @@ initCityMaps = do
     let mergedReverseMap = hardcodedStdCodeToCity `HM.union` reverseDbMap
     void $ liftIO $ swapMVar stdCodeToCityMap mergedReverseMap
 
+-- | Atomically validates that the city and stdCode are not already mapped to
+-- different values, and if valid, inserts the mapping into both maps.
+-- Returns Nothing on success, Just errorMessage if a conflicting mapping exists.
+validateAndAppendCityStdCodeMapping :: (MonadIO m) => Text -> Text -> m (Maybe Text)
+validateAndAppendCityStdCodeMapping city stdCode = liftIO $
+  modifyMVar cityToStdCodeMap $ \cityMap ->
+    modifyMVar stdCodeToCityMap $ \reverseMap ->
+      case (HM.lookup city cityMap, HM.lookup stdCode reverseMap) of
+        (Just existing, _)
+          | existing /= stdCode ->
+            pure (reverseMap, (cityMap, Just $ "City " <> city <> " is already mapped to stdCode " <> existing))
+        (_, Just existingCity)
+          | existingCity /= city ->
+            pure (reverseMap, (cityMap, Just $ "StdCode " <> stdCode <> " is already mapped to city " <> existingCity))
+        _ ->
+          pure
+            ( HM.insert stdCode city reverseMap,
+              (HM.insert city stdCode cityMap, Nothing)
+            )
+
 instance FromJSON City where
   parseJSON (String s) = do
     -- First try to parse as std code
@@ -223,7 +244,10 @@ instance FromJSON City where
             let lowerCityName = T.toLower cityName
             case findCityByNameIgnoreCase lowerCityName of
               Just city -> pure city
-              Nothing -> pure (City "AnyCity")
+              Nothing ->
+                if lowerCityName == "*" || lowerCityName == "anycity"
+                  then pure (City "AnyCity")
+                  else pure $ City cityName
     where
       findCityByNameIgnoreCase :: Text -> Maybe City
       findCityByNameIgnoreCase lowerName =
@@ -252,7 +276,7 @@ instance FromHttpApiData City where
                   Nothing ->
                     if lowerInput == "*" || lowerInput == "anycity"
                       then Right $ City "AnyCity"
-                      else Left $ T.pack ("ParseFail: Unable to parse city: " <> T.unpack a)
+                      else Right $ City a
     where
       findCityByNameIgnoreCase :: Text -> HashMap Text Text -> Maybe City
       findCityByNameIgnoreCase lowerName cityMap =
