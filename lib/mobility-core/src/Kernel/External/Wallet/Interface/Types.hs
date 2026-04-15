@@ -30,6 +30,15 @@ import Kernel.Utils.JSON (camelToSnakeCase)
 jsonSnakeOptions :: Options
 jsonSnakeOptions = defaultOptions {fieldLabelModifier = camelToSnakeCase}
 
+jsonCamelOptions :: Options
+jsonCamelOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "id_" -> "id"
+        "type_" -> "type"
+        other -> other
+    }
+
 data CreateWalletReq = CreateWalletReq
   { operationId :: Text,
     createCashAccount :: Bool,
@@ -195,10 +204,10 @@ instance FromJSON LoyaltyInfoResponse where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON LoyaltyInfoResponse where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
-walletProgramOptions :: Options
-walletProgramOptions =
+walletProgramSnakeOptions :: Options
+walletProgramSnakeOptions =
   defaultOptions
     { fieldLabelModifier = \case
         "id_" -> "id"
@@ -220,10 +229,10 @@ data LoyaltyInfoProgram = LoyaltyInfoProgram
   deriving anyclass (ToSchema)
 
 instance FromJSON LoyaltyInfoProgram where
-  parseJSON = genericParseJSON walletProgramOptions
+  parseJSON = genericParseJSON walletProgramSnakeOptions
 
 instance ToJSON LoyaltyInfoProgram where
-  toJSON = genericToJSON walletProgramOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data CommonStatus = ACTIVE | ELIGIBLE | INELIGIBLE
   deriving stock (Show, Eq, Read, Generic, Ord)
@@ -243,7 +252,7 @@ instance FromJSON TopupInfo where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON TopupInfo where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data ProgramAdvancement = ProgramAdvancement
   { campaignId :: Text,
@@ -260,7 +269,7 @@ instance FromJSON ProgramAdvancement where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON ProgramAdvancement where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data AdvancementCompletion = AdvancementCompletion
   { earn :: EarnInfo,
@@ -273,7 +282,7 @@ instance FromJSON AdvancementCompletion where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON AdvancementCompletion where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data AdvancementCheckpoint = AdvancementCheckpoint
   { current :: Maybe Text,
@@ -289,7 +298,7 @@ instance FromJSON AdvancementCheckpoint where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON AdvancementCheckpoint where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data CheckpointApplicable = CheckpointApplicable
   { points :: Maybe Text
@@ -301,7 +310,7 @@ instance FromJSON CheckpointApplicable where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON CheckpointApplicable where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data AdvancementProgress = AdvancementProgress
   { completed :: Text,
@@ -325,7 +334,7 @@ instance FromJSON AdvancementStats where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON AdvancementStats where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 newtype TotalEarned = TotalEarned
   { points :: Maybe Text
@@ -343,7 +352,7 @@ instance FromJSON AdvancementTiming where
   parseJSON = withObject "AdvancementTiming" $ \o -> AdvancementTiming <$> o .:? "window_ends_at"
 
 instance ToJSON AdvancementTiming where
-  toJSON AdvancementTiming {..} = object ["window_ends_at" .= windowEndsAt]
+  toJSON AdvancementTiming {..} = object ["windowEndsAt" .= windowEndsAt]
 
 data BurnInfo = BurnInfo
   { options :: Maybe [BurnOption]
@@ -355,10 +364,10 @@ instance FromJSON BurnInfo where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON BurnInfo where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
-burnOptionOptions :: Options
-burnOptionOptions =
+burnOptionSnakeOptions :: Options
+burnOptionSnakeOptions =
   defaultOptions
     { fieldLabelModifier = \case
         "id_" -> "id"
@@ -378,10 +387,10 @@ data BurnOption = BurnOption
   deriving anyclass (ToSchema)
 
 instance FromJSON BurnOption where
-  parseJSON = genericParseJSON burnOptionOptions
+  parseJSON = genericParseJSON burnOptionSnakeOptions
 
 instance ToJSON BurnOption where
-  toJSON = genericToJSON burnOptionOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data BurnApplicable = BurnApplicable
   { label :: Maybe Text,
@@ -397,7 +406,7 @@ instance FromJSON BurnApplicable where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON BurnApplicable where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data BurnRate = BurnRate
   { points :: Maybe Text,
@@ -410,7 +419,7 @@ instance FromJSON BurnRate where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON BurnRate where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data EarnInfo = EarnInfo
   { applicable :: Maybe EarnApplicable,
@@ -423,7 +432,7 @@ instance FromJSON EarnInfo where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON EarnInfo where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data EarnApplicable = EarnApplicable
   { points :: Maybe Text
@@ -435,7 +444,7 @@ instance FromJSON EarnApplicable where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON EarnApplicable where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data ProgramMembership = ProgramMembership
   { enrolledDate :: Text,
@@ -448,7 +457,7 @@ instance FromJSON ProgramMembership where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON ProgramMembership where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data ProgramUiLabel = ProgramUiLabel
   { description :: Maybe Text,
@@ -461,7 +470,7 @@ instance FromJSON ProgramUiLabel where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON ProgramUiLabel where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data ProgramWallet = ProgramWallet
   { availablePoints :: Maybe Text,
@@ -478,7 +487,7 @@ instance FromJSON ProgramWallet where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON ProgramWallet where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data WalletPocket = WalletPocket
   { availablePoints :: Maybe Text,
@@ -491,7 +500,7 @@ instance FromJSON WalletPocket where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON WalletPocket where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data WalletExpiring = WalletExpiring
   { points :: Maybe Text,
@@ -504,7 +513,7 @@ instance FromJSON WalletExpiring where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON WalletExpiring where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data WalletPendingRelease = WalletPendingRelease
   { points :: Maybe Text,
@@ -517,7 +526,7 @@ instance FromJSON WalletPendingRelease where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON WalletPendingRelease where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
 
 data WalletScheduleEntry = WalletScheduleEntry
   { date :: Maybe Text,
@@ -530,4 +539,4 @@ instance FromJSON WalletScheduleEntry where
   parseJSON = genericParseJSON jsonSnakeOptions
 
 instance ToJSON WalletScheduleEntry where
-  toJSON = genericToJSON jsonSnakeOptions
+  toJSON = genericToJSON jsonCamelOptions
