@@ -62,7 +62,7 @@ withInMemCache cacheKeys ttlInSeconds fn = fmap fst . withTimeGeneric ("InMem-Fe
           now <- getCurrentTime
           case mbRes of
             Just resAny -> do
-              if addUTCTime (fromIntegral resAny.ttlInSeconds) resAny.createdAt < now
+              if addUTCTime (fromIntegral resAny.ttlInSeconds) resAny.createdAt > now
                 then pure (unsafeCoerce (cachedData resAny))
                 else recache inMemCache now cacheKey
             Nothing -> recache inMemCache now cacheKey
