@@ -132,6 +132,14 @@ library
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
       Kernel.External.Maps.Utils
+      Kernel.External.Moengage
+      Kernel.External.Moengage.Interface
+      Kernel.External.Moengage.Interface.Types
+      Kernel.External.Moengage.Moengage.API
+      Kernel.External.Moengage.Moengage.Config
+      Kernel.External.Moengage.Moengage.Flow
+      Kernel.External.Moengage.Moengage.Types
+      Kernel.External.Moengage.Types
       Kernel.External.MultiModal
       Kernel.External.MultiModal.Interface
       Kernel.External.MultiModal.Interface.Google
