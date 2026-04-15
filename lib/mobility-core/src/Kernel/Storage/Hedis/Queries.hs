@@ -248,6 +248,11 @@ runInMasterCloudRedisCell f = do
           local (withSecondaryRedisEnv secondaryEnv) f
     else f
 
+runInMasterCloudRedisCellWithCrossAppRedis ::
+  (HedisFlow m env, TryException m) => m f -> m f
+runInMasterCloudRedisCellWithCrossAppRedis f =
+  runInMasterCloudRedisCell $ withCrossAppRedis f
+
 runInMasterLTSRedisCell ::
   (HedisFlow m env, TryException m, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) => m f -> m f
 runInMasterLTSRedisCell f = do
