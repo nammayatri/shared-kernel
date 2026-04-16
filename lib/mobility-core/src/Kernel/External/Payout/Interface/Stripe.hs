@@ -12,6 +12,8 @@ import qualified Kernel.External.Payout.Stripe.Flow as Stripe
 import qualified Kernel.External.Payout.Stripe.Types as Stripe
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.Error
+import Kernel.Utils.Common
 import Kernel.Utils.Servant.Client
 
 createPayoutOrder ::
@@ -21,20 +23,19 @@ createPayoutOrder ::
     MonadReader r m
   ) =>
   StripeConfig ->
-  Maybe Text ->
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
-createPayoutOrder config mConnectedAccountId req = do
+createPayoutOrder config req = do
   apiKey <- decrypt config.apiKey
   let url = config.url
-  stripeResp <- Stripe.createPayout url apiKey mConnectedAccountId (mkCreatePayoutReq req)
-  pure $ mkCreatePayoutOrderResp (Just req) stripeResp
+  stripeResp <- Stripe.createPayout url apiKey req.mConnectedAccountId (mkCreatePayoutReq req)
+  pure $ mkCreatePayoutOrderResp req.orderId (Just req) stripeResp
   where
     -- Interface request is payout-order shaped (Juspay), so map to Stripe payout request.
     mkCreatePayoutReq CreatePayoutOrderReq {..} =
       Stripe.CreatePayoutReq
-        { amount = round amount,
-          currency = "inr",
+        { amount = round amount, -- FIXME check
+          currency = "inr", -- FIXME check
           description = Just remark,
           destination = Just customerVpa,
           method = Nothing,
@@ -50,31 +51,32 @@ payoutOrderStatus ::
     MonadReader r m
   ) =>
   StripeConfig ->
-  Text ->
-  Maybe Text ->
+  PayoutOrderStatusReq ->
   m PayoutOrderStatusResp
-payoutOrderStatus config payoutId mConnectedAccountId = do
+payoutOrderStatus config req = do
   apiKey <- decrypt config.apiKey
   let url = config.url
-  stripeResp <- Stripe.getPayout url apiKey mConnectedAccountId (Stripe.PayoutId payoutId)
-  pure $ mkCreatePayoutOrderResp Nothing stripeResp
+  payoutId <- req.idAssignedByServiceProvider & fromMaybeM (InvalidRequest "id assigned by service provider required for Stripe payout")
+  stripeResp <- Stripe.getPayout url apiKey req.mConnectedAccountId (Stripe.PayoutId payoutId)
+  pure $ mkCreatePayoutOrderResp req.orderId Nothing stripeResp
 
-mkCreatePayoutOrderResp :: Maybe CreatePayoutOrderReq -> Stripe.PayoutObject -> CreatePayoutOrderResp
-mkCreatePayoutOrderResp mbRequest stripeResp =
+mkCreatePayoutOrderResp :: Text -> Maybe CreatePayoutOrderReq -> Stripe.PayoutObject -> CreatePayoutOrderResp
+mkCreatePayoutOrderResp reqOrderId mbRequest stripeResp =
   CreatePayoutOrderResp
-    { orderId = unPayoutId stripeResp.id,
+    { orderId = fromMaybe reqOrderId $ stripeResp.metadata >>= (.order_id),
+      idAssignedByServiceProvider = Just $ unPayoutId stripeResp.id,
       status = mkPayoutOrderStatus stripeResp.status,
-      orderType = (.orderType) <$> mbRequest,
+      orderType = (.orderType) <$> mbRequest, -- FIXME check
       udf1 = Nothing,
       udf2 = Nothing,
       udf3 = Nothing,
       udf4 = Nothing,
       udf5 = Nothing,
-      amount = fromIntegral stripeResp.amount,
+      amount = fromIntegral stripeResp.amount, -- FIXME check
       refunds = Nothing,
       payments = Nothing,
       fulfillments = Nothing,
-      customerId = (.customerId) <$> mbRequest
+      customerId = (.customerId) <$> mbRequest -- FIXME check
     }
 
 unPayoutId :: Stripe.PayoutId -> Text

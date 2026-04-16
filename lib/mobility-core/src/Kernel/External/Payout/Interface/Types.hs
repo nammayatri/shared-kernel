@@ -37,6 +37,7 @@ data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig | StripeConfig Strip
 data OrderStatusPayoutResp
   = OrderStatusPayoutResp
       { payoutOrderId :: Text,
+        idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
         payoutStatus :: PayoutOrderStatus,
         orderType :: Maybe Text,
         merchantCustomerId :: Maybe Text,
@@ -58,13 +59,16 @@ data CreatePayoutOrderReq = CreatePayoutOrderReq
     remark :: Text,
     customerName :: Text,
     customerVpa :: Text,
-    isDynamicWebhookRequired :: Bool
+    isDynamicWebhookRequired :: Bool,
+    mRoutingId :: Maybe Text, -- Juspay specific
+    mConnectedAccountId :: Maybe Text -- Stripe specific
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data CreatePayoutOrderResp = CreatePayoutOrderResp
   { orderId :: Text,
+    idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
     status :: PayoutOrderStatus,
     orderType :: Maybe Text,
     udf1 :: Maybe Text,
@@ -95,7 +99,10 @@ instance ToHttpApiData Expand where
 
 data PayoutOrderStatusReq = PayoutOrderStatusReq
   { orderId :: Text,
-    mbExpand :: Maybe Expand
+    idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
+    mbExpand :: Maybe Expand, -- Juspay specific
+    mRoutingId :: Maybe Text, -- Juspay specific
+    mConnectedAccountId :: Maybe Text -- Stripe specific
   }
   deriving (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)

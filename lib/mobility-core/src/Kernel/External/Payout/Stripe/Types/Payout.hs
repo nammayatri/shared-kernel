@@ -5,7 +5,6 @@ module Kernel.External.Payout.Stripe.Types.Payout where
 
 import Data.Aeson
 import qualified Data.HashMap.Strict as HM
-import qualified Data.Map as Map
 import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Kernel.External.Payout.Stripe.Types.Common
 import Kernel.Prelude
@@ -137,7 +136,7 @@ data PayoutObject = PayoutObject
     created :: UTCTime,
     arrival_date :: Maybe UTCTime,
     statement_descriptor :: Maybe Text,
-    metadata :: Map.Map Text Text,
+    metadata :: Maybe Metadata,
     failure_code :: Maybe Text,
     failure_message :: Maybe Text
   }

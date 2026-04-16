@@ -33,12 +33,11 @@ createPayoutOrder ::
     HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   PayoutServiceConfig ->
-  Maybe Text ->
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
-createPayoutOrder serviceConfig mRoutingId req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.createPayoutOrder cfg mRoutingId req
-  StripeConfig cfg -> Stripe.createPayoutOrder cfg mRoutingId req
+createPayoutOrder serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.createPayoutOrder cfg req
+  StripeConfig cfg -> Stripe.createPayoutOrder cfg req
 
 payoutOrderStatus ::
   ( EncFlow m r,
@@ -47,9 +46,8 @@ payoutOrderStatus ::
     MonadReader r m
   ) =>
   PayoutServiceConfig ->
-  Maybe Text ->
   PayoutOrderStatusReq ->
   m PayoutOrderStatusResp
-payoutOrderStatus serviceConfig mRoutingId req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req.orderId mRoutingId req.mbExpand
-  StripeConfig cfg -> Stripe.payoutOrderStatus cfg req.orderId mRoutingId
+payoutOrderStatus serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req
+  StripeConfig cfg -> Stripe.payoutOrderStatus cfg req
