@@ -23,7 +23,7 @@ import qualified Data.Text as T
 import Deriving.Aeson
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Ticket.Kapture.Config as Kapture
-import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), GetTicketResp (..), KaptureCustomerResp (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), PullAdditionalDetails (..), RideIdObject (..), TicketSummary (..), UpdateTicketResp (..))
+import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), GetTicketResp (..), GetTicketStatusResp (..), KaptureCustomerResp (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), PullAdditionalDetails (..), RideIdObject (..), TicketSummary (..), UpdateTicketResp (..))
 import Kernel.External.Ticket.Types as Reexport
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
@@ -87,8 +87,20 @@ data Location = Location
 data UpdateTicketReq = UpdateTicketReq
   { comment :: Text,
     ticketId :: Text,
-    subStatus :: SubStatus
+    subStatus :: SubStatus,
+    rideDescription :: Maybe RideInfo,
+    issueDetails :: Maybe UpdateIssueDetails
   }
+
+data UpdateIssueDetails = UpdateIssueDetails
+  { issueDescription :: Maybe Text,
+    issueId :: Maybe Text,
+    mediaFiles :: Maybe [Text],
+    subCategory :: Maybe Text,
+    vehicleCategory :: Maybe Text,
+    category :: Maybe Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data SubStatus = OP | IN | RS | PE | CL | CRS
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
@@ -134,5 +146,10 @@ instance ToHttpApiData TicketType where
 data GetTicketReq = GetTicketReq
   { ticketIds :: Text,
     conversationType :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+newtype SearchTicketByIdReq = SearchTicketByIdReq
+  { ticketIds :: Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

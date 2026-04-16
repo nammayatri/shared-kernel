@@ -19,6 +19,7 @@ module Kernel.External.Ticket.Interface
     kaptureEncryption,
     kapturePullTicket,
     kaptureGetTicket,
+    getTicketStatus,
   )
 where
 
@@ -101,3 +102,15 @@ kaptureGetTicket ::
   m [KT.GetTicketResp]
 kaptureGetTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.kaptureGetTicket cfg req
+
+getTicketStatus ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IssueTicketServiceConfig ->
+  SearchTicketByIdReq ->
+  m [KT.GetTicketStatusResp]
+getTicketStatus serviceConfig req = case serviceConfig of
+  KaptureConfig cfg -> Kapture.getTicketStatus cfg req

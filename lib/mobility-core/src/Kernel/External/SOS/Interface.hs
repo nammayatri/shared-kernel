@@ -24,6 +24,7 @@ where
 import Kernel.External.Encryption
 import qualified Kernel.External.SOS.Interface.ERSS as ERSS
 import qualified Kernel.External.SOS.Interface.GJ112 as GJ112
+import qualified Kernel.External.SOS.Interface.Trinity as Trinity
 import Kernel.External.SOS.Interface.Types as Reexport
 import Kernel.Prelude
 import qualified Kernel.Storage.Hedis as Redis
@@ -46,6 +47,7 @@ sendInitialSOS ::
 sendInitialSOS config req = case config of
   ERSSConfig erssCfg -> ERSS.sendInitialSOS erssCfg req
   GJ112Config gj112Cfg -> GJ112.sendInitialSOS gj112Cfg req
+  TrinityConfig trCfg -> Trinity.sendInitialSOS trCfg req
 
 -- | Send SOS Trace (location update) - dispatches to appropriate provider
 sendSOSTrace ::
@@ -62,6 +64,7 @@ sendSOSTrace ::
 sendSOSTrace config req = case config of
   ERSSConfig erssCfg -> ERSS.sendSOSTrace erssCfg req
   GJ112Config gj112Cfg -> GJ112.sendSOSTrace gj112Cfg req
+  TrinityConfig trCfg -> Trinity.sendSOSTrace trCfg req
 
 -- | Update SOS Status - dispatches to appropriate provider
 updateSOSStatus ::
@@ -78,6 +81,7 @@ updateSOSStatus ::
 updateSOSStatus config req = case config of
   ERSSConfig erssCfg -> ERSS.updateSOSStatus erssCfg req
   GJ112Config gj112Cfg -> GJ112.updateSOSStatus gj112Cfg req
+  TrinityConfig trCfg -> Trinity.updateSOSStatus trCfg req
 
 -- | Upload Media File - dispatches to appropriate provider
 uploadMedia ::
@@ -96,3 +100,4 @@ uploadMedia ::
 uploadMedia config phoneNumber fileName filePath = case config of
   ERSSConfig erssCfg -> ERSS.uploadMedia erssCfg phoneNumber fileName filePath
   GJ112Config _gj112Cfg -> pure $ SOSMediaUploadRes False (Just "Media upload not implemented for GJ112")
+  TrinityConfig _trCfg -> pure $ SOSMediaUploadRes False (Just "Media upload not implemented for Trinity")

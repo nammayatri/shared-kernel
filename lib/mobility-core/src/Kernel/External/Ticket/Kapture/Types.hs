@@ -48,11 +48,26 @@ instance ToJSON CreateTicketReq where
 data UpdateTicketReq = UpdateTicketReq
   { comment :: Text,
     ticket_id :: Text,
-    sub_status :: Text
+    sub_status :: Text,
+    rideDetails :: Maybe RideInfo,
+    issueDetails :: Maybe UpdateIssueDetails
   }
   deriving stock (Show, Eq, Generic)
 
 instance ToJSON UpdateTicketReq where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+data UpdateIssueDetails = UpdateIssueDetails
+  { issueDescription :: Maybe Text,
+    issueId :: Maybe Text,
+    mediaFiles :: Maybe [Text],
+    subCategory :: Maybe Text,
+    vehicleCategory :: Maybe Text,
+    category :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON UpdateIssueDetails where
   toJSON = genericToJSON constructorsWithSnakeCase
 
 data IssueDetails = IssueDetails
@@ -307,6 +322,42 @@ data GetTicketReq = GetTicketReq
     conversationType :: Text
   }
   deriving (Show, Eq, Generic)
+
+newtype SearchTicketByIdReq = SearchTicketByIdReq
+  { ticketIds :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON SearchTicketByIdReq where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+newtype KaptureTaskDetails = KaptureTaskDetails
+  { substatus :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON KaptureTaskDetails where
+  parseJSON = genericParseJSON defaultOptions
+
+instance ToJSON KaptureTaskDetails where
+  toJSON = genericToJSON defaultOptions
+
+newtype KaptureTicketStatusItem = KaptureTicketStatusItem
+  { taskDetails :: KaptureTaskDetails
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON KaptureTicketStatusItem where
+  parseJSON = genericParseJSON constructorsWithSnakeCase
+
+instance ToJSON KaptureTicketStatusItem where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
+newtype GetTicketStatusResp = GetTicketStatusResp
+  { subStatus :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToSchema, ToJSON, FromJSON)
 
 instance ToJSON GetTicketReq where
   toJSON = genericToJSON constructorsWithSnakeCase
