@@ -90,6 +90,21 @@ data PanVerificationResponse = PanVerificationResponse
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
 
+data PrincipalPlaceOfBusinessAddress = PrincipalPlaceOfBusinessAddress
+  { buildingName :: Maybe Text,
+    city :: Maybe Text,
+    doorNumber :: Maybe Text,
+    dst :: Maybe Text,
+    floorNumber :: Maybe Text,
+    latitude :: Maybe Text,
+    location :: Maybe Text,
+    longitude :: Maybe Text,
+    pincode :: Maybe Text,
+    stateName :: Maybe Text,
+    street :: Maybe Text
+  }
+  deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
 data GstVerificationResponse = GstVerificationResponse
   { additionalPlaceOfBusinessFields :: Maybe A.Value,
     centreJurisdiction :: Maybe Text,
@@ -102,7 +117,7 @@ data GstVerificationResponse = GstVerificationResponse
     lastUpdatedDate :: Maybe Text,
     legalName :: Maybe Text,
     natureOfBusinessActivity :: Maybe A.Value,
-    principalPlaceOfBusinessFields :: Maybe A.Value,
+    principalPlaceOfBusinessFields :: Maybe PrincipalPlaceOfBusinessAddress,
     source :: Maybe Text,
     stateJurisdictionCode :: Maybe Text,
     status :: Maybe Text,
