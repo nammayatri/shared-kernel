@@ -5,6 +5,7 @@ module Kernel.External.Payout.Interface.Stripe
 where
 
 import Kernel.External.Encryption
+import qualified Kernel.External.Payment.Interface.Stripe as PaymentStripe
 import Kernel.External.Payout.Interface.Types
 import qualified Kernel.External.Payout.Juspay.Types.Payout as Juspay
 import Kernel.External.Payout.Stripe.Config as Reexport
@@ -14,7 +15,6 @@ import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error
 import Kernel.Utils.Common
-import Kernel.Utils.Servant.Client
 
 createPayoutOrder ::
   ( Metrics.CoreMetrics m,
@@ -34,7 +34,7 @@ createPayoutOrder config req = do
     -- Interface request is payout-order shaped (Juspay), so map to Stripe payout request.
     mkCreatePayoutReq CreatePayoutOrderReq {..} =
       Stripe.CreatePayoutReq
-        { amount = round amount, -- FIXME check
+        { amount = PaymentStripe.usdToCents amount,
           currency = "inr", -- FIXME check
           description = Just remark,
           destination = Just customerVpa,
@@ -72,7 +72,7 @@ mkCreatePayoutOrderResp reqOrderId mbRequest stripeResp =
       udf3 = Nothing,
       udf4 = Nothing,
       udf5 = Nothing,
-      amount = fromIntegral stripeResp.amount, -- FIXME check
+      amount = PaymentStripe.centsToUsd stripeResp.amount,
       refunds = Nothing,
       payments = Nothing,
       fulfillments = Nothing,
