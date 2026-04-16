@@ -28,7 +28,7 @@ import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), Payout
 import qualified Kernel.External.Payout.Stripe.Config as Stripe
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common hiding (Currency)
+import Kernel.Types.Common
 import Servant.API (ToHttpApiData (..))
 
 data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig | StripeConfig Stripe.StripeConfig
@@ -52,6 +52,7 @@ data OrderStatusPayoutResp
 data CreatePayoutOrderReq = CreatePayoutOrderReq
   { orderId :: Text,
     amount :: HighPrecMoney,
+    currency :: Currency,
     customerPhone :: Text,
     customerEmail :: Text,
     customerId :: Text,

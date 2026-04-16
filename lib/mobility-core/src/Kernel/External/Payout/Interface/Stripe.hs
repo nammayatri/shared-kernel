@@ -4,6 +4,7 @@ module Kernel.External.Payout.Interface.Stripe
   )
 where
 
+import qualified Data.Text as T
 import Kernel.External.Encryption
 import qualified Kernel.External.Payment.Interface.Stripe as PaymentStripe
 import Kernel.External.Payout.Interface.Types
@@ -35,12 +36,12 @@ createPayoutOrder config req = do
     mkCreatePayoutReq CreatePayoutOrderReq {..} =
       Stripe.CreatePayoutReq
         { amount = PaymentStripe.usdToCents amount,
-          currency = "inr", -- FIXME check
+          currency = T.toLower $ show currency,
           description = Just remark,
           destination = Just customerVpa,
           method = Nothing,
-          sourceType = Nothing,
-          statementDescriptor = Nothing,
+          source_type = Nothing,
+          statement_descriptor = Nothing,
           metadata = Just Stripe.Metadata {order_id = Just orderId}
         }
 
@@ -65,7 +66,7 @@ mkCreatePayoutOrderResp reqOrderId mbRequest stripeResp =
   CreatePayoutOrderResp
     { orderId = fromMaybe reqOrderId $ stripeResp.metadata >>= (.order_id),
       idAssignedByServiceProvider = Just $ unPayoutId stripeResp.id,
-      status = mkPayoutOrderStatus stripeResp.status,
+      status = castPayoutStatus stripeResp.status,
       orderType = (.orderType) <$> mbRequest, -- FIXME check
       udf1 = Nothing,
       udf2 = Nothing,
@@ -82,8 +83,8 @@ mkCreatePayoutOrderResp reqOrderId mbRequest stripeResp =
 unPayoutId :: Stripe.PayoutId -> Text
 unPayoutId (Stripe.PayoutId payoutId) = payoutId
 
-mkPayoutOrderStatus :: Stripe.PayoutStatus -> Juspay.PayoutOrderStatus
-mkPayoutOrderStatus = \case
+castPayoutStatus :: Stripe.PayoutStatus -> Juspay.PayoutOrderStatus
+castPayoutStatus = \case
   Stripe.PAYOUT_PENDING -> Juspay.INITIATED
   Stripe.PAYOUT_IN_TRANSIT -> Juspay.INITIATED
   Stripe.PAYOUT_PAID -> Juspay.SUCCESS

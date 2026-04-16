@@ -101,8 +101,8 @@ data CreatePayoutReq = CreatePayoutReq
     description :: Maybe Text,
     destination :: Maybe Text, -- Bank account or card ID
     method :: Maybe PayoutMethod,
-    sourceType :: Maybe PayoutType,
-    statementDescriptor :: Maybe Text,
+    source_type :: Maybe PayoutType,
+    statement_descriptor :: Maybe Text,
     metadata :: Maybe Metadata
   }
   deriving (Show, Generic)
@@ -118,8 +118,8 @@ instance ToForm CreatePayoutReq where
             [ ("description",) . pure <$> description,
               ("destination",) . pure <$> destination,
               ("method",) . pure . toQueryParam <$> method,
-              ("source_type",) . pure . toQueryParam <$> sourceType,
-              ("statement_descriptor",) . pure <$> statementDescriptor,
+              ("source_type",) . pure . toQueryParam <$> source_type,
+              ("statement_descriptor",) . pure <$> statement_descriptor,
               ("metadata[order_id]",) . pure . toQueryParam <$> ((.order_id) =<< metadata)
             ]
 
