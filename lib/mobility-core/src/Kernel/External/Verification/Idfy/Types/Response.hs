@@ -265,6 +265,27 @@ data PanVerificationOutput = PanVerificationOutput
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 
+data PrincipalPlaceOfBusinessAddress = PrincipalPlaceOfBusinessAddress
+  { building_name :: Maybe Text,
+    city :: Maybe Text,
+    door_number :: Maybe Text,
+    dst :: Maybe Text,
+    floor_number :: Maybe Text,
+    latitude :: Maybe Text,
+    location :: Maybe Text,
+    longitude :: Maybe Text,
+    pincode :: Maybe Text,
+    state_name :: Maybe Text,
+    street :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data PrincipalPlaceOfBusinessFields = PrincipalPlaceOfBusinessFields
+  { nature_of_principal_place_of_business :: Maybe Text,
+    principal_place_of_business_address :: Maybe PrincipalPlaceOfBusinessAddress
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
 data GstVerificationOutput = GstVerificationOutput
   { additional_place_of_business_fields :: Maybe A.Value,
     centre_jurisdiction :: Maybe Text,
@@ -277,7 +298,7 @@ data GstVerificationOutput = GstVerificationOutput
     last_updated_date :: Maybe Text,
     legal_name :: Maybe Text,
     nature_of_business_activity :: Maybe A.Value,
-    principal_place_of_business_fields :: Maybe A.Value,
+    principal_place_of_business_fields :: Maybe PrincipalPlaceOfBusinessFields,
     source :: Maybe Text,
     state_jurisdiction_code :: Maybe Text,
     status :: Maybe Text,

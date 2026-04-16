@@ -590,7 +590,7 @@ convertGstOutputToGstVerification GstVerificationOutput {..} =
       lastUpdatedDate = last_updated_date,
       legalName = legal_name,
       natureOfBusinessActivity = nature_of_business_activity,
-      principalPlaceOfBusinessFields = principal_place_of_business_fields,
+      principalPlaceOfBusinessFields = convertPrincipalPlaceAddress =<< principal_place_of_business_fields,
       source = source,
       stateJurisdictionCode = state_jurisdiction_code,
       status = status,
@@ -601,6 +601,26 @@ convertGstOutputToGstVerification GstVerificationOutput {..} =
       isSez = is_sez,
       filingDetails = filing_details
     }
+
+convertPrincipalPlaceAddress :: PrincipalPlaceOfBusinessFields -> Maybe VT.PrincipalPlaceOfBusinessAddress
+convertPrincipalPlaceAddress fields =
+  case fields.principal_place_of_business_address of
+    Just addr ->
+      Just
+        VT.PrincipalPlaceOfBusinessAddress
+          { buildingName = addr.building_name,
+            city = addr.city,
+            doorNumber = addr.door_number,
+            dst = addr.dst,
+            floorNumber = addr.floor_number,
+            latitude = addr.latitude,
+            location = addr.location,
+            longitude = addr.longitude,
+            pincode = addr.pincode,
+            stateName = addr.state_name,
+            street = addr.street
+          }
+    Nothing -> Nothing
 
 convertBankAccountOutputToBankAccountVerification :: BankAccountVerificationOutput -> VT.BankAccountVerificationResponse
 convertBankAccountOutputToBankAccountVerification BankAccountVerificationOutput {..} =
