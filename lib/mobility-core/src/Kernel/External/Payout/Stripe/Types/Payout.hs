@@ -120,7 +120,9 @@ instance ToForm CreatePayoutReq where
               ("method",) . pure . toQueryParam <$> method,
               ("source_type",) . pure . toQueryParam <$> source_type,
               ("statement_descriptor",) . pure <$> statement_descriptor,
-              ("metadata[order_id]",) . pure . toQueryParam <$> ((.order_id) =<< metadata)
+              ("metadata[order_id]",) . pure . toQueryParam <$> (metadata >>= (.order_id)),
+              ("metadata[customer_id]",) . pure . toQueryParam <$> (metadata >>= (.customer_id)),
+              ("metadata[order_type]",) . pure . toQueryParam <$> (metadata >>= (.order_type))
             ]
 
 -- Payout Object Response

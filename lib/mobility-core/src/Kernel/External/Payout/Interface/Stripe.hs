@@ -4,6 +4,7 @@ module Kernel.External.Payout.Interface.Stripe
   )
 where
 
+import Control.Applicative ((<|>))
 import qualified Data.Text as T
 import Kernel.External.Encryption
 import qualified Kernel.External.Payment.Interface.Stripe as PaymentStripe
@@ -42,7 +43,13 @@ createPayoutOrder config req = do
           method = Nothing,
           source_type = Nothing,
           statement_descriptor = Nothing,
-          metadata = Just Stripe.Metadata {order_id = Just orderId}
+          metadata =
+            Just
+              Stripe.Metadata
+                { order_id = Just orderId,
+                  customer_id = Just customerId,
+                  order_type = Just orderType
+                }
         }
 
 payoutOrderStatus ::
@@ -67,7 +74,7 @@ mkCreatePayoutOrderResp reqOrderId mbRequest stripeResp =
     { orderId = fromMaybe reqOrderId $ stripeResp.metadata >>= (.order_id),
       idAssignedByServiceProvider = Just $ unPayoutId stripeResp.id,
       status = castPayoutStatus stripeResp.status,
-      orderType = (.orderType) <$> mbRequest, -- FIXME check
+      orderType = (stripeResp.metadata >>= (.order_type)) <|> (mbRequest <&> (.orderType)),
       udf1 = Nothing,
       udf2 = Nothing,
       udf3 = Nothing,
@@ -77,7 +84,7 @@ mkCreatePayoutOrderResp reqOrderId mbRequest stripeResp =
       refunds = Nothing,
       payments = Nothing,
       fulfillments = Nothing,
-      customerId = (.customerId) <$> mbRequest -- FIXME check
+      customerId = (stripeResp.metadata >>= (.customer_id)) <|> (mbRequest <&> (.customerId))
     }
 
 unPayoutId :: Stripe.PayoutId -> Text
