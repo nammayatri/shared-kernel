@@ -44,6 +44,7 @@ module Kernel.External.Notification.FCM.Flow
   )
 where
 
+import qualified Control.Concurrent as Conc
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
@@ -231,40 +232,50 @@ sendMessage ::
   m ()
 sendMessage config fcmMsg action toWhom = fork desc $ do
   logTagInfo fcm $ "Message to be sent to the person: " <> show (Aeson.encode fcmMsg)
-  authToken <- getTokenText config
-  case authToken of
-    Right token -> do
-      let fcmUrl = config.fcmUrl
-      res <- callAPI fcmUrl (callFCM (Just $ FCMAuthToken token) fcmMsg) "sendMessage" fcmSendMessageAPI
-      case res of
-        Right _ -> logTagInfo fcm $ "Message sent successfully to a person with id " <> toWhom
-        Left clientError -> do
-          case clientError of
-            FailureResponse _ (Response _ _ _ resbody) -> do
-              let eitherError = Aeson.eitherDecodeStrict (BL.toStrict resbody) :: Either String FcmError
-              case eitherError of
-                Right fcmError -> handleFcmError fcmError action
-                Left errorMsg -> logTagError fcm $ "FCM decoding failed for person with id : " <> toWhom <> " Error Message : " <> T'.pack errorMsg
-            _ -> return ()
-    Left err -> logTagError fcm $ "AuthToken error while sending message to person with id " <> toWhom <> " : " <> show err
+  sendWithRetry 0
   where
+    maxRetries = 3 :: Int
     callFCM token msg = void $ ET.client fcmSendMessageAPI token msg
     desc = "FCM send message forked flow"
     fcm = "FCM"
 
-    handleFcmError :: MonadFlow m => FcmError -> m () -> m ()
-    handleFcmError (FcmError (Just (ErrorRes _ _ _ (Just details)))) action' =
-      mapM_ (`handleDetail` action') details
-    handleFcmError _ _ = pure ()
+    retryDelayMs :: Int -> Int
+    retryDelayMs attempt = 100000 * (2 ^ attempt) -- 100ms, 200ms, 400ms (in microseconds)
+    sendWithRetry attempt = do
+      authToken <- getTokenText config
+      case authToken of
+        Right token -> do
+          let fcmUrl = config.fcmUrl
+          res <- callAPI fcmUrl (callFCM (Just $ FCMAuthToken token) fcmMsg) "sendMessage" fcmSendMessageAPI
+          case res of
+            Right _ -> logTagInfo fcm $ "Message sent successfully to a person with id " <> toWhom
+            Left clientError -> handleClientError clientError attempt
+        Left err -> logTagError fcm $ "AuthToken error while sending message to person with id " <> toWhom <> " : " <> show err
 
-    handleDetail :: MonadFlow m => ErrorDetail -> m () -> m ()
-    handleDetail (ErrorDetail (Just errorCode)) action' =
-      case errorCode of
-        "UNREGISTERED" -> do
-          logTagError fcm $ "Error while sending message to person with id " <> toWhom <> " : " <> "device token is unregistered and errorCode is : " <> show errorCode
-          action'
-        _ -> logTagError fcm $ "Error while sending message to person with id " <> toWhom <> " : " <> "unknown error code " <> show errorCode
-    handleDetail _ _ = pure ()
+    handleClientError clientError attempt =
+      case clientError of
+        FailureResponse _ (Response _ _ _ resbody) -> do
+          let eitherError = Aeson.eitherDecodeStrict (BL.toStrict resbody) :: Either String FcmError
+          case eitherError of
+            Right fcmError -> handleFcmError fcmError attempt
+            Left errorMsg -> logTagError fcm $ "FCM decoding failed for person with id : " <> toWhom <> " Error Message : " <> T'.pack errorMsg
+        _ -> logTagError fcm $ "FCM client error for person with id : " <> toWhom <> " : " <> show clientError
+
+    handleFcmError fcmError attempt = do
+      let errorCategory = classifyFcmError fcmError
+      case errorCategory of
+        FCMInvalidTokenError -> do
+          logTagError fcm $ "FCM token invalid/unregistered for person " <> toWhom <> " error: " <> show fcmError
+          action
+        FCMTransientError
+          | attempt < maxRetries -> do
+            logTagWarning fcm $ "FCM transient error for person " <> toWhom <> " (attempt " <> show (attempt + 1) <> "/" <> show maxRetries <> "): " <> show fcmError
+            liftIO $ Conc.threadDelay (retryDelayMs attempt)
+            sendWithRetry (attempt + 1)
+        FCMTransientError -> do
+          logTagError fcm $ "FCM transient error exhausted retries for person " <> toWhom <> ": " <> show fcmError
+        FCMPermanentError -> do
+          logTagError fcm $ "FCM permanent error for person " <> toWhom <> ": " <> show fcmError
 
 -- | try to get FCM text token
 getTokenText ::

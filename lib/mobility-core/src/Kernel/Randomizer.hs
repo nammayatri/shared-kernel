@@ -11,8 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
-
 module Kernel.Randomizer where
 
 import Safe (at)
@@ -38,8 +36,9 @@ randomizeList = randomizeList' . toList
     randomizeList' l = do
       let len = length l
       randNum <- getRandomInRange (0, len - 1)
-      let (leftPart, el : rightPart) = splitAt randNum l
-      (pure el <>) <$> randomizeList' (leftPart <> rightPart)
+      case splitAt randNum l of
+        (leftPart, el : rightPart) -> (pure el <>) <$> randomizeList' (leftPart <> rightPart)
+        _ -> return mempty
 
 getRandomElement :: (Element (arr a) ~ a, MonadIO m, Container (arr a)) => arr a -> m a
 getRandomElement arr = do

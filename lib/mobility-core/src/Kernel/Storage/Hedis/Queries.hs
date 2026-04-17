@@ -20,7 +20,6 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.String.Conversions
 import Data.Text hiding (concatMap, map, null)
 import qualified Data.Text as T
-import qualified Data.Text as Text
 import Database.Redis as Reexport (GeoBy (..), GeoFrom (..), Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
@@ -619,7 +618,7 @@ withWaitOnLockRedisWithExpiry' recursionTimedOutKey key timeout func = do
           tryLockRedis key timeout
 
 buildLockResourceName :: (IsString a) => Text -> a
-buildLockResourceName key = fromString $ "mobility:locker:" <> Text.unpack key
+buildLockResourceName key = fromString $ "mobility:locker:" <> T.unpack key
 
 hSetExp :: (ToJSON a, HedisFlow m env, TryException m) => Text -> Text -> a -> ExpirationTime -> m ()
 hSetExp key field value expirationTime = withLogTag "Redis" $ do
@@ -660,6 +659,7 @@ hGet key field =
       Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
 hmGet :: (FromJSON a, HedisFlow m env, TryException m) => Text -> [Text] -> m [Maybe a]
+hmGet _ [] = pure []
 hmGet key fields =
   withTimeRedis "RedisCluster" "hmGet" $ do
     listBS <- runWithPrefix key (`Hedis.hmget` map cs fields)
@@ -670,6 +670,7 @@ hmGet key fields =
     decodeBS (Just bs) = Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
 hDel :: (HedisFlow m env, TryException m) => Text -> [Text] -> m ()
+hDel _ [] = pure ()
 hDel key fields = withTimeRedis "RedisCluster" "hDel" $ runWithPrefix_ key (`Hedis.hdel` map cs fields)
 
 hGetAll :: (FromJSON a, HedisFlow m env, TryException m) => Text -> m [(Text, a)]

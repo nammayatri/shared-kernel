@@ -17,7 +17,6 @@ module Kernel.Utils.Servant.Client where
 import qualified Data.Aeson as A
 import qualified Data.CaseInsensitive as CI
 import qualified Data.HashMap.Strict as HM
-import qualified Data.HashMap.Strict as HMS
 import qualified Data.Sequence as Seq
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -218,7 +217,7 @@ managersFromManagersSettings ::
 managersFromManagersSettings timeout =
   mapM Http.newManager
     . fmap (setResponseTimeout timeout)
-    . HMS.insert defaultHttpManagerString Http.tlsManagerSettings
+    . HM.insert defaultHttpManagerString Http.tlsManagerSettings
   where
     extractDefaultManagerString (ET.ManagerSelector x) = x
     defaultHttpManagerString = extractDefaultManagerString defaultHttpManager

@@ -12,7 +12,6 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE PackageImports #-}
-{-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 
 module SignatureAuth
   ( signatureAuthTests,
@@ -117,13 +116,15 @@ simpleDecode =
 
 exampleParams :: HttpSig.SignatureParams
 exampleParams =
-  let Right keyId = HttpSig.decodeKeyId $ decodeUtf8 exampleKeyId
-   in HttpSig.SignatureParams
+  case HttpSig.decodeKeyId $ decodeUtf8 exampleKeyId of
+    Right keyId ->
+      HttpSig.SignatureParams
         keyId
         HttpSig.Ed25519
         (fst <$> exampleHeaders)
         (toTime exampleCreated)
         (toTime exampleExpires)
+    Left err -> error $ "decodeKeyId failed: " <> toText err
 
 dropNewline :: ByteString -> ByteString
 dropNewline = BS.filter (/= 10)
@@ -131,9 +132,11 @@ dropNewline = BS.filter (/= 10)
 simpleEncode :: TestTree
 simpleEncode =
   testCase "Simple header encode" $ do
-    let Right sig = Base64.decode exampleSignature
-    -- filtering '\n'
-    HttpSig.encode (HttpSig.SignaturePayload sig exampleParams) @?= dropNewline exampleSignatureHeader
+    case Base64.decode exampleSignature of
+      Right sig ->
+        -- filtering '\n'
+        HttpSig.encode (HttpSig.SignaturePayload sig exampleParams) @?= dropNewline exampleSignatureHeader
+      Left err -> assertFailure $ "Base64 decode failed: " <> err
 
 checkSignatureMessage :: TestTree
 checkSignatureMessage =
