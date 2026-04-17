@@ -248,6 +248,11 @@ runInMasterCloudRedisCell f = do
           local (withSecondaryRedisEnv secondaryEnv) f
     else f
 
+runInMasterCloudRedisCellWithCrossAppRedis ::
+  (HedisFlow m env, TryException m) => m f -> m f
+runInMasterCloudRedisCellWithCrossAppRedis f =
+  runInMasterCloudRedisCell $ withCrossAppRedis f
+
 buildKey :: (HedisFlow m env, TryException m) => Text -> m BS.ByteString
 buildKey key = do
   keyModifier <- asks (.hedisEnv.keyModifier)
