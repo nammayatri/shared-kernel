@@ -214,6 +214,7 @@ data FCMNotificationType
   | DRIVER_INSPECTION
   | VEHICLE_INSPECTION
   | PICKUP_ZONE_REQUEST
+  | TRIGGER_SERVICE
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
   deriving (PrettyShow) via Showable FCMNotificationType
 
