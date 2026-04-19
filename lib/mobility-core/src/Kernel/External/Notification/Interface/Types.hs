@@ -138,7 +138,7 @@ data Category
   | VEHICLE_INSPECTION
   | FEEDBACK_BADGE_PN
   | PICKUP_ZONE_REQUEST
-  | TRIGGER_SERVICE
+  | PICKUP_ZONE_NO_SHOW
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
