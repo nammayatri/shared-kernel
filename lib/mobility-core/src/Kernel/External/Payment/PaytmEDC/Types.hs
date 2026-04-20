@@ -126,6 +126,45 @@ instance FromJSON PaytmEDCStatusRequest where
       <$> v .: "head"
       <*> v .: "body"
 
+-- Abort Request Body
+data PaytmEDCAbortRequestBody = PaytmEDCAbortRequestBody
+  { paytmMid :: Text,
+    paytmTid :: Text,
+    merchantTransactionId :: Text,
+    transactionDateTime :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON)
+
+instance ToJSON PaytmEDCAbortRequestBody where
+  toJSON (PaytmEDCAbortRequestBody paytmMid paytmTid merchantTransactionId transactionDateTime) =
+    object
+      [ "paytmMid" .= paytmMid,
+        "paytmTid" .= paytmTid,
+        "merchantTransactionId" .= removeHyphens merchantTransactionId,
+        "transactionDateTime" .= transactionDateTime
+      ]
+
+-- Abort Request
+data PaytmEDCAbortRequest = PaytmEDCAbortRequest
+  { abortRequestHead :: PaytmEDCRequestHead,
+    abortRequestBody :: PaytmEDCAbortRequestBody
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON PaytmEDCAbortRequest where
+  toJSON req =
+    object
+      [ "head" .= abortRequestHead req,
+        "body" .= abortRequestBody req
+      ]
+
+instance FromJSON PaytmEDCAbortRequest where
+  parseJSON = withObject "PaytmEDCAbortRequest" $ \v ->
+    PaytmEDCAbortRequest
+      <$> v .: "head"
+      <*> v .: "body"
+
 -- Response Result Info
 data PaytmEDCResultInfo = PaytmEDCResultInfo
   { resultStatus :: Text, -- "A" (Accepted), "F" (Failed), "P" (Pending)
@@ -227,6 +266,10 @@ data PaytmEDCResultCode
   | EDC_TIMEOUT_CONFIG_WITH_SPLIT -- 1815: Timeout config cannot be passed with split params
   | EDC_SPLIT_PARAMS_POST_FACTO -- 1813: Split params cannot be passed with POST_FACTO type
   | EDC_TIMEOUT_CONFIG_AT_TXN -- 1814: Timeout config with AT_TXN time
+  -- Abort API specific
+  | EDC_ABORT_REQUESTED -- 1845: Transaction abort requested
+  | EDC_TXN_CANNOT_ABORT -- 1843: Txn done, cannot be aborted
+  | EDC_ABORT_TXN_NOT_FOUND -- 1844: No txn found to abort
   | EDC_UNKNOWN_ERROR -- Any other error
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
@@ -260,6 +303,9 @@ parseResultCodeId (Just "1825") = EDC_INVALID_SPLIT_TYPE
 parseResultCodeId (Just "1815") = EDC_TIMEOUT_CONFIG_WITH_SPLIT
 parseResultCodeId (Just "1813") = EDC_SPLIT_PARAMS_POST_FACTO
 parseResultCodeId (Just "1814") = EDC_TIMEOUT_CONFIG_AT_TXN
+parseResultCodeId (Just "1845") = EDC_ABORT_REQUESTED
+parseResultCodeId (Just "1843") = EDC_TXN_CANNOT_ABORT
+parseResultCodeId (Just "1844") = EDC_ABORT_TXN_NOT_FOUND
 parseResultCodeId _ = EDC_UNKNOWN_ERROR
 
 -- Check if result code indicates success
@@ -291,6 +337,9 @@ getResultCodeMessage EDC_INVALID_SPLIT_TYPE = "Invalid split type"
 getResultCodeMessage EDC_TIMEOUT_CONFIG_WITH_SPLIT = "Timeout config cannot be passed with split params"
 getResultCodeMessage EDC_SPLIT_PARAMS_POST_FACTO = "Split params cannot be passed with POST_FACTO type"
 getResultCodeMessage EDC_TIMEOUT_CONFIG_AT_TXN = "Timeout config cannot be passed with AT_TXN time"
+getResultCodeMessage EDC_ABORT_REQUESTED = "Transaction abort requested, please check final status on EDC machine"
+getResultCodeMessage EDC_TXN_CANNOT_ABORT = "Transaction done, cannot be aborted"
+getResultCodeMessage EDC_ABORT_TXN_NOT_FOUND = "No transaction found to abort"
 getResultCodeMessage EDC_UNKNOWN_ERROR = "Unknown error"
 
 -- Simple status for backward compatibility
@@ -305,6 +354,7 @@ data PaytmEDCStatus
 resultCodeToStatus :: PaytmEDCResultCode -> PaytmEDCStatus
 resultCodeToStatus EDC_SUCCESS = EDC_ACCEPTED_SUCCESS
 resultCodeToStatus EDC_PENDING_CHECK_MACHINE = EDC_PENDING
+resultCodeToStatus EDC_ABORT_REQUESTED = EDC_PENDING
 resultCodeToStatus EDC_UNKNOWN_ERROR = EDC_PENDING
 resultCodeToStatus _ = EDC_FAILED
 
