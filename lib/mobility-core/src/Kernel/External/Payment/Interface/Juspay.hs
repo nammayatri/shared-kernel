@@ -498,8 +498,39 @@ mkOrderStatusResp Juspay.OrderData {..} =
           splitSettlementResponse = mkSplitSettlementResponse <$> split_settlement_response,
           offers = maybe Nothing mkOffersData offers,
           txnDetail = castTxnDetail <$> txn_detail,
+          loyaltyInfo = mkLoyaltyInfo <$> loyalty_info,
           ..
         }
+
+mkLoyaltyInfo :: Juspay.LoyaltyInfo -> LoyaltyInfo
+mkLoyaltyInfo Juspay.LoyaltyInfo {..} =
+  LoyaltyInfo
+    { burnDetails = mkLoyaltyBurnDetail <$> fromMaybe [] burn_details,
+      earnDetails = mapMaybe mkLoyaltyEarnDetail (fromMaybe [] earn_details)
+    }
+
+mkLoyaltyBurnDetail :: Juspay.BurnDetail -> LoyaltyBurnDetail
+mkLoyaltyBurnDetail Juspay.BurnDetail {..} =
+  LoyaltyBurnDetail
+    { programId = program_id,
+      burnOptions = mapMaybe mkLoyaltyBurnOption (fromMaybe [] burn_options_selected),
+      reversedPoints = reversed >>= parseLoyaltyPoints . (.points)
+    }
+
+mkLoyaltyBurnOption :: Juspay.BurnOption -> Maybe LoyaltyBurnOption
+mkLoyaltyBurnOption Juspay.BurnOption {..} = do
+  -- Prefer `applicable.points` (authoritative — reflects CHARGED amount); fall back to `points_selected`
+  pts <- parseLoyaltyPoints $ fromMaybe (fromMaybe "" points_selected) (applicable <&> (.points))
+  pure LoyaltyBurnOption {burnOptionId = id, points = pts, status = status}
+
+mkLoyaltyEarnDetail :: Juspay.EarnDetail -> Maybe LoyaltyEarnDetail
+mkLoyaltyEarnDetail Juspay.EarnDetail {..} = do
+  appliedPoints <- applied
+  pts <- parseLoyaltyPoints appliedPoints.points
+  pure LoyaltyEarnDetail {programId = program_id, points = pts, reversedPoints = reversed >>= parseLoyaltyPoints . (.points)}
+
+parseLoyaltyPoints :: Text -> Maybe HighPrecMoney
+parseLoyaltyPoints t = realToFrac <$> (readMaybe (T.unpack t) :: Maybe Double)
 
 castUpi :: Juspay.Upi -> Upi
 castUpi Juspay.Upi {..} = Upi {payerApp = payer_app, payerAppName = payer_app_name, txnFlowType = txn_flow_type, payerVpa = payer_vpa}
@@ -672,6 +703,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               splitSettlementResponse = mkSplitSettlementResponse <$> justOrder.split_settlement_response,
               offers = maybe Nothing mkOffersData justOrder.offers,
               txnDetail = castTxnDetail <$> justOrder.txn_detail,
+              loyaltyInfo = mkLoyaltyInfo <$> justOrder.loyalty_info,
               ..
             }
     (Nothing, Just justMandate, _, _) ->
@@ -727,6 +759,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           effectiveAmount = Just $ realToFrac justTransaction.txn_amount,
           offers = Nothing,
           txnDetail = castTxnDetail <$> justTransaction.txn_detail,
+          loyaltyInfo = Nothing,
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp
