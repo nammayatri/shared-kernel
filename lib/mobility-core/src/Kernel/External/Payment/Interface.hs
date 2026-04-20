@@ -61,6 +61,21 @@ orderStatus serviceConfig mRoutingId req = case serviceConfig of
   StripeConfig _ -> throwError $ InternalError "Stripe Order Status not supported."
   PaytmEDCConfig cfg -> PaytmEDC.orderStatus cfg mRoutingId req
 
+abortOrder ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PaymentServiceConfig ->
+  Maybe Text ->
+  OrderStatusReq ->
+  m OrderStatusResp
+abortOrder serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Abort Order not supported."
+  StripeConfig _ -> throwError $ InternalError "Stripe Abort Order not supported."
+  PaytmEDCConfig cfg -> PaytmEDC.abortOrder cfg mRoutingId req
+
 updateOrder ::
   ( EncFlow m r,
     CoreMetrics m,
