@@ -57,5 +57,6 @@ verifyAuth config authData = do
     JuspayConfig cfg -> do
       cfgPassword <- decrypt cfg.password
       return (cfg.username, cfgPassword)
+    StripeConfig _ -> return ("", "")
   unless (basicAuthUsername authData == DT.encodeUtf8 username && basicAuthPassword authData == DT.encodeUtf8 password) $
     throwError (InvalidRequest "INVALID_AUTHORIZATION_HEADER")

@@ -25,17 +25,19 @@ where
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payout.Juspay.Config as Juspay
 import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), PayoutOrderStatus (..))
+import qualified Kernel.External.Payout.Stripe.Config as Stripe
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
-import Kernel.Types.Common hiding (Currency)
+import Kernel.Types.Common
 import Servant.API (ToHttpApiData (..))
 
-data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig
+data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig | StripeConfig Stripe.StripeConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data OrderStatusPayoutResp
   = OrderStatusPayoutResp
       { payoutOrderId :: Text,
+        idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
         payoutStatus :: PayoutOrderStatus,
         orderType :: Maybe Text,
         merchantCustomerId :: Maybe Text,
@@ -47,9 +49,12 @@ data OrderStatusPayoutResp
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+type AccountId = Text
+
 data CreatePayoutOrderReq = CreatePayoutOrderReq
   { orderId :: Text,
     amount :: HighPrecMoney,
+    currency :: Currency,
     customerPhone :: Text,
     customerEmail :: Text,
     customerId :: Text,
@@ -57,13 +62,16 @@ data CreatePayoutOrderReq = CreatePayoutOrderReq
     remark :: Text,
     customerName :: Text,
     customerVpa :: Text,
-    isDynamicWebhookRequired :: Bool
+    isDynamicWebhookRequired :: Bool,
+    mRoutingId :: Maybe Text, -- Juspay specific
+    mConnectedAccountId :: Maybe AccountId -- Stripe specific
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data CreatePayoutOrderResp = CreatePayoutOrderResp
   { orderId :: Text,
+    idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
     status :: PayoutOrderStatus,
     orderType :: Maybe Text,
     udf1 :: Maybe Text,
@@ -94,7 +102,10 @@ instance ToHttpApiData Expand where
 
 data PayoutOrderStatusReq = PayoutOrderStatusReq
   { orderId :: Text,
-    mbExpand :: Maybe Expand
+    idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
+    mbExpand :: Maybe Expand, -- Juspay specific
+    mRoutingId :: Maybe Text, -- Juspay specific
+    mConnectedAccountId :: Maybe AccountId -- Stripe specific
   }
   deriving (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
