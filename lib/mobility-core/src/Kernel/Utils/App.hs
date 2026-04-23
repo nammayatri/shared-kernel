@@ -64,6 +64,7 @@ import Kernel.Types.Version (CloudType (..))
 import Kernel.Utils.Common
 import qualified Kernel.Utils.FlowLogging as L
 import Kernel.Utils.IOLogging (HasLog, appendLogTag, updateLogLevelAndRawSql)
+import Kernel.Utils.Monitoring.Prometheus.Servant
 import Kernel.Utils.Shutdown
 import qualified Kernel.Utils.SignatureAuth as HttpSig
 import Network.HTTP.Types (Method, RequestHeaders)
@@ -236,12 +237,12 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId sessionId -> do
         flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
        }
 
-withModifiedEnv' :: (HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => (EnvR f -> Application) -> EnvR f -> Application
-withModifiedEnv' = withModifiedEnvFn $ \req env requestId sessionId -> do
+withModifiedEnv' :: (SanitizedUrl a, HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => Proxy a -> (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId -> do
   let url = cs $ Wai.rawPathInfo req
-      sanitizedUrl = removeUUIDs url
+      sanitizedUrl = fromMaybe (removeNumerics $ removeUUIDs url) (getSanitizedUrl appAPI (Just req))
   mbDynamicLogLevelConfig <- runFlowR env.flowRuntime env.appEnv $ getDynamicLogLevelConfig
-  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId sessionId url (removeNumerics sanitizedUrl)
+  modifyEnvR env (HM.lookup sanitizedUrl =<< mbDynamicLogLevelConfig) requestId sessionId url sanitizedUrl
   where
     removeUUIDs path = T.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ T.unpack path
     removeNumerics path = T.pack $ TR.subRegex (TR.mkRegex "/[0-9]+") (T.unpack path) "/:numeric"
