@@ -51,16 +51,19 @@ sendOTPApi ::
   Text ->
   Text ->
   Text ->
-  m
-    SubmitSmsResp
+  SMSType ->
+  PriorityType ->
+  m SubmitSmsResp
 sendOTPApi
   url
   authData
   sid
   otpSmsTemplate
   phoneNumber
-  sender = do
-    let submitSmsReq = SubmitSmsReq sender phoneNumber otpSmsTemplate
+  sender
+  smsType
+  priority = do
+    let submitSmsReq = SubmitSmsReq sender phoneNumber otpSmsTemplate smsType priority
     let auth = authData
     callExotelAPI
       (defaultBaseUrlSms sid url)
