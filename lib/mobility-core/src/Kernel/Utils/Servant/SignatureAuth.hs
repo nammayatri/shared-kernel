@@ -119,7 +119,7 @@ instance
       subserver `addAuthCheck` withRequest authCheck'
     where
       authCheck' :: Wai.Request -> DelayedIO SignatureAuthResult
-      authCheck' req = runFlowRDelayedIO env . becknApiHandler . withLogTag "authCheck" $ do
+      authCheck' req = runFlowRDelayedIO env . becknAuthHandler . withLogTag "authCheck" $ do
         let headers = Wai.requestHeaders req
             pathInfo = Wai.rawPathInfo req
         (actionTxt, merchantId) <- getLastTwoElements (decodeUtf8 pathInfo) & fromMaybeM (InternalError $ "Beckn " <> show pathInfo <> " path doesn't have merchant id")
