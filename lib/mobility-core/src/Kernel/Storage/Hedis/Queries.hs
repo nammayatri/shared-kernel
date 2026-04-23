@@ -176,7 +176,7 @@ runInMultiCloudRedisMaybeResult action = do
       case primaryResult of
         Just _ -> pure primaryResult -- Primary has result, return immediately
         Nothing -> do
-          logError $ "SECONDARY_CLUSTER: Primary returned Nothing, trying secondary"
+          logWarning $ "SECONDARY_CLUSTER: Primary returned Nothing, trying secondary"
           -- Primary returned Nothing, try secondary
           secondaryResult <-
             withTryCatch "runInMultiCloudRedisMaybeResult" $
