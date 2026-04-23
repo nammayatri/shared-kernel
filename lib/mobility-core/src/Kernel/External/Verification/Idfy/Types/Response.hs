@@ -304,9 +304,9 @@ data GstVerificationOutput = GstVerificationOutput
     status :: Maybe Text,
     taxpayer_type :: Maybe Text,
     trade_name :: Maybe Text,
-    einvoice_status :: Maybe Text,
+    e_invoice_status :: Maybe Text,
     status_details :: Maybe Text,
-    is_sez :: Maybe Text,
+    is_sez :: Maybe Bool,
     filing_details :: Maybe A.Value
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
