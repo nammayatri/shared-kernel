@@ -558,6 +558,7 @@ library
       Kernel.Utils.Servant.API
       Kernel.Utils.Servant.BaseUrl
       Kernel.Utils.Servant.BasicAuth
+      Kernel.Utils.Servant.BecknResponseWrapper
       Kernel.Utils.Servant.Client
       Kernel.Utils.Servant.HeaderAuth
       Kernel.Utils.Servant.HTML
