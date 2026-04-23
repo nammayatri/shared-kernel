@@ -28,15 +28,15 @@ normalizedPathInfo :: Request -> [Text]
 normalizedPathInfo = List.dropWhileEnd (== "") . pathInfo
 
 class SanitizedUrl a where
-  getSanitizedUrl :: Proxy a -> Request -> Maybe Text
+  getSanitizedUrl :: Proxy a -> Maybe Request -> Maybe Text
 
 instance
   (SanitizedUrl (a :: Type), SanitizedUrl (b :: Type)) =>
   SanitizedUrl (a :<|> b)
   where
-  getSanitizedUrl _ req =
-    getSanitizedUrl (Proxy :: Proxy a) req
-      <|> getSanitizedUrl (Proxy :: Proxy b) req
+  getSanitizedUrl _ mbReq =
+    getSanitizedUrl (Proxy :: Proxy a) mbReq
+      <|> getSanitizedUrl (Proxy :: Proxy b) mbReq
 
 instance
   ( KnownSymbol (path :: Symbol),
@@ -44,18 +44,17 @@ instance
   ) =>
   SanitizedUrl (path :> subroute)
   where
-  getSanitizedUrl _ req = do
-    let path = normalizedPathInfo req
-    if E.null path
-      then Nothing
-      else do
-        let (x : xs) = path
-            p = DT.pack $ symbolVal (Proxy :: Proxy path)
-        if p == x
-          then
-            let maybeUrl = getSanitizedUrl (Proxy :: Proxy subroute) $ req {pathInfo = xs}
-             in (\url -> Just (p <> "/" <> url)) =<< maybeUrl
-          else Nothing
+  getSanitizedUrl _ mbReq = do
+    let p = DT.pack $ symbolVal (Proxy :: Proxy path)
+    case mbReq of
+      Nothing -> do
+        url <- getSanitizedUrl (Proxy :: Proxy subroute) Nothing
+        pure (p <> "/" <> url)
+      Just req -> case normalizedPathInfo req of
+        (x : xs) | x == p -> do
+          url <- getSanitizedUrl (Proxy :: Proxy subroute) (Just req {pathInfo = xs})
+          pure (p <> "/" <> url)
+        _ -> Nothing
 
 instance
   ( KnownSymbol (capture :: Symbol),
@@ -63,25 +62,27 @@ instance
   ) =>
   SanitizedUrl (Capture capture a :> subroute)
   where
-  getSanitizedUrl _ req = do
-    let path = normalizedPathInfo req
-    if E.null path
-      then Nothing
-      else
-        let (_ : xs) = path
-            p = DT.pack $ ":" <> symbolVal (Proxy :: Proxy capture)
-            maybeUrl = getSanitizedUrl (Proxy :: Proxy subroute) $ req {pathInfo = xs}
-         in (\url -> Just (p <> "/" <> url)) =<< maybeUrl
+  getSanitizedUrl _ mbReq = do
+    let p = DT.pack $ ":" <> symbolVal (Proxy :: Proxy capture)
+    case mbReq of
+      Nothing -> do
+        url <- getSanitizedUrl (Proxy :: Proxy subroute) Nothing
+        pure (p <> "/" <> url)
+      Just req -> case normalizedPathInfo req of
+        (_ : xs) -> do
+          url <- getSanitizedUrl (Proxy :: Proxy subroute) (Just req {pathInfo = xs})
+          pure (p <> "/" <> url)
+        [] -> Nothing
 
 instance
   ReflectMethod m =>
   SanitizedUrl (Verb (m :: StdMethod) code contentType a)
   where
-  getSanitizedUrl _ req = do
-    let p = normalizedPathInfo req
-    if E.null p && requestMethod req == reflectMethod (Proxy :: Proxy m)
-      then Just ""
-      else Nothing
+  getSanitizedUrl _ Nothing = Just ""
+  getSanitizedUrl _ (Just req) =
+    case normalizedPathInfo req of
+      [] -> Just ""
+      _ -> Nothing
 
 instance
   SanitizedUrl (subroute :: Type) =>

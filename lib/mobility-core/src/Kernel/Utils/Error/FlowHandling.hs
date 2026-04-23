@@ -34,7 +34,6 @@ where
 import Control.Concurrent.STM (isEmptyTMVar)
 import Control.Monad.Reader
 import qualified Data.Aeson as A
-import qualified Data.Text as T
 import Data.Time.Clock hiding (getCurrentTime)
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
@@ -54,7 +53,6 @@ import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Flow
 import Kernel.Utils.Error.BaseError.HTTPError.APIError (toAPIError)
 import Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError (toBecknAPIError)
-import Kernel.Utils.Logging
 import Kernel.Utils.Text
 import Network.HTTP.Types (Header, hContentType)
 import Network.HTTP.Types.Header (HeaderName)
@@ -307,9 +305,6 @@ throwHTTPError ::
   m b
 throwHTTPError toJsonError err = do
   let someExc = toException err
-  let callStackStr = T.pack $ prettyCallStack callStack
-  logError $ makeLogSomeException someExc
-  logError $ "Callstack: " <> callStackStr
   Metrics.incrementErrorCounter "DEFAULT_ERROR" someExc
   throwServantError (toHttpCode err) (toCustomHeaders err) (toJsonError err)
 
