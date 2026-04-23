@@ -144,6 +144,7 @@ data OfferResp = OfferResp
     status :: OfferListStatus,
     offer_code :: Text,
     offer_description :: OfferDescription,
+    ui_configs :: Maybe OfferUIConfigs,
     offer_rules :: OfferRules,
     order_breakup :: OrderBreakup
   }
@@ -155,6 +156,15 @@ data OfferDescription = OfferDescription
     title :: Maybe Text,
     description :: Maybe Text,
     tnc :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data OfferUIConfigs = OfferUIConfigs
+  { offer_display_priority :: Maybe Int,
+    auto_apply :: Maybe Bool,
+    should_validate :: Maybe Bool,
+    is_hidden :: Maybe Bool
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
