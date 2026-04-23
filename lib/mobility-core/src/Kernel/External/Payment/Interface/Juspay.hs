@@ -816,12 +816,13 @@ buildOfferListResp resp = do
   pure OfferListResp {..}
 
 mkOfferResp :: Juspay.OfferResp -> OfferResp
-mkOfferResp Juspay.OfferResp {..} = do
+mkOfferResp offer = do
   let benefitType' = maybe "DISCOUNT" (._type) (listToMaybe order_breakup.benefits)
   OfferResp
     { offerId = offer_id,
       status,
       offerDescription = mkOfferDescription offer_description,
+      uiConfigs = mkOfferUIConfigs <$> ui_configs,
       orderAmount = read $ T.unpack order_breakup.final_order_amount,
       finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
       discountAmount = read $ T.unpack order_breakup.discount_amount,
@@ -830,6 +831,8 @@ mkOfferResp Juspay.OfferResp {..} = do
       offerCode = offer_code,
       productDiscounts = map mkProductDiscount <$> order_breakup.product_discounts
     }
+  where
+    Juspay.OfferResp {offer_id, status, offer_code, offer_description, ui_configs, order_breakup} = offer
 
 mkProductDiscount :: Juspay.JuspayProductDiscount -> ProductDiscount
 mkProductDiscount Juspay.JuspayProductDiscount {..} =
@@ -841,6 +844,15 @@ mkProductDiscount Juspay.JuspayProductDiscount {..} =
 
 mkOfferDescription :: Juspay.OfferDescription -> OfferDescription
 mkOfferDescription Juspay.OfferDescription {..} = OfferDescription {sponsoredBy = sponsored_by, ..}
+
+mkOfferUIConfigs :: Juspay.OfferUIConfigs -> OfferUIConfigs
+mkOfferUIConfigs Juspay.OfferUIConfigs {..} =
+  OfferUIConfigs
+    { offerDisplayPriority = offer_display_priority,
+      autoApply = auto_apply,
+      shouldValidate = should_validate,
+      isHidden = is_hidden
+    }
 
 buildBestOfferCombination :: (MonadThrow m, Log m) => Juspay.BestOfferCombination -> m BestOfferCombination
 buildBestOfferCombination combination = do

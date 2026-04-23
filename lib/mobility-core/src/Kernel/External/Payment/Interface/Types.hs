@@ -529,6 +529,7 @@ data OfferResp = OfferResp
   { offerId :: Text,
     status :: OfferListStatus,
     offerDescription :: OfferDescription,
+    uiConfigs :: Maybe OfferUIConfigs,
     orderAmount :: HighPrecMoney,
     finalOrderAmount :: HighPrecMoney,
     discountAmount :: HighPrecMoney,
@@ -553,6 +554,15 @@ data OfferDescription = OfferDescription
     title :: Maybe Text,
     description :: Maybe Text,
     tnc :: Maybe Text
+  }
+  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving anyclass (ToSchema)
+
+data OfferUIConfigs = OfferUIConfigs
+  { offerDisplayPriority :: Maybe Int,
+    autoApply :: Maybe Bool,
+    shouldValidate :: Maybe Bool,
+    isHidden :: Maybe Bool
   }
   deriving (Generic, Show, FromJSON, ToJSON)
   deriving anyclass (ToSchema)
