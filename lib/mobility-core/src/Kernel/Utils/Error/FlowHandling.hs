@@ -53,6 +53,7 @@ import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.Flow
 import Kernel.Utils.Error.BaseError.HTTPError.APIError (toAPIError)
 import Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError (toBecknAPIError)
+import Kernel.Utils.Logging
 import Kernel.Utils.Text
 import Network.HTTP.Types (Header, hContentType)
 import Network.HTTP.Types.Header (HeaderName)
@@ -305,6 +306,8 @@ throwHTTPError ::
   m b
 throwHTTPError toJsonError err = do
   let someExc = toException err
+  sanitizedUrl <- asks (.url)
+  logError $ "API: " <> show sanitizedUrl <> " Error: " <> makeLogSomeException someExc
   Metrics.incrementErrorCounter "DEFAULT_ERROR" someExc
   throwServantError (toHttpCode err) (toCustomHeaders err) (toJsonError err)
 
