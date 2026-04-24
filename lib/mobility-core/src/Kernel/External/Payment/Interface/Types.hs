@@ -469,7 +469,9 @@ data OfferListReq = OfferListReq
     dutyDate :: UTCTime,
     paymentMode :: Text,
     numOfRides :: Int,
-    offerListingMetric :: Maybe UDF6
+    offerListingMetric :: Maybe UDF6,
+    deviceImei :: Maybe Text,
+    staticCustomerId :: Maybe Text
   }
 
 data UDF6 = IS_VISIBLE | IS_APPLICABLE | LIST_BASED_ON_DATE UTCTime
@@ -577,6 +579,8 @@ data OfferApplyReq = OfferApplyReq
     currency :: Currency,
     planId :: Text,
     registrationDate :: UTCTime,
+    deviceImei :: Maybe Text,
+    staticCustomerId :: Maybe Text,
     dutyDate :: UTCTime,
     paymentMode :: Text,
     numOfRides :: Int,
