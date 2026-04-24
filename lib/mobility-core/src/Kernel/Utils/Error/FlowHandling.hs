@@ -25,7 +25,9 @@ module Kernel.Utils.Error.FlowHandling
     withFlowHandlerBecknAPI',
     apiHandler,
     becknApiHandler,
+    becknAuthHandler,
     someExceptionToBecknApiError,
+    throwBecknNack200,
     handleIfUp,
     throwServantError,
   )
@@ -47,6 +49,7 @@ import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App
 import Kernel.Types.Beckn.Ack
+import qualified Kernel.Types.Beckn.Error as BError
 import Kernel.Types.Common
 import Kernel.Types.Error as Err
 import Kernel.Types.Error.BaseError.HTTPError
@@ -178,7 +181,7 @@ withFlowHandlerBecknAPI ::
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
-withFlowHandlerBecknAPI = withFlowHandler . becknApiHandler . handleIfUp
+withFlowHandlerBecknAPI = withFlowHandler . becknApiHandler . handleIfUpBeckn
 
 -- created this for using it in beckn-gateway as it does not require any extra constraints
 withFlowHandlerBecknAPI' ::
@@ -189,7 +192,7 @@ withFlowHandlerBecknAPI' ::
   ) =>
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
-withFlowHandlerBecknAPI' = withFlowHandler' . becknApiHandler . handleIfUp
+withFlowHandlerBecknAPI' = withFlowHandler' . becknApiHandler . handleIfUpBeckn
 
 handleIfUp ::
   ( L.MonadFlow m,
@@ -219,6 +222,14 @@ apiHandler ::
   m a
 apiHandler = (`catch` someExceptionToAPIErrorThrow)
 
+-- | Beckn-specific handler: catches *any* synchronous exception and converts it to a
+-- 'Nack' 'AckResponse' instead of propagating it as a ServantError / HTTP 4xx-5xx.
+--
+-- Per ONDC spec every Beckn API responds with HTTP 200 regardless of protocol outcome;
+-- success/failure is communicated via @message.ack.status@ (ACK\/NACK) with an
+-- accompanying @error@ object for NACKs. So Beckn handlers must never throw to signal
+-- protocol failure — this catch-and-return converts legacy 'throwError' call-sites to
+-- the compliant shape automatically.
 becknApiHandler ::
   ( L.MonadFlow m,
     Log m,
@@ -226,9 +237,45 @@ becknApiHandler ::
     MonadReader r m,
     HasField "url" r (Maybe Text)
   ) =>
-  m a ->
-  m a
-becknApiHandler = (`catch` someExceptionToBecknApiErrorThrow)
+  m AckResponse ->
+  m AckResponse
+becknApiHandler action = action `catch` someExceptionToBecknNack
+
+someExceptionToBecknNack ::
+  ( L.MonadFlow m,
+    Log m,
+    Metrics.CoreMetrics m,
+    MonadReader r m,
+    HasField "url" r (Maybe Text)
+  ) =>
+  SomeException ->
+  m AckResponse
+someExceptionToBecknNack exc = withLogTag "BECKN_NACK" $ do
+  let callStackStr = T.pack $ prettyCallStack callStack
+  logError $ makeLogSomeException exc
+  logError $ "Callstack: " <> callStackStr
+  Metrics.incrementErrorCounter "DEFAULT_ERROR" exc
+  let BecknAPIError err = someExceptionToBecknApiError exc
+  pure (Nack err)
+
+-- | Shutdown guard for Beckn handlers — returns 'Nack' instead of throwing
+-- ServerUnavailable, so the BAP still gets a compliant HTTP 200 NACK during drains.
+handleIfUpBeckn ::
+  ( L.MonadFlow m,
+    Log m,
+    MonadReader r m,
+    HasField "isShuttingDown" r (TMVar ()),
+    Metrics.CoreMetrics m,
+    HasField "url" r (Maybe Text)
+  ) =>
+  m AckResponse ->
+  m AckResponse
+handleIfUpBeckn action = do
+  shutdown <- asks (.isShuttingDown)
+  shouldRun <- L.runIO $ atomically $ isEmptyTMVar shutdown
+  if shouldRun
+    then action
+    else someExceptionToBecknNack (toException ServerUnavailable)
 
 someExceptionToAPIErrorThrow ::
   ( L.MonadFlow m,
@@ -245,7 +292,58 @@ someExceptionToAPIErrorThrow exc
     throwAPIError . InternalError . fromMaybe (show err) $ toMessage err
   | otherwise = throwAPIError . InternalError $ show exc
 
-someExceptionToBecknApiErrorThrow ::
+-- | Pure SomeException → BecknAPIError conversion used by 'becknApiHandler' to
+-- produce a 'Nack' response without throwing. Keeps the Beckn protocol-return path
+-- exception-free.
+someExceptionToBecknApiError :: SomeException -> BecknAPIError
+someExceptionToBecknApiError exc
+  | Just (HTTPException err) <- fromException exc = toBecknAPIError err
+  | otherwise = toBecknAPIError . InternalError $ show exc
+
+-- | Throws a ServantError whose HTTP status is 200 and whose body is an ONDC NACK
+-- AckResponse. Used by Servant-level middleware (signature/auth checks) that run in
+-- DelayedIO — before the handler — and so must short-circuit the request pipeline via
+-- 'throwM'. Inside handler bodies, prefer returning 'Nack' via 'becknApiHandler'.
+throwBecknNack200 ::
+  (Log m, MonadThrow m) =>
+  Text -> -- ONDC error code, e.g. "10001"
+  Maybe Text -> -- human-readable message
+  m a
+throwBecknNack200 code mbMessage = withLogTag "BECKN_AUTH_NACK" $ do
+  let err =
+        BError.Error
+          { BError._type = BError.INTERNAL_ERROR,
+            BError.code = code,
+            BError.path = Nothing,
+            BError.message = mbMessage
+          }
+      body = A.encode (Nack err)
+      serverErr =
+        ServerError
+          { errHTTPCode = 200,
+            errReasonPhrase = "OK",
+            errBody = body,
+            errHeaders = [(hContentType, "application/json;charset=utf-8")]
+          }
+  throwM serverErr
+
+-- | Beckn auth/signature handler for Servant middleware. Catches any exception raised
+-- during signature verification and throws a uniform NACK (code 10001 per ONDC spec:
+-- "Invalid Signature Message - Cannot verify signature for request"). Polymorphic in
+-- the success type so it can wrap 'SignatureAuthResult' returns without requiring the
+-- result to be 'AckResponse'.
+becknAuthHandler ::
+  ( L.MonadFlow m,
+    Log m,
+    Metrics.CoreMetrics m,
+    MonadReader r m,
+    HasField "url" r (Maybe Text)
+  ) =>
+  m a ->
+  m a
+becknAuthHandler action = action `catch` someExceptionToBecknAuthNackThrow
+
+someExceptionToBecknAuthNackThrow ::
   ( L.MonadFlow m,
     Log m,
     Metrics.CoreMetrics m,
@@ -254,15 +352,12 @@ someExceptionToBecknApiErrorThrow ::
   ) =>
   SomeException ->
   m a
-someExceptionToBecknApiErrorThrow exc
-  | Just (HTTPException err) <- fromException exc = throwBecknApiError err
-  | otherwise =
-    throwBecknApiError . InternalError $ show exc
-
-someExceptionToBecknApiError :: SomeException -> BecknAPIError
-someExceptionToBecknApiError exc
-  | Just (HTTPException err) <- fromException exc = toBecknAPIError err
-  | otherwise = toBecknAPIError . InternalError $ show exc
+someExceptionToBecknAuthNackThrow exc = do
+  let callStackStr = T.pack $ prettyCallStack callStack
+  logError $ makeLogSomeException exc
+  logError $ "Callstack: " <> callStackStr
+  Metrics.incrementErrorCounter "BECKN_AUTH_ERROR" exc
+  throwBecknNack200 "10001" (Just "Invalid Signature Message - Cannot verify signature for request")
 
 throwAPIError ::
   ( Log m,
@@ -276,19 +371,6 @@ throwAPIError ::
   e ->
   m a
 throwAPIError = throwHTTPError toAPIError
-
-throwBecknApiError ::
-  ( Log m,
-    MonadThrow m,
-    IsHTTPException e,
-    Exception e,
-    Metrics.CoreMetrics m,
-    MonadReader r m,
-    HasField "url" r (Maybe Text)
-  ) =>
-  e ->
-  m a
-throwBecknApiError = throwHTTPError toBecknAPIError
 
 throwHTTPError ::
   ( ToJSON j,
