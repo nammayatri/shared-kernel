@@ -180,7 +180,7 @@ instance FromJSON OfferUIConfigs where
     is_hidden <- parseMaybeBoolField o "is_hidden"
     pure OfferUIConfigs {..}
 
-parseMaybeBoolField :: Object -> Text -> Parser (Maybe Bool)
+parseMaybeBoolField :: Object -> Key -> Parser (Maybe Bool)
 parseMaybeBoolField obj key = do
   value <- obj .:? key
   case value :: Maybe Value of
