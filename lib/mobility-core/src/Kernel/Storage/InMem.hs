@@ -25,11 +25,16 @@ import Data.Typeable
 import Database.Redis as Hedis
 import EulerHS.Prelude
 import Kernel.Storage.Hedis.Config
+import Kernel.Storage.InMem.Management.SidecarClient (callRegisterKey)
+import Kernel.Storage.InMem.Management.Types (RegisterKeyRequest (..))
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow
 import Kernel.Utils.DatastoreLatencyCalculator
 import Kernel.Utils.Time (Seconds, UTCTime, addUTCTime, getCurrentTime, secondsToNominalDiffTime, threadDelaySec)
+import qualified Network.HTTP.Client as HTTP
+import Servant.Client (parseBaseUrl)
+import qualified System.Environment as Se
 import Text.Hex (encodeHex)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -64,17 +69,29 @@ withInMemCache cacheKeys ttlInSeconds fn = fmap fst . withTimeGeneric ("InMem-Fe
             Just resAny -> do
               if addUTCTime (fromIntegral resAny.ttlInSeconds) resAny.createdAt > now
                 then pure (unsafeCoerce (cachedData resAny))
-                else recache inMemCache now cacheKey
-            Nothing -> recache inMemCache now cacheKey
+                else recache inMemEnv inMemCache now cacheKey
+            Nothing -> recache inMemEnv inMemCache now cacheKey
     else fn
   where
-    recache inMemCache now cacheKey = do
+    recache env inMemCache now cacheKey = do
       res <- fn
       let sizeOfRes = sizeOf res
       void $ atomicModifyIORef inMemCache (\old -> (old {cache = HM.insert cacheKey (InMemKeyInfo {lastUsed = now, cachedData = unsafeCoerce @_ @Any res, cacheDataSize = sizeOfRes, createdAt = now, ttlInSeconds = ttlInSeconds}) (cache old), cacheSize = (cacheSize old) + sizeOfRes}, ()))
+      registerKeyWithSidecar env cacheKey ttlInSeconds
       pure res
     sizeOf :: Show b => b -> Bytes
     sizeOf a = fromIntegral . length $ (show :: b -> Text) a
+
+registerKeyWithSidecar :: MonadIO m => InMemEnv -> Text -> Seconds -> m ()
+registerKeyWithSidecar env cacheKey cacheTtl =
+  case inMemSidecarEnv env of
+    Nothing -> pure ()
+    Just sidecar -> liftIO $
+      void $
+        forkIO $ do
+          let req = RegisterKeyRequest {keyName = cacheKey, keySchema = Nothing, ttlInSeconds = Just cacheTtl}
+          void (callRegisterKey (sidecarManager sidecar) (sidecarBaseUrl sidecar) req)
+            `catch` (\(_ :: SomeException) -> pure ())
 
 inMemCleanupThread :: Maybe HedisEnv -> InMemEnv -> IO ()
 inMemCleanupThread mbHedisEnv inMemEnv = do
@@ -136,6 +153,7 @@ inMemCleanupThread mbHedisEnv inMemEnv = do
 setupInMemEnv :: InMemConfig -> Maybe HedisEnv -> IO InMemEnv
 setupInMemEnv inMemConfig mbHedisEnv = do
   now <- getCurrentTime
+  mbSidecarEnv <- initSidecarEnv
   if inMemConfig.enableInMem
     then do
       let inMemCacheInfo = defaultInMemCacheInfo now
@@ -144,10 +162,21 @@ setupInMemEnv inMemConfig mbHedisEnv = do
             InMemEnv
               { enableInMem = inMemConfig.enableInMem,
                 maxInMemSize = inMemConfig.maxInMemSize,
-                inMemHashMap = inMemHashMap
+                inMemHashMap = inMemHashMap,
+                inMemSidecarEnv = mbSidecarEnv
               }
       void $ forkIO $ forever $ inMemCleanupThread mbHedisEnv inMemEnv
       pure inMemEnv
     else do
       inMemHashMap <- newIORef $ defaultInMemCacheInfo now
-      pure $ InMemEnv {enableInMem = False, maxInMemSize = 0, inMemHashMap}
+      pure $ InMemEnv {enableInMem = False, maxInMemSize = 0, inMemHashMap, inMemSidecarEnv = mbSidecarEnv}
+
+initSidecarEnv :: IO (Maybe InMemSidecarEnv)
+initSidecarEnv = do
+  mbUrl <- Se.lookupEnv "INMEM_SIDECAR_URL"
+  case mbUrl of
+    Nothing -> pure Nothing
+    Just urlStr -> do
+      baseUrl <- parseBaseUrl urlStr
+      manager <- HTTP.newManager HTTP.defaultManagerSettings
+      pure $ Just InMemSidecarEnv {sidecarBaseUrl = baseUrl, sidecarManager = manager}

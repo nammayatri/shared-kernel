@@ -438,6 +438,10 @@ library
       Kernel.Storage.Hedis.Error
       Kernel.Storage.Hedis.Queries
       Kernel.Storage.InMem
+      Kernel.Storage.InMem.Management.API
+      Kernel.Storage.InMem.Management.Handler
+      Kernel.Storage.InMem.Management.SidecarClient
+      Kernel.Storage.InMem.Management.Types
       Kernel.Storage.Queries.BecknRequest
       Kernel.Storage.Queries.MerchantOperatingCity
       Kernel.Storage.Queries.SystemConfigs
