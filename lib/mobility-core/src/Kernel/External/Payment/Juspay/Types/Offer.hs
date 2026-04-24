@@ -16,6 +16,7 @@
 module Kernel.External.Payment.Juspay.Types.Offer where
 
 import Data.Aeson
+import Data.Aeson.Types (Parser)
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
 import Kernel.Types.Common
@@ -167,7 +168,28 @@ data OfferUIConfigs = OfferUIConfigs
     is_hidden :: Maybe Bool
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+  deriving anyclass (ToJSON, ToSchema)
+
+instance FromJSON OfferUIConfigs where
+  parseJSON = withObject "OfferUIConfigs" $ \o -> do
+    offer_display_priority <- o .:? "offer_display_priority"
+    auto_apply <- parseMaybeBoolField o "auto_apply"
+    should_validate <- parseMaybeBoolField o "should_validate"
+    is_hidden <- parseMaybeBoolField o "is_hidden"
+    pure OfferUIConfigs {..}
+
+parseMaybeBoolField :: Object -> Text -> Parser (Maybe Bool)
+parseMaybeBoolField obj key = do
+  value <- obj .:? key
+  case value :: Maybe Value of
+    Nothing -> pure Nothing
+    Just Null -> pure Nothing
+    Just (Bool b) -> pure $ Just b
+    Just (String "true") -> pure $ Just True
+    Just (String "false") -> pure $ Just False
+    Just (String "True") -> pure $ Just True
+    Just (String "False") -> pure $ Just False
+    _ -> fail $ "Invalid boolean for field: " <> show key
 
 data OfferRules = OfferRules
   { amount :: OfferRulesAmount,
