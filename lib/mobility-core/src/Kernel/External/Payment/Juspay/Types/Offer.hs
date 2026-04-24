@@ -43,6 +43,8 @@ data OfferOrder = OfferOrder
     udf4 :: Text,
     udf5 :: Text,
     udf6 :: Maybe Text,
+    udf7 :: Maybe Text,
+    udf8 :: Maybe Text,
     basket :: Maybe Text
   }
   deriving stock (Show, Generic)
@@ -212,6 +214,8 @@ data OfferApplyOrder = OfferApplyOrder
     udf3 :: Text,
     udf4 :: Text,
     udf5 :: Text,
+    udf6 :: Maybe Text,
+    udf7 :: Maybe Text,
     payment_channel :: Maybe Text,
     basket :: Maybe Text
   }
