@@ -155,6 +155,12 @@ library
       Kernel.External.Notification.PayTM.Client
       Kernel.External.Notification.PayTM.Types
       Kernel.External.Notification.Types
+      Kernel.External.PartnerSdk.Aarokya.Flow
+      Kernel.External.PartnerSdk.Aarokya.Types
+      Kernel.External.PartnerSdk.Interface
+      Kernel.External.PartnerSdk.Interface.Aarokya
+      Kernel.External.PartnerSdk.Interface.Types
+      Kernel.External.PartnerSdk.Types
       Kernel.External.Payment.Interface
       Kernel.External.Payment.Interface.Events.Types
       Kernel.External.Payment.Interface.Juspay
