@@ -18,6 +18,7 @@ import Kernel.Prelude
 import Kernel.Storage.Hedis (HedisFlow)
 import Kernel.Types.Common
 import Kernel.Utils.Dhall
+import qualified Network.HTTP.Client as HTTP
 
 newtype CacheConfig = CacheConfig
   { configsExpTime :: Seconds
@@ -65,10 +66,16 @@ data InMemCacheInfo = InMemCacheInfo
     createdAt :: UTCTime
   }
 
+data InMemSidecarEnv = InMemSidecarEnv
+  { sidecarBaseUrl :: BaseUrl,
+    sidecarManager :: HTTP.Manager
+  }
+
 data InMemEnv = InMemEnv
   { enableInMem :: Bool,
     maxInMemSize :: Bytes,
-    inMemHashMap :: IORef InMemCacheInfo
+    inMemHashMap :: IORef InMemCacheInfo,
+    inMemSidecarEnv :: Maybe InMemSidecarEnv
   }
 
 data InMemConfig = InMemConfig
