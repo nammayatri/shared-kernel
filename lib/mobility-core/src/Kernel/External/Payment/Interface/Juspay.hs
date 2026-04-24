@@ -28,6 +28,7 @@ module Kernel.External.Payment.Interface.Juspay
     mandateRevoke,
     mandatePause,
     mandateResume,
+    getMandateStatus,
     autoRefund,
     mandateNotificationStatus,
     verifyVPA,
@@ -581,6 +582,46 @@ mkResumeReq req =
     { command = "resume",
       resume_date = show $ utcTimeToPOSIXSeconds req.resumeDate
     }
+
+getMandateStatus ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m,
+    MonadThrow m
+  ) =>
+  JuspayCfg ->
+  Maybe Text ->
+  MandateStatusReq ->
+  m OrderStatusResp
+getMandateStatus config mRoutingId req = do
+  let url = config.url
+      merchantId = config.merchantId
+  apiKey <- decrypt config.apiKey
+  juspayResp <- Juspay.mandateStatus url apiKey merchantId mRoutingId req.mandateId Juspay.MandateStatusReq {command = "check_status"}
+  mkMandateStatusRes juspayResp
+
+mkMandateStatusRes :: (MonadThrow m, Log m) => Juspay.JuspayMandateStatusResp -> m OrderStatusResp
+mkMandateStatusRes Juspay.JuspayMandateStatusResp {..} = do
+  mandateStatusEnum <- (readMaybe (T.unpack status) :: Maybe MandateStatus) & fromMaybeM (InternalError $ "Invalid mandate status: " <> status)
+  frequencyEnum <- (readMaybe (T.unpack frequency) :: Maybe MandateFrequency) & fromMaybeM (InternalError $ "Invalid mandate frequency: " <> frequency)
+  startDateUTC <- (posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack start_date) :: Maybe Int))) & fromMaybeM (InternalError "Invalid start_date format")
+  endDateUTC <- (posixSecondsToUTCTime <$> (fromIntegral <$> (readMaybe (T.unpack end_date) :: Maybe Int))) & fromMaybeM (InternalError "Invalid end_date format")
+  return
+    MandateStatusResp
+      { eventName = Nothing,
+        orderShortId = fromMaybe "" order_id,
+        status = mandateStatusEnum,
+        mandateStartDate = Just startDateUTC,
+        mandateEndDate = Just endDateUTC,
+        mandateId = mandate_id,
+        mandateFrequency = frequencyEnum,
+        mandateMaxAmount = realToFrac max_amount,
+        upi = mkUpi <$> (payment_info >>= (.upi))
+      }
+  where
+    mkUpi Juspay.MandateUpiInfo {..} = Upi {payerApp = Nothing, payerAppName = Nothing, txnFlowType = Nothing, payerVpa = payer_vpa}
 
 addDaysUtcTime :: UTCTime -> Integer -> UTCTime
 addDaysUtcTime t x = t {utctDay = addDays x (utctDay t)}
