@@ -172,8 +172,7 @@ instance ToJSON PriceAPIEntity where
       ]
 
 roundAmountByCurrency :: Currency -> HighPrecMoney -> HighPrecMoney
-roundAmountByCurrency EUR amount = roundHighPrecMoney @HighPrecMoney (getAccuracy EUR) amount
-roundAmountByCurrency _ amount = amount -- for backward compatibility
+roundAmountByCurrency currency amount = roundHighPrecMoney @HighPrecMoney (getAccuracy currency) amount
 
 mkPriceAPIEntity :: Price -> PriceAPIEntity
 mkPriceAPIEntity Price {..} = PriceAPIEntity {..}
