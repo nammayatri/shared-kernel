@@ -75,7 +75,8 @@ data TxnType = UPI_PAY | UPI_COLLECT
 data OfferCustomer = OfferCustomer
   { id :: Text,
     email :: Maybe Text,
-    mobile :: Maybe Text
+    mobile :: Maybe Text,
+    phone :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -218,7 +219,7 @@ data OfferRulesPaymentInstrument = OfferRulesPaymentInstrument
 
 data OfferApplyReq = OfferApplyReq
   { txn_id :: Text,
-    customer :: OfferApplyCustomer,
+    customer :: OfferCustomer,
     offers :: [Text],
     order :: OfferApplyOrder,
     payment_method_info :: Maybe OfferApplyPaymentMethodInfo
@@ -252,12 +253,6 @@ data OfferApplyPaymentMethodInfo = OfferApplyPaymentMethodInfo
     card_sub_type :: Maybe Text,
     bank_code :: Maybe Text,
     card_bin :: Maybe Text
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
-newtype OfferApplyCustomer = OfferApplyCustomer
-  { id :: Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)

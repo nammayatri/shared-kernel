@@ -809,7 +809,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
         _ -> show offerListingMetric'
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
-mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile}
+mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile, phone = mobile}
 
 buildOfferListResp :: (MonadThrow m, Log m) => Juspay.OfferListResp -> m OfferListResp
 buildOfferListResp resp = do
@@ -923,10 +923,10 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
           }
   Juspay.OfferApplyReq
     { txn_id = txnId,
-      customer = Juspay.OfferApplyCustomer {id = customerId},
+      customer = Juspay.OfferCustomer {id = customerId, email = Nothing, mobile = Nothing, phone = Nothing},
       offers,
       order,
-      payment_method_info = Just $ Juspay.OfferApplyPaymentMethodInfo Juspay.UPI Nothing Nothing Nothing Nothing Nothing Nothing
+      payment_method_info = Just $ Juspay.OfferApplyPaymentMethodInfo Juspay.UPI (Just "") Nothing Nothing Nothing Nothing Nothing
     }
 
 buildOfferApplyResp :: (MonadThrow m, Log m) => Juspay.OfferApplyResp -> m OfferApplyResp
