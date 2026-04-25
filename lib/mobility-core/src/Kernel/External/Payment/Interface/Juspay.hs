@@ -923,7 +923,7 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
           }
   Juspay.OfferApplyReq
     { txn_id = txnId,
-      customer = Juspay.OfferCustomer {id = customerId, email = Nothing, mobile = Nothing, phone = Nothing},
+      customer = mkOfferCustomer customer,
       offers,
       order,
       payment_method_info = Just $ Juspay.OfferApplyPaymentMethodInfo Juspay.UPI (Just "") Nothing Nothing Nothing Nothing Nothing

@@ -574,7 +574,7 @@ data OfferUIConfigs = OfferUIConfigs
 data OfferApplyReq = OfferApplyReq
   { txnId :: Text,
     offers :: [Text],
-    customerId :: Text,
+    customer :: OfferCustomer,
     amount :: HighPrecMoney,
     currency :: Currency,
     planId :: Text,
