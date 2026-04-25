@@ -814,35 +814,40 @@ mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, emai
 buildOfferListResp :: (MonadThrow m, Log m) => Juspay.OfferListResp -> m OfferListResp
 buildOfferListResp resp = do
   bestOfferCombination <- buildBestOfferCombination `mapM` (listToMaybe resp.best_offer_combinations)
-  let offerResp = filter (\offer -> offer.status == ELIGIBLE) $ mkOfferResp <$> resp.offers
+  offerResp <- mapM mkOfferResp (filter (\offer -> offer.status == ELIGIBLE) resp.offers)
   pure OfferListResp {..}
 
-mkOfferResp :: Juspay.OfferResp -> OfferResp
+mkOfferResp :: (MonadThrow m, Log m) => Juspay.OfferResp -> m OfferResp
 mkOfferResp offer = do
   let benefitType' = maybe "DISCOUNT" (._type) (listToMaybe order_breakup.benefits)
-  OfferResp
-    { offerId = offer_id,
-      status,
-      offerDescription = mkOfferDescription offer_description,
-      uiConfigs = mkOfferUIConfigs <$> ui_configs,
-      orderAmount = read $ T.unpack order_breakup.final_order_amount,
-      finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
-      discountAmount = read $ T.unpack order_breakup.discount_amount,
-      cashbackAmount = read $ T.unpack order_breakup.cashback_amount,
-      benefitType = benefitType',
-      offerCode = offer_code,
-      productDiscounts = map mkProductDiscount <$> order_breakup.product_discounts
-    }
+  productDiscounts <- (traverse . traverse) mkProductDiscount order_breakup.product_discounts
+  pure $
+    OfferResp
+      { offerId = offer_id,
+        status,
+        offerDescription = mkOfferDescription offer_description,
+        uiConfigs = mkOfferUIConfigs <$> ui_configs,
+        orderAmount = read $ T.unpack order_breakup.final_order_amount,
+        finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
+        discountAmount = read $ T.unpack order_breakup.discount_amount,
+        cashbackAmount = read $ T.unpack order_breakup.cashback_amount,
+        benefitType = benefitType',
+        offerCode = offer_code,
+        productDiscounts
+      }
   where
     Juspay.OfferResp {offer_id, status, offer_code, offer_description, ui_configs, order_breakup} = offer
 
-mkProductDiscount :: Juspay.JuspayProductDiscount -> ProductDiscount
-mkProductDiscount Juspay.JuspayProductDiscount {..} =
-  ProductDiscount
-    { productId = product_id,
-      discountAmount = read $ T.unpack discount_amount,
-      cashbackAmount = read $ T.unpack cashback_amount
-    }
+mkProductDiscount :: (MonadThrow m, Log m) => Juspay.JuspayProductDiscount -> m ProductDiscount
+mkProductDiscount Juspay.JuspayProductDiscount {..} = do
+  discountAmount <- parseMoneyV2 discount_amount "discount_amount"
+  cashbackAmount <- parseMoneyV2 cashback_amount "cashback_amount"
+  pure $
+    ProductDiscount
+      { productId = product_id,
+        discountAmount,
+        cashbackAmount
+      }
 
 mkOfferDescription :: Juspay.OfferDescription -> OfferDescription
 mkOfferDescription Juspay.OfferDescription {..} = OfferDescription {sponsoredBy = sponsored_by, ..}
@@ -880,9 +885,14 @@ buildOrderBreakup Juspay.OrderBreakup {..} = do
   offerAmount <- parseMoney offer_amount "offer_amount"
   pure $ OrderBreakup {..}
 
+-- Note :: This seems wrong and breaking but not removing for not causing issue anywhere it is meant to be, however use `parseMoneyV2`
 parseMoney :: (MonadThrow m, Log m) => Text -> Text -> m HighPrecMoney
 parseMoney field desc = do
   readMaybe (show field) & fromMaybeM (InternalError $ "Couldn't parse " <> desc)
+
+parseMoneyV2 :: (MonadThrow m, Log m) => Text -> Text -> m HighPrecMoney
+parseMoneyV2 field desc = do
+  readMaybe (T.unpack field) & fromMaybeM (InternalError $ "Couldn't parse " <> desc)
 
 offerApply ::
   ( HasCallStack,
@@ -932,16 +942,17 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
 buildOfferApplyResp :: (MonadThrow m, Log m) => Juspay.OfferApplyResp -> m OfferApplyResp
 buildOfferApplyResp resp = do
   offers <- forM resp.offers $ \offer -> do
-    finalOrderAmount <- parseMoney offer.order_breakup.final_order_amount "final_order_amount"
-    discountAmount <- parseMoney (fromMaybe "0" offer.order_breakup.discount_amount) "discount_amount"
-    cashbackAmount <- parseMoney (fromMaybe "0" offer.order_breakup.cashback_amount) "cashback_amount"
+    finalOrderAmount <- parseMoneyV2 offer.order_breakup.final_order_amount "final_order_amount"
+    discountAmount <- parseMoneyV2 (fromMaybe "0" offer.order_breakup.discount_amount) "discount_amount"
+    cashbackAmount <- parseMoneyV2 (fromMaybe "0" offer.order_breakup.cashback_amount) "cashback_amount"
+    productDiscounts <- (traverse . traverse) mkProductDiscount offer.order_breakup.product_discounts
     pure
       OfferApplyRespItem
         { finalOrderAmount,
           discountAmount,
           cashbackAmount,
           offerId = offer.offer_id,
-          productDiscounts = map mkProductDiscount <$> offer.order_breakup.product_discounts
+          productDiscounts
         }
   pure OfferApplyResp {offers}
 
