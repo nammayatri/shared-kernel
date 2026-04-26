@@ -154,6 +154,7 @@ setupInMemEnv :: InMemConfig -> Maybe HedisEnv -> IO InMemEnv
 setupInMemEnv inMemConfig mbHedisEnv = do
   now <- getCurrentTime
   mbSidecarEnv <- initSidecarEnv
+  mgmtToken <- fmap T.pack <$> Se.lookupEnv "INMEM_MANAGEMENT_TOKEN"
   if inMemConfig.enableInMem
     then do
       let inMemCacheInfo = defaultInMemCacheInfo now
@@ -163,13 +164,14 @@ setupInMemEnv inMemConfig mbHedisEnv = do
               { enableInMem = inMemConfig.enableInMem,
                 maxInMemSize = inMemConfig.maxInMemSize,
                 inMemHashMap = inMemHashMap,
-                inMemSidecarEnv = mbSidecarEnv
+                inMemSidecarEnv = mbSidecarEnv,
+                inMemManagementToken = mgmtToken
               }
       void $ forkIO $ forever $ inMemCleanupThread mbHedisEnv inMemEnv
       pure inMemEnv
     else do
       inMemHashMap <- newIORef $ defaultInMemCacheInfo now
-      pure $ InMemEnv {enableInMem = False, maxInMemSize = 0, inMemHashMap, inMemSidecarEnv = mbSidecarEnv}
+      pure $ InMemEnv {enableInMem = False, maxInMemSize = 0, inMemHashMap, inMemSidecarEnv = mbSidecarEnv, inMemManagementToken = mgmtToken}
 
 initSidecarEnv :: IO (Maybe InMemSidecarEnv)
 initSidecarEnv = do

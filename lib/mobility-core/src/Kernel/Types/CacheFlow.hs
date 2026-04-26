@@ -75,7 +75,8 @@ data InMemEnv = InMemEnv
   { enableInMem :: Bool,
     maxInMemSize :: Bytes,
     inMemHashMap :: IORef InMemCacheInfo,
-    inMemSidecarEnv :: Maybe InMemSidecarEnv
+    inMemSidecarEnv :: Maybe InMemSidecarEnv,
+    inMemManagementToken :: Maybe Text
   }
 
 data InMemConfig = InMemConfig
