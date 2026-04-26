@@ -7,13 +7,29 @@ import Kernel.Prelude
 import Kernel.Storage.InMem.Management.Types
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow
+import Kernel.Types.Error (AuthError (..), GenericError (InternalError))
+import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Time (getCurrentTime)
 import qualified System.Environment as Se
 
+validateInMemToken :: (MonadFlow m, MonadReader r m, HasInMemEnv r) => Maybe Text -> m ()
+validateInMemToken mbToken = do
+  inMemEnv <- asks (.inMemEnv)
+  case inMemManagementToken inMemEnv of
+    Nothing -> throwError $ InternalError "INMEM_MANAGEMENT_TOKEN not configured"
+    Just expected ->
+      case mbToken of
+        Nothing -> throwError Unauthorized
+        Just token ->
+          unless (token == expected) $
+            throwError Unauthorized
+
 getKeys ::
   (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
+  Maybe Text ->
   m InMemKeysResponse
-getKeys = do
+getKeys mbToken = do
+  validateInMemToken mbToken
   inMemEnv <- asks (.inMemEnv)
   cacheInfo <- liftIO $ readIORef (inMemHashMap inMemEnv)
   let keysMeta =
@@ -24,9 +40,11 @@ getKeys = do
 
 getValue ::
   (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
+  Maybe Text ->
   InMemGetRequest ->
   m InMemGetResponse
-getValue req = do
+getValue mbToken req = do
+  validateInMemToken mbToken
   inMemEnv <- asks (.inMemEnv)
   cacheInfo <- liftIO $ readIORef (inMemHashMap inMemEnv)
   let mbInfo = HM.lookup req.key (cache cacheInfo)
@@ -41,9 +59,11 @@ getValue req = do
 
 refreshCache ::
   (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
+  Maybe Text ->
   InMemRefreshRequest ->
   m InMemRefreshResponse
-refreshCache req = do
+refreshCache mbToken req = do
+  validateInMemToken mbToken
   inMemEnv <- asks (.inMemEnv)
   now <- getCurrentTime
   oldInfo <- liftIO $ readIORef (inMemHashMap inMemEnv)
@@ -69,9 +89,11 @@ refreshCache req = do
 
 getServerInfo ::
   (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
+  Maybe Text ->
   Text ->
   m InMemServerInfoResponse
-getServerInfo svcName = do
+getServerInfo mbToken svcName = do
+  validateInMemToken mbToken
   podName' <- liftIO $ Se.lookupEnv "POD_NAME"
   pure
     InMemServerInfoResponse
