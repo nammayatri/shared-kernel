@@ -174,7 +174,7 @@ createCustomer config req = do
           name = fromMaybe "User" name,
           payment_method = Nothing,
           source = Nothing,
-          phone = phone
+          phone = Just phone
         }
 
 getCustomer ::
