@@ -198,6 +198,7 @@ library
       Kernel.External.Payment.Types
       Kernel.External.Payout.Interface
       Kernel.External.Payout.Interface.Juspay
+      Kernel.External.Payout.Interface.Stripe
       Kernel.External.Payout.Interface.Types
       Kernel.External.Payout.Juspay.Config
       Kernel.External.Payout.Juspay.Flow
@@ -205,6 +206,11 @@ library
       Kernel.External.Payout.Juspay.Types.Payout
       Kernel.External.Payout.Juspay.Types.Webhook
       Kernel.External.Payout.Juspay.Webhook
+      Kernel.External.Payout.Stripe.Config
+      Kernel.External.Payout.Stripe.Flow
+      Kernel.External.Payout.Stripe.Types
+      Kernel.External.Payout.Stripe.Types.Common
+      Kernel.External.Payout.Stripe.Types.Payout
       Kernel.External.Payout.Types
       Kernel.External.Plasma
       Kernel.External.Plasma.Interface
