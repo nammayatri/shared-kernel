@@ -16,7 +16,7 @@
 
 module Kernel.External.Payment.Juspay.Types.Common where
 
-import Control.Lens
+import Control.Lens hiding (reversed)
 import Data.Aeson.Types
 import Data.OpenApi hiding (components, description, links)
 import qualified Data.Text as T
@@ -202,7 +202,54 @@ data OrderData = OrderData
     split_settlement_response :: Maybe SplitSettlementResponse,
     effective_amount :: Maybe Double,
     offers :: Maybe [Offer],
-    txn_detail :: Maybe TxnDetail
+    txn_detail :: Maybe TxnDetail,
+    loyalty_info :: Maybe LoyaltyInfo
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data LoyaltyInfo = LoyaltyInfo
+  { burn_details :: Maybe [BurnDetail],
+    earn_details :: Maybe [EarnDetail]
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data BurnDetail = BurnDetail
+  { program_id :: Text,
+    burn_options_selected :: Maybe [BurnOption],
+    reversed :: Maybe LoyaltyPoints
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data BurnOption = BurnOption
+  { id :: Text,
+    points_selected :: Maybe Text,
+    status :: Maybe Text,
+    applicable :: Maybe LoyaltyPoints
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data EarnDetail = EarnDetail
+  { program_id :: Text,
+    applied :: Maybe LoyaltyPoints,
+    reversed :: Maybe LoyaltyPoints,
+    campaigns :: Maybe [EarnCampaign]
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data EarnCampaign = EarnCampaign
+  { id :: Text,
+    applied :: Maybe LoyaltyPoints
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+newtype LoyaltyPoints = LoyaltyPoints
+  { points :: Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
