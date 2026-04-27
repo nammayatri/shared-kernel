@@ -11,7 +11,7 @@ import Servant hiding (throwError)
 type GenerateTokenAPI =
   "auth"
     :> "token"
-    :> Header "api-key" Text
+    :> Header "Authorization" Text
     :> ReqBody '[JSON] AarokyaTokenRequest
     :> Post '[JSON] AarokyaTokenResponse
 
@@ -21,9 +21,9 @@ generateToken ::
   Text ->
   AarokyaTokenRequest ->
   m AarokyaTokenResponse
-generateToken url apiKey request = do
+generateToken url basicToken request = do
   let proxy = Proxy @GenerateTokenAPI
-      eulerClient = Euler.client proxy (Just apiKey) request
+      eulerClient = Euler.client proxy (Just ("Basic " <> basicToken)) request
   callAarokyaAPI url eulerClient "aarokya-generate-token" proxy
 
 callAarokyaAPI :: (MonadFlow m, HasRequestId r, MonadReader r m) => CallAPI' m r api res res
