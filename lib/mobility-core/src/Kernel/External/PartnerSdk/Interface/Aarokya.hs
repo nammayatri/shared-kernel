@@ -18,18 +18,24 @@ generateToken ::
   GenerateTokenReq ->
   m GenerateTokenResp
 generateToken config req = do
-  apiKey <- decrypt config.apiKey
-  let aarokyaReq = toAarokyaTokenRequest config req
-  resp <- Aarokya.generateToken config.url apiKey aarokyaReq
+  basicToken <- decrypt config.basicToken
+  let aarokyaReq = toAarokyaTokenRequest req
+  resp <- Aarokya.generateToken config.url basicToken aarokyaReq
   pure $ fromAarokyaTokenResponse resp
 
-toAarokyaTokenRequest :: AarokyaTypes.AarokyaSdkConfig -> GenerateTokenReq -> AarokyaTypes.AarokyaTokenRequest
-toAarokyaTokenRequest config req =
+toAarokyaTokenRequest :: GenerateTokenReq -> AarokyaTypes.AarokyaTokenRequest
+toAarokyaTokenRequest req =
   AarokyaTypes.AarokyaTokenRequest
     { phone_country_code = req.phoneCountryCode,
       phone_number = req.phoneNumber,
-      platform_id = config.platformId,
-      dl_number = req.dlNumber
+      id_proof = toAarokyaIdProof req.idProof
+    }
+
+toAarokyaIdProof :: IdProof -> AarokyaTypes.AarokyaIdProof
+toAarokyaIdProof p =
+  AarokyaTypes.AarokyaIdProof
+    { proof_type = p.proofType,
+      number = p.number
     }
 
 fromAarokyaTokenResponse :: AarokyaTypes.AarokyaTokenResponse -> GenerateTokenResp
