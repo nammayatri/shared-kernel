@@ -724,8 +724,8 @@ data CreateCustomerReq = CreateCustomerReq
   { email :: Maybe Text,
     name :: Maybe Text,
     lastName :: Maybe Text,
-    phone :: Maybe Text,
-    objectReferenceId :: Maybe Text,
+    phone :: Text,
+    objectReferenceId :: Text,
     mobileCountryCode :: Maybe Text,
     optionsGetClientAuthToken :: Maybe Bool
   }

@@ -127,7 +127,7 @@ createCustomer ::
 createCustomer config req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.objectReferenceId
+      routingId = Just req.objectReferenceId
   apiKey <- decrypt config.apiKey
   createCustomerReq <- mkcreateCustomerReq req
   creatCustomerRespo <- Juspay.createCustomer url apiKey merchantId routingId createCustomerReq
@@ -138,8 +138,8 @@ createCustomer config req = do
       do
         return
           Juspay.CreateCustomerRequest
-            { object_reference_id = fromMaybe "" objectReferenceId,
-              mobile_number = fromMaybe "" phone,
+            { object_reference_id = objectReferenceId,
+              mobile_number = phone,
               email_address = email,
               first_name = name,
               last_name = lastName,
