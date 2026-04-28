@@ -4,4 +4,5 @@ module Kernel.External.Payout.Stripe.Types
 where
 
 import Kernel.External.Payout.Stripe.Types.Common as Reexport
+import Kernel.External.Payout.Stripe.Types.ExternalAccount as Reexport
 import Kernel.External.Payout.Stripe.Types.Payout as Reexport

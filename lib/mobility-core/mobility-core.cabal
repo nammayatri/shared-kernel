@@ -204,6 +204,7 @@ library
       Kernel.External.Payout.Stripe.Flow
       Kernel.External.Payout.Stripe.Types
       Kernel.External.Payout.Stripe.Types.Common
+      Kernel.External.Payout.Stripe.Types.ExternalAccount
       Kernel.External.Payout.Stripe.Types.Payout
       Kernel.External.Payout.Types
       Kernel.External.Plasma
