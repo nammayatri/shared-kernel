@@ -49,6 +49,8 @@ data Language
   | ITALIAN
   | ASSAMESE
   | RUSSIAN
+  | PUNJABI
+  | MARATHI
   deriving (Eq, Show, Ord, Read, Generic, ToJSON, FromJSON, ToParamSchema, ToSchema, Enum, Bounded)
   deriving (PrettyShow) via Showable Language
 
@@ -75,6 +77,8 @@ instance FromHttpApiData Language where
   parseUrlPiece "it" = pure ITALIAN
   parseUrlPiece "as" = pure ASSAMESE
   parseUrlPiece "ru" = pure RUSSIAN
+  parseUrlPiece "pa" = pure PUNJABI
+  parseUrlPiece "mr" = pure MARATHI
   parseUrlPiece _ = Left "Unable to parse Language"
 
 instance ToHttpApiData Language where
@@ -98,6 +102,8 @@ instance ToHttpApiData Language where
   toUrlPiece ITALIAN = "it"
   toUrlPiece ASSAMESE = "as"
   toUrlPiece RUSSIAN = "ru"
+  toUrlPiece PUNJABI = "pa"
+  toUrlPiece MARATHI = "mr"
 
 type ServiceFlow m r = (EncFlow m r, EsqDBFlow m r, CacheFlow m r, HasKafkaProducer r)
 
