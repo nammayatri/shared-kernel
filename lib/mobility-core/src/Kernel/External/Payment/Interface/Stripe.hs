@@ -23,16 +23,16 @@ import Kernel.Types.Error
 import Kernel.Types.Id
 import Kernel.Utils.Common
 
-createIndividualConnectAccount ::
+createConnectAccount ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
     HasRequestId r,
     MonadReader r m
   ) =>
   StripeCfg ->
-  IndividualConnectAccountReq ->
-  m IndividualConnectAccountResp
-createIndividualConnectAccount config req = do
+  CreateConnectAccountReq ->
+  m CreateConnectAccountResp
+createConnectAccount config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
   let accountReq = mkAccountReq
@@ -44,7 +44,7 @@ createIndividualConnectAccount config req = do
   accountLinkResp <- Stripe.createAccountLink url apiKey accountLinkReq
   let accountUrl = accountLinkResp.url
   let accountUrlExpiry = posixSecondsToUTCTime accountLinkResp.expires_at
-  pure $ IndividualConnectAccountResp {..}
+  pure $ CreateConnectAccountResp {..}
   where
     mkAccountReq :: Stripe.AccountsReq
     mkAccountReq =
@@ -78,7 +78,7 @@ createIndividualConnectAccount config req = do
               Stripe.AccountSettings
                 { payouts = Stripe.PayoutsSettings {debit_negative_balances = True, statement_descriptor = "Bridge Rideshare"}
                 }
-          business_type = Stripe.Individual
+          business_type = req.businessType
           (year', month, day) = toGregorian req.dateOfBirth
           individual =
             Just $
@@ -92,26 +92,37 @@ createIndividualConnectAccount config req = do
                   phone = req.mobileNumber,
                   ssn_last_4 = req.ssnLast4
                 }
-          default_business_profile =
-            Just $
-              Stripe.BusinessProfile
-                { mcc = Just "4121",
-                  product_description = Just "Rideshare driver",
-                  support_phone = Just "7605636815", -- dummy number
-                  url = Just "https://bridge.cab",
-                  support_address =
-                    Just $
-                      Stripe.BusinessSupportAddress
-                        { city = Just "St. Louis Park",
-                          country = Just "US",
-                          line1 = Just "Suite 100, 1650, West End Blvd",
-                          line2 = Nothing,
-                          postal_code = Just "55416",
-                          state = Just "MN"
-                        }
-                }
-          business_profile = config.businessProfile <|> default_business_profile
+          configBusinessProfile = fromMaybe defaultBussinessProfile config.businessProfile
+          business_profile = case req.businessType of
+            Stripe.Individual -> Just configBusinessProfile
+            _ ->
+              Just
+                configBusinessProfile{support_phone = Just req.mobileNumber,
+                                      support_address = (castAddress <$> req.address) <|> configBusinessProfile.support_address
+                                     }
        in Stripe.AccountsReq {..}
+
+castAddress :: Address -> BusinessSupportAddress
+castAddress Address {..} = BusinessSupportAddress {..}
+
+defaultBussinessProfile :: Stripe.BusinessProfile
+defaultBussinessProfile =
+  Stripe.BusinessProfile
+    { mcc = Just "4121",
+      product_description = Just "Rideshare driver",
+      support_phone = Just "7605636815", -- dummy number
+      url = Just "https://bridge.cab",
+      support_address =
+        Just $
+          Stripe.BusinessSupportAddress
+            { city = Just "St. Louis Park",
+              country = Just "US",
+              line1 = Just "Suite 100, 1650, West End Blvd",
+              line2 = Nothing,
+              postal_code = Just "55416",
+              state = Just "MN"
+            }
+    }
 
 retryAccountLink ::
   ( Metrics.CoreMetrics m,
