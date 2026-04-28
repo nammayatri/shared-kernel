@@ -25,8 +25,8 @@ import Data.Typeable
 import Database.Redis as Hedis
 import EulerHS.Prelude
 import Kernel.Storage.Hedis.Config
-import Kernel.Storage.InMem.Management.SidecarClient (callRegisterKey)
-import Kernel.Storage.InMem.Management.Types (RegisterKeyRequest (..))
+import Kernel.Storage.InMem.Management.SidecarClient (callRefresh, callRegisterKey)
+import Kernel.Storage.InMem.Management.Types (RegisterKeyRequest (..), SidecarRefreshRequest (..))
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow
@@ -45,7 +45,7 @@ headMay :: [x] -> Maybe x
 headMay [] = Nothing
 headMay (x : _xs) = Just x
 
-withInMemCache :: forall b r m. (Show b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b, CoreMetrics m) => [Text] -> Seconds -> m b -> m b
+withInMemCache :: forall b r m. (Show b, Ae.ToJSON b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b, CoreMetrics m) => [Text] -> Seconds -> m b -> m b
 withInMemCache cacheKeys ttlInSeconds fn = fmap fst . withTimeGeneric ("InMem-Fetch" <> show (headMay cacheKeys)) $ do
   inMemEnv <- asks (.inMemEnv)
   if inMemEnv.enableInMem && ttlInSeconds > 0
@@ -76,7 +76,8 @@ withInMemCache cacheKeys ttlInSeconds fn = fmap fst . withTimeGeneric ("InMem-Fe
     recache env inMemCache now cacheKey = do
       res <- fn
       let sizeOfRes = sizeOf res
-      void $ atomicModifyIORef inMemCache (\old -> (old {cache = HM.insert cacheKey (InMemKeyInfo {lastUsed = now, cachedData = unsafeCoerce @_ @Any res, cacheDataSize = sizeOfRes, createdAt = now, ttlInSeconds = ttlInSeconds}) (cache old), cacheSize = (cacheSize old) + sizeOfRes}, ()))
+      let encodedRes = Ae.encode res
+      void $ atomicModifyIORef inMemCache (\old -> (old {cache = HM.insert cacheKey (InMemKeyInfo {lastUsed = now, cachedData = unsafeCoerce @_ @Any res, cachedJson = encodedRes, cacheDataSize = sizeOfRes, createdAt = now, ttlInSeconds = ttlInSeconds}) (cache old), cacheSize = (cacheSize old) + sizeOfRes}, ()))
       registerKeyWithSidecar env cacheKey ttlInSeconds
       pure res
     sizeOf :: Show b => b -> Bytes
@@ -92,6 +93,21 @@ registerKeyWithSidecar env cacheKey cacheTtl =
           let req = RegisterKeyRequest {keyName = cacheKey, keySchema = Nothing, ttlInSeconds = Just cacheTtl}
           void (callRegisterKey (sidecarManager sidecar) (sidecarBaseUrl sidecar) req)
             `catch` (\(_ :: SomeException) -> pure ())
+
+refreshInMem :: (MonadFlow m, MonadReader r m, HasInMemEnv r) => Text -> m ()
+refreshInMem keyInfix = do
+  inMemEnv <- asks (.inMemEnv)
+  liftIO $
+    atomicModifyIORef (inMemHashMap inMemEnv) $ \old ->
+      let toKeep = HM.filterWithKey (\k _ -> not (keyInfix `T.isInfixOf` k)) (cache old)
+          newSize = foldl' (\acc infoa -> acc + infoa.cacheDataSize) 0 (HM.elems toKeep)
+       in (InMemCacheInfo {cache = toKeep, cacheSize = newSize, createdAt = old.createdAt}, ())
+  case (inMemSidecarEnv inMemEnv, inMemServiceName inMemEnv) of
+    (Just sidecar, Just svcName) -> liftIO $ do
+      let req = SidecarRefreshRequest {serviceName = svcName, keyInfix = keyInfix}
+      void (callRefresh (sidecarManager sidecar) (sidecarBaseUrl sidecar) req)
+        `catch` (\(_ :: SomeException) -> pure ())
+    _ -> pure ()
 
 inMemCleanupThread :: Maybe HedisEnv -> InMemEnv -> IO ()
 inMemCleanupThread mbHedisEnv inMemEnv = do
@@ -132,7 +148,7 @@ inMemCleanupThread mbHedisEnv inMemEnv = do
                             (updatedCacheSize, updatedCache) =
                               foldl'
                                 ( \(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) ->
-                                    if cleanupKeyPrefix `T.isPrefixOf` k
+                                    if cleanupKeyPrefix `T.isInfixOf` k
                                       then (acc, accCacheList)
                                       else (acc + cacheDataSize, accCacheList ++ [(k, v)])
                                 )
@@ -155,6 +171,7 @@ setupInMemEnv inMemConfig mbHedisEnv = do
   now <- getCurrentTime
   mbSidecarEnv <- initSidecarEnv
   mgmtToken <- fmap T.pack <$> Se.lookupEnv "INMEM_MANAGEMENT_TOKEN"
+  svcName <- fmap T.pack <$> Se.lookupEnv "INMEM_SERVICE_NAME"
   if inMemConfig.enableInMem
     then do
       let inMemCacheInfo = defaultInMemCacheInfo now
@@ -165,13 +182,14 @@ setupInMemEnv inMemConfig mbHedisEnv = do
                 maxInMemSize = inMemConfig.maxInMemSize,
                 inMemHashMap = inMemHashMap,
                 inMemSidecarEnv = mbSidecarEnv,
-                inMemManagementToken = mgmtToken
+                inMemManagementToken = mgmtToken,
+                inMemServiceName = svcName
               }
       void $ forkIO $ forever $ inMemCleanupThread mbHedisEnv inMemEnv
       pure inMemEnv
     else do
       inMemHashMap <- newIORef $ defaultInMemCacheInfo now
-      pure $ InMemEnv {enableInMem = False, maxInMemSize = 0, inMemHashMap, inMemSidecarEnv = mbSidecarEnv, inMemManagementToken = mgmtToken}
+      pure $ InMemEnv {enableInMem = False, maxInMemSize = 0, inMemHashMap, inMemSidecarEnv = mbSidecarEnv, inMemManagementToken = mgmtToken, inMemServiceName = svcName}
 
 initSidecarEnv :: IO (Maybe InMemSidecarEnv)
 initSidecarEnv = do

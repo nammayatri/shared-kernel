@@ -1,5 +1,6 @@
 module Kernel.Storage.InMem.Management.Handler where
 
+import qualified Data.Aeson as Ae
 import qualified Data.HashMap.Strict as HM
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
@@ -51,11 +52,8 @@ getValue mbToken req = do
   pure $ case mbInfo of
     Nothing ->
       InMemGetResponse {found = False, value = Nothing}
-    Just _info ->
-      -- cachedData is stored as `Any` via unsafeCoerce; we cannot safely
-      -- extract a JSON Value without knowing the original type.
-      -- Services that need actual value introspection should override this handler.
-      InMemGetResponse {found = True, value = Nothing}
+    Just info ->
+      InMemGetResponse {found = True, value = Ae.decode (cachedJson info)}
 
 refreshCache ::
   (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
@@ -68,14 +66,14 @@ refreshCache mbToken req = do
   now <- getCurrentTime
   oldInfo <- liftIO $ readIORef (inMemHashMap inMemEnv)
   let oldCount = HM.size (cache oldInfo)
-  case req.keyPrefix of
+  case req.keyInfix of
     Nothing -> do
       liftIO $
         writeIORef (inMemHashMap inMemEnv) $
           InMemCacheInfo {cache = HM.empty, cacheSize = 0, createdAt = now}
       pure InMemRefreshResponse {deletedKeys = oldCount, remainingKeys = 0}
-    Just prefix -> do
-      let toKeep = HM.filterWithKey (\k _ -> not (prefix `T.isPrefixOf` k)) (cache oldInfo)
+    Just infix_ -> do
+      let toKeep = HM.filterWithKey (\k _ -> not (infix_ `T.isInfixOf` k)) (cache oldInfo)
           newSize = foldl' (\acc info -> acc + info.cacheDataSize) 0 (HM.elems toKeep)
           deletedCount = HM.size (cache oldInfo) - HM.size toKeep
       liftIO $
@@ -90,10 +88,11 @@ refreshCache mbToken req = do
 getServerInfo ::
   (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
   Maybe Text ->
-  Text ->
   m InMemServerInfoResponse
-getServerInfo mbToken svcName = do
+getServerInfo mbToken = do
   validateInMemToken mbToken
+  inMemEnv <- asks (.inMemEnv)
+  let svcName = fromMaybe "unknown" (inMemServiceName inMemEnv)
   podName' <- liftIO $ Se.lookupEnv "POD_NAME"
   pure
     InMemServerInfoResponse
