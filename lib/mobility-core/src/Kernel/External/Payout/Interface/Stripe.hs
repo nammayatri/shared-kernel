@@ -1,6 +1,11 @@
 module Kernel.External.Payout.Interface.Stripe
   ( createPayoutOrder,
     payoutOrderStatus,
+    listExternalAccounts,
+    createExternalAccount,
+    getExternalAccount,
+    updateExternalAccount,
+    deleteExternalAccount,
   )
 where
 
@@ -97,3 +102,125 @@ castPayoutStatus = \case
   Stripe.PAYOUT_PAID -> Juspay.SUCCESS
   Stripe.PAYOUT_FAILED -> Juspay.FAILURE
   Stripe.PAYOUT_CANCELED -> Juspay.CANCELLED
+
+listExternalAccounts ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeConfig ->
+  ListExternalAccountsReq ->
+  m ListExternalAccountsResp
+listExternalAccounts config ListExternalAccountsReq {..} = do
+  apiKey <- decrypt config.apiKey
+  stripeResp <- Stripe.listExternalAccounts config.url apiKey accountId objectType limit startingAfter endingBefore
+  pure $ mkListExternalAccountsResp stripeResp
+
+createExternalAccount ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeConfig ->
+  CreateExternalAccountReq ->
+  m CreateExternalAccountResp
+createExternalAccount config CreateExternalAccountReq {..} = do
+  apiKey <- decrypt config.apiKey
+  stripeResp <- Stripe.createExternalAccount config.url apiKey accountId (mkStripeExternalAccountReq CreateExternalAccountReq {..})
+  pure $ mkExternalAccountResp stripeResp
+
+getExternalAccount ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeConfig ->
+  GetExternalAccountReq ->
+  m GetExternalAccountResp
+getExternalAccount config GetExternalAccountReq {..} = do
+  apiKey <- decrypt config.apiKey
+  stripeResp <- Stripe.getExternalAccount config.url apiKey accountId (Stripe.ExternalAccountId externalAccountId)
+  pure $ mkExternalAccountResp stripeResp
+
+updateExternalAccount ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeConfig ->
+  UpdateExternalAccountReq ->
+  m UpdateExternalAccountResp
+updateExternalAccount config UpdateExternalAccountReq {..} = do
+  apiKey <- decrypt config.apiKey
+  stripeResp <- Stripe.updateExternalAccount config.url apiKey accountId (Stripe.ExternalAccountId externalAccountId) (mkStripeUpdateExternalAccountReq UpdateExternalAccountReq {..})
+  pure $ mkExternalAccountResp stripeResp
+
+deleteExternalAccount ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeConfig ->
+  DeleteExternalAccountReq ->
+  m DeleteExternalAccountResp
+deleteExternalAccount config DeleteExternalAccountReq {..} = do
+  apiKey <- decrypt config.apiKey
+  stripeResp <- Stripe.deleteExternalAccount config.url apiKey accountId (Stripe.ExternalAccountId externalAccountId)
+  pure $ mkDeleteExternalAccountResp stripeResp
+
+mkStripeExternalAccountReq :: CreateExternalAccountReq -> Stripe.ExternalAccountReq
+mkStripeExternalAccountReq CreateExternalAccountReq {..} =
+  Stripe.ExternalAccountReq
+    { _object = externalAccountObject,
+      country = externalAccountCountry,
+      currency = T.toLower $ show externalAccountCurrency,
+      account_number = externalBankAccountNumber,
+      routing_number = externalBankRoutingNumber,
+      number = externalAccountNumber,
+      exp_month = externalAccountExpMonth,
+      exp_year = externalAccountExpYear,
+      cvc = externalAccountCvc,
+      default_for_currency = externalAccountDefaultForCurrency,
+      metadata = externalAccountMetadata
+    }
+
+mkStripeUpdateExternalAccountReq :: UpdateExternalAccountReq -> Stripe.UpdateExternalAccountReq
+mkStripeUpdateExternalAccountReq UpdateExternalAccountReq {..} =
+  Stripe.UpdateExternalAccountReq
+    { default_for_currency = externalAccountDefaultForCurrency,
+      metadata = externalAccountMetadata
+    }
+
+mkExternalAccountResp :: Stripe.ExternalAccountObject -> ExternalAccount
+mkExternalAccountResp Stripe.ExternalAccountObject {..} =
+  ExternalAccount
+    { id = id,
+      externalAccountObject = _object,
+      account = account,
+      bankName = bank_name,
+      country = country,
+      -- currency = currency,
+      defaultForCurrency = default_for_currency,
+      last4 = last4,
+      status = status
+    }
+
+mkListExternalAccountsResp :: Stripe.ExternalAccountList -> ListExternalAccountsResp
+mkListExternalAccountsResp Stripe.ExternalAccountList {..} =
+  ListExternalAccountsResp
+    { accounts = mkExternalAccountResp <$> _data,
+      hasMore = has_more
+    }
+
+mkDeleteExternalAccountResp :: Stripe.DeletedExternalAccount -> DeleteExternalAccountResp
+mkDeleteExternalAccountResp Stripe.DeletedExternalAccount {..} =
+  DeleteExternalAccountResp
+    { externalAccountId = id,
+      externalAccountObject = _object,
+      externalAccountDeleted = deleted
+    }

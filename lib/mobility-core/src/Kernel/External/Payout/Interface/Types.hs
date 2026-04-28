@@ -25,13 +25,14 @@ where
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payout.Juspay.Config as Juspay
 import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), PayoutOrderStatus (..))
-import qualified Kernel.External.Payout.Stripe.Config as Stripe
+import qualified Kernel.External.Payout.Stripe.Config as StripeCfg
+import qualified Kernel.External.Payout.Stripe.Types as Stripe
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common
 import Servant.API (ToHttpApiData (..))
 
-data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig | StripeConfig Stripe.StripeConfig
+data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig | StripeConfig StripeCfg.StripeConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data OrderStatusPayoutResp
@@ -111,3 +112,96 @@ data PayoutOrderStatusReq = PayoutOrderStatusReq
   deriving anyclass (FromJSON, ToJSON)
 
 type PayoutOrderStatusResp = CreatePayoutOrderResp
+
+data ListExternalAccountsReq = ListExternalAccountsReq
+  { accountId :: AccountId,
+    objectType :: Maybe Text,
+    limit :: Maybe Int,
+    startingAfter :: Maybe Text,
+    endingBefore :: Maybe Text
+  }
+
+-- deriving stock (Show, Eq, Generic)
+-- deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data ExternalAccount = ExternalAccount
+  { id :: Text,
+    externalAccountObject :: Text,
+    account :: Text,
+    bankName :: Maybe Text,
+    country :: Text,
+    -- currency :: Currency,
+    defaultForCurrency :: Maybe Bool,
+    last4 :: Text,
+    status :: Text
+  }
+
+-- deriving stock (Show, Eq, Generic)
+-- deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data ListExternalAccountsResp = ListExternalAccountsResp
+  { accounts :: [ExternalAccount],
+    hasMore :: Bool
+  }
+
+-- deriving stock (Show, Eq, Generic)
+-- deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data CreateExternalAccountReq = CreateExternalAccountReq
+  { accountId :: AccountId,
+    externalAccountObject :: Text, -- "bank_account" or "card"
+    externalAccountCountry :: Text,
+    externalAccountCurrency :: Currency,
+    externalAccountNumber :: Maybe Text, -- card number
+    externalAccountExpMonth :: Maybe Int,
+    externalAccountExpYear :: Maybe Int,
+    externalAccountCvc :: Maybe Text,
+    externalBankAccountNumber :: Maybe Text,
+    externalBankRoutingNumber :: Maybe Text,
+    externalAccountDefaultForCurrency :: Maybe Bool,
+    externalAccountMetadata :: Maybe Stripe.Metadata
+  }
+
+-- deriving stock (Show, Generic)
+-- deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+type CreateExternalAccountResp = ExternalAccount
+
+data GetExternalAccountReq = GetExternalAccountReq
+  { accountId :: AccountId,
+    externalAccountId :: Text
+  }
+
+-- deriving stock (Show, Eq, Generic)
+-- deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+type GetExternalAccountResp = ExternalAccount
+
+data UpdateExternalAccountReq = UpdateExternalAccountReq
+  { accountId :: AccountId,
+    externalAccountId :: Text,
+    externalAccountDefaultForCurrency :: Maybe Bool,
+    externalAccountMetadata :: Maybe Stripe.Metadata
+  }
+
+-- deriving stock (Show, Generic)
+-- deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+type UpdateExternalAccountResp = ExternalAccount
+
+data DeleteExternalAccountReq = DeleteExternalAccountReq
+  { accountId :: AccountId,
+    externalAccountId :: Text
+  }
+
+-- deriving stock (Show, Eq, Generic)
+-- deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data DeleteExternalAccountResp = DeleteExternalAccountResp
+  { externalAccountId :: Text,
+    externalAccountObject :: Text,
+    externalAccountDeleted :: Bool
+  }
+
+-- deriving stock (Show, Eq, Generic)
+-- deriving anyclass (FromJSON, ToJSON, ToSchema)
