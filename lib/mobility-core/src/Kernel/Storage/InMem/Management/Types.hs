@@ -28,7 +28,7 @@ data InMemGetResponse = InMemGetResponse
   deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
 
 newtype InMemRefreshRequest = InMemRefreshRequest
-  { keyPrefix :: Maybe Text
+  { keyInfix :: Maybe Text
   }
   deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
 
@@ -53,5 +53,16 @@ data RegisterKeyRequest = RegisterKeyRequest
 
 data RegisterKeyResponse = RegisterKeyResponse
   { registered :: Bool
+  }
+  deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
+
+data SidecarRefreshRequest = SidecarRefreshRequest
+  { serviceName :: Text,
+    keyInfix :: Text
+  }
+  deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
+
+data SidecarRefreshResponse = SidecarRefreshResponse
+  { refreshed :: Bool
   }
   deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
