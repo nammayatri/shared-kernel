@@ -78,7 +78,8 @@ data Tables = Tables
     tableRedisKeyPrefix :: HM.HashMap Text Text,
     allTablesDisabled :: Maybe Bool,
     enableSecondaryCloudRead :: Maybe Bool,
-    tablesForSecondaryCloudRead :: Maybe [Text]
+    tablesForSecondaryCloudRead :: Maybe [Text],
+    enableAllTablesForSecondaryCloudRead :: Maybe Bool
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
@@ -95,7 +96,8 @@ defaultTableData =
       tableRedisKeyPrefix = HM.empty,
       allTablesDisabled = Just True,
       enableSecondaryCloudRead = Nothing,
-      tablesForSecondaryCloudRead = Nothing
+      tablesForSecondaryCloudRead = Nothing,
+      enableAllTablesForSecondaryCloudRead = Nothing
     }
 
 data KafkaProperties = KafkaProperties
