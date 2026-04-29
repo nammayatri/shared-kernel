@@ -414,9 +414,7 @@ mGetClusterRaw keys = withLogTag "CLUSTER" $ do
           logTagError "ERROR_WHILE_MGET" $ "Cluster MGET failed: " <> show reply
           pure missForGroup
         Right (Right listBS) ->
-          -- Defensive: tolerate a malformed Redis reply that disagrees on length.
-          let !padded = DL.take (NE.length grp) (listBS <> DL.repeat Nothing)
-           in pure $ DL.zip (NE.toList idxs) padded
+          pure $ DL.zip (NE.toList idxs) listBS
 
     runChunk :: [NonEmpty (Int, BS.ByteString)] -> m [[(Int, Maybe BS.ByteString)]]
     runChunk chunk = do
@@ -480,7 +478,7 @@ mGetStandaloneRaw keys = withLogTag "STANDALONE" $ do
       logTagError "ERROR_WHILE_MGET" $ "Standalone MGET failed: " <> show reply
       pure $ V.replicate nKeys Nothing
     Right (Right listBS) ->
-      pure $ V.fromListN nKeys (DL.take nKeys (listBS <> DL.repeat Nothing))
+      pure $ V.fromList listBS
 
 -- | Standalone MGET returning just the decoded values that were found.
 mGetStandalone :: (FromJSON a, HedisFlow m env, TryException m) => [Text] -> m [a]
