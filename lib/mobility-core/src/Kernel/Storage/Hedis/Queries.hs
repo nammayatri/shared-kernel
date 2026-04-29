@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -17,16 +19,22 @@ module Kernel.Storage.Hedis.Queries (module Reexport, module Kernel.Storage.Hedi
 import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.IntMap.Strict as IntMap
+import qualified Data.List as DL
+import qualified Data.List.NonEmpty as NE
 import Data.String.Conversions
-import Data.Text hiding (concatMap, map, null)
+import Data.Text hiding (any, chunksOf, concat, concatMap, length, map, null, replicate, zip)
 import qualified Data.Text as T
 import qualified Data.Text as Text
+import qualified Data.Vector as V
+import Database.Redis (keyToSlot)
 import Database.Redis as Reexport (GeoBy (..), GeoFrom (..), Queued, Redis, RedisTx, Reply, TxResult (..))
 import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
+import qualified EulerHS.Language as L
 import EulerHS.Prelude (whenLeft)
 import GHC.Records.Extra
-import Kernel.Beam.Connection.EnvVars (getRunInMasterCloudRedisCell, getRunInMasterLTSRedisCell)
+import Kernel.Beam.Connection.EnvVars (getClusterMGetAsyncEnabled, getRunInMasterCloudRedisCell, getRunInMasterLTSRedisCell)
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Storage.Hedis.Error
@@ -359,6 +367,172 @@ get' key decodeErrHandler = getImpl decodeResult key
 safeGet ::
   (FromJSON a, HedisFlow m env, TryException m) => Text -> m (Maybe a)
 safeGet key = get' key (del key)
+
+-- | Hard cap on concurrent forks so a request with keys spanning many slots
+-- can't unbounded-fan-out into a fork storm.
+clusterMGetForkLimit :: Int
+clusterMGetForkLimit = 32
+
+-- | Internal: cluster MGET returning one Vector slot per input key, aligned
+-- by index. Hits → @Just bs@; misses, Redis errors, fork failures all → @Nothing@.
+-- Groups by hash slot (Cluster requires single-slot MGETs); when async is
+-- enabled, runs forks in capped chunks to bound parallelism.
+mGetClusterRaw ::
+  forall m env.
+  (HedisFlow m env, TryException m, L.MonadFlow m, Forkable m) =>
+  [Text] ->
+  m (V.Vector (Maybe BS.ByteString))
+mGetClusterRaw [] = pure V.empty
+mGetClusterRaw keys = withLogTag "CLUSTER" $ do
+  let !nKeys = length keys
+  prefKeys <- mapM buildKey keys
+  let !groups =
+        IntMap.elems $
+          IntMap.fromListWith
+            (<>)
+            [(fromEnum (keyToSlot pk), NE.singleton (i, pk)) | (i, pk) <- zip [0 ..] prefKeys]
+  asyncEnabled <- liftIO getClusterMGetAsyncEnabled
+  results <-
+    if asyncEnabled && length groups > 1
+      then concat <$> traverse runChunk (chunksOf clusterMGetForkLimit groups)
+      else traverse runGroup groups
+  pure $! V.replicate nKeys Nothing V.// concat results
+  where
+    runGroup :: NonEmpty (Int, BS.ByteString) -> m [(Int, Maybe BS.ByteString)]
+    runGroup grp = do
+      let (idxs, prefKs) = NE.unzip grp
+          missForGroup = map (,Nothing) (NE.toList idxs)
+      result <-
+        withTimeRedis "RedisCluster" "mget" $
+          withTryCatch "mGetCluster" $
+            runHedisEither $ Hedis.mget (NE.toList prefKs)
+      case result of
+        Left exc -> do
+          logTagError "ERROR_WHILE_MGET" $ "Cluster MGET threw: " <> show exc
+          pure missForGroup
+        Right (Left reply) -> do
+          logTagError "ERROR_WHILE_MGET" $ "Cluster MGET failed: " <> show reply
+          pure missForGroup
+        Right (Right listBS) ->
+          -- Defensive: tolerate a malformed Redis reply that disagrees on length.
+          let !padded = DL.take (NE.length grp) (listBS <> DL.repeat Nothing)
+           in pure $ DL.zip (NE.toList idxs) padded
+
+    runChunk :: [NonEmpty (Int, BS.ByteString)] -> m [[(Int, Maybe BS.ByteString)]]
+    runChunk chunk = do
+      awaitables <- forM (DL.zip [0 :: Int ..] chunk) $ \(j, grp) ->
+        (grp,) <$> awaitableFork ("mGetCluster:" <> show j) (runGroup grp)
+      forM awaitables $ \(grp, aw) -> do
+        res <- L.await Nothing aw
+        case res of
+          Right xs -> pure xs
+          Left err -> do
+            logTagError "ERROR_WHILE_MGET_FORK" $ "Concurrent fork failed: " <> show err
+            pure $ map ((,Nothing) . fst) (NE.toList grp)
+
+    chunksOf :: Int -> [a] -> [[a]]
+    chunksOf k = DL.unfoldr step
+      where
+        step [] = Nothing
+        step xs = Just (DL.splitAt k xs)
+
+-- | Cluster MGET returning just the decoded values that were found. No
+-- order guarantee on the output. Decode failures are logged and dropped.
+mGetCluster ::
+  (FromJSON a, HedisFlow m env, TryException m, L.MonadFlow m, Forkable m) =>
+  [Text] ->
+  m [a]
+mGetCluster keys = do
+  raw <- mGetClusterRaw keys
+  catMaybes . V.toList <$> V.mapM decodeBytesLogging raw
+
+-- | Cluster MGET returning (key, value) pairs in input-key order. Decode
+-- failures are logged (with the offending key) and dropped; the key is
+-- left in Redis for the writer to fix or overwrite.
+mGetClusterWithKeys ::
+  (FromJSON a, HedisFlow m env, TryException m, L.MonadFlow m, Forkable m) =>
+  [Text] ->
+  m [(Text, a)]
+mGetClusterWithKeys keys = do
+  raw <- mGetClusterRaw keys
+  catMaybes . V.toList
+    <$> V.zipWithM decodeKeyedPair (V.fromList keys) raw
+
+-- | Internal: standalone MGET returning a Vector aligned by input index.
+-- Hits → @Just bs@; misses and Redis errors → @Nothing@.
+mGetStandaloneRaw ::
+  (HedisFlow m env, TryException m) =>
+  [Text] ->
+  m (V.Vector (Maybe BS.ByteString))
+mGetStandaloneRaw [] = pure V.empty
+mGetStandaloneRaw keys = withLogTag "STANDALONE" $ do
+  let !nKeys = length keys
+  prefKeys <- mapM buildKey keys
+  result <-
+    withTimeRedis "RedisStandalone" "mget" $
+      withTryCatch "mGetStandalone" $
+        runHedisEither' $ Hedis.mget prefKeys
+  case result of
+    Left exc -> do
+      logTagError "ERROR_WHILE_MGET" $ "Standalone MGET threw: " <> show exc
+      pure $ V.replicate nKeys Nothing
+    Right (Left reply) -> do
+      logTagError "ERROR_WHILE_MGET" $ "Standalone MGET failed: " <> show reply
+      pure $ V.replicate nKeys Nothing
+    Right (Right listBS) ->
+      pure $ V.fromListN nKeys (DL.take nKeys (listBS <> DL.repeat Nothing))
+
+-- | Standalone MGET returning just the decoded values that were found.
+mGetStandalone :: (FromJSON a, HedisFlow m env, TryException m) => [Text] -> m [a]
+mGetStandalone keys = do
+  raw <- mGetStandaloneRaw keys
+  catMaybes . V.toList <$> V.mapM decodeBytesLogging raw
+
+-- | Standalone MGET returning (key, value) pairs in input-key order. Decode
+-- failures are logged (with the offending key) and dropped.
+mGetStandaloneWithKeys ::
+  (FromJSON a, HedisFlow m env, TryException m) =>
+  [Text] ->
+  m [(Text, a)]
+mGetStandaloneWithKeys keys = do
+  raw <- mGetStandaloneRaw keys
+  catMaybes . V.toList
+    <$> V.zipWithM decodeKeyedPair (V.fromList keys) raw
+
+-- | Decode raw bytes; on failure log and return Nothing. Used by the
+-- values-only paths where the key isn't tracked.
+decodeBytesLogging ::
+  (FromJSON a, HedisFlow m env, TryException m) =>
+  Maybe BS.ByteString ->
+  m (Maybe a)
+decodeBytesLogging Nothing = pure Nothing
+decodeBytesLogging (Just bs) = case Ae.eitherDecode (BSL.fromStrict bs) of
+  Right v -> pure (Just v)
+  Left e -> do
+    logTagError "REDIS" $ "MGet decode failure: " <> cs e
+    pure Nothing
+
+-- | Decode bytes paired with their originating key. On bad JSON, log with the
+-- key for traceability and drop the entry — does NOT delete the key from Redis.
+decodeKeyedPair ::
+  (FromJSON a, HedisFlow m env, TryException m) =>
+  Text ->
+  Maybe BS.ByteString ->
+  m (Maybe (Text, a))
+decodeKeyedPair _ Nothing = pure Nothing
+decodeKeyedPair k (Just bs) = case Ae.eitherDecode (BSL.fromStrict bs) of
+  Right v -> pure (Just (k, v))
+  Left e -> do
+    logTagError "REDIS" $ "MGet decode failure for key " <> k <> ": " <> cs e
+    pure Nothing
+
+decodeMGetResult ::
+  (FromJSON a, HedisFlow m env, TryException m) =>
+  Text ->
+  Maybe BS.ByteString ->
+  m (Maybe a)
+decodeMGetResult _ Nothing = pure Nothing
+decodeMGetResult key (Just bs) = decodeJSONWithErrorHandler key bs (del key)
 
 set ::
   (ToJSON a, HedisFlow m env, TryException m) => Text -> a -> m ()
