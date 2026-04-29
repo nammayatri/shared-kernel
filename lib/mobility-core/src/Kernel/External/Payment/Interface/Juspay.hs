@@ -777,15 +777,15 @@ offerList config mRoutingId req = do
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
 mkOfferListReq OfferListReq {..} =
   Juspay.OfferListReq
-    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId,
+    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId membershipStatus,
       payment_method_info = [],
       customer = mkOfferCustomer <$> customer,
       offer_code = Nothing
     }
 
-mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Maybe UDF6 -> Maybe Text -> Maybe Text -> Juspay.OfferOrder
+mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Maybe UDF6 -> Maybe Text -> Maybe Text -> Maybe UDF9 -> Juspay.OfferOrder
 ---- add duty day and payment mode respectively in holes ----
-mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId =
+mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId membershipStatus =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
@@ -800,6 +800,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
       udf6 = parseUDF6 <$> offerListingMetric,
       udf7 = deviceImei,
       udf8 = staticCustomerId,
+      udf9 = parseUDF9 <$> membershipStatus,
       basket = decodeUtf8 . A.encode <$> basket
     }
   where
@@ -807,6 +808,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
       case offerListingMetric' of
         LIST_BASED_ON_DATE listingDates -> pack $ formatTime defaultTimeLocale "%d_%m_%y" listingDates
         _ -> show offerListingMetric'
+    parseUDF9 (MembershipStatus isMember) = if isMember then "true" else "false"
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
 mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile, phone = mobile}

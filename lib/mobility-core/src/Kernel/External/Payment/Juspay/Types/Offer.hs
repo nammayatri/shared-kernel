@@ -46,6 +46,7 @@ data OfferOrder = OfferOrder
     udf6 :: Maybe Text,
     udf7 :: Maybe Text,
     udf8 :: Maybe Text,
+    udf9 :: Maybe Text,
     basket :: Maybe Text
   }
   deriving stock (Show, Generic)
