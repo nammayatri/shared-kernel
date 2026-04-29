@@ -777,15 +777,15 @@ offerList config mRoutingId req = do
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
 mkOfferListReq OfferListReq {..} =
   Juspay.OfferListReq
-    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides offerListingMetric,
+    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides offerListingMetric membershipStatus,
       payment_method_info = [],
       customer = mkOfferCustomer <$> customer,
       offer_code = Nothing
     }
 
-mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Maybe UDF6 -> Juspay.OfferOrder
+mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Maybe UDF6 -> Maybe UDF9 -> Juspay.OfferOrder
 ---- add duty day and payment mode respectively in holes ----
-mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides offerListingMetric =
+mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides offerListingMetric membershipStatus =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
@@ -798,6 +798,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
         let strNumRides = show numOfRides
         if strNumRides == "-1" then "DEFAULT" else strNumRides,
       udf6 = parseUDF6 <$> offerListingMetric,
+      udf9 = parseUDF9 <$> membershipStatus,
       basket = decodeUtf8 . A.encode <$> basket
     }
   where
@@ -805,6 +806,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
       case offerListingMetric' of
         LIST_BASED_ON_DATE listingDates -> pack $ formatTime defaultTimeLocale "%d_%m_%y" listingDates
         _ -> show offerListingMetric'
+    parseUDF9 (MembershipStatus isMember) = if isMember then "TRUE" else "FALSE"
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
 mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile}

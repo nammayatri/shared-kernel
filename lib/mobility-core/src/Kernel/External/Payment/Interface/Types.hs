@@ -469,10 +469,14 @@ data OfferListReq = OfferListReq
     dutyDate :: UTCTime,
     paymentMode :: Text,
     numOfRides :: Int,
-    offerListingMetric :: Maybe UDF6
+    offerListingMetric :: Maybe UDF6,
+    membershipStatus :: Maybe UDF9
   }
 
 data UDF6 = IS_VISIBLE | IS_APPLICABLE | LIST_BASED_ON_DATE UTCTime
+  deriving stock (Show, Eq, Generic, Read)
+
+data UDF9 = MembershipStatus Bool
   deriving stock (Show, Eq, Generic, Read)
 
 data OfferOrder = OfferOrder
