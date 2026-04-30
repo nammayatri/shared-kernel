@@ -16,6 +16,7 @@
 module Kernel.External.Payment.Juspay.Types.Offer where
 
 import Data.Aeson
+import Data.Aeson.Types (Parser)
 import Kernel.External.Payment.Juspay.Types.Common
 import Kernel.Prelude
 import Kernel.Types.Common
@@ -43,6 +44,9 @@ data OfferOrder = OfferOrder
     udf4 :: Text,
     udf5 :: Text,
     udf6 :: Maybe Text,
+    udf7 :: Maybe Text,
+    udf8 :: Maybe Text,
+    udf9 :: Maybe Text,
     basket :: Maybe Text
   }
   deriving stock (Show, Generic)
@@ -72,7 +76,8 @@ data TxnType = UPI_PAY | UPI_COLLECT
 data OfferCustomer = OfferCustomer
   { id :: Text,
     email :: Maybe Text,
-    mobile :: Maybe Text
+    mobile :: Maybe Text,
+    phone :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -144,6 +149,7 @@ data OfferResp = OfferResp
     status :: OfferListStatus,
     offer_code :: Text,
     offer_description :: OfferDescription,
+    ui_configs :: Maybe OfferUIConfigs,
     offer_rules :: OfferRules,
     order_breakup :: OrderBreakup
   }
@@ -158,6 +164,36 @@ data OfferDescription = OfferDescription
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data OfferUIConfigs = OfferUIConfigs
+  { offer_display_priority :: Maybe Int,
+    auto_apply :: Maybe Bool,
+    should_validate :: Maybe Bool,
+    is_hidden :: Maybe Bool
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, ToSchema)
+
+instance FromJSON OfferUIConfigs where
+  parseJSON = withObject "OfferUIConfigs" $ \o -> do
+    offer_display_priority <- o .:? "offer_display_priority"
+    auto_apply <- parseMaybeBoolField o "auto_apply"
+    should_validate <- parseMaybeBoolField o "should_validate"
+    is_hidden <- parseMaybeBoolField o "is_hidden"
+    pure OfferUIConfigs {..}
+
+parseMaybeBoolField :: Object -> Key -> Parser (Maybe Bool)
+parseMaybeBoolField obj key = do
+  value <- obj .:? key
+  case value :: Maybe Value of
+    Nothing -> pure Nothing
+    Just Null -> pure Nothing
+    Just (Bool b) -> pure $ Just b
+    Just (String "true") -> pure $ Just True
+    Just (String "false") -> pure $ Just False
+    Just (String "True") -> pure $ Just True
+    Just (String "False") -> pure $ Just False
+    _ -> fail $ "Invalid boolean for field: " <> show key
 
 data OfferRules = OfferRules
   { amount :: OfferRulesAmount,
@@ -184,7 +220,7 @@ data OfferRulesPaymentInstrument = OfferRulesPaymentInstrument
 
 data OfferApplyReq = OfferApplyReq
   { txn_id :: Text,
-    customer :: OfferApplyCustomer,
+    customer :: OfferCustomer,
     offers :: [Text],
     order :: OfferApplyOrder,
     payment_method_info :: Maybe OfferApplyPaymentMethodInfo
@@ -202,6 +238,8 @@ data OfferApplyOrder = OfferApplyOrder
     udf3 :: Text,
     udf4 :: Text,
     udf5 :: Text,
+    udf6 :: Maybe Text,
+    udf7 :: Maybe Text,
     payment_channel :: Maybe Text,
     basket :: Maybe Text
   }
@@ -216,12 +254,6 @@ data OfferApplyPaymentMethodInfo = OfferApplyPaymentMethodInfo
     card_sub_type :: Maybe Text,
     bank_code :: Maybe Text,
     card_bin :: Maybe Text
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
-newtype OfferApplyCustomer = OfferApplyCustomer
-  { id :: Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)

@@ -134,12 +134,8 @@ callAPI' mbManagerSelector baseUrl eulerClient desc api =
       Left err -> logError $ "Error occured during client call: " <> show err
     return res
   where
-    buildSanitizedUrl = do
-      let url = T.split (== '/') $ T.pack (baseUrlPath baseUrl)
-          urlPath = if listToMaybe url == Just "" then drop 1 url else url
-      let req = Wai.defaultRequest
-          baseRequest = req {Wai.pathInfo = urlPath}
-      fromMaybe (removeUUID $ showBaseUrlText baseUrl) (getSanitizedUrl api baseRequest)
+    buildSanitizedUrl =
+      fromMaybe (removeUUID $ showBaseUrlText baseUrl) (getSanitizedUrl api Nothing)
 
     removeUUID url = T.pack $ TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}") (T.unpack url) ":id"
 

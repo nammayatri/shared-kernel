@@ -70,3 +70,8 @@ getRunInMasterLTSRedisCell :: IO Bool
 getRunInMasterLTSRedisCell = do
   envVal <- lookupEnv "RUN_IN_MASTER_LTS_REDIS_CELL"
   pure (fromMaybe False (readMaybe =<< envVal))
+
+getClusterMGetAsyncEnabled :: IO Bool
+getClusterMGetAsyncEnabled = do
+  envVal <- lookupEnv "CLUSTER_MGET_ASYNC_ENABLED"
+  pure (fromMaybe False (readMaybe =<< envVal))

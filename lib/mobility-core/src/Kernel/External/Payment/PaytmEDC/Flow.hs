@@ -59,6 +59,12 @@ type StatusEnquiryAPI =
     :> ReqBody '[JSON] PaytmEDCStatusRequest
     :> Post '[JSON] PaytmEDCResponse
 
+-- Abort Transaction API
+type AbortTransactionAPI =
+  "ecr" :> "abort" :> "txn"
+    :> ReqBody '[JSON] PaytmEDCAbortRequest
+    :> Post '[JSON] PaytmEDCResponse
+
 -- Call Generate Checksum API
 generateChecksum ::
   ( Metrics.CoreMetrics m,
@@ -103,6 +109,21 @@ statusEnquiry url req = do
   let proxy = Proxy @StatusEnquiryAPI
       eulerClient = Euler.client proxy req
   callPaytmEDCAPI url eulerClient "status-enquiry" proxy
+
+-- Abort transaction on EDC terminal
+abortTransaction ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  PaytmEDCAbortRequest ->
+  m PaytmEDCResponse
+abortTransaction url req = do
+  let proxy = Proxy @AbortTransactionAPI
+      eulerClient = Euler.client proxy req
+  callPaytmEDCAPI url eulerClient "abort-transaction" proxy
 
 -- Common API call helper
 callPaytmEDCAPI :: CallAPI' m r api res res

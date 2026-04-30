@@ -13,11 +13,13 @@
 -}
 module Kernel.Types.CacheFlow where
 
+import qualified Data.ByteString.Lazy as BSL
 import EulerHS.Prelude
 import Kernel.Prelude
 import Kernel.Storage.Hedis (HedisFlow)
 import Kernel.Types.Common
 import Kernel.Utils.Dhall
+import qualified Network.HTTP.Client as HTTP
 
 newtype CacheConfig = CacheConfig
   { configsExpTime :: Seconds
@@ -54,6 +56,10 @@ type Bytes = Integer
 data InMemKeyInfo = InMemKeyInfo
   { lastUsed :: UTCTime,
     cachedData :: Any,
+    -- | Lazy-encoded JSON of the cached value, used by the management
+    -- inspection endpoint. Decoded on demand to avoid keeping a parsed
+    -- 'Value' in memory.
+    cachedJson :: BSL.ByteString,
     cacheDataSize :: Bytes,
     createdAt :: UTCTime,
     ttlInSeconds :: Seconds
@@ -65,10 +71,18 @@ data InMemCacheInfo = InMemCacheInfo
     createdAt :: UTCTime
   }
 
+data InMemSidecarEnv = InMemSidecarEnv
+  { sidecarBaseUrl :: BaseUrl,
+    sidecarManager :: HTTP.Manager
+  }
+
 data InMemEnv = InMemEnv
   { enableInMem :: Bool,
     maxInMemSize :: Bytes,
-    inMemHashMap :: IORef InMemCacheInfo
+    inMemHashMap :: IORef InMemCacheInfo,
+    inMemSidecarEnv :: Maybe InMemSidecarEnv,
+    inMemManagementToken :: Maybe Text,
+    inMemServiceName :: Maybe Text
   }
 
 data InMemConfig = InMemConfig

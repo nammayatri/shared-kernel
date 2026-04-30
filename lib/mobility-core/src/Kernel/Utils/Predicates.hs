@@ -29,7 +29,7 @@ latinOrSpace = latin \/ " "
 latinWithSymbols = latinOrSpace \/ basicSpecialSymbols
 
 mobileNumber :: LengthInRange `And` Regex
-mobileNumber = LengthInRange 8 15 `And` star digit
+mobileNumber = LengthInRange 5 15 `And` star digit
 
 mobileCountryCode :: LengthInRange `And` Regex
 mobileCountryCode = LengthInRange 2 4 `And` ("+" <> star digit)
@@ -79,7 +79,7 @@ indianMobileNumber :: LengthInRange `And` Regex
 indianMobileNumber = LengthInRange 10 10 `And` (charRange '6' '9' <> star digit)
 
 finnishMobileNumber :: LengthInRange `And` Regex
-finnishMobileNumber = LengthInRange 9 12 `And` star digit
+finnishMobileNumber = LengthInRange 5 12 `And` star digit
 
 finnishCountryCode :: LengthInRange `And` Regex
 finnishCountryCode = LengthInRange 4 4 `And` "+358"

@@ -235,6 +235,97 @@ orderStatus cfg _mRoutingId orderStatusReq = do
   logDebug $ "orderStatus response: " <> show response
   pure $ mkOrderStatusResp response orderStatusReq.orderId
 
+-- Abort transaction - maps to PaytmEDC Abort API
+abortOrder ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m,
+    MonadThrow m
+  ) =>
+  PaytmEDCCfg ->
+  Maybe Text ->
+  OrderStatusReq ->
+  m OrderStatusResp
+abortOrder cfg _mRoutingId abortReq = do
+  now <- getCurrentTime
+
+  let paytmMid = cfg.paytmMid
+      channelId = cfg.channelId
+      clientId = cfg.clientId
+
+  logDebug $ "abortOrder cfg: " <> show cfg
+  logDebug $ "abortOrder paytmMid: " <> show paytmMid
+  logDebug $ "abortOrder channelId: " <> show channelId
+  logDebug $ "abortOrder clientId: " <> show clientId
+  paytmTid <- fromMaybeM (InternalError "Terminal ID is required") abortReq.terminalId
+  let transactionDateTime = PaytmEDC.formatPaytmTimestamp $ fromMaybe now abortReq.transactionDateTime
+      baseParams =
+        Map.fromList
+          [ ("paytmMid", paytmMid),
+            ("paytmTid", paytmTid),
+            ("merchantTransactionId", PaytmEDC.removeHyphens abortReq.orderId),
+            ("transactionDateTime", transactionDateTime)
+          ]
+
+      checksumReqBody =
+        ChecksumRequestBody
+          { params = baseParams,
+            mapParams = Nothing
+          }
+
+      checksumReqHead =
+        ChecksumRequestHead
+          { mid = paytmMid,
+            tid = Just paytmTid,
+            clientId = clientId
+          }
+
+      checksumReq =
+        GenerateChecksumReq
+          { gcReqHead = checksumReqHead,
+            gcReqBody = checksumReqBody
+          }
+
+  logDebug $ "abortOrder checksumReq: " <> show (toJSON checksumReq)
+  checksumResp <- PaytmEDC.generateChecksum cfg.baseUrl checksumReq
+  logDebug $ "abortOrder checksumResp: " <> show (toJSON checksumResp)
+  let ri = checksumResp.gcRespBody.resultInfo
+  checksum <-
+    fromMaybeM
+      ( InternalError $
+          "PaytmEDC checksum failed - resultStatus: " <> PaytmEDC.resultStatus ri
+            <> ", resultCode: "
+            <> PaytmEDC.resultCode ri
+            <> ", resultMsg: "
+            <> PaytmEDC.resultMsg ri
+            <> maybe "" (", resultCodeId: " <>) (PaytmEDC.resultCodeId ri)
+      )
+      (checksumResp.gcRespBody.checksum)
+
+  let abortBody =
+        PaytmEDC.PaytmEDCAbortRequestBody
+          { paytmMid = paytmMid,
+            paytmTid = paytmTid,
+            merchantTransactionId = PaytmEDC.removeHyphens abortReq.orderId,
+            transactionDateTime = transactionDateTime
+          }
+      abortHead =
+        PaytmEDC.PaytmEDCRequestHead
+          { requestTimeStamp = PaytmEDC.formatPaytmTimestamp now,
+            channelId = channelId,
+            checksum = checksum
+          }
+      abortRequest =
+        PaytmEDC.PaytmEDCAbortRequest
+          { abortRequestHead = abortHead,
+            abortRequestBody = abortBody
+          }
+  logDebug $ "abortOrder abortRequest: " <> show abortRequest
+  response <- PaytmEDC.abortTransaction cfg.baseUrl abortRequest
+  logDebug $ "abortOrder response: " <> show response
+  pure $ mkOrderStatusResp response abortReq.orderId
+
 -- Map PaytmEDC response to CreateOrderResp
 -- Note: For sale API, ACCEPTED_SUCCESS maps to NEW (not CHARGED)
 -- CHARGED status is only set when status API returns SUCCESS/ACCEPTED_SUCCESS

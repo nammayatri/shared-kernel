@@ -188,7 +188,7 @@ setMeshConfig modelName mSchema meshConfig' = do
                 redisTtl = redisTtl',
                 tableShardModRange = tableShardModRange',
                 redisKeyPrefix = redisKeyPrefix',
-                secondaryRedisEnabled = secondaryEnabled
+                secondaryRedisEnabled = secondaryEnabled || tables'.enableAllTablesForSecondaryCloudRead == Just True
               }
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a

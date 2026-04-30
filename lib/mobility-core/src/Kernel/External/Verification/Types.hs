@@ -125,7 +125,7 @@ data GstVerificationResponse = GstVerificationResponse
     tradeName :: Maybe Text,
     einvoiceStatus :: Maybe Text,
     statusDetails :: Maybe Text,
-    isSez :: Maybe Text,
+    isSez :: Maybe Bool,
     filingDetails :: Maybe A.Value
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)

@@ -127,7 +127,7 @@ createCustomer ::
 createCustomer config req = do
   let url = config.url
       merchantId = config.merchantId
-      routingId = req.objectReferenceId
+      routingId = Just req.objectReferenceId
   apiKey <- decrypt config.apiKey
   createCustomerReq <- mkcreateCustomerReq req
   creatCustomerRespo <- Juspay.createCustomer url apiKey merchantId routingId createCustomerReq
@@ -138,8 +138,8 @@ createCustomer config req = do
       do
         return
           Juspay.CreateCustomerRequest
-            { object_reference_id = fromMaybe "" objectReferenceId,
-              mobile_number = fromMaybe "" phone,
+            { object_reference_id = objectReferenceId,
+              mobile_number = phone,
               email_address = email,
               first_name = name,
               last_name = lastName,
@@ -777,15 +777,15 @@ offerList config mRoutingId req = do
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
 mkOfferListReq OfferListReq {..} =
   Juspay.OfferListReq
-    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides offerListingMetric,
+    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId membershipStatus,
       payment_method_info = [],
       customer = mkOfferCustomer <$> customer,
       offer_code = Nothing
     }
 
-mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Maybe UDF6 -> Juspay.OfferOrder
+mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Maybe UDF6 -> Maybe Text -> Maybe Text -> Maybe UDF9 -> Juspay.OfferOrder
 ---- add duty day and payment mode respectively in holes ----
-mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides offerListingMetric =
+mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId membershipStatus =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
@@ -798,6 +798,9 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
         let strNumRides = show numOfRides
         if strNumRides == "-1" then "DEFAULT" else strNumRides,
       udf6 = parseUDF6 <$> offerListingMetric,
+      udf7 = deviceImei,
+      udf8 = staticCustomerId,
+      udf9 = parseUDF9 <$> membershipStatus,
       basket = decodeUtf8 . A.encode <$> basket
     }
   where
@@ -805,42 +808,60 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
       case offerListingMetric' of
         LIST_BASED_ON_DATE listingDates -> pack $ formatTime defaultTimeLocale "%d_%m_%y" listingDates
         _ -> show offerListingMetric'
+    parseUDF9 (MembershipStatus isMember) = if isMember then "true" else "false"
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
-mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile}
+mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile, phone = mobile}
 
 buildOfferListResp :: (MonadThrow m, Log m) => Juspay.OfferListResp -> m OfferListResp
 buildOfferListResp resp = do
   bestOfferCombination <- buildBestOfferCombination `mapM` (listToMaybe resp.best_offer_combinations)
-  let offerResp = filter (\offer -> offer.status == ELIGIBLE) $ mkOfferResp <$> resp.offers
+  offerResp <- mapM mkOfferResp (filter (\offer -> offer.status == ELIGIBLE) resp.offers)
   pure OfferListResp {..}
 
-mkOfferResp :: Juspay.OfferResp -> OfferResp
-mkOfferResp Juspay.OfferResp {..} = do
+mkOfferResp :: (MonadThrow m, Log m) => Juspay.OfferResp -> m OfferResp
+mkOfferResp offer = do
   let benefitType' = maybe "DISCOUNT" (._type) (listToMaybe order_breakup.benefits)
-  OfferResp
-    { offerId = offer_id,
-      status,
-      offerDescription = mkOfferDescription offer_description,
-      orderAmount = read $ T.unpack order_breakup.final_order_amount,
-      finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
-      discountAmount = read $ T.unpack order_breakup.discount_amount,
-      cashbackAmount = read $ T.unpack order_breakup.cashback_amount,
-      benefitType = benefitType',
-      offerCode = offer_code,
-      productDiscounts = map mkProductDiscount <$> order_breakup.product_discounts
-    }
+  productDiscounts <- (traverse . traverse) mkProductDiscount order_breakup.product_discounts
+  pure $
+    OfferResp
+      { offerId = offer_id,
+        status,
+        offerDescription = mkOfferDescription offer_description,
+        uiConfigs = mkOfferUIConfigs <$> ui_configs,
+        orderAmount = read $ T.unpack order_breakup.final_order_amount,
+        finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
+        discountAmount = read $ T.unpack order_breakup.discount_amount,
+        cashbackAmount = read $ T.unpack order_breakup.cashback_amount,
+        benefitType = benefitType',
+        offerCode = offer_code,
+        productDiscounts
+      }
+  where
+    Juspay.OfferResp {offer_id, status, offer_code, offer_description, ui_configs, order_breakup} = offer
 
-mkProductDiscount :: Juspay.JuspayProductDiscount -> ProductDiscount
-mkProductDiscount Juspay.JuspayProductDiscount {..} =
-  ProductDiscount
-    { productId = product_id,
-      discountAmount = read $ T.unpack discount_amount,
-      cashbackAmount = read $ T.unpack cashback_amount
-    }
+mkProductDiscount :: (MonadThrow m, Log m) => Juspay.JuspayProductDiscount -> m ProductDiscount
+mkProductDiscount Juspay.JuspayProductDiscount {..} = do
+  discountAmount <- parseMoneyV2 discount_amount "discount_amount"
+  cashbackAmount <- parseMoneyV2 cashback_amount "cashback_amount"
+  pure $
+    ProductDiscount
+      { productId = product_id,
+        discountAmount,
+        cashbackAmount
+      }
 
 mkOfferDescription :: Juspay.OfferDescription -> OfferDescription
 mkOfferDescription Juspay.OfferDescription {..} = OfferDescription {sponsoredBy = sponsored_by, ..}
+
+mkOfferUIConfigs :: Juspay.OfferUIConfigs -> OfferUIConfigs
+mkOfferUIConfigs Juspay.OfferUIConfigs {..} =
+  OfferUIConfigs
+    { offerDisplayPriority = offer_display_priority,
+      autoApply = auto_apply,
+      shouldValidate = should_validate,
+      isHidden = is_hidden
+    }
 
 buildBestOfferCombination :: (MonadThrow m, Log m) => Juspay.BestOfferCombination -> m BestOfferCombination
 buildBestOfferCombination combination = do
@@ -866,9 +887,14 @@ buildOrderBreakup Juspay.OrderBreakup {..} = do
   offerAmount <- parseMoney offer_amount "offer_amount"
   pure $ OrderBreakup {..}
 
+-- Note :: This seems wrong and breaking but not removing for not causing issue anywhere it is meant to be, however use `parseMoneyV2`
 parseMoney :: (MonadThrow m, Log m) => Text -> Text -> m HighPrecMoney
 parseMoney field desc = do
   readMaybe (show field) & fromMaybeM (InternalError $ "Couldn't parse " <> desc)
+
+parseMoneyV2 :: (MonadThrow m, Log m) => Text -> Text -> m HighPrecMoney
+parseMoneyV2 field desc = do
+  readMaybe (T.unpack field) & fromMaybeM (InternalError $ "Couldn't parse " <> desc)
 
 offerApply ::
   ( HasCallStack,
@@ -902,30 +928,33 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
             udf3 = paymentMode,
             udf4 = pack $ formatTime defaultTimeLocale "%d_%m_%y" dutyDate,
             udf5 = show numOfRides,
+            udf6 = deviceImei,
+            udf7 = staticCustomerId,
             payment_channel = Just "WEB",
             basket = decodeUtf8 . A.encode <$> basket
           }
   Juspay.OfferApplyReq
     { txn_id = txnId,
-      customer = Juspay.OfferApplyCustomer {id = customerId},
+      customer = mkOfferCustomer customer,
       offers,
       order,
-      payment_method_info = Just $ Juspay.OfferApplyPaymentMethodInfo Juspay.UPI Nothing Nothing Nothing Nothing Nothing Nothing
+      payment_method_info = Just $ Juspay.OfferApplyPaymentMethodInfo Juspay.UPI (Just "") Nothing Nothing Nothing Nothing Nothing
     }
 
 buildOfferApplyResp :: (MonadThrow m, Log m) => Juspay.OfferApplyResp -> m OfferApplyResp
 buildOfferApplyResp resp = do
   offers <- forM resp.offers $ \offer -> do
-    finalOrderAmount <- parseMoney offer.order_breakup.final_order_amount "final_order_amount"
-    discountAmount <- parseMoney (fromMaybe "0" offer.order_breakup.discount_amount) "discount_amount"
-    cashbackAmount <- parseMoney (fromMaybe "0" offer.order_breakup.cashback_amount) "cashback_amount"
+    finalOrderAmount <- parseMoneyV2 offer.order_breakup.final_order_amount "final_order_amount"
+    discountAmount <- parseMoneyV2 (fromMaybe "0" offer.order_breakup.discount_amount) "discount_amount"
+    cashbackAmount <- parseMoneyV2 (fromMaybe "0" offer.order_breakup.cashback_amount) "cashback_amount"
+    productDiscounts <- (traverse . traverse) mkProductDiscount offer.order_breakup.product_discounts
     pure
       OfferApplyRespItem
         { finalOrderAmount,
           discountAmount,
           cashbackAmount,
           offerId = offer.offer_id,
-          productDiscounts = map mkProductDiscount <$> offer.order_breakup.product_discounts
+          productDiscounts
         }
   pure OfferApplyResp {offers}
 

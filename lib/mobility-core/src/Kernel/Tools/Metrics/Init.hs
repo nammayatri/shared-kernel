@@ -76,7 +76,7 @@ addServantInfo ::
   Application ->
   Application
 addServantInfo version proxy app request respond =
-  let mpath = getSanitizedUrl proxy request
+  let mpath = getSanitizedUrl proxy (Just request)
       fullpath = DT.intercalate "/" (normalizedPathInfo request)
    in instrumentHandlerValueWithVersionLabel version.getDeploymentVersion (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
 

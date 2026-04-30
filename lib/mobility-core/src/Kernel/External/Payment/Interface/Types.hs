@@ -469,10 +469,16 @@ data OfferListReq = OfferListReq
     dutyDate :: UTCTime,
     paymentMode :: Text,
     numOfRides :: Int,
-    offerListingMetric :: Maybe UDF6
+    offerListingMetric :: Maybe UDF6,
+    deviceImei :: Maybe Text,
+    staticCustomerId :: Maybe Text,
+    membershipStatus :: Maybe UDF9
   }
 
 data UDF6 = IS_VISIBLE | IS_APPLICABLE | LIST_BASED_ON_DATE UTCTime
+  deriving stock (Show, Eq, Generic, Read)
+
+data UDF9 = MembershipStatus Bool
   deriving stock (Show, Eq, Generic, Read)
 
 data OfferOrder = OfferOrder
@@ -529,6 +535,7 @@ data OfferResp = OfferResp
   { offerId :: Text,
     status :: OfferListStatus,
     offerDescription :: OfferDescription,
+    uiConfigs :: Maybe OfferUIConfigs,
     orderAmount :: HighPrecMoney,
     finalOrderAmount :: HighPrecMoney,
     discountAmount :: HighPrecMoney,
@@ -557,16 +564,27 @@ data OfferDescription = OfferDescription
   deriving (Generic, Show, FromJSON, ToJSON)
   deriving anyclass (ToSchema)
 
+data OfferUIConfigs = OfferUIConfigs
+  { offerDisplayPriority :: Maybe Int,
+    autoApply :: Maybe Bool,
+    shouldValidate :: Maybe Bool,
+    isHidden :: Maybe Bool
+  }
+  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving anyclass (ToSchema)
+
 -- offer apply --
 
 data OfferApplyReq = OfferApplyReq
   { txnId :: Text,
     offers :: [Text],
-    customerId :: Text,
+    customer :: OfferCustomer,
     amount :: HighPrecMoney,
     currency :: Currency,
     planId :: Text,
     registrationDate :: UTCTime,
+    deviceImei :: Maybe Text,
+    staticCustomerId :: Maybe Text,
     dutyDate :: UTCTime,
     paymentMode :: Text,
     numOfRides :: Int,
@@ -710,8 +728,8 @@ data CreateCustomerReq = CreateCustomerReq
   { email :: Maybe Text,
     name :: Maybe Text,
     lastName :: Maybe Text,
-    phone :: Maybe Text,
-    objectReferenceId :: Maybe Text,
+    phone :: Text,
+    objectReferenceId :: Text,
     mobileCountryCode :: Maybe Text,
     optionsGetClientAuthToken :: Maybe Bool
   }
