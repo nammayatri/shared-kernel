@@ -280,6 +280,22 @@ runInMasterLTSRedisCell f = do
       logInfo "LTS_REDIS_ROUTING: Using primary LTS Redis (current deployment Redis)"
       f
 
+withLTSRedis ::
+  (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv) => m f -> m f
+withLTSRedis f =
+  local (\env -> env{hedisEnv = env.ltsHedisEnv, hedisClusterEnv = env.ltsHedisEnv}) f
+
+withSecondaryLTSRedis ::
+  (HedisFlow m env, TryException m, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) => m f -> m f
+withSecondaryLTSRedis f = do
+  mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
+  case mbSecondaryEnv of
+    Nothing -> do
+      logError "LTS_REDIS: No secondary LTS Redis configured, falling back to primary"
+      f
+    Just secondaryEnv ->
+      local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) f
+
 buildKey :: (HedisFlow m env, TryException m) => Text -> m BS.ByteString
 buildKey key = do
   keyModifier <- asks (.hedisEnv.keyModifier)
