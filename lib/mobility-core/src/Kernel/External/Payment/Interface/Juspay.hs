@@ -808,7 +808,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
       case offerListingMetric' of
         LIST_BASED_ON_DATE listingDates -> pack $ formatTime defaultTimeLocale "%d_%m_%y" listingDates
         _ -> show offerListingMetric'
-    parseUDF9 (MembershipStatus isMember) = if isMember then "true" else "false"
+    parseUDF9 (MembershipStatus isMember) = if isMember then "TRUE" else "FALSE"
 
 mkOfferCustomer :: OfferCustomer -> Juspay.OfferCustomer
 mkOfferCustomer OfferCustomer {..} = Juspay.OfferCustomer {id = customerId, email, mobile, phone = mobile}
