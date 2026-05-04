@@ -685,13 +685,8 @@ data RefundsData = RefundsData
 
 data CompanyConnectDetails = CompanyConnectDetails
   { name :: Text,
-    taxId :: Text,
-    structure :: Maybe CompanyStructure,
-    address :: Maybe Address,
-    phone :: Maybe Text,
-    directorsProvided :: Maybe Bool,
-    ownersProvided :: Maybe Bool,
-    executivesProvided :: Maybe Bool
+    taxId :: Maybe Text,
+    address :: Maybe Address
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -731,15 +726,32 @@ data RetryAccountLink = RetryAccountLink
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data RequirementAlternative = RequirementAlternative
+  { alternativeFieldsDue :: Maybe [Text],
+    originalFieldsDue :: Maybe [Text]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RequirementsInfo = RequirementsInfo
+  { currentlyDue :: Maybe [Text],
+    pastDue :: Maybe [Text],
+    eventuallyDue :: Maybe [Text],
+    pendingVerification :: Maybe [Text],
+    requirementErrors :: Maybe [RequirementError],
+    disabledReason :: Maybe Text,
+    currentDeadline :: Maybe UTCTime,
+    alternatives :: Maybe [RequirementAlternative]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data ConnectAccountStatusResp = ConnectAccountStatusResp
   { accountId :: AccountId,
     chargesEnabled :: Bool,
     detailsSubmitted :: Bool,
-    currentlyDue :: Maybe [Text],
-    pastDue :: Maybe [Text],
-    requirementErrors :: Maybe [RequirementError],
-    disabledReason :: Maybe Text,
-    currentDeadline :: Maybe UTCTime
+    requirements :: Maybe RequirementsInfo,
+    futureRequirements :: Maybe RequirementsInfo
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

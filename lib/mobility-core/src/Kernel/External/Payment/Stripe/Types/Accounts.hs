@@ -13,7 +13,6 @@
 -}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Payment.Stripe.Types.Accounts where
 
@@ -21,7 +20,6 @@ import Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX (POSIXTime)
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 import Kernel.Utils.Common
@@ -195,45 +193,6 @@ instance FromJSON BusinessType where
 instance ToJSON BusinessType where
   toJSON = genericToJSON constructorsWithCapitalToSnakeCase
 
--- https://docs.stripe.com/api/accounts/object#account_object-company-structure
-data CompanyStructure
-  = SoleProprietorship
-  | SingleMemberLlc
-  | MultiMemberLlc
-  | PrivateCorporation
-  | PublicCorporation
-  | PrivatePartnership
-  | PublicPartnership
-  | Llc
-  | PrivateCompany
-  | PublicCompany
-  | IncorporatedNonProfit
-  | UnincorporatedNonProfit
-  | UnincorporatedAssociation
-  | IncorporatedPartnership
-  | LimitedLiabilityPartnership
-  | RegisteredCharity
-  | FreeZoneEstablishment
-  | FreeZoneLlc
-  | SoleEstablishment
-  | GovernmentInstrumentality
-  | GovernmentalUnit
-  | TaxExemptGovernmentInstrumentality
-  deriving stock (Show, Eq, Ord, Generic, Read)
-  deriving anyclass (ToSchema)
-
-instance ToHttpApiData CompanyStructure where
-  toQueryParam :: CompanyStructure -> Text
-  toQueryParam = T.pack . recursiveStrip . camelToSnake . show
-
-instance FromJSON CompanyStructure where
-  parseJSON = genericParseJSON constructorsWithCapitalToSnakeCase
-
-instance ToJSON CompanyStructure where
-  toJSON = genericToJSON constructorsWithCapitalToSnakeCase
-
-$(mkBeamInstancesForEnum ''CompanyStructure)
-
 data AccountCapabilities = AccountCapabilities
   { card_payments :: CardPayments,
     -- cashapp_payments :: CashAppPayments,
@@ -308,12 +267,7 @@ data IndividualDetails = IndividualDetails
 data CompanyDetails = CompanyDetails
   { name :: Text,
     tax_id :: Maybe Text,
-    structure :: Maybe CompanyStructure,
-    address :: Maybe Address,
-    phone :: Maybe Text,
-    directors_provided :: Maybe Bool,
-    owners_provided :: Maybe Bool,
-    executives_provided :: Maybe Bool
+    address :: Maybe Address
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -398,13 +352,7 @@ companyToForm :: CompanyDetails -> [(Text, Text)]
 companyToForm CompanyDetails {..} =
   [("company[name]", toQueryParam name)]
     ++ catMaybes
-      [ ("company[tax_id]",) <$> toQueryParam <$> tax_id,
-        ("company[structure]",) <$> toQueryParam <$> structure,
-        ("company[phone]",) <$> toQueryParam <$> phone,
-        ("company[directors_provided]",) <$> toQueryParam <$> directors_provided,
-        ("company[owners_provided]",) <$> toQueryParam <$> owners_provided,
-        ("company[executives_provided]",) <$> toQueryParam <$> executives_provided
-      ]
+      [("company[tax_id]",) <$> toQueryParam <$> tax_id]
     ++ maybe [] companyAddressToForm address
 
 companyAddressToForm :: Address -> [(Text, Text)]
@@ -474,12 +422,22 @@ data RequirementError = RequirementError
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data Alternative = Alternative
+  { alternative_fields_due :: Maybe [Text],
+    original_fields_due :: Maybe [Text]
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data Requirements = Requirements
   { currently_due :: Maybe [Text],
     past_due :: Maybe [Text],
+    eventually_due :: Maybe [Text],
+    pending_verification :: Maybe [Text],
     disabled_reason :: Maybe Text,
     current_deadline :: Maybe POSIXTime,
-    errors :: Maybe [RequirementError]
+    errors :: Maybe [RequirementError],
+    alternatives :: Maybe [Alternative]
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -489,7 +447,8 @@ data AccountResp = AccountResp
     _object :: Text,
     charges_enabled :: Bool,
     details_submitted :: Bool,
-    requirements :: Maybe Requirements
+    requirements :: Maybe Requirements,
+    future_requirements :: Maybe Requirements
     -- Other paramters can be explored on basis of requirement.
     -- business_profile :: Maybe BusinessProfile,
     -- country :: Text,

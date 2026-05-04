@@ -53,17 +53,7 @@ createConnectAccount config req = do
               phone = Just req.mobileNumber,
               dob = Just dateOfBirth,
               address = req.address,
-              id_number = req.idNumber,
-              relationship =
-                Just
-                  Stripe.Relationship
-                    { representative = Just True,
-                      owner = Just True,
-                      director = Nothing,
-                      executive = Nothing,
-                      percent_ownership = Nothing,
-                      title = Nothing
-                    }
+              id_number = req.idNumber
             }
     void $ Stripe.createPerson url apiKey accountId personReq
   let accountLinkReq = mkAccountLinkReq config accountId
@@ -105,7 +95,7 @@ createConnectAccount config req = do
                 { payouts = Stripe.PayoutsSettings {debit_negative_balances = True, statement_descriptor = fromMaybe "Bridge Rideshare" config.statementDescriptor}
                 }
           isCompany = req.businessType == Just Stripe.Company
-          business_type = if isCompany then Stripe.Company else Stripe.Individual
+          business_type = fromMaybe Stripe.Individual req.businessType
           individual =
             if isCompany
               then Nothing
@@ -127,13 +117,8 @@ createConnectAccount config req = do
                 req.companyDetails <&> \cd ->
                   Stripe.CompanyDetails
                     { name = cd.name,
-                      tax_id = Just cd.taxId,
-                      structure = cd.structure,
-                      address = cd.address,
-                      phone = cd.phone,
-                      directors_provided = cd.directorsProvided,
-                      owners_provided = cd.ownersProvided,
-                      executives_provided = cd.executivesProvided
+                      tax_id = cd.taxId,
+                      address = cd.address
                     }
               else Nothing
           default_business_profile =
@@ -190,13 +175,28 @@ getAccount config accountId = do
   accountResp <- Stripe.getAccount url apiKey accountId
   let chargesEnabled = accountResp.charges_enabled
   let detailsSubmitted = accountResp.details_submitted
-  let mbReqs = accountResp.requirements
-  let currentlyDue = mbReqs >>= (.currently_due)
-  let pastDue = mbReqs >>= (.past_due)
-  let requirementErrors = mbReqs >>= (.errors)
-  let disabledReason = mbReqs >>= (.disabled_reason)
-  let currentDeadline = posixSecondsToUTCTime <$> (mbReqs >>= (.current_deadline))
+  let requirements = toRequirementsInfo <$> accountResp.requirements
+  let futureRequirements = toRequirementsInfo <$> accountResp.future_requirements
   pure $ ConnectAccountStatusResp {..}
+  where
+    toRequirementsInfo :: Stripe.Requirements -> RequirementsInfo
+    toRequirementsInfo Stripe.Requirements {..} =
+      RequirementsInfo
+        { currentlyDue = currently_due,
+          pastDue = past_due,
+          eventuallyDue = eventually_due,
+          pendingVerification = pending_verification,
+          requirementErrors = errors,
+          disabledReason = disabled_reason,
+          currentDeadline = posixSecondsToUTCTime <$> current_deadline,
+          alternatives = fmap (map toRequirementAlternative) alternatives
+        }
+    toRequirementAlternative :: Stripe.Alternative -> RequirementAlternative
+    toRequirementAlternative Stripe.Alternative {..} =
+      RequirementAlternative
+        { alternativeFieldsDue = alternative_fields_due,
+          originalFieldsDue = original_fields_due
+        }
 
 createCustomer ::
   ( Metrics.CoreMetrics m,

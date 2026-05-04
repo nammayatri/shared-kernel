@@ -41,8 +41,7 @@ data PersonReq = PersonReq
     phone :: Maybe Text,
     dob :: Maybe DateOfBirth,
     address :: Maybe Address,
-    id_number :: Maybe Text,
-    relationship :: Maybe Relationship
+    id_number :: Maybe Text
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -60,7 +59,6 @@ instance ToForm PersonReq where
           ]
           ++ maybe [] personDobToForm dob
           ++ maybe [] personAddressToForm address
-          ++ maybe [] relationshipToForm relationship
 
 personDobToForm :: DateOfBirth -> [(Text, Text)]
 personDobToForm DateOfBirth {..} =
@@ -78,17 +76,6 @@ personAddressToForm Address {..} =
       ("address[state]",) <$> toQueryParam <$> state,
       ("address[postal_code]",) <$> toQueryParam <$> postal_code,
       ("address[country]",) <$> toQueryParam <$> country
-    ]
-
-relationshipToForm :: Relationship -> [(Text, Text)]
-relationshipToForm Relationship {..} =
-  catMaybes
-    [ ("relationship[representative]",) <$> toQueryParam <$> representative,
-      ("relationship[owner]",) <$> toQueryParam <$> owner,
-      ("relationship[director]",) <$> toQueryParam <$> director,
-      ("relationship[executive]",) <$> toQueryParam <$> executive,
-      ("relationship[percent_ownership]",) <$> toQueryParam <$> percent_ownership,
-      ("relationship[title]",) <$> toQueryParam <$> title
     ]
 
 data PersonVerificationStatus
