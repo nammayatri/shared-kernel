@@ -89,6 +89,57 @@ getAccount url apiKey accountId = do
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) accountId
   callStripeAPI url eulerClient "get-account" proxy
 
+-------------------------------------------- Person APIs --------------------------------------------
+-- https://docs.stripe.com/api/persons/create
+type CreatePersonAPI =
+  "v1"
+    :> "accounts"
+    :> Capture "id" AccountId
+    :> "persons"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] PersonReq
+    :> Post '[JSON] PersonObject
+
+createPerson ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  AccountId ->
+  PersonReq ->
+  m PersonObject
+createPerson url apiKey accountId personReq = do
+  let proxy = Proxy @CreatePersonAPI
+      eulerClient = Euler.client proxy accountId (mkBasicAuthData apiKey) personReq
+  callStripeAPI url eulerClient "create-person" proxy
+
+-- https://docs.stripe.com/api/persons/list
+type GetPersonListAPI =
+  "v1"
+    :> "accounts"
+    :> Capture "id" AccountId
+    :> "persons"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Get '[JSON] PersonList
+
+getPersonList ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  AccountId ->
+  m PersonList
+getPersonList url apiKey accountId = do
+  let proxy = Proxy @GetPersonListAPI
+      eulerClient = Euler.client proxy accountId (mkBasicAuthData apiKey)
+  callStripeAPI url eulerClient "get-person-list" proxy
+
 -------------------------------------------- Customer APIs --------------------------------------------
 type CreateCustomerAPI =
   "v1"

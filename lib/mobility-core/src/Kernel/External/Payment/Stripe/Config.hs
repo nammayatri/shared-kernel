@@ -39,7 +39,8 @@ data StripeCfg = StripeCfg
     webhookEndpointSecret :: Maybe (EncryptedField 'AsEncrypted Text),
     webhookToleranceSeconds :: Maybe Seconds,
     serviceMode :: Maybe ServiceMode,
-    useDomainOffers :: Maybe Bool
+    useDomainOffers :: Maybe Bool,
+    statementDescriptor :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

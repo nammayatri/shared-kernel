@@ -13,6 +13,7 @@
 -}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Payment.Stripe.Types.Accounts where
 
@@ -20,6 +21,7 @@ import Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX (POSIXTime)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 import Kernel.Utils.Common
@@ -193,6 +195,45 @@ instance FromJSON BusinessType where
 instance ToJSON BusinessType where
   toJSON = genericToJSON constructorsWithCapitalToSnakeCase
 
+-- https://docs.stripe.com/api/accounts/object#account_object-company-structure
+data CompanyStructure
+  = SoleProprietorship
+  | SingleMemberLlc
+  | MultiMemberLlc
+  | PrivateCorporation
+  | PublicCorporation
+  | PrivatePartnership
+  | PublicPartnership
+  | Llc
+  | PrivateCompany
+  | PublicCompany
+  | IncorporatedNonProfit
+  | UnincorporatedNonProfit
+  | UnincorporatedAssociation
+  | IncorporatedPartnership
+  | LimitedLiabilityPartnership
+  | RegisteredCharity
+  | FreeZoneEstablishment
+  | FreeZoneLlc
+  | SoleEstablishment
+  | GovernmentInstrumentality
+  | GovernmentalUnit
+  | TaxExemptGovernmentInstrumentality
+  deriving stock (Show, Eq, Ord, Generic, Read)
+  deriving anyclass (ToSchema)
+
+instance ToHttpApiData CompanyStructure where
+  toQueryParam :: CompanyStructure -> Text
+  toQueryParam = T.pack . recursiveStrip . camelToSnake . show
+
+instance FromJSON CompanyStructure where
+  parseJSON = genericParseJSON constructorsWithCapitalToSnakeCase
+
+instance ToJSON CompanyStructure where
+  toJSON = genericToJSON constructorsWithCapitalToSnakeCase
+
+$(mkBeamInstancesForEnum ''CompanyStructure)
+
 data AccountCapabilities = AccountCapabilities
   { card_payments :: CardPayments,
     -- cashapp_payments :: CashAppPayments,
@@ -264,6 +305,19 @@ data IndividualDetails = IndividualDetails
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data CompanyDetails = CompanyDetails
+  { name :: Text,
+    tax_id :: Maybe Text,
+    structure :: Maybe CompanyStructure,
+    address :: Maybe Address,
+    phone :: Maybe Text,
+    directors_provided :: Maybe Bool,
+    owners_provided :: Maybe Bool,
+    executives_provided :: Maybe Bool
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data AccountsReq = AccountsReq
   { _type :: Maybe AccountType,
     country :: Text, -- default to US, will fix later
@@ -273,7 +327,8 @@ data AccountsReq = AccountsReq
     business_type :: BusinessType,
     settings :: Maybe AccountSettings,
     business_profile :: Maybe BusinessProfile, -- not for individual account
-    individual :: Maybe IndividualDetails
+    individual :: Maybe IndividualDetails,
+    company :: Maybe CompanyDetails
     -- tos_acceptance :: Maybe TosAcceptance, -- can be revisit later
     -- metadata :: Maybe Metadata, -- can be used to store additional information
   }
@@ -301,6 +356,7 @@ instance ToForm AccountsReq where
               ("settings[payouts][statement_descriptor]",) <$> (toQueryParam . (.payouts.statement_descriptor)) <$> settings
             ]
           ++ maybe [] individualToForm individual
+          ++ maybe [] companyToForm company
           ++ maybe [] businessProfileToForm business_profile
 
 insertOrAppend :: HM.HashMap Text [Text] -> (Text, Text) -> HM.HashMap Text [Text]
@@ -336,6 +392,30 @@ addressToForm Address {..} =
       ("individual[address][line2]",) <$> toQueryParam <$> line2,
       ("individual[address][postal_code]",) <$> toQueryParam <$> postal_code,
       ("individual[address][state]",) <$> toQueryParam <$> state
+    ]
+
+companyToForm :: CompanyDetails -> [(Text, Text)]
+companyToForm CompanyDetails {..} =
+  [("company[name]", toQueryParam name)]
+    ++ catMaybes
+      [ ("company[tax_id]",) <$> toQueryParam <$> tax_id,
+        ("company[structure]",) <$> toQueryParam <$> structure,
+        ("company[phone]",) <$> toQueryParam <$> phone,
+        ("company[directors_provided]",) <$> toQueryParam <$> directors_provided,
+        ("company[owners_provided]",) <$> toQueryParam <$> owners_provided,
+        ("company[executives_provided]",) <$> toQueryParam <$> executives_provided
+      ]
+    ++ maybe [] companyAddressToForm address
+
+companyAddressToForm :: Address -> [(Text, Text)]
+companyAddressToForm Address {..} =
+  catMaybes
+    [ ("company[address][city]",) <$> toQueryParam <$> city,
+      ("company[address][country]",) <$> toQueryParam <$> country,
+      ("company[address][line1]",) <$> toQueryParam <$> line1,
+      ("company[address][line2]",) <$> toQueryParam <$> line2,
+      ("company[address][postal_code]",) <$> toQueryParam <$> postal_code,
+      ("company[address][state]",) <$> toQueryParam <$> state
     ]
 
 businessProfileToForm :: BusinessProfile -> [(Text, Text)]
@@ -386,11 +466,30 @@ data BusinessSupportAddress = BusinessSupportAddress
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data RequirementError = RequirementError
+  { code :: Maybe Text,
+    reason :: Maybe Text,
+    requirement :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data Requirements = Requirements
+  { currently_due :: Maybe [Text],
+    past_due :: Maybe [Text],
+    disabled_reason :: Maybe Text,
+    current_deadline :: Maybe POSIXTime,
+    errors :: Maybe [RequirementError]
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data AccountResp = AccountResp
   { id :: AccountId,
     _object :: Text,
     charges_enabled :: Bool,
-    details_submitted :: Bool
+    details_submitted :: Bool,
+    requirements :: Maybe Requirements
     -- Other paramters can be explored on basis of requirement.
     -- business_profile :: Maybe BusinessProfile,
     -- country :: Text,
@@ -401,7 +500,6 @@ data AccountResp = AccountResp
     -- individual :: IndividualDetails,
     -- metadata :: Metadata,
     -- payouts_enabled :: Bool,
-    -- requirements :: Requirements,
     -- settings :: Settings,
     -- tos_acceptance :: TosAcceptance,
     -- type :: AccountType

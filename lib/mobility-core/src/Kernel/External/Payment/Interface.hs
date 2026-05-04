@@ -211,18 +211,18 @@ autoRefunds serviceConfig mRoutingId req = case serviceConfig of
   StripeConfig _ -> throwError $ InternalError "Stripe Auto Refunds not supported."
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Auto Refunds not supported."
 
-createIndividualConnectAccount ::
+createConnectAccount ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r,
     MonadReader r m
   ) =>
   PaymentServiceConfig ->
-  IndividualConnectAccountReq ->
-  m IndividualConnectAccountResp
-createIndividualConnectAccount serviceConfig req = case serviceConfig of
+  ConnectAccountReq ->
+  m ConnectAccountLinkResp
+createConnectAccount serviceConfig req = case serviceConfig of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Individual Connect Account not supported."
-  StripeConfig cfg -> Stripe.createIndividualConnectAccount cfg req
+  StripeConfig cfg -> Stripe.createConnectAccount cfg req
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Create Individual Connect Account not supported."
 
 retryAccountLink ::
@@ -247,7 +247,7 @@ getAccount ::
   ) =>
   PaymentServiceConfig ->
   Stripe.AccountId ->
-  m ConnectAccountResp
+  m ConnectAccountStatusResp
 getAccount config accountId = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Get Account not supported."
   StripeConfig cfg -> Stripe.getAccount cfg accountId

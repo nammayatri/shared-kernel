@@ -683,8 +683,21 @@ data RefundsData = RefundsData
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data CompanyConnectDetails = CompanyConnectDetails
+  { name :: Text,
+    taxId :: Text,
+    structure :: Maybe CompanyStructure,
+    address :: Maybe Address,
+    phone :: Maybe Text,
+    directorsProvided :: Maybe Bool,
+    ownersProvided :: Maybe Bool,
+    executivesProvided :: Maybe Bool
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 -- | Request to create a Connect Account
-data IndividualConnectAccountReq = IndividualConnectAccountReq
+data ConnectAccountReq = ConnectAccountReq
   { country :: Context.Country,
     email :: Maybe Text,
     mobileNumber :: Text,
@@ -693,12 +706,14 @@ data IndividualConnectAccountReq = IndividualConnectAccountReq
     lastName :: Maybe Text,
     ssnLast4 :: Maybe Text,
     idNumber :: Maybe Text,
-    address :: Maybe Address
+    address :: Maybe Address,
+    businessType :: Maybe BusinessType,
+    companyDetails :: Maybe CompanyConnectDetails
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data IndividualConnectAccountResp = IndividualConnectAccountResp
+data ConnectAccountLinkResp = ConnectAccountLinkResp
   { accountId :: AccountId,
     accountUrl :: Text,
     accountUrlExpiry :: UTCTime,
@@ -716,10 +731,15 @@ data RetryAccountLink = RetryAccountLink
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data ConnectAccountResp = ConnectAccountResp
+data ConnectAccountStatusResp = ConnectAccountStatusResp
   { accountId :: AccountId,
     chargesEnabled :: Bool,
-    detailsSubmitted :: Bool
+    detailsSubmitted :: Bool,
+    currentlyDue :: Maybe [Text],
+    pastDue :: Maybe [Text],
+    requirementErrors :: Maybe [RequirementError],
+    disabledReason :: Maybe Text,
+    currentDeadline :: Maybe UTCTime
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
