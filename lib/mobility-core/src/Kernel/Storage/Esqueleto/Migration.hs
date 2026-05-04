@@ -20,12 +20,15 @@ where
 
 import Data.ByteString hiding (map)
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Database.PostgreSQL.Simple as PS
 import Database.PostgreSQL.Simple.Migration
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Types.Common
 import Kernel.Utils.Common
+import System.Directory (createDirectoryIfMissing, getTemporaryDirectory, listDirectory, removePathForcibly)
+import System.FilePath (takeExtension, (</>))
 
 fromEsqDBConfig :: EsqDBConfig -> PS.ConnectInfo
 fromEsqDBConfig EsqDBConfig {..} =
@@ -61,11 +64,35 @@ migrateIfNeeded' mPaths autoMigrate schemaName connectInfo =
         }
     resultToEither MigrationSuccess = Right ()
     resultToEither (MigrationError a) = Left a
-    migrate paths conn =
+    migrate paths conn = do
+      patchedPaths <- liftIO $ stripConcurrentlyForLocal paths
       fmap resultToEither $ do
-        logInfo $ "Running migrations (" <> show paths <> ") ..."
+        logInfo $ "Running migrations (" <> show patchedPaths <> ") ..."
         liftIO $
           runMigrations
             conn
             options
-            ([MigrationInitialization] <> map MigrationDirectory paths)
+            ([MigrationInitialization] <> map MigrationDirectory patchedPaths)
+
+-- | `CREATE INDEX CONCURRENTLY` cannot run inside a transaction (SQLSTATE 25001),
+-- but `postgresql-simple-migration` wraps each .sql in one. `autoMigrate = True`
+-- is local-only; prod applies migrations via `psql -f` where CONCURRENTLY works.
+-- Stage rewritten copies in a temp dir; source files stay untouched.
+stripConcurrentlyForLocal :: [FilePath] -> IO [FilePath]
+stripConcurrentlyForLocal paths = do
+  tmp <- getTemporaryDirectory
+  let root = tmp </> "ny-migrations"
+  removePathForcibly root
+  zipWithM (stage root) [0 :: Int ..] paths
+  where
+    stage root idx src = do
+      let dst = root </> show idx
+      createDirectoryIfMissing True dst
+      entries <- listDirectory src
+      forM_ entries $ \name -> when (takeExtension name == ".sql") $ do
+        body <- TIO.readFile (src </> name)
+        TIO.writeFile (dst </> name) (rewrite body)
+      pure dst
+    rewrite =
+      T.replace "CREATE INDEX CONCURRENTLY" "CREATE INDEX"
+        . T.replace "CREATE UNIQUE INDEX CONCURRENTLY" "CREATE UNIQUE INDEX"

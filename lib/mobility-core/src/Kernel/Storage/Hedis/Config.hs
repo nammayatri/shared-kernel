@@ -31,6 +31,10 @@ type HedisFlow m env =
 
 type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, HasField "secondaryHedisClusterEnv" env (Maybe HedisEnv))
 
+type HedisLTSFlow m env = (HedisFlow m env, HedisLTSFlowEnv env)
+
+type HedisLTSFlowEnv env = (HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv))
+
 type KeyModifierFunc = (Text -> Text)
 
 data HedisCfg = HedisCfg
