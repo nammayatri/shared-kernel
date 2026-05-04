@@ -249,6 +249,9 @@ getAccuracy INR = 0
 getAccuracy USD = 2
 getAccuracy EUR = 2
 
+roundAmountByCurrency' :: Currency -> HighPrecMoney -> HighPrecMoney
+roundAmountByCurrency' currency amount = roundHighPrecMoney @HighPrecMoney (getAccuracy currency) amount
+
 showPriceWithRoundingWithoutCurrency :: Price -> Text
 showPriceWithRoundingWithoutCurrency price = case getAccuracy price.currency of
   0 -> KP.show @Text @Integer (round price.amount)
