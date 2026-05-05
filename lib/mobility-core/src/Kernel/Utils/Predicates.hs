@@ -19,7 +19,7 @@ import Kernel.Prelude
 import Kernel.Types.Beckn.Country (Country (..))
 import Kernel.Types.Predicate
 
-digit, latinUC, latinLC, latin, alphanum, latinOrSpace, latinWithSymbols :: Regex
+digit, latinUC, latinLC, latin, alphanum, latinOrSpace, latinWithSymbols, certNumber :: Regex
 digit = charRange '0' '9'
 latinUC = charRange 'A' 'Z'
 latinLC = charRange 'a' 'z'
@@ -27,6 +27,7 @@ latin = latinUC \/ latinLC
 alphanum = latin \/ digit
 latinOrSpace = latin \/ " "
 latinWithSymbols = latinOrSpace \/ basicSpecialSymbols
+certNumber = (latinUC \/ digit \/ "-")
 
 mobileNumber :: LengthInRange `And` Regex
 mobileNumber = LengthInRange 5 15 `And` star digit
@@ -101,3 +102,6 @@ email = LengthInRange 5 254 `And` (localPart <> "@" <> domain)
 
     specialSymbols :: Regex
     specialSymbols = unions $ map (fromString . singleton) "!#$%&'*+-/=?^_`{|}~"
+
+vehicleRegistrationCertNumberRule :: LengthInRange `And` Regex
+vehicleRegistrationCertNumberRule = LengthInRange 5 12 `And` star certNumber
