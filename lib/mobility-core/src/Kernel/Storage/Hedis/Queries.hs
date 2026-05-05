@@ -1468,3 +1468,27 @@ bulkShardedRedisBatch keyOf shardOp items = do
       where
         step [] = Nothing
         step xs = Just (DL.splitAt k xs)
+
+-- | Bulk SET-with-TTL via a single Lua script — one Redis command per call,
+-- atomic on the server side. Designed to be passed as the per-shard action to
+-- 'bulkShardedRedisBatch': all input pairs MUST hash to the same cluster slot
+-- (use 'shardHashTag' to bucket), otherwise cluster will return a CROSSSLOT
+-- error. Reply errors propagate via 'runHedis'.
+-- Use it for less number of keys per call (up to ~100) to get the pipelining and atomicity benefits;
+setExpMany ::
+  (HedisFlow m env, TryException m, ToJSON a) =>
+  ExpirationTime ->
+  [(Text, a)] ->
+  m ()
+setExpMany _ [] = pure ()
+setExpMany expirationTime pairs = withTimeRedis "RedisCluster" "setExpMany" . withLogTag "Redis" $ do
+  prefKeys <- mapM (buildKey . fst) pairs
+  let vals = map (BSL.toStrict . Ae.encode . snd) pairs
+      ttlArg = cs (show (toInteger expirationTime) :: String) :: BS.ByteString
+      script =
+        "local ttl = tonumber(ARGV[1]) "
+          <> "for i = 1, #KEYS do "
+          <> "redis.call('SET', KEYS[i], ARGV[i + 1], 'EX', ttl) "
+          <> "end "
+          <> "return 'OK'"
+  void . runHedis $ (Hedis.eval script prefKeys (ttlArg : vals) :: Redis (Either Reply Reply))
