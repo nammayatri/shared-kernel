@@ -23,31 +23,47 @@ import Kernel.Types.Error
 import Kernel.Types.Id
 import Kernel.Utils.Common
 
-createIndividualConnectAccount ::
+createConnectAccount ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
     HasRequestId r,
     MonadReader r m
   ) =>
   StripeCfg ->
-  IndividualConnectAccountReq ->
-  m IndividualConnectAccountResp
-createIndividualConnectAccount config req = do
+  ConnectAccountReq ->
+  m ConnectAccountLinkResp
+createConnectAccount config req = do
+  when (req.businessType == Just Stripe.Company && isNothing req.companyDetails) $
+    throwError $ InvalidRequest "Company business_type requires companyDetails"
   let url = config.url
   apiKey <- decrypt config.apiKey
-  let accountReq = mkAccountReq
+  let (year', month, day) = toGregorian req.dateOfBirth
+      dateOfBirth = Stripe.DateOfBirth {year = fromInteger year', ..}
+  let accountReq = mkAccountReq dateOfBirth
   accountResp <- Stripe.createAccount url apiKey accountReq
   let accountId = accountResp.id
   let chargesEnabled = accountResp.charges_enabled
   let detailsSubmitted = accountResp.details_submitted
+  when (req.businessType == Just Stripe.Company) $ do
+    let personReq =
+          Stripe.PersonReq
+            { first_name = Just req.firstName,
+              last_name = req.lastName,
+              email = req.email,
+              phone = Just req.mobileNumber,
+              dob = Just dateOfBirth,
+              address = req.address,
+              id_number = req.idNumber
+            }
+    void $ Stripe.createPerson url apiKey accountId personReq
   let accountLinkReq = mkAccountLinkReq config accountId
   accountLinkResp <- Stripe.createAccountLink url apiKey accountLinkReq
   let accountUrl = accountLinkResp.url
   let accountUrlExpiry = posixSecondsToUTCTime accountLinkResp.expires_at
-  pure $ IndividualConnectAccountResp {..}
+  pure $ ConnectAccountLinkResp {..}
   where
-    mkAccountReq :: Stripe.AccountsReq
-    mkAccountReq =
+    mkAccountReq :: Stripe.DateOfBirth -> Stripe.AccountsReq
+    mkAccountReq dateOfBirth =
       let _type = Nothing
           country =
             case req.country of
@@ -76,22 +92,35 @@ createIndividualConnectAccount config req = do
           settings =
             Just $
               Stripe.AccountSettings
-                { payouts = Stripe.PayoutsSettings {debit_negative_balances = True, statement_descriptor = "Bridge Rideshare"}
+                { payouts = Stripe.PayoutsSettings {debit_negative_balances = True, statement_descriptor = fromMaybe "Bridge Rideshare" config.statementDescriptor}
                 }
-          business_type = Stripe.Individual
-          (year', month, day) = toGregorian req.dateOfBirth
+          isCompany = req.businessType == Just Stripe.Company
+          business_type = fromMaybe Stripe.Individual req.businessType
           individual =
-            Just $
-              Stripe.IndividualDetails
-                { first_name = req.firstName,
-                  last_name = req.lastName,
-                  dob = Just $ Stripe.DateOfBirth {year = fromInteger year', ..},
-                  address = req.address,
-                  email = req.email,
-                  id_number = req.idNumber,
-                  phone = req.mobileNumber,
-                  ssn_last_4 = req.ssnLast4
-                }
+            if isCompany
+              then Nothing
+              else
+                Just $
+                  Stripe.IndividualDetails
+                    { first_name = req.firstName,
+                      last_name = req.lastName,
+                      dob = Just dateOfBirth,
+                      address = req.address,
+                      email = req.email,
+                      id_number = req.idNumber,
+                      phone = req.mobileNumber,
+                      ssn_last_4 = req.ssnLast4
+                    }
+          company =
+            if isCompany
+              then
+                req.companyDetails <&> \cd ->
+                  Stripe.CompanyDetails
+                    { name = cd.name,
+                      tax_id = cd.taxId,
+                      address = cd.address
+                    }
+              else Nothing
           default_business_profile =
             Just $
               Stripe.BusinessProfile
@@ -139,14 +168,35 @@ getAccount ::
   ) =>
   StripeCfg ->
   Stripe.AccountId ->
-  m ConnectAccountResp
+  m ConnectAccountStatusResp
 getAccount config accountId = do
   let url = config.url
   apiKey <- decrypt config.apiKey
   accountResp <- Stripe.getAccount url apiKey accountId
   let chargesEnabled = accountResp.charges_enabled
   let detailsSubmitted = accountResp.details_submitted
-  pure $ ConnectAccountResp {..}
+  let requirements = toRequirementsInfo <$> accountResp.requirements
+  let futureRequirements = toRequirementsInfo <$> accountResp.future_requirements
+  pure $ ConnectAccountStatusResp {..}
+  where
+    toRequirementsInfo :: Stripe.Requirements -> RequirementsInfo
+    toRequirementsInfo Stripe.Requirements {..} =
+      RequirementsInfo
+        { currentlyDue = currently_due,
+          pastDue = past_due,
+          eventuallyDue = eventually_due,
+          pendingVerification = pending_verification,
+          requirementErrors = errors,
+          disabledReason = disabled_reason,
+          currentDeadline = posixSecondsToUTCTime <$> current_deadline,
+          alternatives = fmap (map toRequirementAlternative) alternatives
+        }
+    toRequirementAlternative :: Stripe.Alternative -> RequirementAlternative
+    toRequirementAlternative Stripe.Alternative {..} =
+      RequirementAlternative
+        { alternativeFieldsDue = alternative_fields_due,
+          originalFieldsDue = original_fields_due
+        }
 
 createCustomer ::
   ( Metrics.CoreMetrics m,

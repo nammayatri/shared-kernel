@@ -683,8 +683,16 @@ data RefundsData = RefundsData
   deriving stock (Show, Generic, Read, Eq)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data CompanyConnectDetails = CompanyConnectDetails
+  { name :: Text,
+    taxId :: Maybe Text,
+    address :: Maybe Address
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 -- | Request to create a Connect Account
-data IndividualConnectAccountReq = IndividualConnectAccountReq
+data ConnectAccountReq = ConnectAccountReq
   { country :: Context.Country,
     email :: Maybe Text,
     mobileNumber :: Text,
@@ -693,12 +701,14 @@ data IndividualConnectAccountReq = IndividualConnectAccountReq
     lastName :: Maybe Text,
     ssnLast4 :: Maybe Text,
     idNumber :: Maybe Text,
-    address :: Maybe Address
+    address :: Maybe Address,
+    businessType :: Maybe BusinessType,
+    companyDetails :: Maybe CompanyConnectDetails
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data IndividualConnectAccountResp = IndividualConnectAccountResp
+data ConnectAccountLinkResp = ConnectAccountLinkResp
   { accountId :: AccountId,
     accountUrl :: Text,
     accountUrlExpiry :: UTCTime,
@@ -716,10 +726,32 @@ data RetryAccountLink = RetryAccountLink
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data ConnectAccountResp = ConnectAccountResp
+data RequirementAlternative = RequirementAlternative
+  { alternativeFieldsDue :: Maybe [Text],
+    originalFieldsDue :: Maybe [Text]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RequirementsInfo = RequirementsInfo
+  { currentlyDue :: Maybe [Text],
+    pastDue :: Maybe [Text],
+    eventuallyDue :: Maybe [Text],
+    pendingVerification :: Maybe [Text],
+    requirementErrors :: Maybe [RequirementError],
+    disabledReason :: Maybe Text,
+    currentDeadline :: Maybe UTCTime,
+    alternatives :: Maybe [RequirementAlternative]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data ConnectAccountStatusResp = ConnectAccountStatusResp
   { accountId :: AccountId,
     chargesEnabled :: Bool,
-    detailsSubmitted :: Bool
+    detailsSubmitted :: Bool,
+    requirements :: Maybe RequirementsInfo,
+    futureRequirements :: Maybe RequirementsInfo
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
