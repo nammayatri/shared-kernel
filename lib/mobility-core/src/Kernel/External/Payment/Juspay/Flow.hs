@@ -63,7 +63,7 @@ type GetCustomerAPI =
     :> ReqBody '[FormUrlEncoded] GetCustomerReq
     :> Post '[JSON] CreateCustomerResp
 
-getCustomer ::
+getCustomerOrCreateCustomer ::
   ( Metrics.CoreMetrics m,
     MonadFlow m,
     HasRequestId r,
@@ -76,7 +76,7 @@ getCustomer ::
   CustomerId ->
   GetCustomerReq ->
   m CreateCustomerResp
-getCustomer url apiKey merchantId mRoutingId customerId req = do
+getCustomerOrCreateCustomer url apiKey merchantId mRoutingId customerId req = do
   let proxy = Proxy @GetCustomerAPI
       eulerClient = Euler.client proxy customerId (mkBasicAuthData apiKey) (Just merchantId) mRoutingId req
   callJuspayAPI url eulerClient "get-customer" proxy

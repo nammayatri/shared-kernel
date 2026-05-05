@@ -15,7 +15,7 @@
 module Kernel.External.Payment.Interface.Juspay
   ( module Reexport,
     createOrder,
-    createCustomer,
+    getCustomerOrCreateCustomer,
     getCustomer,
     orderStatus,
     updateOrder,
@@ -115,7 +115,7 @@ updateOrder config mRoutingId req = do
           amount
         }
 
-createCustomer ::
+getCustomerOrCreateCustomer ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
     HasRequestId r,
@@ -124,28 +124,18 @@ createCustomer ::
   JuspayCfg ->
   CreateCustomerReq ->
   m CreateCustomerResp
-createCustomer config req = do
+getCustomerOrCreateCustomer config req = do
   let url = config.url
       merchantId = config.merchantId
       routingId = Just req.objectReferenceId
   apiKey <- decrypt config.apiKey
-  createCustomerReq <- mkcreateCustomerReq req
-  creatCustomerRespo <- Juspay.createCustomer url apiKey merchantId routingId createCustomerReq
+  creatCustomerRespo <- Juspay.getCustomerOrCreateCustomer url apiKey merchantId routingId req.objectReferenceId (mkGetCustomerReq req)
   return $ mkCreateCustomerRes creatCustomerRespo
   where
-    mkcreateCustomerReq :: MonadTime m => CreateCustomerReq -> m Juspay.CreateCustomerRequest
-    mkcreateCustomerReq CreateCustomerReq {..} =
-      do
-        return
-          Juspay.CreateCustomerRequest
-            { object_reference_id = objectReferenceId,
-              mobile_number = phone,
-              email_address = email,
-              first_name = name,
-              last_name = lastName,
-              mobile_country_code = mobileCountryCode,
-              options_get_client_auth_token = optionsGetClientAuthToken
-            }
+    mkGetCustomerReq CreateCustomerReq {..} =
+      Juspay.GetCustomerReq
+        { options_get_client_auth_token = fromMaybe True optionsGetClientAuthToken
+        }
     mkCreateCustomerRes Juspay.CreateCustomerResp {..} =
       CreateCustomerResp
         { customerId = object_reference_id,
@@ -166,7 +156,7 @@ getCustomer config customerId = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  creatCustomerRespo <- Juspay.getCustomer url apiKey merchantId (Just customerId) customerId mkGetCustomerReq
+  creatCustomerRespo <- Juspay.getCustomerOrCreateCustomer url apiKey merchantId (Just customerId) customerId mkGetCustomerReq
   return $ mkCreateCustomerRes creatCustomerRespo
   where
     mkCreateCustomerRes Juspay.CreateCustomerResp {..} =

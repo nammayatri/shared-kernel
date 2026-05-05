@@ -263,7 +263,7 @@ createCustomer ::
   CreateCustomerReq ->
   m CreateCustomerResp
 createCustomer config req = case config of
-  JuspayConfig cfg -> Juspay.createCustomer cfg req
+  JuspayConfig cfg -> Juspay.getCustomerOrCreateCustomer cfg req
   StripeConfig cfg -> Stripe.createCustomer cfg req
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Create Customer not supported."
 
