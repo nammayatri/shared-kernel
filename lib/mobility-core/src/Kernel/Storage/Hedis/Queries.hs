@@ -1242,31 +1242,33 @@ shardHashTag shards x =
   let n = max 1 shards
    in "{shard-" <> show (hash x `mod` n) <> "}"
 
+-- | Per-call key cap inside a single shard. A shard's items are split into
+-- batches of this size and the caller's action runs once per batch, so a
+-- single MGET/MSET never balloons past this many keys.
+bulkShardBatchSize :: Int
+bulkShardBatchSize = 100
+
 bulkShardedRedisBatch ::
   (HedisFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
   -- | extracts the raw (un-prefixed) routing key from each item
   (a -> Text) ->
-  -- | per-shard action — invoked once per slot inside 'runRedis'; receives
-  --   (item, prefixed-key-bytes) pairs that all share a slot. Same-slot rule
-  --   for MGET/MSET/etc. is satisfied by construction.
-  ([(a, BS.ByteString)] -> Redis (Either Reply [b])) ->
+  -- | per-shard action — invoked once per slot. All items in the input list
+  --   share a cluster slot, so the caller should use a multi-key wrapper
+  --   ('mGetCluster', 'mSet', etc.) to get one pipelined round-trip per shard.
+  ([a] -> m [b]) ->
   [a] ->
   m [b]
 bulkShardedRedisBatch _ _ [] = pure []
 bulkShardedRedisBatch keyOf shardOp items = do
-  pairs <- forM items $ \x -> do
+  slotted <- forM items $ \x -> do
     keyBs <- buildKey (keyOf x)
-    pure (x, keyBs)
-  let groups = Map.elems $ Kernel.Prelude.foldl' insertItem Map.empty pairs
+    let slot = fromIntegral (Hedis.keyToSlot keyBs) :: Int
+    pure (slot, x)
+  let groups = Map.elems $ Kernel.Prelude.foldl' insertItem Map.empty slotted
   Kernel.Prelude.concat <$> traverse runChunk (chunksOf clusterMGetForkLimit groups)
   where
-    insertItem acc pair@(_, keyBs) =
-      let slot = fromIntegral (Hedis.keyToSlot keyBs) :: Int
-       in Map.insertWith (++) slot [pair] acc
-    runShard shardPairs = do
-      con <- asks (.hedisClusterEnv.hedisConnection)
-      reply <- liftIO $ Hedis.runRedis con (shardOp shardPairs)
-      Error.fromEitherM (HedisReplyError . show) reply
+    insertItem acc (slot, x) = Map.insertWith (++) slot [x] acc
+    runShard shardItems = Kernel.Prelude.concat <$> mapM shardOp (chunksOf bulkShardBatchSize shardItems)
     runChunk chunk = do
       awaitables <- mapM (awaitableFork "bulkShardedRedisBatch" . runShard) chunk
       results <- mapM (L.await Nothing) awaitables
