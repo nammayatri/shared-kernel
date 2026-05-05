@@ -17,6 +17,9 @@ module Kernel.Storage.Hedis.Queries (module Reexport, module Kernel.Storage.Hedi
 import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
+import Data.Either (partitionEithers)
+import Data.Hashable (Hashable, hash)
+import qualified Data.Map.Strict as Map
 import Data.String.Conversions
 import Data.Text hiding (concatMap, map, null)
 import qualified Data.Text as T
@@ -1187,3 +1190,91 @@ sAdd key members = withLogTag "Redis" $ do
     \err ->
       withLogTag "CLUSTER" $
         logTagInfo "FAILED_TO_SADD" (show err)
+
+-- =============================================================================
+-- Cluster-aware bulk Redis. Groups items by their cluster hash slot
+-- (CRC16 → 0..16383) so every command targeting a single shard runs inside
+-- ONE 'runRedis' block: hedis pipelines automatically inside a Redis monad
+-- action, so N commands cost one TCP round-trip per shard. Shards run in
+-- parallel via awaitableFork+await (same pattern as Domain.Utils.mapConcurrently),
+-- so total wallclock is (slowest shard), not (sum of all shards).
+--
+-- Same prefix semantics as the rest of the wrapper: keys go through
+-- 'buildKey' (which reads 'hedisEnv.keyModifier'), so callers wrapping in
+-- 'withCrossAppRedis' get raw keys; without it, the configured app prefix
+-- applies. Either way, writes via these helpers are interchangeable with
+-- reads via 'get' / 'setExp' / etc.
+--
+-- Two flavours:
+--
+-- 1. 'bulkShardedRedis' — per-item action. Use when each command operates on
+--    one key (GET / SET / SETEX / SETNX / DEL / EXPIRE / TTL / EXISTS / INCR
+--    / DECR / HGET / HSET / SADD / ZADD / LPUSH / RPUSH / etc.). Action
+--    receives the original item plus the already-prefixed key bytes — same
+--    shape as 'runWithPrefix'\'s action.
+--
+-- 2. 'bulkShardedRedisBatch' — per-shard batch action receiving the bucket
+--    of items for one slot. Use for multi-key single commands — every key
+--    in a bucket already shares a slot by construction, so cluster's
+--    same-slot rule for these commands is satisfied: MGET / MSET / MSETNX /
+--    SUNION / SINTER / SDIFF / DEL [k1,k2..] / EXISTS [k1,k2..] / TOUCH /
+--    UNLINK / ZUNIONSTORE / etc. Returns per-shard results concatenated;
+--    pair items with results inside the action ('zip' inputs with reply)
+--    if you need to align them back to input order.
+--
+-- Out of scope: MULTI/EXEC transactions — use 'runHedisTransaction' instead.
+--
+-- Standalone (non-clustered) Redis: 'keyToSlot' still buckets keys but every
+-- bucket resolves to the same connection, so grouping is harmless overhead.
+-- =============================================================================
+
+-- | Produce a Redis-cluster hash-tag segment "{shard-N}" that buckets the input
+--   into one of 'shards' synthetic slots. Embedding it anywhere in a Redis key
+--   forces all keys sharing a bucket onto the same cluster slot (Redis hashes
+--   the first '{...}' segment), which is the precondition for the bulk
+--   helpers below to actually pipeline a batch.
+--
+--   Tuning: 8–32 is the sweet spot for batches of 5–50 on 3–6 cluster shards.
+--   Smaller (1–4) risks write hotspots; larger (256+) erodes the pipelining
+--   win because per-batch slot count approaches batch size.
+shardHashTag :: Hashable a => Int -> a -> Text
+shardHashTag shards x =
+  let n = max 1 shards
+   in "{shard-" <> show (hash x `mod` n) <> "}"
+
+bulkShardedRedisBatch ::
+  (HedisFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
+  -- | extracts the raw (un-prefixed) routing key from each item
+  (a -> Text) ->
+  -- | per-shard action — invoked once per slot inside 'runRedis'; receives
+  --   (item, prefixed-key-bytes) pairs that all share a slot. Same-slot rule
+  --   for MGET/MSET/etc. is satisfied by construction.
+  ([(a, BS.ByteString)] -> Redis (Either Reply [b])) ->
+  [a] ->
+  m [b]
+bulkShardedRedisBatch _ _ [] = pure []
+bulkShardedRedisBatch keyOf shardOp items = do
+  pairs <- forM items $ \x -> do
+    keyBs <- buildKey (keyOf x)
+    pure (x, keyBs)
+  let groups = Map.elems $ Kernel.Prelude.foldl' insertItem Map.empty pairs
+  Kernel.Prelude.concat <$> traverse runChunk (chunksOf clusterMGetForkLimit groups)
+  where
+    insertItem acc pair@(_, keyBs) =
+      let slot = fromIntegral (Hedis.keyToSlot keyBs) :: Int
+       in Map.insertWith (++) slot [pair] acc
+    runShard shardPairs = do
+      con <- asks (.hedisClusterEnv.hedisConnection)
+      reply <- liftIO $ Hedis.runRedis con (shardOp shardPairs)
+      Error.fromEitherM (HedisReplyError . show) reply
+    runChunk chunk = do
+      awaitables <- mapM (awaitableFork "bulkShardedRedisBatch" . runShard) chunk
+      results <- mapM (L.await Nothing) awaitables
+      case partitionEithers results of
+        ([], successes) -> pure (Kernel.Prelude.concat successes)
+        (err : _, _) ->
+          Error.throwError $ HedisReplyError $ "bulkShardedRedisBatch shard fork failed: " <> show err
+    chunksOf k = DL.unfoldr step
+      where
+        step [] = Nothing
+        step xs = Just (DL.splitAt k xs)
