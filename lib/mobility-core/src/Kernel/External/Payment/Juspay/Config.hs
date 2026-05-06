@@ -16,6 +16,7 @@
 module Kernel.External.Payment.Juspay.Config where
 
 import Data.Aeson
+import Data.Map.Strict (Map)
 import Kernel.External.Encryption
 import Kernel.Prelude
 import Kernel.Types.Time
@@ -39,7 +40,8 @@ data JuspayCfg = JuspayCfg
     walletIssuer :: Maybe Text,
     walletRewardApiVersion :: Maybe Text,
     mockStatusUrl :: Maybe BaseUrl,
-    useDomainOffers :: Maybe Bool
+    useDomainOffers :: Maybe Bool,
+    loyaltyProgramMap :: Maybe (Map Text Text)
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
