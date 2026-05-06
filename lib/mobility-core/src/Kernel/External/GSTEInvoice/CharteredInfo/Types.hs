@@ -4,11 +4,23 @@ module Kernel.External.GSTEInvoice.CharteredInfo.Types where
 
 import Control.Applicative ((<|>))
 import Data.Aeson
+import qualified Data.Aeson.Encoding as AE
 import Data.Aeson.Types (Parser)
+import qualified Data.ByteString.Builder as BB
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Kernel.External.Encryption
 import Kernel.Prelude
+import Numeric (showFFloat)
+
+-- | Emit a 'Double' as a fixed-point JSON number with the given number of
+-- decimal places. The Chartered Info GSP rejects scientific notation
+-- (regex `^\\d+.?\\d{0,2}$`), but aeson's default encoder converts
+-- Doubles via Scientific and routes negative-exponent values through
+-- Generic format, which writes values < 0.1 as e.g. `"8.0e-2"`. Bypass
+-- aeson's number encoder entirely by writing the bytes ourselves.
+fixedDouble :: Int -> Double -> Encoding
+fixedDouble decs x = AE.unsafeToEncoding $ BB.string7 (showFFloat (Just decs) x "")
 
 -- ---------------------------------------------------------------------------
 -- Configuration
@@ -281,6 +293,23 @@ instance ToJSON ItemEntry where
         "SgstAmt" .= sgstAmt,
         "TotItemVal" .= totItemVal
       ]
+  toEncoding ItemEntry {..} =
+    pairs $
+      "SlNo" .= slNo
+        <> "IsServc" .= isServc
+        <> "HsnCd" .= hsnCd
+        <> "Qty" .= qty
+        <> "Unit" .= unit
+        <> AE.pair "UnitPrice" (fixedDouble 2 unitPrice)
+        <> AE.pair "TotAmt" (fixedDouble 2 totAmt)
+        <> AE.pair "Discount" (fixedDouble 2 discount)
+        <> AE.pair "PreTaxVal" (fixedDouble 2 preTaxVal)
+        <> AE.pair "AssAmt" (fixedDouble 2 assAmt)
+        <> AE.pair "GstRt" (fixedDouble 3 gstRt)
+        <> AE.pair "IgstAmt" (fixedDouble 2 igstAmt)
+        <> AE.pair "CgstAmt" (fixedDouble 2 cgstAmt)
+        <> AE.pair "SgstAmt" (fixedDouble 2 sgstAmt)
+        <> AE.pair "TotItemVal" (fixedDouble 2 totItemVal)
 
 data ValDtls = ValDtls
   { assVal :: Double,
@@ -309,6 +338,13 @@ instance ToJSON ValDtls where
         "IgstVal" .= igstVal,
         "TotInvVal" .= totInvVal
       ]
+  toEncoding ValDtls {..} =
+    pairs $
+      AE.pair "AssVal" (fixedDouble 2 assVal)
+        <> AE.pair "CgstVal" (fixedDouble 2 cgstVal)
+        <> AE.pair "SgstVal" (fixedDouble 2 sgstVal)
+        <> AE.pair "IgstVal" (fixedDouble 2 igstVal)
+        <> AE.pair "TotInvVal" (fixedDouble 2 totInvVal)
 
 data EwbDtls = EwbDtls
   { distance :: Int
