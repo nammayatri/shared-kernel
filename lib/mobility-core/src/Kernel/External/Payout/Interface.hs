@@ -18,6 +18,7 @@ module Kernel.External.Payout.Interface
 where
 
 import qualified Kernel.External.Payout.Interface.Juspay as Juspay
+import qualified Kernel.External.Payout.Interface.Stripe as Stripe
 import Kernel.External.Payout.Interface.Types as Reexport
 import Kernel.External.Payout.Types as Reexport
 import Kernel.Prelude
@@ -32,11 +33,11 @@ createPayoutOrder ::
     HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   PayoutServiceConfig ->
-  Maybe Text ->
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
-createPayoutOrder serviceConfig mRoutingId req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.createPayoutOrder cfg mRoutingId req
+createPayoutOrder serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.createPayoutOrder cfg req
+  StripeConfig cfg -> Stripe.createPayoutOrder cfg req
 
 payoutOrderStatus ::
   ( EncFlow m r,
@@ -45,8 +46,8 @@ payoutOrderStatus ::
     MonadReader r m
   ) =>
   PayoutServiceConfig ->
-  Maybe Text ->
   PayoutOrderStatusReq ->
   m PayoutOrderStatusResp
-payoutOrderStatus serviceConfig mRoutingId req = case serviceConfig of
-  JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req.orderId mRoutingId req.mbExpand
+payoutOrderStatus serviceConfig req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req
+  StripeConfig cfg -> Stripe.payoutOrderStatus cfg req

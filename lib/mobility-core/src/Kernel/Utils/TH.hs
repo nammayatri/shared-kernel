@@ -76,6 +76,32 @@ mkToHttpInstanceForEnum name = do
       toHeader = BSL.toStrict . encode
     |]
 
+mkHttpInstancesForListOfEnums :: TH.Name -> TH.Q [TH.Dec]
+mkHttpInstancesForListOfEnums name = do
+  fromInstance <- mkFromHttpInstanceForListOfEnums name
+  toInstance <- mkToHttpInstanceForListOfEnums name
+  pure $ fromInstance <> toInstance
+
+mkFromHttpInstanceForListOfEnums :: TH.Name -> TH.Q [TH.Dec]
+mkFromHttpInstanceForListOfEnums name = do
+  let tyQ = pure (TH.ConT name)
+  [d|
+    instance FromHttpApiData [$tyQ] where
+      parseUrlPiece = parseHeader . DT.encodeUtf8
+      parseQueryParam = parseUrlPiece
+      parseHeader = BF.first T.pack . eitherDecode . BSL.fromStrict
+    |]
+
+mkToHttpInstanceForListOfEnums :: TH.Name -> TH.Q [TH.Dec]
+mkToHttpInstanceForListOfEnums name = do
+  let tyQ = pure (TH.ConT name)
+  [d|
+    instance ToHttpApiData [$tyQ] where
+      toUrlPiece = DT.decodeUtf8 . toHeader
+      toQueryParam = toUrlPiece
+      toHeader = BSL.toStrict . encode
+    |]
+
 -- | Generate ToJSON/FromJSON instances that omit Nothing fields from JSON output.
 -- | Usage: $(deriveJSONOmitNothing ''User)
 -- | Example: User{name="john", email=Nothing} -> {"name":"john"}
