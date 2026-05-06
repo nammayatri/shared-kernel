@@ -215,6 +215,7 @@ data FCMNotificationType
   | VEHICLE_INSPECTION
   | PICKUP_ZONE_REQUEST
   | PICKUP_ZONE_NO_SHOW
+  | PASS_RELATED
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
   deriving (PrettyShow) via Showable FCMNotificationType
 
