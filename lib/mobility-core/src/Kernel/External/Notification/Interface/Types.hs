@@ -139,6 +139,7 @@ data Category
   | FEEDBACK_BADGE_PN
   | PICKUP_ZONE_REQUEST
   | PICKUP_ZONE_NO_SHOW
+  | PASS_RELATED
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
