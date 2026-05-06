@@ -51,15 +51,14 @@ createPayoutOrder ::
     HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   JuspayConfig ->
-  Maybe Text ->
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
-createPayoutOrder config mRoutingId req = do
+createPayoutOrder config req = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreatePayoutOrderReq req
-  mkCreatePayoutOrderResp <$> Juspay.createPayoutOrder url apiKey merchantId mRoutingId orderReq
+  mkCreatePayoutOrderResp <$> Juspay.createPayoutOrder url apiKey merchantId req.mRoutingId orderReq
   where
     mkCreatePayoutOrderReq CreatePayoutOrderReq {..} = do
       webhookDetails <- case isDynamicWebhookRequired of
@@ -113,6 +112,7 @@ createPayoutOrder config mRoutingId req = do
     mkCreatePayoutOrderResp Payout.PayoutOrderResp {..} = do
       CreatePayoutOrderResp
         { amount = realToFrac amount,
+          idAssignedByServiceProvider = Nothing,
           ..
         }
 
@@ -134,19 +134,18 @@ payoutOrderStatus ::
     MonadReader r m
   ) =>
   JuspayConfig ->
-  Text ->
-  Maybe Text ->
-  Maybe Expand ->
+  PayoutOrderStatusReq ->
   m PayoutOrderStatusResp
-payoutOrderStatus config orderId' mRoutingId mbExpand = do
+payoutOrderStatus config req = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
-  mkPayoutOrderStatusResp <$> Juspay.payoutOrderStatus url apiKey merchantId mRoutingId orderId' mbExpand
+  mkPayoutOrderStatusResp <$> Juspay.payoutOrderStatus url apiKey merchantId req.mRoutingId req.orderId req.mbExpand
   where
     mkPayoutOrderStatusResp Payout.PayoutOrderResp {..} = do
       CreatePayoutOrderResp
         { amount = realToFrac amount,
+          idAssignedByServiceProvider = Nothing,
           ..
         }
 
@@ -170,6 +169,7 @@ mkWebhookOrderStatusPayoutResp payoutReq = case payoutReq.label of
       | not (T.null (T.strip orderId)) ->
         OrderStatusPayoutResp
           { payoutOrderId = orderId,
+            idAssignedByServiceProvider = Nothing,
             payoutStatus = payoutReq.info.status,
             orderType = payoutReq.info._type,
             merchantCustomerId = payoutReq.info.merchantCustomerId,
