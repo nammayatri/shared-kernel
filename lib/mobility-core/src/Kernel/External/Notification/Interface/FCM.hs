@@ -178,6 +178,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.FEEDBACK_BADGE_PN -> FCM.FEEDBACK_BADGE_PN
   Interface.PICKUP_ZONE_REQUEST -> FCM.PICKUP_ZONE_REQUEST
   Interface.PICKUP_ZONE_NO_SHOW -> FCM.PICKUP_ZONE_NO_SHOW
+  Interface.PASS_RELATED -> FCM.PASS_RELATED
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
