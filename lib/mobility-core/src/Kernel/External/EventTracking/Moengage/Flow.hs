@@ -50,7 +50,7 @@ pushEvent cfg req = do
       let authToken = buildBasicAuth cfg.appId apiSecret
           moengageClient = client (Proxy :: Proxy MoengageEventAPI)
       resp <-
-        callAPI cfg.baseUrl (moengageClient cfg.appId (Just authToken) req) "moengageEvent" moengageEventAPI
+        callAPI cfg.baseUrl (moengageClient cfg.appId cfg.appId (Just authToken) req) "moengageEvent" moengageEventAPI
           >>= fromEitherM (const $ InternalError "Failed to call Moengage Event API")
       pure (Just resp)
 

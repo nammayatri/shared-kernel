@@ -25,6 +25,7 @@ import Servant
 type MoengageEventAPI =
   "v1" :> "event"
     :> Capture "app_id" Text
+    :> QueryParam' '[Required, Strict] "app_id" Text
     :> Header "Authorization" Text
     :> ReqBody '[JSON] MoengageEventReq
     :> Post '[JSON] MoengageEventResp
