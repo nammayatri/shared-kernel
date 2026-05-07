@@ -19,6 +19,44 @@ module Kernel.External.MasterCloudForward.Types where
 import Kernel.Prelude
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Utils.Dhall (FromDhall)
+
+-- | Single proxy-config record carried by the @AppCfg@ of every service that
+-- might either /send/ forwarded calls (GCP-side) or /receive/ them (AWS-side).
+-- One type, both sides; fields a side doesn't use stay 'Nothing' / @[]@.
+--
+-- Side-by-side typical population:
+--
+--   * /AWS deployment/ (host of the forwarder endpoint):
+--     @MasterCloudProxyConfig { masterUrl = Nothing, masterSecret = Just \"…\", allowedHosts = [\"api.juspay.in\", \"eve.idfy.com\"] }@
+--   * /GCP deployment/ (caller that tunnels through AWS):
+--     @MasterCloudProxyConfig { masterUrl = Just \"https://api.moving.tech/dobpp\", masterSecret = Just \"…\", allowedHosts = [] }@
+--   * /Dev or unrelated services/: leave the empty default; behaviour is a
+--     direct call (forwarder is opt-in via env + config presence).
+data MasterCloudProxyConfig = MasterCloudProxyConfig
+  { -- | (GCP-side) Where to send forwarded requests. The Servant client
+    -- appends @/forward-egress@ to this. AWS deployments leave this 'Nothing'.
+    masterUrl :: Maybe BaseUrl,
+    -- | Shared bearer secret. GCP sends it in @X-Forwarder-Secret@; AWS
+    -- compares the header against this value. Both sides should populate it.
+    masterSecret :: Maybe Text,
+    -- | (AWS-side) Destination hostnames the forwarder is willing to relay
+    -- to. Anything not in this list gets @403@ via 'ForwardAllowlistDenied'.
+    -- GCP deployments leave this empty.
+    allowedHosts :: [Text]
+  }
+  deriving (Generic, Show, FromJSON, ToJSON, FromDhall)
+
+-- | Empty config: no forwarder URL, no secret, no allowlist. Equivalent to
+-- \"this service does not participate in master-cloud forwarding\". Use as
+-- the default value in services that haven't opted in yet.
+emptyMasterCloudProxyConfig :: MasterCloudProxyConfig
+emptyMasterCloudProxyConfig =
+  MasterCloudProxyConfig
+    { masterUrl = Nothing,
+      masterSecret = Nothing,
+      allowedHosts = []
+    }
 
 -- | Envelope for an outbound HTTP request that needs to be re-issued from the
 -- AWS-side egress IP. Body is base64-encoded so that arbitrary binary payloads

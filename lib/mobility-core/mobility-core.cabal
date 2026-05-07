@@ -142,6 +142,7 @@ library
       Kernel.External.Maps.Utils
       Kernel.External.MasterCloudForward.API
       Kernel.External.MasterCloudForward.Flow
+      Kernel.External.MasterCloudForward.Server
       Kernel.External.MasterCloudForward.Types
       Kernel.External.MultiModal
       Kernel.External.MultiModal.Interface

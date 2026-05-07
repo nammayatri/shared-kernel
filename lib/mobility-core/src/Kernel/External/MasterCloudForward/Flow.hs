@@ -59,13 +59,15 @@ import Servant.Client.Core
 import qualified Servant.Client.Free as SCF
 import System.Environment (lookupEnv)
 
--- | Reader-environment access for the forwarder URL and shared secret.
--- Services that may need to forward egress through AWS implement this on
--- their AppEnv. On AWS-only services it can be left as a no-op (returning
--- 'Nothing'), in which case 'runThroughMasterCloud' degrades to a direct call.
+-- | Reader-environment access for the unified 'MasterCloudProxyConfig'. The
+-- same record is carried on every service's @AppEnv@; a side that doesn't
+-- need a particular field just leaves it empty / 'Nothing'.
+--
+-- 'runThroughMasterCloud' reads @masterUrl@ and @masterSecret@ here; the
+-- AWS-side handler in @Kernel.External.MasterCloudForward.Server@ reads
+-- @masterSecret@ and @allowedHosts@.
 class HasMasterCloudForwarder env where
-  masterCloudForwarderUrl :: env -> Maybe BaseUrl
-  masterCloudForwarderSecret :: env -> Maybe Text
+  masterCloudProxyConfig :: env -> MasterCloudProxyConfig
 
 -- | Reads the @RUN_API_IN_MASTER_CLOUD@ environment variable. Set to
 -- @true@ on GCP pods that should tunnel external HTTP through the AWS
@@ -103,9 +105,8 @@ runThroughMasterCloud ::
   m (Either ClientError a)
 runThroughMasterCloud origBaseUrl eClient desc = do
   shouldForward <- liftIO getRunApiInMasterCloud
-  mbUrl <- asks masterCloudForwarderUrl
-  mbSecret <- asks masterCloudForwarderSecret
-  case (shouldForward, mbUrl, mbSecret) of
+  cfg <- asks masterCloudProxyConfig
+  case (shouldForward, cfg.masterUrl, cfg.masterSecret) of
     (True, Just fwdUrl, Just secret) -> do
       logDebug $ "MASTER_CLOUD_FORWARD: forwarding " <> desc <> " via " <> showBaseUrlText fwdUrl
       interpretWithForwarder origBaseUrl fwdUrl secret eClient desc

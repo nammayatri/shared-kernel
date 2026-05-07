@@ -148,8 +148,7 @@ forwarderApp hits expectedSecret manager =
 -- ===========================================================================
 
 data TestEnv = TestEnv
-  { masterCloudForwarderUrl :: Maybe BaseUrl,
-    masterCloudForwarderSecret :: Maybe Text,
+  { masterCloudProxyConfig :: MFT.MasterCloudProxyConfig,
     requestId :: Maybe Text,
     sessionId :: Maybe Text,
     loggerEnv :: IOLogging.LoggerEnv,
@@ -166,8 +165,7 @@ data TestEnv = TestEnv
 -- forks; the constraint is only inherited because @MonadFlow@ implies
 -- @Forkable (FlowR r)@.
 instance MF.HasMasterCloudForwarder TestEnv where
-  masterCloudForwarderUrl = (.masterCloudForwarderUrl)
-  masterCloudForwarderSecret = (.masterCloudForwarderSecret)
+  masterCloudProxyConfig = (.masterCloudProxyConfig)
 
 -- ===========================================================================
 -- Test harness
@@ -205,8 +203,12 @@ bootstrapEnv ::
   TestEnv
 bootstrapEnv mbFwdUrl mbSecret logger metrics =
   TestEnv
-    { masterCloudForwarderUrl = mbFwdUrl,
-      masterCloudForwarderSecret = mbSecret,
+    { masterCloudProxyConfig =
+        MFT.MasterCloudProxyConfig
+          { masterUrl = mbFwdUrl,
+            masterSecret = mbSecret,
+            allowedHosts = []
+          },
       requestId = Just "itest-req-id",
       sessionId = Just "itest-session",
       loggerEnv = logger,
