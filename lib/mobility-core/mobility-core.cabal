@@ -140,6 +140,9 @@ library
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
       Kernel.External.Maps.Utils
+      Kernel.External.MasterCloudForward.API
+      Kernel.External.MasterCloudForward.Flow
+      Kernel.External.MasterCloudForward.Types
       Kernel.External.MultiModal
       Kernel.External.MultiModal.Interface
       Kernel.External.MultiModal.Interface.Google
