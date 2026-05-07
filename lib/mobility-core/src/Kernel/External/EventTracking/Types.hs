@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.EventTracking.Types
   ( EventTrackingService (..),
@@ -20,7 +21,10 @@ module Kernel.External.EventTracking.Types
 where
 
 import Data.Aeson
+import Database.Beam.Backend
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForList)
 import Kernel.Prelude
+import Kernel.Storage.Esqueleto (derivePersistField)
 
 -- | Enum of event tracking service providers
 data EventTrackingService
@@ -30,3 +34,10 @@ data EventTrackingService
 -- | List of all available event tracking services
 availableEventTrackingServices :: [EventTrackingService]
 availableEventTrackingServices = [Moengage]
+
+instance (HasSqlValueSyntax be String) => HasSqlValueSyntax be EventTrackingService where
+  sqlValueSyntax = autoSqlValueSyntax
+
+$(mkBeamInstancesForList ''EventTrackingService)
+
+derivePersistField "EventTrackingService"
