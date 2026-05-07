@@ -43,6 +43,7 @@ createConnectAccount config req = do
   accountResp <- Stripe.createAccount url apiKey accountReq
   let accountId = accountResp.id
   let chargesEnabled = accountResp.charges_enabled
+  let payoutsEnabled = accountResp.payouts_enabled
   let detailsSubmitted = accountResp.details_submitted
   when (req.businessType == Just Stripe.Company) $ do
     let personReq =
@@ -174,6 +175,7 @@ getAccount config accountId = do
   apiKey <- decrypt config.apiKey
   accountResp <- Stripe.getAccount url apiKey accountId
   let chargesEnabled = accountResp.charges_enabled
+  let payoutsEnabled = accountResp.payouts_enabled
   let detailsSubmitted = accountResp.details_submitted
   let requirements = toRequirementsInfo <$> accountResp.requirements
   let futureRequirements = toRequirementsInfo <$> accountResp.future_requirements

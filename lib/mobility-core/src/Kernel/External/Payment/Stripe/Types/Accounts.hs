@@ -446,6 +446,7 @@ data AccountResp = AccountResp
   { id :: AccountId,
     _object :: Text,
     charges_enabled :: Bool,
+    payouts_enabled :: Bool,
     details_submitted :: Bool,
     requirements :: Maybe Requirements,
     future_requirements :: Maybe Requirements
@@ -458,7 +459,6 @@ data AccountResp = AccountResp
     -- external_accounts :: ExternalAccounts,
     -- individual :: IndividualDetails,
     -- metadata :: Metadata,
-    -- payouts_enabled :: Bool,
     -- settings :: Settings,
     -- tos_acceptance :: TosAcceptance,
     -- type :: AccountType
