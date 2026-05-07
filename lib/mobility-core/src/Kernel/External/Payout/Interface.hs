@@ -17,14 +17,17 @@ module Kernel.External.Payout.Interface
   )
 where
 
+import qualified Kernel.External.Payment.Interface as Payment
 import qualified Kernel.External.Payout.Interface.Juspay as Juspay
 import qualified Kernel.External.Payout.Interface.Stripe as Stripe
 import Kernel.External.Payout.Interface.Types as Reexport
 import Kernel.External.Payout.Types as Reexport
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Error
 import Kernel.Utils.Common
 
+-- TODO handle retrie when external payout status is not okay
 createPayoutOrder ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -37,7 +40,62 @@ createPayoutOrder ::
   m CreatePayoutOrderResp
 createPayoutOrder serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.createPayoutOrder cfg req
-  StripeConfig cfg -> Stripe.createPayoutOrder cfg req
+  StripeConfig cfg -> do
+    connectedAccountId <- req.mConnectedAccountId & fromMaybeM (InvalidRequest "connectedAccountId required for Stripe payout")
+    createTransferResp <- Stripe.createTransfer cfg (mkTransferReq connectedAccountId req)
+
+    -- IMPORTANT: always consider status = SUCCESS if transfer was successfull, even if external payout was failed
+    result <- withTryCatch "createExternalPayout" $ Stripe.createExternalPayout cfg req
+    createExternalPayoutResp <- case result of
+      Right resp -> pure resp
+      Left e -> do
+        let err = fromException @Payment.StripeError e
+            errorCode = err <&> toErrorCode
+            errorMessage = err >>= toMessage
+        logError $ "Error while create external payout : " <> show err <> "error code : " <> show errorCode <> "error message : " <> show errorMessage <> " orderId: " <> req.orderId
+        pure
+          CreateExternalPayoutResp
+            { orderId = req.orderId,
+              externalPayoutStatus = Just EXTERNAL_PAYOUT_FAILED,
+              orderType = Just req.orderType,
+              idAssignedByServiceProvider = Nothing,
+              amount = req.amount,
+              customerId = Just req.customerId
+            }
+    pure $ mkCreatePayoutOrderResp createTransferResp createExternalPayoutResp
+  where
+    mkTransferReq :: Text -> CreatePayoutOrderReq -> CreateTransferReq
+    mkTransferReq connectedAccountId CreatePayoutOrderReq {..} = do
+      let senderAccountId = TransferPlatformAccount
+          destinationAccount = TransferConnectedAccount connectedAccountId
+      CreateTransferReq
+        { amount,
+          currency,
+          senderAccountId,
+          destinationAccount,
+          description = Just remark
+        }
+
+    mkCreatePayoutOrderResp :: CreateTransferResp -> CreateExternalPayoutResp -> CreatePayoutOrderResp
+    mkCreatePayoutOrderResp CreateTransferResp {transferId} CreateExternalPayoutResp {..} =
+      CreatePayoutOrderResp
+        { orderId,
+          status = SUCCESS, -- IMPORTANT: always consider SUCCESS if transfer was successfull, to avoid multiple charges
+          externalPayoutStatus,
+          orderType,
+          transferId = Just transferId,
+          idAssignedByServiceProvider,
+          udf1 = Nothing,
+          udf2 = Nothing,
+          udf3 = Nothing,
+          udf4 = Nothing,
+          udf5 = Nothing,
+          amount,
+          refunds = Nothing,
+          payments = Nothing,
+          fulfillments = Nothing,
+          customerId
+        }
 
 payoutOrderStatus ::
   ( EncFlow m r,
@@ -50,4 +108,40 @@ payoutOrderStatus ::
   m PayoutOrderStatusResp
 payoutOrderStatus serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req
-  StripeConfig cfg -> Stripe.payoutOrderStatus cfg req
+  StripeConfig cfg -> do
+    resp <- Stripe.externalPayoutOrderStatus cfg req
+    pure $ mkPayoutOrderStatusResp resp
+  where
+    mkPayoutOrderStatusResp :: ExternalPayoutOrderStatusResp -> PayoutOrderStatusResp
+    mkPayoutOrderStatusResp CreateExternalPayoutResp {..} =
+      CreatePayoutOrderResp
+        { orderId,
+          status = req.currentStatus,
+          externalPayoutStatus,
+          orderType,
+          transferId = req.transferId,
+          idAssignedByServiceProvider,
+          udf1 = Nothing,
+          udf2 = Nothing,
+          udf3 = Nothing,
+          udf4 = Nothing,
+          udf5 = Nothing,
+          amount,
+          refunds = Nothing,
+          payments = Nothing,
+          fulfillments = Nothing,
+          customerId
+        }
+
+createTransfer ::
+  ( CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PayoutServiceConfig ->
+  CreateTransferReq ->
+  m CreateTransferResp
+createTransfer config req = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Create Transfer not supported."
+  StripeConfig cfg -> Stripe.createTransfer cfg req

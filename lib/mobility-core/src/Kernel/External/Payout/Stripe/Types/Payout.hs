@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Payout.Stripe.Types.Payout where
 
@@ -7,6 +8,7 @@ import Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Data.Time.Clock.POSIX (POSIXTime)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Payout.Stripe.Types.Common
 import Kernel.Prelude
 import Kernel.Utils.JSON
@@ -19,45 +21,48 @@ newtype PayoutId = PayoutId Text
   deriving stock (Generic, Show, Eq)
   deriving newtype (FromJSON, ToJSON, ToSchema, FromHttpApiData, ToHttpApiData)
 
-data PayoutStatus
-  = PAYOUT_PENDING
-  | PAYOUT_IN_TRANSIT
-  | PAYOUT_PAID
-  | PAYOUT_FAILED
-  | PAYOUT_CANCELED
-  deriving stock (Show, Eq, Generic)
+-- Payout status from driver/fleet connected account to driver/fleet card or bank account
+data ExternalPayoutStatus
+  = EXTERNAL_PAYOUT_PENDING
+  | EXTERNAL_PAYOUT_IN_TRANSIT
+  | EXTERNAL_PAYOUT_PAID
+  | EXTERNAL_PAYOUT_FAILED
+  | EXTERNAL_PAYOUT_CANCELED
+  deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (ToSchema)
 
-instance FromJSON PayoutStatus where
-  parseJSON = withText "PayoutStatus" $ \case
-    "pending" -> pure PAYOUT_PENDING
-    "in_transit" -> pure PAYOUT_IN_TRANSIT
-    "paid" -> pure PAYOUT_PAID
-    "failed" -> pure PAYOUT_FAILED
-    "canceled" -> pure PAYOUT_CANCELED
+instance FromJSON ExternalPayoutStatus where
+  parseJSON = withText "ExternalPayoutStatus" $ \case
+    "pending" -> pure EXTERNAL_PAYOUT_PENDING
+    "in_transit" -> pure EXTERNAL_PAYOUT_IN_TRANSIT
+    "paid" -> pure EXTERNAL_PAYOUT_PAID
+    "failed" -> pure EXTERNAL_PAYOUT_FAILED
+    "canceled" -> pure EXTERNAL_PAYOUT_CANCELED
     _ -> fail "Invalid payout status"
 
-instance ToJSON PayoutStatus where
-  toJSON PAYOUT_PENDING = String "pending"
-  toJSON PAYOUT_IN_TRANSIT = String "in_transit"
-  toJSON PAYOUT_PAID = String "paid"
-  toJSON PAYOUT_FAILED = String "failed"
-  toJSON PAYOUT_CANCELED = String "canceled"
+instance ToJSON ExternalPayoutStatus where
+  toJSON EXTERNAL_PAYOUT_PENDING = String "pending"
+  toJSON EXTERNAL_PAYOUT_IN_TRANSIT = String "in_transit"
+  toJSON EXTERNAL_PAYOUT_PAID = String "paid"
+  toJSON EXTERNAL_PAYOUT_FAILED = String "failed"
+  toJSON EXTERNAL_PAYOUT_CANCELED = String "canceled"
 
-instance ToHttpApiData PayoutStatus where
-  toQueryParam PAYOUT_PENDING = "pending"
-  toQueryParam PAYOUT_IN_TRANSIT = "in_transit"
-  toQueryParam PAYOUT_PAID = "paid"
-  toQueryParam PAYOUT_FAILED = "failed"
-  toQueryParam PAYOUT_CANCELED = "canceled"
+instance ToHttpApiData ExternalPayoutStatus where
+  toQueryParam EXTERNAL_PAYOUT_PENDING = "pending"
+  toQueryParam EXTERNAL_PAYOUT_IN_TRANSIT = "in_transit"
+  toQueryParam EXTERNAL_PAYOUT_PAID = "paid"
+  toQueryParam EXTERNAL_PAYOUT_FAILED = "failed"
+  toQueryParam EXTERNAL_PAYOUT_CANCELED = "canceled"
 
-instance FromHttpApiData PayoutStatus where
-  parseQueryParam "pending" = Right PAYOUT_PENDING
-  parseQueryParam "in_transit" = Right PAYOUT_IN_TRANSIT
-  parseQueryParam "paid" = Right PAYOUT_PAID
-  parseQueryParam "failed" = Right PAYOUT_FAILED
-  parseQueryParam "canceled" = Right PAYOUT_CANCELED
+instance FromHttpApiData ExternalPayoutStatus where
+  parseQueryParam "pending" = Right EXTERNAL_PAYOUT_PENDING
+  parseQueryParam "in_transit" = Right EXTERNAL_PAYOUT_IN_TRANSIT
+  parseQueryParam "paid" = Right EXTERNAL_PAYOUT_PAID
+  parseQueryParam "failed" = Right EXTERNAL_PAYOUT_FAILED
+  parseQueryParam "canceled" = Right EXTERNAL_PAYOUT_CANCELED
   parseQueryParam _ = Left "Invalid payout status"
+
+$(mkBeamInstancesForEnum ''ExternalPayoutStatus)
 
 data PayoutType = Card | BankAccount
   deriving stock (Show, Eq, Generic)
@@ -131,7 +136,7 @@ data PayoutObject = PayoutObject
   { id :: PayoutId,
     amount :: Int,
     currency :: Text,
-    status :: PayoutStatus,
+    status :: ExternalPayoutStatus,
     _type :: PayoutType,
     method :: PayoutMethod,
     description :: Maybe Text,

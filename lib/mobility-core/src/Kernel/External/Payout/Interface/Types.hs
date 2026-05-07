@@ -23,9 +23,11 @@ module Kernel.External.Payout.Interface.Types
 where
 
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import qualified Kernel.External.Payment.Stripe.Types as Stripe
 import qualified Kernel.External.Payout.Juspay.Config as Juspay
 import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), PayoutOrderStatus (..))
 import qualified Kernel.External.Payout.Stripe.Config as Stripe
+import Kernel.External.Payout.Stripe.Types as Reexport (ExternalPayoutStatus (..), TransferId (..))
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common
@@ -64,7 +66,7 @@ data CreatePayoutOrderReq = CreatePayoutOrderReq
     customerVpa :: Maybe Text, -- Juspay specific
     isDynamicWebhookRequired :: Bool,
     mRoutingId :: Maybe Text, -- Juspay specific
-    mConnectedAccountId :: Maybe AccountId, -- Stripe specific
+    mConnectedAccountId :: Maybe Stripe.AccountId, -- Stripe specific
     mExternalAccountId :: Maybe Text -- Stripe specific, default will be used in case of Nothing
   }
   deriving stock (Show, Eq, Generic)
@@ -72,9 +74,11 @@ data CreatePayoutOrderReq = CreatePayoutOrderReq
 
 data CreatePayoutOrderResp = CreatePayoutOrderResp
   { orderId :: Text,
-    idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
-    status :: PayoutOrderStatus,
+    status :: PayoutOrderStatus, -- payout (transfer) status from platform to driver/fleet
+    externalPayoutStatus :: Maybe ExternalPayoutStatus, -- Stripe specific: payout status from driver/fleet connected account to driver/fleet bank account/card
     orderType :: Maybe Text,
+    transferId :: Maybe TransferId, -- Stripe specific
+    idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
     udf1 :: Maybe Text,
     udf2 :: Maybe Text,
     udf3 :: Maybe Text,
@@ -106,9 +110,40 @@ data PayoutOrderStatusReq = PayoutOrderStatusReq
     idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
     mbExpand :: Maybe Expand, -- Juspay specific
     mRoutingId :: Maybe Text, -- Juspay specific
-    mConnectedAccountId :: Maybe AccountId -- Stripe specific
+    mConnectedAccountId :: Maybe AccountId, -- Stripe specific
+    currentStatus :: PayoutOrderStatus,
+    transferId :: Maybe TransferId
   }
   deriving (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 type PayoutOrderStatusResp = CreatePayoutOrderResp
+
+type CreateExternalPayoutReq = CreatePayoutOrderReq
+
+type ExternalPayoutOrderStatusReq = PayoutOrderStatusReq
+
+data CreateExternalPayoutResp = CreateExternalPayoutResp
+  { orderId :: Text,
+    externalPayoutStatus :: Maybe ExternalPayoutStatus, -- Stripe specific: payout status from driver/fleet connected account to driver/fleet bank account/card
+    orderType :: Maybe Text,
+    idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
+    amount :: HighPrecMoney,
+    customerId :: Maybe Text
+  }
+
+type ExternalPayoutOrderStatusResp = CreateExternalPayoutResp
+
+data TransferAccount = TransferConnectedAccount AccountId | TransferPlatformAccount
+
+data CreateTransferReq = CreateTransferReq
+  { amount :: HighPrecMoney,
+    currency :: Currency,
+    senderAccountId :: TransferAccount,
+    destinationAccount :: TransferAccount,
+    description :: Maybe Text
+  }
+
+newtype CreateTransferResp = CreateTransferResp
+  { transferId :: TransferId
+  }

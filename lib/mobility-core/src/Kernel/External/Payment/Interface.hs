@@ -450,9 +450,9 @@ createRefund ::
   PaymentServiceConfig ->
   CreateRefundReq ->
   m CreateRefundResp
-createRefund config paymentIntentId = case config of
+createRefund config req = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Refund not supported."
-  StripeConfig cfg -> Stripe.createRefund cfg paymentIntentId
+  StripeConfig cfg -> Stripe.createRefund cfg req
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Create Refund not supported."
 
 getRefund ::
@@ -464,9 +464,9 @@ getRefund ::
   PaymentServiceConfig ->
   GetRefundReq ->
   m GetRefundResp
-getRefund config paymentIntentId = case config of
+getRefund config req = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Get Refund not supported."
-  StripeConfig cfg -> Stripe.getRefund cfg paymentIntentId
+  StripeConfig cfg -> Stripe.getRefund cfg req
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Get Refund not supported."
 
 cancelRefund ::
@@ -478,9 +478,9 @@ cancelRefund ::
   PaymentServiceConfig ->
   CancelRefundReq ->
   m CancelRefundResp
-cancelRefund config paymentIntentId = case config of
+cancelRefund config req = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Cancel Refund not supported."
-  StripeConfig cfg -> Stripe.cancelRefund cfg paymentIntentId
+  StripeConfig cfg -> Stripe.cancelRefund cfg req
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Cancel Refund not supported."
 
 verifyVPA ::

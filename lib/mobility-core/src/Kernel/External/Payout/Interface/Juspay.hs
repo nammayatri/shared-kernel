@@ -113,6 +113,8 @@ createPayoutOrder config req = do
     mkCreatePayoutOrderResp Payout.PayoutOrderResp {..} = do
       CreatePayoutOrderResp
         { amount = realToFrac amount,
+          externalPayoutStatus = Nothing,
+          transferId = Nothing,
           idAssignedByServiceProvider = Nothing,
           ..
         }
@@ -146,6 +148,8 @@ payoutOrderStatus config req = do
     mkPayoutOrderStatusResp Payout.PayoutOrderResp {..} = do
       CreatePayoutOrderResp
         { amount = realToFrac amount,
+          externalPayoutStatus = Nothing,
+          transferId = Nothing,
           idAssignedByServiceProvider = Nothing,
           ..
         }
