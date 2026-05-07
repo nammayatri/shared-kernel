@@ -755,6 +755,7 @@ data ConnectAccountLinkResp = ConnectAccountLinkResp
     accountUrl :: Text,
     accountUrlExpiry :: UTCTime,
     chargesEnabled :: Bool,
+    payoutsEnabled :: Bool,
     detailsSubmitted :: Bool
   }
   deriving stock (Show, Eq, Generic)
@@ -791,6 +792,7 @@ data RequirementsInfo = RequirementsInfo
 data ConnectAccountStatusResp = ConnectAccountStatusResp
   { accountId :: AccountId,
     chargesEnabled :: Bool,
+    payoutsEnabled :: Bool,
     detailsSubmitted :: Bool,
     requirements :: Maybe RequirementsInfo,
     futureRequirements :: Maybe RequirementsInfo
