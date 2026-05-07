@@ -132,6 +132,7 @@ library
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
       Kernel.External.Maps.Utils
+      Kernel.External.MasterCloudForward
       Kernel.External.MultiModal
       Kernel.External.MultiModal.Interface
       Kernel.External.MultiModal.Interface.Google
@@ -674,6 +675,163 @@ library
     , lattices
     , lens
     , memory
+    , monad-logger
+    , morpheus-graphql-client
+    , mtl
+    , network
+    , openapi3
+    , parsec
+    , passetto-client
+    , persistent
+    , persistent-postgresql
+    , postgresql-migration
+    , postgresql-simple
+    , process
+    , prometheus-client
+    , prometheus-metrics-ghc
+    , prometheus-proc
+    , random
+    , random-strings
+    , record-dot-preprocessor
+    , record-hasfield
+    , regex-compat
+    , resource-pool
+    , safe
+    , safe-exceptions
+    , safe-money
+    , scientific
+    , sequelize
+    , servant
+    , servant-client
+    , servant-client-core
+    , servant-multipart
+    , servant-multipart-api
+    , servant-multipart-client
+    , servant-openapi3
+    , servant-server
+    , singletons-th
+    , slack-web
+    , split
+    , stm
+    , string-conversions
+    , tasty
+    , tasty-hunit
+    , template-haskell
+    , text
+    , text-conversions
+    , time
+    , tinylog
+    , transformers
+    , universum
+    , unix
+    , unliftio
+    , unliftio-core
+    , unordered-containers
+    , uuid
+    , vector
+    , wai
+    , wai-app-static
+    , wai-middleware-prometheus
+    , warp
+    , xml-conduit
+    , xml-types
+    , xmlbf
+  default-language: Haskell2010
+
+executable master-cloud-forward-itest
+  main-is: Main.hs
+  other-modules:
+      Paths_mobility_core
+  hs-source-dirs:
+      test-integration
+  default-extensions:
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFunctor
+      DeriveGeneric
+      DuplicateRecordFields
+      ExplicitNamespaces
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GADTs
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedLabels
+      OverloadedStrings
+      PatternSynonyms
+      PolyKinds
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      ViewPatterns
+      BlockArguments
+      TypeSynonymInstances
+      UndecidableInstances
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
+  build-depends:
+      aeson
+    , aeson-casing
+    , async
+    , base >=4.7 && <5
+    , base64
+    , base64-bytestring
+    , beam-core
+    , beam-mysql
+    , beam-postgres
+    , bimap
+    , bytestring
+    , case-insensitive
+    , casing
+    , cassava
+    , cereal
+    , clickhouse-haskell
+    , clock
+    , concurrency
+    , containers
+    , cryptonite
+    , data-default-class
+    , deriving-aeson
+    , dhall
+    , directory
+    , double-conversion
+    , either
+    , esqueleto
+    , euler-hs
+    , exceptions
+    , extra
+    , fast-logger
+    , filepath
+    , fmt
+    , formatting
+    , generic-lens
+    , geojson
+    , hashable
+    , hedis
+    , hex-text
+    , hspec
+    , http-api-data
+    , http-client
+    , http-client-tls
+    , http-media
+    , http-types
+    , hw-kafka-client
+    , insert-ordered-containers
+    , jwt
+    , kleene
+    , lattices
+    , lens
+    , memory
+    , mobility-core
     , monad-logger
     , morpheus-graphql-client
     , mtl

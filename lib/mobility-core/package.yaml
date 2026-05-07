@@ -187,3 +187,13 @@ tests:
       - test/src
     dependencies:
       - mobility-core
+
+executables:
+  master-cloud-forward-itest:
+    main: Main.hs
+    source-dirs:
+      - test-integration
+    dependencies:
+      - mobility-core
+      - async
+      - http-client-tls
