@@ -89,7 +89,10 @@ data WebhookTxnData = WebhookTxnData
     payer_vpa :: Maybe Text,
     upi :: Maybe Upi,
     card :: Maybe CardInfo,
-    txn_detail :: Maybe TxnDetail
+    txn_detail :: Maybe TxnDetail,
+    payment_method_type :: Maybe Text,
+    payment_method :: Maybe Text,
+    payment_gateway_response :: Maybe PaymentGatewayResponse
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

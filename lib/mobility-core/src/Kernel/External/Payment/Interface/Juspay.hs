@@ -681,11 +681,23 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           txnId = Just justTransaction.txn_id,
           transactionStatusId = fromMaybe (-3001) justTransaction.status_id,
           transactionStatus = justTransaction.status,
-          paymentMethodType = Nothing,
-          paymentMethod = Nothing,
-          paymentGatewayResponse = Nothing,
-          respMessage = Nothing,
-          respCode = Nothing,
+          paymentMethodType = justTransaction.payment_method_type,
+          paymentMethod = justTransaction.payment_method,
+          paymentGatewayResponse =
+            justTransaction.payment_gateway_response
+              <&> ( \pgResp ->
+                      PaymentGatewayResponse
+                        { respCode = pgResp.resp_code,
+                          rrn = pgResp.rrn,
+                          created = pgResp.created,
+                          epgTxnId = pgResp.epg_txn_id,
+                          respMessage = pgResp.resp_message,
+                          authIdCode = pgResp.auth_id_code,
+                          txnId = pgResp.txn_id
+                        }
+                  ),
+          respMessage = justTransaction.payment_gateway_response >>= (.resp_message),
+          respCode = justTransaction.payment_gateway_response >>= (.resp_code),
           gatewayReferenceId = Nothing,
           bankErrorMessage = if justTransaction.error_message == Just "" then Nothing else justTransaction.error_message,
           bankErrorCode = if justTransaction.error_code == Just "" then Nothing else justTransaction.error_code,
