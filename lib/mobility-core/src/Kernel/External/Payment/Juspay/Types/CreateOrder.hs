@@ -50,6 +50,7 @@ data CreateOrderReq = CreateOrderReq
     options_get_upi_deep_links :: Maybe Bool,
     metadata_expiry_in_mins :: Maybe Int,
     split_settlement_details :: Maybe SplitSettlementDetails,
+    auto_refund_post_success :: Maybe Bool,
     basket :: Maybe Text,
     auto_refund_conflict_threshold_minutes :: Maybe Int,
     payment_rules :: Maybe PaymentRules
@@ -232,6 +233,7 @@ jsonReqOptions =
         "metadata_expiry_in_mins" -> "metadata.expiryInMins"
         "split_settlement_details" -> "metadata.split_settlement_details"
         "auto_refund_conflict_threshold_minutes" -> "metadata.auto_refund_conflict_threshold_minutes"
+        "auto_refund_post_success" -> "metadata.auto_refund_post_success"
         "payment_rules" -> "payment_rules"
         other -> other
     }
