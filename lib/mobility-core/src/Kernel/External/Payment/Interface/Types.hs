@@ -90,7 +90,8 @@ data CreateOrderReq = CreateOrderReq
     metadataExpiryInMins :: Maybe Int,
     splitSettlementDetails :: Maybe SplitSettlementDetails,
     basket :: Maybe [Basket],
-    paymentRules :: Maybe PaymentRules
+    paymentRules :: Maybe PaymentRules,
+    autoRefundPostSuccess :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -965,7 +966,8 @@ data CreatePaymentReq = CreatePaymentReq
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int,
     basket :: Maybe [Basket],
-    paymentRules :: Maybe PaymentRules
+    paymentRules :: Maybe PaymentRules,
+    autoRefundPostSuccess :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
