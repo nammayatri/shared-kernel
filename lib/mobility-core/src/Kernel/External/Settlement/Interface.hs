@@ -21,6 +21,7 @@ module Kernel.External.Settlement.Interface
 where
 
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Lazy.Char8 as LBSC
 import qualified EulerHS.Language as L
 import Kernel.External.Encryption (EncFlow)
 import qualified Kernel.External.Settlement.BillDesk.PaymentParser as BillDeskPayment
@@ -36,30 +37,38 @@ import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Utils.Servant.Client (HasRequestId)
 
 -- | Parse a payment settlement CSV. For 'HyperPG', use 'Just' 'MERCHANT' for MPR-style merchant reports.
+--
+-- Empty or whitespace-only input is treated as "nothing to ingest" (success with 0 rows, no errors)
+-- rather than a parse failure, since fetchers can legitimately deliver empty payloads.
 parsePaymentSettlementCsv ::
   SettlementService ->
   Maybe SplitSettlementCustomerType ->
   LBS.ByteString ->
   ParsePaymentSettlementResult
-parsePaymentSettlementCsv settlementService mbSplit csvData = case settlementService of
-  HyperPG -> case fromMaybe VENDOR mbSplit of
-    VENDOR -> HyperPGPayment.parseHyperPGCsv csvData
-    MERCHANT -> HyperPGMerchantPayment.parseHyperPGMerchantCsv csvData
-  BillDesk -> BillDeskPayment.parseBillDeskCsv csvData
-  YesBiz -> YesBizPayment.parseYesBizCsv csvData
+parsePaymentSettlementCsv settlementService mbSplit csvData
+  | isCsvEmpty csvData = ParseResult [] 0 0 []
+  | otherwise = case settlementService of
+    HyperPG -> case fromMaybe VENDOR mbSplit of
+      VENDOR -> HyperPGPayment.parseHyperPGCsv csvData
+      MERCHANT -> HyperPGMerchantPayment.parseHyperPGMerchantCsv csvData
+    BillDesk -> BillDeskPayment.parseBillDeskCsv csvData
+    YesBiz -> YesBizPayment.parseYesBizCsv csvData
 
 parsePayoutSettlementCsv ::
   SettlementService ->
   LBS.ByteString ->
   ParsePayoutSettlementResult
-parsePayoutSettlementCsv settlementService csvData = case settlementService of
-  HyperPG -> HyperPGPayout.parseHyperPGPayoutCsv csvData
-  BillDesk -> ParseResult [] 0 0 ["Payout parsing not supported for BillDesk"]
-  YesBiz -> ParseResult [] 0 0 ["Payout parsing not supported for YesBiz"]
+parsePayoutSettlementCsv settlementService csvData
+  | isCsvEmpty csvData = ParseResult [] 0 0 []
+  | otherwise = case settlementService of
+    HyperPG -> HyperPGPayout.parseHyperPGPayoutCsv csvData
+    BillDesk -> ParseResult [] 0 0 ["Payout parsing not supported for BillDesk"]
+    YesBiz -> ParseResult [] 0 0 ["Payout parsing not supported for YesBiz"]
 
--- | Parse payment CSV bytes, then Juspay-enrich each row when enabled in 'SettlementServiceConfig'
--- ('juspayOrderStatusEnabled', URL, API key). Fetch of bytes is the caller's responsibility.
---
+-- | True if the CSV payload is empty or contains only whitespace (spaces, tabs, CR, LF).
+isCsvEmpty :: LBS.ByteString -> Bool
+isCsvEmpty = LBS.null . LBSC.dropWhile (\c -> c == ' ' || c == '\t' || c == '\n' || c == '\r')
+
 -- @mbSplitSettlementCustomerType@ must be supplied by the caller (e.g. Nammayatri), typically by matching
 -- the report file basename against the basename lists in 'SettlementServiceConfig.parserTypeMap'
 -- ('Map' keyed by 'SplitSettlementCustomerType').
@@ -72,15 +81,16 @@ parseAndEnrichPaymentSettlementCsv ::
     MonadIO m
   ) =>
   SettlementServiceConfig ->
+  Maybe JuspayOrderStatusConfig ->
   Maybe SplitSettlementCustomerType ->
   LBS.ByteString ->
   m ParsePaymentSettlementResult
-parseAndEnrichPaymentSettlementCsv config mbSplitSettlementCustomerType csvBytes = do
+parseAndEnrichPaymentSettlementCsv config mbJuspayCfg mbSplitSettlementCustomerType csvBytes = do
   let parsed0 =
         parsePaymentSettlementCsv
           config.settlementService
           mbSplitSettlementCustomerType
           csvBytes
   enrichedReports <-
-    mapM (enrichPaymentReport config mbSplitSettlementCustomerType) (reports parsed0)
+    mapM (enrichPaymentReport mbJuspayCfg mbSplitSettlementCustomerType) (reports parsed0)
   pure parsed0 {reports = catMaybes enrichedReports}

@@ -25,6 +25,7 @@ module Kernel.External.Settlement.Types
     SFTPConfig (..),
     EmailConfig (..),
     SettlementSourceConfig (..),
+    JuspayOrderStatusConfig (..),
   )
 where
 
@@ -68,10 +69,8 @@ newtype SettlementParserTypeMap = SettlementParserTypeMap
 data SettlementServiceConfig = SettlementServiceConfig
   { settlementService :: SettlementService,
     sourceConfig :: SettlementSourceConfig,
-    parserTypeMap :: SettlementParserTypeMap,
-    juspayOrderStatusEnabled :: Maybe Bool,
-    juspayBaseUrl :: Maybe Text,
-    juspayApiKey :: Maybe (EncryptedField 'AsEncrypted Text)
+    parserTypeMap :: Maybe SettlementParserTypeMap,
+    useJuspayOrderStatus :: Maybe Bool
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
@@ -106,4 +105,10 @@ data EmailConfig = EmailConfig
 data SettlementSourceConfig
   = SFTPSourceConfig SFTPConfig Text
   | EmailSourceConfig EmailConfig
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data JuspayOrderStatusConfig = JuspayOrderStatusConfig
+  { juspayBaseUrl :: BaseUrl,
+    juspayApiKey :: EncryptedField 'AsEncrypted Text
+  }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
