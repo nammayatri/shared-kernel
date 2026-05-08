@@ -142,20 +142,24 @@ truncateFractional s =
        in before <> "." <> take 6 frac <> rest
     _ -> s
 
--- | SALE -> ORDER, REFUND -> REFUND
+-- | SALE -> ORDER, REFUND/DISPUTE-ADJUSTMENT -> REFUND
 parseTxnType :: Text -> Either Text TxnType
 parseTxnType t = case T.toUpper (T.strip t) of
   "SALE" -> Right ORDER
   "ORDER" -> Right ORDER
   "REFUND" -> Right REFUND
+  "DISPUTE/ADJUSTMENT" -> Right REFUND
   other -> Left $ "Unknown transaction type: " <> other
 
--- | Status "00" means success for YesBiz UPI
+-- | Status "00" means success for YesBiz UPI. Dispute/adjustment rows that have
+-- already settled use "C" (Closed/Confirmed) — also map to SUCCESS since the
+-- amount has moved and settlement IDs (RRN, UTR) are populated.
 parseTxnStatus :: Text -> Either Text TxnStatus
-parseTxnStatus t = case T.strip t of
+parseTxnStatus t = case T.toUpper (T.strip t) of
   "00" -> Right SUCCESS
   "0" -> Right SUCCESS
   "SUCCESS" -> Right SUCCESS
+  "C" -> Right SUCCESS
   "FAILED" -> Right FAILED
   other -> Left $ "Unknown transaction status: " <> other
 
@@ -163,5 +167,6 @@ parseSettlementType :: Text -> Maybe SettlementType
 parseSettlementType t = case T.toUpper (T.strip t) of
   "PAY" -> Just CREDIT
   "CREDIT" -> Just CREDIT
+  "CREDIT ADJUSTMENT" -> Just DEBIT
   "DEBIT" -> Just DEBIT
   _ -> Nothing

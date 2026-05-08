@@ -29,7 +29,7 @@ import qualified Kernel.External.Payment.Juspay.Flow as JuspayFlow
 import Kernel.External.Payment.Juspay.Types.Common (OrderStatusResp)
 import qualified Kernel.External.Payment.Juspay.Types.Common as Juspay
 import Kernel.External.Settlement.Interface.Types
-import Kernel.External.Settlement.Types (SettlementServiceConfig (..), SplitSettlementCustomerType (..))
+import Kernel.External.Settlement.Types (JuspayOrderStatusConfig (..), SplitSettlementCustomerType (..))
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common (HighPrecMoney)
@@ -46,29 +46,22 @@ fetchOrderStatus ::
     HasRequestId r,
     MonadReader r m
   ) =>
-  SettlementServiceConfig ->
+  JuspayOrderStatusConfig ->
   Text ->
   m (Maybe OrderStatusResp)
-fetchOrderStatus config orderId = do
-  let enabled = fromMaybe False config.juspayOrderStatusEnabled
-  if not enabled
-    then pure Nothing
-    else case (config.juspayBaseUrl, config.juspayApiKey) of
-      (Just baseUrlText, Just encApiKey) ->
-        case parsePaymentOrderId orderId of
-          Nothing -> pure Nothing
-          Just (merchantId, orderShortId) -> do
-            apiKeyPlain <- decrypt encApiKey
-            baseUrl' <- parseBaseUrl baseUrlText
-            let mRoutingId = Nothing
-            result <-
-              try @_ @SomeException $
-                JuspayFlow.orderStatus baseUrl' apiKeyPlain merchantId mRoutingId orderShortId
-            liftIO $ threadDelay 300000
-            case result of
-              Left _err -> pure Nothing
-              Right resp -> pure (Just resp)
-      _ -> pure Nothing
+fetchOrderStatus config orderId =
+  case parsePaymentOrderId orderId of
+    Nothing -> pure Nothing
+    Just (merchantId, orderShortId) -> do
+      apiKeyPlain <- decrypt config.juspayApiKey
+      let mRoutingId = Nothing
+      result <-
+        try @_ @SomeException $
+          JuspayFlow.orderStatus config.juspayBaseUrl apiKeyPlain merchantId mRoutingId orderShortId
+      liftIO $ threadDelay 300000
+      case result of
+        Left _err -> pure Nothing
+        Right resp -> pure (Just resp)
 
 -- ---------------------------------------------------------------------------
 -- Parse payment order ID
@@ -138,23 +131,25 @@ enrichPaymentReport ::
     HasRequestId r,
     MonadReader r m
   ) =>
-  SettlementServiceConfig ->
+  Maybe JuspayOrderStatusConfig ->
   Maybe SplitSettlementCustomerType ->
   PaymentSettlementReport ->
   m (Maybe PaymentSettlementReport)
-enrichPaymentReport config mbSplitSettlementCustomerType report = do
-  mbResp <- fetchOrderStatus config report.orderId
-  case mbResp of
-    Nothing -> pure (Just report)
-    Just resp ->
-      let offer = isOfferTransaction resp
-          isMerchant = mbSplitSettlementCustomerType == Just MERCHANT
-       in if offer
-            then pure $ Just $ applyOfferResponse resp report
-            else
-              if isMerchant
-                then pure $ Just $ applyMerchantResponse resp report
-                else pure $ Just $ applyBaseResponse resp report
+enrichPaymentReport mbConfig mbSplitSettlementCustomerType report = case mbConfig of
+  Nothing -> pure (Just report)
+  Just config -> do
+    mbResp <- fetchOrderStatus config report.orderId
+    case mbResp of
+      Nothing -> pure (Just report)
+      Just resp ->
+        let offer = isOfferTransaction resp
+            isMerchant = mbSplitSettlementCustomerType == Just MERCHANT
+         in if offer
+              then pure $ Just $ applyOfferResponse resp report
+              else
+                if isMerchant
+                  then pure $ Just $ applyMerchantResponse resp report
+                  else pure $ Just $ applyBaseResponse resp report
 
 -- | Vendor (non-offer): populate amounts and RRN from Juspay.
 applyBaseResponse :: OrderStatusResp -> PaymentSettlementReport -> PaymentSettlementReport
