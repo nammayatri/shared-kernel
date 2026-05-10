@@ -44,8 +44,8 @@ notifyPerson cfg notificationData = Hedis.runInMasterCloudRedisCell $ do
           [startUuid, midOneUuid, _, _] -> T.intercalate "-" [startUuid, midOneUuid]
           _ -> notificationData.streamId
   let object = NotificationMessage notificationStreamId now
-  _ <- Hedis.withCrossAppRedis $ Hedis.publish "active-notification" object
   void $ Hedis.withCrossAppRedis $ Hedis.xAddExp ("N" <> notificationStreamId <> "{" <> (show shardId) <> "}") "*" (buildFieldValue notificationData now) cfg.streamExpirationTime
+  void $ Hedis.withCrossAppRedis $ Hedis.publish "active-notification" object
   where
     buildFieldValue notifData createdAt =
       [ ("entity.id", TE.encodeUtf8 notifData.entityId),
