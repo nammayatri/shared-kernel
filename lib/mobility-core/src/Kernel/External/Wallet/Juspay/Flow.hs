@@ -138,6 +138,7 @@ type LoyaltyInfoAPI =
   "loyalty"
     :> "programs"
     :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
     :> ReqBody '[JSON] LoyaltyInfoRequest
     :> Post '[JSON] LoyaltyInfoResponse
 
@@ -145,11 +146,12 @@ loyaltyInfo ::
   (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
+  Text ->
   LoyaltyInfoRequest ->
   m LoyaltyInfoResponse
-loyaltyInfo url apiKey req = do
+loyaltyInfo url apiKey merchantId req = do
   let proxy = Proxy @LoyaltyInfoAPI
-      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) req
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) req
   callAPI url eulerClient "loyalty-info" proxy
     >>= fromEitherM (\err -> InternalError $ "Failed to call loyalty info API: " <> show err)
 
