@@ -142,6 +142,23 @@ instance ToJSON EInvoicePayload where
         "EwbDtls" .= ewbDtls
       ]
 
+  -- Servant's JSON content type encodes via `toEncoding`. Aeson's default
+  -- @toEncoding = toEncoding . toJSON@ materializes a Value first, routing
+  -- nested @ItemEntry@/@ValDtls@ through THEIR toJSON (the default Double
+  -- encoder → \"8.0e-2\"). Override with @pairs@ so each field's own
+  -- toEncoding fires and the fixed-point overrides on ItemEntry/ValDtls
+  -- are actually exercised on the wire.
+  toEncoding EInvoicePayload {..} =
+    pairs $
+      "Version" .= version
+        <> "TranDtls" .= tranDtls
+        <> "DocDtls" .= docDtls
+        <> "SellerDtls" .= sellerDtls
+        <> "BuyerDtls" .= buyerDtls
+        <> "ItemList" .= itemList
+        <> "ValDtls" .= valDtls
+        <> "EwbDtls" .= ewbDtls
+
 data TranDtls = TranDtls
   { taxSch :: Text,
     supTyp :: Text
