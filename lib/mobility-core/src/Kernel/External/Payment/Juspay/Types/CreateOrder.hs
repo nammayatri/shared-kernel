@@ -86,7 +86,7 @@ data PaymentFlows = PaymentFlows
 
 data PaymentFlowStatus = PaymentFlowStatus
   { status :: Text,
-    info :: Maybe PaymentFlowInfo
+    info :: PaymentFlowInfo
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
