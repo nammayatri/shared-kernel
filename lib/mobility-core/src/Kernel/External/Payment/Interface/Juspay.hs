@@ -315,7 +315,7 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantI
           split_settlement_details = splitDetails,
           basket = decodeUtf8 . A.encode <$> basket,
           auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
-          auto_refund_post_success = autoRefundPostSuccess,
+          auto_refund_post_success = bool "false" "true" <$> autoRefundPostSuccess,
           payment_rules = mkPaymentRules <$> paymentRules
         }
 

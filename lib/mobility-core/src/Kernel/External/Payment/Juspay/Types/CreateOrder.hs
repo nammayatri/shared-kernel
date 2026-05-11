@@ -50,7 +50,7 @@ data CreateOrderReq = CreateOrderReq
     options_get_upi_deep_links :: Maybe Bool,
     metadata_expiry_in_mins :: Maybe Int,
     split_settlement_details :: Maybe SplitSettlementDetails,
-    auto_refund_post_success :: Maybe Bool,
+    auto_refund_post_success :: Maybe Text,
     basket :: Maybe Text,
     auto_refund_conflict_threshold_minutes :: Maybe Int,
     payment_rules :: Maybe PaymentRules
