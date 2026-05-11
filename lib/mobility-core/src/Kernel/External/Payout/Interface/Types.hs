@@ -25,7 +25,7 @@ where
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payment.Stripe.Types as Stripe
 import qualified Kernel.External.Payout.Juspay.Config as Juspay
-import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), PayoutOrderStatus (..))
+import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..))
 import qualified Kernel.External.Payout.Stripe.Config as Stripe
 import Kernel.External.Payout.Stripe.Types as Reexport (ExternalPayoutStatus (..), TransferId (..))
 import Kernel.Prelude
@@ -35,6 +35,31 @@ import Servant.API (ToHttpApiData (..))
 
 data PayoutServiceConfig = JuspayConfig Juspay.JuspayConfig | StripeConfig Stripe.StripeConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data PayoutOrderStatus
+  = READY_FOR_FULFILLMENT
+  | FULFILLMENTS_SCHEDULED
+  | FULFILLMENTS_FAILURE
+  | FULFILLMENTS_SUCCESSFUL
+  | FULFILLMENTS_CANCELLED
+  | FULFILLMENTS_MANUAL_REVIEW
+  | FULFILLED_PARTIALLY
+  | INITIATED
+  | FAILURE
+  | SUCCESS
+  | DISCARDED
+  | MANUAL_REVIEW
+  | CANCELLED
+  | GATEWAY_SWITCHED
+  | ERROR
+  | INVALID
+  | VALID
+  | CONFLICTED
+  | REVERSED
+  | TRANSFERRED -- Stripe specific
+  deriving (Show, Generic, Ord, Read, FromJSON, ToJSON, ToSchema, Eq)
+
+$(mkBeamInstancesForEnum ''PayoutOrderStatus)
 
 data OrderStatusPayoutResp
   = OrderStatusPayoutResp
@@ -56,6 +81,7 @@ type AccountId = Text
 data CreatePayoutOrderReq = CreatePayoutOrderReq
   { orderId :: Text,
     amount :: HighPrecMoney,
+    externalPayoutAmount :: HighPrecMoney,
     currency :: Currency,
     customerPhone :: Text,
     customerEmail :: Text,
@@ -107,6 +133,7 @@ instance ToHttpApiData Expand where
 
 data PayoutOrderStatusReq = PayoutOrderStatusReq
   { orderId :: Text,
+    amount :: HighPrecMoney,
     idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
     mbExpand :: Maybe Expand, -- Juspay specific
     mRoutingId :: Maybe Text, -- Juspay specific
@@ -125,10 +152,10 @@ type ExternalPayoutOrderStatusReq = PayoutOrderStatusReq
 
 data CreateExternalPayoutResp = CreateExternalPayoutResp
   { orderId :: Text,
-    externalPayoutStatus :: Maybe ExternalPayoutStatus, -- Stripe specific: payout status from driver/fleet connected account to driver/fleet bank account/card
+    externalPayoutStatus :: ExternalPayoutStatus, -- Stripe specific: payout status from driver/fleet connected account to driver/fleet bank account/card
     orderType :: Maybe Text,
     idAssignedByServiceProvider :: Maybe Text, -- Stripe specific
-    amount :: HighPrecMoney,
+    externalPayoutAmount :: HighPrecMoney,
     customerId :: Maybe Text
   }
 

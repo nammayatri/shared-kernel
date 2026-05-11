@@ -27,7 +27,6 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Error
 import Kernel.Utils.Common
 
--- TODO handle retrie when external payout status is not okay
 createPayoutOrder ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -44,7 +43,6 @@ createPayoutOrder serviceConfig req = case serviceConfig of
     connectedAccountId <- req.mConnectedAccountId & fromMaybeM (InvalidRequest "connectedAccountId required for Stripe payout")
     createTransferResp <- Stripe.createTransfer cfg (mkTransferReq connectedAccountId req)
 
-    -- IMPORTANT: always consider status = SUCCESS if transfer was successfull, even if external payout was failed
     result <- withTryCatch "createExternalPayout" $ Stripe.createExternalPayout cfg req
     createExternalPayoutResp <- case result of
       Right resp -> pure resp
@@ -56,10 +54,10 @@ createPayoutOrder serviceConfig req = case serviceConfig of
         pure
           CreateExternalPayoutResp
             { orderId = req.orderId,
-              externalPayoutStatus = Just EXTERNAL_PAYOUT_FAILED,
+              externalPayoutStatus = EXTERNAL_PAYOUT_FAILED,
               orderType = Just req.orderType,
               idAssignedByServiceProvider = Nothing,
-              amount = req.amount,
+              externalPayoutAmount = req.externalPayoutAmount,
               customerId = Just req.customerId
             }
     pure $ mkCreatePayoutOrderResp createTransferResp createExternalPayoutResp
@@ -80,8 +78,8 @@ createPayoutOrder serviceConfig req = case serviceConfig of
     mkCreatePayoutOrderResp CreateTransferResp {transferId} CreateExternalPayoutResp {..} =
       CreatePayoutOrderResp
         { orderId,
-          status = SUCCESS, -- IMPORTANT: always consider SUCCESS if transfer was successfull, to avoid multiple charges
-          externalPayoutStatus,
+          status = castExternalPayoutStatusToStatus externalPayoutStatus,
+          externalPayoutStatus = Just externalPayoutStatus,
           orderType,
           transferId = Just transferId,
           idAssignedByServiceProvider,
@@ -90,12 +88,21 @@ createPayoutOrder serviceConfig req = case serviceConfig of
           udf3 = Nothing,
           udf4 = Nothing,
           udf5 = Nothing,
-          amount,
+          amount = req.amount,
           refunds = Nothing,
           payments = Nothing,
           fulfillments = Nothing,
           customerId
         }
+
+-- IMPORTANT: always consider TRANSFERRED or SUCCESS if transfer was successfull, to avoid multiple charges
+castExternalPayoutStatusToStatus :: ExternalPayoutStatus -> PayoutOrderStatus
+castExternalPayoutStatusToStatus = \case
+  EXTERNAL_PAYOUT_PAID -> SUCCESS
+  EXTERNAL_PAYOUT_PENDING -> TRANSFERRED
+  EXTERNAL_PAYOUT_IN_TRANSIT -> TRANSFERRED
+  EXTERNAL_PAYOUT_FAILED -> TRANSFERRED
+  EXTERNAL_PAYOUT_CANCELED -> TRANSFERRED
 
 payoutOrderStatus ::
   ( EncFlow m r,
@@ -116,8 +123,8 @@ payoutOrderStatus serviceConfig req = case serviceConfig of
     mkPayoutOrderStatusResp CreateExternalPayoutResp {..} =
       CreatePayoutOrderResp
         { orderId,
-          status = req.currentStatus,
-          externalPayoutStatus,
+          status = if isJust req.transferId then castExternalPayoutStatusToStatus externalPayoutStatus else req.currentStatus, -- extra check for req.transferId
+          externalPayoutStatus = Just externalPayoutStatus,
           orderType,
           transferId = req.transferId,
           idAssignedByServiceProvider,
@@ -126,7 +133,7 @@ payoutOrderStatus serviceConfig req = case serviceConfig of
           udf3 = Nothing,
           udf4 = Nothing,
           udf5 = Nothing,
-          amount,
+          amount = req.amount,
           refunds = Nothing,
           payments = Nothing,
           fulfillments = Nothing,

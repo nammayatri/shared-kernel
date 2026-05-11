@@ -35,7 +35,7 @@ createExternalPayout config req = do
   where
     mkCreatePayoutReq CreatePayoutOrderReq {..} =
       Stripe.CreatePayoutReq
-        { amount = usdToCents amount,
+        { amount = usdToCents externalPayoutAmount,
           currency = T.toLower $ show currency,
           description = Just remark,
           destination = mExternalAccountId,
@@ -71,10 +71,10 @@ mkCreateExternalPayoutResp :: Text -> Maybe CreateExternalPayoutReq -> Stripe.Pa
 mkCreateExternalPayoutResp reqOrderId mbRequest stripeResp =
   CreateExternalPayoutResp
     { orderId = fromMaybe reqOrderId $ stripeResp.metadata >>= (.order_id),
-      externalPayoutStatus = Just stripeResp.status,
+      externalPayoutStatus = stripeResp.status,
       idAssignedByServiceProvider = Just $ unPayoutId stripeResp.id,
       orderType = (stripeResp.metadata >>= (.order_type)) <|> (mbRequest <&> (.orderType)),
-      amount = centsToUsd stripeResp.amount,
+      externalPayoutAmount = centsToUsd stripeResp.amount,
       customerId = (stripeResp.metadata >>= (.customer_id)) <|> (mbRequest <&> (.customerId))
     }
 
