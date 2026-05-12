@@ -550,3 +550,73 @@ instance FromJSON WalletScheduleEntry where
 
 instance ToJSON WalletScheduleEntry where
   toJSON = genericToJSON jsonCamelOptions
+
+-- | Request body for Juspay POST /txns (loyalty burn debit).
+data CreateTxnRequest = CreateTxnRequest
+  { orderId :: Text,
+    merchantId :: Text,
+    paymentMethodType :: Text,
+    paymentMethod :: Text,
+    gatewayId :: Text,
+    loyaltyOsDetails :: LoyaltyOsDetails,
+    format :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON CreateTxnRequest where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON CreateTxnRequest where
+  toJSON = genericToJSON jsonSnakeOptions
+
+data LoyaltyOsDetails = LoyaltyOsDetails
+  { programId :: Text,
+    burnOptionsSelected :: [BurnOptionSelected]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON LoyaltyOsDetails where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON LoyaltyOsDetails where
+  toJSON = genericToJSON jsonSnakeOptions
+
+-- | A single burn option selection: id_ maps to "id" on the wire to avoid the Haskell keyword.
+data BurnOptionSelected = BurnOptionSelected
+  { id_ :: Text,
+    points :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+burnOptionSelectedOptions :: Options
+burnOptionSelectedOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "id_" -> "id"
+        other -> other
+    }
+
+instance FromJSON BurnOptionSelected where
+  parseJSON = genericParseJSON burnOptionSelectedOptions
+
+instance ToJSON BurnOptionSelected where
+  toJSON = genericToJSON burnOptionSelectedOptions
+
+-- | Response from POST /txns. Juspay returns more fields (payment, txn_uuid, offer_details);
+-- we intentionally consume only status, order_id, and txn_id.
+data CreateTxnResponse = CreateTxnResponse
+  { status :: Text,
+    orderId :: Text,
+    txnId :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON CreateTxnResponse where
+  parseJSON = genericParseJSON jsonSnakeOptions
+
+instance ToJSON CreateTxnResponse where
+  toJSON = genericToJSON jsonSnakeOptions

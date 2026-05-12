@@ -315,6 +315,7 @@ library
       Kernel.External.SOS.Trinity.Flow
       Kernel.External.SOS.Trinity.Types
       Kernel.External.SOS.Types
+      Kernel.External.SVP.Types
       Kernel.External.Ticket.Interface
       Kernel.External.Ticket.Interface.Kapture
       Kernel.External.Ticket.Interface.Types

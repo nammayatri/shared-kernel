@@ -21,6 +21,7 @@ module Kernel.External.Wallet.Interface.Juspay
     walletBalance,
     walletVerifyTxn,
     loyaltyInfo,
+    createTxn,
   )
 where
 
@@ -112,3 +113,15 @@ loyaltyInfo ::
 loyaltyInfo config req = do
   apiKey <- decrypt config.apiKey
   Juspay.loyaltyInfo config.baseUrl apiKey req
+
+createTxn ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r
+  ) =>
+  WalletConfig.LoyaltyCfg ->
+  CreateTxnRequest ->
+  m CreateTxnResponse
+createTxn config req = do
+  apiKey <- decrypt config.apiKey
+  Juspay.createTxn config.baseUrl apiKey req

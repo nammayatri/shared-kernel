@@ -153,6 +153,24 @@ loyaltyInfo url apiKey req = do
   callAPI url eulerClient "loyalty-info" proxy
     >>= fromEitherM (\err -> InternalError $ "Failed to call loyalty info API: " <> show err)
 
+type CreateTxnAPI =
+  "txns"
+    :> BasicAuth "username-password" BasicAuthData
+    :> ReqBody '[JSON] CreateTxnRequest
+    :> Post '[JSON] CreateTxnResponse
+
+createTxn ::
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
+  BaseUrl ->
+  Text ->
+  CreateTxnRequest ->
+  m CreateTxnResponse
+createTxn url apiKey req = do
+  let proxy = Proxy @CreateTxnAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) req
+  callAPI url eulerClient "create-txn" proxy
+    >>= fromEitherM (\err -> InternalError $ "Failed to call create txn API: " <> show err)
+
 mkBasicAuthData :: Text -> BasicAuthData
 mkBasicAuthData apiKey =
   BasicAuthData

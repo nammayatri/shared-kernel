@@ -99,3 +99,13 @@ loyaltyInfo ::
   LoyaltyInfoRequest ->
   m LoyaltyInfoResponse
 loyaltyInfo config req = Juspay.loyaltyInfo config req
+
+createTxn ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r
+  ) =>
+  WalletConfig.LoyaltyCfg ->
+  CreateTxnRequest ->
+  m CreateTxnResponse
+createTxn config req = Juspay.createTxn config req
