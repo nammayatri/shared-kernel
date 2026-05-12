@@ -94,7 +94,7 @@ type ListPayoutsAPI =
     :> QueryParam "limit" Int
     :> QueryParam "starting_after" Text
     :> QueryParam "ending_before" Text
-    :> QueryParam "status" PayoutStatus
+    :> QueryParam "status" ExternalPayoutStatus
     :> Get '[JSON] PayoutList
 
 listPayouts ::
@@ -109,7 +109,7 @@ listPayouts ::
   Maybe Int -> -- limit
   Maybe Text -> -- starting_after
   Maybe Text -> -- ending_before
-  Maybe PayoutStatus -> -- status filter
+  Maybe ExternalPayoutStatus -> -- status filter
   m PayoutList
 listPayouts url apiKey connectedAccountId limit startingAfter endingBefore status = do
   let proxy = Proxy @ListPayoutsAPI

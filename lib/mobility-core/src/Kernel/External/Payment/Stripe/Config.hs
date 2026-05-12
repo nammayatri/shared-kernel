@@ -36,6 +36,7 @@ data StripeCfg = StripeCfg
     url :: BaseUrl,
     businessProfile :: Maybe BusinessProfile,
     chargeDestination :: ChargeDestination,
+    transferPaymentToConnectedAccount :: Maybe Bool,
     webhookEndpointSecret :: Maybe (EncryptedField 'AsEncrypted Text),
     webhookToleranceSeconds :: Maybe Seconds,
     serviceMode :: Maybe ServiceMode,

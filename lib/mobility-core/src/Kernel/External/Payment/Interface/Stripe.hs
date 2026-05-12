@@ -336,12 +336,13 @@ createPaymentIntent config req = do
       where
         mkPlatformPaymentIntentReq :: Stripe.PaymentIntentReq
         mkPlatformPaymentIntentReq =
-          let application_fee_amount = eurToCents applicationFeeAmount
-              amountInCents = eurToCents amountInUsd
+          let amountInCents = eurToCents amountInUsd
               payment_method = paymentMethod -- Use original payment method (NO cloning)
               receipt_email = receiptEmail
               on_behalf_of = Nothing -- OMIT for platform charges
-              transfer_data = Stripe.TransferData {destination = driverAccountId}
+              (transfer_data, application_fee_amount) = case config.transferPaymentToConnectedAccount of
+                Just False -> (Nothing, Nothing)
+                _ -> (Just $ Stripe.TransferData {destination = driverAccountId}, Just $ eurToCents applicationFeeAmount) -- True is default
               confirm = True
               description = Nothing
               setup_future_usage = Just Stripe.FutureUsageOffSession -- off_session: enables SCA exemption for saved cards
@@ -367,12 +368,12 @@ createPaymentIntent config req = do
       where
         mkPaymentIntentReq :: PaymentMethodId -> CreatePaymentIntentReq -> Stripe.PaymentIntentReq
         mkPaymentIntentReq clonedPaymentMethodId CreatePaymentIntentReq {amount = amountInUsd, ..} = do
-          let application_fee_amount = usdToCents applicationFeeAmount
+          let application_fee_amount = Just $ usdToCents applicationFeeAmount
           let amountInCents = usdToCents amountInUsd
           let payment_method = clonedPaymentMethodId
           let receipt_email = receiptEmail
           let on_behalf_of = Just driverAccountId
-          let transfer_data = Stripe.TransferData {destination = driverAccountId}
+          let transfer_data = Just $ Stripe.TransferData {destination = driverAccountId}
           let confirm = True
           let description = Nothing
           let setup_future_usage = Just Stripe.FutureUsageOffSession -- off_session: enables SCA exemption for saved cards

@@ -35,13 +35,13 @@ data PaymentIntentReq = PaymentIntentReq
     payment_method :: PaymentMethodId,
     receipt_email :: Maybe Text,
     setup_future_usage :: Maybe SetupFutureUsage,
-    application_fee_amount :: Int,
+    application_fee_amount :: Maybe Int,
     capture_method :: CaptureMethod,
     confirmation_method :: ConfirmationMethod,
     on_behalf_of :: Maybe AccountId,
     use_stripe_sdk :: Bool,
     return_url :: Text,
-    transfer_data :: TransferData
+    transfer_data :: Maybe TransferData
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -62,9 +62,9 @@ instance ToForm PaymentIntentReq where
           ("capture_method", [toQueryParam capture_method]),
           ("confirmation_method", [toQueryParam confirmation_method]),
           ("use_stripe_sdk", [toQueryParam use_stripe_sdk]),
-          ("return_url", [toQueryParam return_url]),
-          ("transfer_data[destination]", [toQueryParam transfer_data.destination])
+          ("return_url", [toQueryParam return_url])
         ]
+        <> maybeToForm "transfer_data[destination]" (transfer_data <&> (.destination))
         <> maybeToForm "metadata[order_short_id]" metadata.order_short_id
         <> maybeToForm "description" description
         <> maybeToForm "receipt_email" receipt_email
