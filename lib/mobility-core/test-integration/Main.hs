@@ -143,13 +143,14 @@ bootstrapEnv logger metrics =
 -- Wraps forwardEgressApp with a hit counter so we can assert traffic actually
 -- traversed it.
 countingForwarderApp ::
+  IOLogging.LoggerEnv ->
   IORef Int ->
   MasterCloudProxyConfig ->
   Http.Manager ->
   Application
-countingForwarderApp hits cfg mgr req sendResp = do
+countingForwarderApp logEnv hits cfg mgr req sendResp = do
   modifyIORef' hits (+ 1)
-  forwardEgressApp cfg mgr req sendResp
+  forwardEgressApp logEnv cfg mgr req sendResp
 
 main :: IO ()
 main = do
@@ -167,15 +168,15 @@ main = do
             masterSecret = Just "itest-secret"
           }
 
-  forwarderAsync <-
-    Async.async . Warp.run forwarderPort $
-      countingForwarderApp forwarderHits fwdCfg mgr
-
-  -- Let Warp bind.
-  liftIO $ threadDelay 1000000
-
   result <- Exc.try @Exc.SomeException $
     IOLogging.withLoggerEnv silentLoggerConfig (Just "itest") $ \logger -> do
+      forwarderAsync <-
+        Async.async . Warp.run forwarderPort $
+          countingForwarderApp logger forwarderHits fwdCfg mgr
+
+      -- Let Warp bind.
+      liftIO $ threadDelay 1000000
+
       coreMx <- Metrics.registerCoreMetricsContainer
       R.withFlowRuntime Nothing $ \flowRt0 -> do
         let flowRt = flowRt0 {R._httpClientManagers = HM.insert "default" mgr (R._httpClientManagers flowRt0)}
@@ -211,7 +212,8 @@ main = do
           (_, Left e) ->
             fail' ("forwarded call failed: " <> show e)
 
-  Async.cancel forwarderAsync
+        Async.cancel forwarderAsync
+
   case result of
     Left e -> do
       P.putStrLn $ "[itest] EXCEPTION: " <> P.show e

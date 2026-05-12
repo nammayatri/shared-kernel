@@ -117,10 +117,12 @@ instance IsHTTPError ForwardError where
 
 instance IsAPIError ForwardError
 
+-- The @X-Forwarder-Secret@ and @X-Forward-Destination@ headers are
+-- intentionally not declared here: validation happens inside the WAI
+-- 'forwardEgressApp', and declaring them on the Servant API caused them
+-- to be parsed twice per request.
 type ForwardAPI =
   "forward-egress"
-    :> Header "X-Forwarder-Secret" Text
-    :> Header "X-Forward-Destination" Text
     :> Raw
 
 forwardAPI :: Proxy ForwardAPI
