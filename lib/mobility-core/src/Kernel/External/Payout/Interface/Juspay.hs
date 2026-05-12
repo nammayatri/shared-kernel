@@ -35,7 +35,7 @@ import qualified Kernel.External.Payout.Juspay.Types.Payout as Payout
 import qualified Kernel.External.Payout.Juspay.Webhook as Juspay
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
-import Kernel.Types.Common
+import Kernel.Types.Common hiding (LogLevel (ERROR))
 import Kernel.Types.Error
 import Kernel.Types.Field
 import Kernel.Utils.Error.Throwing (fromMaybeM)
@@ -113,7 +113,10 @@ createPayoutOrder config req = do
     mkCreatePayoutOrderResp Payout.PayoutOrderResp {..} = do
       CreatePayoutOrderResp
         { amount = realToFrac amount,
+          externalPayoutStatus = Nothing,
+          transferId = Nothing,
           idAssignedByServiceProvider = Nothing,
+          status = castPayoutOrderStatus status,
           ..
         }
 
@@ -146,7 +149,10 @@ payoutOrderStatus config req = do
     mkPayoutOrderStatusResp Payout.PayoutOrderResp {..} = do
       CreatePayoutOrderResp
         { amount = realToFrac amount,
+          externalPayoutStatus = Nothing,
+          transferId = Nothing,
           idAssignedByServiceProvider = Nothing,
+          status = castPayoutOrderStatus status,
           ..
         }
 
@@ -171,7 +177,7 @@ mkWebhookOrderStatusPayoutResp payoutReq = case payoutReq.label of
         OrderStatusPayoutResp
           { payoutOrderId = orderId,
             idAssignedByServiceProvider = Nothing,
-            payoutStatus = payoutReq.info.status,
+            payoutStatus = castPayoutOrderStatus payoutReq.info.status,
             orderType = payoutReq.info._type,
             merchantCustomerId = payoutReq.info.merchantCustomerId,
             amount = realToFrac payoutReq.info.amount,
@@ -180,3 +186,25 @@ mkWebhookOrderStatusPayoutResp payoutReq = case payoutReq.label of
           }
     _ -> BadStatusResp
   _ -> BadStatusResp
+
+castPayoutOrderStatus :: Juspay.PayoutOrderStatus -> PayoutOrderStatus
+castPayoutOrderStatus status = case status of
+  Juspay.READY_FOR_FULFILLMENT -> READY_FOR_FULFILLMENT
+  Juspay.FULFILLMENTS_SCHEDULED -> FULFILLMENTS_SCHEDULED
+  Juspay.FULFILLMENTS_FAILURE -> FULFILLMENTS_FAILURE
+  Juspay.FULFILLMENTS_SUCCESSFUL -> FULFILLMENTS_SUCCESSFUL
+  Juspay.FULFILLMENTS_CANCELLED -> FULFILLMENTS_CANCELLED
+  Juspay.FULFILLMENTS_MANUAL_REVIEW -> FULFILLMENTS_MANUAL_REVIEW
+  Juspay.FULFILLED_PARTIALLY -> FULFILLED_PARTIALLY
+  Juspay.INITIATED -> INITIATED
+  Juspay.FAILURE -> FAILURE
+  Juspay.SUCCESS -> SUCCESS
+  Juspay.DISCARDED -> DISCARDED
+  Juspay.MANUAL_REVIEW -> MANUAL_REVIEW
+  Juspay.CANCELLED -> CANCELLED
+  Juspay.GATEWAY_SWITCHED -> GATEWAY_SWITCHED
+  Juspay.ERROR -> ERROR
+  Juspay.INVALID -> INVALID
+  Juspay.VALID -> VALID
+  Juspay.CONFLICTED -> CONFLICTED
+  Juspay.REVERSED -> REVERSED

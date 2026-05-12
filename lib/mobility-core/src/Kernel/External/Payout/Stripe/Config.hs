@@ -16,6 +16,7 @@ module Kernel.External.Payout.Stripe.Config where
 import Data.Aeson
 import Kernel.External.Encryption
 import qualified Kernel.External.Payment.Stripe.Config as PaymentConfig
+import Kernel.External.Payment.Stripe.Types.Common (AccountId)
 import Kernel.Prelude
 import Kernel.Types.Common
 
@@ -24,7 +25,8 @@ data StripeConfig = StripeConfig
     url :: BaseUrl,
     webhookEndpointSecret :: Maybe (EncryptedField 'AsEncrypted Text),
     webhookToleranceSeconds :: Maybe Seconds,
-    serviceMode :: Maybe PaymentConfig.ServiceMode
+    serviceMode :: Maybe PaymentConfig.ServiceMode,
+    platformAccountId :: Maybe AccountId
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

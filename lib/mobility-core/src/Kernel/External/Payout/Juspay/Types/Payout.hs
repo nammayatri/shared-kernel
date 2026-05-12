@@ -45,8 +45,6 @@ data PayoutOrderStatus
   | REVERSED
   deriving (Show, Generic, Ord, Read, FromJSON, ToJSON, ToSchema, Eq)
 
-$(mkBeamInstancesForEnum ''PayoutOrderStatus)
-
 data WebhookDetails = WebhookDetails
   { username :: Maybe Text,
     password :: Maybe Text,
