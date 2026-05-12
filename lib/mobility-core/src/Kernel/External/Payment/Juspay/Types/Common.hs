@@ -69,7 +69,7 @@ $(mkBeamInstancesForEnum ''MandateFrequency)
 
 derivePersistField "MandateFrequency"
 
-data MandateStatus = CREATED | ACTIVE | FAILURE | PAUSED | EXPIRED | REVOKED
+data MandateStatus = CREATED | ACTIVE | FAILURE | PAUSED | EXPIRED | REVOKED | PAUSE_PENDING | REVOKE_PENDING
   deriving stock (Show, Read, Eq, Generic, Ord)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
