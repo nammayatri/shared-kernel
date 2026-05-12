@@ -49,6 +49,7 @@ import Kernel.Types.Common
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Utils.Dhall (FromDhall)
+import qualified Kernel.Utils.IOLogging as IOLog
 import Kernel.Utils.Logging
 import Kernel.Utils.Servant.BaseUrl (showBaseUrlText)
 import Kernel.Utils.Servant.Client (HasRequestId, defaultHttpManager)
@@ -196,15 +197,20 @@ interpretWithForwarder origBaseUrl fwdUrl secret (ET.EulerClient freeClient) =
         Right response -> go (cont response)
 
 -- AWS-side WAI handler. Validates secret, then replays the incoming request
--- to @X-Forward-Destination@ and proxies the response back.
+-- to @X-Forward-Destination@ and proxies the response back. The 'LoggerEnv'
+-- is the same one held on @AppEnv.loggerEnv@; log lines land in the standard
+-- Kibana index alongside @logInfo@/@logError@ output from the rest of the app.
 forwardEgressApp ::
+  IOLog.LoggerEnv ->
   MasterCloudProxyConfig ->
   Http.Manager ->
   Wai.Application
-forwardEgressApp cfg mgr req sendResp =
+forwardEgressApp logEnv cfg mgr req sendResp =
   case validateForwardRequest cfg req of
-    Left err -> sendResp (forwardErrorResponse err)
-    Right destReq -> proxyRequest destReq req sendResp mgr
+    Left err -> do
+      IOLog.logOutputIO logEnv ERROR ("forward-egress validation failed: " <> T.pack (show err)) Nothing Nothing
+      sendResp (forwardErrorResponse err)
+    Right destReq -> proxyRequest logEnv destReq req sendResp mgr
 
 -- Verify @X-Forwarder-Secret@ matches and parse @X-Forward-Destination@.
 -- Returns the prepared upstream request, or a typed 'ForwardError'.
@@ -249,15 +255,29 @@ httpCodeToStatus c =
    in HTTP.mkStatus (SS.errHTTPCode se) (TE.encodeUtf8 (T.pack (SS.errReasonPhrase se)))
 
 proxyRequest ::
+  IOLog.LoggerEnv ->
   Http.Request ->
   Wai.Request ->
   (Wai.Response -> IO Wai.ResponseReceived) ->
   Http.Manager ->
   IO Wai.ResponseReceived
-proxyRequest destReq0 incoming sendResp mgr = do
+proxyRequest logEnv destReq0 incoming sendResp mgr = do
   bodyBytes <- Wai.strictRequestBody incoming
   let destReq = buildDestRequest destReq0 incoming bodyBytes
   result <- Exc.try @Exc.SomeException (Http.httpLbs destReq mgr)
+  case result of
+    Left e -> do
+      let decode = TE.decodeUtf8With TEE.lenientDecode
+          destUrl =
+            fromMaybe (decode (Http.host destReq <> Http.path destReq <> Http.queryString destReq)) $
+              decode <$> lookup "X-Forward-Destination" (Wai.requestHeaders incoming)
+      IOLog.logOutputIO
+        logEnv
+        ERROR
+        ("forward-egress upstream FAILED " <> destUrl <> " err=" <> T.pack (show e))
+        Nothing
+        Nothing
+    Right _ -> pure ()
   sendResp (toWaiResponse result)
 
 -- Copy method/body/headers from the incoming WAI request onto the parsed
