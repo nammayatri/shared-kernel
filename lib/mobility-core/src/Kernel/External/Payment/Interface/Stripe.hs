@@ -5,6 +5,7 @@ module Kernel.External.Payment.Interface.Stripe
 where
 
 import Control.Applicative ((<|>))
+import qualified Data.Text as T
 import Data.Time
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Kernel.External.Encryption
@@ -325,7 +326,7 @@ createPaymentIntent config req = do
     ConnectedAccount -> createConnectedAccountCharge url apiKey req
   where
     -- Platform Charge: No cloning, no on_behalf_of
-    createPlatformCharge url apiKey CreatePaymentIntentReq {amount = amonutInUsd, ..} = do
+    createPlatformCharge url apiKey CreatePaymentIntentReq {amount = amountInUsd, ..} = do
       let paymentIntentReq = mkPlatformPaymentIntentReq
       paymentIntentResp <- Stripe.createPaymentIntent url apiKey paymentIntentReq
       let paymentIntentId = paymentIntentResp.id
@@ -336,7 +337,7 @@ createPaymentIntent config req = do
         mkPlatformPaymentIntentReq :: Stripe.PaymentIntentReq
         mkPlatformPaymentIntentReq =
           let application_fee_amount = eurToCents applicationFeeAmount
-              amountInCents = eurToCents amonutInUsd
+              amountInCents = eurToCents amountInUsd
               payment_method = paymentMethod -- Use original payment method (NO cloning)
               receipt_email = receiptEmail
               on_behalf_of = Nothing -- OMIT for platform charges
@@ -365,9 +366,9 @@ createPaymentIntent config req = do
       return $ CreatePaymentIntentResp {..}
       where
         mkPaymentIntentReq :: PaymentMethodId -> CreatePaymentIntentReq -> Stripe.PaymentIntentReq
-        mkPaymentIntentReq clonedPaymentMethodId CreatePaymentIntentReq {amount = amonutInUsd, ..} = do
+        mkPaymentIntentReq clonedPaymentMethodId CreatePaymentIntentReq {amount = amountInUsd, ..} = do
           let application_fee_amount = usdToCents applicationFeeAmount
-          let amountInCents = usdToCents amonutInUsd
+          let amountInCents = usdToCents amountInUsd
           let payment_method = clonedPaymentMethodId
           let receipt_email = receiptEmail
           let on_behalf_of = Just driverAccountId
@@ -739,10 +740,10 @@ createRefund config req = do
       mkRefundResp <$> Stripe.createRefund url apiKey (Just req.driverAccountId) refundReq
 
     mkRefundReq :: CreateRefundReq -> Maybe Bool -> Stripe.RefundReq
-    mkRefundReq CreateRefundReq {amount = amonutInUsd, ..} reverse_transfer =
+    mkRefundReq CreateRefundReq {amount = amountInUsd, ..} reverse_transfer =
       let charge = Nothing
           payment_intent = Just req.paymentIntentId
-          amountInCents = eurToCents <$> amonutInUsd
+          amountInCents = eurToCents <$> amountInUsd
           metadata = Metadata {order_short_id = Just orderShortId, order_id = Just orderId, refunds_id = Just refundsId}
           refund_application_fee = Just req.refundApplicationFee
           instructions_email = req.email
@@ -802,7 +803,7 @@ mkGetRefundResp Stripe.RefundObject {..} =
       refundsId = metadata >>= (.refunds_id),
       paymentIntentId = payment_intent,
       amount = centsToUsd amount,
-      currency,
+      currency = readMaybe . T.unpack $ T.toUpper currency,
       status = castRefundStatus status,
       reverseTransferId = transfer_reversal,
       errorCode = failure_reason

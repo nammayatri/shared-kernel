@@ -924,7 +924,7 @@ data GetRefundResp = GetRefundResp
     refundsId :: Maybe Text,
     paymentIntentId :: Maybe PaymentIntentId,
     amount :: HighPrecMoney,
-    currency :: Currency,
+    currency :: Maybe Currency,
     status :: RefundStatus,
     reverseTransferId :: Maybe Text,
     errorCode :: Maybe Text

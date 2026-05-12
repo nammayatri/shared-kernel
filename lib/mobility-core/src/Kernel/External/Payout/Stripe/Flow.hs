@@ -115,3 +115,27 @@ listPayouts url apiKey connectedAccountId limit startingAfter endingBefore statu
   let proxy = Proxy @ListPayoutsAPI
       eulerClient = Euler.client proxy (PaymentFlow.mkBasicAuthData apiKey) connectedAccountId limit startingAfter endingBefore status
   PaymentFlow.callStripeAPI url eulerClient "list-payouts" proxy
+
+type CreateTransferAPI =
+  "v1"
+    :> "transfers"
+    :> BasicAuth "secretkey-password" BasicAuthData
+    :> Header "Stripe-Account" Text
+    :> ReqBody '[FormUrlEncoded] TransferReq
+    :> Post '[JSON] TransferObject
+
+createTransfer ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Maybe Text ->
+  TransferReq ->
+  m TransferObject
+createTransfer url apiKey connectedAccountId transferReq = do
+  let proxy = Proxy @CreateTransferAPI
+      eulerClient = Euler.client proxy (PaymentFlow.mkBasicAuthData apiKey) connectedAccountId transferReq
+  PaymentFlow.callStripeAPI url eulerClient "create-transfer" proxy

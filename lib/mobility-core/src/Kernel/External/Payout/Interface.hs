@@ -23,6 +23,7 @@ import Kernel.External.Payout.Interface.Types as Reexport
 import Kernel.External.Payout.Types as Reexport
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Error
 import Kernel.Utils.Common
 
 createPayoutOrder ::
@@ -51,3 +52,16 @@ payoutOrderStatus ::
 payoutOrderStatus serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req
   StripeConfig cfg -> Stripe.payoutOrderStatus cfg req
+
+createTransfer ::
+  ( CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PayoutServiceConfig ->
+  CreateTransferReq ->
+  m CreateTransferResp
+createTransfer config req = case config of
+  JuspayConfig _ -> throwError $ InternalError "Juspay Create Transfer not supported."
+  StripeConfig cfg -> Stripe.createTransfer cfg req

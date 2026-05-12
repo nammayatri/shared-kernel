@@ -1,12 +1,14 @@
 module Kernel.External.Payout.Interface.Stripe
   ( createPayoutOrder,
     payoutOrderStatus,
+    createTransfer,
   )
 where
 
 import Control.Applicative ((<|>))
 import qualified Data.Text as T
 import Kernel.External.Encryption
+import Kernel.External.Payment.Interface.Stripe (eurToCents)
 import qualified Kernel.External.Payment.Interface.Stripe as PaymentStripe
 import Kernel.External.Payout.Interface.Types
 import qualified Kernel.External.Payout.Juspay.Types.Payout as Juspay
@@ -97,3 +99,33 @@ castPayoutStatus = \case
   Stripe.PAYOUT_PAID -> Juspay.SUCCESS
   Stripe.PAYOUT_FAILED -> Juspay.FAILURE
   Stripe.PAYOUT_CANCELED -> Juspay.CANCELLED
+
+createTransfer ::
+  forall m r.
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  StripeConfig ->
+  CreateTransferReq ->
+  m CreateTransferResp
+createTransfer config req = do
+  let url = config.url
+  apiKey <- decrypt config.apiKey
+  transferReq <- buildCreateTransferReq req
+  let senderAccountId = case req.senderAccountId of
+        TransferConnectedAccount accountId -> Just accountId
+        TransferPlatformAccount -> Nothing
+  mkCreateTransferResp <$> Stripe.createTransfer url apiKey senderAccountId transferReq
+  where
+    buildCreateTransferReq :: CreateTransferReq -> m Stripe.TransferReq
+    buildCreateTransferReq CreateTransferReq {amount = amountInUsd, ..} = do
+      let amountInCents = eurToCents amountInUsd
+      destination <- case destinationAccount of
+        TransferConnectedAccount accountId -> pure accountId
+        TransferPlatformAccount -> config.platformAccountId & fromMaybeM (InternalError "STRIPE_PLATFORM_ACCOUNT_ID_NOT_FOUND")
+      pure Stripe.TransferReq {amount = amountInCents, metadata = Nothing, currency = T.toLower $ show currency, ..}
+
+    mkCreateTransferResp :: Stripe.TransferObject -> CreateTransferResp
+    mkCreateTransferResp Stripe.TransferObject {..} = CreateTransferResp {transferId = id, transferStatus = TRANSFERRED}

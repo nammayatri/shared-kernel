@@ -26,6 +26,7 @@ import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payout.Juspay.Config as Juspay
 import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), PayoutOrderStatus (..))
 import qualified Kernel.External.Payout.Stripe.Config as Stripe
+import Kernel.External.Payout.Stripe.Types as Reexport (TransferId (..))
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common
@@ -112,3 +113,24 @@ data PayoutOrderStatusReq = PayoutOrderStatusReq
   deriving anyclass (FromJSON, ToJSON)
 
 type PayoutOrderStatusResp = CreatePayoutOrderResp
+
+data TransferAccount = TransferConnectedAccount AccountId | TransferPlatformAccount
+
+data CreateTransferReq = CreateTransferReq
+  { amount :: HighPrecMoney,
+    currency :: Currency,
+    senderAccountId :: TransferAccount,
+    destinationAccount :: TransferAccount,
+    description :: Maybe Text
+  }
+
+data TransferStatus = TRANSFERRED | NOT_TRANSFERRED
+  deriving stock (Show, Read, Eq, Ord, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+$(mkBeamInstancesForEnum ''TransferStatus)
+
+data CreateTransferResp = CreateTransferResp
+  { transferId :: TransferId,
+    transferStatus :: TransferStatus
+  }
