@@ -15,6 +15,7 @@
 module Kernel.External.Payment.Stripe.Webhook
   ( StripeWebhookAPI,
     serviceEventWebhook,
+    verifyStripeWebhookSignature,
     RawByteString (..),
   )
 where
@@ -89,24 +90,21 @@ serviceEventWebhook paymentConfig checkDuplicatedEvent serviceEventHandler mbSig
         logInfo $ "Stripe webhook parsing failed: " <> show err
         throwError $ InvalidRequest "STRIPE_WEBHOOK_PARSING_FAILED"
 
-verifyAuth ::
+-- | Verify @Stripe-Signature@ for a raw webhook body using the endpoint signing secret
+-- (same algorithm for payment and payout Stripe webhook endpoints).
+verifyStripeWebhookSignature ::
   EncFlow m r =>
-  PaymentServiceConfig ->
+  EncryptedField 'AsEncrypted Text ->
+  Seconds ->
   Text ->
   RawByteString ->
   m ()
-verifyAuth config sigHeader (RawByteString rawBody) = do
-  (secret, tolerance) <- case config of
-    StripeConfig cfg -> do
-      webhookEndpointSecret <- cfg.webhookEndpointSecret & fromMaybeM (InternalError "STRIPE_WEBHOOK_SECRET_NOT_FOUND")
-      s <- decrypt webhookEndpointSecret
-      pure (s, fromMaybe 300 cfg.webhookToleranceSeconds)
-    _ -> throwError (InternalError "NOT_STRIPE_CONFIG")
-
+verifyStripeWebhookSignature encryptedWebhookSecret toleranceSeconds sigHeader (RawByteString rawBody) = do
+  secret <- decrypt encryptedWebhookSecret
   (ts, sigsV1) <- parseStripeSignature sigHeader
   now <- getCurrentTime
   let tsUtc = posixSecondsToUTCTime (fromIntegral ts)
-  when (diffUTCTime now tsUtc > fromIntegral tolerance) $
+  when (diffUTCTime now tsUtc > fromIntegral toleranceSeconds) $
     throwError (InvalidRequest "STRIPE_SIGNATURE_TIMESTAMP_OUT_OF_TOLERANCE")
 
   let rawStrictBody = LBS.toStrict rawBody
@@ -115,6 +113,19 @@ verifyAuth config sigHeader (RawByteString rawBody) = do
 
   unless (any (secureEqHex expected) sigsV1) $
     throwError (InvalidRequest "INVALID_STRIPE_SIGNATURE")
+
+verifyAuth ::
+  EncFlow m r =>
+  PaymentServiceConfig ->
+  Text ->
+  RawByteString ->
+  m ()
+verifyAuth config sigHeader rawBytes = case config of
+  StripeConfig cfg -> do
+    encryptedSecret <- cfg.webhookEndpointSecret & fromMaybeM (InternalError "STRIPE_WEBHOOK_SECRET_NOT_FOUND")
+    let tolerance = fromMaybe 300 cfg.webhookToleranceSeconds
+    verifyStripeWebhookSignature encryptedSecret tolerance sigHeader rawBytes
+  _ -> throwError (InternalError "NOT_STRIPE_CONFIG")
 
 parseStripeSignature :: (MonadThrow m, Log m) => Text -> m (Int, [BS.ByteString])
 parseStripeSignature hdr = do

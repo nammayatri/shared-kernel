@@ -2,6 +2,10 @@ module Kernel.External.Payout.Interface.Stripe
   ( createExternalPayout,
     externalPayoutOrderStatus,
     createTransfer,
+    payoutStripeServiceEventWebhook,
+    castPayoutStatus,
+    unPayoutId,
+    module Reexport,
   )
 where
 
@@ -9,14 +13,20 @@ import Control.Applicative ((<|>))
 import qualified Data.Text as T
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Stripe (centsToUsd, eurToCents, usdToCents)
-import Kernel.External.Payout.Interface.Types
+import Kernel.External.Payment.Stripe.Types.Common (Event)
+import Kernel.External.Payment.Stripe.Webhook (RawByteString (..))
+import Kernel.External.Payout.Interface.Types as IPayout
 import qualified Kernel.External.Payout.Juspay.Types.Payout as Juspay
 import Kernel.External.Payout.Stripe.Config as Reexport
 import qualified Kernel.External.Payout.Stripe.Flow as Stripe
 import qualified Kernel.External.Payout.Stripe.Types as Stripe
+import qualified Kernel.External.Payout.Stripe.Types.Webhook as PayoutWh
+import qualified Kernel.External.Payout.Stripe.Webhook as PayoutStripeWh
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.Beckn.Ack
 import Kernel.Types.Error
+import Kernel.Types.Id
 import Kernel.Utils.Common
 
 createExternalPayout ::
@@ -119,3 +129,21 @@ createTransfer config req = do
 
     mkCreateTransferResp :: Stripe.TransferObject -> CreateTransferResp
     mkCreateTransferResp Stripe.TransferObject {..} = CreateTransferResp {transferId = id, transferStatus = TRANSFERRED}
+
+payoutStripeServiceEventWebhook ::
+  ( EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PayoutServiceConfig ->
+  (Id Event -> m Bool) ->
+  (PayoutWh.PayoutStripeWebhookReq -> Text -> m AckResponse) ->
+  Maybe Text ->
+  RawByteString ->
+  m AckResponse
+payoutStripeServiceEventWebhook serviceConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes =
+  case serviceConfig of
+    IPayout.StripeConfig cfg ->
+      PayoutStripeWh.payoutServiceEventWebhook cfg checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes
+    IPayout.JuspayConfig _ ->
+      throwError $ InternalError "NOT_STRIPE_PAYOUT_SERVICE_FOR_WEBHOOK"
