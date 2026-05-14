@@ -41,7 +41,8 @@ data PaymentIntentReq = PaymentIntentReq
     on_behalf_of :: Maybe AccountId,
     use_stripe_sdk :: Bool,
     return_url :: Text,
-    transfer_data :: Maybe TransferData
+    transfer_data :: Maybe TransferData,
+    request_incremental_authorization :: Maybe Text
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -70,6 +71,7 @@ instance ToForm PaymentIntentReq where
         <> maybeToForm "receipt_email" receipt_email
         <> maybeToForm "setup_future_usage" setup_future_usage
         <> maybeToForm "on_behalf_of" on_behalf_of
+        <> maybeToForm "payment_method_options[card][request_incremental_authorization]" request_incremental_authorization
     where
       maybeToForm :: ToHttpApiData a => Text -> Maybe a -> HM.HashMap Text [Text]
       maybeToForm key = maybe HM.empty (\value -> HM.singleton key [toQueryParam value])
