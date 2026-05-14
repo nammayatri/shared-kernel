@@ -178,6 +178,9 @@ roundAmountByCurrency _ amount = amount -- for backward compatibility
 mkPriceAPIEntity :: Price -> PriceAPIEntity
 mkPriceAPIEntity Price {..} = PriceAPIEntity {..}
 
+mkRoundedPriceAPIEntity :: Price -> PriceAPIEntity
+mkRoundedPriceAPIEntity p = PriceAPIEntity (roundAmountByCurrency' p.currency p.amount) p.currency
+
 withCurrencyChecking ::
   (MonadThrow m, Log m) =>
   Price ->
