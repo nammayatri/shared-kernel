@@ -316,8 +316,23 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantI
           basket = decodeUtf8 . A.encode <$> basket,
           auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
           auto_refund_post_success = bool "false" "true" <$> autoRefundPostSuccess,
-          payment_rules = mkPaymentRules <$> paymentRules
+          payment_rules = mkPaymentRules <$> paymentRules,
+          payment_filter = mkPaymentFilter <$> paymentFilter
         }
+
+mkPaymentFilter :: PaymentFilter -> Juspay.PaymentFilter
+mkPaymentFilter PaymentFilter {..} =
+  Juspay.PaymentFilter
+    { allowDefaultOptions = allowDefaultOptions,
+      options = mkPaymentFilterOption <$> options
+    }
+
+mkPaymentFilterOption :: PaymentFilterOption -> Juspay.PaymentFilterOption
+mkPaymentFilterOption PaymentFilterOption {..} =
+  Juspay.PaymentFilterOption
+    { paymentMethodType = toUpper paymentMethodType,
+      enable = enable
+    }
 
 mkPaymentRules :: PaymentRules -> Juspay.PaymentRules
 mkPaymentRules PaymentRules {..} =

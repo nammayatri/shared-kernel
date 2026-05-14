@@ -24,7 +24,7 @@ where
 
 import Control.Lens
 import Data.Aeson.Types
-import Data.OpenApi hiding (description, email, info, name, title)
+import Data.OpenApi hiding (description, email, info, name, options, title)
 import Data.Time
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.External.Payment.Juspay.Config as Juspay
@@ -91,7 +91,22 @@ data CreateOrderReq = CreateOrderReq
     splitSettlementDetails :: Maybe SplitSettlementDetails,
     basket :: Maybe [Basket],
     paymentRules :: Maybe PaymentRules,
-    autoRefundPostSuccess :: Maybe Bool
+    autoRefundPostSuccess :: Maybe Bool,
+    paymentFilter :: Maybe PaymentFilter
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFilter = PaymentFilter
+  { allowDefaultOptions :: Bool,
+    options :: [PaymentFilterOption]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFilterOption = PaymentFilterOption
+  { paymentMethodType :: Text,
+    enable :: Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -967,7 +982,8 @@ data CreatePaymentReq = CreatePaymentReq
     metadataExpiryInMins :: Maybe Int,
     basket :: Maybe [Basket],
     paymentRules :: Maybe PaymentRules,
-    autoRefundPostSuccess :: Maybe Bool
+    autoRefundPostSuccess :: Maybe Bool,
+    paymentFilter :: Maybe PaymentFilter
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

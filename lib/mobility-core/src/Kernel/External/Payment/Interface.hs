@@ -569,7 +569,8 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
               splitSettlementDetails = req.splitSettlementDetails,
               basket = req.basket,
               paymentRules = req.paymentRules,
-              autoRefundPostSuccess = req.autoRefundPostSuccess
+              autoRefundPostSuccess = req.autoRefundPostSuccess,
+              paymentFilter = req.paymentFilter
             }
     resp <- Juspay.createOrder cfg mRoutingId juspayReq
     let clientSecret' = maybe "" (\p -> p.payload.clientAuthToken) (Just resp.sdk_payload)
@@ -626,7 +627,8 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
               splitSettlementDetails = req.splitSettlementDetails,
               basket = req.basket,
               paymentRules = req.paymentRules,
-              autoRefundPostSuccess = req.autoRefundPostSuccess
+              autoRefundPostSuccess = req.autoRefundPostSuccess,
+              paymentFilter = req.paymentFilter
             }
     resp <- PaytmEDC.createOrder cfg mRoutingId paytmReq
     let clientSecret' = maybe "" (\p -> p.payload.clientAuthToken) (Just resp.sdk_payload)

@@ -53,9 +53,24 @@ data CreateOrderReq = CreateOrderReq
     auto_refund_post_success :: Maybe Text,
     basket :: Maybe Text,
     auto_refund_conflict_threshold_minutes :: Maybe Int,
-    payment_rules :: Maybe PaymentRules
+    payment_rules :: Maybe PaymentRules,
+    payment_filter :: Maybe PaymentFilter
   }
   deriving stock (Show, Eq, Generic)
+
+data PaymentFilter = PaymentFilter
+  { allowDefaultOptions :: Bool,
+    options :: [PaymentFilterOption]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data PaymentFilterOption = PaymentFilterOption
+  { paymentMethodType :: Text,
+    enable :: Bool
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data PaymentRules = PaymentRules
   { payment_flows :: PaymentFlows
