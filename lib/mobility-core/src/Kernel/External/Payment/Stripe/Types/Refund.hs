@@ -9,7 +9,6 @@ import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Kernel.External.Payment.Stripe.Types.Common
 import Kernel.Prelude
 import Kernel.Types.HideSecrets
-import Kernel.Types.Price (Currency)
 import Kernel.Utils.JSON
 import qualified Kernel.Utils.Schema as S
 import Web.FormUrlEncoded
@@ -56,7 +55,7 @@ data RefundObject = RefundObject
     balance_transaction :: Maybe Text, -- Balance transaction that describes the impact of this refund on your account balance
     charge :: Maybe Text, -- ID of the charge that was refunded
     created :: Int, -- Time at which the refund was created
-    currency :: Currency, -- Currency of the refund
+    currency :: Text, -- Currency of the refund
     metadata :: Maybe Metadata, -- Set of key-value pairs attached to the refund
     payment_intent :: Maybe Text, -- ID of the PaymentIntent that was refunded
     reason :: Maybe RefundReason, -- Reason for the refund

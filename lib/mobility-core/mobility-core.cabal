@@ -221,6 +221,7 @@ library
       Kernel.External.Payout.Stripe.Types
       Kernel.External.Payout.Stripe.Types.Common
       Kernel.External.Payout.Stripe.Types.Payout
+      Kernel.External.Payout.Stripe.Types.Transfer
       Kernel.External.Payout.Types
       Kernel.External.Plasma
       Kernel.External.Plasma.Interface
