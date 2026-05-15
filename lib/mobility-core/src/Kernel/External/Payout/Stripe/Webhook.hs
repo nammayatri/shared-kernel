@@ -10,7 +10,7 @@ where
 import qualified Data.Aeson as A
 import Kernel.External.Payment.Stripe.Types.Common (Event)
 import Kernel.External.Payment.Stripe.Webhook (RawByteString (..), verifyStripeWebhookSignature)
-import Kernel.External.Payout.Stripe.Config (StripeConfig (..))
+import Kernel.External.Payout.Interface.Types
 import qualified Kernel.External.Payout.Stripe.Types.Webhook as PayoutWh
 import Kernel.Prelude
 import Kernel.Types.Beckn.Ack
@@ -31,21 +31,20 @@ payoutServiceEventWebhook ::
     HasRequestId r,
     MonadReader r m
   ) =>
-  StripeConfig ->
+  PayoutServiceConfig ->
   (Id Event -> m Bool) ->
   (PayoutWh.PayoutStripeWebhookReq -> Text -> m AckResponse) ->
   Maybe Text ->
   RawByteString ->
   m AckResponse
-payoutServiceEventWebhook payoutStripeConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes = do
+payoutServiceEventWebhook payoutConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes = do
   withLogTag "stripePayoutWebhook" $ do
     let mResp = A.eitherDecode (getRawByteString rawBytes)
     case mResp of
       Right (resp :: PayoutWh.PayoutStripeWebhookReq) -> withLogTag ("eventId-" <> resp.id.getId) $ do
         sigHeader <- mbSigHeader & fromMaybeM (InvalidRequest "Stripe-Signature header did not found")
-        encryptedSecret <- payoutStripeConfig.webhookEndpointSecret & fromMaybeM (InternalError "STRIPE_PAYOUT_WEBHOOK_SECRET_NOT_FOUND")
-        let tolerance = fromMaybe (Seconds 300) payoutStripeConfig.webhookToleranceSeconds
-        void $ verifyStripeWebhookSignature encryptedSecret tolerance sigHeader rawBytes
+        void $ verifyAuth payoutConfig sigHeader rawBytes
+        -- according to docs run heavy logic asynchronically and return 200 quickly
         fork "stripe payout webhook" $ do
           isDuplicatedEvent <- checkDuplicatedEvent resp.id
           if not isDuplicatedEvent
@@ -58,3 +57,16 @@ payoutServiceEventWebhook payoutStripeConfig checkDuplicatedEvent serviceEventHa
       Left err -> do
         logInfo $ "Stripe payout webhook parsing failed: " <> show err
         throwError $ InvalidRequest "STRIPE_PAYOUT_WEBHOOK_PARSING_FAILED"
+
+verifyAuth ::
+  EncFlow m r =>
+  PayoutServiceConfig ->
+  Text ->
+  RawByteString ->
+  m ()
+verifyAuth config sigHeader rawBytes = case config of
+  StripeConfig cfg -> do
+    encryptedSecret <- cfg.webhookEndpointSecret & fromMaybeM (InternalError "STRIPE_WEBHOOK_SECRET_NOT_FOUND")
+    let tolerance = fromMaybe 300 cfg.webhookToleranceSeconds
+    verifyStripeWebhookSignature encryptedSecret tolerance sigHeader rawBytes
+  _ -> throwError (InternalError "NOT_STRIPE_CONFIG")

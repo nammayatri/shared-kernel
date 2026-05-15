@@ -142,8 +142,4 @@ payoutStripeServiceEventWebhook ::
   RawByteString ->
   m AckResponse
 payoutStripeServiceEventWebhook serviceConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes =
-  case serviceConfig of
-    IPayout.StripeConfig cfg ->
-      PayoutStripeWh.payoutServiceEventWebhook cfg checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes
-    IPayout.JuspayConfig _ ->
-      throwError $ InternalError "NOT_STRIPE_PAYOUT_SERVICE_FOR_WEBHOOK"
+  PayoutStripeWh.payoutServiceEventWebhook serviceConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes

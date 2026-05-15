@@ -90,6 +90,19 @@ serviceEventWebhook paymentConfig checkDuplicatedEvent serviceEventHandler mbSig
         logInfo $ "Stripe webhook parsing failed: " <> show err
         throwError $ InvalidRequest "STRIPE_WEBHOOK_PARSING_FAILED"
 
+verifyAuth ::
+  EncFlow m r =>
+  PaymentServiceConfig ->
+  Text ->
+  RawByteString ->
+  m ()
+verifyAuth config sigHeader rawBytes = case config of
+  StripeConfig cfg -> do
+    encryptedSecret <- cfg.webhookEndpointSecret & fromMaybeM (InternalError "STRIPE_WEBHOOK_SECRET_NOT_FOUND")
+    let tolerance = fromMaybe 300 cfg.webhookToleranceSeconds
+    verifyStripeWebhookSignature encryptedSecret tolerance sigHeader rawBytes
+  _ -> throwError (InternalError "NOT_STRIPE_CONFIG")
+
 -- | Verify @Stripe-Signature@ for a raw webhook body using the endpoint signing secret
 -- (same algorithm for payment and payout Stripe webhook endpoints).
 verifyStripeWebhookSignature ::
@@ -113,19 +126,6 @@ verifyStripeWebhookSignature encryptedWebhookSecret toleranceSeconds sigHeader (
 
   unless (any (secureEqHex expected) sigsV1) $
     throwError (InvalidRequest "INVALID_STRIPE_SIGNATURE")
-
-verifyAuth ::
-  EncFlow m r =>
-  PaymentServiceConfig ->
-  Text ->
-  RawByteString ->
-  m ()
-verifyAuth config sigHeader rawBytes = case config of
-  StripeConfig cfg -> do
-    encryptedSecret <- cfg.webhookEndpointSecret & fromMaybeM (InternalError "STRIPE_WEBHOOK_SECRET_NOT_FOUND")
-    let tolerance = fromMaybe 300 cfg.webhookToleranceSeconds
-    verifyStripeWebhookSignature encryptedSecret tolerance sigHeader rawBytes
-  _ -> throwError (InternalError "NOT_STRIPE_CONFIG")
 
 parseStripeSignature :: (MonadThrow m, Log m) => Text -> m (Int, [BS.ByteString])
 parseStripeSignature hdr = do
