@@ -59,12 +59,12 @@ instance ToForm PaymentIntentReq where
           ("confirm", [toQueryParam confirm]),
           ("customer", [toQueryParam customer]),
           ("payment_method", [toQueryParam payment_method]),
-          ("application_fee_amount", [toQueryParam application_fee_amount]),
           ("capture_method", [toQueryParam capture_method]),
           ("confirmation_method", [toQueryParam confirmation_method]),
           ("use_stripe_sdk", [toQueryParam use_stripe_sdk]),
           ("return_url", [toQueryParam return_url])
         ]
+        <> maybeToForm "application_fee_amount" application_fee_amount
         <> maybeToForm "transfer_data[destination]" (transfer_data <&> (.destination))
         <> maybeToForm "metadata[order_short_id]" metadata.order_short_id
         <> maybeToForm "description" description
