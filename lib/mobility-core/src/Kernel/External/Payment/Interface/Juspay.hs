@@ -350,7 +350,7 @@ mkPaymentFlowStatus :: PaymentFlowStatus -> Juspay.PaymentFlowStatus
 mkPaymentFlowStatus PaymentFlowStatus {..} =
   Juspay.PaymentFlowStatus
     { status = status,
-      info = mkPaymentFlowInfo <$> info
+      info = mkPaymentFlowInfo info
     }
 
 mkPaymentFlowInfo :: PaymentFlowInfo -> Juspay.PaymentFlowInfo
@@ -432,7 +432,7 @@ orderStatus config mRoutingId req = do
       mkOrderStatusResp <$> Juspay.orderStatus url apiKey merchantId mRoutingId req.orderShortId
 
 mkOrderStatusResp :: Juspay.OrderStatusResp -> OrderStatusResp
-mkOrderStatusResp Juspay.OrderData {..} =
+mkOrderStatusResp orderData@Juspay.OrderData {..} =
   case mandate of
     Just justMandate ->
       MandateOrderStatusResp
@@ -505,6 +505,7 @@ mkOrderStatusResp Juspay.OrderData {..} =
           offers = maybe Nothing mkOffersData offers,
           txnDetail = castTxnDetail <$> txn_detail,
           loyaltyInfo = mkLoyaltyInfo <$> loyalty_info,
+          txnList = mkTxnList orderData,
           ..
         }
 
@@ -519,6 +520,7 @@ mkLoyaltyBurnDetail :: Juspay.BurnDetail -> LoyaltyBurnDetail
 mkLoyaltyBurnDetail Juspay.BurnDetail {..} =
   LoyaltyBurnDetail
     { programId = program_id,
+      programType = Nothing,
       burnOptions = mapMaybe mkLoyaltyBurnOption (fromMaybe [] burn_options_selected),
       reversedPoints = reversed >>= parseLoyaltyPoints . (.points)
     }
@@ -536,6 +538,7 @@ mkLoyaltyEarnDetail Juspay.EarnDetail {..} = do
   pure
     LoyaltyEarnDetail
       { programId = program_id,
+        programType = Nothing,
         points = pts,
         reversedPoints = reversed >>= parseLoyaltyPoints . (.points),
         campaigns = mapMaybe mkLoyaltyEarnCampaign (fromMaybe [] campaigns)
@@ -561,8 +564,77 @@ castUpi Juspay.Upi {..} = Upi {payerApp = payer_app, payerAppName = payer_app_na
 castCard :: Juspay.CardInfo -> CardInfo
 castCard Juspay.CardInfo {..} = CardInfo {cardType = card_type, lastFourDigits = last_four_digits, nameOnCard = name_on_card, cardBrand = card_brand, cardIsin = card_isin, cardIssuer = card_issuer}
 
+mkTxnList :: Juspay.OrderData -> [TxnObject]
+mkTxnList orderData = case orderData.txn_list of
+  Just xs@(_ : _) -> castTxnObject <$> xs
+  _ -> [synthTxnObject orderData]
+
 castTxnDetail :: Juspay.TxnDetail -> TxnDetail
-castTxnDetail Juspay.TxnDetail {..} = TxnDetail {gateway = gateway, surchargeAmount = realToFrac <$> surcharge_amount, taxAmount = realToFrac <$> tax_amount, netAmount = realToFrac <$> net_amount}
+castTxnDetail Juspay.TxnDetail {..} =
+  TxnDetail
+    { gateway = gateway,
+      surchargeAmount = realToFrac <$> surcharge_amount,
+      taxAmount = realToFrac <$> tax_amount,
+      netAmount = realToFrac <$> net_amount
+    }
+
+castTxnObject :: Juspay.TxnObject -> TxnObject
+castTxnObject Juspay.TxnObject {..} =
+  TxnObject
+    { txnId = txn_id,
+      txnUuid = txn_uuid,
+      paymentMethodType = payment_method_type,
+      paymentMethod = payment_method,
+      effectiveAmount = realToFrac <$> effective_amount,
+      respCode = resp_code,
+      respMessage = resp_message,
+      bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
+      bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
+      gatewayReferenceId = gateway_reference_id,
+      txnDetail = castTxnDetail <$> txn_detail,
+      paymentGatewayResponse =
+        payment_gateway_response
+          <&> ( \pgResp ->
+                  PaymentGatewayResponse
+                    { respCode = pgResp.resp_code,
+                      rrn = pgResp.rrn,
+                      created = pgResp.created,
+                      epgTxnId = pgResp.epg_txn_id,
+                      respMessage = pgResp.resp_message,
+                      authIdCode = pgResp.auth_id_code,
+                      txnId = pgResp.txn_id
+                    }
+              )
+    }
+
+synthTxnObject :: Juspay.OrderData -> TxnObject
+synthTxnObject Juspay.OrderData {..} =
+  TxnObject
+    { txnId = txn_id,
+      txnUuid = txn_uuid,
+      paymentMethodType = payment_method_type,
+      paymentMethod = payment_method,
+      effectiveAmount = realToFrac <$> effective_amount,
+      respCode = resp_code,
+      respMessage = resp_message,
+      bankErrorCode = if bank_error_code == Just "" then Nothing else bank_error_code,
+      bankErrorMessage = if bank_error_message == Just "" then Nothing else bank_error_message,
+      gatewayReferenceId = gateway_reference_id,
+      txnDetail = castTxnDetail <$> txn_detail,
+      paymentGatewayResponse =
+        payment_gateway_response
+          <&> ( \pgResp ->
+                  PaymentGatewayResponse
+                    { respCode = pgResp.resp_code,
+                      rrn = pgResp.rrn,
+                      created = pgResp.created,
+                      epgTxnId = pgResp.epg_txn_id,
+                      respMessage = pgResp.resp_message,
+                      authIdCode = pgResp.auth_id_code,
+                      txnId = pgResp.txn_id
+                    }
+              )
+    }
 
 mkNotificationReq :: MandateNotificationReq -> Juspay.MandateNotificationReq
 mkNotificationReq mandateNotificationReq =
@@ -727,6 +799,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
               offers = maybe Nothing mkOffersData justOrder.offers,
               txnDetail = castTxnDetail <$> justOrder.txn_detail,
               loyaltyInfo = mkLoyaltyInfo <$> justOrder.loyalty_info,
+              txnList = mkTxnList justOrder,
               ..
             }
     (Nothing, Just justMandate, _, _) ->
@@ -795,6 +868,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           offers = Nothing,
           txnDetail = castTxnDetail <$> justTransaction.txn_detail,
           loyaltyInfo = Nothing,
+          txnList = [],
           ..
         }
     (_, _, Nothing, _) -> BadStatusResp

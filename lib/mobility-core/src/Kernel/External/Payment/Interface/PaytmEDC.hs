@@ -431,5 +431,6 @@ mkOrderStatusResp response orderId =
           effectiveAmount = Nothing,
           offers = Nothing,
           txnDetail = Nothing,
-          loyaltyInfo = Nothing
+          loyaltyInfo = Nothing,
+          txnList = []
         }

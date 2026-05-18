@@ -148,6 +148,7 @@ data TransactionStatus
   = NEW
   | PENDING_VBV
   | CHARGED
+  | PARTIAL_CHARGED
   | AUTHENTICATION_FAILED
   | AUTHORIZATION_FAILED
   | CANCELLED -- for stripe
@@ -171,6 +172,23 @@ instance ToHttpApiData TransactionStatus where
   toUrlPiece = T.pack . show
 
 type OrderStatusResp = OrderData
+
+data TxnObject = TxnObject
+  { txn_id :: Maybe Text,
+    txn_uuid :: Maybe Text,
+    payment_method_type :: Maybe Text,
+    payment_method :: Maybe Text,
+    effective_amount :: Maybe Double,
+    resp_code :: Maybe Text,
+    resp_message :: Maybe Text,
+    bank_error_code :: Maybe Text,
+    bank_error_message :: Maybe Text,
+    gateway_reference_id :: Maybe Text,
+    txn_detail :: Maybe TxnDetail,
+    payment_gateway_response :: Maybe PaymentGatewayResponse
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data OrderData = OrderData
   { order_id :: Text,
@@ -203,7 +221,8 @@ data OrderData = OrderData
     effective_amount :: Maybe Double,
     offers :: Maybe [Offer],
     txn_detail :: Maybe TxnDetail,
-    loyalty_info :: Maybe LoyaltyInfo
+    loyalty_info :: Maybe LoyaltyInfo,
+    txn_list :: Maybe [TxnObject]
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

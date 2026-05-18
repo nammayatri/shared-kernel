@@ -28,6 +28,7 @@ data JuspayWalletConfig = JuspayWalletConfig
 
 data LoyaltyCfg = LoyaltyCfg
   { baseUrl :: BaseUrl,
-    apiKey :: EncryptedField 'AsEncrypted Text
+    apiKey :: EncryptedField 'AsEncrypted Text,
+    merchantId :: Text
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)

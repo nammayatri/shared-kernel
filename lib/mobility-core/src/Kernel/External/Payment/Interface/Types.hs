@@ -125,7 +125,7 @@ data PaymentFlows = PaymentFlows
 
 data PaymentFlowStatus = PaymentFlowStatus
   { status :: Text,
-    info :: Maybe PaymentFlowInfo
+    info :: PaymentFlowInfo
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -272,7 +272,8 @@ data OrderStatusResp
         effectiveAmount :: Maybe HighPrecMoney,
         offers :: Maybe [Offer],
         txnDetail :: Maybe TxnDetail,
-        loyaltyInfo :: Maybe LoyaltyInfo
+        loyaltyInfo :: Maybe LoyaltyInfo,
+        txnList :: [TxnObject]
       }
   | MandateOrderStatusResp
       { eventName :: Maybe PaymentStatus,
@@ -375,6 +376,23 @@ data TxnDetail = TxnDetail
   deriving stock (Show, Read, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data TxnObject = TxnObject
+  { txnId :: Maybe Text,
+    txnUuid :: Maybe Text,
+    paymentMethodType :: Maybe Text,
+    paymentMethod :: Maybe Text,
+    effectiveAmount :: Maybe HighPrecMoney,
+    respCode :: Maybe Text,
+    respMessage :: Maybe Text,
+    bankErrorCode :: Maybe Text,
+    bankErrorMessage :: Maybe Text,
+    gatewayReferenceId :: Maybe Text,
+    txnDetail :: Maybe TxnDetail,
+    paymentGatewayResponse :: Maybe PaymentGatewayResponse
+  }
+  deriving stock (Show, Read, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 -- loyalty (points wallet) info, surfaced from Juspay ecr/orders response
 data LoyaltyInfo = LoyaltyInfo
   { burnDetails :: [LoyaltyBurnDetail],
@@ -385,6 +403,7 @@ data LoyaltyInfo = LoyaltyInfo
 
 data LoyaltyBurnDetail = LoyaltyBurnDetail
   { programId :: Text,
+    programType :: Maybe Text,
     burnOptions :: [LoyaltyBurnOption],
     reversedPoints :: Maybe HighPrecMoney
   }
@@ -401,6 +420,7 @@ data LoyaltyBurnOption = LoyaltyBurnOption
 
 data LoyaltyEarnDetail = LoyaltyEarnDetail
   { programId :: Text,
+    programType :: Maybe Text,
     points :: HighPrecMoney,
     reversedPoints :: Maybe HighPrecMoney,
     campaigns :: [LoyaltyEarnCampaign]
