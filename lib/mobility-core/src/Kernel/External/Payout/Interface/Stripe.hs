@@ -11,10 +11,12 @@ where
 
 import Control.Applicative ((<|>))
 import qualified Data.Text as T
+import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Stripe (centsToUsd, eurToCents, usdToCents)
 import Kernel.External.Payment.Stripe.Types.Common (Event)
 import Kernel.External.Payment.Stripe.Webhook (RawByteString (..))
+import qualified Kernel.External.Payout.Interface.Events.Types as Events
 import Kernel.External.Payout.Interface.Types as IPayout
 import qualified Kernel.External.Payout.Juspay.Types.Payout as Juspay
 import Kernel.External.Payout.Stripe.Config as Reexport
@@ -137,9 +139,70 @@ payoutStripeServiceEventWebhook ::
   ) =>
   PayoutServiceConfig ->
   (Id Event -> m Bool) ->
-  (PayoutWh.PayoutStripeWebhookReq -> Text -> m AckResponse) ->
+  (Events.PayoutServiceEventResp -> Text -> m AckResponse) ->
   Maybe Text ->
   RawByteString ->
   m AckResponse
-payoutStripeServiceEventWebhook serviceConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes =
-  PayoutStripeWh.payoutServiceEventWebhook serviceConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes
+payoutStripeServiceEventWebhook serviceConfig checkDuplicatedEvent serviceEventHandler =
+  PayoutStripeWh.payoutServiceEventWebhook serviceConfig checkDuplicatedEvent (\resp respDump -> buildPayoutServiceEventResp resp >>= flip serviceEventHandler respDump)
+
+buildPayoutServiceEventResp :: (MonadThrow m, Log m) => PayoutWh.PayoutStripeWebhookReq -> m Events.PayoutServiceEventResp
+buildPayoutServiceEventResp PayoutWh.PayoutStripeWebhookReq {..} = do
+  eventData <- buildPayoutEventObject _type _data._object
+  pure
+    Events.PayoutServiceEventResp
+      { id,
+        apiVersion = api_version,
+        createdAt = posixSecondsToUTCTime created,
+        eventData,
+        livemode,
+        pendingWebhooks = pending_webhooks,
+        eventType = _type,
+        ..
+      }
+
+buildPayoutEventObject :: (MonadThrow m, Log m) => PayoutWh.PayoutStripeWebhookEventType -> PayoutWh.PayoutStripeWebhookObject -> m Events.EventObject
+buildPayoutEventObject eventType stripeObject = case (eventType, stripeObject) of
+  (PayoutWh.PayoutCanceled, PayoutWh.ObjectPayout obj) -> pure $ Events.PayoutCanceledEvent $ mkPayoutObject obj
+  (PayoutWh.PayoutCreated, PayoutWh.ObjectPayout obj) -> pure $ Events.PayoutCreatedEvent $ mkPayoutObject obj
+  (PayoutWh.PayoutFailed, PayoutWh.ObjectPayout obj) -> pure $ Events.PayoutFailedEvent $ mkPayoutObject obj
+  (PayoutWh.PayoutPaid, PayoutWh.ObjectPayout obj) -> pure $ Events.PayoutPaidEvent $ mkPayoutObject obj
+  (PayoutWh.PayoutReconciliationCompleted, PayoutWh.ObjectPayout obj) -> pure $ Events.PayoutReconciliationCompletedEvent $ mkPayoutObject obj
+  (PayoutWh.PayoutUpdated, PayoutWh.ObjectPayout obj) -> pure $ Events.PayoutUpdatedEvent $ mkPayoutObject obj
+  (PayoutWh.TransferCreated, PayoutWh.ObjectTransfer obj) -> pure $ Events.TransferCreatedEvent $ mkTransferObject obj
+  (PayoutWh.TransferReversed, PayoutWh.ObjectTransfer obj) -> pure $ Events.TransferReversedEvent $ mkTransferObject obj
+  (PayoutWh.TransferUpdated, PayoutWh.ObjectTransfer obj) -> pure $ Events.TransferUpdatedEvent $ mkTransferObject obj
+  (PayoutWh.PayoutStripeWebhookCustomEvent eventName, PayoutWh.PayoutStripeWebhookCustomObject _ _) -> pure $ Events.CustomEvent eventName
+  (_, _) ->
+    throwError $
+      InvalidRequest $
+        "Invalid object: "
+          <> PayoutWh.getPayoutStripeWebhookObjectType stripeObject
+          <> " found for event: "
+          <> PayoutWh.payoutStripeWebhookEventTypeToText eventType
+
+mkPayoutObject :: Stripe.PayoutObject -> Events.Payout
+mkPayoutObject Stripe.PayoutObject {..} =
+  Events.Payout
+    { payoutId = id,
+      orderId = metadata >>= (.order_id),
+      customerId = metadata >>= (.customer_id),
+      orderType = metadata >>= (.order_type),
+      amount = centsToUsd amount,
+      arrivalDate = posixSecondsToUTCTime <$> arrival_date,
+      createdAt = posixSecondsToUTCTime created,
+      statementDescriptor = statement_descriptor,
+      failureCode = failure_code,
+      failureMessage = failure_message,
+      payoutType = _type,
+      ..
+    }
+
+mkTransferObject :: Stripe.TransferObject -> Events.Transfer
+mkTransferObject Stripe.TransferObject {..} =
+  Events.Transfer
+    { transferId = id,
+      amount = centsToUsd amount,
+      createdAt = posixSecondsToUTCTime created,
+      ..
+    }

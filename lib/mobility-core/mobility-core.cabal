@@ -207,6 +207,7 @@ library
       Kernel.External.Payment.Stripe.Webhook
       Kernel.External.Payment.Types
       Kernel.External.Payout.Interface
+      Kernel.External.Payout.Interface.Events.Types
       Kernel.External.Payout.Interface.Juspay
       Kernel.External.Payout.Interface.Stripe
       Kernel.External.Payout.Interface.Types
