@@ -107,6 +107,7 @@ data UpdateTicketReq = UpdateTicketReq
     rideDescription :: Maybe RideInfo,
     issueDetails :: Maybe UpdateIssueDetails
   }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data UpdateIssueDetails = UpdateIssueDetails
   { issueDescription :: Maybe Text,
