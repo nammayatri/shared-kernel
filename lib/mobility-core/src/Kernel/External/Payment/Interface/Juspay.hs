@@ -73,9 +73,10 @@ createOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
       clientId = fromMaybe merchantId config.pseudoClientId
+      cfgWebhookUrl = E.liftA2 (<>) req.webhookUrl config.webhookUrl
   logDebug $ "createOrder req: " <> show req
   apiKey <- decrypt config.apiKey
-  orderReq <- mkCreateOrderReq config.returnUrl config.autoRefundConflictThresholdMinutes clientId merchantId req
+  orderReq <- mkCreateOrderReq config.returnUrl config.autoRefundConflictThresholdMinutes cfgWebhookUrl clientId merchantId req
   logDebug $ "createOrder mkCreateOrderReq: " <> show orderReq
   logDebug $ "createOrder splitSettlementDetails: " <> show req.splitSettlementDetails
   Juspay.createOrder url apiKey merchantId mRoutingId orderReq
@@ -295,8 +296,8 @@ mandateRevoke config mRoutingId req = do
   void $ Juspay.mandateRevoke url apiKey merchantId mRoutingId req.mandateId Juspay.MandateRevokeReq {command = "revoke"}
   return Success
 
-mkCreateOrderReq :: (MonadTime m, MonadThrow m, Log m) => BaseUrl -> Maybe Int -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
-mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantId CreateOrderReq {..} =
+mkCreateOrderReq :: (MonadTime m, MonadThrow m, Log m) => BaseUrl -> Maybe Int -> Maybe Text -> Text -> Text -> CreateOrderReq -> m Juspay.CreateOrderReq
+mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes cfgWebhookUrl clientId merchantId CreateOrderReq {..} =
   do
     splitDetails <- traverse mkSplitSettlementDetails splitSettlementDetails
     return
@@ -322,6 +323,7 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantI
           options_get_upi_deep_links = optionsGetUpiDeepLinks,
           metadata_expiry_in_mins = metadataExpiryInMins,
           metadata_gateway_reference_id = metadataGatewayReferenceId,
+          metadata_webhook_url = cfgWebhookUrl,
           split_settlement_details = splitDetails,
           basket = decodeUtf8 . A.encode <$> basket,
           auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
