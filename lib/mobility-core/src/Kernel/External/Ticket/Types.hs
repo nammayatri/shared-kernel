@@ -26,16 +26,16 @@ import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data IssueTicketService = Kapture
+data IssueTicketService = Kapture | Zendesk
   deriving (Show, Read, Eq, Ord, Generic, ToSchema)
 
-instance FromJSON IssueTicketService where -- remove this instance once you add more constructors to IssueTicketService type.
+instance FromJSON IssueTicketService where
   parseJSON (A.String val) = maybe (fail ("failed to parse String " <> show val <> " in IssueTicketService type")) pure (KP.readMaybe $ T.unpack val)
-  parseJSON (A.Array _) = pure Kapture
   parseJSON e = fail $ "unexpected type, expected String for IssueTicketService " <> show e
 
 instance ToJSON IssueTicketService where
   toJSON Kapture = A.String (show Kapture)
+  toJSON Zendesk = A.String (show Zendesk)
 
 $(mkBeamInstancesForEnum ''IssueTicketService)
 

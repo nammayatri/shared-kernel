@@ -25,10 +25,13 @@ where
 
 import qualified Kernel.External.Ticket.Interface.Kapture as Kapture
 import Kernel.External.Ticket.Interface.Types
+import qualified Kernel.External.Ticket.Interface.Zendesk as Zendesk
 import qualified Kernel.External.Ticket.Kapture.Types as KT
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Types.Error (GenericError (InternalError))
+import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Servant.Client
 
 createTicket ::
@@ -39,9 +42,10 @@ createTicket ::
   ) =>
   IssueTicketServiceConfig ->
   CreateTicketReq ->
-  m KT.CreateTicketResp
+  m CreateTicketResp
 createTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.createTicket cfg req
+  ZendeskConfig cfg -> Zendesk.createTicket cfg req
 
 updateTicket ::
   ( EncFlow m r,
@@ -51,9 +55,10 @@ updateTicket ::
   ) =>
   IssueTicketServiceConfig ->
   UpdateTicketReq ->
-  m KT.UpdateTicketResp
+  m UpdateTicketResp
 updateTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.updateTicket cfg req
+  ZendeskConfig cfg -> Zendesk.updateTicket cfg req
 
 addAndUpdateKaptureCustomer ::
   ( EncFlow m r,
@@ -66,6 +71,7 @@ addAndUpdateKaptureCustomer ::
   m KT.KaptureCustomerResp
 addAndUpdateKaptureCustomer serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.addAndUpdateKaptureCustomer cfg req
+  ZendeskConfig _ -> throwError $ InternalError "addAndUpdateKaptureCustomer not supported for Zendesk"
 
 kaptureEncryption ::
   ( EncFlow m r,
@@ -78,6 +84,7 @@ kaptureEncryption ::
   m KT.KaptureEncryptionResp
 kaptureEncryption serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.kaptureEncryption cfg req
+  ZendeskConfig _ -> throwError $ InternalError "kaptureEncryption not supported for Zendesk"
 
 kapturePullTicket ::
   ( EncFlow m r,
@@ -90,6 +97,7 @@ kapturePullTicket ::
   m KT.KapturePullTicketResp
 kapturePullTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.kapturePullTicket cfg req
+  ZendeskConfig _ -> throwError $ InternalError "kapturePullTicket not supported for Zendesk"
 
 kaptureGetTicket ::
   ( EncFlow m r,
@@ -102,6 +110,7 @@ kaptureGetTicket ::
   m [KT.GetTicketResp]
 kaptureGetTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.kaptureGetTicket cfg req
+  ZendeskConfig _ -> throwError $ InternalError "kaptureGetTicket not supported for Zendesk"
 
 getTicketStatus ::
   ( EncFlow m r,
@@ -114,3 +123,4 @@ getTicketStatus ::
   m [KT.GetTicketStatusResp]
 getTicketStatus serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.getTicketStatus cfg req
+  ZendeskConfig _ -> throwError $ InternalError "getTicketStatus not supported for Zendesk"
