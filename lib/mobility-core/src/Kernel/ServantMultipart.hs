@@ -20,6 +20,10 @@ module Kernel.ServantMultipart
   )
 where
 
+import Control.Lens ((%~), (?~))
+import qualified Control.Lens as L
+import qualified Data.OpenApi as DS
+import qualified Data.OpenApi.Declare as DD
 import Kernel.Prelude
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import Servant hiding (ResponseHeader (..))
@@ -29,11 +33,22 @@ import Servant.Multipart.Client
 import qualified Servant.OpenApi as S
 
 instance
-  ( S.HasOpenApi api
+  ( S.HasOpenApi api,
+    DS.ToSchema a
   ) =>
   S.HasOpenApi (MultipartForm tag a :> api)
   where
-  toOpenApi _ = S.toOpenApi (Proxy @api) -- TODO: implementing OpenAPI interpretation for Multipart.
+  toOpenApi _ =
+    S.toOpenApi (Proxy @api)
+      & DS.components . DS.schemas %~ (<> defs)
+      & DS.allOperations . DS.requestBody ?~ DS.Inline reqBody
+    where
+      (defs, formRef) = DD.runDeclare (DS.declareSchemaRef (Proxy @a)) mempty
+      reqBody =
+        (mempty :: DS.RequestBody)
+          & DS.content . L.at "multipart/form-data"
+            ?~ ((mempty :: DS.MediaTypeObject) & DS.schema ?~ formRef)
+          & DS.required ?~ True
 
 instance
   SanitizedUrl (sub :: Type) =>
