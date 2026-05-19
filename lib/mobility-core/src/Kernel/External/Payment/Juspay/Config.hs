@@ -41,7 +41,8 @@ data JuspayCfg = JuspayCfg
     walletRewardApiVersion :: Maybe Text,
     mockStatusUrl :: Maybe BaseUrl,
     useDomainOffers :: Maybe Bool,
-    loyaltyProgramMap :: Maybe (Map Text Text)
+    loyaltyProgramMap :: Maybe (Map Text Text),
+    webhookUrl :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
