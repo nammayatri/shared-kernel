@@ -73,7 +73,7 @@ createOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
       clientId = fromMaybe merchantId config.pseudoClientId
-      cfgWebhookUrl = E.liftA2 (<>) config.webhookUrl req.webhookUrl
+      cfgWebhookUrl = E.liftA2 (<>) req.webhookUrl config.webhookUrl
   logDebug $ "createOrder req: " <> show req
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreateOrderReq config.returnUrl config.autoRefundConflictThresholdMinutes cfgWebhookUrl clientId merchantId req
