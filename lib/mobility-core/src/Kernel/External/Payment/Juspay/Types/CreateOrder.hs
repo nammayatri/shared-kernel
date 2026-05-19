@@ -47,6 +47,7 @@ data CreateOrderReq = CreateOrderReq
     mandate_start_date :: Maybe Text,
     mandate_end_date :: Maybe Text,
     metadata_gateway_reference_id :: Maybe Text,
+    metadata_webhook_url :: Maybe Text,
     options_get_upi_deep_links :: Maybe Bool,
     metadata_expiry_in_mins :: Maybe Int,
     split_settlement_details :: Maybe SplitSettlementDetails,
@@ -229,6 +230,7 @@ jsonReqOptions =
         "metadata_mandate_name" -> "metadata.AXIS_BIZ:mandate_name"
         "metadata_remarks" -> "metadata.AXIS_BIZ:remarks"
         "metadata_gateway_reference_id" -> "metadata.JUSPAY:gateway_reference_id"
+        "metadata_webhook_url" -> "metadata.webhook_url"
         "metadata_expiry_in_mins" -> "metadata.expiryInMins"
         "split_settlement_details" -> "metadata.split_settlement_details"
         "auto_refund_conflict_threshold_minutes" -> "metadata.auto_refund_conflict_threshold_minutes"
