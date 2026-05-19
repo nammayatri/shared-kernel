@@ -312,6 +312,7 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantI
           options_get_upi_deep_links = optionsGetUpiDeepLinks,
           metadata_expiry_in_mins = metadataExpiryInMins,
           metadata_gateway_reference_id = metadataGatewayReferenceId,
+          metadata_webhook_url = webhookUrl,
           split_settlement_details = splitDetails,
           basket = decodeUtf8 . A.encode <$> basket,
           auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
