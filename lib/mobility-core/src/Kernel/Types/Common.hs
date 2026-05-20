@@ -80,7 +80,8 @@ data Tables = Tables
     enableSecondaryCloudRead :: Maybe Bool,
     tablesForSecondaryCloudRead :: Maybe [Text],
     enableAllTablesForSecondaryCloudRead :: Maybe Bool,
-    drainerTtlConfigs :: Maybe (HM.HashMap Text Integer)
+    drainerTtlConfigs :: Maybe (HM.HashMap Text Integer),
+    enableFindAllForMultiCloud :: Maybe Bool
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
@@ -99,7 +100,8 @@ defaultTableData =
       enableSecondaryCloudRead = Nothing,
       tablesForSecondaryCloudRead = Nothing,
       enableAllTablesForSecondaryCloudRead = Nothing,
-      drainerTtlConfigs = Nothing
+      drainerTtlConfigs = Nothing,
+      enableFindAllForMultiCloud = Nothing
     }
 
 data KafkaProperties = KafkaProperties
