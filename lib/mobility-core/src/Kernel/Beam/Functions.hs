@@ -56,7 +56,7 @@ import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log, V1)
 import Kernel.Beam.Lib.Utils
-import Kernel.Beam.Types
+import Kernel.Beam.Types hiding (Tables)
 import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
 import qualified Kernel.Tools.ARTUtils as A
@@ -150,7 +150,8 @@ runInMasterDbAndRedis m = do
 
 -- | Run a findAll query with multi-cloud Redis enabled.
 -- When enabled, findAll queries will read from both primary and secondary Redis instances.
--- Note: This only affects findAllWithKV, findAllWithOptionsKV and similar findAll queries.
+-- The same behaviour is enabled globally when Tables.enableFindAllForMultiCloud is Just True.
+-- Note: This only affects findAll KV helpers (see 'withUpdatedMeshConfigForFindAll').
 -- Other operations (findOne, update, delete, create) are not affected.
 runInMultiCloud :: (L.MonadFlow m, Log m) => m a -> m a
 runInMultiCloud m = do
@@ -162,34 +163,44 @@ runInMultiCloud m = do
 allowedSchema :: [Text]
 allowedSchema = ["atlas_driver_offer_bpp", "atlas_app"]
 
+-- | Resolve schema, enforce 'allowedSchema', then merge KV/Redis settings from @tables'@.
+-- Schema check lives only here — callers pass an already-loaded 'Tables' so it is fetched once.
+setMeshConfigWithTables :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> Tables -> m MeshConfig
+setMeshConfigWithTables modelName mSchema meshConfig' tables' = do
+  schema <- maybe (L.throwException $ InternalError "Schema not found in setMeshConfig") pure mSchema
+  pure $
+    if schema `notElem` allowedSchema
+      then meshConfig'
+      else
+        let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
+         in if modelName `elem` tables'.disableForKV || allTablesDisabled tables' == Just True
+              then meshConfig' {ecRedisDBStream = redisStream}
+              else
+                let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
+                    tableShardModRange' = HM.lookupDefault (0, tables'.defaultShardMod) modelName tables'.tableShardModRange
+                    redisKeyPrefix' = HM.lookupDefault meshConfig'.redisKeyPrefix modelName tables'.tableRedisKeyPrefix
+                    -- Enable secondary Redis if table is configured for secondary cloud in Tables config
+                    secondaryEnabled =
+                      fromMaybe False tables'.enableSecondaryCloudRead
+                        && modelName `elem` fromMaybe [] tables'.tablesForSecondaryCloudRead
+                 in meshConfig'
+                      { meshEnabled = True,
+                        kvHardKilled = False,
+                        ecRedisDBStream = redisStream,
+                        redisTtl = redisTtl',
+                        tableShardModRange = tableShardModRange',
+                        redisKeyPrefix = redisKeyPrefix',
+                        secondaryRedisEnabled = secondaryEnabled || tables'.enableAllTablesForSecondaryCloudRead == Just True
+                      }
+
+getTablesOption :: (L.MonadFlow m, HasCallStack) => m Tables
+getTablesOption =
+  L.getOption KBT.Tables >>= maybe (L.throwException $ InternalError "Tables not found in setMeshConfig") pure
+
 setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfig modelName mSchema meshConfig' = do
-  schema <- maybe (L.throwException $ InternalError "Schema not found in setMeshConfig") pure mSchema
-  if schema `notElem` allowedSchema
-    then pure meshConfig'
-    else do
-      let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
-      tables' <- L.getOption KBT.Tables >>= maybe (L.throwException $ InternalError "Tables not found in setMeshConfig") pure
-      if modelName `elem` tables'.disableForKV || allTablesDisabled tables' == Just True
-        then pure $ meshConfig' {ecRedisDBStream = redisStream}
-        else do
-          let redisTtl' = HM.lookupDefault meshConfig'.redisTtl modelName tables'.kvTablesTtl
-          let tableShardModRange' = HM.lookupDefault (0, tables'.defaultShardMod) modelName tables'.tableShardModRange
-          let redisKeyPrefix' = HM.lookupDefault meshConfig'.redisKeyPrefix modelName tables'.tableRedisKeyPrefix
-          -- Enable secondary Redis if table is configured for secondary cloud in Tables config
-          let secondaryEnabled =
-                fromMaybe False tables'.enableSecondaryCloudRead
-                  && modelName `elem` fromMaybe [] tables'.tablesForSecondaryCloudRead
-          pure $
-            meshConfig'
-              { meshEnabled = True,
-                kvHardKilled = False,
-                ecRedisDBStream = redisStream,
-                redisTtl = redisTtl',
-                tableShardModRange = tableShardModRange',
-                redisKeyPrefix = redisKeyPrefix',
-                secondaryRedisEnabled = secondaryEnabled || tables'.enableAllTablesForSecondaryCloudRead == Just True
-              }
+  tables' <- getTablesOption
+  setMeshConfigWithTables modelName mSchema meshConfig' tables'
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do
@@ -197,16 +208,17 @@ withUpdatedMeshConfig _ mkAction = do
   mkAction updatedMeshConfig
 
 -- | Get mesh config for findAll queries with multi-cloud support.
--- Checks if runInMultiCloud is enabled and sets secondaryRedisEnabled accordingly.
+-- Sets secondaryRedisEnabled when runInMultiCloud is active or
+-- Tables.enableFindAllForMultiCloud is Just True; otherwise forces it off for findAll.
 setMeshConfigForFindAll :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfigForFindAll modelName mSchema meshConfig' = do
-  baseMeshConfig <- setMeshConfig modelName mSchema meshConfig'
-  -- Check if multi-cloud is explicitly enabled via runInMultiCloud
+  tables' <- getTablesOption
+  baseMeshConfig <- setMeshConfigWithTables modelName mSchema meshConfig' tables'
   isMultiCloudEnabled <- L.getOptionLocal MultiCloudEnabled
-  pure $
-    if fromMaybe False isMultiCloudEnabled
-      then baseMeshConfig {secondaryRedisEnabled = True}
-      else baseMeshConfig {secondaryRedisEnabled = False}
+  let findAllMultiCloudOn =
+        fromMaybe False isMultiCloudEnabled
+          || tables'.enableFindAllForMultiCloud == Just True
+  pure baseMeshConfig {secondaryRedisEnabled = findAllMultiCloudOn}
 
 withUpdatedMeshConfigForFindAll :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfigForFindAll _ mkAction = do
