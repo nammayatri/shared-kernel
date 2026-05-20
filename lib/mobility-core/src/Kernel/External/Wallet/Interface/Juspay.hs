@@ -111,4 +111,4 @@ loyaltyInfo ::
   m LoyaltyInfoResponse
 loyaltyInfo config req = do
   apiKey <- decrypt config.apiKey
-  Juspay.loyaltyInfo config.baseUrl apiKey req
+  Juspay.loyaltyInfo config.baseUrl apiKey config.merchantId req

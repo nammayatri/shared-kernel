@@ -222,7 +222,7 @@ walletProgramSnakeOptions =
 
 data LoyaltyInfoProgram = LoyaltyInfoProgram
   { id_ :: Text,
-    advancements :: Maybe [ProgramAdvancement],
+    programType :: Maybe Text,
     burn :: BurnInfo,
     earn :: Maybe EarnInfo,
     membership :: ProgramMembership,
@@ -243,10 +243,6 @@ data CommonStatus = ACTIVE | ELIGIBLE | INELIGIBLE
   deriving stock (Show, Eq, Read, Generic, Ord)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
-data AdvancementStatus = COMPLETED | PENDING | WILL_COMPLETE
-  deriving stock (Show, Eq, Read, Generic, Ord)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
-
 data TopupInfo = TopupInfo
   { status :: Maybe CommonStatus
   }
@@ -258,106 +254,6 @@ instance FromJSON TopupInfo where
 
 instance ToJSON TopupInfo where
   toJSON = genericToJSON jsonCamelOptions
-
-data ProgramAdvancement = ProgramAdvancement
-  { campaignId :: Text,
-    checkpoints :: [AdvancementCheckpoint],
-    completion :: Maybe AdvancementCompletion,
-    progress :: AdvancementProgress,
-    stats :: Maybe AdvancementStats,
-    timing :: Maybe AdvancementTiming
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToSchema)
-
-instance FromJSON ProgramAdvancement where
-  parseJSON = genericParseJSON jsonSnakeOptions
-
-instance ToJSON ProgramAdvancement where
-  toJSON = genericToJSON jsonCamelOptions
-
-data AdvancementCompletion = AdvancementCompletion
-  { earn :: EarnInfo,
-    status :: AdvancementStatus
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToSchema)
-
-instance FromJSON AdvancementCompletion where
-  parseJSON = genericParseJSON jsonSnakeOptions
-
-instance ToJSON AdvancementCompletion where
-  toJSON = genericToJSON jsonCamelOptions
-
-data AdvancementCheckpoint = AdvancementCheckpoint
-  { current :: Maybe Text,
-    earn :: Maybe EarnInfo,
-    status :: Maybe AdvancementStatus,
-    step :: Maybe Int,
-    threshold :: Maybe Text
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToSchema)
-
-instance FromJSON AdvancementCheckpoint where
-  parseJSON = genericParseJSON jsonSnakeOptions
-
-instance ToJSON AdvancementCheckpoint where
-  toJSON = genericToJSON jsonCamelOptions
-
-data CheckpointApplicable = CheckpointApplicable
-  { points :: Maybe Text
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToSchema)
-
-instance FromJSON CheckpointApplicable where
-  parseJSON = genericParseJSON jsonSnakeOptions
-
-instance ToJSON CheckpointApplicable where
-  toJSON = genericToJSON jsonCamelOptions
-
-data AdvancementProgress = AdvancementProgress
-  { completed :: Text,
-    percent :: Float,
-    target :: Text,
-    unit :: Text
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-data AdvancementStats = AdvancementStats
-  { bestStreak :: Maybe Int,
-    completions :: Maybe Int,
-    currentStreak :: Maybe Int,
-    totalEarned :: Maybe TotalEarned
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToSchema)
-
-instance FromJSON AdvancementStats where
-  parseJSON = genericParseJSON jsonSnakeOptions
-
-instance ToJSON AdvancementStats where
-  toJSON = genericToJSON jsonCamelOptions
-
-newtype TotalEarned = TotalEarned
-  { points :: Maybe Text
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-data AdvancementTiming = AdvancementTiming
-  { windowEndsAt :: Maybe Text
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToSchema)
-
-instance FromJSON AdvancementTiming where
-  parseJSON = withObject "AdvancementTiming" $ \o -> AdvancementTiming <$> o .:? "window_ends_at"
-
-instance ToJSON AdvancementTiming where
-  toJSON AdvancementTiming {..} = object ["windowEndsAt" .= windowEndsAt]
 
 data BurnInfo = BurnInfo
   { options :: Maybe [BurnOption]
@@ -442,7 +338,8 @@ instance ToJSON EarnInfo where
   toJSON = genericToJSON jsonCamelOptions
 
 data EarnApplicable = EarnApplicable
-  { points :: Maybe Text
+  { label :: Maybe Text,
+    points :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToSchema)
