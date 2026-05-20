@@ -18,7 +18,8 @@ import EulerHS.Prelude
 import Servant.Server.Internal
 
 data HttpCode
-  = E400
+  = E304
+  | E400
   | E401
   | E402
   | E403
@@ -37,6 +38,7 @@ data HttpCode
 
 codeToHttpCode :: Int -> Maybe HttpCode
 codeToHttpCode = \case
+  304 -> Just E304
   400 -> Just E400
   401 -> Just E401
   402 -> Just E402
@@ -59,6 +61,7 @@ codeToHttpCodeWith500Default = fromMaybe E500 . codeToHttpCode
 
 toServerError :: HttpCode -> ServerError
 toServerError = \case
+  E304 -> err304
   E400 -> err400
   E401 -> err401
   E402 -> err402
@@ -83,6 +86,7 @@ toServerError = \case
 
 isInternalError :: HttpCode -> Bool
 isInternalError = \case
+  E304 -> False
   E400 -> False
   E401 -> False
   E402 -> False
