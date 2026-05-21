@@ -73,7 +73,12 @@ createOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
       clientId = fromMaybe merchantId config.pseudoClientId
-      cfgWebhookUrl = E.liftA2 (<>) req.webhookUrl config.webhookUrl
+      cfgWebhookUrl = do
+        reqUrl <- req.webhookUrl
+        configPath <- config.webhookUrl
+        let baseHost = showBaseUrl reqUrl {baseUrlPath = ""}
+            normalizedPath = if T.isPrefixOf "/" configPath then configPath else "/" <> configPath
+        return $ baseHost <> normalizedPath
   logDebug $ "createOrder req: " <> show req
   apiKey <- decrypt config.apiKey
   orderReq <- mkCreateOrderReq config.returnUrl config.autoRefundConflictThresholdMinutes cfgWebhookUrl clientId merchantId req
