@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Kernel.External.Ticket.Kapture.Types
   ( module Kernel.External.Ticket.Kapture.Types,
@@ -20,9 +21,12 @@ where
 
 import Data.Aeson
 import qualified Data.Aeson.Types as Aeson
+import qualified Data.Text as T
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
 import Kernel.Utils.JSON
+import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
 data Classification = DRIVER | CUSTOMER
   deriving stock (Show, Eq, Generic)
@@ -188,6 +192,27 @@ instance FromJSON TicketDetails where
 
 instance ToJSON TicketDetails where
   toJSON = genericToJSON constructorsWithLowerCase
+
+data TicketType = APP_RELATED | RIDE_RELATED
+  deriving (Show, Read, Eq, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
+
+$(mkBeamInstancesForEnum ''TicketType)
+
+instance FromHttpApiData TicketType where
+  parseQueryParam txt = case T.toUpper txt of
+    "APP_RELATED" -> Right APP_RELATED
+    "RIDE_RELATED" -> Right RIDE_RELATED
+    _ -> Left $ "Invalid TicketType: " <> txt
+
+instance ToHttpApiData TicketType where
+  toQueryParam APP_RELATED = "APP_RELATED"
+  toQueryParam RIDE_RELATED = "RIDE_RELATED"
+
+data KaptureEncryptionReq = KaptureEncryptionReq
+  { customerCode :: Text,
+    ticketType :: TicketType
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data KaptureCustomerReq = KaptureCustomerReq
   { customerId :: Text,

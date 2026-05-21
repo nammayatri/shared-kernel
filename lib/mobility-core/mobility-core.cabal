@@ -319,10 +319,14 @@ library
       Kernel.External.Ticket.Interface
       Kernel.External.Ticket.Interface.Kapture
       Kernel.External.Ticket.Interface.Types
+      Kernel.External.Ticket.Interface.Zendesk
       Kernel.External.Ticket.Kapture.Config
       Kernel.External.Ticket.Kapture.Flow
       Kernel.External.Ticket.Kapture.Types
       Kernel.External.Ticket.Types
+      Kernel.External.Ticket.Zendesk.Config
+      Kernel.External.Ticket.Zendesk.Flow
+      Kernel.External.Ticket.Zendesk.Types
       Kernel.External.Tokenize
       Kernel.External.Tokenize.Digilocker.Flow
       Kernel.External.Tokenize.Digilocker.Types
