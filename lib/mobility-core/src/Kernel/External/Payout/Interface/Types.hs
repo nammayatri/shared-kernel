@@ -65,7 +65,6 @@ data CreatePayoutOrderReq = CreatePayoutOrderReq
     remark :: Text,
     customerName :: Text,
     customerVpa :: Maybe Text, -- Juspay specific
-    isDynamicWebhookRequired :: Bool,
     mRoutingId :: Maybe Text, -- Juspay specific
     mConnectedAccountId :: Maybe Stripe.AccountId, -- Stripe specific
     mExternalAccountId :: Maybe Text -- Stripe specific, default will be used in case of Nothing
