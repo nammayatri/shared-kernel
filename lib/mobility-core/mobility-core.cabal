@@ -404,6 +404,7 @@ library
       Kernel.External.Whatsapp.Interface.GupShup
       Kernel.External.Whatsapp.Interface.Karix
       Kernel.External.Whatsapp.Interface.TataCommunications
+      Kernel.External.Whatsapp.Interface.Twilio
       Kernel.External.Whatsapp.Interface.Types
       Kernel.External.Whatsapp.Karix.Api
       Kernel.External.Whatsapp.Karix.Config

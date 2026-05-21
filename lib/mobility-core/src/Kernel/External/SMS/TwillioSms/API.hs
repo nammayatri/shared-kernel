@@ -28,3 +28,14 @@ type TwillioSMSAPI =
 
 twillioSMSAPI :: Proxy TwillioSMSAPI
 twillioSMSAPI = Proxy
+
+type TwillioWhatsAppTemplateAPI =
+  "Accounts"
+    :> Capture "AccountSID" Text
+    :> "Messages.json"
+    :> BasicAuth "accountSid:authtoken" BasicAuthData
+    :> ReqBody '[FormUrlEncoded] TwillioWhatsAppTemplateReq
+    :> Post '[JSON] TwillioSmsResp
+
+twillioWhatsAppTemplateAPI :: Proxy TwillioWhatsAppTemplateAPI
+twillioWhatsAppTemplateAPI = Proxy
