@@ -42,10 +42,11 @@ createTicket ::
   ) =>
   KaptureCfg ->
   IT.CreateTicketReq ->
-  m Kapture.CreateTicketResp
+  m IT.CreateTicketResp
 createTicket config req = do
   auth <- decrypt config.auth
-  KF.createTicketAPI config.url config.version auth (mkCreateTicketReq req)
+  resp <- KF.createTicketAPI config.url config.version auth (mkCreateTicketReq req)
+  pure IT.CreateTicketResp {ticketId = resp.ticketId, status = kaptureSubStatusToTicketStatus resp.ticket.subStatus}
 
 mkCreateTicketReq :: IT.CreateTicketReq -> Kapture.CreateTicketReq
 mkCreateTicketReq IT.CreateTicketReq {..} =
@@ -95,17 +96,33 @@ updateTicket ::
   ) =>
   KaptureCfg ->
   IT.UpdateTicketReq ->
-  m Kapture.UpdateTicketResp
+  m IT.UpdateTicketResp
 updateTicket config req = do
   auth <- decrypt config.auth
-  KF.updateTicketAPI config.url config.version auth (mkUpdateTicketReq req)
+  resp <- KF.updateTicketAPI config.url config.version auth (mkUpdateTicketReq req)
+  pure IT.UpdateTicketResp {ticketId = req.ticketId, status = req.status, message = resp.message}
+
+ticketStatusToKaptureSubStatus :: IT.TicketStatus -> Text
+ticketStatusToKaptureSubStatus IT.Open = "OP"
+ticketStatusToKaptureSubStatus IT.Pending = "IN"
+ticketStatusToKaptureSubStatus IT.Solved = "RS"
+ticketStatusToKaptureSubStatus IT.Closed = "CL"
+ticketStatusToKaptureSubStatus IT.Reopened = "CRS"
+
+kaptureSubStatusToTicketStatus :: Text -> IT.TicketStatus
+kaptureSubStatusToTicketStatus "OP" = IT.Open
+kaptureSubStatusToTicketStatus "IN" = IT.Pending
+kaptureSubStatusToTicketStatus "RS" = IT.Solved
+kaptureSubStatusToTicketStatus "CL" = IT.Closed
+kaptureSubStatusToTicketStatus "CRS" = IT.Reopened
+kaptureSubStatusToTicketStatus _ = IT.Open
 
 mkUpdateTicketReq :: IT.UpdateTicketReq -> Kapture.UpdateTicketReq
 mkUpdateTicketReq IT.UpdateTicketReq {..} =
   Kapture.UpdateTicketReq
     { comment = comment,
       ticket_id = ticketId,
-      sub_status = show subStatus,
+      sub_status = ticketStatusToKaptureSubStatus status,
       rideDetails = mkRideDescriptionDriver <$> rideDescription,
       issueDetails = mkUpdateIssueDetails <$> issueDetails
     }
@@ -124,9 +141,7 @@ addAndUpdateKaptureCustomer ::
   m Kapture.KaptureCustomerResp
 addAndUpdateKaptureCustomer config req = do
   apiKey' <- decrypt config.auth
-  KF.addAndUpdateKaptureCustomer config.url apiKey' (mkKaptureCustomerReq req)
-  where
-    mkKaptureCustomerReq IT.KaptureCustomerReq {..} = Kapture.KaptureCustomerReq {..}
+  KF.addAndUpdateKaptureCustomer config.url apiKey' req
 
 kaptureEncryption ::
   (Metrics.CoreMetrics m, EncFlow m r, HasRequestId r, MonadReader r m) =>
@@ -135,8 +150,8 @@ kaptureEncryption ::
   m Kapture.KaptureEncryptionResp
 kaptureEncryption config req = do
   let mKey = case req.ticketType of
-        IT.RIDE_RELATED -> config.encryptionKey
-        IT.APP_RELATED -> config.appEncryptionKey
+        Kapture.RIDE_RELATED -> config.encryptionKey
+        Kapture.APP_RELATED -> config.appEncryptionKey
   case mKey of
     Nothing -> throwError $ InternalError "Kapture encryption key is not configured"
     Just key -> do
@@ -156,9 +171,7 @@ kapturePullTicket ::
   m Kapture.KapturePullTicketResp
 kapturePullTicket config req = do
   auth <- decrypt config.auth
-  KF.kapturePullTicket config.url auth (mkKapturePullTicketReq req)
-  where
-    mkKapturePullTicketReq IT.KapturePullTicketReq {..} = Kapture.KapturePullTicketReq {..}
+  KF.kapturePullTicket config.url auth req
 
 kaptureGetTicket ::
   ( Metrics.CoreMetrics m,
@@ -171,9 +184,7 @@ kaptureGetTicket ::
   m [Kapture.GetTicketResp]
 kaptureGetTicket config req = do
   apiKey <- decrypt config.auth
-  KF.kaptureGetTicket config.url apiKey (mkGetTicketReq req)
-  where
-    mkGetTicketReq IT.GetTicketReq {..} = Kapture.GetTicketReq {..}
+  KF.kaptureGetTicket config.url apiKey req
 
 getTicketStatus ::
   ( Metrics.CoreMetrics m,
@@ -184,7 +195,7 @@ getTicketStatus ::
   KaptureCfg ->
   IT.SearchTicketByIdReq ->
   m [Kapture.GetTicketStatusResp]
-getTicketStatus config (IT.SearchTicketByIdReq ticketIds) = do
+getTicketStatus config (Kapture.SearchTicketByIdReq ticketIds) = do
   apiKey <- decrypt config.auth
   items <- KF.kaptureSearchTicketById config.url apiKey (Kapture.SearchTicketByIdReq ticketIds)
   return $ map (\item -> Kapture.GetTicketStatusResp {subStatus = item.taskDetails.substatus}) items

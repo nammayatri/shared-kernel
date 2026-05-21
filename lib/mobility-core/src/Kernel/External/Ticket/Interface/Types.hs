@@ -19,19 +19,35 @@ module Kernel.External.Ticket.Interface.Types
   )
 where
 
-import qualified Data.Text as T
 import Deriving.Aeson
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Ticket.Kapture.Config as Kapture
-import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), CreateTicketResp (..), GetTicketResp (..), GetTicketStatusResp (..), KaptureCustomerResp (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), PullAdditionalDetails (..), RideIdObject (..), TicketSummary (..), UpdateTicketResp (..))
+import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), GetTicketReq (..), GetTicketResp (..), GetTicketStatusResp (..), KaptureCustomerReq (..), KaptureCustomerResp (..), KaptureEncryptionReq (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), PullAdditionalDetails (..), RideIdObject (..), SearchTicketByIdReq (..), TicketSummary (..), TicketType (..))
 import Kernel.External.Ticket.Types as Reexport
+import Kernel.External.Ticket.Zendesk.Config as Zendesk
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
 import Kernel.Types.HideSecrets
-import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
-newtype IssueTicketServiceConfig = KaptureConfig Kapture.KaptureCfg
+data IssueTicketServiceConfig
+  = KaptureConfig Kapture.KaptureCfg
+  | ZendeskConfig Zendesk.ZendeskCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data TicketStatus = Open | Pending | Solved | Closed | Reopened
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data CreateTicketResp = CreateTicketResp
+  { ticketId :: Text,
+    status :: TicketStatus
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
+
+data UpdateTicketResp = UpdateTicketResp
+  { ticketId :: Text,
+    status :: TicketStatus,
+    message :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data CreateTicketReq = CreateTicketReq
   { category :: Text,
@@ -87,10 +103,11 @@ data Location = Location
 data UpdateTicketReq = UpdateTicketReq
   { comment :: Text,
     ticketId :: Text,
-    subStatus :: SubStatus,
+    status :: TicketStatus,
     rideDescription :: Maybe RideInfo,
     issueDetails :: Maybe UpdateIssueDetails
   }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
 data UpdateIssueDetails = UpdateIssueDetails
   { issueDescription :: Maybe Text,
@@ -101,55 +118,3 @@ data UpdateIssueDetails = UpdateIssueDetails
     category :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
-
-data SubStatus = OP | IN | RS | PE | CL | CRS
-  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
-
--- SubStatusName	  SubStatus Key
--- OPEN	            OP
--- PENDING INTERNAL	IN
--- RESOLVED	        RS
--- PENDING EXTERNAL	PE
--- CLOSED	          CL
--- REOPENED         CRS
-
-data KaptureCustomerReq = KaptureCustomerReq
-  { customerId :: Text,
-    name :: Text,
-    phone :: Text,
-    email :: Text,
-    customerCode :: Text
-  }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
-
-data KaptureEncryptionReq = KaptureEncryptionReq
-  { customerCode :: Text,
-    ticketType :: TicketType
-  }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
-
-data TicketType = APP_RELATED | RIDE_RELATED
-  deriving (Show, Read, Eq, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema)
-
-$(mkBeamInstancesForEnum ''TicketType)
-
-instance FromHttpApiData TicketType where
-  parseQueryParam txt = case T.toUpper txt of
-    "APP_RELATED" -> Right APP_RELATED
-    "RIDE_RELATED" -> Right RIDE_RELATED
-    _ -> Left $ "Invalid TicketType: " <> txt
-
-instance ToHttpApiData TicketType where
-  toQueryParam APP_RELATED = "APP_RELATED"
-  toQueryParam RIDE_RELATED = "RIDE_RELATED"
-
-data GetTicketReq = GetTicketReq
-  { ticketIds :: Text,
-    conversationType :: Text
-  }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
-
-newtype SearchTicketByIdReq = SearchTicketByIdReq
-  { ticketIds :: Text
-  }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
