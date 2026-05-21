@@ -29,7 +29,9 @@ predicatesTests =
   testGroup
     "Kernel.Utils.Predicates"
     [ namePredicateTests,
-      nameValidateFieldTests
+      middleNamePredicateTests,
+      nameValidateFieldTests,
+      middleNameValidateFieldTests
     ]
 
 namePredicateTests :: TestTree
@@ -77,6 +79,52 @@ namePredicateTests =
       testCase (T.unpack label) $
         assertBool ("expected invalid: " <> T.unpack label) (not (pFun P.name t))
 
+middleNamePredicateTests :: TestTree
+middleNamePredicateTests =
+  testGroup
+    "P.middleName (Text)"
+    [ testGroup
+        "valid"
+        $ map
+          (uncurry validCase)
+          [ ("empty", ""),
+            ("Mohammed", "Mohammed"),
+            ("Al-GBURI", "Al-GBURI"),
+            ("O'Connor", "O'Connor"),
+            ("Jean Paul", "Jean Paul"),
+            ("Jean-Paul", "Jean-Paul"),
+            ("D'Arcy", "D'Arcy"),
+            ("A B", "A B"),
+            ("A-B-C", "A-B-C")
+          ],
+      testGroup
+        "invalid"
+        $ map
+          (uncurry invalidCase)
+          [ ("only space", " "),
+            ("leading hyphen", "-A"),
+            ("trailing hyphen", "A-"),
+            ("double hyphen", "A--B"),
+            ("double apostrophe", "A''B"),
+            ("double space", "A  B"),
+            ("underscore", "A_B"),
+            ("dot", "A.B"),
+            ("digit", "A1"),
+            ("trailing space", "Al-GBURI "),
+            ("leading space", " Al"),
+            ("double space only", "  ")
+          ]
+    ]
+  where
+    validCase :: Text -> Text -> TestTree
+    validCase label t =
+      testCase (T.unpack label) $
+        assertBool ("expected valid: " <> T.unpack label) (pFun P.middleName t)
+    invalidCase :: Text -> Text -> TestTree
+    invalidCase label t =
+      testCase (T.unpack label) $
+        assertBool ("expected invalid: " <> T.unpack label) (not (pFun P.middleName t))
+
 nameValidateFieldTests :: TestTree
 nameValidateFieldTests =
   testGroup
@@ -104,5 +152,51 @@ nameValidateFieldTests =
           V.Success () -> assertFailure "expected validation failure"
           V.Failure [ValidationDescription {fieldName = ["fullName"], expectation}] ->
             expectation @=? pShow (InMaybe P.name) "fullName"
+          V.Failure errs -> assertFailure $ "unexpected failures: " <> show errs
+    ]
+
+middleNameValidateFieldTests :: TestTree
+middleNameValidateFieldTests =
+  testGroup
+    "P.middleName via validateField / InMaybe"
+    [ testCase "validateField accepts empty Text" $
+        case validateField "middleName" ("" :: Text) P.middleName of
+          V.Success () -> pure ()
+          V.Failure errs -> assertFailure $ "unexpected failure: " <> show errs,
+      testCase "validateField rejects single space" $
+        case validateField "middleName" (" " :: Text) P.middleName of
+          V.Success () -> assertFailure "expected validation failure"
+          V.Failure [ValidationDescription {fieldName = ["middleName"], expectation}] ->
+            expectation @=? pShow P.middleName "middleName"
+          V.Failure errs -> assertFailure $ "unexpected failures: " <> show errs,
+      testCase "validateField accepts valid name Text" $
+        case validateField "middleName" ("Jean-Paul" :: Text) P.middleName of
+          V.Success () -> pure ()
+          V.Failure errs -> assertFailure $ "unexpected failure: " <> show errs,
+      testCase "validateField rejects invalid Text" $
+        case validateField "middleName" ("A--B" :: Text) P.middleName of
+          V.Success () -> assertFailure "expected validation failure"
+          V.Failure [ValidationDescription {fieldName = ["middleName"], expectation}] ->
+            expectation @=? pShow P.middleName "middleName"
+          V.Failure errs -> assertFailure $ "unexpected failures: " <> show errs,
+      testCase "InMaybe: Nothing passes" $
+        case validateField "middleName" (Nothing :: Maybe Text) (InMaybe P.middleName) of
+          V.Success () -> pure ()
+          V.Failure errs -> assertFailure $ "unexpected failure: " <> show errs,
+      testCase "InMaybe: Just empty passes" $
+        case validateField "middleName" (Just ("" :: Text)) (InMaybe P.middleName) of
+          V.Success () -> pure ()
+          V.Failure errs -> assertFailure $ "unexpected failure: " <> show errs,
+      testCase "InMaybe: Just single space fails" $
+        case validateField "middleName" (Just (" " :: Text)) (InMaybe P.middleName) of
+          V.Success () -> assertFailure "expected validation failure"
+          V.Failure [ValidationDescription {fieldName = ["middleName"], expectation}] ->
+            expectation @=? pShow (InMaybe P.middleName) "middleName"
+          V.Failure errs -> assertFailure $ "unexpected failures: " <> show errs,
+      testCase "InMaybe: Just invalid fails" $
+        case validateField "middleName" (Just ("A1" :: Text)) (InMaybe P.middleName) of
+          V.Success () -> assertFailure "expected validation failure"
+          V.Failure [ValidationDescription {fieldName = ["middleName"], expectation}] ->
+            expectation @=? pShow (InMaybe P.middleName) "middleName"
           V.Failure errs -> assertFailure $ "unexpected failures: " <> show errs
     ]

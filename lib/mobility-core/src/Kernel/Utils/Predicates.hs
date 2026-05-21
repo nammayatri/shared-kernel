@@ -105,3 +105,6 @@ email = LengthInRange 5 254 `And` (localPart <> "@" <> domain)
 
 vehicleRegistrationCertNumberRule :: LengthInRange `And` Regex
 vehicleRegistrationCertNumberRule = LengthInRange 5 12 `And` star certNumber
+
+middleName :: Regex
+middleName = name \/ ""
