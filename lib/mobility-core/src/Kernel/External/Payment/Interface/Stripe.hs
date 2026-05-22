@@ -351,7 +351,7 @@ createPaymentIntent config req = do
               use_stripe_sdk = True
               return_url = showBaseUrl config.returnUrl
               metadata = Metadata {order_short_id = Just orderShortId, order_id = Nothing, refunds_id = Nothing}
-              request_incremental_authorization = Just "if_available"
+              request_incremental_authorization = config.requestIncrementalAuthorization
            in Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
     -- Connected Account Charge: Clone payment method, use on_behalf_of
@@ -383,7 +383,7 @@ createPaymentIntent config req = do
           let use_stripe_sdk = True
           let return_url = showBaseUrl config.returnUrl
           let metadata = Metadata {order_short_id = Just orderShortId, order_id = Nothing, refunds_id = Nothing}
-          let request_incremental_authorization = Just "if_available"
+          let request_incremental_authorization = config.requestIncrementalAuthorization
           Stripe.PaymentIntentReq {amount = amountInCents, ..}
 
 createSetupIntent ::
