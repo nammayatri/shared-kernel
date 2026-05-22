@@ -41,7 +41,8 @@ data StripeCfg = StripeCfg
     webhookToleranceSeconds :: Maybe Seconds,
     serviceMode :: Maybe ServiceMode,
     useDomainOffers :: Maybe Bool,
-    statementDescriptor :: Maybe Text
+    statementDescriptor :: Maybe Text,
+    requestIncrementalAuthorization :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
