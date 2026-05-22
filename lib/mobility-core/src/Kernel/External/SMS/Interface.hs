@@ -25,12 +25,14 @@ import Kernel.External.SMS.GupShup.Config as Reexport
 import qualified Kernel.External.SMS.Interface.DigoEngageSms as DigoEngageSms
 import qualified Kernel.External.SMS.Interface.ExotelSms as ExotelSms
 import qualified Kernel.External.SMS.Interface.GupShup as GupShup
+import qualified Kernel.External.SMS.Interface.KaleyraSms as KaleyraSms
 import qualified Kernel.External.SMS.Interface.KarixSms as KarixSms
 import qualified Kernel.External.SMS.Interface.MyValueFirst as MyValueFirst
 import qualified Kernel.External.SMS.Interface.PinbixSms as PinbixSms
 import qualified Kernel.External.SMS.Interface.TwillioSms as TwillioSms
 import Kernel.External.SMS.Interface.Types as Reexport
 import qualified Kernel.External.SMS.Interface.VonageSms as VonageSms
+import Kernel.External.SMS.KaleyraSms.Config as Reexport
 import Kernel.External.SMS.KarixSms.Config as Reexport
 import Kernel.External.SMS.MyValueFirst.Config as Reexport
 import Kernel.External.SMS.PinbixSms.Config as Reexport
@@ -60,6 +62,7 @@ sendSMS' serviceConfig req = do
     VonageSmsConfig cfg -> VonageSms.sendOTP cfg req
     KarixSmsConfig cfg -> KarixSms.sendOTP cfg req
     PinbixSmsConfig cfg -> PinbixSms.sendOTP cfg req
+    KaleyraSmsConfig cfg -> KaleyraSms.sendOTP cfg req
 
 checkSmsResult ::
   (Log m, MonadThrow m) => SendSMSRes -> m ()
