@@ -42,7 +42,7 @@ sendOTP ::
   m IT.SendSMSRes
 sendOTP cfg SendSMSReq {..} = do
   messageServiceId <- decrypt cfg.messageServiceId
-  let twillioReq = TwillioSmsReq {to = phoneNumber, body = smsBody, messagingServiceSid = messageServiceId, from = sender}
+  let twillioReq = TwillioSmsReq {to = phoneNumber, body = smsBody, messagingServiceSid = messageServiceId, from = Just sender}
   res <- Ex.sendOTPApi cfg twillioReq
   return $ returnSmsResult res.status
 

@@ -66,7 +66,7 @@ data TwillioSmsReq = TwillioSmsReq
   { to :: Text,
     body :: Text,
     messagingServiceSid :: Text,
-    from :: Text
+    from :: Maybe Text
   }
   deriving (Generic, ToJSON, FromJSON, Eq, ToSchema)
 
@@ -74,6 +74,22 @@ instance ToForm TwillioSmsReq where
   toForm TwillioSmsReq {..} =
     [ ("To", toQueryParam to),
       ("Body", toQueryParam body),
-      ("MessagingServiceSid", toQueryParam messagingServiceSid),
-      ("From", toQueryParam from)
+      ("MessagingServiceSid", toQueryParam messagingServiceSid)
+    ]
+      <> maybe [] (\f -> [("From", toQueryParam f)]) from
+
+data TwillioWhatsAppTemplateReq = TwillioWhatsAppTemplateReq
+  { to :: Text,
+    contentSid :: Text,
+    contentVariables :: Text,
+    messagingServiceSid :: Text
+  }
+  deriving (Generic, ToJSON, FromJSON, Eq, ToSchema)
+
+instance ToForm TwillioWhatsAppTemplateReq where
+  toForm TwillioWhatsAppTemplateReq {..} =
+    [ ("To", toQueryParam to),
+      ("ContentSid", toQueryParam contentSid),
+      ("ContentVariables", toQueryParam contentVariables),
+      ("MessagingServiceSid", toQueryParam messagingServiceSid)
     ]

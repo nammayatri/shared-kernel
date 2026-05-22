@@ -51,6 +51,27 @@ sendOTPApi twillioConfigs req = do
   where
     callTwillioSmsAPI = ET.client API.twillioSMSAPI
 
+sendWhatsAppTemplateApi ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  TwillioSmsCfg ->
+  TwillioWhatsAppTemplateReq ->
+  m TwillioSmsResp
+sendWhatsAppTemplateApi twillioConfigs req = do
+  accountsid <- decrypt twillioConfigs.accountSid
+  authtoken <- decrypt twillioConfigs.authToken
+  let authData = BasicAuthData (DT.encodeUtf8 accountsid) (DT.encodeUtf8 authtoken)
+  callAPI
+    twillioConfigs.url
+    (ET.client API.twillioWhatsAppTemplateAPI accountsid authData req)
+    "sendWhatsAppTemplateApi"
+    API.twillioWhatsAppTemplateAPI
+    >>= checkTwillioSmsError twillioConfigs.url
+
 checkTwillioSmsError :: (MonadThrow m, B.Log m) => BaseUrl -> Either ClientError TwillioSmsResp -> m TwillioSmsResp
 checkTwillioSmsError url res =
   fromEitherM (twillioError url) res >>= validateResponseStatus
