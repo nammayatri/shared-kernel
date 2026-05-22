@@ -270,12 +270,17 @@ library
       Kernel.External.SMS.Interface.DigoEngageSms
       Kernel.External.SMS.Interface.ExotelSms
       Kernel.External.SMS.Interface.GupShup
+      Kernel.External.SMS.Interface.KaleyraSms
       Kernel.External.SMS.Interface.KarixSms
       Kernel.External.SMS.Interface.MyValueFirst
       Kernel.External.SMS.Interface.PinbixSms
       Kernel.External.SMS.Interface.TwillioSms
       Kernel.External.SMS.Interface.Types
       Kernel.External.SMS.Interface.VonageSms
+      Kernel.External.SMS.KaleyraSms.API
+      Kernel.External.SMS.KaleyraSms.Config
+      Kernel.External.SMS.KaleyraSms.Flow
+      Kernel.External.SMS.KaleyraSms.Types
       Kernel.External.SMS.KarixSms.Api
       Kernel.External.SMS.KarixSms.Config
       Kernel.External.SMS.KarixSms.Flow

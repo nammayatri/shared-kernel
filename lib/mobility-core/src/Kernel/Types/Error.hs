@@ -1631,6 +1631,38 @@ instance FromResponse DigoEngageError where
 
 instance IsAPIError DigoEngageError
 
+data KaleyraSmsError
+  = KaleyraInvalidRequest
+  | KaleyraNotConfigured
+  | KaleyraUnauthorized
+  | KaleyraUnknownServerError Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''KaleyraSmsError
+
+instance IsBaseError KaleyraSmsError where
+  toMessage = \case
+    KaleyraInvalidRequest -> Just "Invalid request to Kaleyra SMS API."
+    KaleyraNotConfigured -> Just "Kaleyra SMS env variables aren't properly set."
+    KaleyraUnauthorized -> Just "Authentication failed for Kaleyra SMS API."
+    KaleyraUnknownServerError msg -> Just ("Kaleyra SMS error: " <> msg)
+
+instance IsHTTPError KaleyraSmsError where
+  toErrorCode = \case
+    KaleyraInvalidRequest -> "KALEYRA_INVALID_REQUEST"
+    KaleyraNotConfigured -> "KALEYRA_NOT_CONFIGURED"
+    KaleyraUnauthorized -> "KALEYRA_AUTHENTICATION_FAILED"
+    KaleyraUnknownServerError _ -> "KALEYRA_UNKNOWN_ERROR"
+
+instance FromResponse KaleyraSmsError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just KaleyraInvalidRequest
+    401 -> Just KaleyraUnauthorized
+    403 -> Just KaleyraUnauthorized
+    _ -> Just (KaleyraUnknownServerError "Unknown server error")
+
+instance IsAPIError KaleyraSmsError
+
 data VonageSmsError
   = VonageSmsInvalidRequest
   | VonageSmsNotConfigured
