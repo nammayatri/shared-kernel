@@ -19,11 +19,14 @@ module Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError where
 import qualified Data.HashMap.Strict as HM
 import EulerHS.Prelude
 import qualified EulerHS.Types as ET
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Utils.InternalAPICallLogging (pushInternalApiCallDataToKafkaWithTextEncodedResp)
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import Kernel.Utils.Servant.Client
+import qualified Kernel.Utils.Text as KUT
 import Servant.Client (Client, HasClient)
 
 data BecknAPICallError = BecknAPICallError Text Error
@@ -64,6 +67,34 @@ callBecknAPI ::
   m res
 callBecknAPI mbManagerSelector errorCodeMb action api baseUrl internalEndPointHashMap req = do
   callBecknAPI' mbManagerSelector errorCodeMb (Just internalEndPointHashMap) baseUrl (ET.client api req) action api
+
+callBecknAPIWithLogging ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    IsBecknAPI api req res,
+    SanitizedUrl api,
+    HasRequestId r,
+    MonadReader r m,
+    HasKafkaProducer r,
+    ToJSON req
+  ) =>
+  Maybe ET.ManagerSelector ->
+  Maybe Text ->
+  Text ->
+  Text ->
+  Maybe Text ->
+  Proxy api ->
+  BaseUrl ->
+  HM.HashMap BaseUrl BaseUrl ->
+  req ->
+  m res
+callBecknAPIWithLogging mbManagerSelector errorCodeMb action source entityId api baseUrl internalEndPointHashMap req = do
+  result <- try $ callBecknAPI mbManagerSelector errorCodeMb action api baseUrl internalEndPointHashMap req
+  fork ("Logging Beckn API call: " <> action) $ do
+    let resText = either (show :: SomeException -> Text) KUT.encodeToText result
+    logDebug $ "Beckn API call " <> action <> " result: " <> resText
+    pushInternalApiCallDataToKafkaWithTextEncodedResp action source entityId (Just req) resText
+  either throwM return result
 
 callBecknAPI' ::
   ( MonadFlow m,
