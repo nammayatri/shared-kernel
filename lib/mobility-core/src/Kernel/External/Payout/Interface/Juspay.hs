@@ -62,9 +62,9 @@ createPayoutOrder config req = do
   mkCreatePayoutOrderResp <$> Juspay.createPayoutOrder url apiKey merchantId req.mRoutingId orderReq
   where
     mkCreatePayoutOrderReq customerVpa CreatePayoutOrderReq {customerVpa = _customerVpa, ..} = do
-      webhookDetails <- case isDynamicWebhookRequired of
-        True -> Just <$> mkDynamicWebhookDetails
-        False -> pure Nothing
+      webhookDetails <- case config.dynamicWebhookUrl of
+        Just dynamicWebhookUrl -> Just <$> mkDynamicWebhookDetails dynamicWebhookUrl
+        Nothing -> pure Nothing
       return $
         Juspay.CreatePayoutOrderReq
           { amount = realToFrac amount,
@@ -119,10 +119,9 @@ createPayoutOrder config req = do
           ..
         }
 
-    mkDynamicWebhookDetails = do
+    mkDynamicWebhookDetails dynamicWebhookUrl = do
       appBaseUrl <- asks (.selfBaseUrl)
       password_ <- decrypt config.password
-      dynamicWebhookUrl <- config.dynamicWebhookUrl & fromMaybeM (InvalidRequest "Dynamic webhook URL not found")
       let baseUrl = appBaseUrl {baseUrlPath = baseUrlPath appBaseUrl <> (T.unpack dynamicWebhookUrl)}
           url = showBaseUrl baseUrl
       let customHeaderList = [("X-MerchantId", config.merchantId)] :: [(Text, Text)]
