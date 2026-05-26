@@ -66,6 +66,8 @@ instance Metrics.CoreMetrics IO where
   incrementSchedulerJobDisabledCounter _ = return ()
   incrementGenericMetrics _ = return ()
   incrementSystemConfigsFailedCounter _ = return ()
+  incrementRideStartCounter _ = return ()
+  incrementRideEndCounter _ = return ()
   addGenericLatencyMetrics _ _ = return ()
   addOpenTripPlannerResponse _ _ _ = return ()
   addOpenTripPlannerLatency _ _ _ = return ()
