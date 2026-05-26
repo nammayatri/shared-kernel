@@ -347,6 +347,36 @@ incrementSystemConfigsFailedCounter' operation = do
       operation
       P.incCounter
 
+incrementRideStartCounter' ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementRideStartCounter' operation = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $
+    P.withLabel
+      cmContainer.rideStartCounter
+      operation
+      P.incCounter
+
+incrementRideEndCounter' ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementRideEndCounter' operation = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $
+    P.withLabel
+      cmContainer.rideEndCounter
+      operation
+      P.incCounter
+
 addGenericLatencyMetricsImplementation ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
