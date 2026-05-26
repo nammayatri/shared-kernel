@@ -58,6 +58,10 @@ type GenericCounter = P.Vector P.Label1 P.Counter
 
 type SystemConfigsFailedCounter = P.Vector P.Label1 P.Counter
 
+type RideStartCounter = P.Vector P.Label1 P.Counter
+
+type RideEndCounter = P.Vector P.Label1 P.Counter
+
 type OpenTripPlannerResponseMetric = P.Vector P.Label4 P.Counter
 
 type OpenTripPlannerLatencyMetric = P.Vector P.Label3 P.Histogram
@@ -88,6 +92,8 @@ class CoreMetrics m where
   incrementProducerError :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
   incrementSystemConfigsFailedCounter :: Text -> m ()
+  incrementRideStartCounter :: Text -> m ()
+  incrementRideEndCounter :: Text -> m ()
   addGenericLatencyMetrics :: Text -> Seconds -> m ()
   addOpenTripPlannerResponse :: Text -> Text -> Text -> m ()
   addOpenTripPlannerLatency :: Text -> Text -> Milliseconds -> m ()
@@ -109,6 +115,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     producerError :: ProducerErrorMetric,
     genericCounter :: GenericCounter,
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
+    rideStartCounter :: RideStartCounter,
+    rideEndCounter :: RideEndCounter,
     kvRedisMetricsContainer :: KVMetrics.KVMetricHandler,
     genericLatencyMetrics :: GenericLatencyMetric,
     openTripPlannerResponseMetric :: OpenTripPlannerResponseMetric,
@@ -132,6 +140,8 @@ registerCoreMetricsContainer = do
   producerError <- registerProducerErrorMetric
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
+  rideStartCounter <- registerRideStartCounter
+  rideEndCounter <- registerRideEndCounter
   kvRedisMetricsContainer <- KVMetrics.mkKVMetricHandler
   genericLatencyMetrics <- registerLatencyMetrics
   openTripPlannerResponseMetric <- registerOpenTripPlannerResponseMetric
@@ -257,6 +267,22 @@ registerSystemConfigsFailedCounter =
       P.counter info
   where
     info = P.Info "system_configs_failed_counter" ""
+
+registerRideStartCounter :: IO RideStartCounter
+registerRideStartCounter =
+  P.register $
+    P.vector "event" $
+      P.counter info
+  where
+    info = P.Info "ride_start_counter" ""
+
+registerRideEndCounter :: IO RideEndCounter
+registerRideEndCounter =
+  P.register $
+    P.vector "event" $
+      P.counter info
+  where
+    info = P.Info "ride_end_counter" ""
 
 registerLatencyMetrics :: IO GenericLatencyMetric
 registerLatencyMetrics =
