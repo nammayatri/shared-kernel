@@ -15,6 +15,7 @@
 module Kernel.External.Payment.Stripe.Webhook
   ( StripeWebhookAPI,
     serviceEventWebhook,
+    verifyStripeWebhookSignature,
     RawByteString (..),
   )
 where
@@ -70,11 +71,11 @@ serviceEventWebhook ::
   m AckResponse
 serviceEventWebhook paymentConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes = do
   withLogTag "stripeWebhook" $ do
+    sigHeader <- mbSigHeader & fromMaybeM (InvalidRequest "Stripe-Signature header did not found")
+    void $ verifyAuth paymentConfig sigHeader rawBytes
     let mResp = A.eitherDecode rawBytes.getRawByteString
     case mResp of
       Right (resp :: Stripe.WebhookReq) -> withLogTag ("eventId-" <> resp.id.getId) $ do
-        sigHeader <- mbSigHeader & fromMaybeM (InvalidRequest "Stripe-Signature header did not found")
-        void $ verifyAuth paymentConfig sigHeader rawBytes
         -- according to docs run heavy logic asynchronically and return 200 quickly
         fork "stripe webhook" $ do
           isDuplicatedEvent <- checkDuplicatedEvent resp.id
@@ -95,18 +96,28 @@ verifyAuth ::
   Text ->
   RawByteString ->
   m ()
-verifyAuth config sigHeader (RawByteString rawBody) = do
-  (secret, tolerance) <- case config of
-    StripeConfig cfg -> do
-      webhookEndpointSecret <- cfg.webhookEndpointSecret & fromMaybeM (InternalError "STRIPE_WEBHOOK_SECRET_NOT_FOUND")
-      s <- decrypt webhookEndpointSecret
-      pure (s, fromMaybe 300 cfg.webhookToleranceSeconds)
-    _ -> throwError (InternalError "NOT_STRIPE_CONFIG")
+verifyAuth config sigHeader rawBytes = case config of
+  StripeConfig cfg -> do
+    encryptedSecret <- cfg.webhookEndpointSecret & fromMaybeM (InternalError "STRIPE_WEBHOOK_SECRET_NOT_FOUND")
+    let tolerance = fromMaybe 300 cfg.webhookToleranceSeconds
+    verifyStripeWebhookSignature encryptedSecret tolerance sigHeader rawBytes
+  _ -> throwError (InternalError "NOT_STRIPE_CONFIG")
 
+-- | Verify @Stripe-Signature@ for a raw webhook body using the endpoint signing secret
+-- (same algorithm for payment and payout Stripe webhook endpoints).
+verifyStripeWebhookSignature ::
+  EncFlow m r =>
+  EncryptedField 'AsEncrypted Text ->
+  Seconds ->
+  Text ->
+  RawByteString ->
+  m ()
+verifyStripeWebhookSignature encryptedWebhookSecret toleranceSeconds sigHeader (RawByteString rawBody) = do
+  secret <- decrypt encryptedWebhookSecret
   (ts, sigsV1) <- parseStripeSignature sigHeader
   now <- getCurrentTime
   let tsUtc = posixSecondsToUTCTime (fromIntegral ts)
-  when (diffUTCTime now tsUtc > fromIntegral tolerance) $
+  when (diffUTCTime now tsUtc > fromIntegral toleranceSeconds) $
     throwError (InvalidRequest "STRIPE_SIGNATURE_TIMESTAMP_OUT_OF_TOLERANCE")
 
   let rawStrictBody = LBS.toStrict rawBody
