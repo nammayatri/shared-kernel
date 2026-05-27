@@ -27,6 +27,7 @@ import qualified Database.PostgreSQL.Simple.FromField as DPSF
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistFieldJSON)
 import Kernel.Utils.Dhall (FromDhall)
+import Sequelize.SQLObject (SQLObject (..), ToSQLObject (..))
 
 data SlidingWindowOptions = SlidingWindowOptions
   { period :: Integer,
@@ -53,6 +54,9 @@ instance HasSqlValueSyntax be A.Value => HasSqlValueSyntax be SlidingWindowOptio
 instance BeamSqlBackend be => B.HasSqlEqualityCheck be SlidingWindowOptions
 
 instance FromBackendRow Postgres SlidingWindowOptions
+
+instance {-# OVERLAPPING #-} ToSQLObject SlidingWindowOptions where
+  convertToSQLObject = SQLObjectValue . show . A.encode
 
 data PeriodType = Minutes | Hours | Days | Months | Years deriving (Read, Generic, FromDhall, Show, Eq, FromJSON, ToJSON, ToSchema, Ord)
 
