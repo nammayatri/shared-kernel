@@ -27,6 +27,7 @@ import qualified Kernel.External.Ticket.Zendesk.Types as Zendesk
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Utils.Servant.Client
+import Kernel.Utils.Time (showTimeIst)
 
 createTicket ::
   ( Metrics.CoreMetrics m,
@@ -53,7 +54,11 @@ mkZendeskCreateTicketReq cfg IT.CreateTicketReq {..} =
     { ticket =
         Zendesk.ZendeskTicketBody
           { subject = buildSubject category rideDescription,
-            comment = Zendesk.ZendeskComment {body = buildBody issueDescription name phoneNo rideDescription mediaFiles},
+            comment =
+              Zendesk.ZendeskComment
+                { body = buildBody issueDescription name phoneNo rideDescription mediaFiles,
+                  htmlBody = buildHtmlBody issueDescription name phoneNo rideDescription mediaFiles
+                },
             requester = Just $ Zendesk.ZendeskRequester {name = fromMaybe "Unknown" name, email = cfg.requesterEmail},
             organizationId = cfg.organizationId,
             groupId = cfg.groupId,
@@ -89,6 +94,56 @@ formatMediaFiles (Just []) = ""
 formatMediaFiles (Just urls) =
   T.unlines $ ["", "=== Recording / Media ==="] ++ map (\u -> "- " <> u) urls
 
+formatMediaFilesHtml :: Maybe [Text] -> Text
+formatMediaFilesHtml Nothing = ""
+formatMediaFilesHtml (Just []) = ""
+formatMediaFilesHtml (Just urls) =
+  "<br><strong>Recording / Media</strong><ul>"
+    <> T.concat (map (\u -> "<li><a href=\"" <> u <> "\">" <> extractLabel u <> "</a></li>") urls)
+    <> "</ul>"
+  where
+    extractLabel url
+      | "/rides/" `T.isInfixOf` url = "View Ride"
+      | "/sos/" `T.isInfixOf` url = "View SOS Media"
+      | otherwise =
+        let withoutQuery = T.takeWhile (/= '?') url
+            parts = T.splitOn "/" withoutQuery
+         in case filter (not . T.null) parts of
+              [] -> url
+              ps -> last ps
+
+htmlEscape :: Text -> Text
+htmlEscape =
+  T.replace "&" "&amp;"
+    . T.replace "<" "&lt;"
+    . T.replace ">" "&gt;"
+    . T.replace "\"" "&quot;"
+    . T.replace "'" "&#39;"
+
+-- html_body is only set when media files are present.
+-- It wraps the plain-text body in a <pre> tag (preserving formatting) and
+-- appends the media links as proper HTML anchors.
+-- Zendesk shows html_body in the agent UI and falls back to body elsewhere,
+-- so agents see exactly one copy of the content.
+buildHtmlBody :: Text -> Maybe Text -> Maybe Text -> Maybe IT.RideInfo -> Maybe [Text] -> Maybe Text
+buildHtmlBody issueDescription mbName mbPhone mbRide mbMediaFiles =
+  case formatMediaFilesHtml mbMediaFiles of
+    "" -> Nothing
+    mediaHtml ->
+      Just $
+        "<pre>" <> htmlEscape (buildBody issueDescription mbName mbPhone mbRide Nothing) <> "</pre>"
+          <> mediaHtml
+
+buildHtmlUpdateBody :: Text -> Maybe IT.RideInfo -> Maybe IT.UpdateIssueDetails -> Maybe Text
+buildHtmlUpdateBody comment mbRide mbIssueDetails =
+  let mediaHtml = maybe "" (formatMediaFilesHtml . (.mediaFiles)) mbIssueDetails
+   in case mediaHtml of
+        "" -> Nothing
+        html ->
+          Just $
+            "<pre>" <> htmlEscape (buildUpdateBody comment mbRide (fmap (\d -> (d :: IT.UpdateIssueDetails) {IT.mediaFiles = Nothing}) mbIssueDetails)) <> "</pre>"
+              <> html
+
 formatRideInfo :: IT.RideInfo -> Text
 formatRideInfo IT.RideInfo {..}
   | T.null rideShortId = ""
@@ -101,6 +156,8 @@ formatRideInfo IT.RideInfo {..}
           Just $ "City: " <> rideCity,
           Just $ "Status: " <> status,
           Just $ "Vehicle: " <> vehicleNo,
+          Just $ "Vehicle Category: " <> fromMaybe "N/A" vehicleCategory,
+          Just $ "Created At: " <> showTimeIst rideCreatedAt,
           (\f -> "Fare: " <> show f) <$> fare,
           Just "",
           Just "=== Driver ===",
@@ -155,7 +212,12 @@ mkZendeskUpdateTicketReq IT.UpdateTicketReq {..} =
   Zendesk.ZendeskUpdateTicketReq
     { ticket =
         Zendesk.ZendeskUpdateTicketBody
-          { comment = Just $ Zendesk.ZendeskComment {body = buildUpdateBody comment rideDescription issueDetails},
+          { comment =
+              Just
+                Zendesk.ZendeskComment
+                  { body = buildUpdateBody comment rideDescription issueDetails,
+                    htmlBody = buildHtmlUpdateBody comment rideDescription issueDetails
+                  },
             status = Just $ ticketStatusToZendesk status
           }
     }

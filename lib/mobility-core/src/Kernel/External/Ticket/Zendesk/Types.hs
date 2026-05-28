@@ -65,11 +65,23 @@ instance FromJSON ZendeskTicketBody where
       <*> v .: "type"
       <*> (v .:? "custom_fields" .!= [])
 
-newtype ZendeskComment = ZendeskComment
-  { body :: Text
+data ZendeskComment = ZendeskComment
+  { body :: Text,
+    htmlBody :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+
+instance ToJSON ZendeskComment where
+  toJSON ZendeskComment {..} =
+    object $
+      ["body" .= body]
+        ++ maybe [] (\h -> ["html_body" .= h]) htmlBody
+
+instance FromJSON ZendeskComment where
+  parseJSON = withObject "ZendeskComment" $ \v ->
+    ZendeskComment
+      <$> v .: "body"
+      <*> v .:? "html_body"
 
 data ZendeskRequester = ZendeskRequester
   { name :: Text,
