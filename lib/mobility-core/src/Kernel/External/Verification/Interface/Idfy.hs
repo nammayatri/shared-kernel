@@ -21,6 +21,7 @@ module Kernel.External.Verification.Interface.Idfy
     verifyBankAccountAsync,
     verifyPanAadhaarLinkAsync,
     verifyUdyamAadhaarAsync,
+    verifyCRCAsync,
     validateImage,
     extractRCImage,
     extractUdyogAadhaarAsync,
@@ -206,6 +207,35 @@ verifyUdyamAadhaarAsync cfg req = do
           }
   idfyReq <- buildIdfyRequest req.driverId reqData
   idfySuccess <- Idfy.verifyUdyamAadhaarAsync apiKey accountId url idfyReq
+  pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
+
+verifyCRCAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  VerifyCRCReq ->
+  m VerifyCRCAsyncResp
+verifyCRCAsync cfg req = do
+  let url = cfg.url
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.CRCVerificationData
+          { entity_type = VT.crcEntityTypeToText req.entityType,
+            entity_type_details =
+              Idfy.CRCEntityDetails
+                { name = req.name,
+                  father_name = req.fatherName,
+                  dob = req.dob,
+                  address = req.address,
+                  pan_number = req.panNumber
+                }
+          }
+  idfyReq <- buildIdfyRequest req.driverId reqData
+  idfySuccess <- Idfy.verifyCRCAsync apiKey accountId url idfyReq
   pure $ VerifyAsyncResp {requestId = idfySuccess.request_id, requestor = VT.Idfy, transactionId = Nothing}
 
 verifyRCAsync ::
@@ -521,6 +551,7 @@ getTask cfg req updateResp = do
     PanAadhaarLinkResult (SourceOutput out) -> PanAadhaarLinkResp $ convertPanAadhaarLinkOutputToPanAadhaarLinkVerification out
     UdyamAadhaarResult (SourceOutput out) -> UdyamAadhaarResp $ convertUdyamAadhaarOutputToUdyamAadhaarVerification out
     UdyogAadhaarResult (SourceOutput out) -> UdyogAadhaarResp $ convertUdyogAadhaarOutputToUdyogAadhaarVerification out
+    CRCResult (SourceOutput out) -> CRCResp out
 
 convertDLOutputToDLVerificationOutput :: DLVerificationOutput -> DLVerificationOutputInterface
 convertDLOutputToDLVerificationOutput DLVerificationOutput {..} =

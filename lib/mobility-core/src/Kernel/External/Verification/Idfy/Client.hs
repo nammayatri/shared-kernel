@@ -20,6 +20,7 @@ module Kernel.External.Verification.Idfy.Client
     verifyBankAccountAsync,
     verifyPanAadhaarLinkAsync,
     verifyUdyamAadhaarAsync,
+    verifyCRCAsync,
     validateImage,
     extractRCImage,
     extractDLImage,
@@ -34,6 +35,7 @@ module Kernel.External.Verification.Idfy.Client
     VerifyBankAccountAPI,
     VerifyPanAadhaarLinkAPI,
     VerifyUdyamAadhaarAPI,
+    VerifyCRCAPI,
     ValidateImage,
     ExtractDLImage,
     ExtractPanImage,
@@ -268,6 +270,36 @@ verifyUdyamAadhaarAsync apiKey accountId url req = callIdfyAPI url task "verifyU
     task =
       T.client
         verifyUdyamAadhaarAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type VerifyCRCAPI =
+  "v3" :> "tasks" :> "async" :> "verify_with_source" :> "ind_court_record"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] CRCVerificationRequest
+    :> Post '[JSON] IdfySuccess
+
+verifyCRCAPI :: Proxy VerifyCRCAPI
+verifyCRCAPI = Proxy
+
+verifyCRCAsync ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  CRCVerificationRequest ->
+  m IdfySuccess
+verifyCRCAsync apiKey accountId url req = callIdfyAPI url task "verifyCRCAsync" verifyCRCAPI
+  where
+    task =
+      T.client
+        verifyCRCAPI
         (Just apiKey)
         (Just accountId)
         req

@@ -26,6 +26,7 @@ import EulerHS.Prelude hiding (state)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
+import Kernel.Utils.JSON (constructorsToLowerOptions, constructorsWithSnakeCase)
 
 data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge | HyperVergeRCDL | DigiLocker | Tten | Morth
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
@@ -181,3 +182,39 @@ data PanAadhaarLinkResponse = PanAadhaarLinkResponse
     status :: Maybe Text
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data CRCEntityType = Individual | Business
+  deriving (Show, Read, Eq, Ord, Generic)
+
+instance ToJSON CRCEntityType where
+  toJSON = A.genericToJSON constructorsToLowerOptions
+
+instance FromJSON CRCEntityType where
+  parseJSON = A.genericParseJSON constructorsToLowerOptions
+
+instance ToSchema CRCEntityType where
+  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions constructorsToLowerOptions
+
+-- | Entity type value expected by the Idfy CRC API request.
+crcEntityTypeToText :: CRCEntityType -> Text
+crcEntityTypeToText Individual = "individual"
+crcEntityTypeToText Business = "business"
+
+data CRCVerificationResponse = CRCVerificationResponse
+  { caseDetailsLink :: Maybe Text,
+    numberOfCases :: Maybe Int,
+    reportDownloadLink :: Maybe Text,
+    riskSummary :: Maybe Text,
+    riskType :: Maybe Text,
+    status :: Maybe Text
+  }
+  deriving (Show, Generic)
+
+instance FromJSON CRCVerificationResponse where
+  parseJSON = A.genericParseJSON constructorsWithSnakeCase
+
+instance ToJSON CRCVerificationResponse where
+  toJSON = A.genericToJSON constructorsWithSnakeCase
+
+instance ToSchema CRCVerificationResponse where
+  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions constructorsWithSnakeCase
