@@ -50,11 +50,13 @@ import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
 import EulerHS.Extra.Monitoring.Types (UseMasterRedis (..))
+import EulerHS.JsonbFallback (GFieldNames)
 import qualified EulerHS.KVConnector.Flow as KV
 import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log, V1)
+import GHC.Generics (Rep)
 import Kernel.Beam.Lib.Utils
 import Kernel.Beam.Types hiding (Tables)
 import qualified Kernel.Beam.Types as KBT
@@ -295,6 +297,7 @@ type BeamTable table =
     ToJSON (table Identity),
     TableMappings (table Identity),
     Serialize.Serialize (table Identity),
+    GFieldNames (Rep (table Identity)),
     Show (table Identity)
   )
 
