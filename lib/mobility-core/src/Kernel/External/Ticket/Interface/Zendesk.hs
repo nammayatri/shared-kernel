@@ -56,8 +56,8 @@ mkZendeskCreateTicketReq cfg IT.CreateTicketReq {..} =
           { subject = buildSubject category rideDescription,
             comment =
               Zendesk.ZendeskComment
-                { body = buildBody issueDescription name phoneNo rideDescription mediaFiles,
-                  htmlBody = buildHtmlBody issueDescription name phoneNo rideDescription mediaFiles
+                { body = buildBody issueDescription subCategory category name phoneNo rideDescription mediaFiles,
+                  htmlBody = buildHtmlBody issueDescription subCategory category name phoneNo rideDescription mediaFiles
                 },
             requester = Just $ Zendesk.ZendeskRequester {name = fromMaybe "Unknown" name, email = cfg.requesterEmail},
             organizationId = cfg.organizationId,
@@ -72,12 +72,30 @@ buildSubject :: Text -> Maybe IT.RideInfo -> Text
 buildSubject category mbRide =
   category <> maybe "" (\r -> " - " <> r.rideShortId) mbRide
 
-buildBody :: Text -> Maybe Text -> Maybe Text -> Maybe IT.RideInfo -> Maybe [Text] -> Text
-buildBody issueDescription mbName mbPhone mbRide mbMediaFiles =
-  issueDescription
+buildBody :: Text -> Maybe Text -> Text -> Maybe Text -> Maybe Text -> Maybe IT.RideInfo -> Maybe [Text] -> Text
+buildBody issueDescription mbSubCategory category mbName mbPhone mbRide mbMediaFiles =
+  formatCategoryContext category mbSubCategory
+    <> formatIssueDescription issueDescription
     <> formatCustomerContext mbName mbPhone
     <> maybe "" formatRideInfo mbRide
     <> formatMediaFiles mbMediaFiles
+
+formatCategoryContext :: Text -> Maybe Text -> Text
+formatCategoryContext category mbSubCategory =
+  T.unlines $
+    [ "=== Issue Category ===",
+      "Category: " <> category
+    ]
+      <> maybe [] (\sc -> ["Sub Category: " <> sc]) mbSubCategory
+      <> [""]
+
+formatIssueDescription :: Text -> Text
+formatIssueDescription issueDescription =
+  T.unlines $
+    [ "=== Issue Description ===",
+      issueDescription
+    ]
+      <> [""]
 
 formatCustomerContext :: Maybe Text -> Maybe Text -> Text
 formatCustomerContext mbName mbPhone =
@@ -125,13 +143,13 @@ htmlEscape =
 -- appends the media links as proper HTML anchors.
 -- Zendesk shows html_body in the agent UI and falls back to body elsewhere,
 -- so agents see exactly one copy of the content.
-buildHtmlBody :: Text -> Maybe Text -> Maybe Text -> Maybe IT.RideInfo -> Maybe [Text] -> Maybe Text
-buildHtmlBody issueDescription mbName mbPhone mbRide mbMediaFiles =
+buildHtmlBody :: Text -> Maybe Text -> Text -> Maybe Text -> Maybe Text -> Maybe IT.RideInfo -> Maybe [Text] -> Maybe Text
+buildHtmlBody issueDescription mbSubCategory category mbName mbPhone mbRide mbMediaFiles =
   case formatMediaFilesHtml mbMediaFiles of
     "" -> Nothing
     mediaHtml ->
       Just $
-        "<pre>" <> htmlEscape (buildBody issueDescription mbName mbPhone mbRide Nothing) <> "</pre>"
+        "<pre>" <> htmlEscape (buildBody issueDescription mbSubCategory category mbName mbPhone mbRide Nothing) <> "</pre>"
           <> mediaHtml
 
 buildHtmlUpdateBody :: Text -> Maybe IT.RideInfo -> Maybe IT.UpdateIssueDetails -> Maybe Text
