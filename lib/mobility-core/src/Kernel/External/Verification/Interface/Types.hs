@@ -18,6 +18,7 @@ module Kernel.External.Verification.Interface.Types
   )
 where
 
+import Data.Time.Calendar (Day)
 import Deriving.Aeson
 import EulerHS.Prelude
 import qualified Kernel.External.Verification.Digilocker.Types as DigiTypes
@@ -87,6 +88,17 @@ data VerifyUdyamAadhaarAsyncReq = VerifyUdyamAadhaarAsyncReq
   }
   deriving stock (Show, Generic)
 
+data VerifyCRCReq = VerifyCRCReq
+  { name :: Text,
+    fatherName :: Maybe Text,
+    dob :: Maybe Day,
+    address :: Maybe Text,
+    panNumber :: Maybe Text,
+    entityType :: VT.CRCEntityType,
+    driverId :: Text
+  }
+  deriving stock (Show, Generic)
+
 data VerifyDLSyncResp = VerifyDLSyncResp
   { requestId :: Maybe Text,
     requestor :: VT.VerificationService,
@@ -117,6 +129,8 @@ type VerifyBankAccountAsyncResp = VerifyAsyncResp
 type VerifyPanAadhaarLinkAsyncResp = VerifyAsyncResp
 
 type VerifyUdyamAadhaarAsyncResp = VerifyAsyncResp
+
+type VerifyCRCAsyncResp = VerifyAsyncResp
 
 data VerifyRCReq = VerifyRCReq
   { rcNumber :: Text,
@@ -272,7 +286,7 @@ data GetTaskReq = GetTaskReq
   }
   deriving (Generic, FromJSON, ToJSON, Show)
 
-data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface | PanResp VT.PanVerificationResponse | GstResp VT.GstVerificationResponse | BankAccountResp VT.BankAccountVerificationResponse | PanAadhaarLinkResp VT.PanAadhaarLinkResponse | UdyogAadhaarResp VT.UdyogAadhaarVerificationResponse | UdyamAadhaarResp VT.UdyamAadhaarVerificationResponse
+data GetTaskResp = RCResp VT.RCVerificationResponse | DLResp DLVerificationOutputInterface | PanResp VT.PanVerificationResponse | GstResp VT.GstVerificationResponse | BankAccountResp VT.BankAccountVerificationResponse | PanAadhaarLinkResp VT.PanAadhaarLinkResponse | UdyogAadhaarResp VT.UdyogAadhaarVerificationResponse | UdyamAadhaarResp VT.UdyamAadhaarVerificationResponse | CRCResp VT.CRCVerificationResponse
   deriving (Generic, FromJSON, ToJSON, Show)
 
 data DLVerificationOutputInterface = DLVerificationOutputInterface

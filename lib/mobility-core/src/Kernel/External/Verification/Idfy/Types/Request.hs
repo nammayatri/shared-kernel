@@ -20,6 +20,7 @@ import Data.OpenApi
     fromAesonOptions,
     genericDeclareNamedSchema,
   )
+import Data.Time.Calendar (Day)
 import EulerHS.Prelude
 import Kernel.Utils.JSON (stripPrefixUnderscoreIfAny)
 
@@ -46,6 +47,8 @@ type UdyamAadhaarRequest = IdfyRequest UdyamAadhaarData
 type UdyogAadhaarExtractionRequest = IdfyRequest UdyogAadhaarExtractionData
 
 type NameCompareRequest = IdfyRequest NameCompareRequestBody
+
+type CRCVerificationRequest = IdfyRequest CRCVerificationData
 
 data IdfyRequest a = IdfyRequest
   { task_id :: Text,
@@ -137,5 +140,20 @@ data NameCompareRequestBody = NameCompareRequestBody
   { name1 :: Text,
     name2 :: Text,
     percentage :: Maybe Bool
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data CRCVerificationData = CRCVerificationData
+  { entity_type :: Text,
+    entity_type_details :: CRCEntityDetails
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data CRCEntityDetails = CRCEntityDetails
+  { name :: Text,
+    father_name :: Maybe Text,
+    dob :: Maybe Day,
+    address :: Maybe Text,
+    pan_number :: Maybe Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)

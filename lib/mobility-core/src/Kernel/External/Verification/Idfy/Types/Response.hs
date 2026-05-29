@@ -20,6 +20,7 @@ import qualified Data.Aeson as A
 import Data.OpenApi hiding (email, name)
 import Data.Text as T
 import EulerHS.Prelude hiding (state)
+import qualified Kernel.External.Verification.Types as VT
 import Kernel.Types.App ()
 import Kernel.Utils.JSON
 import Kernel.Utils.Time
@@ -66,6 +67,8 @@ instance FromJSON VerificationResponse where
         parseJSON @(IdfyResponse (SourceOutput UdyogAadhaarOutput)) val <&> mapIdfyResponse UdyogAadhaarResult
       Just "udyam_aadhaar" ->
         parseJSON @(IdfyResponse (SourceOutput UdyamAadhaarOutput)) val <&> mapIdfyResponse UdyamAadhaarResult
+      Just "ind_court_record" ->
+        parseJSON @(IdfyResponse (SourceOutput VT.CRCVerificationResponse)) val <&> mapIdfyResponse CRCResult
       Just docType ->
         fail $ "Unable to decode document type: " <> T.unpack docType
       Nothing ->
@@ -81,6 +84,7 @@ instance ToJSON VerificationResponse where
     Just (PanAadhaarLinkResult res) -> toJSON @(IdfyResponse (SourceOutput PanAadhaarLinkOutput)) IdfyResponse {result = Just res, ..}
     Just (UdyogAadhaarResult res) -> toJSON @(IdfyResponse (SourceOutput UdyogAadhaarOutput)) IdfyResponse {result = Just res, ..}
     Just (UdyamAadhaarResult res) -> toJSON @(IdfyResponse (SourceOutput UdyamAadhaarOutput)) IdfyResponse {result = Just res, ..}
+    Just (CRCResult res) -> toJSON @(IdfyResponse (SourceOutput VT.CRCVerificationResponse)) IdfyResponse {result = Just res, ..}
     Nothing -> toJSON @(IdfyResponse (ExtractionOutput RCVerificationOutput)) IdfyResponse {result = Nothing, ..}
 
 mapIdfyResponse :: forall a b. (a -> b) -> IdfyResponse a -> IdfyResponse b
@@ -97,6 +101,7 @@ data IdfyResult
   | PanAadhaarLinkResult (SourceOutput PanAadhaarLinkOutput)
   | UdyogAadhaarResult (SourceOutput UdyogAadhaarOutput)
   | UdyamAadhaarResult (SourceOutput UdyamAadhaarOutput)
+  | CRCResult (SourceOutput VT.CRCVerificationResponse)
   deriving (Show)
 
 type NameCompareResponse = IdfyResponse NameCompareResponseData
