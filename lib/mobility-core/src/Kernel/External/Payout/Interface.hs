@@ -50,7 +50,8 @@ createPayoutOrder serviceConfig req = case serviceConfig of
         let err = fromException @Payment.StripeError e
             errorCode = err <&> toErrorCode
             errorMessage = err >>= toMessage
-        logError $ "Error while create external payout : " <> show err <> "error code : " <> show errorCode <> "error message : " <> show errorMessage <> " orderId: " <> req.orderId
+        logDebug $ "Raw payout error: " <> show e
+        logError $ "Error while create external payout : " <> show err <> "; error code : " <> show errorCode <> "; error message : " <> show errorMessage <> "; orderId : " <> req.orderId
         pure
           CreateExternalPayoutResp
             { orderId = req.orderId,
