@@ -275,7 +275,8 @@ buildCustomFields cfg mbRide mbCustomerPhone =
   catMaybes
     [ mkField cfg.rideIdFieldId (toJSON . (.rideShortId) <$> mbRide),
       mkField cfg.driverPhoneFieldId (toJSON <$> (mbRide >>= (.driverPhoneNo))),
-      mkField cfg.customerPhoneFieldId (toJSON <$> mbCustomerPhone)
+      mkField cfg.customerPhoneFieldId (toJSON <$> mbCustomerPhone),
+      mkField cfg.cityFieldId (toJSON <$> ((.rideCity) <$> mbRide))
     ]
   where
     mkField Nothing _ = Nothing
