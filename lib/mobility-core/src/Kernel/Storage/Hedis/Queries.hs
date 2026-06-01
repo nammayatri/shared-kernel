@@ -614,6 +614,20 @@ del key = withLogTag "Redis" do
   res <- withTimeRedis "RedisCluster" "del" $ withTryCatch "del" (runWithPrefix_ key $ \prefKey -> Hedis.del [prefKey])
   whenLeft res (\err -> withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_DELETE" $ show err)
 
+-- | Delete multiple keys from standalone Redis in a single DEL call.
+delStandalone :: (HedisFlow m env, TryException m) => [Text] -> m ()
+delStandalone [] = pure ()
+delStandalone keys = withLogTag "STANDALONE" $ do
+  prefKeys <- mapM buildKey keys
+  res <-
+    withTimeRedis "RedisStandalone" "del" $
+      withTryCatch "delStandalone" $
+        runHedisEither' $ Hedis.del prefKeys
+  case res of
+    Left exc -> logTagError "FAILED_TO_DELETE" $ "Standalone DEL threw: " <> show exc
+    Right (Left reply) -> logTagError "FAILED_TO_DELETE" $ "Standalone DEL failed: " <> show reply
+    Right (Right _) -> pure ()
+
 rPushExp :: (HedisFlow m env, TryException m, ToJSON a) => Text -> [a] -> ExpirationTime -> m ()
 rPushExp key list ex = withLogTag "Redis" $ do
   prefKey <- buildKey key
