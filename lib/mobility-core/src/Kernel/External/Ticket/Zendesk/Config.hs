@@ -27,6 +27,7 @@ data ZendeskCfg = ZendeskCfg
     groupId :: Maybe Int,
     rideIdFieldId :: Maybe Int,
     driverPhoneFieldId :: Maybe Int,
-    customerPhoneFieldId :: Maybe Int
+    customerPhoneFieldId :: Maybe Int,
+    cityFieldId :: Maybe Int
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
