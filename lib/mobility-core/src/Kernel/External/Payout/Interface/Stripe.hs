@@ -2,8 +2,6 @@ module Kernel.External.Payout.Interface.Stripe
   ( createExternalPayout,
     externalPayoutOrderStatus,
     createTransfer,
-    getBalance,
-    getAvailableForCurrency,
     payoutStripeServiceEventWebhook,
     castPayoutStatus,
     unPayoutId,
@@ -133,26 +131,6 @@ createTransfer config req = do
 
     mkCreateTransferResp :: Stripe.TransferObject -> CreateTransferResp
     mkCreateTransferResp Stripe.TransferObject {..} = CreateTransferResp {transferId = id, transferStatus = TRANSFERRED}
-
-getBalance ::
-  ( Metrics.CoreMetrics m,
-    EncFlow m r,
-    HasRequestId r,
-    MonadReader r m
-  ) =>
-  StripeConfig ->
-  Maybe Text ->
-  m Stripe.BalanceResp
-getBalance config mbConnectedAccountId = do
-  apiKey <- decrypt config.apiKey
-  Stripe.getBalance config.url apiKey mbConnectedAccountId
-
--- | Extract available balance for a specific currency from a Stripe BalanceResp.
---   Stripe amounts are in smallest currency unit (cents); converts to HighPrecMoney.
-getAvailableForCurrency :: Currency -> Stripe.BalanceResp -> HighPrecMoney
-getAvailableForCurrency currency Stripe.BalanceResp {available} =
-  let currencyText = T.toLower $ show currency
-   in sum [centsToUsd f.amount | f <- available, f.currency == currencyText]
 
 payoutStripeServiceEventWebhook ::
   ( EncFlow m r,

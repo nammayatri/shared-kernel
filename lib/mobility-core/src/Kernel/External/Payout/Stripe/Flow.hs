@@ -1,5 +1,3 @@
-{-# LANGUAGE DerivingStrategies #-}
-
 module Kernel.External.Payout.Stripe.Flow where
 
 import qualified EulerHS.Types as Euler
@@ -141,41 +139,3 @@ createTransfer url apiKey connectedAccountId transferReq = do
   let proxy = Proxy @CreateTransferAPI
       eulerClient = Euler.client proxy (PaymentFlow.mkBasicAuthData apiKey) connectedAccountId transferReq
   PaymentFlow.callStripeAPI url eulerClient "create-transfer" proxy
-
--- Balance types
-data BalanceFund = BalanceFund
-  { amount :: Int, -- Stripe amount in smallest currency unit (e.g. cents)
-    currency :: Text -- lowercase currency code, e.g. "eur"
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
-data BalanceResp = BalanceResp
-  { available :: [BalanceFund],
-    pending :: [BalanceFund]
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
--- GET /v1/balance
-type GetBalanceAPI =
-  "v1"
-    :> "balance"
-    :> BasicAuth "secretkey-password" BasicAuthData
-    :> Header "Stripe-Account" Text -- Nothing = platform account, Just accountId = connected account
-    :> Get '[JSON] BalanceResp
-
-getBalance ::
-  ( Metrics.CoreMetrics m,
-    MonadFlow m,
-    HasRequestId r,
-    MonadReader r m
-  ) =>
-  BaseUrl ->
-  Text ->
-  Maybe Text ->
-  m BalanceResp
-getBalance url apiKey connectedAccountId = do
-  let proxy = Proxy @GetBalanceAPI
-      eulerClient = Euler.client proxy (PaymentFlow.mkBasicAuthData apiKey) connectedAccountId
-  PaymentFlow.callStripeAPI url eulerClient "get-balance" proxy
