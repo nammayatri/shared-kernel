@@ -267,6 +267,7 @@ data IndividualDetails = IndividualDetails
 data CompanyDetails = CompanyDetails
   { name :: Text,
     tax_id :: Maybe Text,
+    vat_id :: Maybe Text,
     address :: Maybe Address
   }
   deriving stock (Show, Eq, Generic, Read)
@@ -352,7 +353,9 @@ companyToForm :: CompanyDetails -> [(Text, Text)]
 companyToForm CompanyDetails {..} =
   [("company[name]", toQueryParam name)]
     ++ catMaybes
-      [("company[tax_id]",) <$> toQueryParam <$> tax_id]
+      [ ("company[tax_id]",) <$> toQueryParam <$> tax_id,
+        ("company[vat_id]",) <$> toQueryParam <$> vat_id
+      ]
     ++ maybe [] companyAddressToForm address
 
 companyAddressToForm :: Address -> [(Text, Text)]
