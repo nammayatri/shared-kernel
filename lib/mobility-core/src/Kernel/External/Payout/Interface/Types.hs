@@ -88,8 +88,7 @@ data CreatePayoutOrderResp = CreatePayoutOrderResp
     refunds :: Maybe [Text],
     payments :: Maybe [Text],
     fulfillments :: Maybe [Fulfillment],
-    customerId :: Maybe Text,
-    merchantTopUpAmount :: Maybe HighPrecMoney -- Stripe specific: extra amount transferred to cover Fleet VA shortfall
+    customerId :: Maybe Text
   }
   deriving (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
