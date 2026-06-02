@@ -25,6 +25,8 @@ data ZendeskCfg = ZendeskCfg
     requesterEmail :: Maybe Text,
     organizationId :: Maybe Int,
     groupId :: Maybe Int,
+    sosGroupId :: Maybe Int,
+    feedbackGroupId :: Maybe Int,
     rideIdFieldId :: Maybe Int,
     driverPhoneFieldId :: Maybe Int,
     customerPhoneFieldId :: Maybe Int,

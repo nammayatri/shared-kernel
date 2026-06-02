@@ -49,6 +49,12 @@ data UpdateTicketResp = UpdateTicketResp
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
+data TicketContext
+  = IssueTicket
+  | SOSAlert
+  | FeedbackTicket
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
+
 data CreateTicketReq = CreateTicketReq
   { category :: Text,
     subCategory :: Maybe Text,
@@ -62,7 +68,8 @@ data CreateTicketReq = CreateTicketReq
     personId :: Text,
     classification :: Classification,
     rideDescription :: Maybe RideInfo,
-    becknIssueId :: Maybe Text
+    becknIssueId :: Maybe Text,
+    ticketContext :: Maybe TicketContext
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 

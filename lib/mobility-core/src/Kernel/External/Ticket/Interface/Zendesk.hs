@@ -18,6 +18,7 @@ module Kernel.External.Ticket.Interface.Zendesk
   )
 where
 
+import Control.Applicative ((<|>))
 import qualified Data.Text as T
 import Kernel.External.Encryption
 import qualified Kernel.External.Ticket.Interface.Types as IT
@@ -48,6 +49,11 @@ createTicket config req = do
         status = zendeskStatusToTicketStatus (fromMaybe "new" resp.ticket.status)
       }
 
+resolveGroupId :: ZendeskCfg -> Maybe IT.TicketContext -> Maybe Int
+resolveGroupId cfg (Just IT.SOSAlert) = cfg.sosGroupId <|> cfg.groupId
+resolveGroupId cfg (Just IT.FeedbackTicket) = cfg.feedbackGroupId <|> cfg.groupId
+resolveGroupId cfg _ = cfg.groupId
+
 mkZendeskCreateTicketReq :: ZendeskCfg -> IT.CreateTicketReq -> Zendesk.ZendeskCreateTicketReq
 mkZendeskCreateTicketReq cfg IT.CreateTicketReq {..} =
   Zendesk.ZendeskCreateTicketReq
@@ -61,7 +67,7 @@ mkZendeskCreateTicketReq cfg IT.CreateTicketReq {..} =
                 },
             requester = Just $ Zendesk.ZendeskRequester {name = fromMaybe "Unknown" name, email = cfg.requesterEmail},
             organizationId = cfg.organizationId,
-            groupId = cfg.groupId,
+            groupId = resolveGroupId cfg ticketContext,
             priority = "normal",
             ticketType = "incident",
             customFields = buildCustomFields cfg rideDescription phoneNo
