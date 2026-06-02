@@ -41,7 +41,39 @@ createPayoutOrder serviceConfig req = case serviceConfig of
   JuspayConfig cfg -> Juspay.createPayoutOrder cfg req
   StripeConfig cfg -> do
     connectedAccountId <- req.mConnectedAccountId & fromMaybeM (InvalidRequest "connectedAccountId required for Stripe payout")
-    createTransferResp <- Stripe.createTransfer cfg (mkTransferReq connectedAccountId req)
+
+    -- Check Fleet VA available balance and compute adjusted transfer amount if needed.
+    -- If fleetAvail + transferAmount < payoutAmount, top up the transfer to cover the shortfall.
+    let computeAdjustedTransfer = do
+          fleetBalance <- Stripe.getBalance cfg (Just connectedAccountId)
+          let fleetAvail = Stripe.getAvailableForCurrency req.currency fleetBalance
+          if fleetAvail + req.transferAmount >= req.amount
+            then pure (req.transferAmount, Nothing)
+            else do
+              let topUp = req.amount - fleetAvail - req.transferAmount
+                  adjustedAmt = req.transferAmount + topUp
+              -- Verify merchant (platform) VA can cover the increased transfer
+              merchantBalance <- Stripe.getBalance cfg Nothing
+              let merchantAvail = Stripe.getAvailableForCurrency req.currency merchantBalance
+              when (merchantAvail < adjustedAmt) $
+                throwError $
+                  InvalidRequest $
+                    "Merchant platform account has insufficient balance. Available: "
+                      <> show merchantAvail
+                      <> ", Required: "
+                      <> show adjustedAmt
+              logInfo $
+                "Fleet VA balance insufficient (available: "
+                  <> show fleetAvail
+                  <> "). Topping up transfer by "
+                  <> show topUp
+                  <> " -> adjusted transfer: "
+                  <> show adjustedAmt
+              pure (adjustedAmt, Just topUp)
+
+    (adjustedTransferAmount, merchantTopUpAmount) <- computeAdjustedTransfer
+
+    createTransferResp <- Stripe.createTransfer cfg (mkTransferReq connectedAccountId adjustedTransferAmount req)
     -- In case if external payout api call failed, we still need to store transferId and transferStatus
     result <- withTryCatch "createExternalPayout" $ Stripe.createExternalPayout cfg req
     createExternalPayoutResp <- case result of
@@ -60,22 +92,20 @@ createPayoutOrder serviceConfig req = case serviceConfig of
               amount = req.amount,
               customerId = Just req.customerId
             }
-    pure $ mkCreatePayoutOrderResp createTransferResp createExternalPayoutResp
+    pure $ mkCreatePayoutOrderResp merchantTopUpAmount createTransferResp createExternalPayoutResp
   where
-    mkTransferReq :: Text -> CreatePayoutOrderReq -> CreateTransferReq
-    mkTransferReq connectedAccountId CreatePayoutOrderReq {..} = do
-      let senderAccountId = TransferPlatformAccount
-          destinationAccount = TransferConnectedAccount connectedAccountId
+    mkTransferReq :: Text -> HighPrecMoney -> CreatePayoutOrderReq -> CreateTransferReq
+    mkTransferReq connectedAccountId adjustedTransferAmount CreatePayoutOrderReq {..} =
       CreateTransferReq
-        { amount = transferAmount,
+        { amount = adjustedTransferAmount,
           currency,
-          senderAccountId,
-          destinationAccount,
+          senderAccountId = TransferPlatformAccount,
+          destinationAccount = TransferConnectedAccount connectedAccountId,
           description = Just remark
         }
 
-    mkCreatePayoutOrderResp :: CreateTransferResp -> CreateExternalPayoutResp -> CreatePayoutOrderResp
-    mkCreatePayoutOrderResp CreateTransferResp {transferId, transferStatus} CreateExternalPayoutResp {..} =
+    mkCreatePayoutOrderResp :: Maybe HighPrecMoney -> CreateTransferResp -> CreateExternalPayoutResp -> CreatePayoutOrderResp
+    mkCreatePayoutOrderResp merchantTopUpAmount CreateTransferResp {transferId, transferStatus} CreateExternalPayoutResp {..} =
       CreatePayoutOrderResp
         { orderId,
           status,
@@ -92,7 +122,8 @@ createPayoutOrder serviceConfig req = case serviceConfig of
           refunds = Nothing,
           payments = Nothing,
           fulfillments = Nothing,
-          customerId
+          customerId,
+          merchantTopUpAmount
         }
 
 payoutOrderStatus ::
@@ -128,7 +159,8 @@ payoutOrderStatus serviceConfig req = case serviceConfig of
           refunds = Nothing,
           payments = Nothing,
           fulfillments = Nothing,
-          customerId
+          customerId,
+          merchantTopUpAmount = Nothing
         }
 
 createTransfer ::
