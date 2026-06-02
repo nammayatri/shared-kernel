@@ -417,6 +417,25 @@ data MandateOptions = MandateOptions
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+--- Card Payment Method Details (embedded in Charge) ---
+data PaymentMethodDetails = PaymentMethodDetails
+  { card :: Maybe ChargeCardDetails
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data ChargeCardDetails = ChargeCardDetails
+  { brand :: Text,
+    country :: Maybe Text,
+    exp_month :: Int,
+    exp_year :: Int,
+    fingerprint :: Maybe Text,
+    funding :: Maybe Text,
+    last4 :: Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 --- PaymentIntent Object ---
 data PaymentIntent = PaymentIntent
   { id :: Text,
@@ -505,6 +524,7 @@ data Charge = Charge
     paid :: Bool,
     payment_intent :: Maybe Text,
     payment_method :: Maybe PaymentMethodId,
+    payment_method_details :: Maybe PaymentMethodDetails,
     receipt_email :: Maybe Text,
     receipt_url :: Maybe Text,
     refunded :: Bool,
