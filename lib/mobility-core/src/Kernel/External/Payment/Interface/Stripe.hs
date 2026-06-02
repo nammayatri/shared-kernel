@@ -730,9 +730,9 @@ createRefund config req = do
     -- Driver receives payment directly (Direct Charges)
     ConnectedAccount -> createConnectedAccountRefund url apiKey
   where
-    -- Platform Charge: Need to reverse transfer
+    -- Platform Charge: Need to reverse transfer (req.deductFromDriver overrides default Just True).
     createPlatformRefund url apiKey = do
-      let reverseTransfer = Just True
+      let reverseTransfer = req.deductFromDriver <|> Just True
           refundReq = mkRefundReq req reverseTransfer
       mkRefundResp <$> Stripe.createRefund url apiKey Nothing refundReq
 

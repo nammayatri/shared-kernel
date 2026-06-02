@@ -938,7 +938,8 @@ data CreateRefundReq = CreateRefundReq
     amount :: Maybe HighPrecMoney,
     refundApplicationFee :: Bool,
     driverAccountId :: AccountId,
-    email :: Maybe Text
+    email :: Maybe Text,
+    deductFromDriver :: Maybe Bool
   }
 
 data CreateRefundResp = CreateRefundResp
@@ -1031,6 +1032,7 @@ data RefundPaymentReq = RefundPaymentReq
     paymentIntentId :: Maybe PaymentIntentId,
     driverAccountId :: Maybe AccountId,
     email :: Maybe Text,
+    deductFromDriver :: Maybe Bool,
     -- Juspay-specific
     splitSettlementDetails :: Maybe RefundSplitSettlementDetails
   }
