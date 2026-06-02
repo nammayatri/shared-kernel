@@ -116,6 +116,7 @@ createPayoutOrder config req = do
           transferStatus = Nothing,
           transferId = Nothing,
           idAssignedByServiceProvider = Nothing,
+          merchantTopUpAmount = Nothing,
           ..
         }
 
@@ -150,6 +151,7 @@ payoutOrderStatus config req = do
           transferStatus = Nothing,
           transferId = Nothing,
           idAssignedByServiceProvider = Nothing,
+          merchantTopUpAmount = Nothing,
           ..
         }
 
