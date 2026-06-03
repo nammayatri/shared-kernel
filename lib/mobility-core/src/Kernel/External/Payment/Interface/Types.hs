@@ -764,7 +764,8 @@ data RefundsData = RefundsData
 
 data CompanyConnectDetails = CompanyConnectDetails
   { name :: Text,
-    taxId :: Maybe Text,
+    taxId :: Maybe Text, -- business registration number (e.g. Finnish Y-tunnus); Stripe company[tax_id]
+    vatId :: Maybe Text, -- VAT number (e.g. FI########); Stripe company[vat_id]
     address :: Maybe Address
   }
   deriving stock (Show, Eq, Generic)

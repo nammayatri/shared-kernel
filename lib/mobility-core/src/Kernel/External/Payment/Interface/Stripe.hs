@@ -120,6 +120,7 @@ createConnectAccount config req = do
                   Stripe.CompanyDetails
                     { name = cd.name,
                       tax_id = cd.taxId,
+                      vat_id = cd.vatId,
                       address = cd.address
                     }
               else Nothing
