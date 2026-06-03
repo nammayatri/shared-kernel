@@ -69,6 +69,13 @@ library
       Kernel.External.Call.TataClickToCall.Types
       Kernel.External.Call.Twillio.Config
       Kernel.External.Call.Types
+      Kernel.External.ChallanSearch.Interface
+      Kernel.External.ChallanSearch.Interface.Signzy
+      Kernel.External.ChallanSearch.Interface.Types
+      Kernel.External.ChallanSearch.Signzy.API
+      Kernel.External.ChallanSearch.Signzy.Config
+      Kernel.External.ChallanSearch.Signzy.Types
+      Kernel.External.ChallanSearch.Types
       Kernel.External.Encryption
       Kernel.External.EventTracking
       Kernel.External.EventTracking.Interface
