@@ -31,7 +31,19 @@ import qualified Data.Text as T
 import qualified Data.Text as Text
 import qualified Data.Vector as V
 import Database.Redis (keyToSlot)
-import Database.Redis as Reexport (GeoBy (..), GeoFrom (..), Queued, Redis, RedisTx, Reply, TxResult (..))
+import Database.Redis as Reexport
+  ( GeoBy (..),
+    GeoFrom (..),
+    Queued,
+    Redis,
+    RedisTx,
+    Reply,
+    TxResult (..),
+    XClaimOpts (..),
+    XPendingDetailRecord (..),
+    XPendingSummaryResponse (..),
+    defaultXClaimOpts,
+  )
 import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
 import qualified EulerHS.Language as L
@@ -1208,6 +1220,59 @@ xAck key groupName entryId = withLogTag "Redis" $ do
       withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_xAck" $ show err
       pure (-1) -- Return -1 if there was an error
     Right items -> pure items
+
+xPendingSummary ::
+  (HedisFlow m env, TryException m) =>
+  Text -> -- stream key
+  Text -> -- group name
+  m (Maybe XPendingSummaryResponse)
+xPendingSummary key groupName = do
+  migrating <- asks (.hedisMigrationStage)
+  eitherRes <-
+    if migrating
+      then withTimeRedis "RedisStandalone" "xPendingSummary" $ withTryCatch "xPendingSummary" (runWithPrefix' key $ \prefKey -> Hedis.xpendingSummary prefKey (cs groupName) Nothing)
+      else withTimeRedis "RedisCluster" "xPendingSummary" $ withTryCatch "xPendingSummary" (runWithPrefix key $ \prefKey -> Hedis.xpendingSummary prefKey (cs groupName) Nothing)
+  case eitherRes of
+    Left err -> logTagInfo "ERROR_WHILE_xPendingSummary" (show err) $> Nothing
+    Right res -> pure (Just res)
+
+xPendingDetail ::
+  (HedisFlow m env, TryException m) =>
+  Text -> -- stream key
+  Text -> -- group name
+  BS.ByteString -> -- start id (use "-" for min)
+  BS.ByteString -> -- end id (use "+" for max)
+  Integer -> -- max entries to return
+  Maybe BS.ByteString -> -- optional consumer filter
+  m [XPendingDetailRecord]
+xPendingDetail key groupName startId endId maxCount mbConsumer = do
+  migrating <- asks (.hedisMigrationStage)
+  eitherRes <-
+    if migrating
+      then withTimeRedis "RedisStandalone" "xPendingDetail" $ withTryCatch "xPendingDetail" (runWithPrefix' key $ \prefKey -> Hedis.xpendingDetail prefKey (cs groupName) startId endId maxCount mbConsumer)
+      else withTimeRedis "RedisCluster" "xPendingDetail" $ withTryCatch "xPendingDetail" (runWithPrefix key $ \prefKey -> Hedis.xpendingDetail prefKey (cs groupName) startId endId maxCount mbConsumer)
+  case eitherRes of
+    Left err -> logTagInfo "ERROR_WHILE_xPendingDetail" (show err) $> []
+    Right res -> pure res
+
+xClaim ::
+  (HedisFlow m env, TryException m) =>
+  Text -> -- stream key
+  Text -> -- group name
+  Text -> -- consumer name (new owner)
+  Integer -> -- min idle time (ms)
+  XClaimOpts ->
+  [BS.ByteString] -> -- entry ids to claim
+  m [StreamsRecord]
+xClaim key groupName consumerName minIdleMs opts entryIds = do
+  migrating <- asks (.hedisMigrationStage)
+  eitherRes <-
+    if migrating
+      then withTimeRedis "RedisStandalone" "xClaim" $ withTryCatch "xClaim" (runWithPrefix' key $ \prefKey -> Hedis.xclaim prefKey (cs groupName) (cs consumerName) minIdleMs opts entryIds)
+      else withTimeRedis "RedisCluster" "xClaim" $ withTryCatch "xClaim" (runWithPrefix key $ \prefKey -> Hedis.xclaim prefKey (cs groupName) (cs consumerName) minIdleMs opts entryIds)
+  case eitherRes of
+    Left err -> logTagInfo "ERROR_WHILE_xClaim" (show err) $> []
+    Right res -> pure (map convertFromHedisRecord res)
 
 lrem :: (HedisFlow m env, TryException m) => Text -> Integer -> Text -> m Integer
 lrem key cnt value = withTimeRedis "RedisCluster" "lrem" $ runWithPrefix key $ \prefKey -> Hedis.lrem prefKey cnt (BSL.toStrict $ Ae.encode value)
