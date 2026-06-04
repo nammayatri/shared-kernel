@@ -22,7 +22,7 @@ data DynamicLogLevelConfig = DynamicLogLevelConfig
   deriving stock (Generic, Typeable, Show, Eq, Ord)
   deriving anyclass (ToJSON, FromJSON)
 
-instance OptionEntity DynamicLogLevelConfig (HashMap Text KTC.LogLevel)
+instance OptionEntity DynamicLogLevelConfig (HashMap Text KTC.DynamicLogLevel)
 
 data PsqlDbCfg = PsqlDbCfg
   deriving stock (Generic, Typeable, Show, Eq)

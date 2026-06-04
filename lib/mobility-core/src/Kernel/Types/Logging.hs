@@ -20,6 +20,35 @@ import Kernel.Utils.Dhall (FromDhall)
 data LogLevel = DEBUG | INFO | WARNING | ERROR
   deriving (Generic, Show, Eq, Ord, FromDhall, ToJSON, FromJSON)
 
+-- | Per-API value stored in the @log_levels@ system config.
+--
+-- The JSON is backward- and forward-compatible with the previous bare-'LogLevel'
+-- format:
+--
+--   * @"DEBUG"@         -> always apply DEBUG            (staggerPercentage = Nothing)
+--   * @["DEBUG", "10"]@ -> apply DEBUG to ~10% of hits   (staggerPercentage = Just 10)
+--
+-- Entries without a stagger serialize back to a bare string, so an older release
+-- (which decodes a plain 'LogLevel') keeps working if a revert leaves the new
+-- config in the DB.
+data DynamicLogLevel = DynamicLogLevel
+  { logLevel :: LogLevel,
+    staggerPercentage :: Maybe Int
+  }
+  deriving (Generic, Show, Eq)
+
+instance FromJSON DynamicLogLevel where
+  parseJSON v =
+    (flip DynamicLogLevel Nothing <$> parseJSON v)
+      <|> ( do
+              (lvl, pct) <- parseJSON v
+              pure $ DynamicLogLevel lvl (readMaybe (toString (pct :: Text)))
+          )
+
+instance ToJSON DynamicLogLevel where
+  toJSON (DynamicLogLevel lvl Nothing) = toJSON lvl
+  toJSON (DynamicLogLevel lvl (Just pct)) = toJSON (lvl, show pct :: Text)
+
 class Log m where
   logOutput :: LogLevel -> Text -> m ()
   withLogTag :: Text -> m a -> m a

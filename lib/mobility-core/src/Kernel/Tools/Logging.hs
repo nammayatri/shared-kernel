@@ -19,6 +19,7 @@ import qualified EulerHS.Language as L
 import Kernel.Beam.Lib.UtilsTH (HasSchemaName, schemaName)
 import qualified Kernel.Beam.Types as KT
 import Kernel.Prelude
+import Kernel.Randomizer (getRandomInRange)
 import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Esqueleto.Config (HasEsqEnv)
 import Kernel.Storage.Hedis.Config
@@ -38,15 +39,29 @@ withDynamicLogLevel ::
   m a
 withDynamicLogLevel keyName fn = do
   mbDynamicLogLevelConfig <- getDynamicLogLevelConfig
-  local (modifyEnv (HM.lookup keyName =<< mbDynamicLogLevelConfig)) fn
+  mbLogLevel <- resolveDynamicLogLevel (HM.lookup keyName =<< mbDynamicLogLevelConfig)
+  local (modifyEnv mbLogLevel) fn
   where
     modifyEnv mbLogLevel env = do
       let logEnv = env.loggerEnv
           updLogEnv = updateLogLevelAndRawSql mbLogLevel logEnv
       env{loggerEnv = updLogEnv}
 
+-- | Resolve a matched 'DynamicLogLevel' config into the effective 'LogLevel' to apply.
+--
+-- When the config carries a stagger percentage, the level is applied only on a
+-- random toss so that roughly @staggerPercentage@% of calls get it. Without a
+-- stagger the level always applies — keeping the previous (bare-level) behaviour.
+resolveDynamicLogLevel :: MonadIO m => Maybe DynamicLogLevel -> m (Maybe LogLevel)
+resolveDynamicLogLevel Nothing = pure Nothing
+resolveDynamicLogLevel (Just dynamicLogLevel) = case dynamicLogLevel.staggerPercentage of
+  Nothing -> pure $ Just dynamicLogLevel.logLevel
+  Just pct -> do
+    toss <- getRandomInRange (1, 100 :: Int)
+    pure $ if toss <= pct then Just dynamicLogLevel.logLevel else Nothing
+
 getDynamicLogLevelConfig ::
-  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m, HasCacConfig f) => m (Maybe (HM.HashMap Text LogLevel))
+  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m, HasCacConfig f) => m (Maybe (HM.HashMap Text DynamicLogLevel))
 getDynamicLogLevelConfig = do
   now <- getCurrentTime
   shouldFetchFromDB <-
@@ -56,7 +71,7 @@ getDynamicLogLevelConfig = do
       MaybeT . pure $ if round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency then Nothing else Just False
   if shouldFetchFromDB
     then do
-      res <- QSC.findById "log_levels" >>= pure . decodeFromText' @(HM.HashMap Text LogLevel)
+      res <- QSC.findById "log_levels" >>= pure . decodeFromText' @(HM.HashMap Text DynamicLogLevel)
       maybe (incrementSystemConfigsFailedCounter ("system_configs_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT) <> "_log_levels")) (L.setOption KT.DynamicLogLevelConfig) res
       void $ L.setOption KT.LogLevelLastUpdatedTime now
       pure res
