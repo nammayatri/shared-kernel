@@ -33,6 +33,7 @@ module Kernel.External.Verification.Interface.Idfy
     convertDLOutputToDLVerificationOutput,
     convertRCOutputToRCVerificationResponse,
     nameCompare,
+    faceCompare,
     convertPanOutputToPanVerification,
     convertGstOutputToGstVerification,
     convertBankAccountOutputToBankAccountVerification,
@@ -524,6 +525,35 @@ nameCompare cfg req = do
     NameCompareResp
       { nameComparedData = resp.result
       }
+
+faceCompare ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IdfyCfg ->
+  FaceCompareReq ->
+  m FaceCompareResp
+faceCompare cfg req = do
+  let url = cfg.url
+      retryLimit = fromMaybe 1 cfg.faceCompareRetryLimit
+  apiKey <- decrypt cfg.apiKey
+  accountId <- decrypt cfg.accountId
+  let reqData =
+        Idfy.FaceCompareRequestBody
+          { document1 = req.selfieImage,
+            document2 = req.documentImage
+          }
+  let callWithRetry attemptsLeft = do
+        idfyReq <- buildIdfyRequest req.driverId reqData
+        resp <- Idfy.faceCompare apiKey accountId url idfyReq
+        case resp.result of
+          Just result -> pure FaceCompareResp {faceComparedData = Just result}
+          Nothing
+            | attemptsLeft > 0 -> callWithRetry (attemptsLeft - 1)
+            | otherwise -> throwError $ InternalError "Please contact customer support, as face match cannot be done."
+  callWithRetry retryLimit
 
 getTask ::
   ( EncFlow m r,
