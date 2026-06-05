@@ -11,8 +11,11 @@ data InMemKeyEntry = InMemKeyEntry
   }
   deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
 
-newtype InMemKeysResponse = InMemKeysResponse
-  { keyList :: [InMemKeyEntry]
+data InMemKeysResponse = InMemKeysResponse
+  { keyList :: [InMemKeyEntry],
+    -- | Total number of keys matching the (optional) pattern, before
+    -- limit/offset are applied. Lets callers paginate without guessing.
+    totalKeys :: Int
   }
   deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
 

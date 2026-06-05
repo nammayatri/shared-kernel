@@ -3,6 +3,7 @@ module Kernel.Storage.InMem.Management.Handler where
 import qualified Data.Aeson as Ae
 import qualified Data.HashMap.Strict as HM
 import Data.IORef (readIORef, writeIORef)
+import Data.List (sort)
 import qualified Data.Text as T
 import Kernel.Prelude
 import Kernel.Storage.InMem.Management.Types
@@ -28,16 +29,22 @@ validateInMemToken mbToken = do
 getKeys ::
   (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
   Maybe Text ->
+  -- | Optional substring to filter keys by (case-sensitive infix match).
+  Maybe Text ->
+  -- | Optional max number of keys to return.
+  Maybe Int ->
+  -- | Optional number of keys to skip (applied before limit).
+  Maybe Int ->
   m InMemKeysResponse
-getKeys mbToken = do
+getKeys mbToken mbPattern mbLimit mbOffset = do
   validateInMemToken mbToken
   inMemEnv <- asks (.inMemEnv)
   cacheInfo <- liftIO $ readIORef (inMemHashMap inMemEnv)
-  let keysMeta =
-        map
-          (\(k, _) -> InMemKeyEntry {keyName = k, keySchema = Nothing})
-          (HM.toList (cache cacheInfo))
-  pure InMemKeysResponse {keyList = keysMeta}
+  -- Sort so that limit/offset paginate deterministically over a snapshot.
+  let matched = sort $ maybe identity (\pat -> filter (pat `T.isInfixOf`)) mbPattern $ HM.keys (cache cacheInfo)
+      paginated = maybe identity take mbLimit $ maybe identity drop mbOffset matched
+      keysMeta = map (\k -> InMemKeyEntry {keyName = k, keySchema = Nothing}) paginated
+  pure InMemKeysResponse {keyList = keysMeta, totalKeys = length matched}
 
 getValue ::
   (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
