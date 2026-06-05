@@ -29,6 +29,7 @@ module Kernel.External.Verification.Idfy.Client
     extractUdyogAadhaarAsync,
     extractAadhaarImage,
     nameCompare,
+    faceCompare,
     getTask,
     VerifyDLAPI,
     VerifyRCAPI,
@@ -44,6 +45,7 @@ module Kernel.External.Verification.Idfy.Client
     ExtractRCAPI,
     ExtractAadhaarImage,
     NameCompareAPI,
+    FaceCompareAPI,
   )
 where
 
@@ -540,6 +542,36 @@ nameCompare apiKey accountId url req = callIdfyAPI url task "nameCompare" nameCo
     task =
       T.client
         nameCompareAPI
+        (Just apiKey)
+        (Just accountId)
+        req
+
+type FaceCompareAPI =
+  "v3" :> "tasks" :> "sync" :> "compare" :> "face"
+    :> Header "api-key" ApiKey
+    :> Header "account-id" AccountId
+    :> ReqBody '[JSON] FaceCompareRequest
+    :> Post '[JSON] FaceCompareResponse
+
+faceCompareAPI :: Proxy FaceCompareAPI
+faceCompareAPI = Proxy
+
+faceCompare ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  ApiKey ->
+  AccountId ->
+  BaseUrl ->
+  FaceCompareRequest ->
+  m FaceCompareResponse
+faceCompare apiKey accountId url req = callIdfyAPI url task "faceCompare" faceCompareAPI
+  where
+    task =
+      T.client
+        faceCompareAPI
         (Just apiKey)
         (Just accountId)
         req

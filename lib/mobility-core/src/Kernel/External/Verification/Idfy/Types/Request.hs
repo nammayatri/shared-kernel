@@ -50,6 +50,8 @@ type NameCompareRequest = IdfyRequest NameCompareRequestBody
 
 type CRCVerificationRequest = IdfyRequest CRCVerificationData
 
+type FaceCompareRequest = IdfyRequest FaceCompareRequestBody
+
 data IdfyRequest a = IdfyRequest
   { task_id :: Text,
     group_id :: Text,
@@ -155,5 +157,11 @@ data CRCEntityDetails = CRCEntityDetails
     dob :: Maybe Day,
     address :: Maybe Text,
     pan_number :: Maybe Text
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data FaceCompareRequestBody = FaceCompareRequestBody
+  { document1 :: Text,
+    document2 :: Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
