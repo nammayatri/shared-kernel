@@ -346,6 +346,18 @@ newtype NameCompareResp = NameCompareResp
   }
   deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
 
+data FaceCompareReq = FaceCompareReq
+  { documentImage1 :: Text,
+    documentImage2 :: Text,
+    driverId :: Text
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+
+newtype FaceCompareResp = FaceCompareResp
+  { faceComparedData :: Maybe Idfy.FaceCompareResponseData
+  }
+  deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+
 newtype ExtractedDigiLockerDLResp = ExtractedDigiLockerDLResp
   { extractedDL :: Maybe DigiTypes.DigiLockerDLFlow
   }

@@ -22,7 +22,8 @@ data IdfyCfg = IdfyCfg
   { accountId :: EncryptedField 'AsEncrypted AccountId,
     apiKey :: EncryptedField 'AsEncrypted ApiKey,
     secret :: EncryptedField 'AsEncrypted Text,
-    url :: BaseUrl
+    url :: BaseUrl,
+    faceCompareRetryLimit :: Maybe Int
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

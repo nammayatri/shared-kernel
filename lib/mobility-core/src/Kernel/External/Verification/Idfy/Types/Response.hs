@@ -106,6 +106,8 @@ data IdfyResult
 
 type NameCompareResponse = IdfyResponse NameCompareResponseData
 
+type FaceCompareResponse = IdfyResponse FaceCompareResponseData
+
 data IdfyResponse a = IdfyResponse
   { action :: Text,
     completed_at :: Maybe UTCTime,
@@ -598,6 +600,21 @@ newtype NameMatchOutput = NameMatchOutput
 
 newtype NameCompareResponseData = NameCompareResponseData
   { match_output :: NameMatchOutput
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data FaceCompareResponseData = FaceCompareResponseData
+  { image_1 :: Maybe FaceImageResult,
+    image_2 :: Maybe FaceImageResult,
+    is_a_match :: Maybe Bool,
+    match_score :: Maybe Double,
+    review_recommended :: Maybe Bool
+  }
+  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data FaceImageResult = FaceImageResult
+  { face_detected :: Maybe Bool,
+    face_quality :: Maybe Text
   }
   deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
 

@@ -33,6 +33,7 @@ module Kernel.External.Verification.Interface
     verifySdkResp,
     getTask,
     nameCompare,
+    faceCompare,
     fetchAndExtractVerifiedDL,
     getFile,
     pullDrivingLicense,
@@ -403,6 +404,25 @@ nameCompare ::
   m NameCompareResp
 nameCompare serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.nameCompare cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
+
+faceCompare ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  FaceCompareReq ->
+  m FaceCompareResp
+faceCompare serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.faceCompare cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
