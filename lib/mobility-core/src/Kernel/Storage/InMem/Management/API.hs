@@ -7,8 +7,17 @@ import Servant
 type InMemManagementAPI =
   "inMem"
     :> Header "x-inmem-token" Text
-    :> ( "keys" :> Get '[JSON] InMemKeysResponse
-           :<|> "get" :> ReqBody '[JSON] InMemGetRequest :> Post '[JSON] InMemGetResponse
-           :<|> "refresh" :> ReqBody '[JSON] InMemRefreshRequest :> Post '[JSON] InMemRefreshResponse
-           :<|> "serverInfo" :> Get '[JSON] InMemServerInfoResponse
+    :> ( "keys"
+           :> QueryParam "pattern" Text
+           :> QueryParam "limit" Int
+           :> QueryParam "offset" Int
+           :> Get '[JSON] InMemKeysResponse
+           :<|> "get"
+           :> ReqBody '[JSON] InMemGetRequest
+           :> Post '[JSON] InMemGetResponse
+           :<|> "refresh"
+           :> ReqBody '[JSON] InMemRefreshRequest
+           :> Post '[JSON] InMemRefreshResponse
+           :<|> "serverInfo"
+           :> Get '[JSON] InMemServerInfoResponse
        )
