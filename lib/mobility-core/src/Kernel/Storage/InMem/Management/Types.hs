@@ -1,6 +1,7 @@
 module Kernel.Storage.InMem.Management.Types where
 
 import Data.Aeson (Value)
+import qualified Data.Aeson as Ae
 import Kernel.Prelude
 import Kernel.Types.App ()
 import Kernel.Types.Common (Seconds)
@@ -37,7 +38,8 @@ newtype InMemRefreshRequest = InMemRefreshRequest
 
 data InMemRefreshResponse = InMemRefreshResponse
   { deletedKeys :: Int,
-    remainingKeys :: Int
+    remainingKeys :: Int,
+    redisNotified :: Bool
   }
   deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
 
@@ -65,7 +67,26 @@ data SidecarRefreshRequest = SidecarRefreshRequest
   }
   deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
 
+data PodCleanupAck = PodCleanupAck
+  { podName :: Text,
+    success :: Bool,
+    errorMessage :: Maybe Text
+  }
+  deriving (Generic, Show, ToSchema)
+
+podCleanupAckJsonOptions :: Ae.Options
+podCleanupAckJsonOptions = Ae.defaultOptions {Ae.fieldLabelModifier = \f -> if f == "errorMessage" then "error" else f}
+
+instance ToJSON PodCleanupAck where
+  toJSON = Ae.genericToJSON podCleanupAckJsonOptions
+
+instance FromJSON PodCleanupAck where
+  parseJSON = Ae.genericParseJSON podCleanupAckJsonOptions
+
 data SidecarRefreshResponse = SidecarRefreshResponse
-  { refreshed :: Bool
+  { service :: Text,
+    total :: Int,
+    confirmed :: Int,
+    pods :: [PodCleanupAck]
   }
   deriving (Generic, Show, ToJSON, FromJSON, ToSchema)
