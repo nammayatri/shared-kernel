@@ -95,7 +95,7 @@ data ForceCleanupExpiryValue = ForceCleanupExpiryValue
   { forceCleanupTimestamp :: TimeOfDay,
     forceCleanupKeyPrefix :: Maybe Text
   }
-  deriving (Generic, FromJSON)
+  deriving (Generic, FromJSON, ToJSON)
 
 type HasInMemEnv r = HasField "inMemEnv" r InMemEnv
 

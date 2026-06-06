@@ -20,16 +20,18 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HM
 import Data.String.Conversions
 import qualified Data.Text as T
-import Data.Time (timeOfDayToTime, utctDayTime)
+import Data.Time (timeOfDayToTime, timeToTimeOfDay, utctDayTime)
 import Data.Typeable
 import Database.Redis as Hedis
 import EulerHS.Prelude
 import Kernel.Storage.Hedis.Config
+import Kernel.Storage.Hedis.Queries (runInMultiCloudRedisWrite, setExp)
 import Kernel.Storage.InMem.Management.SidecarClient (callRefresh, callRegisterKey)
 import Kernel.Storage.InMem.Management.Types (RegisterKeyRequest (..), SidecarRefreshRequest (..))
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow
+import Kernel.Types.TryException (TryException)
 import Kernel.Utils.DatastoreLatencyCalculator
 import Kernel.Utils.Time (Seconds, UTCTime, addUTCTime, getCurrentTime, secondsToNominalDiffTime, threadDelaySec)
 import qualified Network.HTTP.Client as HTTP
@@ -94,14 +96,24 @@ registerKeyWithSidecar env cacheKey cacheTtl =
           void (callRegisterKey (sidecarManager sidecar) (sidecarBaseUrl sidecar) req)
             `catch` (\(_ :: SomeException) -> pure ())
 
-refreshInMem :: (MonadFlow m, MonadReader r m, HasInMemEnv r) => Text -> m ()
+refreshInMem :: (MonadFlow m, MonadReader r m, HasInMemEnv r, HedisFlow m r, TryException m) => Text -> m ()
 refreshInMem keyInfix = do
   inMemEnv <- asks (.inMemEnv)
+  now <- getCurrentTime
   liftIO $
     atomicModifyIORef (inMemHashMap inMemEnv) $ \old ->
       let toKeep = HM.filterWithKey (\k _ -> not (keyInfix `T.isInfixOf` k)) (cache old)
           newSize = foldl' (\acc infoa -> acc + infoa.cacheDataSize) 0 (HM.elems toKeep)
        in (InMemCacheInfo {cache = toKeep, cacheSize = newSize, createdAt = old.createdAt}, ())
+  -- Write to Redis forceCleanup key so other pods also clean up
+  let cleanupTimeOfDay = timeToTimeOfDay (utctDayTime now)
+      val =
+        ForceCleanupExpiryValue
+          { forceCleanupTimestamp = cleanupTimeOfDay,
+            forceCleanupKeyPrefix = Just keyInfix
+          }
+  runInMultiCloudRedisWrite $ setExp "inmem:force:cleanup:timeofday" val 600
+  -- Call sidecar to propagate refresh to all pods
   case (inMemSidecarEnv inMemEnv, inMemServiceName inMemEnv) of
     (Just sidecar, Just svcName) -> liftIO $ do
       let req = SidecarRefreshRequest {serviceName = svcName, keyInfix = keyInfix}
@@ -115,15 +127,29 @@ inMemCleanupThread mbHedisEnv inMemEnv = do
       maxInMemSize = inMemEnv.maxInMemSize
   inMemCacheInfo <- readIORef inMemCache
   now <- getCurrentTime
-  let inMemCacheSize = cacheSize inMemCacheInfo
-  let sizeBasedCleanupRequired = inMemCacheSize > maxInMemSize
+  -- Step 1: Remove all TTL-expired keys
+  let isExpired keyInfo = addUTCTime (secondsToNominalDiffTime keyInfo.ttlInSeconds) keyInfo.createdAt < now
+      afterTtlCleanup = HM.filter (not . isExpired) (cache inMemCacheInfo)
+      afterTtlSize = foldl' (\acc keyInfo -> acc + keyInfo.cacheDataSize) 0 (HM.elems afterTtlCleanup)
+      ttlCleanupHappened = HM.size afterTtlCleanup < HM.size (cache inMemCacheInfo)
+  -- Step 2: Size-based eviction (LRU) if still over capacity
+  let sizeBasedCleanupRequired = afterTtlSize > maxInMemSize
   let updatedCacheInfo =
         if sizeBasedCleanupRequired
           then do
-            let cacheList = reverse $ sortOn (\(_, InMemKeyInfo {lastUsed}) -> lastUsed) $ HM.toList $ cache inMemCacheInfo
-                (updatedCacheSize, updatedCache) = foldl' (\(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize, createdAt, ttlInSeconds})) -> if cacheDataSize + acc <= (floor $ (fromIntegral maxInMemSize * 0.75 :: Double)) || addUTCTime (secondsToNominalDiffTime ttlInSeconds) createdAt < now then (acc + cacheDataSize, accCacheList ++ [(k, v)]) else (acc, accCacheList)) (0, []) cacheList
+            let cacheList = reverse $ sortOn (\(_, InMemKeyInfo {lastUsed}) -> lastUsed) $ HM.toList afterTtlCleanup
+                targetSize = floor $ (fromIntegral maxInMemSize * 0.75 :: Double)
+                (updatedCacheSize, updatedCache) =
+                  foldl'
+                    ( \(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) ->
+                        if cacheDataSize + acc <= targetSize
+                          then (acc + cacheDataSize, accCacheList ++ [(k, v)])
+                          else (acc, accCacheList)
+                    )
+                    (0, [])
+                    cacheList
             InMemCacheInfo {cache = HM.fromList updatedCache, cacheSize = updatedCacheSize, createdAt = inMemCacheInfo.createdAt}
-          else inMemCacheInfo
+          else InMemCacheInfo {cache = afterTtlCleanup, cacheSize = afterTtlSize, createdAt = inMemCacheInfo.createdAt}
   (forceCleanup, finalCacheInfo) <-
     case mbHedisEnv of
       Just hedisEnv -> do
@@ -162,7 +188,7 @@ inMemCleanupThread mbHedisEnv inMemEnv = do
                 pure (False, updatedCacheInfo)
       Nothing -> do
         pure (False, updatedCacheInfo)
-  when (sizeBasedCleanupRequired || forceCleanup) $
+  when (ttlCleanupHappened || sizeBasedCleanupRequired || forceCleanup) $
     writeIORef inMemCache finalCacheInfo
   threadDelaySec $ 60
 

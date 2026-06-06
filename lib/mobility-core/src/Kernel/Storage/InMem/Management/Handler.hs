@@ -5,11 +5,15 @@ import qualified Data.HashMap.Strict as HM
 import Data.IORef (readIORef, writeIORef)
 import Data.List (sort)
 import qualified Data.Text as T
+import Data.Time (timeToTimeOfDay, utctDayTime)
 import Kernel.Prelude
+import Kernel.Storage.Hedis.Config (HedisFlow)
+import Kernel.Storage.Hedis.Queries (runInMultiCloudRedisWrite, setExp)
 import Kernel.Storage.InMem.Management.Types
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow
 import Kernel.Types.Error (AuthError (..), GenericError (InternalError))
+import Kernel.Types.TryException (TryException)
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Time (getCurrentTime)
 import qualified System.Environment as Se
@@ -59,11 +63,11 @@ getValue mbToken req = do
   pure $ case mbInfo of
     Nothing ->
       InMemGetResponse {found = False, value = Nothing}
-    Just info ->
-      InMemGetResponse {found = True, value = Ae.decode (cachedJson info)}
+    Just keyInfo ->
+      InMemGetResponse {found = True, value = Ae.decode (cachedJson keyInfo)}
 
 refreshCache ::
-  (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
+  (MonadFlow m, MonadReader r m, HasInMemEnv r, HedisFlow m r, TryException m) =>
   Maybe Text ->
   InMemRefreshRequest ->
   m InMemRefreshResponse
@@ -73,24 +77,33 @@ refreshCache mbToken req = do
   now <- getCurrentTime
   oldInfo <- liftIO $ readIORef (inMemHashMap inMemEnv)
   let oldCount = HM.size (cache oldInfo)
-  case req.keyInfix of
+  (deletedCount, remainingCount) <- case req.keyInfix of
     Nothing -> do
       liftIO $
         writeIORef (inMemHashMap inMemEnv) $
           InMemCacheInfo {cache = HM.empty, cacheSize = 0, createdAt = now}
-      pure InMemRefreshResponse {deletedKeys = oldCount, remainingKeys = 0}
+      pure (oldCount, 0)
     Just infix_ -> do
       let toKeep = HM.filterWithKey (\k _ -> not (infix_ `T.isInfixOf` k)) (cache oldInfo)
-          newSize = foldl' (\acc info -> acc + info.cacheDataSize) 0 (HM.elems toKeep)
-          deletedCount = HM.size (cache oldInfo) - HM.size toKeep
+          newSize = foldl' (\acc keyInfo -> acc + keyInfo.cacheDataSize) 0 (HM.elems toKeep)
       liftIO $
         writeIORef (inMemHashMap inMemEnv) $
           InMemCacheInfo {cache = toKeep, cacheSize = newSize, createdAt = oldInfo.createdAt}
-      pure
-        InMemRefreshResponse
-          { deletedKeys = deletedCount,
-            remainingKeys = HM.size toKeep
+      pure (HM.size (cache oldInfo) - HM.size toKeep, HM.size toKeep)
+  -- Write to Redis forceCleanup key so other pods also clean up
+  let cleanupTimeOfDay = timeToTimeOfDay (utctDayTime now)
+      val =
+        ForceCleanupExpiryValue
+          { forceCleanupTimestamp = cleanupTimeOfDay,
+            forceCleanupKeyPrefix = req.keyInfix
           }
+  runInMultiCloudRedisWrite $ setExp "inmem:force:cleanup:timeofday" val 600
+  pure
+    InMemRefreshResponse
+      { deletedKeys = deletedCount,
+        remainingKeys = remainingCount,
+        redisNotified = True
+      }
 
 getServerInfo ::
   (MonadFlow m, MonadReader r m, HasInMemEnv r) =>
