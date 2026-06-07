@@ -66,6 +66,8 @@ instance CoreMetrics (MockM e) where
   incrementSchedulerJobDisabledCounter _ = return ()
   incrementProducerError _ = return ()
   incrementGenericMetrics _ = return ()
+  incrementConfigPilotSuccessCounter _ = return ()
+  incrementConfigPilotFailureCounter _ = return ()
   incrementSystemConfigsFailedCounter _ = return ()
   incrementRideStartCounter _ = return ()
   incrementRideEndCounter _ = return ()

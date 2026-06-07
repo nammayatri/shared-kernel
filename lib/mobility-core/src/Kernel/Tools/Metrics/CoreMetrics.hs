@@ -332,6 +332,36 @@ incrementGenericMetrics' operation = do
       operation
       P.incCounter
 
+incrementConfigPilotSuccessCounter' ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementConfigPilotSuccessCounter' tableName = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $
+    P.withLabel
+      cmContainer.configPilotSuccessCounter
+      tableName
+      P.incCounter
+
+incrementConfigPilotFailureCounter' ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  m ()
+incrementConfigPilotFailureCounter' tableName = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $
+    P.withLabel
+      cmContainer.configPilotFailureCounter
+      tableName
+      P.incCounter
+
 incrementSystemConfigsFailedCounter' ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
