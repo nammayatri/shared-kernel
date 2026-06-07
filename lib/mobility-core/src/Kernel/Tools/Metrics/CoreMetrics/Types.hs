@@ -58,6 +58,8 @@ type GenericCounter = P.Vector P.Label1 P.Counter
 
 type SystemConfigsFailedCounter = P.Vector P.Label1 P.Counter
 
+type ConfigPilotCounter = P.Vector P.Label1 P.Counter
+
 type RideStartCounter = P.Vector P.Label1 P.Counter
 
 type RideEndCounter = P.Vector P.Label1 P.Counter
@@ -91,6 +93,8 @@ class CoreMetrics m where
   incrementSchedulerJobDisabledCounter :: Text -> m ()
   incrementProducerError :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
+  incrementConfigPilotSuccessCounter :: Text -> m ()
+  incrementConfigPilotFailureCounter :: Text -> m ()
   incrementSystemConfigsFailedCounter :: Text -> m ()
   incrementRideStartCounter :: Text -> m ()
   incrementRideEndCounter :: Text -> m ()
@@ -115,6 +119,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     producerError :: ProducerErrorMetric,
     genericCounter :: GenericCounter,
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
+    configPilotSuccessCounter :: ConfigPilotCounter,
+    configPilotFailureCounter :: ConfigPilotCounter,
     rideStartCounter :: RideStartCounter,
     rideEndCounter :: RideEndCounter,
     kvRedisMetricsContainer :: KVMetrics.KVMetricHandler,
@@ -140,6 +146,8 @@ registerCoreMetricsContainer = do
   producerError <- registerProducerErrorMetric
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
+  configPilotSuccessCounter <- registerConfigPilotSuccessCounter
+  configPilotFailureCounter <- registerConfigPilotFailureCounter
   rideStartCounter <- registerRideStartCounter
   rideEndCounter <- registerRideEndCounter
   kvRedisMetricsContainer <- KVMetrics.mkKVMetricHandler
@@ -259,6 +267,22 @@ registerGenericCounter =
       P.counter info
   where
     info = P.Info "generic_counter" ""
+
+registerConfigPilotSuccessCounter :: IO ConfigPilotCounter
+registerConfigPilotSuccessCounter =
+  P.register $
+    P.vector "table_name" $
+      P.counter info
+  where
+    info = P.Info "config_pilot_success_metric" ""
+
+registerConfigPilotFailureCounter :: IO ConfigPilotCounter
+registerConfigPilotFailureCounter =
+  P.register $
+    P.vector "table_name" $
+      P.counter info
+  where
+    info = P.Info "config_pilot_failure_metric" ""
 
 registerSystemConfigsFailedCounter :: IO SystemConfigsFailedCounter
 registerSystemConfigsFailedCounter =

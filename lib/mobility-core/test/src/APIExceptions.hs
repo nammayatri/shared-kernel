@@ -65,6 +65,8 @@ instance Metrics.CoreMetrics IO where
   incrementSchedulerFailureCounter _ = return ()
   incrementSchedulerJobDisabledCounter _ = return ()
   incrementGenericMetrics _ = return ()
+  incrementConfigPilotSuccessCounter _ = return ()
+  incrementConfigPilotFailureCounter _ = return ()
   incrementSystemConfigsFailedCounter _ = return ()
   incrementRideStartCounter _ = return ()
   incrementRideEndCounter _ = return ()
