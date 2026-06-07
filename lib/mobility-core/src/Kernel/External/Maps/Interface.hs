@@ -157,10 +157,11 @@ runPreCheck ::
   m Bool
 runPreCheck mapsService req = do
   droppedPointsThreshold <- asks (.droppedPointsThreshold)
+  let snippetCheckPassed = everySnippetIs (< droppedPointsThreshold) req.points
   case mapsService of
-    Google -> return (everySnippetIs (< droppedPointsThreshold) req.points)
-    MMI -> return (everySnippetIs (< droppedPointsThreshold) req.points)
-    OSRM -> return True
+    Google -> return snippetCheckPassed
+    MMI -> return snippetCheckPassed
+    OSRM -> return snippetCheckPassed
     _ -> return True
 
 runPostCheck ::
