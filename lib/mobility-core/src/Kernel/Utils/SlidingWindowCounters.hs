@@ -17,6 +17,7 @@ module Kernel.Utils.SlidingWindowCounters
     incrementByValue,
     incrementByValueInTimeBucket,
     decrementWindowCount,
+    decrementByValueInTimeBucket,
     getkeysForLastPeriods,
     makeSWKeyForTime,
     getCurrentWindowValuesUptoLast,
@@ -262,6 +263,19 @@ decrementWindowCount ::
   SlidingWindowOptions ->
   m ()
 decrementWindowCount = decrementCounter makeSWKeyForTime makeQuickAccessWindowCountKey makeSlidingWindowKey
+
+decrementByValueInTimeBucket ::
+  ( L.MonadFlow m,
+    Redis.HedisFlow m r,
+    TryException m
+  ) =>
+  UTCTime ->
+  Integer ->
+  Text ->
+  SlidingWindowOptions ->
+  m ()
+decrementByValueInTimeBucket utcTime val =
+  decrementByValueImpl (Just utcTime) val makeSWKeyForTime makeQuickAccessWindowCountKey makeSlidingWindowKey
 
 decrementCounter ::
   ( L.MonadFlow m,
