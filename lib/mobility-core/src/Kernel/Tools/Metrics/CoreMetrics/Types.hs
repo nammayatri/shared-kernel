@@ -62,6 +62,11 @@ type RideStartCounter = P.Vector P.Label1 P.Counter
 
 type RideEndCounter = P.Vector P.Label1 P.Counter
 
+type RedisStreamProcessedCounter = P.Counter
+
+-- | Per-shard gauge (label: "shard").
+type RedisStreamShardGauge = P.Vector P.Label1 P.Gauge
+
 type OpenTripPlannerResponseMetric = P.Vector P.Label4 P.Counter
 
 type OpenTripPlannerLatencyMetric = P.Vector P.Label3 P.Histogram
@@ -98,6 +103,9 @@ class CoreMetrics m where
   addOpenTripPlannerResponse :: Text -> Text -> Text -> m ()
   addOpenTripPlannerLatency :: Text -> Text -> Milliseconds -> m ()
   incrementTryExceptionCounter :: Text -> SomeException -> m ()
+  incrementRedisStreamProcessed :: m ()
+  setRedisStreamLength :: Int -> Integer -> m ()
+  setRedisStreamPending :: Int -> Integer -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -117,6 +125,9 @@ data CoreMetricsContainer = CoreMetricsContainer
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
     rideStartCounter :: RideStartCounter,
     rideEndCounter :: RideEndCounter,
+    redisStreamProcessedCounter :: RedisStreamProcessedCounter,
+    redisStreamLengthGauge :: RedisStreamShardGauge,
+    redisStreamPendingGauge :: RedisStreamShardGauge,
     kvRedisMetricsContainer :: KVMetrics.KVMetricHandler,
     genericLatencyMetrics :: GenericLatencyMetric,
     openTripPlannerResponseMetric :: OpenTripPlannerResponseMetric,
@@ -142,6 +153,9 @@ registerCoreMetricsContainer = do
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
   rideStartCounter <- registerRideStartCounter
   rideEndCounter <- registerRideEndCounter
+  redisStreamProcessedCounter <- registerRedisStreamProcessedCounter
+  redisStreamLengthGauge <- registerRedisStreamLengthGauge
+  redisStreamPendingGauge <- registerRedisStreamPendingGauge
   kvRedisMetricsContainer <- KVMetrics.mkKVMetricHandler
   genericLatencyMetrics <- registerLatencyMetrics
   openTripPlannerResponseMetric <- registerOpenTripPlannerResponseMetric
@@ -283,6 +297,28 @@ registerRideEndCounter =
       P.counter info
   where
     info = P.Info "ride_end_counter" ""
+
+registerRedisStreamProcessedCounter :: IO RedisStreamProcessedCounter
+registerRedisStreamProcessedCounter =
+  P.register $ P.counter info
+  where
+    info = P.Info "redis_stream_processed_total" "Redis-stream entries successfully processed by the consumer"
+
+registerRedisStreamLengthGauge :: IO RedisStreamShardGauge
+registerRedisStreamLengthGauge =
+  P.register $
+    P.vector "shard" $
+      P.gauge info
+  where
+    info = P.Info "redis_stream_length" "Entries currently in each redis stream shard (XLEN)"
+
+registerRedisStreamPendingGauge :: IO RedisStreamShardGauge
+registerRedisStreamPendingGauge =
+  P.register $
+    P.vector "shard" $
+      P.gauge info
+  where
+    info = P.Info "redis_stream_pending" "Pending (delivered, un-ACKed) entries per shard (XPENDING)"
 
 registerLatencyMetrics :: IO GenericLatencyMetric
 registerLatencyMetrics =

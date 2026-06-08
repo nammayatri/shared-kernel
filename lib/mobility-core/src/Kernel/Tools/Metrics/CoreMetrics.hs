@@ -377,6 +377,40 @@ incrementRideEndCounter' operation = do
       operation
       P.incCounter
 
+incrementRedisStreamProcessedImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  m ()
+incrementRedisStreamProcessedImplementation = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $ P.incCounter cmContainer.redisStreamProcessedCounter
+
+setRedisStreamLengthImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Int ->
+  Integer ->
+  m ()
+setRedisStreamLengthImplementation shardId n = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $ P.withLabel cmContainer.redisStreamLengthGauge (show shardId) (\g -> P.setGauge g (fromIntegral n))
+
+setRedisStreamPendingImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Int ->
+  Integer ->
+  m ()
+setRedisStreamPendingImplementation shardId n = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $ P.withLabel cmContainer.redisStreamPendingGauge (show shardId) (\g -> P.setGauge g (fromIntegral n))
+
 addGenericLatencyMetricsImplementation ::
   ( HasCoreMetrics r,
     L.MonadFlow m,

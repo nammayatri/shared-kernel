@@ -1221,6 +1221,22 @@ xAck key groupName entryId = withLogTag "Redis" $ do
       pure (-1) -- Return -1 if there was an error
     Right items -> pure items
 
+-- | Number of entries currently in a stream (XLEN). Returns -1 on error.
+xLen :: (HedisFlow m env, TryException m) => Text -> m Integer
+xLen key = withLogTag "Redis" $ do
+  migrating <- asks (.hedisMigrationStage)
+  when migrating $ do
+    res <- withTimeRedis "RedisStandalone" "xLen" $ withTryCatch "xLen" (runWithPrefix'_ key $ \prefKey -> Hedis.xlen prefKey)
+    case res of
+      Left err -> withLogTag "STANDALONE" $ logTagInfo "FAILED_TO_xLen" $ show err
+      Right _ -> pure ()
+  res <- withTimeRedis "RedisCluster" "xLen" $ withTryCatch "xLen" (runWithPrefix key $ \prefKey -> Hedis.xlen prefKey)
+  case res of
+    Left err -> do
+      withLogTag "CLUSTER" $ logTagInfo "FAILED_TO_xLen" $ show err
+      pure (-1) -- Return -1 if there was an error
+    Right count' -> pure count'
+
 xPendingSummary ::
   (HedisFlow m env, TryException m) =>
   Text -> -- stream key
