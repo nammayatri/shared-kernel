@@ -109,6 +109,10 @@ withHeaders headerPairs (ET.EulerClient f) =
        in Free $ SCF.RunRequest reqWithHeaders (\resp -> return (next resp))
     addHeadersToClientF (SCF.Throw e) = Free $ SCF.Throw e
 
+-- | Redact sensitive query parameter values (e.g. Google API keys) from logged strings.
+redactClientError :: Text -> Text
+redactClientError t = T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
+
 callAPI ::
   CallAPI' m r api res (Either ClientError res)
 callAPI = callAPI' Nothing
@@ -131,7 +135,7 @@ callAPI' mbManagerSelector baseUrl eulerClient desc api =
         L.callAPI' (Just managerSelector) baseUrl modifiedEulerClient
     case res of
       Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
-      Left err -> logError $ "Error occured during client call: " <> show err
+      Left err -> logError $ "Error occured during client call: " <> redactClientError (show err)
     return res
   where
     buildSanitizedUrl =
@@ -240,7 +244,7 @@ retryAction ::
   m a ->
   m a
 retryAction currentErr currentRetryCount maxRetries baseCoefficient action = do
-  logWarning $ "Error calling " <> showBaseUrlText currentErr.baseUrl <> ": " <> show currentErr.clientError
+  logWarning $ "Error calling " <> showBaseUrlText currentErr.baseUrl <> ": " <> redactClientError (show currentErr.clientError)
   logWarning $ "Retrying attempt " <> show currentRetryCount <> " calling " <> showBaseUrlText currentErr.baseUrl
   Metrics.addUrlCallRetries currentErr.baseUrl currentRetryCount
   catchConnectionErrors action $ \err -> do
