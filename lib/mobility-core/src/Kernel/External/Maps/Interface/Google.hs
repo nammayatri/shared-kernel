@@ -378,7 +378,7 @@ autoComplete entityId cfg req@AutoCompleteReq {..} = do
               Finland -> "country:fi"
       res <- withShortRetry $ GoogleMaps.autoComplete entityId req mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
       let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
-      let predictions = map (\prediction -> Prediction {placeId = prediction.place_id, distance = prediction.distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> prediction.distance_meters, types = prediction.types, description = prediction.description}) res.predictions
+      let predictions = map (\prediction -> Prediction {placeId = prediction.place_id >>= \pid -> if T.null pid then Nothing else Just pid, distance = prediction.distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> prediction.distance_meters, types = prediction.types, description = prediction.description}) res.predictions
       return $ AutoCompleteResp predictions
 
 autoCompleteNew ::
@@ -414,7 +414,7 @@ autoCompleteNew entityId cfg AutoCompleteReq {..} = do
   let req = GoogleMaps.AutoCompleteReqV2 {input, sessionToken, origin = origin', locationBias, locationRestriction, includedPrimaryTypes, includedRegionCodes}
   res <- GoogleMaps.autoCompleteV2 entityId mapsUrl key language req
   let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
-  let predictions = map (\suggestion -> Prediction {placeId = suggestion.placePrediction.placeId, distance = suggestion.placePrediction.distanceMeters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> suggestion.placePrediction.distanceMeters, types = suggestion.placePrediction.types, description = suggestion.placePrediction.text.text}) res.suggestions
+  let predictions = map (\suggestion -> Prediction {placeId = suggestion.placePrediction.placeId >>= \pid -> if T.null pid then Nothing else Just pid, distance = suggestion.placePrediction.distanceMeters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> suggestion.placePrediction.distanceMeters, types = suggestion.placePrediction.types, description = suggestion.placePrediction.text.text}) res.suggestions
   return $ AutoCompleteResp predictions
   where
     mkLatLngV2 :: LatLong -> GoogleMaps.LatLngV2
