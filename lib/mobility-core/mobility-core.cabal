@@ -121,6 +121,7 @@ library
       Kernel.External.Maps.Google.Config
       Kernel.External.Maps.Google.MapsClient
       Kernel.External.Maps.Google.MapsClient.Types
+      Kernel.External.Maps.Google.MobilityBilling
       Kernel.External.Maps.Google.PolyLinePoints
       Kernel.External.Maps.Google.RoadsClient
       Kernel.External.Maps.HasCoordinates
