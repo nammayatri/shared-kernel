@@ -103,6 +103,8 @@ data Term value where
 
 newtype Where table = Where (Clause table)
 
+newtype Having table = Having (Clause table)
+
 class IsGroupColumns cols where
   type GroupColumnsType cols
   groupColumns :: cols -> GroupColumnsType cols
@@ -217,6 +219,7 @@ data Q db table cols ord acols = (ClickhouseDb db) =>
     limitQ :: Maybe Limit,
     offsetQ :: Maybe Offset,
     orderByQ :: Maybe (cols -> OrderBy ord),
+    havingQ :: Maybe (cols -> Having table),
     selectModifierOverrideQ :: Maybe SelectModifier
   }
 
