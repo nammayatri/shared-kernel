@@ -1142,21 +1142,32 @@ instance IsAPIError CallStatusError
 data ServiceabilityError
   = RideNotServiceable
   | RideNotServiceableInState Text
-  deriving (Eq, Show, IsBecknAPIError)
+  | UnserviceableTripCategory Text
+  deriving (Eq, Show)
 
 instanceExceptionWithParent 'HTTPException ''ServiceabilityError
 
 instance IsBaseError ServiceabilityError where
-  toMessage RideNotServiceable = Just "Requested ride is not serviceable due to georestrictions."
-  toMessage (RideNotServiceableInState state_) = Just ("Selected state " <> state_ <> " is not serviceable since it does not fall within the state boundary.")
+  toMessage RideNotServiceable = Just "Route Serviceability error"
+  toMessage (RideNotServiceableInState state_) = Just ("Route Serviceability error: selected state " <> state_ <> " is not serviceable.")
+  toMessage (UnserviceableTripCategory cat) = Just ("Route Serviceability error: unserviceable trip category " <> cat <> ".")
 
 instance IsHTTPError ServiceabilityError where
   toErrorCode = \case
     RideNotServiceable -> "RIDE_NOT_SERVICEABLE"
     RideNotServiceableInState _ -> "RIDE_NOT_SERVICEABLE_IN_STATE"
+    UnserviceableTripCategory _ -> "UNSERVICEABLE_TRIP_CATEGORY"
   toHttpCode = \case
     RideNotServiceable -> E400
     RideNotServiceableInState _ -> E400
+    UnserviceableTripCategory _ -> E400
+
+-- ONDC v2.1.0 mandates numeric error codes in NACK responses. "90201" is
+-- "Route Serviceability error" per the ONDC mobility spec. Keep the internal
+-- toErrorCode for metrics/logs, and surface the ONDC code via toOndcErrorCode
+-- which is what the BecknAPIError JSON actually emits.
+instance IsBecknAPIError ServiceabilityError where
+  toOndcErrorCode _ = Just "90201"
 
 instance IsAPIError ServiceabilityError
 
