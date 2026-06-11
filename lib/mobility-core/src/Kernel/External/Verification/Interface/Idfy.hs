@@ -549,11 +549,15 @@ faceCompare cfg req = do
         idfyReq <- buildIdfyRequest req.driverId reqData
         resp <- Idfy.faceCompare apiKey accountId url idfyReq
         case resp.result of
-          Just result -> pure FaceCompareResp {faceComparedData = Just result}
+          Just result -> do
+            let faceNotDetected img = img >>= (.face_detected) == Just False
+            when (faceNotDetected result.image_1 || faceNotDetected result.image_2) $
+              throwError $ InternalError "Face not detected in one or both images; match result is unreliable."
+            pure FaceCompareResp {faceComparedData = Just result}
           Nothing
             | attemptsLeft > 0 -> callWithRetry (attemptsLeft - 1)
             | otherwise -> throwError $ InternalError "Please contact customer support, as face match cannot be done."
-  callWithRetry retryLimit
+
 
 getTask ::
   ( EncFlow m r,
