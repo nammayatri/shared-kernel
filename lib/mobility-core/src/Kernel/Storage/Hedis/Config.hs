@@ -23,6 +23,7 @@ import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import Kernel.Types.TryException
+import Kernel.Types.Version (CloudType)
 import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
@@ -33,7 +34,7 @@ type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedi
 
 type HedisLTSFlow m env = (HedisFlow m env, HedisLTSFlowEnv env)
 
-type HedisLTSFlowEnv env = (HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv))
+type HedisLTSFlowEnv env = (HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv), HasField "cloudType" env (Maybe CloudType))
 
 type KeyModifierFunc = (Text -> Text)
 
