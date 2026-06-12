@@ -18,6 +18,7 @@ module Kernel.External.Verification.Interface
     verifyPanAsync,
     verifyGstAsync,
     verifyBankAccountAsync,
+    verifyCRCAsync,
     verifyPanAadhaarLinkAsync,
     verifyUdyamAadhaarAsync,
     verifyRC,
@@ -141,6 +142,25 @@ verifyBankAccountAsync ::
   m VerifyAsyncResp
 verifyBankAccountAsync serviceConfig req = case serviceConfig of
   IdfyConfig cfg -> Idfy.verifyBankAccountAsync cfg req
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
+
+verifyCRCAsync ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  VerifyCRCReq ->
+  m VerifyCRCAsyncResp
+verifyCRCAsync serviceConfig req = case serviceConfig of
+  IdfyConfig cfg -> Idfy.verifyCRCAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
