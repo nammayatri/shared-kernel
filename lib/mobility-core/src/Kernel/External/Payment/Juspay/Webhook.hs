@@ -16,7 +16,9 @@ module Kernel.External.Payment.Juspay.Webhook where
 
 import Data.Aeson.Types as DAT
 import qualified Data.Text.Encoding as DT
+import qualified EulerHS.Language as L
 import EulerHS.Prelude
+import qualified Kernel.Beam.Types as KBT
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Types
 import qualified Kernel.External.Payment.Juspay.Types as Juspay
@@ -39,6 +41,8 @@ orderStatusWebhook ::
   m (Maybe (Juspay.PaymentStatus, Juspay.OrderAndNotificationStatusContent))
 orderStatusWebhook paymentConfig orderStatusHandler authData val = do
   withLogTag "webhookPaymentOrderStatus" $ do
+    table <- L.getOption KBT.Tables
+    logDebug $ "table in kv data : " <> show table
     let respDump = encodeToText val
     let mResp = fromJSON val
     case mResp of
