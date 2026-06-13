@@ -24,10 +24,10 @@ import qualified Data.Csv as Csv
 import Data.Either (partitionEithers)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Data.Time (defaultTimeLocale, parseTimeM)
 import qualified Data.Vector as V
 import Kernel.External.Settlement.HyperPG.MerchantPaymentTypes
 import Kernel.External.Settlement.Interface.Types
+import Kernel.External.Settlement.Utils.ParserUtils (nonEmpty', parseAmount, parseDateTime)
 import Kernel.Prelude
 import Kernel.Types.Common (Currency (..), HighPrecMoney)
 
@@ -99,6 +99,9 @@ parseHyperPGMerchantRow row = do
               settlementMode = settlementMode',
               settlementId = nonEmpty' row.settlementId,
               settlementDate = settlementDate',
+              pgApprovalCode = Nothing,
+              pgRequestId = Nothing,
+              bankId = Nothing,
               refundId = nonEmpty' row.refundId,
               refundArn = nonEmpty' row.refundArn,
               refundDate = refundDate',
@@ -114,7 +117,8 @@ parseHyperPGMerchantRow row = do
               isOffer = Nothing,
               offerCode = Nothing,
               offerId = Nothing,
-              actualAmount = Nothing
+              actualAmount = Nothing,
+              cardNumber = Nothing
             }
 
 computeVendorTotal :: Text -> HighPrecMoney
@@ -124,22 +128,6 @@ computeVendorTotal splitsText
     case A.eitherDecodeStrict (TE.encodeUtf8 $ T.strip splitsText) of
       Left _ -> 0
       Right splits -> sum $ map (parseAmount . grossAmount) (computedVendorsSplits splits)
-
-nonEmpty' :: Text -> Maybe Text
-nonEmpty' t
-  | T.null (T.strip t) = Nothing
-  | otherwise = Just (T.strip t)
-
-parseAmount :: Text -> HighPrecMoney
-parseAmount t =
-  case readMaybe (T.unpack $ T.strip t) of
-    Just v -> v
-    Nothing -> 0
-
-parseDateTime :: Text -> Maybe UTCTime
-parseDateTime t
-  | T.null (T.strip t) = Nothing
-  | otherwise = parseTimeM True defaultTimeLocale "%Y-%m-%d %H:%M:%S" (T.unpack $ T.strip t)
 
 parseTxnType :: Text -> Either Text TxnType
 parseTxnType t = case T.toLower (T.strip t) of

@@ -29,8 +29,9 @@ import Data.Time (defaultTimeLocale, parseTimeM)
 import qualified Data.Vector as V
 import Kernel.External.Settlement.HyperPG.PayoutTypes
 import Kernel.External.Settlement.Interface.Types
+import Kernel.External.Settlement.Utils.ParserUtils (nonEmpty', parseAmount)
 import Kernel.Prelude
-import Kernel.Types.Common (Currency (..), HighPrecMoney)
+import Kernel.Types.Common (Currency (..))
 
 parseHyperPGPayoutCsv :: LBS.ByteString -> ParsePayoutSettlementResult
 parseHyperPGPayoutCsv csvData =
@@ -102,17 +103,6 @@ parseHyperPGPayoutRow row = do
 -- Helpers
 -- ---------------------------------------------------------------------------
 
-nonEmpty' :: Text -> Maybe Text
-nonEmpty' t
-  | T.null (T.strip t) = Nothing
-  | otherwise = Just (T.strip t)
-
-parseAmount :: Text -> HighPrecMoney
-parseAmount t =
-  case readMaybe (T.unpack $ T.strip t) of
-    Just v -> v
-    Nothing -> 0
-
 parseTxnStatus :: Text -> Either Text TxnStatus
 parseTxnStatus t = case T.toUpper (T.strip t) of
   "SUCCESS" -> Right SUCCESS
@@ -129,9 +119,9 @@ parseISODateTime t
 
 parseFulfillmentInstrument :: Text -> Maybe FulfillmentInstrument
 parseFulfillmentInstrument t = case T.toUpper (T.strip t) of
-  "ACCOUNT_IFSC" -> Just NEFT
+  "ACCOUNT_IFSC" -> Just FI_NEFT
   "IMPS" -> Just IMPS
-  "NEFT" -> Just NEFT
+  "NEFT" -> Just FI_NEFT
   "RTGS" -> Just RTGS
   "UPI" -> Just FI_UPI
   "" -> Nothing
