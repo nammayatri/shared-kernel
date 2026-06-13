@@ -59,7 +59,8 @@ convertToRoute route =
       distanceWithUnit = Just $ Distance (toHighPrecDistance route.distance) Meter,
       boundingBox = Nothing,
       snappedWaypoints = [],
-      points = PP.decode $ route.geometry
+      points = PP.decode $ route.geometry,
+      isDefaultRoute = False
     }
 
 latLongToPlace :: LatLong -> GoogleMaps.Place

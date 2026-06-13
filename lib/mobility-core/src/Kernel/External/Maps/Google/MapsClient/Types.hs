@@ -281,7 +281,8 @@ data RouteV2 = RouteV2
     viewport :: ViewPort,
     distanceMeters :: Int,
     duration :: Text,
-    staticDuration :: Maybe Text
+    staticDuration :: Maybe Text,
+    routeLabels :: Maybe [Text]
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 

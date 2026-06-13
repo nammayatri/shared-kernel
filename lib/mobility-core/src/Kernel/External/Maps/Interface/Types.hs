@@ -117,7 +117,8 @@ data RouteInfo = RouteInfo
     distanceWithUnit :: Maybe Distance,
     boundingBox :: Maybe BoundingBoxWithoutCRS,
     snappedWaypoints :: [LatLong],
-    points :: [LatLong]
+    points :: [LatLong],
+    isDefaultRoute :: Bool
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema, Show, Eq, Ord)
 
