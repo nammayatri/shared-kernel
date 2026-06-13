@@ -23,12 +23,12 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Csv as Csv
 import Data.Either (partitionEithers)
 import qualified Data.Text as T
-import Data.Time (defaultTimeLocale, parseTimeM)
 import qualified Data.Vector as V
 import Kernel.External.Settlement.HyperPG.PaymentTypes
 import Kernel.External.Settlement.Interface.Types
+import Kernel.External.Settlement.Utils.ParserUtils (nonEmpty', parseAmount, parseDateTime)
 import Kernel.Prelude
-import Kernel.Types.Common (Currency (..), HighPrecMoney)
+import Kernel.Types.Common (Currency (..))
 
 parseHyperPGCsv :: LBS.ByteString -> ParsePaymentSettlementResult
 parseHyperPGCsv csvData =
@@ -90,6 +90,9 @@ parseHyperPGRow row = do
         settlementMode = settlementMode',
         settlementId = nonEmpty' row.vendorSettlementId,
         settlementDate = vendorSettlementDate',
+        pgApprovalCode = Nothing,
+        pgRequestId = Nothing,
+        bankId = Nothing,
         refundId = nonEmpty' row.refundId,
         refundArn = Nothing,
         refundDate = refundDate',
@@ -105,24 +108,9 @@ parseHyperPGRow row = do
         isOffer = Nothing,
         offerCode = Nothing,
         offerId = Nothing,
-        actualAmount = Nothing
+        actualAmount = Nothing,
+        cardNumber = Nothing
       }
-
-nonEmpty' :: Text -> Maybe Text
-nonEmpty' t
-  | T.null (T.strip t) = Nothing
-  | otherwise = Just (T.strip t)
-
-parseAmount :: Text -> HighPrecMoney
-parseAmount t =
-  case readMaybe (T.unpack $ T.strip t) of
-    Just v -> v
-    Nothing -> 0
-
-parseDateTime :: Text -> Maybe UTCTime
-parseDateTime t
-  | T.null (T.strip t) = Nothing
-  | otherwise = parseTimeM True defaultTimeLocale "%Y-%m-%d %H:%M:%S" (T.unpack $ T.strip t)
 
 parseTxnType :: Text -> Either Text TxnType
 parseTxnType t = case T.toLower (T.strip t) of

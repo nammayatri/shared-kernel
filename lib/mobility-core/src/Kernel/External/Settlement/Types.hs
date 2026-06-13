@@ -34,7 +34,7 @@ import qualified Data.Map.Strict as Map
 import Kernel.External.Encryption (EncKind (..), EncryptedField)
 import Kernel.Prelude
 
-data SettlementService = HyperPG | BillDesk | YesBiz
+data SettlementService = HyperPG | BillDesk | YesBiz | Razorpay | CCAvenue
   deriving stock (Show, Read, Eq, Ord, Generic, Enum, Bounded)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -70,7 +70,8 @@ data SettlementServiceConfig = SettlementServiceConfig
   { settlementService :: SettlementService,
     sourceConfig :: SettlementSourceConfig,
     parserTypeMap :: Maybe SettlementParserTypeMap,
-    useJuspayOrderStatus :: Maybe Bool
+    useJuspayOrderStatus :: Maybe Bool,
+    bankCode :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 

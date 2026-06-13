@@ -22,12 +22,12 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Csv as Csv
 import Data.Either (partitionEithers)
 import qualified Data.Text as T
-import Data.Time (defaultTimeLocale, parseTimeM)
 import qualified Data.Vector as V
 import Kernel.External.Settlement.BillDesk.PaymentTypes
 import Kernel.External.Settlement.Interface.Types
+import Kernel.External.Settlement.Utils.ParserUtils (nonEmpty', parseAmount, parseDateTime)
 import Kernel.Prelude
-import Kernel.Types.Common (Currency (..), HighPrecMoney)
+import Kernel.Types.Common (Currency (..))
 
 -- ---------------------------------------------------------------------------
 -- Public API
@@ -130,29 +130,32 @@ parseSettledRow row idx = do
   let rawJson = A.toJSON row
   Right
     PaymentSettlementReport
-      { orderId = row.ref1,
-        txnId = nonEmpty' row.pgiRefNo,
-        rrn = Nothing,
-        utr = nonEmpty' row.bankRefNo,
-        txnType = ORDER,
+      { orderId = row.ref1, -- Merchant Subscription Transaction ID → Ref. 1
+        txnId = nonEmpty' row.pgiRefNo, -- Transaction ID → PGI Ref. No.
+        rrn = nonEmpty' row.bankRefNo, -- Bank RRN → Bank Ref. No.
+        utr = Nothing, -- Settlement UTR → #N/A
+        txnType = ORDER, -- Document Type → SETTLED TRANSACTIONS= Payment
         txnStatus = SUCCESS,
-        txnDate = parseDateTime row.dateOfTxn,
-        txnAmount = parseAmount row.grossAmount,
-        pgBaseFee = parseAmount row.charges,
-        pgTax = parseAmount row.gst,
-        settlementAmount = parseAmount row.netAmount,
+        txnDate = parseDateTime row.dateOfTxn, -- Transaction Date → Date of Txn
+        txnAmount = parseAmount row.grossAmount, -- Charged Amount → Gross Amount(Rs.Ps)
+        pgBaseFee = parseAmount row.charges, -- PG Fee → Charges (Rs.Ps)
+        pgTax = parseAmount row.gst, -- GST on PG Fee → GST (Rs Ps)
+        settlementAmount = parseAmount row.netAmount, -- Net Settled Amount → Net Amount(Rs.Ps)
         currency = INR,
-        vendorId = nonEmpty' row.billerId,
+        vendorId = nonEmpty' row.billerId, -- MID → Biller Id
         uniqueSplitId = Nothing,
-        paymentGateway = Just "BILLDESK",
-        paymentMethod = Nothing,
+        paymentGateway = Just "BILLDESK", -- PG name → Hardcode as Billdesk
+        paymentMethod = parseBillDeskPaymentMethod row.payRef2, -- Paymode → Pay Ref1                             ---------mapping correction needed
         paymentMethodSubType = Nothing,
         settlementType = Just CREDIT,
         settlementMode = Nothing,
-        settlementId = nonEmpty' row.bankId,
-        settlementDate = parseDateTime row.settlementDate,
+        settlementId = Nothing, -- Settlement ID → #N/A
+        settlementDate = parseDateTime row.settlementDate, -- Settlement Date → Settlement Date
+        pgApprovalCode = nonEmpty' row.pgiRefNo, -- PG Approval code → PGI Ref. No.
+        pgRequestId = nonEmpty' row.ref5, -- PG Request id → Ref. 5
+        bankId = nonEmpty' row.bankId, -- Bank ID → Bank Id
         refundId = Nothing,
-        refundArn = Nothing,
+        refundArn = Nothing, -- ARN → #N/A
         refundDate = Nothing,
         refundAmount = Nothing,
         refundBaseFee = Nothing,
@@ -162,43 +165,47 @@ parseSettledRow row idx = do
         rawData = Just rawJson,
         cardIsin = Nothing,
         cardNetwork = Nothing,
-        cardType = Nothing,
+        cardType = Nothing, -- Card Type → #N/A
+        cardNumber = Nothing,
         isOffer = Nothing,
         offerCode = Nothing,
         offerId = Nothing,
         actualAmount = Nothing
       }
   where
-    _ = idx -- used in error context if needed later
+    _ = idx
 
 parseRefundRow :: BillDeskRefundRow -> Int -> Either Text PaymentSettlementReport
 parseRefundRow row idx = do
   let rawJson = A.toJSON row
   Right
     PaymentSettlementReport
-      { orderId = row.ref1,
-        txnId = nonEmpty' row.pgiRefNo,
-        rrn = Nothing,
-        utr = nonEmpty' row.bankRefNo,
-        txnType = REFUND,
+      { orderId = row.ref1, -- Merchant Subscription Transaction ID → Ref. 1
+        txnId = nonEmpty' row.pgiRefNo, -- Transaction ID → PGI Ref. No.
+        rrn = nonEmpty' row.bankRefNo, -- Bank RRN → Bank Ref. No.
+        utr = Nothing, -- Settlement UTR → #N/A
+        txnType = REFUND, -- Document Type → REFUND TRANSACTIONS= Refund
         txnStatus = SUCCESS,
-        txnDate = parseDateTime row.dateOfTxn,
-        txnAmount = parseAmount row.grossAmount,
-        pgBaseFee = 0,
-        pgTax = 0,
-        settlementAmount = parseAmount row.grossAmount,
+        txnDate = parseDateTime row.dateOfTxn, -- Transaction Date → Refund Date
+        txnAmount = parseAmount row.grossAmount, -- Charged Amount → Refund Amount (Rs. Ps.)
+        pgBaseFee = 0, -- PG Fee → #N/A
+        pgTax = 0, -- GST on PG Fee → #N/A
+        settlementAmount = parseAmount row.grossAmount, -- Net Settled Amount → Refund Amount (Rs. Ps.)
         currency = INR,
-        vendorId = nonEmpty' row.billerId,
+        vendorId = nonEmpty' row.billerId, -- MID → Biller Id
         uniqueSplitId = Nothing,
-        paymentGateway = Just "BILLDESK",
-        paymentMethod = Nothing,
+        paymentGateway = Just "BILLDESK", -- PG name → Hardcode as Billdesk
+        paymentMethod = parseBillDeskPaymentMethod row.ref2, -- Paymode → Ref2
         paymentMethodSubType = Nothing,
         settlementType = Just DEBIT,
         settlementMode = Nothing,
-        settlementId = nonEmpty' row.bankId,
-        settlementDate = parseDateTime row.settlementDate,
-        refundId = nonEmpty' row.refundId,
-        refundArn = Nothing,
+        settlementId = Nothing, -- Settlement ID → #N/A
+        settlementDate = parseDateTime row.settlementDate, -- Settlement Date → Settlement Date of Settled Transactions
+        pgApprovalCode = nonEmpty' row.pgiRefNo, -- PG Approval code → PGI Ref. No.
+        pgRequestId = nonEmpty' row.ref5, -- PG Request id → Ref. 5
+        bankId = nonEmpty' row.bankId, -- Bank ID → Bank Id
+        refundId = Nothing,
+        refundArn = nonEmpty' row.refundId, -- ARN → Refund ID
         refundDate = parseDateTime row.refundDate,
         refundAmount = Just (parseAmount row.refundAmount),
         refundBaseFee = Nothing,
@@ -208,11 +215,12 @@ parseRefundRow row idx = do
         rawData = Just rawJson,
         cardIsin = Nothing,
         cardNetwork = Nothing,
-        cardType = Nothing,
+        cardType = Nothing, -- Card Type → #N/A
         isOffer = Nothing,
         offerCode = Nothing,
         offerId = Nothing,
-        actualAmount = Nothing
+        actualAmount = Nothing,
+        cardNumber = Nothing
       }
   where
     _ = idx
@@ -222,29 +230,32 @@ parseChargebackRow row idx = do
   let rawJson = A.toJSON row
   Right
     PaymentSettlementReport
-      { orderId = row.ref1,
-        txnId = nonEmpty' row.pgiRefNo,
-        rrn = Nothing,
-        utr = nonEmpty' row.bankRefNo,
-        txnType = CHARGEBACK,
+      { orderId = row.ref1, -- Merchant Subscription Transaction ID → Ref. 1
+        txnId = nonEmpty' row.pgiRefNo, -- Transaction ID → PGI Ref. No.
+        rrn = nonEmpty' row.bankRefNo, -- Bank RRN → Bank Ref. No.
+        utr = Nothing, -- Settlement UTR → #N/A
+        txnType = CHARGEBACK, -- Document Type → CHARGEBACK TRANSACTIONS= Chargeback
         txnStatus = SUCCESS,
-        txnDate = parseDateTime row.dateOfTxn,
-        txnAmount = parseAmount row.grossAmount,
-        pgBaseFee = 0,
-        pgTax = 0,
-        settlementAmount = parseAmount row.grossAmount,
+        txnDate = parseDateTime row.dateOfTxn, -- Transaction Date → Chargeback date
+        txnAmount = parseAmount row.grossAmount, -- Charged Amount → Chargeback Amount (Rs Ps)
+        pgBaseFee = 0, -- PG Fee → #N/A
+        pgTax = 0, -- GST on PG Fee → #N/A
+        settlementAmount = parseAmount row.grossAmount, -- Net Settled Amount → #N/A (using gross)
         currency = INR,
-        vendorId = nonEmpty' row.billerId,
+        vendorId = nonEmpty' row.billerId, -- MID → Biller Id
         uniqueSplitId = Nothing,
-        paymentGateway = Just "BILLDESK",
-        paymentMethod = Nothing,
+        paymentGateway = Just "BILLDESK", -- PG name → Hardcode as Billdesk
+        paymentMethod = parseBillDeskPaymentMethod row.ref2, -- Paymode → Ref2
         paymentMethodSubType = Nothing,
         settlementType = Just DEBIT,
         settlementMode = Nothing,
-        settlementId = nonEmpty' row.bankId,
-        settlementDate = parseDateTime row.settlementDate,
+        settlementId = Nothing, -- Settlement ID → #N/A
+        settlementDate = parseDateTime row.settlementDate, -- Settlement Date → Settlement Date of Settled Transactions
+        pgApprovalCode = nonEmpty' row.pgiRefNo, -- PG Approval code → PGI Ref. No.
+        pgRequestId = nonEmpty' row.ref5, -- PG Request id → Ref. 5
+        bankId = nonEmpty' row.bankId, -- Bank ID → Bank Id
         refundId = Nothing,
-        refundArn = Nothing,
+        refundArn = Nothing, -- ARN → #N/A
         refundDate = Nothing,
         refundAmount = Nothing,
         refundBaseFee = Nothing,
@@ -254,11 +265,12 @@ parseChargebackRow row idx = do
         rawData = Just rawJson,
         cardIsin = Nothing,
         cardNetwork = Nothing,
-        cardType = Nothing,
+        cardType = Nothing, -- Card Type → #N/A
         isOffer = Nothing,
         offerCode = Nothing,
         offerId = Nothing,
-        actualAmount = Nothing
+        actualAmount = Nothing,
+        cardNumber = Nothing
       }
   where
     _ = idx
@@ -267,19 +279,20 @@ parseChargebackRow row idx = do
 -- Helpers
 -- ---------------------------------------------------------------------------
 
-nonEmpty' :: Text -> Maybe Text
-nonEmpty' t
-  | T.null (T.strip t) = Nothing
-  | otherwise = Just (T.strip t)
-
-parseAmount :: Text -> HighPrecMoney
-parseAmount t =
-  case readMaybe (T.unpack $ T.strip t) of
-    Just v -> v
-    Nothing -> 0
-
-parseDateTime :: Text -> Maybe UTCTime
-parseDateTime t
-  | T.null (T.strip t) = Nothing
-  | otherwise =
-    parseTimeM True defaultTimeLocale "%Y-%m-%d %H:%M:%S %Z" (T.unpack $ T.strip t)
+parseBillDeskPaymentMethod :: Text -> Maybe PaymentMethodType
+parseBillDeskPaymentMethod t = case T.strip t of
+  "1" -> Just NETBANKING
+  "2" -> Just CREDIT_CARD
+  "3" -> Just DEBIT_CARD
+  "4" -> Just CASH_CARD
+  "5" -> Just WALLET
+  "10" -> Just UPI
+  "11" -> Just BHARAT_QR
+  "12" -> Just EMI
+  "13" -> Just NEFT
+  "18" -> Just UPI_CREDIT
+  "19" -> Just ENACH
+  "20" -> Just CBDC
+  "21" -> Just UPI_PREPAID_WALLET
+  "22" -> Just UPI_CREDIT_LINE
+  _ -> Nothing
