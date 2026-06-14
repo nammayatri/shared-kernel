@@ -241,6 +241,11 @@ library
       Kernel.External.Plasma.LMS.Flow
       Kernel.External.Plasma.LMS.Types
       Kernel.External.Plasma.Types
+      Kernel.External.SAP.API
+      Kernel.External.SAP.Config
+      Kernel.External.SAP.Flow
+      Kernel.External.SAP.Interface
+      Kernel.External.SAP.Types
       Kernel.External.Settlement.BillDesk.PaymentParser
       Kernel.External.Settlement.BillDesk.PaymentTypes
       Kernel.External.Settlement.CCAvenue.PaymentParser
