@@ -111,9 +111,8 @@ parseSectionRows sectionName sectionLines =
 zipMerge :: [Either Text CCAvenueTxnRow] -> [Either Text CCAvenuePayoutRow] -> [CCAvenueMergedRow]
 zipMerge txnResults payoutResults =
   let txnRows = [r | Right r <- txnResults]
-      payoutRows = [r | Right r <- payoutResults]
-      payoutPadded = map Just payoutRows <> repeat Nothing
-   in zipWith (\t p -> CCAvenueMergedRow t p) txnRows payoutPadded
+      singlePayout = listToMaybe [r | Right r <- payoutResults]
+   in map (\t -> CCAvenueMergedRow t singlePayout) txnRows
 
 -- ---------------------------------------------------------------------------
 -- Merged row → PaymentSettlementReport
