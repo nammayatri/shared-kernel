@@ -241,8 +241,15 @@ library
       Kernel.External.Plasma.LMS.Flow
       Kernel.External.Plasma.LMS.Types
       Kernel.External.Plasma.Types
+      Kernel.External.SAP.API
+      Kernel.External.SAP.Config
+      Kernel.External.SAP.Flow
+      Kernel.External.SAP.Interface
+      Kernel.External.SAP.Types
       Kernel.External.Settlement.BillDesk.PaymentParser
       Kernel.External.Settlement.BillDesk.PaymentTypes
+      Kernel.External.Settlement.CCAvenue.PaymentParser
+      Kernel.External.Settlement.CCAvenue.PaymentTypes
       Kernel.External.Settlement.HyperPG.MerchantPaymentParser
       Kernel.External.Settlement.HyperPG.MerchantPaymentTypes
       Kernel.External.Settlement.HyperPG.PaymentParser
@@ -251,8 +258,11 @@ library
       Kernel.External.Settlement.HyperPG.PayoutTypes
       Kernel.External.Settlement.Interface
       Kernel.External.Settlement.Interface.Types
+      Kernel.External.Settlement.Razorpay.PaymentParser
+      Kernel.External.Settlement.Razorpay.PaymentTypes
       Kernel.External.Settlement.Types
       Kernel.External.Settlement.Utils.JuspayOrderStatus
+      Kernel.External.Settlement.Utils.ParserUtils
       Kernel.External.Settlement.YesBiz.PaymentParser
       Kernel.External.Settlement.YesBiz.PaymentTypes
       Kernel.External.SharedLogic.DigiLocker.Error
