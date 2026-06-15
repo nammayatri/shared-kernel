@@ -357,7 +357,7 @@ advancedDirectionsAPI entityId url key origin destination mode intermediates isA
   let routeModifiers = GoogleMaps.RouteModifiers {avoidTolls = if isAvoidTolls then Just True else Nothing, avoidFerries = True}
       travelMode = mode
       req = GoogleMaps.AdvancedDirectionsReq {..}
-  rsp <- callAPI url (advancedDirectionsClient key "routes.legs.*,routes.distanceMeters,routes.duration,routes.staticDuration.*,routes.viewport.*,routes.polyline.*,routes.routeLabels.*" req) "advancedDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
+  rsp <- callAPI url (advancedDirectionsClient key "routes.legs.*,routes.distanceMeters,routes.duration,routes.staticDuration.*,routes.viewport.*,routes.polyline.*,routes.routeLabels.*,routes.routeToken" req) "advancedDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of advancedDirectionsAPI Google ") $
     ApiCallLogger.pushExternalApiCallDataToKafka "advancedDirectionsAPI" "Google" entityId (Just req) rsp
   checkGoogleMapsError' url rsp
