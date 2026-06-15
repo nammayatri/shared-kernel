@@ -28,6 +28,8 @@ module Kernel.External.Maps.Interface
     getPlaceDetails,
     getPlaceNameProvided,
     getPlaceName,
+    searchDestinationsProvided,
+    searchDestinations,
   )
 where
 
@@ -371,3 +373,27 @@ getPlaceName entityId serviceConfig req = case serviceConfig of
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
   MMIConfig cfg -> MMI.geocode entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getPlaceName" NextBillion
+
+searchDestinationsProvided :: MapsService -> Bool
+searchDestinationsProvided = \case
+  Google -> True
+  OSRM -> False
+  MMI -> False
+  NextBillion -> False
+  SelfTuned -> False
+
+searchDestinations ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  MapsServiceConfig ->
+  SearchDestinationsReq ->
+  m SearchDestinationsResp
+searchDestinations entityId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.searchDestinations entityId cfg req
+  OSRMConfig _ -> throwNotProvidedError "searchDestinations" OSRM
+  MMIConfig _ -> throwNotProvidedError "searchDestinations" MMI
+  NextBillionConfig _ -> throwNotProvidedError "searchDestinations" NextBillion

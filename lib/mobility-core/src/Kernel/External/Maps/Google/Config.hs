@@ -28,7 +28,9 @@ data GoogleCfg = GoogleCfg
     googlePlaceNewUrl :: BaseUrl,
     useNewPlaces :: Bool,
     googleAutocompleteParams :: Maybe [Text],
-    mobilityBillingUrl :: Maybe BaseUrl
+    mobilityBillingUrl :: Maybe BaseUrl,
+    -- | host + version for Geocoding API v4; defaults to https://geocode.googleapis.com/v4 when unset
+    googleGeocodeUrl :: Maybe BaseUrl
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 

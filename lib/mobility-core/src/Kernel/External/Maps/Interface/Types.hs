@@ -41,6 +41,7 @@ import qualified Debug.Trace as T
 import Deriving.Aeson
 import EulerHS.Prelude
 import qualified Kernel.External.Maps.Google.Config as Google
+import qualified Kernel.External.Maps.Google.MapsClient.Types as GoogleMaps
 import qualified Kernel.External.Maps.MMI.Config as MMI
 import qualified Kernel.External.Maps.NextBillion.Config as NextBillion
 import qualified Kernel.External.Maps.OSRM.Config as OSRM
@@ -274,3 +275,34 @@ data AddressResp = AddressResp
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+-- | Provider-neutral request for the Google Geocoding v4 "search for destinations"
+-- endpoint. The three primary ways to query mirror the Google API.
+data SearchDestinationsBy
+  = -- | unstructured addressQuery, e.g. "601 S Bernardo Ave, Sunnyvale, CA"
+    SearchByAddress Text
+  | -- | structured postal address
+    SearchByStructuredAddress GoogleMaps.PostalAddress
+  | -- | place id (with or without the "places/" prefix)
+    SearchByPlaceId Text
+  | -- | reverse lookup by coordinates
+    SearchByLatLong LatLong
+  deriving stock (Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data SearchDestinationsReq = SearchDestinationsReq
+  { searchBy :: SearchDestinationsBy,
+    languageCode :: Maybe Text,
+    regionCode :: Maybe Text,
+    travelModes :: Maybe [TravelMode],
+    -- | Google "X-Goog-FieldMask": comma-separated response paths to return,
+    -- e.g. "destinations.primary,destinations.entrances". Defaults to "*" (all)
+    -- when omitted.
+    fieldMask :: Maybe Text
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+-- | The Geocoding v4 response is Google-specific and rich; we surface it as-is so
+-- callers get every field (destinations, navigation points, entrances, landmarks, ...).
+type SearchDestinationsResp = GoogleMaps.SearchDestinationsResp

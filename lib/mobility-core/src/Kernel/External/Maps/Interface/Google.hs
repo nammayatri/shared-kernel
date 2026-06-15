@@ -21,6 +21,7 @@ module Kernel.External.Maps.Interface.Google
     getPlaceDetails,
     getPlaceName,
     autoCompleteNew,
+    searchDestinations,
   )
 where
 
@@ -492,3 +493,41 @@ getPlaceName entityId cfg req@GetPlaceNameReq {..} = do
     (mbByPlaceId, mbByLatLong) = case getBy of
       ByPlaceId id -> (Just id, Nothing)
       ByLatLong latLong -> (Nothing, Just latLong)
+
+searchDestinations ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  GoogleCfg ->
+  SearchDestinationsReq ->
+  m SearchDestinationsResp
+searchDestinations entityId cfg SearchDestinationsReq {..} = do
+  url <- maybe (parseBaseUrl "https://geocode.googleapis.com/v4") pure cfg.googleGeocodeUrl
+  key <- decrypt cfg.googleKey
+  let gReq =
+        GoogleMaps.SearchDestinationsReq
+          { addressQuery = mbAddressQuery,
+            place = mbPlace,
+            locationQuery = mbLocationQuery,
+            languageCode = languageCode,
+            regionCode = regionCode,
+            travelModes = map toGoogleTravelMode <$> travelModes,
+            placeFilter = Nothing
+          }
+  GoogleMaps.searchDestinations entityId url key (fromMaybe "*" fieldMask) gReq
+  where
+    (mbAddressQuery, mbPlace, mbLocationQuery) = case searchBy of
+      SearchByAddress addr -> (Just $ GoogleMaps.AddressQuery {addressQuery = Just addr, address = Nothing}, Nothing, Nothing)
+      SearchByStructuredAddress addr -> (Just $ GoogleMaps.AddressQuery {addressQuery = Nothing, address = Just addr}, Nothing, Nothing)
+      SearchByPlaceId placeId -> (Nothing, Just $ addPlacesPrefix placeId, Nothing)
+      SearchByLatLong LatLong {..} -> (Nothing, Nothing, Just $ GoogleMaps.LocationQuery {location = GoogleMaps.LatLngV2 {latitude = lat, longitude = lon}})
+    addPlacesPrefix placeId = if "places/" `T.isPrefixOf` placeId then placeId else "places/" <> placeId
+    toGoogleTravelMode = \case
+      CAR -> GoogleMaps.DRIVE
+      MOTORCYCLE -> GoogleMaps.DRIVE
+      BICYCLE -> GoogleMaps.WALK
+      FOOT -> GoogleMaps.WALK

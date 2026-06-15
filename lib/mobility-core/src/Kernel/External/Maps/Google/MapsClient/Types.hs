@@ -140,6 +140,205 @@ data PlusCodeResp = PlusCodeResp
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
+-------------------------------------------------------------------------------
+-- Google Geocoding API v4 : "Search for destinations"
+--   POST https://geocode.googleapis.com/v4/geocode/destinations
+--   Docs: https://developers.google.com/maps/documentation/geocoding/search-for-destinations
+-------------------------------------------------------------------------------
+
+-- | Aeson options for request bodies: drop unset (Nothing) fields so we never
+-- serialise a null for the unused one-of query fields. The endpoint expects
+-- exactly one of addressQuery / place / locationQuery.
+searchDestinationsReqOptions :: Options
+searchDestinationsReqOptions = defaultOptions {omitNothingFields = True}
+
+-- | Request body. Provide EXACTLY ONE of addressQuery, place or locationQuery.
+data SearchDestinationsReq = SearchDestinationsReq
+  { -- | one-of #1: free-text or structured address
+    addressQuery :: Maybe AddressQuery,
+    -- | one-of #2: place resource name, e.g. "places/ChIJY8sv5-i2j4AR_S6BlDDR42w"
+    place :: Maybe Text,
+    -- | one-of #3: reverse lookup by lat/lng
+    locationQuery :: Maybe LocationQuery,
+    -- | IETF BCP-47 language code, e.g. "en"
+    languageCode :: Maybe Text,
+    -- | CLDR two-letter region code, e.g. "US"
+    regionCode :: Maybe Text,
+    -- | filter navigation points; only DRIVE / WALK are accepted
+    travelModes :: Maybe [ModeV2],
+    placeFilter :: Maybe PlaceFilter
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToSchema)
+
+instance ToJSON SearchDestinationsReq where toJSON = genericToJSON searchDestinationsReqOptions
+
+instance FromJSON SearchDestinationsReq where parseJSON = genericParseJSON searchDestinationsReqOptions
+
+-- | addressQuery has two mutually-exclusive shapes:
+--   { "addressQuery": "601 S Bernardo Ave, Sunnyvale, CA 94087, USA" }  (unstructured)
+--   { "address": { ...PostalAddress... } }                             (structured)
+data AddressQuery = AddressQuery
+  { addressQuery :: Maybe Text,
+    address :: Maybe PostalAddress
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToSchema)
+
+instance ToJSON AddressQuery where toJSON = genericToJSON searchDestinationsReqOptions
+
+instance FromJSON AddressQuery where parseJSON = genericParseJSON searchDestinationsReqOptions
+
+newtype LocationQuery = LocationQuery
+  { location :: LatLngV2
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data PlaceFilter = PlaceFilter
+  { structureType :: Maybe StructureType,
+    -- | "PRIMARY" | "WEAK" | "ANY"
+    addressability :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToSchema)
+
+instance ToJSON PlaceFilter where toJSON = genericToJSON searchDestinationsReqOptions
+
+instance FromJSON PlaceFilter where parseJSON = genericParseJSON searchDestinationsReqOptions
+
+data StructureType = POINT | SECTION | BUILDING | GROUNDS
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+-- | google.type.PostalAddress (used both in the structured request and the response).
+data PostalAddress = PostalAddress
+  { revision :: Maybe Int,
+    regionCode :: Maybe Text,
+    languageCode :: Maybe Text,
+    postalCode :: Maybe Text,
+    sortingCode :: Maybe Text,
+    administrativeArea :: Maybe Text,
+    locality :: Maybe Text,
+    sublocality :: Maybe Text,
+    addressLines :: Maybe [Text],
+    recipients :: Maybe [Text],
+    organization :: Maybe Text
+  }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (ToSchema)
+
+instance ToJSON PostalAddress where toJSON = genericToJSON searchDestinationsReqOptions
+
+instance FromJSON PostalAddress where parseJSON = genericParseJSON searchDestinationsReqOptions
+
+data LocalizedText = LocalizedText
+  { text :: Maybe Text,
+    languageCode :: Maybe Text
+  }
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+-- | Response body.
+newtype SearchDestinationsResp = SearchDestinationsResp
+  { destinations :: Maybe [Destination]
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data Destination = Destination
+  { -- | the main identified place
+    primary :: Maybe DestinationPlace,
+    -- | larger entities containing the primary destination
+    containingPlaces :: Maybe [DestinationPlace],
+    -- | specific locations within the primary destination
+    subDestinations :: Maybe [DestinationPlace],
+    entrances :: Maybe [Entrance],
+    navigationPoints :: Maybe [NavigationPoint],
+    landmarks :: Maybe [Landmark],
+    -- | experimental (v4alpha)
+    arrivalSummary :: Maybe LocalizedText,
+    -- | experimental (v4alpha)
+    parkingOptions :: Maybe Value
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+-- | The core place object, reused by primary / containing / sub / landmark places.
+data DestinationPlace = DestinationPlace
+  { -- | "places/ChIJ..."
+    place :: Maybe Text,
+    displayName :: Maybe LocalizedText,
+    primaryType :: Maybe Text,
+    types :: Maybe [Text],
+    formattedAddress :: Maybe Text,
+    postalAddress :: Maybe PostalAddress,
+    -- | "POINT" | "SECTION" | "BUILDING" | "GROUNDS" | "..._UNSPECIFIED".
+    -- Kept as 'Text' (not the 'StructureType' enum) so an unknown/new value
+    -- from Google does not fail the whole response decode.
+    structureType :: Maybe Text,
+    location :: Maybe LatLngV2,
+    displayPolygon :: Maybe DisplayPolygon
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+-- | GeoJSON geometry: { "type": "Polygon"|"MultiPolygon", "coordinates": ... }.
+-- The leading underscore on @_type@ is stripped so the JSON key is "type".
+data DisplayPolygon = DisplayPolygon
+  { _type :: Maybe Text,
+    -- | Raw GeoJSON coordinates. Kept as a 'Value' because the nesting depth
+    -- varies by geometry type (Polygon = @[[[Double]]]@, MultiPolygon =
+    -- @[[[[Double]]]]@); decoding to a fixed depth fails on the other shape.
+    coordinates :: Maybe Value
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToSchema)
+
+instance ToJSON DisplayPolygon where toJSON = genericToJSON JS.stripPrefixUnderscoreIfAny
+
+instance FromJSON DisplayPolygon where parseJSON = genericParseJSON JS.stripPrefixUnderscoreIfAny
+
+data Entrance = Entrance
+  { location :: Maybe LatLngV2,
+    -- | e.g. ["PREFERRED"]
+    entrance_tags :: Maybe [Text],
+    place :: Maybe Text,
+    streetViewThumbnail :: Maybe Value,
+    streetViewAnnotation :: Maybe Value
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data NavigationPoint = NavigationPoint
+  { -- | token usable with the Routes API
+    navigationPointToken :: Maybe Text,
+    location :: Maybe LatLngV2,
+    -- | ["DRIVE","WALK"] — 'Text' (not the 'ModeV2' enum) so an unknown/new
+    -- travel mode from Google does not fail the whole response decode.
+    travelModes :: Maybe [Text],
+    -- | ["PARKING","PICKUP","DROPOFF"]
+    usages :: Maybe [Text],
+    -- | experimental (v4alpha)
+    altitude_meters :: Maybe Double,
+    streetViewThumbnail :: Maybe Value,
+    entranceAnnotation :: Maybe Value
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data Landmark = Landmark
+  { place :: Maybe DestinationPlace,
+    -- | e.g. "Near Chase Bank"
+    relationalDescription :: Maybe LocalizedText,
+    -- | ["ARRIVAL","ADDRESS"]
+    tags :: Maybe [Text],
+    straightLineDistanceMeters :: Maybe Double,
+    travelDistanceMeters :: Maybe Double
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
 data DirectionsResp = DirectionsResp
   { routes :: [Route],
     status :: Text
