@@ -134,11 +134,13 @@ getCustomerOrCreateCustomer config req = do
   where
     mkGetCustomerReq CreateCustomerReq {..} =
       Juspay.GetCustomerReq
-        { options_get_client_auth_token = fromMaybe True optionsGetClientAuthToken
+        { options_get_client_auth_token = fromMaybe True optionsGetClientAuthToken,
+          mobile_number = Just phone,
+          mobile_country_code = T.dropWhile (== '+') <$> mobileCountryCode
         }
     mkCreateCustomerRes Juspay.CreateCustomerResp {..} =
       CreateCustomerResp
-        { customerId = object_reference_id,
+        { customerId = fromMaybe object_reference_id id,
           clientAuthToken = Customer.client_auth_token <$> juspay,
           clientAuthTokenExpiry = Customer.client_auth_token_expiry <$> juspay
         }
@@ -161,13 +163,15 @@ getCustomer config customerId = do
   where
     mkCreateCustomerRes Juspay.CreateCustomerResp {..} =
       CreateCustomerResp
-        { customerId = object_reference_id,
+        { customerId = fromMaybe object_reference_id id,
           clientAuthToken = Customer.client_auth_token <$> juspay,
           clientAuthTokenExpiry = Customer.client_auth_token_expiry <$> juspay
         }
     mkGetCustomerReq =
       Juspay.GetCustomerReq
-        { options_get_client_auth_token = True
+        { options_get_client_auth_token = True,
+          mobile_number = Nothing,
+          mobile_country_code = Nothing
         }
 
 mandateNotification ::
@@ -317,7 +321,8 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes clientId merchantI
           auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
           auto_refund_post_success = bool "false" "true" <$> autoRefundPostSuccess,
           payment_rules = mkPaymentRules <$> paymentRules,
-          payment_filter = mkPaymentFilter <$> paymentFilter
+          payment_filter = mkPaymentFilter <$> paymentFilter,
+          udf1 = udf1
         }
 
 mkPaymentFilter :: PaymentFilter -> Juspay.PaymentFilter

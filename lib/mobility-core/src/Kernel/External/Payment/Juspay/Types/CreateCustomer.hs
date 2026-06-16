@@ -48,7 +48,9 @@ instance ToJSON CreateCustomerRequest where
   toJSON = genericToJSON jsonOptionsCCR
 
 data GetCustomerReq = GetCustomerReq
-  { options_get_client_auth_token :: Bool
+  { options_get_client_auth_token :: Bool,
+    mobile_number :: Maybe Text,
+    mobile_country_code :: Maybe Text
   }
   deriving (Show, Generic)
   deriving anyclass (ToSchema)
@@ -70,9 +72,11 @@ instance ToJSON GetCustomerReq where
 instance ToForm GetCustomerReq where
   toForm GetCustomerReq {..} =
     Form $
-      HM.fromList
+      HM.fromList $
         [ ("options.get_client_auth_token", [toQueryParam (options_get_client_auth_token)])
         ]
+          <> maybe [] (\mobileNumber -> [("mobile_number", [toQueryParam mobileNumber])]) mobile_number
+          <> maybe [] (\mobileCountryCode -> [("mobile_country_code", [toQueryParam mobileCountryCode])]) mobile_country_code
 
 data CreateCustomerResp = CreateCustomerResp
   { last_name :: Maybe Text,
