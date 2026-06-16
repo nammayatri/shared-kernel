@@ -55,7 +55,8 @@ data CreateOrderReq = CreateOrderReq
     basket :: Maybe Text,
     auto_refund_conflict_threshold_minutes :: Maybe Int,
     payment_rules :: Maybe PaymentRules,
-    payment_filter :: Maybe PaymentFilter
+    payment_filter :: Maybe PaymentFilter,
+    udf1 :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
 
