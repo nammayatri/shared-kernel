@@ -93,7 +93,8 @@ data CreateOrderReq = CreateOrderReq
     basket :: Maybe [Basket],
     paymentRules :: Maybe PaymentRules,
     autoRefundPostSuccess :: Maybe Bool,
-    paymentFilter :: Maybe PaymentFilter
+    paymentFilter :: Maybe PaymentFilter,
+    udf1 :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -1006,7 +1007,8 @@ data CreatePaymentReq = CreatePaymentReq
     basket :: Maybe [Basket],
     paymentRules :: Maybe PaymentRules,
     autoRefundPostSuccess :: Maybe Bool,
-    paymentFilter :: Maybe PaymentFilter
+    paymentFilter :: Maybe PaymentFilter,
+    udf1 :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

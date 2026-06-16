@@ -324,7 +324,8 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes cfgWebhookUrl clie
           auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
           auto_refund_post_success = bool "false" "true" <$> autoRefundPostSuccess,
           payment_rules = mkPaymentRules <$> paymentRules,
-          payment_filter = mkPaymentFilter <$> paymentFilter
+          payment_filter = mkPaymentFilter <$> paymentFilter,
+          udf1 = udf1
         }
 
 mkPaymentFilter :: PaymentFilter -> Juspay.PaymentFilter
