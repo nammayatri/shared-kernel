@@ -46,13 +46,18 @@ createTicket config req = do
   pure
     IT.CreateTicketResp
       { ticketId = show resp.ticket.id,
-        status = zendeskStatusToTicketStatus (fromMaybe "new" resp.ticket.status)
+        status = zendeskStatusToTicketStatus (fromMaybe "new" resp.ticket.status),
+        requesterId = fmap show resp.ticket.requesterId
       }
 
 resolveGroupId :: ZendeskCfg -> Maybe IT.TicketContext -> Maybe Int
 resolveGroupId cfg (Just IT.SOSAlert) = cfg.sosGroupId <|> cfg.groupId
 resolveGroupId cfg (Just IT.FeedbackTicket) = cfg.feedbackGroupId <|> cfg.groupId
 resolveGroupId cfg _ = cfg.groupId
+
+resolveFormId :: ZendeskCfg -> Maybe IT.TicketContext -> Maybe Int
+resolveFormId cfg (Just IT.SOSAlert) = cfg.sosFormId <|> cfg.formId
+resolveFormId cfg _ = cfg.formId
 
 mkZendeskCreateTicketReq :: ZendeskCfg -> IT.CreateTicketReq -> Zendesk.ZendeskCreateTicketReq
 mkZendeskCreateTicketReq cfg IT.CreateTicketReq {..} =
@@ -63,20 +68,22 @@ mkZendeskCreateTicketReq cfg IT.CreateTicketReq {..} =
             comment =
               Zendesk.ZendeskComment
                 { body = buildBody issueDescription subCategory category name phoneNo rideDescription mediaFiles,
-                  htmlBody = buildHtmlBody issueDescription subCategory category name phoneNo rideDescription mediaFiles
+                  htmlBody = buildHtmlBody issueDescription subCategory category name phoneNo rideDescription mediaFiles,
+                  authorId = Nothing
                 },
             requester = Just $ Zendesk.ZendeskRequester {name = fromMaybe "Unknown" name, email = cfg.requesterEmail},
             organizationId = cfg.organizationId,
             groupId = resolveGroupId cfg ticketContext,
+            formId = resolveFormId cfg ticketContext,
             priority = "normal",
             ticketType = "incident",
-            customFields = buildCustomFields cfg rideDescription phoneNo
+            customFields = buildCustomFields cfg rideDescription phoneNo ticketContext
           }
     }
 
 buildSubject :: Text -> Maybe IT.RideInfo -> Text
 buildSubject category mbRide =
-  category <> maybe "" (\r -> " - " <> r.rideShortId) mbRide
+  category <> maybe "" (\r -> if T.null r.rideShortId then "" else " - " <> r.rideShortId) mbRide
 
 buildBody :: Text -> Maybe Text -> Text -> Maybe Text -> Maybe Text -> Maybe IT.RideInfo -> Maybe [Text] -> Text
 buildBody issueDescription mbSubCategory category mbName mbPhone mbRide mbMediaFiles =
@@ -220,7 +227,7 @@ updateTicket ::
   m IT.UpdateTicketResp
 updateTicket config req = do
   apiKey <- decrypt config.apiKey
-  let zendeskReq = mkZendeskUpdateTicketReq req
+  let zendeskReq = mkZendeskUpdateTicketReq config req
   void $ ZF.updateTicketAPI config.url apiKey req.ticketId zendeskReq
   -- Return req.status directly: Zendesk echoes "open" for Reopened, so parsing
   -- the response would lose the caller's intent. Mirroring what Kapture does.
@@ -231,8 +238,8 @@ updateTicket config req = do
         message = "Ticket updated"
       }
 
-mkZendeskUpdateTicketReq :: IT.UpdateTicketReq -> Zendesk.ZendeskUpdateTicketReq
-mkZendeskUpdateTicketReq IT.UpdateTicketReq {..} =
+mkZendeskUpdateTicketReq :: ZendeskCfg -> IT.UpdateTicketReq -> Zendesk.ZendeskUpdateTicketReq
+mkZendeskUpdateTicketReq cfg IT.UpdateTicketReq {..} =
   Zendesk.ZendeskUpdateTicketReq
     { ticket =
         Zendesk.ZendeskUpdateTicketBody
@@ -240,9 +247,12 @@ mkZendeskUpdateTicketReq IT.UpdateTicketReq {..} =
               Just
                 Zendesk.ZendeskComment
                   { body = buildUpdateBody comment rideDescription issueDetails,
-                    htmlBody = buildHtmlUpdateBody comment rideDescription issueDetails
+                    htmlBody = buildHtmlUpdateBody comment rideDescription issueDetails,
+                    authorId = requesterId >>= readMaybe . T.unpack
                   },
-            status = Just $ ticketStatusToZendesk status
+            status = Just $ ticketStatusToZendesk status,
+            groupId = resolveGroupId cfg ticketContext,
+            formId = resolveFormId cfg ticketContext
           }
     }
 
@@ -276,13 +286,15 @@ zendeskStatusToTicketStatus "solved" = IT.Solved
 zendeskStatusToTicketStatus "closed" = IT.Closed
 zendeskStatusToTicketStatus _ = IT.Open
 
-buildCustomFields :: ZendeskCfg -> Maybe IT.RideInfo -> Maybe Text -> [Zendesk.ZendeskCustomField]
-buildCustomFields cfg mbRide mbCustomerPhone =
+buildCustomFields :: ZendeskCfg -> Maybe IT.RideInfo -> Maybe Text -> Maybe IT.TicketContext -> [Zendesk.ZendeskCustomField]
+buildCustomFields cfg mbRide mbCustomerPhone mbTicketContext =
   catMaybes
     [ mkField cfg.rideIdFieldId (toJSON . (.rideShortId) <$> mbRide),
       mkField cfg.driverPhoneFieldId (toJSON <$> (mbRide >>= (.driverPhoneNo))),
       mkField cfg.customerPhoneFieldId (toJSON <$> mbCustomerPhone),
-      mkField cfg.cityFieldId (toJSON <$> ((.rideCity) <$> mbRide))
+      mkField cfg.cityFieldId (toJSON <$> ((.rideCity) <$> mbRide)),
+      mkField cfg.vehicleCategoryFieldId (toJSON <$> (mbRide >>= (.vehicleCategory))),
+      mkField cfg.ticketContextFieldId (toJSON . (show :: IT.TicketContext -> Text) <$> mbTicketContext)
     ]
   where
     mkField Nothing _ = Nothing
