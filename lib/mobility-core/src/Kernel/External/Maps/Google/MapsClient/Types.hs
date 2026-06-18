@@ -352,6 +352,41 @@ newtype AdvancedDirectionsResp = AdvancedDirectionsResp
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
+-- | Request body for the Routes API @distanceMatrix/v2:computeRouteMatrix@
+-- endpoint, the replacement for the legacy Distance Matrix API.
+data RouteMatrixReq = RouteMatrixReq
+  { origins :: [RouteMatrixOrigin],
+    destinations :: [RouteMatrixDestination],
+    travelMode :: Maybe ModeV2,
+    routingPreference :: RoutingPreference
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data RouteMatrixOrigin = RouteMatrixOrigin
+  { waypoint :: WayPointV2,
+    routeModifiers :: Maybe RouteModifiers
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype RouteMatrixDestination = RouteMatrixDestination
+  { waypoint :: WayPointV2
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+-- | A single origin/destination pair result. @computeRouteMatrix@ returns a
+-- flat JSON array of these elements (not nested rows).
+data RouteMatrixElement = RouteMatrixElement
+  { originIndex :: Maybe Int,
+    destinationIndex :: Maybe Int,
+    -- | @ROUTE_EXISTS@ or @ROUTE_NOT_FOUND@.
+    condition :: Maybe Text,
+    distanceMeters :: Maybe Int,
+    -- | Duration with a trailing @s@, e.g. @"160s"@.
+    duration :: Maybe Text,
+    staticDuration :: Maybe Text
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
 data AutoCompleteReqV2 = AutoCompleteReqV2
   { input :: Text,
     sessionToken :: Maybe Text,

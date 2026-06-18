@@ -90,7 +90,107 @@ getDistances ::
   GoogleCfg ->
   GetDistancesReq a b ->
   m (NonEmpty (GetDistanceResp a b))
-getDistances entityId cfg GetDistancesReq {..} = do
+getDistances entityId cfg req =
+  if cfg.googleRouteConfig.useRouteMatrix == Just True
+    then do
+      result <- withTryCatch "getDistancesByRouteMatrix" $ getDistancesByRouteMatrix entityId cfg req
+      case result of
+        Right (a : xs) -> return $ a :| xs
+        Right [] -> do
+          logTagWarning "GoogleComputeRouteMatrix" "Empty computeRouteMatrix result, falling back to Distance Matrix API"
+          getDistancesByDistanceMatrix entityId cfg req
+        Left err -> do
+          logTagWarning "GoogleComputeRouteMatrix" ("computeRouteMatrix failed, falling back to Distance Matrix API. Error: " <> show err)
+          getDistancesByDistanceMatrix entityId cfg req
+    else getDistancesByDistanceMatrix entityId cfg req
+
+-- | Computes the origin/destination distance matrix using the Routes API
+-- (@:computeRouteMatrix@). Returns an empty list when no element resolves so
+-- that the caller can fall back to the legacy Distance Matrix API.
+getDistancesByRouteMatrix ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasCoordinates a,
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  GoogleCfg ->
+  GetDistancesReq a b ->
+  m [GetDistanceResp a b]
+getDistancesByRouteMatrix entityId cfg GetDistancesReq {..} = do
+  let url = cfg.googleRouteConfig.url
+      routingPreference = cfg.googleRouteConfig.routePreference
+      mode = mapToModeV2 <$> travelMode
+  key <- decrypt cfg.googleKey
+  let limitedOriginObjectsList = splitListByAPICap origins
+      limitedDestinationObjectsList = splitListByAPICap destinations
+  res <- getRouteMatrixWrapper entityId GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList url key mode routingPreference True
+  case res of
+    [] -> do
+      logInfo "computeRouteMatrix: Falling back to avoid tolls"
+      getRouteMatrixWrapper entityId GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList url key mode routingPreference False
+    _ -> return res
+  where
+    -- computeRouteMatrix element limits: 625 for TRAFFIC_UNAWARE / TRAFFIC_AWARE,
+    -- 100 for TRAFFIC_AWARE_OPTIMAL.
+    -- https://developers.google.com/maps/documentation/routes/compute_route_matrix#elements-limit
+    splitListByAPICap inputList =
+      List.chunksOf (matrixChunkSize cfg.googleRouteConfig.routePreference) $ toList inputList
+
+matrixChunkSize :: GoogleMaps.RoutingPreference -> Int
+matrixChunkSize GoogleMaps.TRAFFIC_AWARE_OPTIMAL = 10
+matrixChunkSize _ = 25
+
+getRouteMatrixWrapper ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasCoordinates a,
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  GetDistancesReq a b ->
+  [[a]] ->
+  [[b]] ->
+  BaseUrl ->
+  Text ->
+  Maybe GoogleMaps.ModeV2 ->
+  GoogleMaps.RoutingPreference ->
+  Bool ->
+  m [GetDistanceResp a b]
+getRouteMatrixWrapper entityId req limitedOriginObjectsList limitedDestinationObjectsList url key mode routingPreference isAvoidTolls =
+  concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
+    concatForM limitedDestinationObjectsList $ \limitedDestinationObjects -> do
+      let originWaypoints = map (latLngToWaypointV2Converter . getCoordinates) limitedOriginObjects
+          destinationWaypoints = map (latLngToWaypointV2Converter . getCoordinates) limitedDestinationObjects
+      elements <- GoogleMaps.computeRouteMatrix entityId url key originWaypoints destinationWaypoints mode isAvoidTolls routingPreference
+      pure $ parseRouteMatrixResp req.distanceUnit limitedOriginObjects limitedDestinationObjects elements
+
+getDistancesByDistanceMatrix ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasCoordinates a,
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  GoogleCfg ->
+  GetDistancesReq a b ->
+  m (NonEmpty (GetDistanceResp a b))
+getDistancesByDistanceMatrix entityId cfg GetDistancesReq {..} = do
   let googleMapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
   let limitedOriginObjectsList = splitListByAPICap origins
@@ -304,6 +404,55 @@ mapToMode CAR = GoogleMaps.DRIVING
 mapToMode MOTORCYCLE = GoogleMaps.DRIVING
 mapToMode BICYCLE = GoogleMaps.BICYCLING
 mapToMode FOOT = GoogleMaps.WALKING
+
+mapToModeV2 :: TravelMode -> GoogleMaps.ModeV2
+mapToModeV2 CAR = GoogleMaps.DRIVE
+mapToModeV2 MOTORCYCLE = GoogleMaps.TWO_WHEELER
+mapToModeV2 BICYCLE = GoogleMaps.BICYCLE
+mapToModeV2 FOOT = GoogleMaps.WALK
+
+-- | Convert a @computeRouteMatrix@ response (a flat list of elements, each
+-- carrying its origin/destination index) into 'GetDistanceResp' values.
+-- Elements without a resolvable route are dropped.
+parseRouteMatrixResp ::
+  DistanceUnit ->
+  [a] ->
+  [b] ->
+  [GoogleMaps.RouteMatrixElement] ->
+  [GetDistanceResp a b]
+parseRouteMatrixResp distanceUnit origins destinations elements =
+  mapMaybe buildGetDistanceResult elements
+  where
+    indexedOrigins = zip [0 :: Int ..] origins
+    indexedDestinations = zip [0 :: Int ..] destinations
+
+    buildGetDistanceResult element
+      | not (routeExists element) = Nothing
+      | otherwise = do
+          originIndex <- element.originIndex
+          destinationIndex <- element.destinationIndex
+          orig <- lookup originIndex indexedOrigins
+          dest <- lookup destinationIndex indexedDestinations
+          distanceMeters <- element.distanceMeters
+          let distance = Meters distanceMeters
+              duration = Seconds $ fromMaybe 0 (parseDurationSeconds =<< element.duration)
+          pure $
+            GetDistanceResp
+              { origin = orig,
+                destination = dest,
+                distance = distance,
+                distanceWithUnit = convertMetersToDistance distanceUnit distance,
+                duration = duration,
+                status = "OK"
+              }
+
+    routeExists element = maybe True (== "ROUTE_EXISTS") element.condition
+
+-- | Parses a Routes API duration string such as @"160s"@ into seconds.
+parseDurationSeconds :: Text -> Maybe Int
+parseDurationSeconds dur =
+  let durationText = T.replace "s" "" dur
+   in (round :: Double -> Int) <$> readMaybe (T.unpack durationText)
 
 parseDistances :: (MonadThrow m, Log m) => GoogleMaps.DistanceMatrixElement -> m Meters
 parseDistances distanceMatrixElement = do

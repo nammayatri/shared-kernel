@@ -22,9 +22,11 @@ module Kernel.External.Maps.Google.MapsClient
     DistanceMatrixAPI,
     DirectionsAPI,
     AdvancedDirectionsAPI,
+    ComputeRouteMatrixAPI,
     TransitDirectionsAPI,
     SearchDestinationsAPI,
     advancedDirectionsAPI,
+    computeRouteMatrix,
     transitDirectionsAPI,
     autoComplete,
     getPlaceDetails,
@@ -60,6 +62,7 @@ type GoogleMapsAPI =
     :<|> DistanceMatrixAPI
     :<|> DirectionsAPI
     :<|> AdvancedDirectionsAPI
+    :<|> ComputeRouteMatrixAPI
     :<|> TransitDirectionsAPI
     :<|> SearchDestinationsAPI
 
@@ -128,6 +131,13 @@ type AdvancedDirectionsAPI =
     :> ReqBody '[JSON] (GoogleMaps.AdvancedDirectionsReq)
     :> Post '[JSON] GoogleMaps.AdvancedDirectionsResp
 
+type ComputeRouteMatrixAPI =
+  "distanceMatrix" :> "v2" :> ":computeRouteMatrix"
+    :> MandatoryHeader "X-Goog-Api-Key" Text
+    :> MandatoryHeader "X-Goog-FieldMask" Text
+    :> ReqBody '[JSON] GoogleMaps.RouteMatrixReq
+    :> Post '[JSON] [GoogleMaps.RouteMatrixElement]
+
 type TransitDirectionsAPI =
   "directions" :> "v2" :> ":computeRoutes"
     :> MandatoryHeader "X-Goog-Api-Key" Text
@@ -169,6 +179,11 @@ advancedDirectionsClient ::
   Text ->
   GoogleMaps.AdvancedDirectionsReq ->
   EulerClient GoogleMaps.AdvancedDirectionsResp
+computeRouteMatrixClient ::
+  Text ->
+  Text ->
+  GoogleMaps.RouteMatrixReq ->
+  EulerClient [GoogleMaps.RouteMatrixElement]
 transitDirectionsClient ::
   Text ->
   Text ->
@@ -179,7 +194,7 @@ searchDestinationsClient ::
   Text ->
   GoogleMaps.SearchDestinationsReq ->
   EulerClient GoogleMaps.SearchDestinationsResp
-autoCompleteClient :<|> autoCompleteV2Client :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient :<|> transitDirectionsClient :<|> searchDestinationsClient = client (Proxy :: Proxy GoogleMapsAPI)
+autoCompleteClient :<|> autoCompleteV2Client :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient :<|> computeRouteMatrixClient :<|> transitDirectionsClient :<|> searchDestinationsClient = client (Proxy :: Proxy GoogleMapsAPI)
 
 autoComplete ::
   ( CoreMetrics m,
@@ -378,6 +393,39 @@ advancedDirectionsAPI entityId url key origin destination mode intermediates isA
   fork ("Logging external API Call of advancedDirectionsAPI Google ") $
     ApiCallLogger.pushExternalApiCallDataToKafka "advancedDirectionsAPI" "Google" entityId (Just req) rsp
   checkGoogleMapsError' url rsp
+
+-- | Routes API @distanceMatrix/v2:computeRouteMatrix@ — the replacement for the
+-- legacy Distance Matrix API. Returns a flat list of origin/destination
+-- elements (each carrying its @originIndex@ / @destinationIndex@).
+computeRouteMatrix ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  BaseUrl ->
+  Text ->
+  [GoogleMaps.WayPointV2] ->
+  [GoogleMaps.WayPointV2] ->
+  Maybe GoogleMaps.ModeV2 ->
+  Bool ->
+  GoogleMaps.RoutingPreference ->
+  m [GoogleMaps.RouteMatrixElement]
+computeRouteMatrix entityId url key origins destinations mode isAvoidTolls routingPreference = do
+  let routeModifiers = Just $ GoogleMaps.RouteModifiers {avoidTolls = if isAvoidTolls then Just True else Nothing, avoidFerries = True}
+      req =
+        GoogleMaps.RouteMatrixReq
+          { origins = map (\waypoint -> GoogleMaps.RouteMatrixOrigin {waypoint, routeModifiers}) origins,
+            destinations = map (\waypoint -> GoogleMaps.RouteMatrixDestination {waypoint}) destinations,
+            travelMode = mode,
+            routingPreference
+          }
+  rsp <- callAPI url (computeRouteMatrixClient key "originIndex,destinationIndex,duration,distanceMeters,condition" req) "computeRouteMatrix" (Proxy :: Proxy GoogleMapsAPI)
+  fork ("Logging external API Call of computeRouteMatrix Google ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka "computeRouteMatrix" "Google" entityId (Just req) rsp
+  fromEitherM (googleMapsError url) rsp
 
 searchDestinations ::
   ( CoreMetrics m,

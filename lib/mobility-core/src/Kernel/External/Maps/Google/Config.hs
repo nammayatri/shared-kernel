@@ -37,6 +37,10 @@ data GoogleCfg = GoogleCfg
 data GoogleRouteConfig = GoogleRouteConfig
   { computeAlternativeRoutes :: Bool,
     routePreference :: RoutingPreference,
-    url :: BaseUrl
+    url :: BaseUrl,
+    -- | When set to @Just True@, 'getDistances' uses the Routes API
+    -- (@:computeRouteMatrix@) instead of the legacy Distance Matrix API.
+    -- Falls back to the Distance Matrix API on failure. Defaults to disabled.
+    useRouteMatrix :: Maybe Bool
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema, FromDhall)
