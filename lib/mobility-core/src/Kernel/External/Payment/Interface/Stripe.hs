@@ -702,6 +702,7 @@ mkChargeObject Stripe.Charge {..} =
       applicationFeeAmount = centsToUsd <$> application_fee_amount,
       balanceTransaction = balance_transaction,
       calculatedStatementDescriptor = calculated_statement_descriptor,
+      cardDetails = payment_method_details >>= (.card) <&> mkCardDetails,
       createdAt = posixSecondsToUTCTime created,
       failureCode = failure_code,
       failureMessage = failure_message,
@@ -710,6 +711,14 @@ mkChargeObject Stripe.Charge {..} =
       paymentMethod = payment_method,
       receiptEmail = receipt_email,
       receiptUrl = receipt_url,
+      ..
+    }
+
+mkCardDetails :: Stripe.ChargeCardDetails -> Events.CardDetails
+mkCardDetails Stripe.ChargeCardDetails {..} =
+  Events.CardDetails
+    { expMonth = exp_month,
+      expYear = exp_year,
       ..
     }
 
