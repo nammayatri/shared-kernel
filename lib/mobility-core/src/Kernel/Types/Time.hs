@@ -83,6 +83,12 @@ daysToSeconds = Seconds . (* 86400) . getDays
 minutesToSeconds :: Minutes -> Seconds
 minutesToSeconds = Seconds . (* 60) . getMinutes
 
+secondsToMinutesCeiling :: Seconds -> Minutes
+secondsToMinutesCeiling = Minutes . (+ 1) . (`div` 60) . getSeconds
+
+secondsToMinutesFloor :: Seconds -> Minutes
+secondsToMinutesFloor = Minutes . (`div` 60) . getSeconds
+
 newtype Months = Months
   { getMonths :: Int
   }
