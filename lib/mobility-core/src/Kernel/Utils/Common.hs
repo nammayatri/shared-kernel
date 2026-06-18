@@ -31,7 +31,7 @@ import Kernel.Types.Field as Common
 import Kernel.Types.Id (ShortId (ShortId))
 import Kernel.Utils.Context as Common
 import Kernel.Utils.Error as Common
-import Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError (callBecknAPI)
+import Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError (callBecknAPI, callBecknAPIWithLogging)
 import Kernel.Utils.Error.DB as Common
 import Kernel.Utils.Logging as Common
 import Kernel.Utils.Servant.Client as Common
