@@ -313,6 +313,8 @@ data Entrance = Entrance
 data NavigationPoint = NavigationPoint
   { -- | token usable with the Routes API
     navigationPointToken :: Maybe Text,
+    -- | e.g. "NGV Main Road", "80 Feet Road"
+    displayName :: Maybe LocalizedText,
     location :: Maybe LatLngV2,
     -- | ["DRIVE","WALK"] — 'Text' (not the 'ModeV2' enum) so an unknown/new
     -- travel mode from Google does not fail the whole response decode.
