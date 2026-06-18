@@ -194,6 +194,21 @@ max = Max
 
 infixl 6 +.
 
+(-.) :: (ClickhouseTable t, ClickhouseNum v) => Column a t v -> Column a t v -> Column a t v
+(-.) = Sub
+
+infixl 6 -.
+
+(*.) :: (ClickhouseTable t, ClickhouseNum v) => Column a t v -> Column a t v -> Column a t v
+(*.) = Mul
+
+infixl 7 *.
+
+(/.) :: (ClickhouseTable t, ClickhouseNum v) => Column a t v -> Column a t v -> Column a t Double
+(/.) = Div
+
+infixl 7 /.
+
 -- for example we can use for columns sum with different types
 unsafeCoerceNum :: forall v1 v2 a t. (ClickhouseTable t, ClickhouseNum v1, ClickhouseNum v2) => Column a t v1 -> Column a t v2
 unsafeCoerceNum = CoerceNum
