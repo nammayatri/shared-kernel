@@ -54,7 +54,9 @@ sendOTP exoCfg SendSMSReq {..} = do
         BasicAuthData
           (DT.encodeUtf8 apiKey)
           (DT.encodeUtf8 apiToken)
-  res <- Ex.sendOTPApi exoUrl authData sid exoOtpSmsTemplate exoPhoneNumber senderName
+      exoSmsType = TRANSACTIONAL
+      exoPriority = HIGH
+  res <- Ex.sendOTPApi exoUrl authData sid exoOtpSmsTemplate exoPhoneNumber senderName exoSmsType exoPriority
   return $ returnSmsResultExo res.exoSMSMessage.exoStatus
 
 returnSmsResultExo :: ExotelSmsStatus -> IT.SendSMSRes
