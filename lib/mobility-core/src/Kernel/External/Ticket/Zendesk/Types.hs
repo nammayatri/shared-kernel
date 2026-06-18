@@ -33,6 +33,7 @@ data ZendeskTicketBody = ZendeskTicketBody
     requester :: Maybe ZendeskRequester,
     organizationId :: Maybe Int,
     groupId :: Maybe Int,
+    formId :: Maybe Int,
     priority :: Text,
     ticketType :: Text,
     customFields :: [ZendeskCustomField]
@@ -51,6 +52,7 @@ instance ToJSON ZendeskTicketBody where
         ++ maybe [] (\r -> ["requester" .= r]) requester
         ++ maybe [] (\oid -> ["organization_id" .= oid]) organizationId
         ++ maybe [] (\gid -> ["group_id" .= gid]) groupId
+        ++ maybe [] (\fid -> ["ticket_form_id" .= fid]) formId
         ++ ["custom_fields" .= customFields | not (null customFields)]
 
 instance FromJSON ZendeskTicketBody where
@@ -61,13 +63,15 @@ instance FromJSON ZendeskTicketBody where
       <*> v .:? "requester"
       <*> v .:? "organization_id"
       <*> v .:? "group_id"
+      <*> v .:? "ticket_form_id"
       <*> v .: "priority"
       <*> v .: "type"
       <*> (v .:? "custom_fields" .!= [])
 
 data ZendeskComment = ZendeskComment
   { body :: Text,
-    htmlBody :: Maybe Text
+    htmlBody :: Maybe Text,
+    authorId :: Maybe Int
   }
   deriving stock (Show, Eq, Generic)
 
@@ -76,12 +80,14 @@ instance ToJSON ZendeskComment where
     object $
       ["body" .= body]
         ++ maybe [] (\h -> ["html_body" .= h]) htmlBody
+        ++ maybe [] (\aid -> ["author_id" .= aid]) authorId
 
 instance FromJSON ZendeskComment where
   parseJSON = withObject "ZendeskComment" $ \v ->
     ZendeskComment
       <$> v .: "body"
       <*> v .:? "html_body"
+      <*> v .:? "author_id"
 
 data ZendeskRequester = ZendeskRequester
   { name :: Text,
@@ -118,10 +124,24 @@ data ZendeskCreateTicketResp = ZendeskCreateTicketResp
 data ZendeskTicketDetails = ZendeskTicketDetails
   { id :: Int,
     status :: Maybe Text,
-    subject :: Maybe Text
+    subject :: Maybe Text,
+    requesterId :: Maybe Int
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+
+instance ToJSON ZendeskTicketDetails where
+  toJSON ZendeskTicketDetails {..} =
+    object $
+      ["id" .= id, "status" .= status, "subject" .= subject]
+        ++ maybe [] (\r -> ["requester_id" .= r]) requesterId
+
+instance FromJSON ZendeskTicketDetails where
+  parseJSON = withObject "ZendeskTicketDetails" $ \v ->
+    ZendeskTicketDetails
+      <$> v .: "id"
+      <*> v .:? "status"
+      <*> v .:? "subject"
+      <*> v .:? "requester_id"
 
 newtype ZendeskUpdateTicketReq = ZendeskUpdateTicketReq
   { ticket :: ZendeskUpdateTicketBody
@@ -131,7 +151,9 @@ newtype ZendeskUpdateTicketReq = ZendeskUpdateTicketReq
 
 data ZendeskUpdateTicketBody = ZendeskUpdateTicketBody
   { comment :: Maybe ZendeskComment,
-    status :: Maybe Text
+    status :: Maybe Text,
+    groupId :: Maybe Int,
+    formId :: Maybe Int
   }
   deriving stock (Show, Eq, Generic)
 
@@ -140,12 +162,16 @@ instance ToJSON ZendeskUpdateTicketBody where
     object $
       maybe [] (\c -> ["comment" .= c]) comment
         ++ maybe [] (\s -> ["status" .= s]) status
+        ++ maybe [] (\gid -> ["group_id" .= gid]) groupId
+        ++ maybe [] (\fid -> ["ticket_form_id" .= fid]) formId
 
 instance FromJSON ZendeskUpdateTicketBody where
   parseJSON = withObject "ZendeskUpdateTicketBody" $ \v ->
     ZendeskUpdateTicketBody
       <$> v .:? "comment"
       <*> v .:? "status"
+      <*> v .:? "group_id"
+      <*> v .:? "ticket_form_id"
 
 newtype ZendeskUpdateTicketResp = ZendeskUpdateTicketResp
   { ticket :: ZendeskTicketDetails

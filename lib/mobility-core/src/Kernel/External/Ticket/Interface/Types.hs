@@ -38,7 +38,8 @@ data TicketStatus = Open | Pending | Solved | Closed | Reopened
 
 data CreateTicketResp = CreateTicketResp
   { ticketId :: Text,
-    status :: TicketStatus
+    status :: TicketStatus,
+    requesterId :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -112,7 +113,9 @@ data UpdateTicketReq = UpdateTicketReq
     ticketId :: Text,
     status :: TicketStatus,
     rideDescription :: Maybe RideInfo,
-    issueDetails :: Maybe UpdateIssueDetails
+    issueDetails :: Maybe UpdateIssueDetails,
+    requesterId :: Maybe Text,
+    ticketContext :: Maybe TicketContext
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
