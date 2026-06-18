@@ -191,7 +191,7 @@ data ValidateImageResp = ValidateImageResp
   deriving stock (Show, Generic)
 
 data DetectedImage = DetectedImage
-  { imageType :: ImageType,
+  { imageType :: Maybe ImageType,
     isReadable :: Maybe Bool,
     confidence :: Maybe Int
   }
