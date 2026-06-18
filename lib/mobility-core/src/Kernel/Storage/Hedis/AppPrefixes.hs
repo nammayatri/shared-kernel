@@ -25,3 +25,6 @@ staticOfferDriverAppPrefix = ("static-offer-driver-app:" <>)
 
 publicTransportBapPrefix :: KeyModifierFunc
 publicTransportBapPrefix = ("public-transport-bap:" <>)
+
+driverAppPrefix :: KeyModifierFunc
+driverAppPrefix = ("dynamic-offer-driver-app:" <>)
