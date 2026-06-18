@@ -685,7 +685,8 @@ refundPayment serviceConfig mRoutingId req = case serviceConfig of
               amount = req.amount,
               refundApplicationFee = False,
               driverAccountId = driverAccount,
-              email = req.email
+              email = req.email,
+              deductFromDriver = req.deductFromDriver
             }
     resp <- Stripe.createRefund cfg stripeReq
     pure
