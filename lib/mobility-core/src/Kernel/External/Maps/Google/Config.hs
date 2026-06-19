@@ -30,7 +30,9 @@ data GoogleCfg = GoogleCfg
     googleAutocompleteParams :: Maybe [Text],
     mobilityBillingUrl :: Maybe BaseUrl,
     -- | host + version for Geocoding API v4; defaults to https://geocode.googleapis.com/v4 when unset
-    googleGeocodeUrl :: Maybe BaseUrl
+    googleGeocodeUrl :: Maybe BaseUrl,
+    useRouteMatrix :: Maybe Bool,
+    googleRouteMatrixCfg :: Maybe GoogleRouteMatrixCfg
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
@@ -40,3 +42,9 @@ data GoogleRouteConfig = GoogleRouteConfig
     url :: BaseUrl
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema, FromDhall)
+
+data GoogleRouteMatrixCfg = GoogleRouteMatrixCfg
+  { googleRouteMatrixUrl :: BaseUrl,
+    routingPreference :: RoutingPreference
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
