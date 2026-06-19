@@ -283,6 +283,52 @@ runInMasterLTSRedisCell f = do
       logInfo "LTS_REDIS_ROUTING: Using primary LTS Redis (current deployment Redis)"
       f
 
+-- Read operation for LTS list queries: tries primary LTS first, falls back to secondary LTS if empty.
+-- Analogous to runInMultiCloudRedisForList but for ltsHedisEnv/secondaryLTSHedisEnv.
+runInMultiCloudLTSRedisForList ::
+  (HedisLTSFlow m env, TryException m) =>
+  m [a] ->
+  m [a]
+runInMultiCloudLTSRedisForList action = do
+  ltsEnv <- asks (.ltsHedisEnv)
+  mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
+  primaryResult <- local (\env -> env{hedisEnv = ltsEnv, hedisClusterEnv = ltsEnv}) action
+  case (primaryResult, mbSecondaryEnv) of
+    ([], Just secondaryEnv) -> do
+      logInfo "MULTI_CLOUD_LTS: Primary returned empty, trying secondary"
+      secondaryResult <-
+        withTryCatch "runInMultiCloudLTSRedisForList" $
+          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) action
+      case secondaryResult of
+        Left err -> do
+          logError $ "MULTI_CLOUD_LTS: Secondary read failed " <> show err
+          pure []
+        Right result -> pure result
+    _ -> pure primaryResult
+
+-- Read operation for LTS hmGet queries: tries primary LTS first, falls back to secondary LTS if all Nothing.
+-- hmGet always returns a same-length [Maybe a], so [] fallback doesn't apply — use all-Nothing check instead.
+runInMultiCloudLTSRedisForMaybeList ::
+  (HedisLTSFlow m env, TryException m) =>
+  m [Maybe a] ->
+  m [Maybe a]
+runInMultiCloudLTSRedisForMaybeList action = do
+  ltsEnv <- asks (.ltsHedisEnv)
+  mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
+  primaryResult <- local (\env -> env{hedisEnv = ltsEnv, hedisClusterEnv = ltsEnv}) action
+  case (not (null primaryResult) && Kernel.Prelude.all isNothing primaryResult, mbSecondaryEnv) of
+    (True, Just secondaryEnv) -> do
+      logInfo "MULTI_CLOUD_LTS: Primary returned all Nothing, trying secondary"
+      secondaryResult <-
+        withTryCatch "runInMultiCloudLTSRedisForMaybeList" $
+          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) action
+      case secondaryResult of
+        Left err -> do
+          logError $ "MULTI_CLOUD_LTS: Secondary read failed " <> show err
+          pure primaryResult
+        Right result -> pure result
+    _ -> pure primaryResult
+
 withLTSRedis ::
   (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv) => m f -> m f
 withLTSRedis f =
