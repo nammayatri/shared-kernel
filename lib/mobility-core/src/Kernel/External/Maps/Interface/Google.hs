@@ -15,6 +15,7 @@
 module Kernel.External.Maps.Interface.Google
   ( module Reexport,
     getDistances,
+    getDistancesViaRouteMatrix,
     getRoutes,
     snapToRoad,
     autoComplete,
@@ -108,8 +109,7 @@ getDistances entityId cfg GetDistancesReq {..} = do
     mode = mapToMode <$> travelMode
 
     -- Constraints on Distance matrix API: https://developers.google.com/maps/documentation/distance-matrix/usage-and-billing#other-usage-limits
-    splitListByAPICap inputList = do
-      List.chunksOf 25 $ toList inputList
+    splitListByAPICap inputList = List.chunksOf 25 $ toList inputList
 
 originAndDestinationRemover :: [a] -> [a]
 originAndDestinationRemover waypoints = if length waypoints > 2 then init $ tail waypoints else []
@@ -294,6 +294,127 @@ parseDistanceMatrixResp distanceUnit origins destinations distanceMatrixResp = d
             duration = Seconds . double2Int . realToFrac $ duration,
             status = element.status
           }
+
+getDistancesRouteMatrixWrapper ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasCoordinates a,
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  GetDistancesReq a b ->
+  [[a]] ->
+  [[b]] ->
+  BaseUrl ->
+  Text ->
+  Maybe GoogleMaps.ModeV2 ->
+  Maybe GoogleMaps.RoutingPreference ->
+  Bool ->
+  m [GetDistanceResp a b]
+getDistancesRouteMatrixWrapper entityId req chunkedOrigins chunkedDests url key mode routingPref isAvoidTolls =
+  concatForM chunkedOrigins $ \originChunk ->
+    concatForM chunkedDests $ \destChunk -> do
+      let mkOrigin latLng =
+            GoogleMaps.RouteMatrixOrigin
+              { waypoint = latLngToWaypointV2Converter latLng,
+                routeModifiers = Just $ GoogleMaps.RouteModifiers {avoidTolls = if isAvoidTolls then Just True else Nothing, avoidFerries = True}
+              }
+          matrixOrigins = map (mkOrigin . getCoordinates) originChunk
+          matrixDests = map (GoogleMaps.RouteMatrixDestination . latLngToWaypointV2Converter . getCoordinates) destChunk
+          matrixReq =
+            GoogleMaps.ComputeRouteMatrixReq
+              { origins = matrixOrigins,
+                destinations = matrixDests,
+                travelMode = mode,
+                routingPreference = routingPref
+              }
+      GoogleMaps.computeRouteMatrix entityId req url key matrixReq
+        >>= parseRouteMatrixResp req.distanceUnit originChunk destChunk
+
+getDistancesViaRouteMatrix ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasCoordinates a,
+    HasCoordinates b,
+    ToJSON a,
+    ToJSON b,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  EncryptedField 'AsEncrypted Text ->
+  GoogleRouteMatrixCfg ->
+  GetDistancesReq a b ->
+  m (NonEmpty (GetDistanceResp a b))
+getDistancesViaRouteMatrix entityId encKey cfg GetDistancesReq {..} = do
+  logInfo $ "RouteMatrix: using computeRouteMatrix API (origins=" <> show (length origins) <> " destinations=" <> show (length destinations) <> ")"
+  key <- decrypt encKey
+  let url = cfg.googleRouteMatrixUrl
+      routingPref = Just cfg.routingPreference
+      chunkedOrigins = splitListByAPICap origins
+      chunkedDests = splitListByAPICap destinations
+      mode = mapToModeV2 <$> travelMode
+  res <- getDistancesRouteMatrixWrapper entityId GetDistancesReq {..} chunkedOrigins chunkedDests url key mode routingPref True
+  case res of
+    [] -> do
+      logInfo "RouteMatrix: Falling back without avoidTolls"
+      resp <- getDistancesRouteMatrixWrapper entityId GetDistancesReq {..} chunkedOrigins chunkedDests url key mode routingPref False
+      case resp of
+        [] -> throwError (InternalError "Empty GoogleRouteMatrix.getDistances result.")
+        (a : xs) -> return $ a :| xs
+    (a : xs) -> return $ a :| xs
+  where
+    splitListByAPICap inputList = List.chunksOf 25 $ toList inputList
+    mapToModeV2 CAR = GoogleMaps.DRIVE
+    mapToModeV2 MOTORCYCLE = GoogleMaps.TWO_WHEELER
+    mapToModeV2 BICYCLE = GoogleMaps.BICYCLE
+    mapToModeV2 FOOT = GoogleMaps.WALK
+
+parseRouteMatrixResp ::
+  (MonadThrow m, Log m) =>
+  DistanceUnit ->
+  [a] ->
+  [b] ->
+  [GoogleMaps.RouteMatrixElement] ->
+  m [GetDistanceResp a b]
+parseRouteMatrixResp distanceUnit origins destinations elements =
+  fmap catMaybes $ mapM buildResult elements
+  where
+    buildResult element = case element.condition of
+      Just "ROUTE_EXISTS" -> do
+        oIdx <- element.originIndex & fromMaybeM (InternalError "Missing originIndex in RouteMatrixElement")
+        dIdx <- element.destinationIndex & fromMaybeM (InternalError "Missing destinationIndex in RouteMatrixElement")
+        let distanceM = fromMaybe 0 element.distanceMeters
+        origin <- safeIndex origins oIdx & fromMaybeM (InternalError "originIndex out of bounds in RouteMatrixElement")
+        dest <- safeIndex destinations dIdx & fromMaybeM (InternalError "destinationIndex out of bounds in RouteMatrixElement")
+        durText <- element.duration & fromMaybeM (InternalError "Missing duration in RouteMatrixElement")
+        duration <- parseRouteMatrixDuration durText
+        let distance = Meters distanceM
+        pure . Just $
+          GetDistanceResp
+            { origin = origin,
+              destination = dest,
+              distance = distance,
+              distanceWithUnit = convertMetersToDistance distanceUnit distance,
+              duration = duration,
+              status = "OK"
+            }
+      _ -> pure Nothing
+
+    safeIndex xs i = listToMaybe $ drop i xs
+
+parseRouteMatrixDuration :: (MonadThrow m, Log m) => Text -> m Seconds
+parseRouteMatrixDuration dur = do
+  let durationText = T.replace "s" "" dur
+  case readMaybe (T.unpack durationText) of
+    Just (d :: Double) -> pure $ Seconds (round d)
+    Nothing -> throwError $ InternalError $ "Failed to parse route matrix duration: " <> dur
 
 latLongToPlace :: LatLong -> GoogleMaps.Place
 latLongToPlace LatLong {..} =

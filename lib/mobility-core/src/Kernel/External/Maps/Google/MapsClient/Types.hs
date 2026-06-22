@@ -716,3 +716,32 @@ data DepartureTime = Now | FutureTime UTCTime
 instance ToHttpApiData DepartureTime where
   toUrlPiece Now = "now"
   toUrlPiece (FutureTime time) = show time
+
+data RouteMatrixOrigin = RouteMatrixOrigin
+  { waypoint :: WayPointV2,
+    routeModifiers :: Maybe RouteModifiers
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+data RouteMatrixDestination = RouteMatrixDestination
+  { waypoint :: WayPointV2
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+data ComputeRouteMatrixReq = ComputeRouteMatrixReq
+  { origins :: [RouteMatrixOrigin],
+    destinations :: [RouteMatrixDestination],
+    travelMode :: Maybe ModeV2,
+    routingPreference :: Maybe RoutingPreference
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+data RouteMatrixElement = RouteMatrixElement
+  { originIndex :: Maybe Int,
+    destinationIndex :: Maybe Int,
+    distanceMeters :: Maybe Int,
+    duration :: Maybe Text,
+    staticDuration :: Maybe Text,
+    condition :: Maybe Text
+  }
+  deriving (Generic, ToJSON, FromJSON)

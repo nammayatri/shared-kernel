@@ -24,6 +24,7 @@ module Kernel.External.Maps.Google.MapsClient
     AdvancedDirectionsAPI,
     TransitDirectionsAPI,
     SearchDestinationsAPI,
+    ComputeRouteMatrixAPI,
     advancedDirectionsAPI,
     transitDirectionsAPI,
     autoComplete,
@@ -33,6 +34,7 @@ module Kernel.External.Maps.Google.MapsClient
     directions,
     autoCompleteV2,
     searchDestinations,
+    computeRouteMatrix,
   )
 where
 
@@ -62,6 +64,7 @@ type GoogleMapsAPI =
     :<|> AdvancedDirectionsAPI
     :<|> TransitDirectionsAPI
     :<|> SearchDestinationsAPI
+    :<|> ComputeRouteMatrixAPI
 
 type AutocompleteAPI =
   "place" :> "autocomplete" :> "json"
@@ -144,6 +147,13 @@ type SearchDestinationsAPI =
     :> ReqBody '[JSON] GoogleMaps.SearchDestinationsReq
     :> Post '[JSON] GoogleMaps.SearchDestinationsResp
 
+type ComputeRouteMatrixAPI =
+  "distanceMatrix" :> "v2:computeRouteMatrix"
+    :> MandatoryHeader "X-Goog-Api-Key" Text
+    :> MandatoryHeader "X-Goog-FieldMask" Text
+    :> ReqBody '[JSON] GoogleMaps.ComputeRouteMatrixReq
+    :> Post '[JSON] [GoogleMaps.RouteMatrixElement]
+
 autoCompleteClient :: Maybe Text -> Text -> Text -> Text -> Integer -> Text -> Language -> Maybe Bool -> Maybe LatLong -> Maybe Text -> EulerClient GoogleMaps.AutoCompleteResp
 autoCompleteV2Client :: Text -> Language -> GoogleMaps.AutoCompleteReqV2 -> EulerClient GoogleMaps.AutoCompleteRespV2
 getPlaceDetailsClient :: Maybe Text -> Text -> Text -> Text -> EulerClient GoogleMaps.GetPlaceDetailsResp
@@ -179,7 +189,12 @@ searchDestinationsClient ::
   Text ->
   GoogleMaps.SearchDestinationsReq ->
   EulerClient GoogleMaps.SearchDestinationsResp
-autoCompleteClient :<|> autoCompleteV2Client :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient :<|> transitDirectionsClient :<|> searchDestinationsClient = client (Proxy :: Proxy GoogleMapsAPI)
+computeRouteMatrixClient ::
+  Text ->
+  Text ->
+  GoogleMaps.ComputeRouteMatrixReq ->
+  EulerClient [GoogleMaps.RouteMatrixElement]
+autoCompleteClient :<|> autoCompleteV2Client :<|> getPlaceDetailsClient :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient :<|> transitDirectionsClient :<|> searchDestinationsClient :<|> computeRouteMatrixClient = client (Proxy :: Proxy GoogleMapsAPI)
 
 autoComplete ::
   ( CoreMetrics m,
@@ -397,6 +412,28 @@ searchDestinations entityId url apiKey fieldMask req = do
   rsp <- callAPI url (searchDestinationsClient apiKey fieldMask req) "searchDestinations" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of searchDestinations Google ") $
     ApiCallLogger.pushExternalApiCallDataToKafka "searchDestinations" "Google" entityId (Just req) rsp
+  fromEitherM (googleMapsError url) rsp
+
+computeRouteMatrix ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    ToJSON a,
+    ToJSON b,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  MapsInterfaceTypes.GetDistancesReq a b ->
+  BaseUrl ->
+  Text ->
+  GoogleMaps.ComputeRouteMatrixReq ->
+  m [GoogleMaps.RouteMatrixElement]
+computeRouteMatrix entityId req url key matrixReq = do
+  let fieldMask = "originIndex,destinationIndex,distanceMeters,duration,condition"
+  rsp <- callAPI url (computeRouteMatrixClient key fieldMask matrixReq) "computeRouteMatrix" (Proxy :: Proxy GoogleMapsAPI)
+  fork ("Logging external API Call of computeRouteMatrix Google ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka "computeRouteMatrix" "Google" entityId (Just req) rsp
   fromEitherM (googleMapsError url) rsp
 
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a
