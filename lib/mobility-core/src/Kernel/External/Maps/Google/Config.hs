@@ -47,4 +47,4 @@ data GoogleRouteMatrixCfg = GoogleRouteMatrixCfg
   { googleRouteMatrixUrl :: BaseUrl,
     routingPreference :: RoutingPreference
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
