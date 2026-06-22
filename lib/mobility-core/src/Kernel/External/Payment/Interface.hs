@@ -528,6 +528,12 @@ offerSKUConfig = \case
   StripeConfig _ -> Nothing
   PaytmEDCConfig _ -> Nothing
 
+childOfferSKUConfig :: PaymentServiceConfig -> Maybe Text
+childOfferSKUConfig = \case
+  JuspayConfig cfg -> cfg.childOfferSKUConfig
+  StripeConfig _ -> Nothing
+  PaytmEDCConfig _ -> Nothing
+
 getUseDomainOffers :: PaymentServiceConfig -> Bool
 getUseDomainOffers = \case
   JuspayConfig cfg -> fromMaybe False cfg.useDomainOffers
