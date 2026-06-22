@@ -36,6 +36,7 @@ data JuspayCfg = JuspayCfg
     isPercentageSplit :: Maybe Bool,
     paymentOrderValidity :: Maybe Seconds,
     offerSKUConfig :: Maybe Text,
+    childOfferSKUConfig :: Maybe Text,
     autoRefundConflictThresholdMinutes :: Maybe Int,
     walletIssuer :: Maybe Text,
     walletRewardApiVersion :: Maybe Text,
