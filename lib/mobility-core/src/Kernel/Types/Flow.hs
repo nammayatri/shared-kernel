@@ -236,6 +236,7 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   incrementRideStartCounter = Metrics.incrementRideStartCounter'
   incrementRideEndCounter = Metrics.incrementRideEndCounter'
   incrementRedisStreamProcessed = Metrics.incrementRedisStreamProcessedImplementation
+  incrementRedisStreamDead = Metrics.incrementRedisStreamDeadImplementation
   setRedisStreamLength = Metrics.setRedisStreamLengthImplementation
   setRedisStreamPending = Metrics.setRedisStreamPendingImplementation
   addGenericLatencyMetrics = Metrics.addGenericLatencyMetricsImplementation

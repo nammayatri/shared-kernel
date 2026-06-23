@@ -417,6 +417,17 @@ incrementRedisStreamProcessedImplementation = do
   cmContainer <- asks (.coreMetrics)
   L.runIO $ P.incCounter cmContainer.redisStreamProcessedCounter
 
+incrementRedisStreamDeadImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Int ->
+  m ()
+incrementRedisStreamDeadImplementation shardId = do
+  cmContainer <- asks (.coreMetrics)
+  L.runIO $ P.withLabel cmContainer.redisStreamDeadCounter (show shardId) P.incCounter
+
 setRedisStreamLengthImplementation ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
