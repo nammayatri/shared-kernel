@@ -72,6 +72,7 @@ instance CoreMetrics (MockM e) where
   incrementRideStartCounter _ = return ()
   incrementRideEndCounter _ = return ()
   incrementRedisStreamProcessed = return ()
+  incrementRedisStreamDead _ = return ()
   setRedisStreamLength _ _ = return ()
   setRedisStreamPending _ _ = return ()
   addGenericLatencyMetrics _ _ = return ()

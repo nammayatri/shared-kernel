@@ -69,6 +69,9 @@ type RedisStreamProcessedCounter = P.Counter
 -- | Per-shard gauge (label: "shard").
 type RedisStreamShardGauge = P.Vector P.Label1 P.Gauge
 
+-- | Per-shard counter (label: "shard").
+type RedisStreamShardCounter = P.Vector P.Label1 P.Counter
+
 type OpenTripPlannerResponseMetric = P.Vector P.Label4 P.Counter
 
 type OpenTripPlannerLatencyMetric = P.Vector P.Label3 P.Histogram
@@ -108,6 +111,7 @@ class CoreMetrics m where
   addOpenTripPlannerLatency :: Text -> Text -> Milliseconds -> m ()
   incrementTryExceptionCounter :: Text -> SomeException -> m ()
   incrementRedisStreamProcessed :: m ()
+  incrementRedisStreamDead :: Int -> m ()
   setRedisStreamLength :: Int -> Integer -> m ()
   setRedisStreamPending :: Int -> Integer -> m ()
 
@@ -132,6 +136,7 @@ data CoreMetricsContainer = CoreMetricsContainer
     rideStartCounter :: RideStartCounter,
     rideEndCounter :: RideEndCounter,
     redisStreamProcessedCounter :: RedisStreamProcessedCounter,
+    redisStreamDeadCounter :: RedisStreamShardCounter,
     redisStreamLengthGauge :: RedisStreamShardGauge,
     redisStreamPendingGauge :: RedisStreamShardGauge,
     kvRedisMetricsContainer :: KVMetrics.KVMetricHandler,
@@ -162,6 +167,7 @@ registerCoreMetricsContainer = do
   rideStartCounter <- registerRideStartCounter
   rideEndCounter <- registerRideEndCounter
   redisStreamProcessedCounter <- registerRedisStreamProcessedCounter
+  redisStreamDeadCounter <- registerRedisStreamDeadCounter
   redisStreamLengthGauge <- registerRedisStreamLengthGauge
   redisStreamPendingGauge <- registerRedisStreamPendingGauge
   kvRedisMetricsContainer <- KVMetrics.mkKVMetricHandler
@@ -327,6 +333,14 @@ registerRedisStreamProcessedCounter =
   P.register $ P.counter info
   where
     info = P.Info "redis_stream_processed_total" "Redis-stream entries successfully processed by the consumer"
+
+registerRedisStreamDeadCounter :: IO RedisStreamShardCounter
+registerRedisStreamDeadCounter =
+  P.register $
+    P.vector "shard" $
+      P.counter info
+  where
+    info = P.Info "redis_stream_dead_total" "Redis-stream entries that exhausted the retry budget and were ACKed without processing (dead), per shard"
 
 registerRedisStreamLengthGauge :: IO RedisStreamShardGauge
 registerRedisStreamLengthGauge =
