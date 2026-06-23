@@ -108,7 +108,12 @@ getDistances ::
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
 getDistances entityId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getDistances entityId cfg req
+  GoogleConfig cfg ->
+    if fromMaybe False cfg.useRouteMatrix
+      then case cfg.googleRouteMatrixCfg of
+        Just rmCfg -> Google.getDistancesViaRouteMatrix entityId cfg.googleKey rmCfg req
+        Nothing -> Google.getDistances entityId cfg req
+      else Google.getDistances entityId cfg req
   OSRMConfig cfg -> OSRM.getDistances entityId cfg req
   MMIConfig cfg -> MMI.getDistanceMatrix entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getDistances" NextBillion
