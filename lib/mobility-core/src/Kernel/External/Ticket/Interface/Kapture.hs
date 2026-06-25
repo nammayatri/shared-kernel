@@ -46,7 +46,7 @@ createTicket ::
 createTicket config req = do
   auth <- decrypt config.auth
   resp <- KF.createTicketAPI config.url config.version auth (mkCreateTicketReq req)
-  pure IT.CreateTicketResp {ticketId = resp.ticketId, status = kaptureSubStatusToTicketStatus resp.ticket.subStatus}
+  pure IT.CreateTicketResp {ticketId = resp.ticketId, status = kaptureSubStatusToTicketStatus resp.ticket.subStatus, requesterId = Nothing}
 
 mkCreateTicketReq :: IT.CreateTicketReq -> Kapture.CreateTicketReq
 mkCreateTicketReq IT.CreateTicketReq {..} =
@@ -118,7 +118,7 @@ kaptureSubStatusToTicketStatus "CRS" = IT.Reopened
 kaptureSubStatusToTicketStatus _ = IT.Open
 
 mkUpdateTicketReq :: IT.UpdateTicketReq -> Kapture.UpdateTicketReq
-mkUpdateTicketReq IT.UpdateTicketReq {..} =
+mkUpdateTicketReq IT.UpdateTicketReq {comment, ticketId, status, rideDescription, issueDetails} =
   Kapture.UpdateTicketReq
     { comment = comment,
       ticket_id = ticketId,
