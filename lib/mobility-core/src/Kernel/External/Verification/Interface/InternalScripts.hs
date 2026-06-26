@@ -23,7 +23,7 @@ import qualified Kernel.External.Verification.InternalScripts.FaceVerification a
 import Kernel.External.Verification.InternalScripts.Types as Reexport
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Utils.Common
+import Kernel.Utils.Common hiding (ActorType (..))
 
 validateFace :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => FaceVerificationCfg -> FaceValidationReq -> m FaceValidationRes
 validateFace fvCfg req = do
