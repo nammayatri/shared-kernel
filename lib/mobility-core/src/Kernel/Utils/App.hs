@@ -237,7 +237,7 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId sessionId _ -> do
         flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
        }
 
-withModifiedEnv' :: (SanitizedUrl a, HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f) => Proxy a -> (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv' :: (SanitizedUrl a, HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f, HasField "actorInfo" f ActorInfo) => Proxy a -> (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbToken -> do
   let url = cs $ Wai.rawPathInfo req
       sanitizedUrl = fromMaybe (removeNumerics $ removeUUIDs url) (getSanitizedUrl appAPI (Just req))
@@ -258,8 +258,9 @@ withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbTok
       newOptionsLocal <- newMVar mempty
       let newFlowRt' = newFlowRt {R._optionsLocal = newOptionsLocal}
       runFlowR newFlowRt' appEnv $ L.setOptionLocal ApiTag sanitizedUrl
+      let actorInfo' = ActorInfo {actorType = UNKNOWN, actorId = requestId'} -- to be modified further in api handler
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', sessionId = sessionId', url = Just sanitizedUrl},
+        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', actorInfo = actorInfo', sessionId = sessionId', url = Just sanitizedUrl},
             flowRuntime = newFlowRt'
            }
 
