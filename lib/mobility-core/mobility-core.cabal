@@ -479,6 +479,7 @@ library
       Kernel.Storage.Esqueleto.Types
       Kernel.Storage.Hedis
       Kernel.Storage.Hedis.AppPrefixes
+      Kernel.Storage.Hedis.Cache
       Kernel.Storage.Hedis.Config
       Kernel.Storage.Hedis.Error
       Kernel.Storage.Hedis.Queries
