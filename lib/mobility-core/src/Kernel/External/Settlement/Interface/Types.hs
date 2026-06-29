@@ -73,50 +73,72 @@ type ParsePaymentSettlementResult = ParseResult PaymentSettlementReport
 data TxnType = ORDER | REFUND | CHARGEBACK
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
-data PaymentMethodType = UPI | CREDIT_CARD | DEBIT_CARD | NETBANKING | WALLET
+data PaymentMethodType
+  = UPI
+  | CREDIT_CARD
+  | DEBIT_CARD
+  | NETBANKING
+  | WALLET
+  | CASH_CARD
+  | BHARAT_QR
+  | EMI
+  | NEFT
+  | UPI_CREDIT
+  | ENACH
+  | CBDC
+  | UPI_PREPAID_WALLET
+  | UPI_CREDIT_LINE
+  | BANK_TRANSFER
+  | COMMERCIAL_CARD
+  | PAY_LATER
+  | INTERNATIONAL_CARD
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 data DisputeType = FRAUD | CONSUMER | PROCESSING_ERROR | OTHER_DISPUTE
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 data PaymentSettlementReport = PaymentSettlementReport
-  { orderId :: Text,
-    txnId :: Maybe Text,
-    rrn :: Maybe Text,
-    utr :: Maybe Text,
-    txnType :: TxnType,
-    txnStatus :: TxnStatus,
-    txnDate :: Maybe UTCTime,
-    txnAmount :: HighPrecMoney,
-    pgBaseFee :: HighPrecMoney,
-    pgTax :: HighPrecMoney,
-    settlementAmount :: HighPrecMoney,
-    currency :: Currency,
-    vendorId :: Maybe Text,
-    uniqueSplitId :: Maybe Text,
-    paymentGateway :: Maybe Text,
-    paymentMethod :: Maybe PaymentMethodType,
-    paymentMethodSubType :: Maybe Text,
-    settlementType :: Maybe SettlementType,
-    settlementMode :: Maybe SettlementMode,
-    settlementId :: Maybe Text,
-    settlementDate :: Maybe UTCTime,
-    refundId :: Maybe Text,
-    refundArn :: Maybe Text,
-    refundDate :: Maybe UTCTime,
-    refundAmount :: Maybe HighPrecMoney,
-    refundBaseFee :: Maybe HighPrecMoney,
-    refundTax :: Maybe HighPrecMoney,
-    disputeId :: Maybe Text,
-    disputeType :: Maybe DisputeType,
-    rawData :: Maybe Value,
-    cardIsin :: Maybe Text,
-    cardNetwork :: Maybe Text,
-    cardType :: Maybe Text,
-    isOffer :: Maybe Bool,
-    offerCode :: Maybe Text,
-    offerId :: Maybe Text,
-    actualAmount :: Maybe HighPrecMoney
+  { orderId :: Text, -- Merchant Subscription Transaction ID
+    txnId :: Maybe Text, -- Transaction ID (internal PG txn reference)
+    rrn :: Maybe Text, -- Bank RRN
+    utr :: Maybe Text, -- Settlement UTR
+    txnType :: TxnType, -- Document Type (ORDER/REFUND/CHARGEBACK)
+    txnStatus :: TxnStatus, -- Transaction Status
+    txnDate :: Maybe UTCTime, -- Transaction Date
+    txnAmount :: HighPrecMoney, -- Charged Amount
+    pgBaseFee :: HighPrecMoney, -- PG Fee
+    pgTax :: HighPrecMoney, -- GST on PG Fee
+    settlementAmount :: HighPrecMoney, -- Net Settled Amount
+    currency :: Currency, -- Currency
+    vendorId :: Maybe Text, -- MID
+    uniqueSplitId :: Maybe Text, -- Unique Split ID (HyperPG only)
+    paymentGateway :: Maybe Text, -- PG name
+    paymentMethod :: Maybe PaymentMethodType, -- Paymode
+    paymentMethodSubType :: Maybe Text, -- Payment Method Sub Type
+    settlementType :: Maybe SettlementType, -- Settlement Type (CREDIT/DEBIT)
+    settlementMode :: Maybe SettlementMode, -- Settlement Mode (GROSS/NET/NETTING)
+    settlementId :: Maybe Text, -- Settlement ID
+    settlementDate :: Maybe UTCTime, -- Settlement Date
+    pgApprovalCode :: Maybe Text, -- PG Approval code
+    pgRequestId :: Maybe Text, -- PG Request id
+    bankId :: Maybe Text, -- Bank ID
+    refundId :: Maybe Text, -- Refund ID
+    refundArn :: Maybe Text, -- ARN
+    refundDate :: Maybe UTCTime, -- Refund Date
+    refundAmount :: Maybe HighPrecMoney, -- Refund Amount
+    refundBaseFee :: Maybe HighPrecMoney, -- Refund Base Fee
+    refundTax :: Maybe HighPrecMoney, -- Refund Tax
+    disputeId :: Maybe Text, -- Dispute ID
+    disputeType :: Maybe DisputeType, -- Dispute Type
+    rawData :: Maybe Value, -- Raw Data (full CSV row as JSON)
+    cardIsin :: Maybe Text, -- Card ISIN
+    cardNetwork :: Maybe Text, -- Card Network
+    cardType :: Maybe Text, -- Card Type
+    isOffer :: Maybe Bool, -- Is Offer Applied
+    offerCode :: Maybe Text, -- Offer Code
+    offerId :: Maybe Text, -- Offer ID
+    actualAmount :: Maybe HighPrecMoney, -- Actual Amount
+    cardNumber :: Maybe Text -- Card Number
   }
   deriving (Show, Eq, Generic)
 
@@ -126,7 +148,7 @@ data PaymentSettlementReport = PaymentSettlementReport
 
 type ParsePayoutSettlementResult = ParseResult PayoutSettlementReport
 
-data FulfillmentInstrument = IMPS | NEFT | RTGS | FI_UPI | OTHER_INSTRUMENT
+data FulfillmentInstrument = IMPS | FI_NEFT | RTGS | FI_UPI | OTHER_INSTRUMENT
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 data PayoutSettlementReport = PayoutSettlementReport

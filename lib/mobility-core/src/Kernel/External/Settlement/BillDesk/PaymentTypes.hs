@@ -38,7 +38,9 @@ data BillDeskSettledRow = BillDeskSettledRow
     grossAmount :: Text,
     charges :: Text,
     gst :: Text,
-    netAmount :: Text
+    netAmount :: Text,
+    payRef1 :: Text,
+    payRef2 :: Text
   }
   deriving (Show, Eq, Generic)
 
@@ -64,6 +66,8 @@ instance Csv.FromNamedRecord BillDeskSettledRow where
       <*> r Csv..: "Charges (Rs.Ps)"
       <*> r Csv..: "GST (Rs Ps)"
       <*> r Csv..: "Net Amount(Rs.Ps)"
+      <*> r Csv..: "Pay Ref1"
+      <*> r Csv..: "Pay Ref2"
 
 instance A.ToJSON BillDeskSettledRow where
   toJSON row =
@@ -79,6 +83,7 @@ instance A.ToJSON BillDeskSettledRow where
         "charges" A..= row.charges,
         "gst" A..= row.gst,
         "netAmount" A..= row.netAmount,
+        "payRef1" A..= row.payRef1,
         "section" A..= ("SETTLED" :: Text)
       ]
 

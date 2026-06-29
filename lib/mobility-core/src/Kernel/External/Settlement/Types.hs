@@ -70,7 +70,8 @@ data SettlementServiceConfig = SettlementServiceConfig
   { settlementService :: SettlementService,
     sourceConfig :: SettlementSourceConfig,
     parserTypeMap :: Maybe SettlementParserTypeMap,
-    useJuspayOrderStatus :: Maybe Bool
+    useJuspayOrderStatus :: Maybe Bool,
+    bankCode :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
