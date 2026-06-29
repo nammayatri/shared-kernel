@@ -259,6 +259,7 @@ library
       Kernel.External.Settlement.Interface.Types
       Kernel.External.Settlement.Types
       Kernel.External.Settlement.Utils.JuspayOrderStatus
+      Kernel.External.Settlement.Utils.ParserUtils
       Kernel.External.Settlement.YesBiz.PaymentParser
       Kernel.External.Settlement.YesBiz.PaymentTypes
       Kernel.External.SharedLogic.DigiLocker.Error
