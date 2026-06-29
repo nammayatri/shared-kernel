@@ -15,6 +15,7 @@
 
 module Kernel.External.Verification.Idfy.Types.Request where
 
+import qualified Data.Aeson as A
 import Data.OpenApi
   ( ToSchema (..),
     fromAesonOptions,
@@ -158,7 +159,10 @@ data CRCEntityDetails = CRCEntityDetails
     address :: Maybe Text,
     pan_number :: Maybe Text
   }
-  deriving (Show, Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Show, Generic, FromJSON, ToSchema)
+
+instance ToJSON CRCEntityDetails where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny {A.omitNothingFields = True}
 
 data FaceCompareRequestBody = FaceCompareRequestBody
   { document1 :: Text,
