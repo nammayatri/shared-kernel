@@ -28,7 +28,12 @@ toAarokyaTokenRequest req =
   AarokyaTypes.AarokyaTokenRequest
     { phone_country_code = req.phoneCountryCode,
       phone_number = req.phoneNumber,
-      id_proof = toAarokyaIdProof req.idProof
+      id_proof = toAarokyaIdProof req.idProof,
+      dob = req.dob,
+      address = req.address,
+      gender = req.gender,
+      first_name = req.firstName,
+      last_name = req.lastName
     }
 
 toAarokyaIdProof :: IdProof -> AarokyaTypes.AarokyaIdProof

@@ -12,7 +12,12 @@ data IdProof = IdProof
 data GenerateTokenReq = GenerateTokenReq
   { phoneCountryCode :: Text,
     phoneNumber :: Text,
-    idProof :: IdProof
+    idProof :: IdProof,
+    dob :: Maybe Text,
+    address :: Maybe Text,
+    gender :: Maybe Text,
+    firstName :: Maybe Text,
+    lastName :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
