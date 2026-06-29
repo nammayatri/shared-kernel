@@ -107,6 +107,10 @@ library
       Kernel.External.Infobip.API.WebengageWebhook
       Kernel.External.Infobip.Flow
       Kernel.External.Infobip.Types
+      Kernel.External.FleetEngine.Auth
+      Kernel.External.FleetEngine.Client
+      Kernel.External.FleetEngine.Config
+      Kernel.External.FleetEngine.Types
       Kernel.External.Insurance.Acko.Flow
       Kernel.External.Insurance.Acko.Types
       Kernel.External.Insurance.IffcoTokio.Config
