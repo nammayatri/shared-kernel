@@ -25,6 +25,7 @@ where
 
 import qualified Kernel.External.Ticket.Interface.Kapture as Kapture
 import Kernel.External.Ticket.Interface.Types
+import qualified Kernel.External.Ticket.Interface.XyneSpaces as XyneSpaces
 import qualified Kernel.External.Ticket.Interface.Zendesk as Zendesk
 import qualified Kernel.External.Ticket.Kapture.Types as KT
 import Kernel.Prelude
@@ -44,6 +45,7 @@ createTicket ::
 createTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.createTicket cfg req
   ZendeskConfig cfg -> Zendesk.createTicket cfg req
+  XyneSpacesConfig cfg -> XyneSpaces.createTicket cfg req
 
 updateTicket ::
   ( EncFlow m r,
@@ -57,6 +59,7 @@ updateTicket ::
 updateTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.updateTicket cfg req
   ZendeskConfig cfg -> Zendesk.updateTicket cfg req
+  XyneSpacesConfig cfg -> XyneSpaces.updateTicket cfg req
 
 addAndUpdateKaptureCustomer ::
   ( EncFlow m r,
@@ -70,6 +73,7 @@ addAndUpdateKaptureCustomer ::
 addAndUpdateKaptureCustomer serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.addAndUpdateKaptureCustomer cfg req
   ZendeskConfig _ -> pure KT.KaptureCustomerResp {message = "Not applicable for Zendesk", status = "ok", kaptureCustomerId = ""}
+  XyneSpacesConfig _ -> pure KT.KaptureCustomerResp {message = "Not applicable for XyneSpaces", status = "ok", kaptureCustomerId = ""}
 
 kaptureEncryption ::
   ( EncFlow m r,
@@ -83,6 +87,7 @@ kaptureEncryption ::
 kaptureEncryption serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.kaptureEncryption cfg req
   ZendeskConfig _ -> pure KT.KaptureEncryptionResp {success = True, encrytedCc = "", encryptedIv = ""}
+  XyneSpacesConfig _ -> pure KT.KaptureEncryptionResp {success = True, encrytedCc = "", encryptedIv = ""}
 
 kapturePullTicket ::
   ( EncFlow m r,
@@ -96,6 +101,7 @@ kapturePullTicket ::
 kapturePullTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.kapturePullTicket cfg req
   ZendeskConfig _ -> pure KT.KapturePullTicketResp {totalCount = Just 0, message = [], status = "ok"}
+  XyneSpacesConfig _ -> pure KT.KapturePullTicketResp {totalCount = Just 0, message = [], status = "ok"}
 
 kaptureGetTicket ::
   ( EncFlow m r,
@@ -109,6 +115,7 @@ kaptureGetTicket ::
 kaptureGetTicket serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.kaptureGetTicket cfg req
   ZendeskConfig _ -> pure []
+  XyneSpacesConfig _ -> pure []
 
 getTicketStatus ::
   ( EncFlow m r,
@@ -122,3 +129,4 @@ getTicketStatus ::
 getTicketStatus serviceConfig req = case serviceConfig of
   KaptureConfig cfg -> Kapture.getTicketStatus cfg req
   ZendeskConfig _ -> pure []
+  XyneSpacesConfig _ -> pure []
