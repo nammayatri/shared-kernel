@@ -1,5 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-
 {-
   Copyright 2022-23, Juspay India Pvt Ltd
 
@@ -27,16 +25,16 @@ import qualified Crypto.Hash as Hash
 import qualified Data.ByteArray as BA
 import Data.String.Conversions (cs)
 import qualified Data.Text as T
-import Data.Typeable (typeRep)
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config (HedisFlow)
 import Kernel.Storage.Hedis.Queries (ExpirationTime, del, hDel, hSetExp, safeHGet)
 import Text.Hex (encodeHex)
 
--- | The hash key (Redis bucket) for type @b@: @prefix:TypeName@, e.g.
--- @buildRedisHashKey \@RiderConfig "ConfigPilot" == "ConfigPilot:RiderConfig"@.
-buildRedisHashKey :: forall b. Typeable b => Text -> Text
-buildRedisHashKey prefix = prefix <> ":" <> show (typeRep (Proxy :: Proxy b))
+-- | The Redis bucket is just the prefix; the cached type is no longer part of
+-- the key, so deletes by bucket are type-free, e.g.
+-- @buildRedisHashKey "ConfigPilot" == "ConfigPilot"@.
+buildRedisHashKey :: Text -> Text
+buildRedisHashKey prefix = prefix
 
 buildRedisCacheField :: [Text] -> Maybe Text
 buildRedisCacheField fieldFrags =
@@ -49,7 +47,7 @@ buildRedisCacheField fieldFrags =
 
 withRedisCache ::
   forall b m env.
-  (ToJSON b, FromJSON b, Typeable b, HedisFlow m env) =>
+  (ToJSON b, FromJSON b, HedisFlow m env) =>
   Text ->
   [Text] ->
   ExpirationTime ->
@@ -60,7 +58,7 @@ withRedisCache hashPrefix fieldFrags ttlInSeconds fn =
     then case buildRedisCacheField fieldFrags of
       Nothing -> fn
       Just field -> do
-        let hashKey = buildRedisHashKey @b hashPrefix
+        let hashKey = buildRedisHashKey hashPrefix
         mbRes <- safeHGet hashKey field
         case mbRes of
           Just res -> pure res
@@ -70,23 +68,20 @@ withRedisCache hashPrefix fieldFrags ttlInSeconds fn =
             pure res
     else fn
 
--- | Delete a single cached entry created by 'withRedisCache'. The cached type
--- must be supplied (via @TypeApplications@) so the same hash/field is targeted,
--- e.g. @delRedisCache \@RiderConfig "ConfigPilot" ["blr", "auto", "x"]@.
+-- | Delete a single cached entry created by 'withRedisCache', e.g.
+-- @delRedisCache "ConfigPilot" ["blr", "auto", "x"]@.
 delRedisCache ::
-  forall b m env.
-  (Typeable b, HedisFlow m env) =>
+  HedisFlow m env =>
   Text ->
   [Text] ->
   m ()
 delRedisCache hashPrefix fieldFrags =
   case buildRedisCacheField fieldFrags of
     Nothing -> pure ()
-    Just field -> hDel (buildRedisHashKey @b hashPrefix) [field]
+    Just field -> hDel (buildRedisHashKey hashPrefix) [field]
 
 delRedisCacheBucket ::
-  forall b m env.
-  (Typeable b, HedisFlow m env) =>
+  HedisFlow m env =>
   Text ->
   m ()
-delRedisCacheBucket hashPrefix = del (buildRedisHashKey @b hashPrefix)
+delRedisCacheBucket hashPrefix = del (buildRedisHashKey hashPrefix)
