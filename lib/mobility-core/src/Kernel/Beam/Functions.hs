@@ -117,7 +117,8 @@ meshConfig =
       cerealEnabled = False,
       tableShardModRange = (0, 128),
       redisKeyPrefix = "",
-      forceDrainToDB = False
+      forceDrainToDB = False,
+      recacheFindEnabled = False
     }
 
 runInReplica :: (L.MonadFlow m, Log m) => m a -> m a
@@ -185,6 +186,7 @@ setMeshConfigWithTables modelName mSchema meshConfig' tables' = do
                     secondaryEnabled =
                       fromMaybe False tables'.enableSecondaryCloudRead
                         && modelName `elem` fromMaybe [] tables'.tablesForSecondaryCloudRead
+                    recacheEnabled = modelName `elem` fromMaybe [] tables'.tablesForRecacheFind
                  in meshConfig'
                       { meshEnabled = True,
                         kvHardKilled = False,
@@ -192,7 +194,8 @@ setMeshConfigWithTables modelName mSchema meshConfig' tables' = do
                         redisTtl = redisTtl',
                         tableShardModRange = tableShardModRange',
                         redisKeyPrefix = redisKeyPrefix',
-                        secondaryRedisEnabled = secondaryEnabled || tables'.enableAllTablesForSecondaryCloudRead == Just True
+                        secondaryRedisEnabled = secondaryEnabled || tables'.enableAllTablesForSecondaryCloudRead == Just True,
+                        recacheFindEnabled = recacheEnabled
                       }
 
 getTablesOption :: (L.MonadFlow m, HasCallStack) => m Tables

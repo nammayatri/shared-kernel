@@ -80,6 +80,7 @@ data Tables = Tables
     enableSecondaryCloudRead :: Maybe Bool,
     tablesForSecondaryCloudRead :: Maybe [Text],
     enableAllTablesForSecondaryCloudRead :: Maybe Bool,
+    tablesForRecacheFind :: Maybe [Text],
     drainerTtlConfigs :: Maybe (HM.HashMap Text Integer),
     enableFindAllForMultiCloud :: Maybe Bool
   }
@@ -100,6 +101,7 @@ defaultTableData =
       enableSecondaryCloudRead = Nothing,
       tablesForSecondaryCloudRead = Nothing,
       enableAllTablesForSecondaryCloudRead = Nothing,
+      tablesForRecacheFind = Nothing,
       drainerTtlConfigs = Nothing,
       enableFindAllForMultiCloud = Nothing
     }
