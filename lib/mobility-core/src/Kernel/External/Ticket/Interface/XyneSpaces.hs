@@ -44,8 +44,13 @@ module Kernel.External.Ticket.Interface.XyneSpaces
 where
 
 import qualified Control.Exception as Exc
+import qualified Data.Aeson as A
+import qualified Data.ByteArray.Encoding as BA
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
+import Data.List (partition)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified EulerHS.Language as L
 import Kernel.External.Encryption
 import qualified Kernel.External.Ticket.Interface.Types as IT
@@ -178,49 +183,164 @@ finallyM action cleanup =
   (action <* cleanup)
     `catchAny` (\e -> cleanup >> throwM e)
 
--- | Download @url@ into a fresh temp file under @/tmp@ and return
--- @(formName, displayName, mimeType, path)@ suitable for 'appDeskInboundMultipartAPI'.
--- Uses a fresh TLS manager per call — fine for low-volume webhook inbound.
+-- | Resolve a media reference into @(formName, displayName, mimeType, path)@
+-- suitable for 'appDeskInboundMultipartAPI', writing the bytes to a fresh
+-- temp file under @/tmp@.
+--
+-- Two supported reference shapes:
+--
+--   * @data:[<mime>];base64,<content>@ — the caller has already fetched the
+--     file (typically via 'AWS.S3.get') and embedded the base64 payload.
+--     Preferred because it avoids re-fetching authenticated endpoints like
+--     rider-app's @/v2/issue/media@, which requires the user's token that
+--     rider-app itself doesn't hold when forwarding to Xyne.
+--   * @http(s)://…@ — falls back to an HTTP GET. If the endpoint returns
+--     @application/json@ (rider-app's own @IssueFetchMediaAPI@ is
+--     @Get '[JSON] Text@ = @"<base64>"@), the body is JSON-decoded and
+--     base64-decoded before being uploaded. Any other Content-Type is
+--     treated as raw bytes.
+--
+-- In both cases, the real MIME type is re-derived from the decoded content's
+-- magic bytes (PNG, JPEG, GIF, WebP, PDF, MP3, MP4, RIFF/WAV, OGG, HEIF/HEIC),
+-- so an incorrect or absent MIME on the reference doesn't ruin the upload.
 fetchToTempFile :: Text -> IO (Text, Text, Text, FilePath)
 fetchToTempFile url = do
-  mgr <- HCT.newTlsManager
-  req <- HC.parseRequest (T.unpack url)
-  resp <- HC.httpLbs req mgr
-  let body = HC.responseBody resp
-      displayName = guessFilename url
-      mimeType = guessMimeType displayName
+  (fileBytes, contentType) <-
+    if "data:" `T.isPrefixOf` url
+      then case decodeDataUri url of
+        Right (mime, bs) -> pure (bs, mime)
+        Left err ->
+          Exc.throwIO . userError $
+            "Xyne fetchToTempFile: could not decode data URI: " <> err
+      else do
+        mgr <- HCT.newTlsManager
+        req <- HC.parseRequest (T.unpack url)
+        resp <- HC.httpLbs req mgr
+        let rawBody = HC.responseBody resp
+            ct = responseContentType resp
+            isJsonResponse = "application/json" `T.isPrefixOf` T.toLower ct
+        bs <-
+          if isJsonResponse
+            then case decodeJsonBase64 rawBody of
+              Right bs -> pure bs
+              Left err ->
+                Exc.throwIO . userError $
+                  "Xyne fetchToTempFile: expected JSON-encoded base64 body from "
+                    <> T.unpack url
+                    <> " but decode failed: "
+                    <> err
+            else pure (LBS.toStrict rawBody)
+        pure (bs, ct)
+  let (mimeType, ext) = detectMimeAndExt fileBytes contentType
+      displayName = deriveFilename url ext
   (path, hdl) <- openBinaryTempFile "/tmp" "xyne-attach-"
-  LBS.hPut hdl body
+  BS.hPut hdl fileBytes
   hClose hdl
   pure ("files", displayName, mimeType, path)
 
-guessFilename :: Text -> Text
-guessFilename url =
-  let withoutQuery = T.takeWhile (/= '?') url
-      parts = filter (not . T.null) (T.splitOn "/" withoutQuery)
-   in case reverse parts of
-        (last_ : _) -> last_
-        [] -> "attachment"
+-- | Parse a @data:[<mime>][;base64],<content>@ URI. Only base64-encoded
+-- payloads are supported (that is what rider-app produces via 'AWS.S3.get').
+decodeDataUri :: Text -> Either String (Text, BS.ByteString)
+decodeDataUri url = do
+  rest <- maybe (Left "not a data URI") Right $ T.stripPrefix "data:" url
+  (header, content) <- case T.breakOn "," rest of
+    (h, c) | not (T.null c) -> Right (h, T.drop 1 c)
+    _ -> Left "missing comma in data URI"
+  unless (";base64" `T.isInfixOf` (";" <> header)) $
+    Left "data URI is not base64-encoded"
+  let mime =
+        let mimeCandidate = T.takeWhile (/= ';') header
+         in if T.null mimeCandidate then "application/octet-stream" else mimeCandidate
+  bs <- BA.convertFromBase BA.Base64 (TE.encodeUtf8 content)
+  Right (mime, bs)
 
-guessMimeType :: Text -> Text
-guessMimeType filename =
-  case T.toLower (T.takeWhileEnd (/= '.') filename) of
-    "png" -> "image/png"
-    "jpg" -> "image/jpeg"
-    "jpeg" -> "image/jpeg"
-    "gif" -> "image/gif"
-    "webp" -> "image/webp"
-    "pdf" -> "application/pdf"
-    "mp3" -> "audio/mpeg"
-    "m4a" -> "audio/mp4"
-    "wav" -> "audio/wav"
-    "ogg" -> "audio/ogg"
-    "webm" -> "video/webm"
-    "mp4" -> "video/mp4"
-    "txt" -> "text/plain"
-    "html" -> "text/html"
-    "json" -> "application/json"
-    _ -> "application/octet-stream"
+-- | Lower-cased Content-Type header value with @;charset=…@ / boundary params
+-- stripped. Empty when the header is absent.
+responseContentType :: HC.Response a -> Text
+responseContentType resp =
+  case lookup "Content-Type" (HC.responseHeaders resp) of
+    Nothing -> ""
+    Just bs -> T.strip . T.takeWhile (/= ';') . TE.decodeUtf8With (\_ _ -> Just '?') $ bs
+
+-- | Parse an @application/json@ body of the form @"<base64>"@ (JSON string)
+-- and decode to the raw bytes.
+decodeJsonBase64 :: LBS.ByteString -> Either String BS.ByteString
+decodeJsonBase64 lbs = do
+  txt <- A.eitherDecode @Text lbs
+  BA.convertFromBase BA.Base64 (TE.encodeUtf8 txt)
+
+-- | Recognise the file type from its leading magic bytes. Falls back to the
+-- provided response Content-Type (already stripped of params) and finally to
+-- @application/octet-stream@ so Xyne at least gets a sensible upload.
+detectMimeAndExt :: BS.ByteString -> Text -> (Text, Text)
+detectMimeAndExt bs ct
+  | BS.take 8 bs == BS.pack [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] = ("image/png", "png")
+  | BS.take 3 bs == BS.pack [0xFF, 0xD8, 0xFF] = ("image/jpeg", "jpg")
+  | BS.take 6 bs `elem` [BS.pack [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], BS.pack [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]] = ("image/gif", "gif")
+  | BS.take 4 bs == BS.pack [0x52, 0x49, 0x46, 0x46] && BS.take 4 (BS.drop 8 bs) == BS.pack [0x57, 0x45, 0x42, 0x50] = ("image/webp", "webp")
+  | BS.take 4 bs == BS.pack [0x52, 0x49, 0x46, 0x46] && BS.take 4 (BS.drop 8 bs) == BS.pack [0x57, 0x41, 0x56, 0x45] = ("audio/wav", "wav")
+  | BS.take 4 bs == BS.pack [0x25, 0x50, 0x44, 0x46] = ("application/pdf", "pdf")
+  | BS.take 3 bs == BS.pack [0x49, 0x44, 0x33] || BS.take 2 bs == BS.pack [0xFF, 0xFB] = ("audio/mpeg", "mp3")
+  | BS.take 4 bs == BS.pack [0x4F, 0x67, 0x67, 0x53] = ("audio/ogg", "ogg")
+  -- ISO Base Media File Format: bytes 4..8 = "ftyp"
+  | BS.take 4 (BS.drop 4 bs) == BS.pack [0x66, 0x74, 0x79, 0x70] =
+    let brand = BS.take 4 (BS.drop 8 bs)
+     in if brand `elem` [BS.pack [0x68, 0x65, 0x69, 0x63], BS.pack [0x68, 0x65, 0x69, 0x78], BS.pack [0x6D, 0x69, 0x66, 0x31]]
+          then ("image/heic", "heic")
+          else
+            if brand == BS.pack [0x4D, 0x34, 0x41, 0x20]
+              then ("audio/mp4", "m4a")
+              else ("video/mp4", "mp4")
+  | not (T.null ct) && ct /= "application/json" = (ct, extFromMime ct)
+  | otherwise = ("application/octet-stream", "bin")
+  where
+    extFromMime m = case m of
+      "image/png" -> "png"
+      "image/jpeg" -> "jpg"
+      "image/gif" -> "gif"
+      "image/webp" -> "webp"
+      "image/heic" -> "heic"
+      "application/pdf" -> "pdf"
+      "audio/mpeg" -> "mp3"
+      "audio/mp4" -> "m4a"
+      "audio/wav" -> "wav"
+      "audio/ogg" -> "ogg"
+      "video/mp4" -> "mp4"
+      "video/webm" -> "webm"
+      _ -> "bin"
+
+deriveFilename :: Text -> Text -> Text
+deriveFilename url ext =
+  let base = case fromQueryFilePath url of
+        Just fp -> lastPathSegment fp
+        Nothing -> lastPathSegment (T.takeWhile (/= '?') url)
+      cleaned = if T.null base then "attachment" else base
+      hasExt = T.isInfixOf "." cleaned
+   in if hasExt then cleaned else cleaned <> "." <> ext
+
+-- | Extract a @filePath=…@ query-string value if present. Rider-app's media
+-- URL is shaped like @…/media?filePath=issue-media/customer-<id>/xxx.png@,
+-- so this recovers the original object key that carries the extension.
+fromQueryFilePath :: Text -> Maybe Text
+fromQueryFilePath url =
+  case T.breakOn "?" url of
+    (_, qsWithMark)
+      | not (T.null qsWithMark) ->
+        let qs = T.drop 1 qsWithMark
+            pairs = T.splitOn "&" qs
+         in listToMaybe
+              [ T.drop (T.length "filePath=") p
+                | p <- pairs,
+                  "filePath=" `T.isPrefixOf` p
+              ]
+    _ -> Nothing
+
+lastPathSegment :: Text -> Text
+lastPathSegment path =
+  let parts = filter (not . T.null) (T.splitOn "/" path)
+   in case reverse parts of
+        (l : _) -> l
+        [] -> ""
 
 buildSubject :: Text -> Maybe IT.RideInfo -> Text
 buildSubject category mbRide =
@@ -270,11 +390,23 @@ formatCustomer mbName mbPhone =
     ""
   ]
 
+-- | Renders the "Recording / Media" section of the body. Regular @http(s)@
+-- URLs are inlined as text so agents can click through. @data:@ URIs, on the
+-- other hand, are the multipart attachments themselves — their base64 payload
+-- is many hundreds of KB, so inlining them inflates the @body@ form field
+-- past Xyne's Zod cap ("Field value too long", HTTP 500). We keep only the
+-- count for those; the actual bytes travel via the repeated @files@ parts.
 formatMedia :: Maybe [Text] -> [Text]
 formatMedia Nothing = []
 formatMedia (Just []) = []
 formatMedia (Just urls) =
-  "=== Recording / Media ===" : map ("- " <>) urls
+  let (dataUris, httpUrls) = partition ("data:" `T.isPrefixOf`) urls
+      httpLines = map ("- " <>) httpUrls
+      attachmentLine = case length dataUris of
+        0 -> []
+        n -> ["- (" <> show n <> " file(s) uploaded as attachments)"]
+      body = httpLines <> attachmentLine
+   in if null body then [] else "=== Recording / Media ===" : body
 
 formatRide :: IT.RideInfo -> [Text]
 formatRide IT.RideInfo {..}
