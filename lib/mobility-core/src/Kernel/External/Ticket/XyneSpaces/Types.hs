@@ -24,6 +24,10 @@ import Kernel.Prelude
 -- | Request body for @POST /api/apps/ticket/appDeskInbound@.
 -- Reuse the same @threadId@ to append to the same ticket; a new value starts a
 -- new ticket. @externalId@ is the per-message retry-safe dedup key.
+--
+-- @ToJSON@ omits @Nothing@ fields rather than emitting @null@ — Xyne's Zod
+-- schema rejects @null@ on the optional @externalId@, @senderName@,
+-- @senderEmail@ fields with @VALIDATION_ERROR@ (expected string, received null).
 data XyneInboundReq = XyneInboundReq
   { channelId :: Text,
     threadId :: Text,
@@ -34,7 +38,11 @@ data XyneInboundReq = XyneInboundReq
     senderEmail :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
+  deriving anyclass (FromJSON)
+
+instance ToJSON XyneInboundReq where
+  toJSON = genericToJSON defaultOptions {omitNothingFields = True}
+  toEncoding = genericToEncoding defaultOptions {omitNothingFields = True}
 
 -- | Response body for @POST /api/apps/ticket/appDeskInbound@.
 -- Status is 201 when @isNew@ is True (new ticket), 200 when False (appended).
