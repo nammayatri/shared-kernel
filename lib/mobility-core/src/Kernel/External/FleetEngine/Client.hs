@@ -93,7 +93,7 @@ createTrip baseUrl providerId token tripId trip = do
     Right _ -> logInfo $ "FleetEngine: created trip " <> tripId
     Left err
       | "ALREADY_EXISTS" `T.isInfixOf` show err ->
-          logInfo $ "FleetEngine: trip already exists (idempotent no-op) " <> tripId
+        logInfo $ "FleetEngine: trip already exists (idempotent no-op) " <> tripId
       | otherwise -> logError $ "FleetEngine: createTrip failed for " <> tripId <> ": " <> show err
 
 -- | PATCH a trip with the given field mask and body.

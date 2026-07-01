@@ -138,7 +138,7 @@ createSignedJWTWithClaims sa audience ttlSeconds additionalClaims = do
       let key = EncodeRSAPrivateKey pkey
       iat <- numericDate <$> getPOSIXTime
       exp <- numericDate . (+ fromInteger ttlSeconds) <$> getPOSIXTime
-      let claims =
+      let jwtClaims =
             mempty
               { exp = exp,
                 iat = iat,
@@ -147,7 +147,7 @@ createSignedJWTWithClaims sa audience ttlSeconds additionalClaims = do
                 aud = audience',
                 unregisteredClaims = unregisteredClaims
               }
-      pure $ Right (encodeSigned key jwtHeader claims)
+      pure $ Right (encodeSigned key jwtHeader jwtClaims)
 
 -- | Prepare a request to the token URL
 jwtRequest :: T.Text -> BL.ByteString -> IO Request

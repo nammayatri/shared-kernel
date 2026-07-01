@@ -33,8 +33,10 @@ fleetEngineAudience = "https://fleetengine.googleapis.com/"
 -- @authorization@ claim restricting them to a single trip/vehicle; server
 -- tokens carry no restriction (the service-account role grants access).
 data TokenScope
-  = ConsumerToken Text -- ^ scoped to a tripId
-  | DriverToken Text -- ^ scoped to a vehicleId
+  = -- | scoped to a tripId
+    ConsumerToken Text
+  | -- | scoped to a vehicleId
+    DriverToken Text
   | ServerToken
 
 -- | Decode the (decrypted) service-account JSON text.
