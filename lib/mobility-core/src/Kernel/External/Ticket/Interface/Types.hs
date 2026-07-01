@@ -23,6 +23,7 @@ import Deriving.Aeson
 import Kernel.External.Ticket.Kapture.Config as Kapture
 import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), GetTicketReq (..), GetTicketResp (..), GetTicketStatusResp (..), KaptureCustomerReq (..), KaptureCustomerResp (..), KaptureEncryptionReq (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), PullAdditionalDetails (..), RideIdObject (..), SearchTicketByIdReq (..), TicketSummary (..), TicketType (..))
 import Kernel.External.Ticket.Types as Reexport
+import Kernel.External.Ticket.XyneSpaces.Config as XyneSpaces
 import Kernel.External.Ticket.Zendesk.Config as Zendesk
 import Kernel.Prelude
 import Kernel.Types.Common (Money)
@@ -31,6 +32,7 @@ import Kernel.Types.HideSecrets
 data IssueTicketServiceConfig
   = KaptureConfig Kapture.KaptureCfg
   | ZendeskConfig Zendesk.ZendeskCfg
+  | XyneSpacesConfig XyneSpaces.XyneSpacesCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data TicketStatus = Open | Pending | Solved | Closed | Reopened
