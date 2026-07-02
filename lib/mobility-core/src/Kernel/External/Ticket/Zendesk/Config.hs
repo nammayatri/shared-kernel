@@ -22,6 +22,7 @@ data ZendeskCfg = ZendeskCfg
     -- apiKey must be stored as pre-encoded Base64 of "email/token:api_token" (Zendesk Basic Auth format).
     -- The value is sent directly as "Basic <apiKey>" in the Authorization header.
     apiKey :: EncryptedField 'AsEncrypted Text,
+    jwtSecret :: Maybe (EncryptedField 'AsEncrypted Text),
     requesterEmail :: Maybe Text,
     organizationId :: Maybe Int,
     groupId :: Maybe Int,
