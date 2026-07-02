@@ -452,10 +452,19 @@ getPlaceDetails ::
 getPlaceDetails entityId cfg req@GetPlaceDetailsReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
-  let fields = "geometry"
+  let fields = "geometry,formatted_address,address_components,place_id"
   res <- GoogleMaps.getPlaceDetails entityId req mapsUrl key sessionToken placeId fields
-  let location = let loc = res.result.geometry.location in LatLong loc.lat loc.lng
-  return $ GetPlaceDetailsResp location
+  let result = res.result
+      location = let loc = result.geometry.location in LatLong loc.lat loc.lng
+      addressComponents = maybe [] (map reformateAddressResp) result.address_components
+  return $ GetPlaceDetailsResp {location = location, formattedAddress = result.formatted_address, addressComponents = addressComponents, placeId = result.place_id}
+  where
+    reformateAddressResp aResp =
+      AddressResp
+        { longName = aResp.long_name,
+          shortName = aResp.short_name,
+          types = aResp.types
+        }
 
 getPlaceName ::
   ( EncFlow m r,

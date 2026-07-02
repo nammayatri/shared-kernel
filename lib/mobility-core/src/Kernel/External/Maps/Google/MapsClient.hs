@@ -62,7 +62,7 @@ type GoogleMapsAPI =
 
 type AutocompleteAPI =
   "place" :> "autocomplete" :> "json"
-    :> Header "sessiontoken" Text
+    :> QueryParam "sessiontoken" Text
     :> MandatoryQueryParam "key" Text
     :> MandatoryQueryParam "input" Text
     :> MandatoryQueryParam "location" Text
@@ -83,7 +83,7 @@ type AutoCompleteV2API =
 
 type PlaceDetailsAPI =
   "place" :> "details" :> "json"
-    :> Header "sessiontoken" Text
+    :> QueryParam "sessiontoken" Text
     :> MandatoryQueryParam "key" Text
     :> MandatoryQueryParam "place_id" Text
     :> MandatoryQueryParam "fields" Text
