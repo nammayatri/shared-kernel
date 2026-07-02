@@ -1,0 +1,54 @@
+{-
+  Copyright 2022-23, Juspay India Pvt Ltd
+
+  This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License
+
+  as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is
+
+  distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of the GNU Affero
+
+  General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+-}
+
+module Kernel.External.FleetEngine.Auth
+  ( TokenScope (..),
+    fleetEngineAudience,
+    parseServiceAccount,
+    mintFleetEngineToken,
+  )
+where
+
+import qualified Data.Aeson as A
+import qualified Data.Text.Encoding as TE
+import Kernel.Prelude
+import qualified Kernel.Utils.JWT as JWT
+
+-- | Audience for self-signed Fleet Engine JWTs (server, driver and consumer).
+fleetEngineAudience :: Text
+fleetEngineAudience = "https://fleetengine.googleapis.com/"
+
+-- | What a minted token is scoped to. Consumer/driver tokens carry an
+-- @authorization@ claim restricting them to a single trip/vehicle; server
+-- tokens carry no restriction (the service-account role grants access).
+data TokenScope
+  = -- | scoped to a tripId
+    ConsumerToken Text
+  | -- | scoped to a vehicleId
+    DriverToken Text
+  | ServerToken
+
+-- | Decode the (decrypted) service-account JSON text.
+parseServiceAccount :: Text -> Either String JWT.ServiceAccount
+parseServiceAccount = A.eitherDecodeStrict . TE.encodeUtf8
+
+-- | Mint a short-lived self-signed Fleet Engine JWT for the given scope.
+mintFleetEngineToken :: JWT.ServiceAccount -> TokenScope -> Integer -> IO (Either String Text)
+mintFleetEngineToken sa scope ttlSeconds =
+  JWT.createSignedJWTWithClaims sa fleetEngineAudience ttlSeconds (authClaims scope)
+  where
+    authClaims :: TokenScope -> [(Text, A.Value)]
+    authClaims (ConsumerToken tripId) = [("authorization", A.object ["tripid" A..= tripId])]
+    authClaims (DriverToken vehicleId) = [("authorization", A.object ["vehicleid" A..= vehicleId])]
+    authClaims ServerToken = []
