@@ -19,6 +19,7 @@ module Kernel.External.Ticket.XyneSpaces.Types
 where
 
 import Data.Aeson
+import qualified Data.Map.Strict as Map
 import Kernel.Prelude
 
 -- | Request body for @POST /api/apps/ticket/appDeskInbound@.
@@ -35,7 +36,14 @@ data XyneInboundReq = XyneInboundReq
     body :: Text,
     externalId :: Maybe Text,
     senderName :: Maybe Text,
-    senderEmail :: Maybe Text
+    senderEmail :: Maybe Text,
+    -- | Free-form key/value pairs shown to the Xyne agent as a metadata
+    -- side panel on the ticket. The interface layer moves everything that
+    -- used to be baked into 'body' (category, ride info, customer/driver
+    -- phone numbers, media URLs) into here so the agent-facing @body@ stays
+    -- limited to the customer's own message. Empty / 'Nothing' is dropped
+    -- from the JSON payload.
+    additionalFormFields :: Maybe (Map.Map Text Text)
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON)
