@@ -75,8 +75,11 @@ data GetPlaceDetailsResp = GetPlaceDetailsResp
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
-newtype PlaceDetailsResult = PlaceDetailsResult
-  { geometry :: Geometry
+data PlaceDetailsResult = PlaceDetailsResult
+  { formatted_address :: Maybe Text,
+    address_components :: Maybe [AddressResp],
+    geometry :: Geometry,
+    place_id :: Maybe Text
   }
   deriving stock (Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)

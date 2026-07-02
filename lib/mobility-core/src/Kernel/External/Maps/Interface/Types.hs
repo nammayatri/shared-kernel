@@ -238,8 +238,11 @@ data GetPlaceDetailsReq = GetPlaceDetailsReq
   deriving stock (Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-newtype GetPlaceDetailsResp = GetPlaceDetailsResp
-  { location :: LatLong
+data GetPlaceDetailsResp = GetPlaceDetailsResp
+  { location :: LatLong,
+    formattedAddress :: Maybe Text,
+    addressComponents :: [AddressResp],
+    placeId :: Maybe Text
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
