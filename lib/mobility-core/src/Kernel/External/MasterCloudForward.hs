@@ -134,8 +134,9 @@ getRunApiInMasterCloud = do
   envVal <- lookupEnv "RUN_API_IN_MASTER_CLOUD"
   pure (fromMaybe False (readMaybe =<< envVal))
 
--- Drop-in replacement for @callAPI@. Triple-gated: env on + masterUrl set +
--- masterSecret set → forwarded. Anything else → direct call.
+-- Drop-in replacement for @callAPI@. Quad-gated: caller flag on +
+-- masterUrl set + masterSecret set → forwarded. Anything else → direct call.
+-- flag is for city specific forwarder.
 runThroughMasterCloud ::
   ( HasMasterCloudForwarder r,
     MonadReader r m,
@@ -147,9 +148,9 @@ runThroughMasterCloud ::
   BaseUrl ->
   ET.EulerClient a ->
   Text ->
+  Bool ->
   m (Either ClientError a)
-runThroughMasterCloud origBaseUrl eClient desc = do
-  shouldForward <- liftIO getRunApiInMasterCloud
+runThroughMasterCloud origBaseUrl eClient desc shouldForward = do
   cfg <- asks masterCloudProxyConfig
   case (shouldForward, cfg.masterUrl, cfg.masterSecret) of
     (True, Just fwdUrl, Just secret) -> do
