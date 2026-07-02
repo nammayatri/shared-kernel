@@ -193,7 +193,7 @@ main = do
         setEnv "RUN_API_IN_MASTER_CLOUD" "True"
         rForwarded <-
           KFlow.runFlowR flowRt env $
-            runThroughMasterCloud todoBaseUrl (getTodoClient 1) "getTodo-forwarded"
+            runThroughMasterCloud todoBaseUrl (getTodoClient 1) "getTodo-forwarded" True
 
         -- Compare.
         case (rDirect, rForwarded) of
