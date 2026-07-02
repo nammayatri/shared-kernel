@@ -49,6 +49,7 @@ import qualified Data.ByteArray.Encoding as BA
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import Data.List (partition)
+import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified EulerHS.Language as L
@@ -83,15 +84,20 @@ createTicket config req = do
     Just t -> pure t
     Nothing -> throwError (InternalError "Xyne createTicket requires issueId (used as threadId)")
   token <- decrypt config.token
-  let xyneReq =
+  let metadata = buildCreateMetadata req
+      xyneReq =
         Xyne.XyneInboundReq
           { channelId = config.channelId,
             threadId = threadId,
             subject = buildSubject req.category req.rideDescription,
-            body = buildBody req,
+            -- Body carries only the customer's own message; everything else
+            -- (category, ride info, phone numbers, media URLs) is surfaced to
+            -- the Xyne agent via 'additionalFormFields'.
+            body = req.issueDescription,
             externalId = Nothing,
             senderName = req.name,
-            senderEmail = Nothing
+            senderEmail = Nothing,
+            additionalFormFields = if Map.null metadata then Nothing else Just metadata
           }
   resp <- callAppDeskInbound config token xyneReq (fromMaybe [] req.mediaFiles)
   logInfo $
@@ -131,7 +137,11 @@ updateTicket config req = do
             body = buildUpdateBody req mbSenderName mbSenderPhone,
             externalId = Nothing,
             senderName = mbSenderName,
-            senderEmail = Nothing
+            senderEmail = Nothing,
+            -- Updates carry only the chat comment for now; the metadata side
+            -- panel was populated at create time and Xyne persists it against
+            -- the threadId.
+            additionalFormFields = Nothing
           }
   let attachments =
         fromMaybe [] (req.issueDetails >>= (.mediaFiles))
@@ -353,14 +363,42 @@ buildUpdateSubject req =
         Nothing -> "Issue update"
    in prefix <> maybe "" (\r -> " - " <> r.rideShortId) req.rideDescription
 
-buildBody :: IT.CreateTicketReq -> Text
-buildBody IT.CreateTicketReq {..} =
-  T.unlines $
-    formatCategory category subCategory
-      <> formatDescription issueDescription
-      <> formatCustomer name phoneNo
-      <> maybe [] formatRide rideDescription
-      <> formatMedia mediaFiles
+-- | Build the metadata dict shown to the Xyne agent alongside the ticket.
+-- Only non-empty values land in the map so the side panel stays uncluttered;
+-- @data:@-URI attachments are excluded (they arrive as multipart file parts),
+-- while hosted @http(s)@ URLs are joined into a single comma-separated line
+-- so agents can click through without the map ballooning.
+buildCreateMetadata :: IT.CreateTicketReq -> Map.Map Text Text
+buildCreateMetadata IT.CreateTicketReq {..} =
+  Map.fromList $
+    catMaybes $
+      [ Just ("Category", category),
+        (\sc -> ("Sub Category", sc)) <$> subCategory,
+        (\n -> ("Customer Name", n)) <$> name,
+        (\p -> ("Customer Phone Number", p)) <$> phoneNo
+      ]
+        <> maybe [] rideFields rideDescription
+        <> mediaField mediaFiles
+  where
+    rideFields r =
+      [ nonEmpty "Ride ID" r.rideShortId,
+        nonEmpty "Ride City" r.rideCity,
+        nonEmpty "Ride Status" r.status,
+        nonEmpty "Vehicle Number" r.vehicleNo,
+        (\v -> ("Vehicle Category", v)) <$> r.vehicleCategory,
+        (\v -> ("Vehicle Service Tier", v)) <$> r.vehicleServiceTier,
+        Just ("Ride Created At", showTimeIst r.rideCreatedAt),
+        (\f -> ("Fare", T.pack $ show f)) <$> r.fare,
+        (\n -> ("Driver Name", n)) <$> r.driverName,
+        (\p -> ("Driver Phone Number", p)) <$> r.driverPhoneNo
+      ]
+    nonEmpty k v = if T.null v then Nothing else Just (k, v)
+    mediaField Nothing = []
+    mediaField (Just urls) =
+      -- Drop base64 data URIs (they travel as multipart file parts). Only
+      -- hosted URLs are useful in the metadata panel.
+      let hosted = filter (not . ("data:" `T.isPrefixOf`)) urls
+       in if null hosted then [] else [Just ("Media URLs", T.intercalate ", " hosted)]
 
 buildUpdateBody :: IT.UpdateTicketReq -> Maybe Text -> Maybe Text -> Text
 buildUpdateBody IT.UpdateTicketReq {..} mbName mbPhone =
@@ -369,17 +407,6 @@ buildUpdateBody IT.UpdateTicketReq {..} mbName mbPhone =
       <> formatCustomer mbName mbPhone
       <> maybe [] formatRide rideDescription
       <> maybe [] formatUpdateIssueDetails issueDetails
-
-formatCategory :: Text -> Maybe Text -> [Text]
-formatCategory category mbSubCategory =
-  [ "=== Issue Category ===",
-    "Category: " <> category
-  ]
-    <> maybe [] (\sc -> ["Sub Category: " <> sc]) mbSubCategory
-    <> [""]
-
-formatDescription :: Text -> [Text]
-formatDescription d = ["=== Issue Description ===", d, ""]
 
 formatCustomer :: Maybe Text -> Maybe Text -> [Text]
 formatCustomer Nothing Nothing = []

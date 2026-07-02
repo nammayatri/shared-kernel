@@ -22,7 +22,7 @@ import qualified Data.Aeson as A
 import Data.OpenApi
 import qualified Data.Text as T
 import EulerHS.Prelude
-import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
+import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
@@ -38,6 +38,6 @@ instance ToJSON IssueTicketService where
   toJSON Zendesk = A.String (show Zendesk)
   toJSON XyneSpaces = A.String (show XyneSpaces)
 
-$(mkBeamInstancesForEnum ''IssueTicketService)
+$(mkBeamInstancesForEnumAndList ''IssueTicketService)
 
 derivePersistField "IssueTicketService"
