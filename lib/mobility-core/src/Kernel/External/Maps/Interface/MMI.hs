@@ -205,7 +205,7 @@ getPlaceDetails entityId mmiCfg req@GetPlaceDetailsReq {..} = do
   key <- decrypt mmiCfg.mmiApiKey
   resp <- MMI.mmiPlaceDetails entityId req mmiCfg.mmiKeyUrl key placeId
   let MMITypes.PlaceDetail {..} = NE.head resp.results
-  pure $ GetPlaceDetailsResp (LatLong {lat = latitude, lon = longitude})
+  pure $ GetPlaceDetailsResp (LatLong {lat = latitude, lon = longitude}) Nothing [] Nothing
 
 mkRoute ::
   (MonadFlow m) =>
