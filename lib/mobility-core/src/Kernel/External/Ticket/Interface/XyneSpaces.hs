@@ -400,7 +400,12 @@ buildCreateMetadata IT.CreateTicketReq {..} =
         r.driverName >>= nonEmpty "Driver Name",
         r.driverPhoneNo >>= nonEmpty "Driver Phone Number"
       ]
-    nonEmpty k v = if T.null v then Nothing else Just (k, v)
+    -- Xyne rejects both @""@ and whitespace-only strings (e.g. @" "@) with
+    -- @VALIDATION_ERROR@. Trim first, then drop if empty; keep the trimmed
+    -- value on the way out so we never ship stray padding either.
+    nonEmpty k v =
+      let stripped = T.strip v
+       in if T.null stripped then Nothing else Just (k, stripped)
     mediaField Nothing = []
     mediaField (Just urls) =
       -- Drop base64 data URIs (they travel as multipart file parts). Only
