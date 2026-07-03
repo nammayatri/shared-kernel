@@ -368,18 +368,22 @@ buildUpdateSubject req =
    in prefix <> maybe "" (\r -> " - " <> r.rideShortId) req.rideDescription
 
 -- | Build the metadata dict shown to the Xyne agent alongside the ticket.
--- Only non-empty values land in the map so the side panel stays uncluttered;
--- @data:@-URI attachments are excluded (they arrive as multipart file parts),
--- while hosted @http(s)@ URLs are joined into a single comma-separated line
--- so agents can click through without the map ballooning.
+-- Only non-empty values land in the map — Xyne's server-side Zod schema
+-- rejects the whole request with @VALIDATION_ERROR@ when any value in
+-- @additionalFormFields@ is @null@ or an empty string, so we drop empty
+-- 'Maybe Text' fields (e.g. @Just ""@) here rather than shipping them.
+-- @data:@-URI attachments are excluded (they arrive as multipart file
+-- parts), while hosted @http(s)@ URLs are joined into a single
+-- comma-separated line so agents can click through without the map
+-- ballooning.
 buildCreateMetadata :: IT.CreateTicketReq -> Map.Map Text Text
 buildCreateMetadata IT.CreateTicketReq {..} =
   Map.fromList $
     catMaybes $
-      [ Just ("Category", category),
-        (\sc -> ("Sub Category", sc)) <$> subCategory,
-        (\n -> ("Customer Name", n)) <$> name,
-        (\p -> ("Customer Phone Number", p)) <$> phoneNo
+      [ nonEmpty "Category" category,
+        subCategory >>= nonEmpty "Sub Category",
+        name >>= nonEmpty "Customer Name",
+        phoneNo >>= nonEmpty "Customer Phone Number"
       ]
         <> maybe [] rideFields rideDescription
         <> mediaField mediaFiles
@@ -389,12 +393,12 @@ buildCreateMetadata IT.CreateTicketReq {..} =
         nonEmpty "Ride City" r.rideCity,
         nonEmpty "Ride Status" r.status,
         nonEmpty "Vehicle Number" r.vehicleNo,
-        (\v -> ("Vehicle Category", v)) <$> r.vehicleCategory,
-        (\v -> ("Vehicle Service Tier", v)) <$> r.vehicleServiceTier,
+        r.vehicleCategory >>= nonEmpty "Vehicle Category",
+        r.vehicleServiceTier >>= nonEmpty "Vehicle Service Tier",
         Just ("Ride Created At", showTimeIst r.rideCreatedAt),
         (\f -> ("Fare", T.pack $ show f)) <$> r.fare,
-        (\n -> ("Driver Name", n)) <$> r.driverName,
-        (\p -> ("Driver Phone Number", p)) <$> r.driverPhoneNo
+        r.driverName >>= nonEmpty "Driver Name",
+        r.driverPhoneNo >>= nonEmpty "Driver Phone Number"
       ]
     nonEmpty k v = if T.null v then Nothing else Just (k, v)
     mediaField Nothing = []
