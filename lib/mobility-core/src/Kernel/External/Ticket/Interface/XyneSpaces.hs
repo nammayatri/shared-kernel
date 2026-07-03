@@ -99,6 +99,10 @@ createTicket config req = do
             senderEmail = Nothing,
             additionalFormFields = if Map.null metadata then Nothing else Just metadata
           }
+  -- One-time diagnostic: echo the exact JSON we hand to servant so we can
+  -- verify @additionalFormFields@ actually lands on the wire. Remove once
+  -- Xyne confirms it sees the field.
+  logInfo $ "Xyne createTicket payload: " <> TE.decodeUtf8 (LBS.toStrict (A.encode xyneReq))
   resp <- callAppDeskInbound config token xyneReq (fromMaybe [] req.mediaFiles)
   logInfo $
     "Xyne createTicket: threadId=" <> threadId

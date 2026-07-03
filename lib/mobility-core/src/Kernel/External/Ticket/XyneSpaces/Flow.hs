@@ -27,11 +27,8 @@ module Kernel.External.Ticket.XyneSpaces.Flow
   )
 where
 
-import qualified Data.Aeson as A
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
 import EulerHS.Types as Euler
 import qualified Kernel.External.Ticket.XyneSpaces.Types as Xyne
 import Kernel.Prelude
@@ -103,10 +100,13 @@ appDeskInboundMultipartAPI url token req filePartsSpec = do
           <> maybe [] (\v -> [Input "externalId" v]) req.externalId
           <> maybe [] (\v -> [Input "senderName" v]) req.senderName
           <> maybe [] (\v -> [Input "senderEmail" v]) req.senderEmail
-          -- Multipart carries the metadata dict as a single JSON-encoded
-          -- form input (Xyne's server-side Zod schema accepts either an
-          -- object on the JSON path or a JSON-string on the multipart path).
-          <> maybe [] (\m -> if Map.null m then [] else [Input "additionalFormFields" (TE.decodeUtf8 . LBS.toStrict $ A.encode m)]) req.additionalFormFields
+          -- Multipart flattens the metadata dict into repeated form inputs
+          -- using bracket notation (@additionalFormFields[Category]=Dummy@).
+          -- This is what Node multipart parsers (multer / formidable /
+          -- busboy) reconstruct into a nested object — sending the map as a
+          -- single JSON-encoded string leaves it as a raw string that the
+          -- Xyne server-side @additionalFormFields@ handler ignores.
+          <> maybe [] (map (\(k, v) -> Input ("additionalFormFields[" <> k <> "]") v) . Map.toList) req.additionalFormFields
       files = map mkFileData filePartsSpec
       multipartData = MultipartData inputs files
       eulerClient = Euler.client (Proxy @XyneAppDeskInboundMultipartAPI)
