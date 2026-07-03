@@ -26,9 +26,12 @@ import Kernel.Prelude
 -- Reuse the same @threadId@ to append to the same ticket; a new value starts a
 -- new ticket. @externalId@ is the per-message retry-safe dedup key.
 --
--- @ToJSON@ omits @Nothing@ fields rather than emitting @null@ — Xyne's Zod
--- schema rejects @null@ on the optional @externalId@, @senderName@,
--- @senderEmail@ fields with @VALIDATION_ERROR@ (expected string, received null).
+-- @ToJSON@ is hand-written to guarantee the exact wire shape Xyne expects:
+-- optional fields are omitted (never emitted as @null@ — Xyne's Zod schema
+-- would reject that with @VALIDATION_ERROR@), and @additionalFormFields@ is
+-- emitted as a plain nested object under its own key. Earlier generic
+-- encoding via @genericToJSON@ silently dropped the map field in some
+-- contexts; the manual writer removes that ambiguity.
 data XyneInboundReq = XyneInboundReq
   { channelId :: Text,
     threadId :: Text,
@@ -49,8 +52,17 @@ data XyneInboundReq = XyneInboundReq
   deriving anyclass (FromJSON)
 
 instance ToJSON XyneInboundReq where
-  toJSON = genericToJSON defaultOptions {omitNothingFields = True}
-  toEncoding = genericToEncoding defaultOptions {omitNothingFields = True}
+  toJSON XyneInboundReq {..} =
+    object $
+      [ "channelId" .= channelId,
+        "threadId" .= threadId,
+        "subject" .= subject,
+        "body" .= body
+      ]
+        <> maybe [] (\v -> ["externalId" .= v]) externalId
+        <> maybe [] (\v -> ["senderName" .= v]) senderName
+        <> maybe [] (\v -> ["senderEmail" .= v]) senderEmail
+        <> maybe [] (\m -> if Map.null m then [] else ["additionalFormFields" .= m]) additionalFormFields
 
 -- | Response body for @POST /api/apps/ticket/appDeskInbound@.
 -- Status is 201 when @isNew@ is True (new ticket), 200 when False (appended).
