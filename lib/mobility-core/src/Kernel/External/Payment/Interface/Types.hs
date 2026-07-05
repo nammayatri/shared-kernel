@@ -946,7 +946,7 @@ data CreateRefundReq = CreateRefundReq
 data CreateRefundResp = CreateRefundResp
   { id :: RefundId,
     status :: RefundStatus,
-    reverseTransferId :: Maybe Text,
+    amount :: HighPrecMoney,
     errorCode :: Maybe Text
   }
 
@@ -964,7 +964,6 @@ data GetRefundResp = GetRefundResp
     amount :: HighPrecMoney,
     currency :: Maybe Currency,
     status :: RefundStatus,
-    reverseTransferId :: Maybe Text,
     errorCode :: Maybe Text
   }
   deriving stock (Show)
@@ -1044,6 +1043,7 @@ data RefundPaymentReq = RefundPaymentReq
 data RefundPaymentResp = RefundPaymentResp
   { refundId :: Text,
     status :: RefundStatus,
+    amount :: Maybe HighPrecMoney,
     errorCode :: Maybe Text,
     errorMessage :: Maybe Text
   }

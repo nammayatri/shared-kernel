@@ -678,6 +678,7 @@ refundPayment serviceConfig mRoutingId req = case serviceConfig of
       RefundPaymentResp
         { refundId = req.refundsId,
           status = maybe REFUND_PENDING (.status) firstRefund,
+          amount = Nothing, -- Juspay refund responses do not surface the refunded amount
           errorCode = firstRefund >>= (.errorCode),
           errorMessage = firstRefund >>= (.errorMessage)
         }
@@ -700,6 +701,7 @@ refundPayment serviceConfig mRoutingId req = case serviceConfig of
       RefundPaymentResp
         { refundId = resp.id.getRefundId,
           status = resp.status,
+          amount = Just resp.amount,
           errorCode = resp.errorCode,
           errorMessage = Nothing
         }
@@ -724,6 +726,7 @@ getRefundStatus serviceConfig req = case serviceConfig of
       RefundPaymentResp
         { refundId = resp.id.getRefundId,
           status = resp.status,
+          amount = Just resp.amount,
           errorCode = resp.errorCode,
           errorMessage = Nothing
         }
