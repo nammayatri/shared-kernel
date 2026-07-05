@@ -117,7 +117,8 @@ meshConfig =
       cerealEnabled = False,
       tableShardModRange = (0, 128),
       redisKeyPrefix = "",
-      forceDrainToDB = False
+      forceDrainToDB = False,
+      recacheFindEnabled = False
     }
 
 runInReplica :: (L.MonadFlow m, Log m) => m a -> m a
