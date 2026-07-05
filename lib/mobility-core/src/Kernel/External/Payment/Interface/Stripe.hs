@@ -731,9 +731,11 @@ createRefund config req = do
     -- Driver receives payment directly (Direct Charges)
     ConnectedAccount -> createConnectedAccountRefund url apiKey
   where
-    -- Platform Charge: Need to reverse transfer
+    -- Platform Charge: never reverse the transfer. When the driver bears a refund, the
+    -- caller settles it against the driver's future payout via its own ledger; a Stripe
+    -- reverse_transfer on top would claw the same money back twice.
     createPlatformRefund url apiKey = do
-      let reverseTransfer = Just True
+      let reverseTransfer = Just False
           refundReq = mkRefundReq req reverseTransfer
       mkRefundResp <$> Stripe.createRefund url apiKey Nothing refundReq
 
@@ -755,8 +757,7 @@ createRefund config req = do
 
     mkRefundResp :: Stripe.RefundObject -> CreateRefundResp
     mkRefundResp Stripe.RefundObject {..} =
-      let reverseTransferId = transfer_reversal
-       in CreateRefundResp {status = castRefundStatus status, errorCode = failure_reason, ..}
+      CreateRefundResp {status = castRefundStatus status, amount = centsToUsd amount, errorCode = failure_reason, ..}
 
 castRefundStatus :: Stripe.RefundStatus -> RefundStatus
 castRefundStatus = \case
@@ -809,6 +810,5 @@ mkGetRefundResp Stripe.RefundObject {..} =
       amount = centsToUsd amount,
       currency = readMaybe . T.unpack $ T.toUpper currency,
       status = castRefundStatus status,
-      reverseTransferId = transfer_reversal,
       errorCode = failure_reason
     }
