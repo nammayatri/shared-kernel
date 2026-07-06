@@ -505,6 +505,23 @@ addOpenTripPlannerLatencyImplementation queryType status latency = do
       (queryType, status, version.getDeploymentVersion)
       (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
 
+incrementSmsProviderResponseCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Text ->
+  m ()
+incrementSmsProviderResponseCounterImplementation provider status = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  L.runIO $
+    P.withLabel
+      cmContainer.smsProviderResponseCounter
+      (provider, status, version.getDeploymentVersion)
+      P.incCounter
+
 incrementTryExceptionCounterImplementation ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
