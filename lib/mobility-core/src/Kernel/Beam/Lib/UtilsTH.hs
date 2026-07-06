@@ -3,6 +3,8 @@
 
 module Kernel.Beam.Lib.UtilsTH
   ( enableKVPG,
+    enableKVPGWithPartialIndex,
+    SKeyPartial (..),
     HasSchemaName (..),
     mkTableInstances,
     mkTableInstancesWithTModifier,
@@ -56,10 +58,33 @@ emptyTextHashMap = HMI.empty
 emptyValueHashMap :: M.Map Text (A.Value -> A.Value)
 emptyValueHashMap = M.empty
 
+-- | A partial secondary index. The key is written only for rows where the pinned fields equal the
+--   given values (like Postgres @CREATE INDEX ... WHERE col = 'value'@). The pinned fields double as
+--   the key columns, so nothing in the KV layer needs to change - a row just carries the key when it
+--   matches.
+--
+--   e.g. @SKeyPartial [('status, "ACTIVE")]@ indexes status only for ACTIVE rows (one set, status_ACTIVE).
+data SKeyPartial = SKeyPartial [(Name, String)]
+
+-- | Default for almost every table. Output is identical to before.
 enableKVPG :: Name -> [Name] -> [[Name]] -> Q [Dec]
-enableKVPG name pKeyN sKeysN = do
+enableKVPG name pKeyN sKeysN = kvpgDecs name pKeyN (map (\cols -> (cols, [])) sKeysN)
+
+-- | Like 'enableKVPG' but the table can also declare partial (pinned) secondary keys. Plain keys are
+--   the usual @[[Name]]@; partial keys go in the second list (pass @[]@ when there are none).
+--
+-- > enableKVPGWithPartialIndex ''SearchRequestT ['id]
+-- >   [['transactionId]]                    -- plain
+-- >   [SKeyPartial [('status, "ACTIVE")]]   -- partial: status indexed only when ACTIVE
+enableKVPGWithPartialIndex :: Name -> [Name] -> [[Name]] -> [SKeyPartial] -> Q [Dec]
+enableKVPGWithPartialIndex name pKeyN plainSKeys partialSKeys =
+  kvpgDecs name pKeyN (map (\cols -> (cols, [])) plainSKeys ++ map (\(SKeyPartial pins) -> (map fst pins, pins)) partialSKeys)
+
+-- | Shared by both entry points. A secondary key is @(cols, pins)@: empty pins = plain, non-empty = partial.
+kvpgDecs :: Name -> [Name] -> [([Name], [(Name, String)])] -> Q [Dec]
+kvpgDecs name pKeyN sKeySpecs = do
   [tModeMeshSig, tModeMeshDec] <- tableTModMeshD name
-  [kvConnectorDec] <- kvConnectorInstancesD name pKeyN sKeysN
+  [kvConnectorDec] <- kvConnectorInstancesD name pKeyN sKeySpecs
   [meshMetaDec] <- meshMetaInstancesDPG name
   sqlObjectToJSONInstance <- mkSQLObjectToJSONInstance name
   pure [tModeMeshSig, tModeMeshDec, meshMetaDec, kvConnectorDec, sqlObjectToJSONInstance] -- ++ cerealDec
@@ -81,12 +106,13 @@ tableTModMeshD name = do
 --   keyMap :: HM.HashMap Text Bool -- True implies it is primary key and False implies secondary
 --   primaryKey :: table -> PrimaryKey
 --   secondaryKeys:: table -> [SecondaryKey]
-kvConnectorInstancesD :: Name -> [Name] -> [[Name]] -> Q [Dec]
-kvConnectorInstancesD name pKeyN sKeysN = do
+-- sKeySpecs: one (cols, pins) per secondary key; empty pins = plain, non-empty = partial.
+kvConnectorInstancesD :: Name -> [Name] -> [([Name], [(Name, String)])] -> Q [Dec]
+kvConnectorInstancesD name pKeyN sKeySpecs = do
   let pKey = sortAndGetKey pKeyN
-      sKeys = filter (\k -> pKey /= sortAndGetKey k) sKeysN
+      sKeys = filter (\k -> pKey /= sortAndGetKey (fst k)) sKeySpecs
       pKeyPair = TupE [Just $ LitE $ StringL pKey, Just $ ConE 'True]
-      sKeyPairs = map (\k -> TupE [Just $ LitE $ StringL $ sortAndGetKey k, Just $ ConE 'False]) sKeys
+      sKeyPairs = map (\k -> TupE [Just $ LitE $ StringL $ sortAndGetKey (fst k), Just $ ConE 'False]) sKeys
   let tableNameD = FunD 'KV.tableName [Clause [] (NormalB (LitE (StringL $ init $ camel (nameBase name)))) []]
       keyMapD = FunD 'KV.keyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (pKeyPair : sKeyPairs)))) []]
       primaryKeyD = FunD 'KV.primaryKey [Clause [] (NormalB getPrimaryKeyE) []]
@@ -97,18 +123,26 @@ kvConnectorInstancesD name pKeyN sKeysN = do
     getPrimaryKeyE =
       let obj = mkName "obj"
        in LamE [VarP obj] (AppE (ConE 'KV.PKey) (ListE (map (\n -> TupE [Just $ keyNameTextE n, Just $ getRecFieldE n obj]) pKeyN)))
-    getSecondaryKeysE =
-      if null sKeysN || sKeysN == [[]]
-        then LamE [WildP] (ListE [])
-        else do
-          let obj = mkName "obj"
-          LamE
-            [VarP obj]
-            ( ListE $
-                map
-                  (AppE (ConE 'KV.SKey) . ListE . map (\n -> TupE [Just $ keyNameTextE n, Just $ getRecFieldE n obj]))
-                  sKeysN
-            )
+    getSecondaryKeysE
+      | null sKeySpecs || all (null . fst) sKeySpecs = LamE [WildP] (ListE [])
+      -- All plain: emit the historical @[SKey ...]@ form unchanged (byte-identical output).
+      | all (null . snd) sKeySpecs =
+        let obj = mkName "obj"
+         in LamE [VarP obj] (ListE $ map (\spec -> skeyExprE obj (fst spec)) sKeySpecs)
+      -- At least one pinned key: @concat@ of per-key lists (a singleton, or [] when the pin fails).
+      | otherwise =
+        let obj = mkName "obj"
+         in LamE [VarP obj] (AppE (VarE 'concat) (ListE $ map (perSpecListE obj) sKeySpecs))
+    perSpecListE obj spec = case snd spec of
+      [] -> ListE [skeyExprE obj (fst spec)]
+      pins -> CondE (gateE obj pins) (ListE [skeyExprE obj (fst spec)]) (ListE [])
+    -- Conjunction of @utilTransform (field obj) == T.pack "constant"@ over all pinned fields.
+    gateE obj pins =
+      AppE (VarE 'and) $
+        ListE $
+          map (\(f, c) -> AppE (AppE (VarE '(==)) (getRecFieldE f obj)) (AppE (VarE 'T.pack) (LitE $ StringL c))) pins
+    skeyExprE obj cols =
+      AppE (ConE 'KV.SKey) (ListE $ map (\n -> TupE [Just $ keyNameTextE n, Just $ getRecFieldE n obj]) cols)
     getRecFieldE f obj =
       let fieldName = (splitColon $ nameBase f)
        in AppE (AppE (AppE (VarE 'utilTransform) (VarE 'emptyValueHashMap)) (LitE . StringL $ fieldName)) (AppE (VarE $ mkName fieldName) (VarE obj))
