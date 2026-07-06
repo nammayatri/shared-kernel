@@ -958,6 +958,7 @@ test-suite mobility-core-tests
       Centesimal
       ComputeIntersectionTests
       DistanceCalculation
+      PartialIndexTests
       Predicates
       SettlementEmail
       SettlementMimeCsv
