@@ -23,6 +23,7 @@ data ZendeskCfg = ZendeskCfg
     -- The value is sent directly as "Basic <apiKey>" in the Authorization header.
     apiKey :: EncryptedField 'AsEncrypted Text,
     jwtSecret :: Maybe (EncryptedField 'AsEncrypted Text),
+    messagingKeyId :: Maybe (EncryptedField 'AsEncrypted Text),
     requesterEmail :: Maybe Text,
     organizationId :: Maybe Int,
     groupId :: Maybe Int,
