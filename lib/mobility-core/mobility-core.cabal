@@ -349,6 +349,8 @@ library
       Kernel.External.Verification
       Kernel.External.Verification.Digilocker.Flow
       Kernel.External.Verification.Digilocker.Types
+      Kernel.External.Verification.Ekatra.Client
+      Kernel.External.Verification.Ekatra.Types
       Kernel.External.Verification.GovtData.Client
       Kernel.External.Verification.GovtData.Storage.Beam
       Kernel.External.Verification.GovtData.Storage.Query
@@ -366,6 +368,7 @@ library
       Kernel.External.Verification.Idfy.WebhookHandler
       Kernel.External.Verification.Interface
       Kernel.External.Verification.Interface.Digilocker
+      Kernel.External.Verification.Interface.Ekatra
       Kernel.External.Verification.Interface.HyperVerge
       Kernel.External.Verification.Interface.Idfy
       Kernel.External.Verification.Interface.InternalScripts

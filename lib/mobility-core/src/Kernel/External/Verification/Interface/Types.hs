@@ -21,6 +21,7 @@ where
 import Deriving.Aeson
 import EulerHS.Prelude
 import qualified Kernel.External.Verification.Digilocker.Types as DigiTypes
+import qualified Kernel.External.Verification.Ekatra.Types as EkatraTypes
 import qualified Kernel.External.Verification.HyperVerge.Types as HyperVergeTypes
 import qualified Kernel.External.Verification.Idfy.Config as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
@@ -32,7 +33,7 @@ import qualified Kernel.External.Verification.Tten.Types as TtenTypes
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg | EkatraConfig EkatraTypes.EkatraVerificationCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
