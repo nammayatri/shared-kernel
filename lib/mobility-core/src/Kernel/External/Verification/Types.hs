@@ -28,7 +28,7 @@ import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.JSON (constructorsToLowerOptions, constructorsWithSnakeCase)
 
-data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge | HyperVergeRCDL | DigiLocker | Tten | Morth
+data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge | HyperVergeRCDL | DigiLocker | Tten | Morth | Ekatra
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 data DriverBackgroundVerificationService = SafetyPortal
