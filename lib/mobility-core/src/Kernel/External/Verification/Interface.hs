@@ -56,6 +56,7 @@ import Kernel.External.Verification.GovtData.Types as Reexport
 import Kernel.External.Verification.HyperVerge.Types as Reexport
 import Kernel.External.Verification.Idfy.Config as Reexport
 import qualified Kernel.External.Verification.Interface.Digilocker as DigiLocker
+import qualified Kernel.External.Verification.Interface.Ekatra as Ekatra
 import qualified Kernel.External.Verification.Interface.HyperVerge as HyperVerge
 import qualified Kernel.External.Verification.Interface.Idfy as Idfy
 import qualified Kernel.External.Verification.Interface.InternalScripts as IS
@@ -82,6 +83,7 @@ verifyDL ::
   VerifyDLReq ->
   m VerifyDLResp
 verifyDL serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.verifyDLAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -101,6 +103,7 @@ verifyPanAsync ::
   VerifyPanAsyncReq ->
   m VerifyPanAsyncResp
 verifyPanAsync serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.verifyPanAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -120,6 +123,7 @@ verifyGstAsync ::
   VerifyGstAsyncReq ->
   m VerifyGstAsyncResp
 verifyGstAsync serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.verifyGstAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -139,6 +143,7 @@ verifyBankAccountAsync ::
   VerifyBankAccountAsyncReq ->
   m VerifyAsyncResp
 verifyBankAccountAsync serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.verifyBankAccountAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -158,6 +163,7 @@ verifyPanAadhaarLinkAsync ::
   VerifyPanAadhaarLinkAsyncReq ->
   m VerifyPanAadhaarLinkAsyncResp
 verifyPanAadhaarLinkAsync serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.verifyPanAadhaarLinkAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -177,6 +183,7 @@ verifyUdyamAadhaarAsync ::
   VerifyUdyamAadhaarAsyncReq ->
   m VerifyUdyamAadhaarAsyncResp
 verifyUdyamAadhaarAsync serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.verifyUdyamAadhaarAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -231,6 +238,7 @@ verifyRC' ::
   VerifyRCReq ->
   m VerifyRCResp
 verifyRC' serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.verifyRCAsync cfg req
   GovtDataConfig -> GovtData.verifyRC req
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -250,6 +258,7 @@ validateImage ::
   ValidateImageReq ->
   m ValidateImageResp
 validateImage serviceConfig req = case serviceConfig of
+  EkatraConfig cfg -> Ekatra.validateImage cfg req
   IdfyConfig cfg -> Idfy.validateImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -269,6 +278,7 @@ validateFaceImage ::
   FaceValidationReq ->
   m FaceValidationRes
 validateFaceImage serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig _ -> throwError $ InternalError "Not Implemented!"
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig cfg -> IS.validateFace cfg req
@@ -288,6 +298,7 @@ extractRCImage ::
   ExtractRCImageReq ->
   m ExtractRCImageResp
 extractRCImage serviceConfig req = case serviceConfig of
+  EkatraConfig cfg -> Ekatra.extractRCImage cfg req
   IdfyConfig cfg -> Idfy.extractRCImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -307,6 +318,7 @@ extractDLImage ::
   ExtractDLImageReq ->
   m ExtractDLImageResp
 extractDLImage serviceConfig req = case serviceConfig of
+  EkatraConfig cfg -> Ekatra.extractDLImage cfg req
   IdfyConfig cfg -> Idfy.extractDLImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -326,6 +338,7 @@ extractPanImage ::
   ExtractPanImage ->
   m ExtractedPanImageResp
 extractPanImage serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.extractPanImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -345,6 +358,7 @@ extractGSTImage ::
   ExtractGSTImage ->
   m ExtractedGSTImageResp
 extractGSTImage serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.extractGSTImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -364,6 +378,7 @@ extractUdyogAadhaarAsync ::
   ExtractUdyogAadhaarReq ->
   m VerifyAsyncResp
 extractUdyogAadhaarAsync serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.extractUdyogAadhaarAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -383,6 +398,7 @@ extractAadhaarImage ::
   ExtractAadhaarImageReq ->
   m ExtractAadhaarImageRes
 extractAadhaarImage serviceConfig req = case serviceConfig of
+  EkatraConfig cfg -> Ekatra.extractAadhaarImage cfg req
   IdfyConfig cfg -> Idfy.extractAadhaarImage cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -402,6 +418,7 @@ nameCompare ::
   NameCompareReq ->
   m NameCompareResp
 nameCompare serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.nameCompare cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -433,6 +450,7 @@ verifySdkResp ::
   VerifySdkDataReq ->
   m VerifySdkDataResp
 verifySdkResp serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig _ -> throwError $ InternalError "Not Implemented!"
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
@@ -453,6 +471,7 @@ getTask ::
   (Text -> Maybe Text -> Text -> m ()) ->
   m GetTaskResp
 getTask serviceConfig req updateResp = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.getTask cfg req updateResp
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"
   FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
