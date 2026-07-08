@@ -119,8 +119,19 @@ data RouteInfo = RouteInfo
     boundingBox :: Maybe BoundingBoxWithoutCRS,
     snappedWaypoints :: [LatLong],
     points :: [LatLong],
-    routeToken :: Maybe Text
+    routeToken :: Maybe Text,
+    trafficSegments :: Maybe [RouteTrafficSegment]
   }
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show, Eq, Ord)
+
+data RouteTrafficSegment = RouteTrafficSegment
+  { startIndex :: Int,
+    endIndex :: Int,
+    speed :: TrafficSpeed
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema, Show, Eq, Ord)
+
+data TrafficSpeed = TrafficNormal | TrafficSlow | TrafficJam | TrafficUnspecified
   deriving (Generic, ToJSON, FromJSON, ToSchema, Show, Eq, Ord)
 
 instance FromField RouteInfo where

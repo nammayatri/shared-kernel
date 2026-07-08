@@ -190,7 +190,8 @@ convertRouteToRouteInfo osrmRouteRoutes =
             points = map (.getLatLong) osrmRouteRoutes.geometry.coordinates,
             snappedWaypoints = map (\steps -> getLatLong $ head steps.geometry.coordinates) $ OSRM.steps $ head osrmRouteRoutes.legs,
             boundingBox = Nothing,
-            routeToken = Nothing
+            routeToken = Nothing,
+            trafficSegments = Nothing
           }
 
 getOSRMRoute ::

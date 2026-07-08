@@ -39,6 +39,7 @@ data GoogleCfg = GoogleCfg
 data GoogleRouteConfig = GoogleRouteConfig
   { computeAlternativeRoutes :: Bool,
     routePreference :: RoutingPreference,
+    extraComputations :: Maybe [ExtraComputationV2],
     url :: BaseUrl
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema, FromDhall)

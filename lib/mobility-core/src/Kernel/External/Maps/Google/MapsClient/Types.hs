@@ -416,10 +416,21 @@ data AdvancedDirectionsReq = AdvancedDirectionsReq
     routingPreference :: RoutingPreference,
     travelMode :: Maybe ModeV2,
     computeAlternativeRoutes :: Bool,
-    routeModifiers :: RouteModifiers
+    routeModifiers :: RouteModifiers,
+    extraComputations :: Maybe [ExtraComputationV2]
   }
   -----------remove null fields-----------
   deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data ExtraComputationV2
+  = EXTRA_COMPUTATION_UNSPECIFIED
+  | TRAFFIC_ON_POLYLINE
+  | TOLLS
+  | FUEL_CONSUMPTION
+  | HTML_FORMATTED_NAVIGATION_INSTRUCTIONS
+  | FLYOVER_INFO_ON_POLYLINE
+  | NARROW_ROAD_INFO_ON_POLYLINE
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema, FromDhall)
 
 newtype WayPointV2 = WayPointV2
   { ---- Union field location_type can be only one of the following:
@@ -486,9 +497,26 @@ data RouteV2 = RouteV2
     distanceMeters :: Int,
     duration :: Text,
     staticDuration :: Maybe Text,
-    routeToken :: Maybe Text
+    routeToken :: Maybe Text,
+    polyline :: Maybe Polyline,
+    travelAdvisory :: Maybe RouteTravelAdvisoryV2
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+newtype RouteTravelAdvisoryV2 = RouteTravelAdvisoryV2
+  { speedReadingIntervals :: Maybe [SpeedReadingIntervalV2]
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data SpeedReadingIntervalV2 = SpeedReadingIntervalV2
+  { startPolylinePointIndex :: Maybe Int,
+    endPolylinePointIndex :: Maybe Int,
+    speed :: Maybe SpeedV2
+  }
+  deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+data SpeedV2 = SPEED_UNSPECIFIED | NORMAL | SLOW | TRAFFIC_JAM
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 data ViewPort = ViewPort
   { low :: LatLngV2,
