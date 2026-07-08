@@ -117,7 +117,9 @@ data UpdateTicketReq = UpdateTicketReq
     rideDescription :: Maybe RideInfo,
     issueDetails :: Maybe UpdateIssueDetails,
     requesterId :: Maybe Text,
-    ticketContext :: Maybe TicketContext
+    ticketContext :: Maybe TicketContext,
+    name :: Maybe Text,
+    phoneNo :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -128,5 +130,16 @@ data UpdateIssueDetails = UpdateIssueDetails
     subCategory :: Maybe Text,
     vehicleCategory :: Maybe Text,
     category :: Maybe Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
+
+-- | Status-only update payload. Used by 'updateTicketStatus' on ticket
+-- providers that expose a dedicated status endpoint (XyneSpaces today).
+-- @xyneTicketId@ is the opaque id returned by the provider on ticket create /
+-- inbound append (for Xyne, the value in the @appDeskInbound@ response's
+-- @ticketId@ field — NOT our internal @IssueReport.id@ / threadId).
+data UpdateTicketStatusReq = UpdateTicketStatusReq
+  { xyneTicketId :: Text,
+    status :: TicketStatus
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)

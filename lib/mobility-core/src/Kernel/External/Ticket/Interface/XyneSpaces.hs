@@ -27,11 +27,11 @@
 --     @multipart/form-data@ with a repeated @files@ part. Temp files are
 --     cleaned up after the call (best-effort — they live under @/tmp@).
 --
--- Sender attribution: 'createTicket' uses @req.name@ / @req.phoneNo@; on
--- 'updateTicket' there's no top-level name/phone field on 'UpdateTicketReq',
--- so we derive both from @rideDescription@ (preferring customer over driver)
--- before falling back to @Nothing@. Email is left @Nothing@ for now —
--- 'IssueManagement.Common.Person' has no email field.
+-- Sender attribution: both 'createTicket' and 'updateTicket' use
+-- @req.name@ / @req.phoneNo@ off the request record. When those are
+-- absent on an update, we fall back to values derived from
+-- @rideDescription@ (preferring customer over driver). Email is left
+-- @Nothing@ for now — 'IssueManagement.Common.Person' has no email field.
 --
 -- Note on the returned @ticketId@: we echo back the threadId (= IssueReport id)
 -- rather than Xyne's opaque ticketId so that the existing IssueManagement
@@ -40,9 +40,11 @@
 module Kernel.External.Ticket.Interface.XyneSpaces
   ( createTicket,
     updateTicket,
+    updateTicketStatus,
   )
 where
 
+import Control.Applicative ((<|>))
 import qualified Control.Exception as Exc
 import qualified Data.Aeson as A
 import qualified Data.ByteArray.Encoding as BA
@@ -132,7 +134,9 @@ updateTicket config req = do
   -- req.ticketId is the value createTicket returned (= our threadId).
   let threadId = req.ticketId
   token <- decrypt config.token
-  let (mbSenderName, mbSenderPhone) = senderInfoFromRide req.rideDescription
+  let (mbRideName, mbRidePhone) = senderInfoFromRide req.rideDescription
+      mbSenderName = req.name <|> mbRideName
+      mbSenderPhone = req.phoneNo <|> mbRidePhone
   let xyneReq =
         Xyne.XyneInboundReq
           { channelId = config.channelId,
@@ -163,6 +167,47 @@ updateTicket config req = do
         status = req.status,
         message = "Ticket updated"
       }
+
+-- | Status-only update via Xyne's @/api/apps/ticket/updateTicket@. Deliberately
+-- decoupled from 'updateTicket' (which posts a message via @appDeskInbound@):
+-- the domain layer decides which of the two calls it needs, so a chat comment
+-- does not re-sync status on every message and a status change does not have
+-- to piggyback a fake comment.
+--
+-- @xyneTicketId@ must be Xyne's opaque id (as returned in @resp.ticketId@
+-- from an inbound call), not our @threadId@.
+updateTicketStatus ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  Text ->
+  IT.TicketStatus ->
+  m ()
+updateTicketStatus config xyneTicketId status = do
+  token <- decrypt config.token
+  let statusReq =
+        Xyne.XyneUpdateTicketReq
+          { ticketId = xyneTicketId,
+            channelId = config.channelId,
+            statusV2 = ticketStatusToXyneV2 status
+          }
+  _ <- XF.updateTicketStatusAPI config.url token statusReq
+  logInfo $ "Xyne updateTicketStatus synced: xyneTicketId=" <> xyneTicketId <> " statusV2=" <> statusReq.statusV2
+
+-- | Map the shared 'IT.TicketStatus' enum onto Xyne's @statusV2@ labels.
+-- Xyne's accepted set (per the documented API example): OPEN, IN_PROGRESS,
+-- RESOLVED, CLOSED, REOPENED. Adjust here if Xyne's server-side Zod schema
+-- rejects any of these values.
+ticketStatusToXyneV2 :: IT.TicketStatus -> Text
+ticketStatusToXyneV2 = \case
+  IT.Open -> "OPEN"
+  IT.Pending -> "IN_PROGRESS"
+  IT.Solved -> "RESOLVED"
+  IT.Closed -> "CLOSED"
+  IT.Reopened -> "REOPENED"
 
 -- | Pick JSON vs multipart based on attachment presence. Downloads each
 -- attachment URL to a temp file under @/tmp@ and cleans up afterwards (best
