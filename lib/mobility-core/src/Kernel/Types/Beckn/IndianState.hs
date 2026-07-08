@@ -61,6 +61,8 @@ data IndianState
   | DadraAndNagarHaveli
   | DamanAndDiu
   | NationalCapitalTerritory
+  | JammuAndKashmir
+  | Ladakh
   | Lakshadweep
   | Puducherry
   | Minnesota
@@ -106,6 +108,8 @@ instance FromJSON IndianState where
   parseJSON (String "DadraAndNagarHaveli") = pure DadraAndNagarHaveli
   parseJSON (String "DamanAndDiu") = pure DamanAndDiu
   parseJSON (String "NationalCapitalTerritory") = pure NationalCapitalTerritory
+  parseJSON (String "JammuAndKashmir") = pure JammuAndKashmir
+  parseJSON (String "Ladakh") = pure Ladakh
   parseJSON (String "Lakshadweep") = pure Lakshadweep
   parseJSON (String "Puducherry") = pure Puducherry
   parseJSON (String "Minnesota") = pure Minnesota
@@ -149,6 +153,8 @@ instance ToJSON IndianState where
   toJSON DadraAndNagarHaveli = String "DadraAndNagarHaveli"
   toJSON DamanAndDiu = String "DamanAndDiu"
   toJSON NationalCapitalTerritory = String "NationalCapitalTerritory"
+  toJSON JammuAndKashmir = String "JammuAndKashmir"
+  toJSON Ladakh = String "Ladakh"
   toJSON Lakshadweep = String "Lakshadweep"
   toJSON Puducherry = String "Puducherry"
   toJSON Minnesota = String "Minnesota"
