@@ -15,10 +15,7 @@ module Kernel.External.SMS.Interface
   )
 where
 
-import Data.Char (digitToInt)
-import Data.List (length, (!!))
-import qualified Data.Text as T
-import EulerHS.Prelude hiding (length)
+import EulerHS.Prelude
 import Kernel.External.SMS.DigoEngage.Config as Reexport
 import Kernel.External.SMS.ExotelSms.Config as Reexport
 import Kernel.External.SMS.GupShup.Config as Reexport
@@ -36,7 +33,7 @@ import Kernel.External.SMS.MyValueFirst.Config as Reexport
 import Kernel.External.SMS.PinbixSms.Config as Reexport
 import Kernel.External.SMS.Types as Reexport
 import Kernel.External.SMS.VonageSms.Config as Reexport
-import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics, incrementSmsProviderResponseCounter)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
@@ -80,31 +77,18 @@ sendSMS SmsHandler {..} req = do
   when (null providers) $
     throwError $
       InternalError "No sms serive provider configured"
-  let totalCount = length providers
-      phoneNum = req.phoneNumber
-      lastDigit =
-        if T.null phoneNum
-          then 0
-          else digitToInt (T.last phoneNum)
-
-      startIndex = lastDigit `mod` totalCount
-  circularAttempt providers totalCount startIndex 0
+  attemptProviders providers
   where
-    circularAttempt providers totalCount startIndex currentAttempts = do
-      when (currentAttempts >= totalCount) $
-        throwError $
-          InternalError "Not able to send sms with all the configured providers"
-
-      let currentIndex = (startIndex + currentAttempts) `mod` totalCount
-          preferredProvider = providers !! currentIndex
-      smsConfig <- getProviderConfig preferredProvider
+    attemptProviders [] =
+      throwError $
+        InternalError "Not able to send sms with all the configured providers"
+    attemptProviders (provider : rest) = do
+      smsConfig <- getProviderConfig provider
       result <- withTryCatch "sendSMS" $ sendSMS' smsConfig req
-
+      let providerName = show provider
       case result of
-        Left _ -> fallback
+        Left _ -> incrementSmsProviderResponseCounter providerName "failure" >> attemptProviders rest
         Right res -> case res of
-          UnknownError -> fallback
-          Fail -> fallback
-          _ -> pure res
-      where
-        fallback = circularAttempt providers totalCount startIndex (currentAttempts + 1)
+          UnknownError -> incrementSmsProviderResponseCounter providerName "failure" >> attemptProviders rest
+          Fail -> incrementSmsProviderResponseCounter providerName "failure" >> attemptProviders rest
+          _ -> incrementSmsProviderResponseCounter providerName "success" >> pure res

@@ -66,6 +66,9 @@ type OpenTripPlannerResponseMetric = P.Vector P.Label4 P.Counter
 
 type OpenTripPlannerLatencyMetric = P.Vector P.Label3 P.Histogram
 
+-- | Per-provider SMS outcome counter (labels: "provider", "status", "version").
+type SmsProviderResponseMetric = P.Vector P.Label3 P.Counter
+
 newBuckets :: [Double]
 newBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 20, 25, 30, 40, 50]
 
@@ -98,6 +101,7 @@ class CoreMetrics m where
   addOpenTripPlannerResponse :: Text -> Text -> Text -> m ()
   addOpenTripPlannerLatency :: Text -> Text -> Milliseconds -> m ()
   incrementTryExceptionCounter :: Text -> SomeException -> m ()
+  incrementSmsProviderResponseCounter :: Text -> Text -> m ()
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -120,7 +124,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     kvRedisMetricsContainer :: KVMetrics.KVMetricHandler,
     genericLatencyMetrics :: GenericLatencyMetric,
     openTripPlannerResponseMetric :: OpenTripPlannerResponseMetric,
-    openTripPlannerLatencyMetric :: OpenTripPlannerLatencyMetric
+    openTripPlannerLatencyMetric :: OpenTripPlannerLatencyMetric,
+    smsProviderResponseCounter :: SmsProviderResponseMetric
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -146,6 +151,7 @@ registerCoreMetricsContainer = do
   genericLatencyMetrics <- registerLatencyMetrics
   openTripPlannerResponseMetric <- registerOpenTripPlannerResponseMetric
   openTripPlannerLatencyMetric <- registerOpenTripPlannerLatencyMetric
+  smsProviderResponseCounter <- registerSmsProviderResponseMetric
   return CoreMetricsContainer {..}
 
 registerDatastoresLatencyMetrics :: IO DatastoresLatencyMetric
@@ -307,3 +313,11 @@ registerOpenTripPlannerLatencyMetric =
       P.histogram info newBuckets
   where
     info = P.Info "open_trip_planner_latency_seconds" "OpenTripPlanner request latency in seconds"
+
+registerSmsProviderResponseMetric :: IO SmsProviderResponseMetric
+registerSmsProviderResponseMetric =
+  P.register $
+    P.vector ("provider", "status", "version") $
+      P.counter info
+  where
+    info = P.Info "sms_provider_response_counter" "SMS provider outcome counter labelled by provider, status (success/failure) and version"
