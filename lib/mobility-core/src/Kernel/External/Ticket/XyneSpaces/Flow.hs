@@ -12,21 +12,24 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
--- | Outbound HTTP clients for Xyne Spaces' @POST /api/apps/ticket/appDeskInbound@.
+-- | Outbound HTTP clients for Xyne Spaces.
 --
--- Two variants:
---
---   * 'appDeskInboundAPI' — @application/json@ body, used when the message has
---     no attachments.
---   * 'appDeskInboundMultipartAPI' — @multipart/form-data@, used when the
---     message has attachments. Caller is responsible for fetching attachment
---     URLs to local temp files before calling (see 'Interface.XyneSpaces').
+--   * 'appDeskInboundAPI' — @POST /api/apps/ticket/appDeskInbound@ with an
+--     @application/json@ body; used when the message has no attachments.
+--   * 'appDeskInboundMultipartAPI' — same endpoint as
+--     @multipart/form-data@; used when the message has attachments. Caller
+--     owns temp-file lifecycle (see 'Interface.XyneSpaces').
+--   * 'updateTicketStatusAPI' — @POST /api/apps/ticket/updateTicket@,
+--     status-only update against a Xyne ticket (@ticketId@ is Xyne's opaque
+--     id, not our threadId).
 module Kernel.External.Ticket.XyneSpaces.Flow
   ( appDeskInboundAPI,
     appDeskInboundMultipartAPI,
+    updateTicketStatusAPI,
   )
 where
 
+import qualified Data.Aeson as A
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import EulerHS.Types as Euler
@@ -119,3 +122,27 @@ appDeskInboundMultipartAPI url token req filePartsSpec = do
   where
     mkFileData (formName, displayName, mimeType, filePath) =
       FileData formName displayName (if T.null mimeType then "application/octet-stream" else mimeType) filePath
+
+type XyneUpdateTicketAPI =
+  "api"
+    :> "apps"
+    :> "ticket"
+    :> "updateTicket"
+    :> Header "Authorization" Text
+    :> ReqBody '[JSON] Xyne.XyneUpdateTicketReq
+    :> Post '[JSON] A.Value
+
+updateTicketStatusAPI ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Xyne.XyneUpdateTicketReq ->
+  m A.Value
+updateTicketStatusAPI url token req = do
+  let eulerClient = Euler.client (Proxy @XyneUpdateTicketAPI)
+  callAPI url (eulerClient (Just $ "Bearer " <> token) req) "xyneUpdateTicketAPI" (Proxy @XyneUpdateTicketAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call Xyne updateTicket API: " <> show err)

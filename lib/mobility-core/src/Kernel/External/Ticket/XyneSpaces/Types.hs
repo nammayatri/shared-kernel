@@ -75,6 +75,17 @@ data XyneInboundResp = XyneInboundResp
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
+-- | Request body for @POST /api/apps/ticket/updateTicket@ — status-only
+-- update against a Xyne ticket. @ticketId@ is Xyne's own opaque id (the
+-- @ticketId@ returned from @appDeskInbound@, not our threadId).
+data XyneUpdateTicketReq = XyneUpdateTicketReq
+  { ticketId :: Text,
+    channelId :: Text,
+    statusV2 :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
 -- | Webhook event delivered to our @/internal/xyne/webhook@ endpoint when an
 -- agent replies inside Xyne Spaces. Only DESK_REPLY is currently emitted.
 data XyneWebhookEvent = XyneWebhookEvent
