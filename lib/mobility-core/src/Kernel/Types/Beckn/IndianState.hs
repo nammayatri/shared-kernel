@@ -58,14 +58,16 @@ data IndianState
   | WestBengal
   | AndamanAndNicobarIslands
   | ChandigarhUT
-  | DadraAndNagarHaveli
-  | DamanAndDiu
+  | DadraAndNagarHaveliAndDamanAndDiu
   | NationalCapitalTerritory
   | Lakshadweep
   | Puducherry
   | Minnesota
   | NorthHolland
   | Uusimaa
+  | Delhi
+  | JammuAndKashmir
+  | Ladakh
   | AnyState
   deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable IndianState
@@ -103,14 +105,16 @@ instance FromJSON IndianState where
   parseJSON (String "WestBengal") = pure WestBengal
   parseJSON (String "AndamanAndNicobarIslands") = pure AndamanAndNicobarIslands
   parseJSON (String "ChandigarhUT") = pure ChandigarhUT
-  parseJSON (String "DadraAndNagarHaveli") = pure DadraAndNagarHaveli
-  parseJSON (String "DamanAndDiu") = pure DamanAndDiu
+  parseJSON (String "DadraAndNagarHaveliAndDamanAndDiu") = pure DadraAndNagarHaveliAndDamanAndDiu
   parseJSON (String "NationalCapitalTerritory") = pure NationalCapitalTerritory
   parseJSON (String "Lakshadweep") = pure Lakshadweep
   parseJSON (String "Puducherry") = pure Puducherry
   parseJSON (String "Minnesota") = pure Minnesota
   parseJSON (String "Uusimaa") = pure Uusimaa
   parseJSON (String "NorthHolland") = pure NorthHolland
+  parseJSON (String "Delhi") = pure Delhi
+  parseJSON (String "JammuAndKashmir") = pure JammuAndKashmir
+  parseJSON (String "Ladakh") = pure Ladakh
   parseJSON (String "*") = pure AnyState
   parseJSON (String _) = parseFail "Invalid IndianState"
   parseJSON e = typeMismatch "String" e
@@ -146,12 +150,14 @@ instance ToJSON IndianState where
   toJSON WestBengal = String "WestBengal"
   toJSON AndamanAndNicobarIslands = String "AndamanAndNicobarIslands"
   toJSON ChandigarhUT = String "ChandigarhUT"
-  toJSON DadraAndNagarHaveli = String "DadraAndNagarHaveli"
-  toJSON DamanAndDiu = String "DamanAndDiu"
+  toJSON DadraAndNagarHaveliAndDamanAndDiu = String "DadraAndNagarHaveliAndDamanAndDiu"
   toJSON NationalCapitalTerritory = String "NationalCapitalTerritory"
   toJSON Lakshadweep = String "Lakshadweep"
   toJSON Puducherry = String "Puducherry"
   toJSON Minnesota = String "Minnesota"
   toJSON Uusimaa = String "Uusimaa"
   toJSON NorthHolland = String "NorthHolland"
+  toJSON Delhi = String "Delhi"
+  toJSON JammuAndKashmir = String "JammuAndKashmir"
+  toJSON Ladakh = String "Ladakh"
   toJSON AnyState = String "*"
