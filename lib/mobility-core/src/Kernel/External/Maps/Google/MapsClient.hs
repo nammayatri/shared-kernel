@@ -367,6 +367,16 @@ transitDirectionsAPI entityId url key origin destination mode computeAlternative
     ApiCallLogger.pushExternalApiCallDataToKafka "transitDirectionsAPI" "Google" entityId (Just req) rsp
   checkGoogleMapsError' url rsp
 
+extraComputationFieldMaskSuffix :: GoogleMaps.ExtraComputationV2 -> Text
+extraComputationFieldMaskSuffix = \case
+  GoogleMaps.TRAFFIC_ON_POLYLINE -> ",routes.travelAdvisory.speedReadingIntervals"
+  GoogleMaps.TOLLS -> ",routes.travelAdvisory.tollInfo"
+  GoogleMaps.FUEL_CONSUMPTION -> ",routes.travelAdvisory.fuelConsumptionMicroliters"
+  GoogleMaps.HTML_FORMATTED_NAVIGATION_INSTRUCTIONS -> ",routes.legs.steps.navigationInstruction"
+  GoogleMaps.FLYOVER_INFO_ON_POLYLINE -> ",routes.polylineDetails.flyoverInfo"
+  GoogleMaps.NARROW_ROAD_INFO_ON_POLYLINE -> ",routes.polylineDetails.narrowRoadInfo"
+  GoogleMaps.EXTRA_COMPUTATION_UNSPECIFIED -> ""
+
 advancedDirectionsAPI ::
   ( CoreMetrics m,
     MonadFlow m,
@@ -384,12 +394,15 @@ advancedDirectionsAPI ::
   Bool ->
   Bool ->
   GoogleMaps.RoutingPreference ->
+  Maybe [GoogleMaps.ExtraComputationV2] ->
   m GoogleMaps.AdvancedDirectionsResp
-advancedDirectionsAPI entityId url key origin destination mode intermediates isAvoidTolls computeAlternativeRoutes routingPreference = do
+advancedDirectionsAPI entityId url key origin destination mode intermediates isAvoidTolls computeAlternativeRoutes routingPreference extraComputations = do
   let routeModifiers = GoogleMaps.RouteModifiers {avoidTolls = if isAvoidTolls then Just True else Nothing, avoidFerries = True}
       travelMode = mode
       req = GoogleMaps.AdvancedDirectionsReq {..}
-  rsp <- callAPI url (advancedDirectionsClient key "routes.legs.*,routes.distanceMeters,routes.duration,routes.staticDuration.*,routes.viewport.*,routes.polyline.*,routes.routeLabels.*,routes.routeToken" req) "advancedDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
+      baseFieldMask = "routes.legs.*,routes.distanceMeters,routes.duration,routes.staticDuration.*,routes.viewport.*,routes.polyline.*,routes.routeLabels.*,routes.routeToken"
+      fieldMask = baseFieldMask <> foldMap extraComputationFieldMaskSuffix (fromMaybe [] extraComputations)
+  rsp <- callAPI url (advancedDirectionsClient key fieldMask req) "advancedDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of advancedDirectionsAPI Google ") $
     ApiCallLogger.pushExternalApiCallDataToKafka "advancedDirectionsAPI" "Google" entityId (Just req) rsp
   checkGoogleMapsError' url rsp
