@@ -237,6 +237,7 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   addOpenTripPlannerResponse = Metrics.addOpenTripPlannerResponseImplementation
   addOpenTripPlannerLatency = Metrics.addOpenTripPlannerLatencyImplementation
   incrementTryExceptionCounter = Metrics.incrementTryExceptionCounterImplementation
+  incrementSmsProviderResponseCounter = Metrics.incrementSmsProviderResponseCounterImplementation
 
 instance MonadMonitor (FlowR r) where
   doIO = liftIO
