@@ -902,7 +902,7 @@ buildOfferListResp resp = do
 mkOfferResp :: (MonadThrow m, Log m) => Juspay.OfferResp -> m OfferResp
 mkOfferResp offer = do
   let benefitType' = maybe "DISCOUNT" (._type) (listToMaybe order_breakup.benefits)
-  productDiscounts <- (traverse . traverse) mkProductDiscount order_breakup.product_discounts
+  productDiscounts <- mkProductDiscounts order_breakup.product_discounts
   pure $
     OfferResp
       { offerId = offer_id,
@@ -919,6 +919,11 @@ mkOfferResp offer = do
       }
   where
     Juspay.OfferResp {offer_id, status, offer_code, offer_description, ui_configs, order_breakup} = offer
+
+mkProductDiscounts :: (MonadThrow m, Log m) => Maybe [Juspay.JuspayProductDiscount] -> m (Maybe [ProductDiscount])
+mkProductDiscounts mProductDiscounts = do
+  productDiscounts <- (traverse . traverse) mkProductDiscount mProductDiscounts
+  pure $ filter (\pd -> pd.discountAmount /= 0 || pd.cashbackAmount /= 0) <$> productDiscounts
 
 mkProductDiscount :: (MonadThrow m, Log m) => Juspay.JuspayProductDiscount -> m ProductDiscount
 mkProductDiscount Juspay.JuspayProductDiscount {..} = do
@@ -1027,7 +1032,7 @@ buildOfferApplyResp resp = do
     finalOrderAmount <- parseMoneyV2 offer.order_breakup.final_order_amount "final_order_amount"
     discountAmount <- parseMoneyV2 (fromMaybe "0" offer.order_breakup.discount_amount) "discount_amount"
     cashbackAmount <- parseMoneyV2 (fromMaybe "0" offer.order_breakup.cashback_amount) "cashback_amount"
-    productDiscounts <- (traverse . traverse) mkProductDiscount offer.order_breakup.product_discounts
+    productDiscounts <- mkProductDiscounts offer.order_breakup.product_discounts
     pure
       OfferApplyRespItem
         { finalOrderAmount,
