@@ -420,6 +420,12 @@ library
       Kernel.External.Verification.Tten.Flow
       Kernel.External.Verification.Tten.Types
       Kernel.External.Verification.Types
+      Kernel.External.VoiceSdk.BreezeBuddy.Flow
+      Kernel.External.VoiceSdk.BreezeBuddy.Types
+      Kernel.External.VoiceSdk.Interface
+      Kernel.External.VoiceSdk.Interface.BreezeBuddy
+      Kernel.External.VoiceSdk.Interface.Types
+      Kernel.External.VoiceSdk.Types
       Kernel.External.Wallet
       Kernel.External.Wallet.Interface
       Kernel.External.Wallet.Interface.Juspay
