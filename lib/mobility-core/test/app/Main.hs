@@ -19,6 +19,7 @@ import Centesimal
 import ComputeIntersectionTests
 import DistanceCalculation
 import EulerHS.Prelude
+import MetaCodecs (metaCodecTests)
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -47,5 +48,6 @@ specs = return $ testGroup "Tests" [unitTests]
           snippetsCheckTests,
           predicatesTests,
           settlementEmailTests,
-          partialIndexTests
+          partialIndexTests,
+          metaCodecTests
         ]

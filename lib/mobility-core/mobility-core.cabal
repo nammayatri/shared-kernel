@@ -14,6 +14,25 @@ maintainer:     nammayatri
 copyright:      nammayatri.in
 license:        AGPL
 build-type:     Simple
+data-files:
+    test/resources/meta/inbound-envelope-status-sent.json
+    test/resources/meta/inbound-envelope-text.json
+    test/resources/meta/inbound-interactive-button-reply.json
+    test/resources/meta/inbound-message-list-reply.json
+    test/resources/meta/inbound-message-location.json
+    test/resources/meta/inbound-message-text.json
+    test/resources/meta/inbound-status-failed.json
+    test/resources/meta/outbound-interactive-buttons.json
+    test/resources/meta/outbound-interactive-list.json
+    test/resources/meta/outbound-location-request.json
+    test/resources/meta/outbound-text.json
+    test/resources/meta/outbound-video.json
+    test/resources/meta/scenarios/cancel-mid-search.json
+    test/resources/meta/scenarios/driver-not-found.json
+    test/resources/meta/scenarios/flexi-happy-path.json
+    test/resources/meta/scenarios/out-of-area.json
+    test/resources/meta/scenarios/regular-happy-path.json
+    test/resources/meta/scenarios/token-expiry-reauth.json
 
 source-repository head
   type: git
@@ -149,6 +168,13 @@ library
       Kernel.External.Maps.Types
       Kernel.External.Maps.Utils
       Kernel.External.MasterCloudForward
+      Kernel.External.Meta
+      Kernel.External.Meta.Api
+      Kernel.External.Meta.Config
+      Kernel.External.Meta.Error
+      Kernel.External.Meta.Flow
+      Kernel.External.Meta.Types
+      Kernel.External.Meta.Webhook
       Kernel.External.MultiModal
       Kernel.External.MultiModal.Interface
       Kernel.External.MultiModal.Interface.Google
@@ -961,6 +987,7 @@ test-suite mobility-core-tests
       Centesimal
       ComputeIntersectionTests
       DistanceCalculation
+      MetaCodecs
       PartialIndexTests
       Predicates
       SettlementEmail

@@ -1,0 +1,18 @@
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "+16505551234",
+  "type": "interactive",
+  "interactive": {
+    "type": "button",
+    "header": { "type": "text", "text": "Your appointment" },
+    "body": { "text": "Hi Pablo! Your gardening workshop is scheduled for 9am tomorrow. Use the buttons if you need to reschedule. Thank you!" },
+    "footer": { "text": "Lucky Shrub: Your gateway to succulents!" },
+    "action": {
+      "buttons": [
+        { "type": "reply", "reply": { "id": "change-button", "title": "Change" } },
+        { "type": "reply", "reply": { "id": "cancel-button", "title": "Cancel" } }
+      ]
+    }
+  }
+}

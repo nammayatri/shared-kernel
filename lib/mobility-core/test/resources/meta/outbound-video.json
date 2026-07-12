@@ -1,0 +1,10 @@
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "919876543210",
+  "type": "video",
+  "video": {
+    "link": "https://www.example.com/media/ride-confirmation.mp4",
+    "caption": "Your ride is on the way!"
+  }
+}

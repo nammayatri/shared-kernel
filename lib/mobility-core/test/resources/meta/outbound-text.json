@@ -1,0 +1,10 @@
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "+16505551234",
+  "type": "text",
+  "text": {
+    "preview_url": true,
+    "body": "As requested, here's the link to our latest product: https://www.meta.com/quest/quest-3/"
+  }
+}

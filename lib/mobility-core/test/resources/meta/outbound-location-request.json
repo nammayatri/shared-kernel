@@ -1,0 +1,13 @@
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "type": "interactive",
+  "to": "+16505551234",
+  "interactive": {
+    "type": "location_request_message",
+    "body": {
+      "text": "Let's start with your pickup. You can either manually *enter an address* or *share your current location*."
+    },
+    "action": { "name": "send_location" }
+  }
+}

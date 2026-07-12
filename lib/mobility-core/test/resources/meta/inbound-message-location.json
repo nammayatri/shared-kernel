@@ -1,0 +1,13 @@
+{
+  "from": "16505551234",
+  "id": "wamid.HBgLMTY1MDM4Nzk0MzkVAgASGBQzQUFERjg0NDEzNDdFODU3MUMxMAA=",
+  "timestamp": "1744344496",
+  "location": {
+    "address": "101 Forest Ave, Palo Alto, CA 94301",
+    "latitude": 37.44221496582,
+    "longitude": -122.16165924072,
+    "name": "Philz Coffee",
+    "url": "https://philzcoffee.com/"
+  },
+  "type": "location"
+}

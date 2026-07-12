@@ -1,0 +1,24 @@
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "919876543210",
+  "type": "interactive",
+  "interactive": {
+    "type": "list",
+    "header": { "type": "text", "text": "Available rides" },
+    "body": { "text": "Pick a ride option to continue your booking." },
+    "footer": { "text": "Fares are fixed for Tumkur" },
+    "action": {
+      "button": "View Rides",
+      "sections": [
+        {
+          "title": "View Rides",
+          "rows": [
+            { "id": "ride_auto_001", "title": "Auto", "description": "ETA 4 min · Rs 45 fixed fare" },
+            { "id": "ride_cab_nonac_002", "title": "Cab (Non-AC)", "description": "ETA 7 min · Rs 90 fixed fare" }
+          ]
+        }
+      ]
+    }
+  }
+}

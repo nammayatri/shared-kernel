@@ -1,0 +1,18 @@
+{
+  "context": {
+    "from": "15550783881",
+    "id": "wamid.HBgLMTY0NjcwNDM1OTUVAgARGBJBM0Y4RUU0RUNFQkFDMjYzQUMA"
+  },
+  "from": "16505551234",
+  "id": "wamid.HBgLMTY0NjcwNDM1OTUVAgASGBQzQThBREYwNzc2RDc2QjA1QTIwMgA=",
+  "timestamp": "1714510003",
+  "type": "interactive",
+  "interactive": {
+    "type": "list_reply",
+    "list_reply": {
+      "id": "priority_express",
+      "title": "Priority Mail Express",
+      "description": "Next Day to 2 Days"
+    }
+  }
+}
