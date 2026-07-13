@@ -17,6 +17,7 @@
 module Kernel.External.Meta.Error where
 
 import Data.Aeson
+import qualified Data.ByteString.Lazy as LBS
 import Kernel.External.Meta.Types (metaAesonOptions)
 import Kernel.Prelude hiding (error)
 import Kernel.Types.Error.BaseError
@@ -94,7 +95,11 @@ instance FromResponse MetaError where
   fromResponse resp = Just $ case decode (responseBody resp) :: Maybe MetaErrorResp of
     Just (MetaErrorResp b) ->
       classifyMetaError b.code (MetaErrorInfo b.code b.errorSubcode b.message b.fbtraceId)
-    Nothing -> MetaUnknownError (MetaErrorInfo Nothing Nothing Nothing Nothing)
+    -- Undecodable body: keep a truncated raw snippet so unexpected Meta
+    -- responses remain diagnosable in production.
+    Nothing ->
+      MetaUnknownError
+        (MetaErrorInfo Nothing Nothing (Just ("undecodable Meta response body: " <> show (LBS.take 500 (responseBody resp)))) Nothing)
 
 isRetryableMetaError :: MetaError -> Bool
 isRetryableMetaError = \case

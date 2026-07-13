@@ -13,7 +13,7 @@
 -}
 
 -- | Golden codec tests for Kernel.External.Meta. Round-trips every message type
--- against the Meta-doc-verified examples + 20 live-driver-validated connector
+-- against the Meta-doc-verified examples + 21 live-driver-validated connector
 -- envelopes. Comparison is on Data.Aeson.Value (semantic; key order/whitespace
 -- ignored), never on encoded bytes.
 module MetaCodecs (metaCodecTests) where
@@ -81,7 +81,7 @@ newtype ScenarioFile = ScenarioFile {steps :: [ScenarioStep]}
 
 instance Ae.FromJSON ScenarioFile
 
-newtype ScenarioStep = ScenarioStep {inbound :: Maybe Ae.Value}
+data ScenarioStep = ScenarioStep {inbound :: Maybe Ae.Value, concurrent :: Maybe Ae.Value}
   deriving (Generic)
 
 instance Ae.FromJSON ScenarioStep
@@ -92,8 +92,10 @@ loadScenario nm = do
   bs <- BS.readFile path
   either (\e -> assertFailure ("scenario " <> nm <> ": " <> e)) pure (Ae.eitherDecodeStrict bs)
 
+-- Every inbound webhook envelope in a step: the primary `inbound` plus the
+-- `concurrent` sibling (e.g. cancel-mid-search's Cancel tap racing the search).
 scenarioInbounds :: ScenarioFile -> [Ae.Value]
-scenarioInbounds sf = [ib | s <- sf.steps, Just ib <- [s.inbound]]
+scenarioInbounds sf = [ib | s <- sf.steps, Just ib <- [s.inbound, s.concurrent]]
 
 --------------------------------------------------------------------------------
 -- Tests

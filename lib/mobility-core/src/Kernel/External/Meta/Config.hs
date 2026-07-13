@@ -17,6 +17,7 @@ module Kernel.External.Meta.Config where
 import Kernel.External.Encryption
 import Kernel.Prelude
 import Kernel.Utils.JSON
+import qualified Text.Show as TShow
 
 -- | Configuration for the Meta WhatsApp Cloud API.
 -- The outbound access token is encrypted-at-rest (decrypted only at call time in Flow.hs).
@@ -29,7 +30,29 @@ data MetaCfg = MetaCfg
     verifyToken :: Maybe Text, -- webhook GET handshake (consumed by app later)
     appSecret :: Maybe Text -- webhook HMAC secret (consumed by app later)
   }
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Generic)
+
+-- Custom Show that REDACTS the plaintext webhook secrets (verifyToken,
+-- appSecret) so they can never leak into logs/traces. accessToken is an
+-- EncryptedField whose own Show already shows only the ciphertext.
+instance Show MetaCfg where
+  show MetaCfg {..} =
+    "MetaCfg {accessToken = " <> TShow.show accessToken
+      <> ", baseUrl = "
+      <> TShow.show baseUrl
+      <> ", phoneNumberId = "
+      <> TShow.show phoneNumberId
+      <> ", apiVersion = "
+      <> TShow.show apiVersion
+      <> ", verifyToken = "
+      <> redactMaybe verifyToken
+      <> ", appSecret = "
+      <> redactMaybe appSecret
+      <> "}"
+    where
+      redactMaybe :: Maybe Text -> String
+      redactMaybe Nothing = "Nothing"
+      redactMaybe (Just _) = "Just \"<redacted>\""
 
 instance FromJSON MetaCfg where
   parseJSON = genericParseJSON constructorsWithSnakeCase
