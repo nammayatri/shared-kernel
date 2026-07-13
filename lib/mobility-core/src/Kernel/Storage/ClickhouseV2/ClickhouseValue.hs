@@ -48,10 +48,12 @@ instance FromJSON (Value a) where
 class (Show a, Read a) => ClickhouseValue a where
   toClickhouseValue :: a -> Value a
   fromClickhouseValue :: Value a -> Except a
+  toClickhouseFilterValues :: a -> NonEmpty (Value a)
   toClickhouseValue = String . show
   fromClickhouseValue (String str) = parseAsString @a str
   fromClickhouseValue (Number _) = fail "Unexpected Number"
   fromClickhouseValue Null = fail "Unexpected Null"
+  toClickhouseFilterValues a = toClickhouseValue a :| []
 
 -- For ATLAS_KAFKA env we store numbers as String, for APP_SERVICE_CLICKHOUSE env we store as Number. So we should be able to parse both
 instance ClickhouseValue HighPrecMoney where
@@ -101,6 +103,8 @@ parseAsNumber = Except . eitherResult . A.fromJSON @a . A.Number
 instance ClickhouseValue Bool where
   toClickhouseValue True = Number 1
   toClickhouseValue False = Number 0
+  toClickhouseFilterValues True = Number 1 :| [String "True", String "TRUE", String "true"] -- we are not sure about the current clickhouse Bool format
+  toClickhouseFilterValues False = Number 0 :| [String "False", String "FALSE", String "false"]
   fromClickhouseValue (String "1") = pure True
   fromClickhouseValue (String "0") = pure False
   fromClickhouseValue (String "True") = pure True
@@ -162,6 +166,8 @@ instance ClickhouseValue A.Value where
 instance ClickhouseValue a => ClickhouseValue (Maybe a) where
   toClickhouseValue (Just a) = coerce @(Value a) @(Value (Maybe a)) (toClickhouseValue a)
   toClickhouseValue Nothing = Null
+  toClickhouseFilterValues (Just a) = coerce @(Value a) @(Value (Maybe a)) <$> toClickhouseFilterValues a
+  toClickhouseFilterValues Nothing = Null :| []
   fromClickhouseValue :: ClickhouseValue a => Value (Maybe a) -> Except (Maybe a)
   fromClickhouseValue Null = pure Nothing
   fromClickhouseValue str = Just <$> fromClickhouseValue @a (coerce @(Value (Maybe a)) @(Value a) str)
