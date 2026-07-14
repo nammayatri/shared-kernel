@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# LANGUAGE TemplateHaskell #-}
 
 -- | Golden codec tests for Kernel.External.Meta. Round-trips every message type
 -- against the Meta-doc-verified examples + 21 live-driver-validated connector
@@ -21,9 +22,10 @@ module MetaCodecs (metaCodecTests) where
 import qualified Data.Aeson as Ae
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
+import Data.FileEmbed (embedDir, makeRelativeToProject)
+import Data.List (lookup)
 import EulerHS.Prelude
 import Kernel.External.Meta
-import Paths_mobility_core (getDataFileName)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -31,10 +33,26 @@ import Test.Tasty.HUnit
 -- Helpers
 --------------------------------------------------------------------------------
 
+-- All fixtures under test/resources/meta, embedded into the binary at compile
+-- time (keys are paths relative to that dir, e.g. "outbound-text.json",
+-- "scenarios/flexi-happy-path.json"). This avoids importing the Paths_
+-- data-dir accessors (getDataFileName), which the nixpkgs-patched Cabal marks
+-- deprecated — a -Werror error at the import site. makeRelativeToProject
+-- resolves the path under the nix build dir (not CWD). NB: embedDir does not
+-- track directory additions for recompilation, so after ADDING a fixture file,
+-- touch this module in incremental (devshell) builds; nix builds are always
+-- fresh.
+metaFixtures :: [(FilePath, BS.ByteString)]
+metaFixtures = $(makeRelativeToProject "test/resources/meta" >>= embedDir)
+
+lookupFixture :: FilePath -> IO BS.ByteString
+lookupFixture key = case lookup key metaFixtures of
+  Just bs -> pure bs
+  Nothing -> assertFailure ("embedded fixture not found: " <> key)
+
 loadFixture :: FilePath -> IO Ae.Value
 loadFixture p = do
-  path <- getDataFileName ("test/resources/meta/" <> p)
-  bs <- BS.readFile path
+  bs <- lookupFixture p
   either (\e -> assertFailure ("fixture " <> p <> ": " <> e)) pure (Ae.eitherDecodeStrict bs)
 
 decodeAs :: Ae.FromJSON a => Ae.Value -> IO a
@@ -88,8 +106,7 @@ instance Ae.FromJSON ScenarioStep
 
 loadScenario :: FilePath -> IO ScenarioFile
 loadScenario nm = do
-  path <- getDataFileName ("test/resources/meta/scenarios/" <> nm <> ".json")
-  bs <- BS.readFile path
+  bs <- lookupFixture ("scenarios/" <> nm <> ".json")
   either (\e -> assertFailure ("scenario " <> nm <> ": " <> e)) pure (Ae.eitherDecodeStrict bs)
 
 -- Every inbound webhook envelope in a step: the primary `inbound` plus the

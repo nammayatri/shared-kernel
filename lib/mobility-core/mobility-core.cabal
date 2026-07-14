@@ -14,7 +14,7 @@ maintainer:     nammayatri
 copyright:      nammayatri.in
 license:        AGPL
 build-type:     Simple
-data-files:
+extra-source-files:
     test/resources/meta/inbound-envelope-status-sent.json
     test/resources/meta/inbound-envelope-text.json
     test/resources/meta/inbound-interactive-button-reply.json
@@ -1067,6 +1067,7 @@ test-suite mobility-core-tests
     , exceptions
     , extra
     , fast-logger
+    , file-embed
     , filepath
     , fmt
     , formatting

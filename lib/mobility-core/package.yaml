@@ -174,7 +174,14 @@ ghc-options:
   - -fplugin=RecordDotPreprocessor
   - -Wwarn=ambiguous-fields
 
-data-files:
+# Meta golden fixtures. Embedded at compile time via file-embed (see
+# test/src/MetaCodecs.hs), so the test never imports the Paths_ data-dir
+# accessors (getDataFileName) that the nixpkgs-patched Cabal marks deprecated —
+# a -Werror error at the import site. They are source inputs, not runtime
+# data-files. NB: embedDir embeds everything under test/resources/meta
+# recursively; a new fixture dir/extension needs a matching glob here + a
+# `, hpack` rerun to keep the sdist in sync.
+extra-source-files:
   - test/resources/meta/*.json
   - test/resources/meta/scenarios/*.json
 
@@ -189,8 +196,12 @@ tests:
     source-dirs:
       - test/app
       - test/src
+    # Meta golden fixtures are embedded at compile time via file-embed
+    # (Data.FileEmbed.embedDir), so the test needs no Paths_/getDataFileName and
+    # -Werror stays fully strict. See test/src/MetaCodecs.hs.
     dependencies:
       - mobility-core
+      - file-embed
 
 executables:
   master-cloud-forward-itest:
