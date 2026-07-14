@@ -30,6 +30,7 @@ data XyneSpacesCfg = XyneSpacesCfg
     xyneAgentUserId :: Text,
     -- | Strip HTML from inbound reply bodies before persisting as the chat
     -- @message@ field. Defaults to True on read when omitted from JSON.
-    convertHtmlToPlainText :: Maybe Bool
+    convertHtmlToPlainText :: Maybe Bool,
+    xyneWebhookSigningSecret :: Maybe (EncryptedField 'AsEncrypted Text)
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
