@@ -134,15 +134,14 @@ updateTicket config req = do
   -- req.ticketId is the value createTicket returned (= our threadId).
   let threadId = req.ticketId
   token <- decrypt config.token
-  let (mbRideName, mbRidePhone) = senderInfoFromRide req.rideDescription
+  let (mbRideName, _) = senderInfoFromRide req.rideDescription
       mbSenderName = req.name <|> mbRideName
-      mbSenderPhone = req.phoneNo <|> mbRidePhone
   let xyneReq =
         Xyne.XyneInboundReq
           { channelId = config.channelId,
             threadId = threadId,
             subject = buildUpdateSubject req,
-            body = buildUpdateBody req mbSenderName mbSenderPhone,
+            body = buildUpdateBody req,
             externalId = Nothing,
             senderName = mbSenderName,
             senderEmail = Nothing,
@@ -458,22 +457,12 @@ buildCreateMetadata IT.CreateTicketReq {..} =
       let hosted = filter (not . ("data:" `T.isPrefixOf`)) urls
        in if null hosted then [] else [Just ("Media URLs", T.intercalate ", " hosted)]
 
-buildUpdateBody :: IT.UpdateTicketReq -> Maybe Text -> Maybe Text -> Text
-buildUpdateBody IT.UpdateTicketReq {..} mbName mbPhone =
+buildUpdateBody :: IT.UpdateTicketReq -> Text
+buildUpdateBody IT.UpdateTicketReq {..} =
   T.unlines $
     [comment]
-      <> formatCustomer mbName mbPhone
       <> maybe [] formatRide rideDescription
       <> maybe [] formatUpdateIssueDetails issueDetails
-
-formatCustomer :: Maybe Text -> Maybe Text -> [Text]
-formatCustomer Nothing Nothing = []
-formatCustomer mbName mbPhone =
-  [ "=== Customer ===",
-    "Name: " <> fromMaybe "N/A" mbName,
-    "Phone: " <> fromMaybe "N/A" mbPhone,
-    ""
-  ]
 
 -- | Renders the "Recording / Media" section of the body. Regular @http(s)@
 -- URLs are inlined as text so agents can click through. @data:@ URIs, on the
