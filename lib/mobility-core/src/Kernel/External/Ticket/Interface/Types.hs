@@ -72,7 +72,8 @@ data CreateTicketReq = CreateTicketReq
     classification :: Classification,
     rideDescription :: Maybe RideInfo,
     becknIssueId :: Maybe Text,
-    ticketContext :: Maybe TicketContext
+    ticketContext :: Maybe TicketContext,
+    xyneChannelId :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -119,7 +120,8 @@ data UpdateTicketReq = UpdateTicketReq
     requesterId :: Maybe Text,
     ticketContext :: Maybe TicketContext,
     name :: Maybe Text,
-    phoneNo :: Maybe Text
+    phoneNo :: Maybe Text,
+    xyneChannelId :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -140,6 +142,7 @@ data UpdateIssueDetails = UpdateIssueDetails
 -- @ticketId@ field — NOT our internal @IssueReport.id@ / threadId).
 data UpdateTicketStatusReq = UpdateTicketStatusReq
   { xyneTicketId :: Text,
-    status :: TicketStatus
+    status :: TicketStatus,
+    xyneChannelId :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
