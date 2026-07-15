@@ -22,10 +22,14 @@
 --   * 'updateTicketStatusAPI' — @POST /api/apps/ticket/updateTicket@,
 --     status-only update against a Xyne ticket (@ticketId@ is Xyne's opaque
 --     id, not our threadId).
+--   * 'updateCsatAPI' — @POST /api/csat/external/:ticketId@, submits a
+--     customer satisfaction rating for a ticket. Authenticated via
+--     @X-Api-Key@ rather than the Bearer token used by the other Xyne APIs.
 module Kernel.External.Ticket.XyneSpaces.Flow
   ( appDeskInboundAPI,
     appDeskInboundMultipartAPI,
     updateTicketStatusAPI,
+    updateCsatAPI,
   )
 where
 
@@ -146,3 +150,28 @@ updateTicketStatusAPI url token req = do
   let eulerClient = Euler.client (Proxy @XyneUpdateTicketAPI)
   callAPI url (eulerClient (Just $ "Bearer " <> token) req) "xyneUpdateTicketAPI" (Proxy @XyneUpdateTicketAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call Xyne updateTicket API: " <> show err)
+
+type XyneCsatAPI =
+  "api"
+    :> "csat"
+    :> "external"
+    :> Capture "ticketId" Text
+    :> Header "X-Api-Key" Text
+    :> ReqBody '[JSON] Xyne.XyneCsatReq
+    :> Post '[JSON] A.Value
+
+updateCsatAPI ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Xyne.XyneCsatReq ->
+  m A.Value
+updateCsatAPI url apiKey ticketId req = do
+  let eulerClient = Euler.client (Proxy @XyneCsatAPI)
+  callAPI url (eulerClient ticketId (Just apiKey) req) "xyneUpdateCsatAPI" (Proxy @XyneCsatAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call Xyne CSAT API: " <> show err)
