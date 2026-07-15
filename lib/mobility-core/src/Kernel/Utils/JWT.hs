@@ -106,6 +106,49 @@ createJWT sa additionalClaims = do
               }
       pure $ Right (searchRequest, encodeSigned key jwtHeader searchRequest)
 
+-- | Mint a self-signed RS256 JWT for a service account with a caller-supplied
+-- audience, TTL and arbitrary additional (unregistered) claims.
+--
+-- Unlike 'createJWT'/'doRefreshToken' (which target Google's OAuth token
+-- endpoint and exchange the assertion for an access token), this returns the
+-- signed JWT directly. It is used for APIs that accept self-signed service
+-- account JWTs as bearer credentials (e.g. Fleet Engine), where the audience is
+-- the API host and custom claims scope the token (e.g. @authorization.tripid@).
+createSignedJWTWithClaims ::
+  ServiceAccount ->
+  T.Text -> -- audience (e.g. "https://fleetengine.googleapis.com/")
+  Integer -> -- ttl in seconds
+  [(Text, Value)] -> -- additional unregistered claims
+  IO (Either String Text)
+createSignedJWTWithClaims sa audience ttlSeconds additionalClaims = do
+  let issuer = stringOrURI . saClientEmail $ sa
+  let subject = stringOrURI . saClientEmail $ sa
+  let audience' = Left <$> stringOrURI audience
+  let unregisteredClaims = ClaimsMap $ Map.fromList additionalClaims
+  let jwtHeader =
+        JOSEHeader
+          { typ = Just "JWT",
+            cty = Nothing,
+            alg = Just RS256,
+            kid = Just $ saPrivateKeyId sa
+          }
+  case readRsaSecret . C8.pack $ saPrivateKey sa of
+    Nothing -> pure $ Left "Bad RSA key!"
+    Just pkey -> do
+      let key = EncodeRSAPrivateKey pkey
+      iat <- numericDate <$> getPOSIXTime
+      exp <- numericDate . (+ fromInteger ttlSeconds) <$> getPOSIXTime
+      let jwtClaims =
+            mempty
+              { exp = exp,
+                iat = iat,
+                iss = issuer,
+                sub = subject,
+                aud = audience',
+                unregisteredClaims = unregisteredClaims
+              }
+      pure $ Right (encodeSigned key jwtHeader jwtClaims)
+
 -- | Prepare a request to the token URL
 jwtRequest :: T.Text -> BL.ByteString -> IO Request
 jwtRequest tokenUri body = do
