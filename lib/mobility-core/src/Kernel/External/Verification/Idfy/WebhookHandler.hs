@@ -57,5 +57,6 @@ webhookHandler cfg verifyHandler secret val = do
                 pure Ack
               Nothing -> pure Ack
           DAT.Error err -> do
-            logInfo $ "Error 2: " <> show err
+            logError $ "Error 2: " <> show err
+            logInfo $ "Failed to parse Idfy webhook payload; dropping it. Payload=" <> respDump
             pure Ack
