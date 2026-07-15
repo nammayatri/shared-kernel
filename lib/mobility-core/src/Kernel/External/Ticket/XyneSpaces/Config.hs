@@ -30,6 +30,10 @@ data XyneSpacesCfg = XyneSpacesCfg
     xyneAgentUserId :: Text,
     -- | Strip HTML from inbound reply bodies before persisting as the chat
     -- @message@ field. Defaults to True on read when omitted from JSON.
-    convertHtmlToPlainText :: Maybe Bool
+    convertHtmlToPlainText :: Maybe Bool,
+    -- | @X-Api-Key@ sent on CSAT submission calls (@/api/csat/external/:ticketId@).
+    -- Separate credential from 'token' (Bearer JWT) since Xyne issues and
+    -- rotates the two independently. 'Nothing' when CSAT push is not configured.
+    csatApiKey :: Maybe (EncryptedField 'AsEncrypted Text)
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

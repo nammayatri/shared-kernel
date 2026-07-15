@@ -41,6 +41,7 @@ module Kernel.External.Ticket.Interface.XyneSpaces
   ( createTicket,
     updateTicket,
     updateTicketStatus,
+    updateTicketCsat,
   )
 where
 
@@ -195,6 +196,37 @@ updateTicketStatus config xyneTicketId status = do
           }
   _ <- XF.updateTicketStatusAPI config.url token statusReq
   logInfo $ "Xyne updateTicketStatus synced: xyneTicketId=" <> xyneTicketId <> " statusV2=" <> statusReq.statusV2
+
+-- | CSAT submission via Xyne's @/api/csat/external/:ticketId@. Decoupled from
+-- 'updateTicket' / 'updateTicketStatus' the same way those two are decoupled
+-- from each other — a satisfaction rating is a distinct event from a chat
+-- comment or a status change. No-op (logs and returns @()@) when 'csatApiKey'
+-- is not configured for this merchant, mirroring how other XyneSpaces-only
+-- capabilities degrade for Kapture/Zendesk in the top-level 'Interface'.
+--
+-- @xyneTicketId@ must be Xyne's opaque id (as returned in @resp.ticketId@
+-- from an inbound call), not our @threadId@.
+updateTicketCsat ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  IT.UpdateTicketCsatReq ->
+  m ()
+updateTicketCsat config req = case config.csatApiKey of
+  Nothing -> logInfo $ "Xyne updateTicketCsat skipped (no csatApiKey configured): xyneTicketId=" <> req.xyneTicketId
+  Just encApiKey -> do
+    apiKey <- decrypt encApiKey
+    let csatReq =
+          Xyne.XyneCsatReq
+            { rating = req.rating,
+              score = req.score,
+              comment = req.comment
+            }
+    _ <- XF.updateCsatAPI config.url apiKey req.xyneTicketId csatReq
+    logInfo $ "Xyne updateTicketCsat synced: xyneTicketId=" <> req.xyneTicketId <> " rating=" <> req.rating
 
 -- | Map the shared 'IT.TicketStatus' enum onto Xyne's @statusV2@ labels.
 -- Xyne's accepted set (per the documented API example): OPEN, IN_PROGRESS,

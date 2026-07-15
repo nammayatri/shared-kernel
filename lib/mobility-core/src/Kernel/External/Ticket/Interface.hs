@@ -16,6 +16,7 @@ module Kernel.External.Ticket.Interface
   ( createTicket,
     updateTicket,
     updateTicketStatus,
+    updateTicketCsat,
     addAndUpdateKaptureCustomer,
     kaptureEncryption,
     kapturePullTicket,
@@ -77,6 +78,22 @@ updateTicketStatus serviceConfig req = case serviceConfig of
   KaptureConfig _ -> pure ()
   ZendeskConfig _ -> pure ()
   XyneSpacesConfig cfg -> XyneSpaces.updateTicketStatus cfg req.xyneTicketId req.status
+
+-- | CSAT-only update. Only XyneSpaces has a dedicated endpoint; Kapture and
+-- Zendesk are no-ops here.
+updateTicketCsat ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IssueTicketServiceConfig ->
+  UpdateTicketCsatReq ->
+  m ()
+updateTicketCsat serviceConfig req = case serviceConfig of
+  KaptureConfig _ -> pure ()
+  ZendeskConfig _ -> pure ()
+  XyneSpacesConfig cfg -> XyneSpaces.updateTicketCsat cfg req
 
 addAndUpdateKaptureCustomer ::
   ( EncFlow m r,
