@@ -77,7 +77,7 @@ updateTicketStatus ::
 updateTicketStatus serviceConfig req = case serviceConfig of
   KaptureConfig _ -> pure ()
   ZendeskConfig _ -> pure ()
-  XyneSpacesConfig cfg -> XyneSpaces.updateTicketStatus cfg req.xyneTicketId req.status
+  XyneSpacesConfig cfg -> XyneSpaces.updateTicketStatus cfg req
 
 -- | CSAT-only update. Only XyneSpaces has a dedicated endpoint; Kapture and
 -- Zendesk are no-ops here.

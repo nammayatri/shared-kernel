@@ -90,7 +90,7 @@ createTicket config req = do
   let metadata = buildCreateMetadata req
       xyneReq =
         Xyne.XyneInboundReq
-          { channelId = config.channelId,
+          { channelId = fromMaybe config.channelId req.xyneChannelId,
             threadId = threadId,
             subject = buildSubject req.category req.rideDescription,
             -- Body carries only the customer's own message; everything else
@@ -139,7 +139,7 @@ updateTicket config req = do
       mbSenderName = req.name <|> mbRideName
   let xyneReq =
         Xyne.XyneInboundReq
-          { channelId = config.channelId,
+          { channelId = fromMaybe config.channelId req.xyneChannelId,
             threadId = threadId,
             subject = buildUpdateSubject req,
             body = buildUpdateBody req,
@@ -183,19 +183,18 @@ updateTicketStatus ::
     MonadReader r m
   ) =>
   XyneSpacesCfg ->
-  Text ->
-  IT.TicketStatus ->
+  IT.UpdateTicketStatusReq ->
   m ()
-updateTicketStatus config xyneTicketId status = do
+updateTicketStatus config req = do
   token <- decrypt config.token
   let statusReq =
         Xyne.XyneUpdateTicketReq
-          { ticketId = xyneTicketId,
-            channelId = config.channelId,
-            statusV2 = ticketStatusToXyneV2 status
+          { ticketId = req.xyneTicketId,
+            channelId = fromMaybe config.channelId req.xyneChannelId,
+            statusV2 = ticketStatusToXyneV2 req.status
           }
   _ <- XF.updateTicketStatusAPI config.url token statusReq
-  logInfo $ "Xyne updateTicketStatus synced: xyneTicketId=" <> xyneTicketId <> " statusV2=" <> statusReq.statusV2
+  logInfo $ "Xyne updateTicketStatus synced: xyneTicketId=" <> req.xyneTicketId <> " statusV2=" <> statusReq.statusV2
 
 -- | CSAT submission via Xyne's @/api/csat/external/:ticketId@. Decoupled from
 -- 'updateTicket' / 'updateTicketStatus' the same way those two are decoupled
