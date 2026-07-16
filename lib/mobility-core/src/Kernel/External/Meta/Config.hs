@@ -17,42 +17,19 @@ module Kernel.External.Meta.Config where
 import Kernel.External.Encryption
 import Kernel.Prelude
 import Kernel.Utils.JSON
-import qualified Text.Show as TShow
 
 -- | Configuration for the Meta WhatsApp Cloud API.
--- The outbound access token is encrypted-at-rest (decrypted only at call time in Flow.hs).
--- verifyToken / appSecret are consumed by the inbound-webhook layer (later phase).
+-- The outbound access token is encrypted-at-rest (decrypted only at call time in Flow.hs);
+-- its own 'Show' surfaces only the ciphertext, so a derived 'Show' is safe here.
+-- Inbound-webhook secrets (verify token, app secret) are app-level env config, not
+-- per-merchant, so they live in the consuming service rather than in this stored config.
 data MetaCfg = MetaCfg
   { accessToken :: EncryptedField 'AsEncrypted Text,
     baseUrl :: BaseUrl, -- https://graph.facebook.com
     phoneNumberId :: Text,
-    apiVersion :: Text, -- e.g. "v23.0" — configurable, never hard-coded
-    verifyToken :: Maybe Text, -- webhook GET handshake (consumed by app later)
-    appSecret :: Maybe Text -- webhook HMAC secret (consumed by app later)
+    apiVersion :: Text -- e.g. "v23.0" — configurable, never hard-coded
   }
-  deriving (Eq, Generic)
-
--- Custom Show that REDACTS the plaintext webhook secrets (verifyToken,
--- appSecret) so they can never leak into logs/traces. accessToken is an
--- EncryptedField whose own Show already shows only the ciphertext.
-instance Show MetaCfg where
-  show MetaCfg {..} =
-    "MetaCfg {accessToken = " <> TShow.show accessToken
-      <> ", baseUrl = "
-      <> TShow.show baseUrl
-      <> ", phoneNumberId = "
-      <> TShow.show phoneNumberId
-      <> ", apiVersion = "
-      <> TShow.show apiVersion
-      <> ", verifyToken = "
-      <> redactMaybe verifyToken
-      <> ", appSecret = "
-      <> redactMaybe appSecret
-      <> "}"
-    where
-      redactMaybe :: Maybe Text -> String
-      redactMaybe Nothing = "Nothing"
-      redactMaybe (Just _) = "Just \"<redacted>\""
+  deriving (Eq, Show, Generic)
 
 instance FromJSON MetaCfg where
   parseJSON = genericParseJSON constructorsWithSnakeCase
