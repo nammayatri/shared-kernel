@@ -26,6 +26,7 @@ module Kernel.External.MasterCloudForward
     ForwardAPI,
     forwardAPI,
     runThroughMasterCloud,
+    shouldForwardToCloud,
     getRunApiInMasterCloud,
     forwardEgressApp,
   )
@@ -48,6 +49,8 @@ import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error.BaseError
 import Kernel.Types.Error.BaseError.HTTPError
+import Kernel.Types.Version (CloudType (..))
+import Kernel.Utils.App (lookupCloudType)
 import Kernel.Utils.Dhall (FromDhall)
 import qualified Kernel.Utils.IOLogging as IOLog
 import Kernel.Utils.Logging
@@ -134,8 +137,16 @@ getRunApiInMasterCloud = do
   envVal <- lookupEnv "RUN_API_IN_MASTER_CLOUD"
   pure (fromMaybe False (readMaybe =<< envVal))
 
--- Drop-in replacement for @callAPI@. Triple-gated: env on + masterUrl set +
--- masterSecret set → forwarded. Anything else → direct call.
+-- | Forward iff a target cloud is configured and differs from this pod's own
+-- cloud. A 'Nothing' target (or a target of 'UNAVAILABLE') never forwards.
+shouldForwardToCloud :: CloudType -> Maybe CloudType -> Bool
+shouldForwardToCloud currentCloud targetCloud = case targetCloud of
+  Just target -> target /= UNAVAILABLE && currentCloud /= target
+  Nothing -> False
+
+-- Drop-in replacement for @callAPI@. Triple-gated: caller's target cloud
+-- differs from this pod's cloud + masterUrl set + masterSecret set →
+-- forwarded. Anything else → direct call.
 runThroughMasterCloud ::
   ( HasMasterCloudForwarder r,
     MonadReader r m,
@@ -144,16 +155,17 @@ runThroughMasterCloud ::
     Metrics.CoreMetrics m,
     HasRequestId r
   ) =>
+  Maybe CloudType ->
   BaseUrl ->
   ET.EulerClient a ->
   Text ->
   m (Either ClientError a)
-runThroughMasterCloud origBaseUrl eClient desc = do
-  shouldForward <- liftIO getRunApiInMasterCloud
+runThroughMasterCloud runInCloud origBaseUrl eClient desc = do
+  currentCloud <- liftIO lookupCloudType
   cfg <- asks masterCloudProxyConfig
-  case (shouldForward, cfg.masterUrl, cfg.masterSecret) of
+  case (shouldForwardToCloud currentCloud runInCloud, cfg.masterUrl, cfg.masterSecret) of
     (True, Just fwdUrl, Just secret) -> do
-      logDebug $ "MASTER_CLOUD_FORWARD: forwarding " <> desc <> " via " <> showBaseUrlText fwdUrl
+      logDebug $ "MASTER_CLOUD_FORWARD: forwarding " <> desc <> " to " <> show runInCloud <> " via " <> showBaseUrlText fwdUrl
       interpretWithForwarder origBaseUrl fwdUrl secret eClient
     _ -> do
       logDebug $ "MASTER_CLOUD_FORWARD: direct call for " <> desc

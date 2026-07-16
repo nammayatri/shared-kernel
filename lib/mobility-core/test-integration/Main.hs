@@ -49,6 +49,7 @@ import qualified Kernel.Streaming.Kafka.Producer.Types as Kafka
 import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Metrics
 import qualified Kernel.Types.Flow as KFlow
 import Kernel.Types.Logging (LogLevel (..), LoggerConfig (..))
+import Kernel.Types.Version (CloudType (..))
 import qualified Kernel.Utils.IOLogging as IOLogging
 import Kernel.Utils.Servant.Client (callAPI)
 import qualified Network.HTTP.Client as Http
@@ -193,7 +194,7 @@ main = do
         setEnv "RUN_API_IN_MASTER_CLOUD" "True"
         rForwarded <-
           KFlow.runFlowR flowRt env $
-            runThroughMasterCloud todoBaseUrl (getTodoClient 1) "getTodo-forwarded"
+            runThroughMasterCloud (Just AWS) todoBaseUrl (getTodoClient 1) "getTodo-forwarded"
 
         -- Compare.
         case (rDirect, rForwarded) of
