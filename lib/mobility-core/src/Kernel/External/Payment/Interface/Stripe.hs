@@ -22,6 +22,7 @@ import qualified Kernel.Types.Beckn.Context as Context
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Types.Id
+import Kernel.Types.Servant (RawByteString (..))
 import Kernel.Utils.Common
 
 createConnectAccount ::
@@ -569,7 +570,7 @@ serviceEventWebhook ::
   (Id Stripe.Event -> m Bool) ->
   (Events.ServiceEventResp -> Text -> m AckResponse) ->
   Maybe Text ->
-  Stripe.RawByteString ->
+  RawByteString ->
   m AckResponse
 serviceEventWebhook paymentConfig checkDuplicatedEvent serviceEventHandler mbSigHeader rawBytes = do
   Stripe.serviceEventWebhook paymentConfig checkDuplicatedEvent (\resp respDump -> buildServiceEventResp resp >>= flip serviceEventHandler respDump) mbSigHeader rawBytes

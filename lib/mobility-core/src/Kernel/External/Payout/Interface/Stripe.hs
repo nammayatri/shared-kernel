@@ -17,7 +17,6 @@ import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Stripe (centsToUsd, eurToCents, usdToCents)
 import Kernel.External.Payment.Stripe.Types.Common (Event)
-import Kernel.External.Payment.Stripe.Webhook (RawByteString (..))
 import qualified Kernel.External.Payout.Interface.Events.Types as Events
 import Kernel.External.Payout.Interface.Types as IPayout
 import qualified Kernel.External.Payout.Juspay.Types.Payout as Juspay
@@ -31,6 +30,7 @@ import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Beckn.Ack
 import Kernel.Types.Error
 import Kernel.Types.Id
+import Kernel.Types.Servant (RawByteString (..))
 import Kernel.Utils.Common
 
 createExternalPayout ::

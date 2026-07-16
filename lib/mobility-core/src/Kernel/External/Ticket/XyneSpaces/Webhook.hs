@@ -29,44 +29,10 @@ import Data.ByteArray (constEq)
 import Data.ByteArray.Encoding (Base (Base16), convertFromBase, convertToBase)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
-import qualified Data.List.NonEmpty as NE
-import Data.OpenApi (NamedSchema (NamedSchema), ToSchema (..), byteSchema)
 import Kernel.Prelude
 import Kernel.Types.Error
+import Kernel.Types.Servant (RawByteString (..), RawJson)
 import Kernel.Utils.Common
-import Network.HTTP.Media ((//))
-import Servant hiding (throwError)
-import qualified Servant.API as S
-
--- | OpenApi/Servant wrapper so the inbound webhook route can receive raw
--- bytes for signature verification (JSON parsing happens after verify).
-newtype RawByteString = RawByteString {getRawByteString :: LBS.ByteString}
-
-instance ToSchema RawByteString where
-  declareNamedSchema _ = pure $ NamedSchema (Just "RawByteString") byteSchema
-
-instance S.MimeRender OctetStream RawByteString where
-  mimeRender _ = getRawByteString
-
-instance S.MimeUnrender OctetStream RawByteString where
-  mimeUnrender _ = Right . RawByteString
-
--- | Content type that advertises @application/json@ on the wire (so Servant
--- routes the request when Xyne sends @Content-Type: application/json@) but
--- keeps the body as raw bytes for HMAC verification.
---
--- Defining a fresh 'Accept'-tagged type avoids the overlap with Servant's
--- generic @FromJSON a => MimeUnrender JSON a@ instance.
-data RawJson
-
-instance Accept RawJson where
-  contentTypes _ = NE.fromList ["application" // "json", "application" // "*"]
-
-instance S.MimeRender RawJson RawByteString where
-  mimeRender _ = getRawByteString
-
-instance S.MimeUnrender RawJson RawByteString where
-  mimeUnrender _ = Right . RawByteString
 
 -- | Verify the @X-Xyne-Signature@ header for a raw webhook body using the
 -- shared signing secret. Throws @InvalidRequest@ on mismatch.

@@ -16,7 +16,6 @@ module Kernel.External.Payment.Stripe.Webhook
   ( StripeWebhookAPI,
     serviceEventWebhook,
     verifyStripeWebhookSignature,
-    RawByteString (..),
   )
 where
 
@@ -28,7 +27,6 @@ import Data.ByteArray.Encoding (Base (Base16), convertFromBase, convertToBase)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString.Lazy as LBS
-import Data.OpenApi hiding (Header, get)
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.Tuple.Extra (both)
@@ -39,27 +37,15 @@ import Kernel.Prelude
 import Kernel.Types.Error
 import Kernel.Types.HideSecrets
 import Kernel.Types.Id
+import Kernel.Types.Servant (RawByteString (..), RawJson)
 import Kernel.Utils.Common
 import Servant hiding (throwError)
-import qualified Servant.API as S
 
 type StripeWebhookAPI =
   "service" :> "stripe" :> "payment"
     :> Header "Stripe-Signature" Text
-    :> ReqBody '[OctetStream] RawByteString -- we need raw bytes for proper signature check
+    :> ReqBody '[RawJson] RawByteString -- raw bytes for signature check; Stripe sends application/json
     :> Post '[JSON] AckResponse
-
--- openapi lib does not provide instance for ByteString, so need to define newtype
-newtype RawByteString = RawByteString {getRawByteString :: LBS.ByteString}
-
-instance ToSchema RawByteString where
-  declareNamedSchema _ = pure $ NamedSchema (Just "RawByteString") byteSchema
-
-instance S.MimeRender OctetStream RawByteString where
-  mimeRender _ = getRawByteString
-
-instance S.MimeUnrender OctetStream RawByteString where
-  mimeUnrender _ = Right . RawByteString
 
 serviceEventWebhook ::
   EncFlow m r =>
