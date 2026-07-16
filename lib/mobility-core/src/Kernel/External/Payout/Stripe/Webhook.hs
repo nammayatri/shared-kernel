@@ -3,13 +3,12 @@
 module Kernel.External.Payout.Stripe.Webhook
   ( PayoutStripeWebhookAPI,
     payoutServiceEventWebhook,
-    RawByteString (..),
   )
 where
 
 import qualified Data.Aeson as A
 import Kernel.External.Payment.Stripe.Types.Common (Event)
-import Kernel.External.Payment.Stripe.Webhook (RawByteString (..), verifyStripeWebhookSignature)
+import Kernel.External.Payment.Stripe.Webhook (verifyStripeWebhookSignature)
 import Kernel.External.Payout.Interface.Types
 import qualified Kernel.External.Payout.Stripe.Types.Webhook as PayoutWh
 import Kernel.Prelude
@@ -17,13 +16,14 @@ import Kernel.Types.Beckn.Ack
 import Kernel.Types.Error
 import Kernel.Types.HideSecrets
 import Kernel.Types.Id
+import Kernel.Types.Servant (RawByteString (..), RawJson)
 import Kernel.Utils.Common
 import Servant hiding (throwError)
 
 type PayoutStripeWebhookAPI =
   "service" :> "stripe" :> "payout"
     :> Header "Stripe-Signature" Text
-    :> ReqBody '[OctetStream] RawByteString
+    :> ReqBody '[RawJson] RawByteString
     :> Post '[JSON] AckResponse
 
 payoutServiceEventWebhook ::
