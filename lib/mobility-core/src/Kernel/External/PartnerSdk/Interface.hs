@@ -20,3 +20,14 @@ generateToken ::
   m GenerateTokenResp
 generateToken serviceConfig req = case serviceConfig of
   AarokyaPartnerSdkConfig cfg -> Aarokya.generateToken cfg req
+
+generateContributorToken ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r
+  ) =>
+  PartnerSdkConfig ->
+  GenerateContributorTokenReq ->
+  m GenerateContributorTokenResp
+generateContributorToken serviceConfig req = case serviceConfig of
+  AarokyaPartnerSdkConfig cfg -> Aarokya.generateContributorToken cfg req

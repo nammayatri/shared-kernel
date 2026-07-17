@@ -26,6 +26,27 @@ newtype GenerateTokenResp = GenerateTokenResp
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
+-- | A contributor reference: @refType@ is the tag Aarokya expects
+-- (@"CUSTOMER_ID"@ or @"PHONE"@) and @refValue@ the corresponding identifier.
+data ContributorRef = ContributorRef
+  { refType :: Text,
+    refValue :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data GenerateContributorTokenReq = GenerateContributorTokenReq
+  { beneficiaryIdentifier :: Text,
+    -- | Aarokya @ContributionChannel@ enum value, e.g. @"CUSTOMER_APP"@.
+    contributionChannel :: Maybe Text,
+    contributorRef :: Maybe ContributorRef
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+newtype GenerateContributorTokenResp = GenerateContributorTokenResp
+  { contributorToken :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
 data PartnerSdkConfig
   = AarokyaPartnerSdkConfig Aarokya.AarokyaSdkConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
