@@ -48,3 +48,39 @@ fromAarokyaTokenResponse resp =
   GenerateTokenResp
     { accessToken = resp.access_token
     }
+
+generateContributorToken ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  AarokyaTypes.AarokyaSdkConfig ->
+  GenerateContributorTokenReq ->
+  m GenerateContributorTokenResp
+generateContributorToken config req = do
+  basicToken <- decrypt config.basicToken
+  let aarokyaReq = toAarokyaContributorTokenRequest req
+  resp <- Aarokya.generateContributorToken config.url basicToken aarokyaReq
+  pure $ fromAarokyaContributorTokenResponse resp
+
+toAarokyaContributorTokenRequest :: GenerateContributorTokenReq -> AarokyaTypes.AarokyaContributorTokenRequest
+toAarokyaContributorTokenRequest req =
+  AarokyaTypes.AarokyaContributorTokenRequest
+    { beneficiary_identifier = req.beneficiaryIdentifier,
+      contribution_channel = req.contributionChannel,
+      contributor_ref = toAarokyaContributorReference <$> req.contributorRef
+    }
+
+toAarokyaContributorReference :: ContributorRef -> AarokyaTypes.AarokyaContributorReference
+toAarokyaContributorReference ref =
+  AarokyaTypes.AarokyaContributorReference
+    { type_ = ref.refType,
+      value = ref.refValue
+    }
+
+fromAarokyaContributorTokenResponse :: AarokyaTypes.AarokyaContributorTokenResponse -> GenerateContributorTokenResp
+fromAarokyaContributorTokenResponse resp =
+  GenerateContributorTokenResp
+    { contributorToken = resp.contributor_token
+    }

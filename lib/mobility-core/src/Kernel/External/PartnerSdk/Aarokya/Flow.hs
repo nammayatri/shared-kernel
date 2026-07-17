@@ -26,6 +26,24 @@ generateToken url basicToken request = do
       eulerClient = Euler.client proxy (Just ("Basic " <> basicToken)) request
   callAarokyaAPI url eulerClient "aarokya-generate-token" proxy
 
+type GenerateContributorTokenAPI =
+  "auth"
+    :> "contributor_token"
+    :> Header "Authorization" Text
+    :> ReqBody '[JSON] AarokyaContributorTokenRequest
+    :> Post '[JSON] AarokyaContributorTokenResponse
+
+generateContributorToken ::
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
+  BaseUrl ->
+  Text ->
+  AarokyaContributorTokenRequest ->
+  m AarokyaContributorTokenResponse
+generateContributorToken url basicToken request = do
+  let proxy = Proxy @GenerateContributorTokenAPI
+      eulerClient = Euler.client proxy (Just ("Basic " <> basicToken)) request
+  callAarokyaAPI url eulerClient "aarokya-generate-contributor-token" proxy
+
 callAarokyaAPI :: (MonadFlow m, HasRequestId r, MonadReader r m) => CallAPI' m r api res res
 callAarokyaAPI url eulerClient description proxy = do
   callAPI url eulerClient description proxy
