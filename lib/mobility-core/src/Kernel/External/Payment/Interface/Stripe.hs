@@ -758,7 +758,7 @@ createRefund config req = do
 
     mkRefundResp :: Stripe.RefundObject -> CreateRefundResp
     mkRefundResp Stripe.RefundObject {..} =
-      CreateRefundResp {status = castRefundStatus status, amount = centsToUsd amount, errorCode = failure_reason, ..}
+      CreateRefundResp {status = castRefundStatus status, amount = centsToUsd amount, errorCode = failure_reason, reference = destination_details >>= (.reference), referenceType = destination_details >>= (.reference_type), ..}
 
 castRefundStatus :: Stripe.RefundStatus -> RefundStatus
 castRefundStatus = \case
@@ -811,5 +811,7 @@ mkGetRefundResp Stripe.RefundObject {..} =
       amount = centsToUsd amount,
       currency = readMaybe . T.unpack $ T.toUpper currency,
       status = castRefundStatus status,
-      errorCode = failure_reason
+      errorCode = failure_reason,
+      reference = destination_details >>= (.reference),
+      referenceType = destination_details >>= (.reference_type)
     }
