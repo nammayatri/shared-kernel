@@ -4,6 +4,7 @@
 module Kernel.External.Payment.Stripe.Types.Refund where
 
 import Data.Aeson
+import qualified Data.Aeson.Key as AK
 import qualified Data.HashMap.Strict as HM
 import Data.OpenApi (ToSchema (declareNamedSchema), genericDeclareNamedSchema)
 import Kernel.External.Payment.Stripe.Types.Common
@@ -48,6 +49,44 @@ newtype RefundId = RefundId {getRefundId :: Text}
   deriving stock (Generic, Show, Eq)
   deriving newtype (FromJSON, ToJSON, ToSchema, FromHttpApiData, ToHttpApiData)
 
+-- | The reference is nested under the destination payment method, so the key is dynamic:
+--   destination_details.card.reference, .eu_bank_transfer.reference, etc. The sibling `type` names it.
+data RefundDestinationDetails = RefundDestinationDetails
+  { _type :: Text, -- Names the nested key holding the reference; not the nested object's own 'type'
+    reference :: Maybe Text, -- The number the customer can trace with their bank
+    reference_status :: Maybe Text, -- pending | available | unavailable
+    reference_type :: Maybe Text -- e.g. acquirer_reference_number; cards only
+  }
+  deriving stock (Show, Generic)
+
+instance FromJSON RefundDestinationDetails where
+  parseJSON = withObject "RefundDestinationDetails" $ \obj -> do
+    _type <- obj .: "type"
+    obj .:? AK.fromText _type >>= \case
+      Nothing -> pure RefundDestinationDetails {reference = Nothing, reference_status = Nothing, reference_type = Nothing, ..}
+      Just details -> do
+        reference <- details .:? "reference"
+        reference_status <- details .:? "reference_status"
+        reference_type <- details .:? "reference_type"
+        pure RefundDestinationDetails {..}
+
+instance ToJSON RefundDestinationDetails where
+  toJSON RefundDestinationDetails {..} =
+    object
+      [ "type" .= _type,
+        AK.fromText _type
+          .= object
+            ( catMaybes
+                [ ("reference" .=) <$> reference,
+                  ("reference_status" .=) <$> reference_status,
+                  ("reference_type" .=) <$> reference_type
+                ]
+            )
+      ]
+
+instance ToSchema RefundDestinationDetails where
+  declareNamedSchema = genericDeclareNamedSchema S.stripPrefixUnderscoreIfAny
+
 data RefundObject = RefundObject
   { id :: RefundId,
     _object :: Text, -- Value is 'refund'
@@ -56,6 +95,7 @@ data RefundObject = RefundObject
     charge :: Maybe Text, -- ID of the charge that was refunded
     created :: Int, -- Time at which the refund was created
     currency :: Text, -- Currency of the refund
+    destination_details :: Maybe RefundDestinationDetails, -- Where the refund was sent, and its bank-traceable reference
     metadata :: Maybe Metadata, -- Set of key-value pairs attached to the refund
     payment_intent :: Maybe Text, -- ID of the PaymentIntent that was refunded
     reason :: Maybe RefundReason, -- Reason for the refund
