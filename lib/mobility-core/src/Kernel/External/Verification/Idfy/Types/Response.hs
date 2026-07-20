@@ -205,7 +205,7 @@ data RCVerificationOutput = RCVerificationOutput
     permit_validity_from :: Maybe Text,
     puc_number :: Maybe A.Value,
     owner_mobile_no :: Maybe A.Value,
-    blacklist_status :: Maybe Text,
+    blacklist_status :: Maybe A.Value,
     body_type :: Maybe Text,
     unladden_weight :: Maybe A.Value,
     insurance_name :: Maybe Text,

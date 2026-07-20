@@ -72,7 +72,8 @@ data CreateTicketReq = CreateTicketReq
     classification :: Classification,
     rideDescription :: Maybe RideInfo,
     becknIssueId :: Maybe Text,
-    ticketContext :: Maybe TicketContext
+    ticketContext :: Maybe TicketContext,
+    xyneChannelId :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -119,7 +120,8 @@ data UpdateTicketReq = UpdateTicketReq
     requesterId :: Maybe Text,
     ticketContext :: Maybe TicketContext,
     name :: Maybe Text,
-    phoneNo :: Maybe Text
+    phoneNo :: Maybe Text,
+    xyneChannelId :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -140,6 +142,26 @@ data UpdateIssueDetails = UpdateIssueDetails
 -- @ticketId@ field — NOT our internal @IssueReport.id@ / threadId).
 data UpdateTicketStatusReq = UpdateTicketStatusReq
   { xyneTicketId :: Text,
-    status :: TicketStatus
+    status :: TicketStatus,
+    xyneChannelId :: Maybe Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
+
+-- | CSAT-only update payload. Used by 'updateTicketCsat' on ticket providers
+-- that expose a dedicated CSAT endpoint (XyneSpaces today). @xyneTicketId@ is
+-- the opaque id returned by the provider on ticket create / inbound append
+-- (for Xyne, the value in the @appDeskInbound@ response's @ticketId@ field —
+-- NOT our internal @IssueReport.id@ / threadId).
+--
+-- @rating@ is kept as free-form 'Text' rather than an enum: only one accepted
+-- value ("GOOD") is confirmed from Xyne's docs so far, and the CSAT endpoint's
+-- Zod schema rejects unrecognised fields hard — encoding an incomplete guess
+-- as a closed sum type risks silently excluding valid values. Tighten to an
+-- enum once the full accepted set is confirmed.
+data UpdateTicketCsatReq = UpdateTicketCsatReq
+  { xyneTicketId :: Text,
+    rating :: Text,
+    score :: Int,
+    comment :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)

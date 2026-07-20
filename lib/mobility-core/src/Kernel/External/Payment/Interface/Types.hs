@@ -946,8 +946,10 @@ data CreateRefundReq = CreateRefundReq
 data CreateRefundResp = CreateRefundResp
   { id :: RefundId,
     status :: RefundStatus,
-    reverseTransferId :: Maybe Text,
-    errorCode :: Maybe Text
+    amount :: HighPrecMoney,
+    errorCode :: Maybe Text,
+    reference :: Maybe Text,
+    referenceType :: Maybe Text
   }
 
 data GetRefundReq = GetRefundReq
@@ -964,8 +966,9 @@ data GetRefundResp = GetRefundResp
     amount :: HighPrecMoney,
     currency :: Maybe Currency,
     status :: RefundStatus,
-    reverseTransferId :: Maybe Text,
-    errorCode :: Maybe Text
+    errorCode :: Maybe Text,
+    reference :: Maybe Text, -- Assigned asynchronously, up to 7 business days after the refund
+    referenceType :: Maybe Text -- acquirer_reference_number | stan | rrn; cards only
   }
   deriving stock (Show)
 
@@ -1044,8 +1047,11 @@ data RefundPaymentReq = RefundPaymentReq
 data RefundPaymentResp = RefundPaymentResp
   { refundId :: Text,
     status :: RefundStatus,
+    amount :: Maybe HighPrecMoney,
     errorCode :: Maybe Text,
-    errorMessage :: Maybe Text
+    errorMessage :: Maybe Text,
+    reference :: Maybe Text,
+    referenceType :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

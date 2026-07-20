@@ -86,6 +86,18 @@ data XyneUpdateTicketReq = XyneUpdateTicketReq
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
+-- | Request body for @POST /api/csat/external/:ticketId@ — submits a
+-- customer satisfaction rating against a Xyne ticket. @ticketId@ travels in
+-- the URL path (see 'Kernel.External.Ticket.XyneSpaces.Flow.updateCsatAPI'),
+-- not in this body.
+data XyneCsatReq = XyneCsatReq
+  { rating :: Text,
+    score :: Int,
+    comment :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
 -- | Webhook event delivered to our @/internal/xyne/webhook@ endpoint when an
 -- agent replies inside Xyne Spaces. Only DESK_REPLY is currently emitted.
 data XyneWebhookEvent = XyneWebhookEvent

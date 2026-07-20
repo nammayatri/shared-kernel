@@ -41,6 +41,7 @@ module Kernel.External.Ticket.Interface.XyneSpaces
   ( createTicket,
     updateTicket,
     updateTicketStatus,
+    updateTicketCsat,
   )
 where
 
@@ -89,7 +90,7 @@ createTicket config req = do
   let metadata = buildCreateMetadata req
       xyneReq =
         Xyne.XyneInboundReq
-          { channelId = config.channelId,
+          { channelId = fromMaybe config.channelId req.xyneChannelId,
             threadId = threadId,
             subject = buildSubject req.category req.rideDescription,
             -- Body carries only the customer's own message; everything else
@@ -134,15 +135,14 @@ updateTicket config req = do
   -- req.ticketId is the value createTicket returned (= our threadId).
   let threadId = req.ticketId
   token <- decrypt config.token
-  let (mbRideName, mbRidePhone) = senderInfoFromRide req.rideDescription
+  let (mbRideName, _) = senderInfoFromRide req.rideDescription
       mbSenderName = req.name <|> mbRideName
-      mbSenderPhone = req.phoneNo <|> mbRidePhone
   let xyneReq =
         Xyne.XyneInboundReq
-          { channelId = config.channelId,
+          { channelId = fromMaybe config.channelId req.xyneChannelId,
             threadId = threadId,
             subject = buildUpdateSubject req,
-            body = buildUpdateBody req mbSenderName mbSenderPhone,
+            body = buildUpdateBody req,
             externalId = Nothing,
             senderName = mbSenderName,
             senderEmail = Nothing,
@@ -183,19 +183,49 @@ updateTicketStatus ::
     MonadReader r m
   ) =>
   XyneSpacesCfg ->
-  Text ->
-  IT.TicketStatus ->
+  IT.UpdateTicketStatusReq ->
   m ()
-updateTicketStatus config xyneTicketId status = do
+updateTicketStatus config req = do
   token <- decrypt config.token
   let statusReq =
         Xyne.XyneUpdateTicketReq
-          { ticketId = xyneTicketId,
-            channelId = config.channelId,
-            statusV2 = ticketStatusToXyneV2 status
+          { ticketId = req.xyneTicketId,
+            channelId = fromMaybe config.channelId req.xyneChannelId,
+            statusV2 = ticketStatusToXyneV2 req.status
           }
   _ <- XF.updateTicketStatusAPI config.url token statusReq
-  logInfo $ "Xyne updateTicketStatus synced: xyneTicketId=" <> xyneTicketId <> " statusV2=" <> statusReq.statusV2
+  logInfo $ "Xyne updateTicketStatus synced: xyneTicketId=" <> req.xyneTicketId <> " statusV2=" <> statusReq.statusV2
+
+-- | CSAT submission via Xyne's @/api/csat/external/:ticketId@. Decoupled from
+-- 'updateTicket' / 'updateTicketStatus' the same way those two are decoupled
+-- from each other — a satisfaction rating is a distinct event from a chat
+-- comment or a status change. No-op (logs and returns @()@) when 'csatApiKey'
+-- is not configured for this merchant, mirroring how other XyneSpaces-only
+-- capabilities degrade for Kapture/Zendesk in the top-level 'Interface'.
+--
+-- @xyneTicketId@ must be Xyne's opaque id (as returned in @resp.ticketId@
+-- from an inbound call), not our @threadId@.
+updateTicketCsat ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  IT.UpdateTicketCsatReq ->
+  m ()
+updateTicketCsat config req = case config.csatApiKey of
+  Nothing -> logInfo $ "Xyne updateTicketCsat skipped (no csatApiKey configured): xyneTicketId=" <> req.xyneTicketId
+  Just encApiKey -> do
+    apiKey <- decrypt encApiKey
+    let csatReq =
+          Xyne.XyneCsatReq
+            { rating = req.rating,
+              score = req.score,
+              comment = req.comment
+            }
+    _ <- XF.updateCsatAPI config.url apiKey req.xyneTicketId csatReq
+    logInfo $ "Xyne updateTicketCsat synced: xyneTicketId=" <> req.xyneTicketId <> " rating=" <> req.rating
 
 -- | Map the shared 'IT.TicketStatus' enum onto Xyne's @statusV2@ labels.
 -- Xyne's accepted set (per the documented API example): OPEN, IN_PROGRESS,
@@ -458,22 +488,12 @@ buildCreateMetadata IT.CreateTicketReq {..} =
       let hosted = filter (not . ("data:" `T.isPrefixOf`)) urls
        in if null hosted then [] else [Just ("Media URLs", T.intercalate ", " hosted)]
 
-buildUpdateBody :: IT.UpdateTicketReq -> Maybe Text -> Maybe Text -> Text
-buildUpdateBody IT.UpdateTicketReq {..} mbName mbPhone =
+buildUpdateBody :: IT.UpdateTicketReq -> Text
+buildUpdateBody IT.UpdateTicketReq {..} =
   T.unlines $
     [comment]
-      <> formatCustomer mbName mbPhone
       <> maybe [] formatRide rideDescription
       <> maybe [] formatUpdateIssueDetails issueDetails
-
-formatCustomer :: Maybe Text -> Maybe Text -> [Text]
-formatCustomer Nothing Nothing = []
-formatCustomer mbName mbPhone =
-  [ "=== Customer ===",
-    "Name: " <> fromMaybe "N/A" mbName,
-    "Phone: " <> fromMaybe "N/A" mbPhone,
-    ""
-  ]
 
 -- | Renders the "Recording / Media" section of the body. Regular @http(s)@
 -- URLs are inlined as text so agents can click through. @data:@ URIs, on the

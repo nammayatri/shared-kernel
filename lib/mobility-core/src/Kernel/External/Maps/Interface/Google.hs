@@ -164,12 +164,13 @@ getRoutes entityId isAvoidToll cfg req = do
           destination = NE.last waypointsV2
           intermediates = if length waypointsV2 > 2 then Just $ init $ NE.tail waypointsV2 else Nothing
           mode = getModeV2 <$> req.mode
-      result <- withTryCatch "getRoutes" $ GoogleMaps.advancedDirectionsAPI entityId googleMapsUrl key origin destination mode intermediates isAvoidToll computeAlternativeRoutes routePreference
+          extraComputations = cfg.googleRouteConfig.extraComputations
+      result <- withTryCatch "getRoutes" $ GoogleMaps.advancedDirectionsAPI entityId googleMapsUrl key origin destination mode intermediates isAvoidToll computeAlternativeRoutes routePreference extraComputations
       case result of
         Right gRes -> do
           if null gRes.routes && isAvoidToll
             then do
-              gResp <- GoogleMaps.advancedDirectionsAPI entityId googleMapsUrl key origin destination mode intermediates False computeAlternativeRoutes routePreference
+              gResp <- GoogleMaps.advancedDirectionsAPI entityId googleMapsUrl key origin destination mode intermediates False computeAlternativeRoutes routePreference extraComputations
               traverse (mkRoute' routeProxyReq) gResp.routes
             else traverse (mkRoute' routeProxyReq) gRes.routes
         Left err -> do
@@ -201,6 +202,24 @@ getRoutes entityId isAvoidToll cfg req = do
         BICYCLE -> GoogleMaps.BICYCLE
         MOTORCYCLE -> GoogleMaps.TWO_WHEELER
 
+mkTrafficSegments :: Maybe GoogleMaps.RouteTravelAdvisoryV2 -> Maybe [RouteTrafficSegment]
+mkTrafficSegments mbAdvisory = do
+  advisory <- mbAdvisory
+  intervals <- advisory.speedReadingIntervals
+  case mapMaybe convertInterval intervals of
+    [] -> Nothing
+    segs -> Just segs
+  where
+    convertInterval interval = do
+      endIdx <- interval.endPolylinePointIndex
+      sp <- interval.speed
+      let startIdx = fromMaybe 0 interval.startPolylinePointIndex
+      pure $ RouteTrafficSegment {startIndex = startIdx, endIndex = endIdx, speed = mapSpeed sp}
+    mapSpeed GoogleMaps.NORMAL = TrafficNormal
+    mapSpeed GoogleMaps.SLOW = TrafficSlow
+    mapSpeed GoogleMaps.TRAFFIC_JAM = TrafficJam
+    mapSpeed GoogleMaps.SPEED_UNSPECIFIED = TrafficUnspecified
+
 mkRoute' ::
   (MonadFlow m) =>
   GetRoutesReqProxy ->
@@ -211,7 +230,7 @@ mkRoute' req route = do
   if null route.legs
     then do
       logTagWarning "GoogleMapsDirections" ("Empty route.legs, " <> show req)
-      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] [] Nothing
+      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] [] Nothing Nothing
     else do
       when (length route.legs > 1) $
         logTagWarning "GoogleMapsDirections" ("More than one element in route.legs, " <> show req)
@@ -219,10 +238,14 @@ mkRoute' req route = do
       let totalDistance = Meters route.distanceMeters
           distanceWithUnit = Distance (toHighPrecDistance totalDistance) Meter
           allSteps = foldl (\acc leg -> acc ++ leg.steps) [] route.legs
-          polylinePoints = concatMap (\step -> decode step.polyline.encodedPolyline) allSteps
+          stepPolylinePoints = concatMap (\step -> decode step.polyline.encodedPolyline) allSteps
           totalStaticDuration = durationInS =<< route.staticDuration
+          mbTrafficSegments = mkTrafficSegments route.travelAdvisory
+          polylinePoints = case (mbTrafficSegments, route.polyline) of
+            (Just _, Just rp) -> decode rp.encodedPolyline
+            _ -> stepPolylinePoints
       totalDuration <- durationInS route.duration & fromMaybeM (InternalError "No duration value provided in advanced directions API response")
-      return $ RouteInfo (Just totalDuration) totalStaticDuration (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints route.routeToken
+      return $ RouteInfo (Just totalDuration) totalStaticDuration (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints route.routeToken mbTrafficSegments
   where
     mkBounds :: GoogleMaps.ViewPort -> BoundingBoxWithoutCRS
     mkBounds viewport =
@@ -245,7 +268,7 @@ mkRoute req route = do
   if null route.legs
     then do
       logTagWarning "GoogleMapsDirections" ("Empty route.legs, " <> show req)
-      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] [] Nothing
+      return $ RouteInfo Nothing Nothing Nothing Nothing bound [] [] Nothing Nothing
     else do
       when (length route.legs > 1) $
         logTagWarning "GoogleMapsDirections" ("More than one element in route.legs, " <> show req)
@@ -258,8 +281,8 @@ mkRoute req route = do
       -- TODO: Fix snappedWayPoints: the waypoint passed in request which are snapped to road
       -- snappedWayPoints = (\step -> (LatLong step.start_location.lat step.start_location.lng, LatLong step.end_location.lat step.end_location.lng)) <$> steps
 
-      -- Basic Directions API does not return route tokens (Routes API v2 only).
-      return $ RouteInfo (Just totalDuration) Nothing (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints Nothing
+      -- Basic Directions API does not return route tokens or traffic (Routes API v2 only).
+      return $ RouteInfo (Just totalDuration) Nothing (Just totalDistance) (Just distanceWithUnit) bound [] polylinePoints Nothing Nothing
   where
     mkBounds :: GoogleMaps.Bounds -> BoundingBoxWithoutCRS
     mkBounds gBound =

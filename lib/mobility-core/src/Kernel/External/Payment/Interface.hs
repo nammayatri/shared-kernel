@@ -678,8 +678,11 @@ refundPayment serviceConfig mRoutingId req = case serviceConfig of
       RefundPaymentResp
         { refundId = req.refundsId,
           status = maybe REFUND_PENDING (.status) firstRefund,
+          amount = Nothing, -- Juspay refund responses do not surface the refunded amount
           errorCode = firstRefund >>= (.errorCode),
-          errorMessage = firstRefund >>= (.errorMessage)
+          errorMessage = firstRefund >>= (.errorMessage),
+          reference = firstRefund >>= (.arn), -- Juspay's arn is its reference number
+          referenceType = Nothing -- Juspay does not tell us which kind
         }
   StripeConfig cfg -> do
     paymentIntentId' <- req.paymentIntentId & fromMaybeM (InternalError "paymentIntentId required for Stripe refund")
@@ -700,8 +703,11 @@ refundPayment serviceConfig mRoutingId req = case serviceConfig of
       RefundPaymentResp
         { refundId = resp.id.getRefundId,
           status = resp.status,
+          amount = Just resp.amount,
           errorCode = resp.errorCode,
-          errorMessage = Nothing
+          errorMessage = Nothing,
+          reference = resp.reference,
+          referenceType = resp.referenceType
         }
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Refund not supported."
 
@@ -724,7 +730,10 @@ getRefundStatus serviceConfig req = case serviceConfig of
       RefundPaymentResp
         { refundId = resp.id.getRefundId,
           status = resp.status,
+          amount = Just resp.amount,
           errorCode = resp.errorCode,
-          errorMessage = Nothing
+          errorMessage = Nothing,
+          reference = resp.reference,
+          referenceType = resp.referenceType
         }
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC getRefundStatus not supported."

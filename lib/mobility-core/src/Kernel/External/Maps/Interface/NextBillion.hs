@@ -60,7 +60,8 @@ convertToRoute route =
       boundingBox = Nothing,
       snappedWaypoints = [],
       points = PP.decode $ route.geometry,
-      routeToken = Nothing
+      routeToken = Nothing,
+      trafficSegments = Nothing
     }
 
 latLongToPlace :: LatLong -> GoogleMaps.Place
