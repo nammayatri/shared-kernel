@@ -85,6 +85,10 @@ library
       Kernel.External.EventTracking.Moengage.Flow
       Kernel.External.EventTracking.Moengage.Types
       Kernel.External.EventTracking.Types
+      Kernel.External.FleetEngine.Auth
+      Kernel.External.FleetEngine.Client
+      Kernel.External.FleetEngine.Config
+      Kernel.External.FleetEngine.Types
       Kernel.External.GoogleTranslate.API
       Kernel.External.GoogleTranslate.Client
       Kernel.External.GoogleTranslate.Types
