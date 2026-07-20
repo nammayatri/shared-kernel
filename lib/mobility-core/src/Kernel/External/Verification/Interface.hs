@@ -72,6 +72,7 @@ import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
+import Kernel.Utils.Forkable (runWithFallbackAndTimeout)
 
 verifyDL ::
   ( EncFlow m r,
@@ -292,41 +293,57 @@ extractRCImage ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r,
-    MonadReader r m
+    MonadReader r m,
+    Forkable m
   ) =>
-  VerificationServiceConfig ->
+  ImageExtractionHandler m ->
   ExtractRCImageReq ->
   m ExtractRCImageResp
-extractRCImage serviceConfig req = case serviceConfig of
-  EkatraConfig cfg -> Ekatra.extractRCImage cfg req
-  IdfyConfig cfg -> Idfy.extractRCImage cfg req
-  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
-  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
-  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
-  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
+extractRCImage ImageExtractionHandler {..} req = do
+  providers <- getProvidersPriorityList
+  timeoutInSec <- getProviderTimeout
+  when (null providers) $
+    throwError (InternalError "extractRCImage: No image extraction provider configured in the priority list")
+  runWithFallbackAndTimeout "extractRCImage" providers timeoutInSec (isJust . (.extractedRC)) $ \provider -> do
+    serviceConfig <- getProviderConfig provider
+    case serviceConfig of
+      EkatraConfig cfg -> Ekatra.extractRCImage cfg req
+      IdfyConfig cfg -> Idfy.extractRCImage cfg req
+      GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+      FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+      HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+      HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+      DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+      TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+      MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
   ( EncFlow m r,
     CoreMetrics m,
     HasRequestId r,
-    MonadReader r m
+    MonadReader r m,
+    Forkable m
   ) =>
-  VerificationServiceConfig ->
+  ImageExtractionHandler m ->
   ExtractDLImageReq ->
   m ExtractDLImageResp
-extractDLImage serviceConfig req = case serviceConfig of
-  EkatraConfig cfg -> Ekatra.extractDLImage cfg req
-  IdfyConfig cfg -> Idfy.extractDLImage cfg req
-  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
-  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
-  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
-  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
-  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
+extractDLImage ImageExtractionHandler {..} req = do
+  providers <- getProvidersPriorityList
+  timeoutInSec <- getProviderTimeout
+  when (null providers) $
+    throwError (InternalError "extractDLImage: No image extraction provider configured in the priority list")
+  runWithFallbackAndTimeout "extractDLImage" providers timeoutInSec (isJust . (.extractedDL)) $ \provider -> do
+    serviceConfig <- getProviderConfig provider
+    case serviceConfig of
+      EkatraConfig cfg -> Ekatra.extractDLImage cfg req
+      IdfyConfig cfg -> Idfy.extractDLImage cfg req
+      GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+      FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+      HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+      HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+      DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+      TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+      MorthConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractPanImage ::
   ( EncFlow m r,
