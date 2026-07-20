@@ -19,15 +19,18 @@ module Kernel.External.EventTracking.Interface
 where
 
 import Kernel.External.Encryption
+import qualified Kernel.External.EventTracking.Clevertap.Flow as ClevertapFlow
 import Kernel.External.EventTracking.Interface.Types as Reexport
 import qualified Kernel.External.EventTracking.Moengage.Flow as MoengageFlow
-import Kernel.External.EventTracking.Moengage.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
-import Kernel.Utils.Common (HasRequestId)
+import Kernel.Utils.Common (HasRequestId, logDebug)
 
--- | Push event to event tracking provider - dispatches to appropriate provider
+-- | Push event to event tracking provider - dispatches to appropriate provider.
+--
+-- The per-provider @enabled@ kill switch is enforced here rather than inside
+-- each provider's Flow, so a new provider cannot forget to honour it.
 pushEvent ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -36,7 +39,21 @@ pushEvent ::
     MonadReader r m
   ) =>
   EventTrackingServiceConfig ->
-  MoengageEventReq ->
-  m (Maybe MoengageEventResp)
-pushEvent config req = case config of
-  MoengageConfig moengageCfg -> MoengageFlow.pushEvent moengageCfg req
+  EventTrackingReq ->
+  m ()
+pushEvent config req
+  | not (isEnabled config) =
+    logDebug $ "EventTracking: " <> providerName config <> " is disabled, skipping event " <> req.eventName
+  | otherwise = case config of
+    MoengageConfig moengageCfg -> MoengageFlow.pushEvent moengageCfg req
+    ClevertapConfig clevertapCfg -> ClevertapFlow.pushEvent clevertapCfg req
+
+isEnabled :: EventTrackingServiceConfig -> Bool
+isEnabled = \case
+  MoengageConfig cfg -> cfg.enabled
+  ClevertapConfig cfg -> cfg.enabled
+
+providerName :: EventTrackingServiceConfig -> Text
+providerName = \case
+  MoengageConfig _ -> "Moengage"
+  ClevertapConfig _ -> "Clevertap"

@@ -29,11 +29,12 @@ import Kernel.Storage.Esqueleto (derivePersistField)
 -- | Enum of event tracking service providers
 data EventTrackingService
   = Moengage
+  | Clevertap
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 -- | List of all available event tracking services
 availableEventTrackingServices :: [EventTrackingService]
-availableEventTrackingServices = [Moengage]
+availableEventTrackingServices = [Moengage, Clevertap]
 
 instance (HasSqlValueSyntax be String) => HasSqlValueSyntax be EventTrackingService where
   sqlValueSyntax = autoSqlValueSyntax
