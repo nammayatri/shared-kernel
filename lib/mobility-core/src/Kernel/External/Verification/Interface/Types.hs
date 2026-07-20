@@ -42,6 +42,12 @@ newtype DriverBackgroundVerificationServiceConfig = SafetyPortalConfig SafetyPor
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
+data ImageExtractionHandler m = ImageExtractionHandler
+  { getProvidersPriorityList :: m [VT.VerificationService],
+    getProviderTimeout :: m Int,
+    getProviderConfig :: VT.VerificationService -> m VerificationServiceConfig
+  }
+
 data VerifyDLReq = VerifyDLReq
   { dlNumber :: Text,
     driverId :: Text,
