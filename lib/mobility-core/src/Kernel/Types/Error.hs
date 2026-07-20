@@ -155,7 +155,7 @@ instance IsHTTPError VehicleError where
     VehicleDoesNotExist _ -> "VEHICLE_DOES_NOT_EXIST"
     VehicleAlreadyLinked -> "VEHICLE_ALREADY_LINKED"
   toHttpCode = \case
-    VehicleNotFound _ -> E500
+    VehicleNotFound _ -> E404
     VehicleDoesNotExist _ -> E400
     VehicleAlreadyLinked -> E400
 
@@ -196,7 +196,7 @@ instance IsHTTPError PersonError where
     PersonCityInformationNotFound _ -> "PERSON_CITY_INFORMATION_NOT_FOUND"
     PersonMobileNumberIsNULL _ -> "PERSON_MOBILE_NUMBER_IS_NULL"
   toHttpCode = \case
-    PersonNotFound _ -> E500
+    PersonNotFound _ -> E404
     PersonDoesNotExist _ -> E400
     PersonFieldNotPresent _ -> E500
     PersonWithPhoneNotFound _ -> E422
@@ -261,7 +261,7 @@ instance IsHTTPError MerchantError where
     MerchantDoesNotExist _ -> E400
     MerchantServiceUsageConfigNotFound _ -> E500
     MerchantServiceConfigNotFound {} -> E500
-    MerchantOperatingCityNotFound _ -> E500
+    MerchantOperatingCityNotFound _ -> E404
     MerchantOperatingCityDoesNotExist _ -> E400
 
 instance IsAPIError MerchantError
@@ -343,7 +343,7 @@ instance IsHTTPError SearchRequestError where
     SearchRequestDoesNotExist _ -> "SEARCH_REQUEST_DOES_NOT_EXIST"
     SearchRequestExpired -> "SEARCH_REQUEST_EXPIRED"
   toHttpCode = \case
-    SearchRequestNotFound _ -> E500
+    SearchRequestNotFound _ -> E404
     SearchRequestDoesNotExist _ -> E400
     SearchRequestExpired -> E400
 
@@ -372,7 +372,7 @@ instance IsHTTPError QuoteError where
     QuoteExpired _ -> "QUOTE_EXPIRED"
     QuoteFieldNotPresent _ -> "QUOTE_FIELD_NOT_PRESENT"
   toHttpCode = \case
-    QuoteNotFound _ -> E500
+    QuoteNotFound _ -> E404
     QuoteDoesNotExist _ -> E400
     QuoteExpired _ -> E400
     QuoteFieldNotPresent _ -> E500
@@ -426,7 +426,7 @@ instance IsHTTPError BookingError where
     BookingInvalidStatus _ -> "BOOKING_INVALID_STATUS"
     BookingBppOrderIdNotFound -> "BOOKING_BPP_ORDER_ID_NOT_FOUND"
   toHttpCode = \case
-    BookingNotFound _ -> E500
+    BookingNotFound _ -> E404
     BookingDoesNotExist _ -> E400
     BookingFieldNotPresent _ -> E500
     BookingForRiderNotFound _ -> E400
@@ -468,7 +468,7 @@ instance IsHTTPError RideError where
     DriverNotAtPickupLocation _ -> "DRIVER_NOT_AT_PICKUP_LOCATION"
 
   toHttpCode = \case
-    RideNotFound _ -> E500
+    RideNotFound _ -> E404
     RideDoesNotExist _ -> E400
     RideFieldNotPresent _ -> E500
     RideWithBookingIdNotFound _ -> E500
@@ -1327,7 +1327,7 @@ instance IsHTTPError PaymentOrderError where
     PaymentOrderDoesNotExist _ -> "PAYMENT_ORDER_DOES_NOT_EXIST"
 
   toHttpCode = \case
-    PaymentOrderNotFound _ -> E500
+    PaymentOrderNotFound _ -> E404
     PayoutOrderAlreadyExists _ -> E400
     PayoutOrderDoesNotExist _ -> E400
     PayoutOrderNotFound _ -> E500
