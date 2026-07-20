@@ -17,16 +17,32 @@
 
 module Kernel.External.EventTracking.Interface.Types
   ( EventTrackingServiceConfig (..),
+    EventTrackingReq (..),
   )
 where
 
 import Data.Aeson
 import Deriving.Aeson
+import qualified Kernel.External.EventTracking.Clevertap.Config as ClevertapConfig
 import qualified Kernel.External.EventTracking.Moengage.Config as MoengageConfig
 import Kernel.Prelude
 
 -- | Configuration sum type for all event tracking providers
 data EventTrackingServiceConfig
   = MoengageConfig MoengageConfig.MoengageCfg
+  | ClevertapConfig ClevertapConfig.ClevertapCfg
   deriving (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] EventTrackingServiceConfig
+
+-- | Provider-agnostic event payload.
+--
+-- Callers build this; each provider's Flow maps it to that vendor's wire type.
+-- Keeping it neutral means adding a provider does not touch calling services.
+data EventTrackingReq = EventTrackingReq
+  { customerId :: Text,
+    eventName :: Text,
+    attributes :: Value,
+    -- | Event time, where the provider supports it. Moengage ignores this.
+    timestamp :: Maybe UTCTime
+  }
+  deriving (Show, Generic, ToJSON, FromJSON)

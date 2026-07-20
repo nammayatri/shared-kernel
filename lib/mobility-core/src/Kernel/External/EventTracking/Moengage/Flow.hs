@@ -22,6 +22,7 @@ import qualified "base64-bytestring" Data.ByteString.Base64 as B64
 import qualified Data.Text.Encoding as TE
 import EulerHS.Types (client)
 import Kernel.External.Encryption (decrypt)
+import Kernel.External.EventTracking.Interface.Types (EventTrackingReq (..))
 import Kernel.External.EventTracking.Moengage.API
 import Kernel.External.EventTracking.Moengage.Config
 import Kernel.External.EventTracking.Moengage.Types
@@ -31,7 +32,10 @@ import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
 
--- | Push an event to Moengage S2S API
+-- | Push an event to Moengage S2S API.
+--
+-- The @enabled@ check lives in "Kernel.External.EventTracking.Interface", not
+-- here, so every provider gets it without having to remember it.
 pushEvent ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -40,19 +44,30 @@ pushEvent ::
     MonadReader r m
   ) =>
   MoengageCfg ->
-  MoengageEventReq ->
-  m (Maybe MoengageEventResp)
+  EventTrackingReq ->
+  m ()
 pushEvent cfg req = do
-  if not cfg.enabled
-    then pure Nothing
-    else do
-      apiSecret <- decrypt cfg.apiSecret
-      let authToken = buildBasicAuth cfg.appId apiSecret
-          moengageClient = client (Proxy :: Proxy MoengageEventAPI)
-      resp <-
-        callAPI cfg.baseUrl (moengageClient cfg.appId cfg.appId (Just authToken) req) "moengageEvent" moengageEventAPI
-          >>= fromEitherM (const $ InternalError "Failed to call Moengage Event API")
-      pure (Just resp)
+  apiSecret <- decrypt cfg.apiSecret
+  let authToken = buildBasicAuth cfg.appId apiSecret
+      moengageClient = client (Proxy :: Proxy MoengageEventAPI)
+  resp <-
+    callAPI cfg.baseUrl (moengageClient cfg.appId cfg.appId (Just authToken) (toMoengageReq req)) "moengageEvent" moengageEventAPI
+      >>= fromEitherM (\err -> InternalError $ "Failed to call Moengage Event API: " <> show err)
+  logDebug $ "Moengage event " <> req.eventName <> " accepted with status: " <> resp.status
+
+-- | Map the provider-agnostic request onto Moengage's wire format.
+toMoengageReq :: EventTrackingReq -> MoengageEventReq
+toMoengageReq req =
+  MoengageEventReq
+    { _type = "event",
+      customer_id = req.customerId,
+      actions =
+        [ MoengageAction
+            { action = req.eventName,
+              attributes = req.attributes
+            }
+        ]
+    }
 
 buildBasicAuth :: Text -> Text -> Text
 buildBasicAuth appId apiSecret =
