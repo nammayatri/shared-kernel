@@ -19,6 +19,7 @@ import Data.Aeson
 import Data.Map.Strict (Map)
 import Kernel.External.Encryption
 import Kernel.Prelude
+import Kernel.Types.Common (HighPrecMoney)
 import Kernel.Types.Time
 
 data JuspayCfg = JuspayCfg
@@ -42,8 +43,15 @@ data JuspayCfg = JuspayCfg
     walletRewardApiVersion :: Maybe Text,
     mockStatusUrl :: Maybe BaseUrl,
     useDomainOffers :: Maybe Bool,
-    loyaltyProgramMap :: Maybe (Map Text Text),
+    loyaltyProgramMap :: Maybe (Map Text LoyaltyProgramEntry),
     webhookUrl :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data LoyaltyProgramEntry = LoyaltyProgramEntry
+  { programType :: Text,
+    conversionRate :: Maybe HighPrecMoney
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
