@@ -387,15 +387,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1784556637,
-        "narHash": "sha256-i3QXd9PdNZzErZmM1ble/03EZlG6oil3HOu5EhheGCY=",
+        "lastModified": 1784640351,
+        "narHash": "sha256-wbgDFBtw5NHT2ONS+yE7gjNfi+sd4nKC1VjVN8b0I08=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "63459adeeb83aff984b395989bacc0388a015604",
+        "rev": "d600f5150b85ffa84d4ff3503cc893e4e17f5df6",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
+        "ref": "2-second-timeout",
         "repo": "euler-hs",
         "type": "github"
       }
@@ -858,16 +859,16 @@
     "hedis": {
       "flake": false,
       "locked": {
-        "lastModified": 1740460297,
-        "narHash": "sha256-4FjUqrP+63Te39UM9PctBS8cuJUiJYkZ3zIJ2IPeTA8=",
+        "lastModified": 1784640132,
+        "narHash": "sha256-ovlZQ5Pe/7QVYSHAxaN3iLIq13bWXbwTWlMOFqWF7rs=",
         "owner": "nammayatri",
         "repo": "hedis",
-        "rev": "089d22be67103f613bd1eecbac8c2e6d6d0576c6",
+        "rev": "5e73de7cc4973c0158e846dd5042a72ced4a0727",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
-        "ref": "enh/zone-aware-replica-usage",
+        "ref": "enh/redis-pool-acquire-log",
         "repo": "hedis",
         "type": "github"
       }

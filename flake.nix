@@ -13,7 +13,7 @@
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
     euler-hs = {
-      url = "github:nammayatri/euler-hs";
+      url = "github:nammayatri/euler-hs/2-second-timeout";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.haskell-flake.follows = "haskell-flake";
     };
