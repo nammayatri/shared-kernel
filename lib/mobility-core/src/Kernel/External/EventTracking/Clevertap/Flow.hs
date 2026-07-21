@@ -53,9 +53,13 @@ pushEvent cfg req = do
       >>= fromEitherM (\err -> InternalError $ "Failed to call Clevertap Upload API: " <> show err)
   -- Clevertap answers HTTP 200 even when individual events are rejected, so a
   -- non-empty `unprocessed` is a real failure that would otherwise be silent.
+  --
+  -- We send one event per call, so any entry here means this event was not
+  -- delivered. Throw rather than log-and-return: returning success would make
+  -- the caller report the event as sent, which is simply untrue.
   case resp.unprocessed of
     Just failures@(_ : _) ->
-      logError $
+      throwError . InternalError $
         "Clevertap rejected event " <> req.eventName <> " (status: " <> resp.status <> "): "
           <> T.intercalate "; " (map describeFailure failures)
     _ ->
