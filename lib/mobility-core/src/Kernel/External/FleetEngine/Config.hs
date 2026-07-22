@@ -32,6 +32,8 @@ import Kernel.Prelude
 data FleetEngineCfg = FleetEngineCfg
   { -- | GCP project id that owns the Fleet Engine provider (the @providers/{id}@ path segment)
     providerId :: Text,
+    -- | Kill switch. 'Nothing' or 'Just False' => integration off; callers should treat absence as off.
+    enabled :: Maybe Bool,
     -- | Fleet Engine REST host; defaults to https://fleetengine.googleapis.com when unset
     fleetEngineUrl :: Maybe BaseUrl,
     -- | Server service-account JSON (ondemandAdmin role) for CreateTrip/UpdateTrip + server tokens, encrypted at rest
