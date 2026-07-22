@@ -29,11 +29,13 @@ import qualified Kernel.External.Settlement.HyperPG.MerchantPaymentParser as Hyp
 import qualified Kernel.External.Settlement.HyperPG.PaymentParser as HyperPGPayment
 import qualified Kernel.External.Settlement.HyperPG.PayoutParser as HyperPGPayout
 import Kernel.External.Settlement.Interface.Types as Reexport
+import qualified Kernel.External.Settlement.JuspayApi.PaymentParser as JuspayApiPayment
 import Kernel.External.Settlement.Types as Reexport
 import Kernel.External.Settlement.Utils.JuspayOrderStatus as Reexport
 import qualified Kernel.External.Settlement.YesBiz.PaymentParser as YesBizPayment
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
+import Kernel.Types.Logging (Log)
 import Kernel.Utils.Servant.Client (HasRequestId)
 
 -- | Parse a payment settlement CSV. For 'HyperPG', use 'Just' 'MERCHANT' for MPR-style merchant reports.
@@ -76,6 +78,7 @@ parseAndEnrichPaymentSettlementCsv ::
   ( EncFlow m r,
     Metrics.CoreMetrics m,
     L.MonadFlow m,
+    Log m,
     HasRequestId r,
     MonadReader r m,
     MonadIO m
@@ -86,11 +89,16 @@ parseAndEnrichPaymentSettlementCsv ::
   LBS.ByteString ->
   m ParsePaymentSettlementResult
 parseAndEnrichPaymentSettlementCsv config mbJuspayCfg mbSplitSettlementCustomerType csvBytes = do
-  let parsed0 =
-        parsePaymentSettlementCsv
-          config.settlementService
-          mbSplitSettlementCustomerType
-          csvBytes
+  -- API-fetched CSVs are always the Juspay portal export format, regardless
+  -- of the nominal settlementService (which may still be HyperPG etc. from
+  -- the operator's POV).
+  let parsed0 = case config.sourceConfig of
+        JuspayApiSourceConfig _ -> JuspayApiPayment.parseJuspayPortalCsv csvBytes
+        _ ->
+          parsePaymentSettlementCsv
+            config.settlementService
+            mbSplitSettlementCustomerType
+            csvBytes
   enrichedReports <-
     mapM (enrichPaymentReport mbJuspayCfg mbSplitSettlementCustomerType) (reports parsed0)
   pure parsed0 {reports = catMaybes enrichedReports}

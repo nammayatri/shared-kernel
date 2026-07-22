@@ -33,6 +33,8 @@ import Kernel.External.Settlement.Types (JuspayOrderStatusConfig (..), SplitSett
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common (HighPrecMoney)
+import Kernel.Types.Logging (Log)
+import Kernel.Utils.Logging (logError)
 import Kernel.Utils.Servant.Client (HasRequestId)
 
 -- ---------------------------------------------------------------------------
@@ -43,6 +45,7 @@ fetchOrderStatus ::
   ( EncFlow m r,
     Metrics.CoreMetrics m,
     L.MonadFlow m,
+    Log m,
     HasRequestId r,
     MonadReader r m
   ) =>
@@ -58,9 +61,11 @@ fetchOrderStatus config orderId =
       result <-
         try @_ @SomeException $
           JuspayFlow.orderStatus config.juspayBaseUrl apiKeyPlain merchantId mRoutingId orderShortId
-      liftIO $ threadDelay 300000
+      liftIO $ threadDelay 30000
       case result of
-        Left _err -> pure Nothing
+        Left err -> do
+          logError $ "Juspay order status enrichment failed for orderId=" <> orderId <> ": " <> show err
+          pure Nothing
         Right resp -> pure (Just resp)
 
 -- ---------------------------------------------------------------------------
@@ -128,6 +133,7 @@ enrichPaymentReport ::
   ( EncFlow m r,
     Metrics.CoreMetrics m,
     L.MonadFlow m,
+    Log m,
     HasRequestId r,
     MonadReader r m
   ) =>

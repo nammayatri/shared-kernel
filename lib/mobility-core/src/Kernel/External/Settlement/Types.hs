@@ -24,6 +24,7 @@ module Kernel.External.Settlement.Types
     SettlementServiceConfig (..),
     SFTPConfig (..),
     EmailConfig (..),
+    JuspayApiConfig (..),
     SettlementSourceConfig (..),
     JuspayOrderStatusConfig (..),
   )
@@ -38,7 +39,7 @@ data SettlementService = HyperPG | BillDesk | YesBiz
   deriving stock (Show, Read, Eq, Ord, Generic, Enum, Bounded)
   deriving anyclass (ToJSON, FromJSON)
 
-data SettlementSource = SFTP | EMAIL | LOCAL_FILE
+data SettlementSource = SFTP | EMAIL | API | LOCAL_FILE
   deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -103,9 +104,26 @@ data EmailConfig = EmailConfig
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
+-- | Direct-API pull of the Juspay portal transaction export.
+--
+-- Unlike SFTP/Email which deliver PG-produced settlement files, this hits
+-- @<portalBaseUrl>/api/q/download@ with an OAuth Bearer token and receives the
+-- portal's transaction CSV directly. The token has a ~90 day expiry and must
+-- be rotated manually. @juspayMerchantId@ is the portal-side merchant id used
+-- in the query's @midFilter@ (e.g. @"nammayatri"@), which is not necessarily
+-- the same string as the internal merchant id.
+data JuspayApiConfig = JuspayApiConfig
+  { portalBaseUrl :: BaseUrl,
+    oauthToken :: EncryptedField 'AsEncrypted Text,
+    juspayMerchantId :: Text,
+    userAgent :: Maybe Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
 data SettlementSourceConfig
   = SFTPSourceConfig SFTPConfig Text
   | EmailSourceConfig EmailConfig
+  | JuspayApiSourceConfig JuspayApiConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data JuspayOrderStatusConfig = JuspayOrderStatusConfig

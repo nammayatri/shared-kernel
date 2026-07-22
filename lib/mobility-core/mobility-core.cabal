@@ -272,6 +272,7 @@ library
       Kernel.External.Settlement.HyperPG.PayoutTypes
       Kernel.External.Settlement.Interface
       Kernel.External.Settlement.Interface.Types
+      Kernel.External.Settlement.JuspayApi.PaymentParser
       Kernel.External.Settlement.Types
       Kernel.External.Settlement.Utils.JuspayOrderStatus
       Kernel.External.Settlement.Utils.ParserUtils
