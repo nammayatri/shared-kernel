@@ -398,12 +398,24 @@ detectMimeAndExt bs ct
       "video/webm" -> "webm"
       _ -> "bin"
 
+-- | Xyne rejects object names over 1024 characters. @data:@ URIs have no
+-- path to derive a name from — the naive fallback would otherwise slice a
+-- chunk out of the raw base64 payload (or an embedded conversation string)
+-- and use that as the "filename", which sporadically overshoots the limit.
+-- We also hard-cap the result so any other pathological input can't do the
+-- same; 'T.takeEnd' keeps the extension when one is present, since it sits
+-- at the end of the name.
+maxDerivedFilenameLen :: Int
+maxDerivedFilenameLen = 150
+
 deriveFilename :: Text -> Text -> Text
 deriveFilename url ext =
-  let base = case fromQueryFilePath url of
-        Just fp -> lastPathSegment fp
-        Nothing -> lastPathSegment (T.takeWhile (/= '?') url)
-      cleaned = if T.null base then "attachment" else base
+  let base
+        | "data:" `T.isPrefixOf` url = "attachment"
+        | otherwise = case fromQueryFilePath url of
+          Just fp -> lastPathSegment fp
+          Nothing -> lastPathSegment (T.takeWhile (/= '?') url)
+      cleaned = T.takeEnd maxDerivedFilenameLen (if T.null base then "attachment" else base)
       hasExt = T.isInfixOf "." cleaned
    in if hasExt then cleaned else cleaned <> "." <> ext
 
