@@ -112,6 +112,30 @@ instance FromHttpApiData LocationS where
         Right LocationS {..}
       _ -> Left "location should contain lat and lon separated by a comma"
 
+-------------------------------------------------------------------------------
+-- Google Places API (New) : Place Details
+--   GET https://places.googleapis.com/v1/places/{placeId}
+--   Docs: https://developers.google.com/maps/documentation/places/web-service/place-details
+-- Response fields are selected via the X-Goog-FieldMask header; we request
+-- formattedAddress, location and addressComponents.
+-------------------------------------------------------------------------------
+
+data GetPlaceDetailsRespV2 = GetPlaceDetailsRespV2
+  { formattedAddress :: Maybe Text,
+    location :: Maybe LatLngV2,
+    addressComponents :: Maybe [AddressRespV2]
+  }
+  deriving stock (Generic)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data AddressRespV2 = AddressRespV2
+  { longText :: Text,
+    shortText :: Text,
+    types :: [Text]
+  }
+  deriving stock (Generic, Show, Read)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
 data GetPlaceNameResp = GetPlaceNameResp
   { status :: Text,
     results :: [ResultsResp]
