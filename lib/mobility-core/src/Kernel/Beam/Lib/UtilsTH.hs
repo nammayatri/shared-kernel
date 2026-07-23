@@ -136,14 +136,20 @@ kvConnectorInstancesD name pKeyN sKeySpecs = do
       sKeyPairs = map (\k -> TupE [Just $ LitE $ StringL $ sortAndGetKey (fst k), Just $ ConE 'False]) sKeys
       -- pinnedKeyMap entries: single-field pinned keys only, and only when the field has no plain
       -- skey spec as well (a plain spec keeps the set complete for every value, so the field may
-      -- keep behaving as a regular key and must not be restricted by the pin).
+      -- keep behaving as a regular key and must not be restricted by the pin). Values are merged
+      -- per field across separate SKeyPartial specs - HM.fromList is last-wins, so unmerged
+      -- duplicates would silently drop the earlier spec's values from read-path eligibility.
       plainKeyNames = map (sortAndGetKey . fst) (filter (null . snd) sKeys)
-      pinnedPairs = mapMaybe mkPinnedPair sKeys
-      mkPinnedPair (cols, pins) = case (map (splitColon . nameBase) cols, pins) of
-        ([fieldName], _ : _)
-          | fieldName `notElem` plainKeyNames ->
-            Just $ TupE [Just $ AppE (VarE 'T.pack) (LitE $ StringL fieldName), Just $ ListE (map (AppE (VarE 'T.pack) . LitE . StringL . snd) pins)]
+      pinnedPairs = map mkPinnedPairE (foldr mergePinned [] (mapMaybe pinnedFieldOf sKeys))
+      pinnedFieldOf (cols, pins) = case (map (splitColon . nameBase) cols, pins) of
+        ([fieldName], _ : _) | fieldName `notElem` plainKeyNames -> Just (fieldName, map snd pins)
         _ -> Nothing
+      mergePinned (f, vs) acc =
+        if any ((== f) . fst) acc
+          then map (\(g, ws) -> if g == f then (g, vs <> filter (`notElem` vs) ws) else (g, ws)) acc
+          else (f, vs) : acc
+      mkPinnedPairE (fieldName, vals) =
+        TupE [Just $ AppE (VarE 'T.pack) (LitE $ StringL fieldName), Just $ ListE (map (AppE (VarE 'T.pack) . LitE . StringL) vals)]
   let tableNameD = FunD 'KV.tableName [Clause [] (NormalB (LitE (StringL $ init $ camel (nameBase name)))) []]
       keyMapD = FunD 'KV.keyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (pKeyPair : sKeyPairs)))) []]
       pinnedKeyMapD = FunD 'KV.pinnedKeyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE pinnedPairs))) []]
