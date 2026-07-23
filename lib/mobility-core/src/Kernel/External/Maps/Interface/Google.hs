@@ -19,6 +19,7 @@ module Kernel.External.Maps.Interface.Google
     snapToRoad,
     autoComplete,
     getPlaceDetails,
+    getPlaceDetailsNew,
     getPlaceName,
     autoCompleteNew,
   )
@@ -450,19 +451,58 @@ getPlaceDetails ::
   GetPlaceDetailsReq ->
   m GetPlaceDetailsResp
 getPlaceDetails entityId cfg req@GetPlaceDetailsReq {..} = do
-  let mapsUrl = cfg.googleMapsUrl
-  key <- decrypt cfg.googleKey
-  let fields = "geometry,formatted_address,address_components,place_id"
-  res <- GoogleMaps.getPlaceDetails entityId req mapsUrl key sessionToken placeId fields
-  let result = res.result
-      location = let loc = result.geometry.location in LatLong loc.lat loc.lng
-      addressComponents = maybe [] (map reformateAddressResp) result.address_components
-  return $ GetPlaceDetailsResp {location = location, formattedAddress = result.formatted_address, addressComponents = addressComponents, placeId = result.place_id}
+  if fromMaybe False cfg.useNewPlaceDetails
+    then do
+      result <- withTryCatch "getPlaceDetails" $ getPlaceDetailsNew entityId cfg req
+      case result of
+        Right res -> return res
+        Left err -> do
+          logTagError "GoogleMapsGetPlaceDetails" ("New Places API failed, falling back to old places API, placeId: " <> placeId <> " error is: " <> show err)
+          getPlaceDetailsOld
+    else getPlaceDetailsOld
   where
+    getPlaceDetailsOld = do
+      let mapsUrl = cfg.googleMapsUrl
+      key <- decrypt cfg.googleKey
+      let fields = "geometry,formatted_address,address_components,place_id"
+      res <- GoogleMaps.getPlaceDetails entityId req mapsUrl key sessionToken placeId fields
+      let result = res.result
+          location = let loc = result.geometry.location in LatLong loc.lat loc.lng
+          addressComponents = maybe [] (map reformateAddressResp) result.address_components
+      return $ GetPlaceDetailsResp {location = location, formattedAddress = result.formatted_address, addressComponents = addressComponents, placeId = result.place_id}
     reformateAddressResp aResp =
       AddressResp
         { longName = aResp.long_name,
           shortName = aResp.short_name,
+          types = aResp.types
+        }
+
+getPlaceDetailsNew ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  GoogleCfg ->
+  GetPlaceDetailsReq ->
+  m GetPlaceDetailsResp
+getPlaceDetailsNew entityId cfg GetPlaceDetailsReq {..} = do
+  let mapsUrl = cfg.googlePlaceNewUrl
+  key <- decrypt cfg.googleKey
+  let fieldMask = "formattedAddress,location,addressComponents"
+  res <- GoogleMaps.getPlaceDetailsV2 entityId mapsUrl key placeId sessionToken fieldMask
+  location <- case res.location of
+    Just loc -> pure $ LatLong loc.latitude loc.longitude
+    Nothing -> throwError (InternalError "Google Places API (New) returned no location for place details")
+  let addressComponents = maybe [] (map reformateAddressRespV2) res.addressComponents
+  return $ GetPlaceDetailsResp {location = location, formattedAddress = res.formattedAddress, addressComponents = addressComponents, placeId = Just placeId}
+  where
+    reformateAddressRespV2 aResp =
+      AddressResp
+        { longName = aResp.longText,
+          shortName = aResp.shortText,
           types = aResp.types
         }
 
