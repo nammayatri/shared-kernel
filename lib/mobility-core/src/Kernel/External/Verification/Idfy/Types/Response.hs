@@ -363,7 +363,7 @@ data DLExtractionOutput = DLExtractionOutput
     pincode :: Maybe Text,
     state :: Maybe Text,
     issue_dates :: Maybe ValidateIssueDate,
-    _type :: [Text],
+    _type :: Maybe [Text],
     validity :: Maybe Validity,
     status :: Maybe Text
   }
