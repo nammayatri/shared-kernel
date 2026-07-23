@@ -58,13 +58,29 @@ emptyTextHashMap = HMI.empty
 emptyValueHashMap :: M.Map Text (A.Value -> A.Value)
 emptyValueHashMap = M.empty
 
--- | A partial secondary index. The key is written only for rows where the pinned fields equal the
---   given values (like Postgres @CREATE INDEX ... WHERE col = 'value'@). The pinned fields double as
---   the key columns, so nothing in the KV layer needs to change - a row just carries the key when it
---   matches.
+-- | A partial secondary index. The key is written only for rows where the pinned field equals one
+--   of the given values (like Postgres @CREATE INDEX ... WHERE col IN (...)@). Listing the same
+--   field with several values pins it to any of them (one set per value).
 --
---   e.g. @SKeyPartial [('status, "ACTIVE")]@ indexes status only for ACTIVE rows (one set, status_ACTIVE).
+--   The pinned field is also published via 'KV.pinnedKeyMap', which the euler-hs read path uses to
+--   treat it as a FALLBACK key only: it is consulted only when the where clause has no regular
+--   (non-pinned) key and the queried value is pinned, and it never participates in key-set
+--   intersections. A pinned set is empty for every non-pinned value, so using it like a regular
+--   key erased valid results of other keys (driver dues incident, 2026-07).
+--
+--   e.g. @SKeyPartial [('status, "ACTIVE")]@ maintains the set only for ACTIVE rows (status_ACTIVE).
 data SKeyPartial = SKeyPartial [(Name, String)]
+
+-- | Collapse a pin list to one entry per field: @[('status, "A"), ('status, "B")]@ becomes
+--   @[('status, ["A", "B"])]@ (field pinned to any of the values).
+groupPins :: [(Name, String)] -> [(Name, [String])]
+groupPins = foldr insertPin []
+  where
+    insertPin (f, v) acc =
+      if any ((== fieldStr f) . fieldStr . fst) acc
+        then map (\(g, vs) -> if fieldStr g == fieldStr f then (g, v : vs) else (g, vs)) acc
+        else (f, [v]) : acc
+    fieldStr = splitColon . nameBase
 
 -- | Default for almost every table. Output is identical to before.
 enableKVPG :: Name -> [Name] -> [[Name]] -> Q [Dec]
@@ -77,8 +93,13 @@ enableKVPG name pKeyN sKeysN = kvpgDecs name pKeyN (map (\cols -> (cols, [])) sK
 -- >   [['transactionId]]                    -- plain
 -- >   [SKeyPartial [('status, "ACTIVE")]]   -- partial: status indexed only when ACTIVE
 enableKVPGWithPartialIndex :: Name -> [Name] -> [[Name]] -> [SKeyPartial] -> Q [Dec]
-enableKVPGWithPartialIndex name pKeyN plainSKeys partialSKeys =
-  kvpgDecs name pKeyN (map (\cols -> (cols, [])) plainSKeys ++ map (\(SKeyPartial pins) -> (map fst pins, pins)) partialSKeys)
+enableKVPGWithPartialIndex name pKeyN plainSKeys partialSKeys = do
+  -- A pin spanning two different fields would put a composite key in keyMap with no pin metadata
+  -- (pinnedKeyMap is single-field), recreating the empty-set intersection bug. Reject at compile time.
+  forM_ partialSKeys $ \(SKeyPartial pins) ->
+    when (P.length (groupPins pins) /= 1) $
+      fail $ "SKeyPartial on " <> nameBase name <> " must pin exactly one field (several values for that field are allowed); got fields: " <> show (map (splitColon . nameBase . fst) pins)
+  kvpgDecs name pKeyN (map (\cols -> (cols, [])) plainSKeys ++ map (\(SKeyPartial pins) -> (map fst (groupPins pins), pins)) partialSKeys)
 
 -- | Shared by both entry points. A secondary key is @(cols, pins)@: empty pins = plain, non-empty = partial.
 kvpgDecs :: Name -> [Name] -> [([Name], [(Name, String)])] -> Q [Dec]
@@ -113,12 +134,23 @@ kvConnectorInstancesD name pKeyN sKeySpecs = do
       sKeys = filter (\k -> pKey /= sortAndGetKey (fst k)) sKeySpecs
       pKeyPair = TupE [Just $ LitE $ StringL pKey, Just $ ConE 'True]
       sKeyPairs = map (\k -> TupE [Just $ LitE $ StringL $ sortAndGetKey (fst k), Just $ ConE 'False]) sKeys
+      -- pinnedKeyMap entries: single-field pinned keys only, and only when the field has no plain
+      -- skey spec as well (a plain spec keeps the set complete for every value, so the field may
+      -- keep behaving as a regular key and must not be restricted by the pin).
+      plainKeyNames = map (sortAndGetKey . fst) (filter (null . snd) sKeys)
+      pinnedPairs = mapMaybe mkPinnedPair sKeys
+      mkPinnedPair (cols, pins) = case (map (splitColon . nameBase) cols, pins) of
+        ([fieldName], _ : _)
+          | fieldName `notElem` plainKeyNames ->
+            Just $ TupE [Just $ AppE (VarE 'T.pack) (LitE $ StringL fieldName), Just $ ListE (map (AppE (VarE 'T.pack) . LitE . StringL . snd) pins)]
+        _ -> Nothing
   let tableNameD = FunD 'KV.tableName [Clause [] (NormalB (LitE (StringL $ init $ camel (nameBase name)))) []]
       keyMapD = FunD 'KV.keyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (pKeyPair : sKeyPairs)))) []]
+      pinnedKeyMapD = FunD 'KV.pinnedKeyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE pinnedPairs))) []]
       primaryKeyD = FunD 'KV.primaryKey [Clause [] (NormalB getPrimaryKeyE) []]
       secondaryKeysD = FunD 'KV.secondaryKeys [Clause [] (NormalB getSecondaryKeysE) []]
   mkSQLObjectD <- genMkSQLObjectD name
-  return [InstanceD Nothing [] (AppT (ConT ''KV.KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) [tableNameD, keyMapD, primaryKeyD, secondaryKeysD, mkSQLObjectD]]
+  return [InstanceD Nothing [] (AppT (ConT ''KV.KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) ([tableNameD, keyMapD] <> [pinnedKeyMapD | not (null pinnedPairs)] <> [primaryKeyD, secondaryKeysD, mkSQLObjectD])]
   where
     getPrimaryKeyE =
       let obj = mkName "obj"
@@ -136,11 +168,11 @@ kvConnectorInstancesD name pKeyN sKeySpecs = do
     perSpecListE obj spec = case snd spec of
       [] -> ListE [skeyExprE obj (fst spec)]
       pins -> CondE (gateE obj pins) (ListE [skeyExprE obj (fst spec)]) (ListE [])
-    -- Conjunction of @utilTransform (field obj) == T.pack "constant"@ over all pinned fields.
+    -- Per pinned field: @utilTransform (field obj) `elem` [pinned values]@, AND'ed across fields.
     gateE obj pins =
       AppE (VarE 'and) $
         ListE $
-          map (\(f, c) -> AppE (AppE (VarE '(==)) (getRecFieldE f obj)) (AppE (VarE 'T.pack) (LitE $ StringL c))) pins
+          map (\(f, cs) -> AppE (AppE (VarE 'elem) (getRecFieldE f obj)) (ListE $ map (AppE (VarE 'T.pack) . LitE . StringL) cs)) (groupPins pins)
     skeyExprE obj cols =
       AppE (ConE 'KV.SKey) (ListE $ map (\n -> TupE [Just $ keyNameTextE n, Just $ getRecFieldE n obj]) cols)
     getRecFieldE f obj =
