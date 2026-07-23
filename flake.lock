@@ -387,17 +387,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1784817230,
-        "narHash": "sha256-eoJjky5AQ7AVDWaN+bW0RcyO57B1SBGULPoOzQn55cM=",
+        "lastModified": 1785155093,
+        "narHash": "sha256-NiUhGV6Y/nyQu2HT13LLA2Zdy6u92P4A9vd8p9NSmvU=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "42ab08abf03ba8b7e9298b84bd79146a6a525fb8",
+        "rev": "4badf9391c3bf9805bb8b9177c0da6ee49784d58",
         "type": "github"
       },
       "original": {
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "42ab08abf03ba8b7e9298b84bd79146a6a525fb8",
         "type": "github"
       }
     },
@@ -859,11 +858,11 @@
     "hedis": {
       "flake": false,
       "locked": {
-        "lastModified": 1740460297,
-        "narHash": "sha256-4FjUqrP+63Te39UM9PctBS8cuJUiJYkZ3zIJ2IPeTA8=",
+        "lastModified": 1784659501,
+        "narHash": "sha256-ovlZQ5Pe/7QVYSHAxaN3iLIq13bWXbwTWlMOFqWF7rs=",
         "owner": "nammayatri",
         "repo": "hedis",
-        "rev": "089d22be67103f613bd1eecbac8c2e6d6d0576c6",
+        "rev": "7c8a33b2f69e33e428f983a0b7d68ef9d7ecef86",
         "type": "github"
       },
       "original": {
