@@ -90,7 +90,7 @@ data CreateOrderReq = CreateOrderReq
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int,
     splitSettlementDetails :: Maybe SplitSettlementDetails,
-    basket :: Maybe [Basket],
+    basket :: [Basket],
     paymentRules :: Maybe PaymentRules,
     autoRefundPostSuccess :: Maybe Bool,
     paymentFilter :: Maybe PaymentFilter,
@@ -565,7 +565,7 @@ data OfferOrder = OfferOrder
   { orderId :: Maybe Text,
     amount :: HighPrecMoney,
     currency :: Currency,
-    basket :: Maybe [Basket]
+    basket :: [Basket]
   }
 
 data OfferCustomer = OfferCustomer
@@ -668,7 +668,7 @@ data OfferApplyReq = OfferApplyReq
     dutyDate :: UTCTime,
     paymentMode :: Text,
     numOfRides :: Int,
-    basket :: Maybe [Basket]
+    basket :: [Basket]
   }
 
 newtype OfferApplyResp = OfferApplyResp
@@ -1007,7 +1007,7 @@ data CreatePaymentReq = CreatePaymentReq
     webhookUrl :: Maybe BaseUrl,
     optionsGetUpiDeepLinks :: Maybe Bool,
     metadataExpiryInMins :: Maybe Int,
-    basket :: Maybe [Basket],
+    basket :: [Basket],
     paymentRules :: Maybe PaymentRules,
     autoRefundPostSuccess :: Maybe Bool,
     paymentFilter :: Maybe PaymentFilter,
