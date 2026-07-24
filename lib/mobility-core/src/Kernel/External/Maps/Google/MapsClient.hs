@@ -36,6 +36,7 @@ module Kernel.External.Maps.Google.MapsClient
   )
 where
 
+import qualified Data.Aeson as A
 import Data.Text as T
 import EulerHS.Types (EulerClient, client)
 import Kernel.External.Maps.Google.MapsClient.Types as GoogleMaps
@@ -261,8 +262,15 @@ getPlaceDetailsV2 ::
   m GoogleMaps.GetPlaceDetailsRespV2
 getPlaceDetailsV2 entityId url apiKey placeId sessionToken fieldMask = do
   rsp <- callAPI url (getPlaceDetailsV2Client placeId sessionToken apiKey fieldMask) "getPlaceDetailsV2" (Proxy :: Proxy GoogleMapsAPI)
+  let logReq =
+        A.object
+          [ "placeId" A..= placeId,
+            "sessionToken" A..= sessionToken,
+            "fieldMask" A..= fieldMask,
+            "url" A..= showBaseUrl url
+          ]
   fork ("Logging external API Call of getPlaceDetailsV2 Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceDetailsV2" "Google" entityId (Just placeId) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceDetailsV2" "Google" entityId (Just logReq) rsp
   fromEitherM (googleMapsError url) rsp
 
 getPlaceName ::
