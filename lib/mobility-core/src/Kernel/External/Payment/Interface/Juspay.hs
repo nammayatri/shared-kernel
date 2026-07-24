@@ -324,13 +324,18 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes cfgWebhookUrl clie
           metadata_gateway_reference_id = metadataGatewayReferenceId,
           metadata_webhook_url = cfgWebhookUrl,
           split_settlement_details = splitDetails,
-          basket = decodeUtf8 . A.encode <$> basket,
+          basket = Just (encodeBasketWithDummy amount basket),
           auto_refund_conflict_threshold_minutes = autoRefundConflictThresholdMinutes,
           auto_refund_post_success = bool "false" "true" <$> autoRefundPostSuccess,
           payment_rules = mkPaymentRules <$> paymentRules,
           payment_filter = mkPaymentFilter <$> paymentFilter,
-          udf1 = udf1
+          udf1 = Just (fromMaybe "NO_UDF1" udf1) -- always send a meaningful udf1 to Juspay's session api
         }
+
+encodeBasketWithDummy :: HighPrecMoney -> [Basket] -> Text
+encodeBasketWithDummy amount basket =
+  decodeUtf8 . A.encode $
+    if null basket then [Basket {id = "no_basket", unitPrice = amount, quantity = 1}] else basket
 
 mkPaymentFilter :: PaymentFilter -> Juspay.PaymentFilter
 mkPaymentFilter PaymentFilter {..} =
@@ -955,7 +960,7 @@ mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfR
       udf7 = deviceImei,
       udf8 = staticCustomerId,
       udf9 = parseUDF9 <$> membershipStatus,
-      basket = decodeUtf8 . A.encode <$> basket
+      basket = Just (encodeBasketWithDummy amount basket)
     }
   where
     parseUDF6 offerListingMetric' = do
@@ -1090,7 +1095,7 @@ mkOfferApplyReq merchantId OfferApplyReq {..} = do
             udf6 = deviceImei,
             udf7 = staticCustomerId,
             payment_channel = Just "WEB",
-            basket = decodeUtf8 . A.encode <$> basket
+            basket = Just (encodeBasketWithDummy amount basket)
           }
   Juspay.OfferApplyReq
     { txn_id = txnId,
