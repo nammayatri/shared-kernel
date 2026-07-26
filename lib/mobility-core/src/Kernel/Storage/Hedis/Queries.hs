@@ -298,7 +298,7 @@ runInMasterLTSRedisCell f = do
 -- Read operation for LTS list queries: tries primary LTS first, falls back to secondary LTS if empty.
 -- Analogous to runInMultiCloudRedisForList but for ltsHedisEnv/secondaryLTSHedisEnv.
 runInMultiCloudLTSRedisForList ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisFlow m env, HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) =>
   m [a] ->
   m [a]
 runInMultiCloudLTSRedisForList action = do
@@ -321,7 +321,7 @@ runInMultiCloudLTSRedisForList action = do
 -- Read operation for LTS hmGet queries: tries primary LTS first, falls back to secondary LTS if all Nothing.
 -- hmGet always returns a same-length [Maybe a], so [] fallback doesn't apply — use all-Nothing check instead.
 runInMultiCloudLTSRedisForMaybeList ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisFlow m env, HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) =>
   m [Maybe a] ->
   m [Maybe a]
 runInMultiCloudLTSRedisForMaybeList action = do
@@ -333,6 +333,29 @@ runInMultiCloudLTSRedisForMaybeList action = do
       logInfo "MULTI_CLOUD_LTS: Primary returned all Nothing, trying secondary"
       secondaryResult <-
         withTryCatch "runInMultiCloudLTSRedisForMaybeList" $
+          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) action
+      case secondaryResult of
+        Left err -> do
+          logError $ "MULTI_CLOUD_LTS: Secondary read failed " <> show err
+          pure primaryResult
+        Right result -> pure result
+    _ -> pure primaryResult
+
+-- Read operation for LTS TTL queries: tries primary LTS first, falls back to secondary LTS if key not found (-2).
+-- ttl returns -2 when the key doesn't exist, -1 when it exists with no expiry, or a positive integer.
+runInMultiCloudLTSRedisForTTL ::
+  (HedisFlow m env, HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) =>
+  m Integer ->
+  m Integer
+runInMultiCloudLTSRedisForTTL action = do
+  ltsEnv <- asks (.ltsHedisEnv)
+  mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
+  primaryResult <- local (\env -> env{hedisEnv = ltsEnv, hedisClusterEnv = ltsEnv}) action
+  case (primaryResult == -2, mbSecondaryEnv) of
+    (True, Just secondaryEnv) -> do
+      logInfo "MULTI_CLOUD_LTS: Primary returned key-not-found, trying secondary"
+      secondaryResult <-
+        withTryCatch "runInMultiCloudLTSRedisForTTL" $
           local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) action
       case secondaryResult of
         Left err -> do
