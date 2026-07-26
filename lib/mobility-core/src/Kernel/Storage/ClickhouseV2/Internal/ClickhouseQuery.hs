@@ -73,16 +73,29 @@ instance (ClickhouseTable t) => ClickhouseQuery (Clause t) where
   toClickhouseQuery (Val b) = RawQuery $ C.toLower <$> show @String @Bool b
 
 instance ClickhouseValue value => ClickhouseQuery (Term value) where
-  toClickhouseQuery (In valList) = " IN " <> (addBrackets . intercalate "," . (valToClickhouseQuery @value <$>) $ toList valList)
-  toClickhouseQuery (Eq term) = "=" <> valToClickhouseQuery @value term
+  toClickhouseQuery (In valList) = " IN " <> renderInList (toList valList >>= (toList . toClickhouseFilterValues @value))
+  toClickhouseQuery (Eq term) = eqOrInClickhouseQuery @value term
   toClickhouseQuery NullTerm = " IS NULL"
   toClickhouseQuery NotNullTerm = " IS NOT NULL"
-  toClickhouseQuery (NotEq term) = "!=" <> valToClickhouseQuery @value term
+  toClickhouseQuery (NotEq term) = notEqOrNotInClickhouseQuery @value term
   toClickhouseQuery (GreaterThan term) = ">" <> valToClickhouseQuery @value term
   toClickhouseQuery (GreaterOrEqualThan term) = ">=" <> valToClickhouseQuery @value term
   toClickhouseQuery (LessThan term) = "<" <> valToClickhouseQuery @value term
   toClickhouseQuery (LessOrEqualThan term) = "<=" <> valToClickhouseQuery @value term
   toClickhouseQuery (Like term) = " LIKE " <> valToClickhouseQuery @value term
+
+eqOrInClickhouseQuery :: forall value. ClickhouseValue value => value -> RawQuery
+eqOrInClickhouseQuery term = case toClickhouseFilterValues @value term of
+  v :| [] -> "=" <> toClickhouseQuery @(Value value) v
+  vs -> " IN " <> renderInList (toList vs)
+
+notEqOrNotInClickhouseQuery :: forall value. ClickhouseValue value => value -> RawQuery
+notEqOrNotInClickhouseQuery term = case toClickhouseFilterValues @value term of
+  v :| [] -> "!=" <> toClickhouseQuery @(Value value) v
+  vs -> " NOT IN " <> renderInList (toList vs)
+
+renderInList :: forall value. ClickhouseValue value => [Value value] -> RawQuery
+renderInList = addBrackets . intercalate "," . (toClickhouseQuery @(Value value) <$>)
 
 -- do we need quotes for each datatype?
 valToClickhouseQuery :: forall value. ClickhouseValue value => value -> RawQuery
