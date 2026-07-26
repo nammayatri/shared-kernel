@@ -515,6 +515,8 @@ data MandatePauseReq = MandatePauseReq {mandateId :: Text, pauseStartDate :: UTC
 
 data MandateResumeReq = MandateResumeReq {mandateId :: Text, resumeDate :: UTCTime}
 
+newtype MandateStatusReq = MandateStatusReq {mandateId :: Text}
+
 newtype MandateRevokeReq = MandateRevokeReq {mandateId :: Text}
 
 type MandateRevokeRes = APISuccess
