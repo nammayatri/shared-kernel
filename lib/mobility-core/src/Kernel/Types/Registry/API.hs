@@ -14,6 +14,7 @@
 
 module Kernel.Types.Registry.API where
 
+import Data.Aeson (Options (fieldLabelModifier))
 import Data.OpenApi (ToSchema)
 import EulerHS.Prelude
 import Kernel.Types.Beckn.City (City)
@@ -35,10 +36,18 @@ data LookupRequest = LookupRequest
 emptyLookupRequest :: LookupRequest
 emptyLookupRequest = LookupRequest Nothing Nothing Nothing Nothing Nothing Nothing
 
+lookupRequestOptions :: Options
+lookupRequestOptions =
+  stripPrefixUnderscoreIfAny
+    { fieldLabelModifier = \field -> case field of
+        "unique_key_id" -> "ukId"
+        other -> fieldLabelModifier stripPrefixUnderscoreIfAny other
+    }
+
 instance FromJSON LookupRequest where
-  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+  parseJSON = genericParseJSON lookupRequestOptions
 
 instance ToJSON LookupRequest where
-  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+  toJSON = genericToJSON lookupRequestOptions
 
 type LookupResponse = [Subscriber]
