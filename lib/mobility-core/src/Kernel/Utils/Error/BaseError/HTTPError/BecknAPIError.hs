@@ -35,7 +35,7 @@ instance IsBaseError BecknAPICallError where
   toMessage (BecknAPICallError action Error {..}) =
     Just $
       "Beckn " <> action <> " request returned error code " <> code
-        <> maybe "" ("with message: " <>) message
+        <> maybe "" (" with message: " <>) message
 
 instance IsHTTPError BecknAPICallError where
   toErrorCode (BecknAPICallError _ _) = "BECKN_API_CALL_ERROR"
