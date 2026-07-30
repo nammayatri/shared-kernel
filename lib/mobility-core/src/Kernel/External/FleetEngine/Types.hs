@@ -59,7 +59,12 @@ data Trip = Trip
     vehicleId :: Maybe Text,
     numberOfPassengers :: Maybe Int,
     pickupPoint :: Maybe TerminalLocation,
-    dropoffPoint :: Maybe TerminalLocation
+    dropoffPoint :: Maybe TerminalLocation,
+    intermediateDestinations :: Maybe [TerminalLocation],
+    -- Opaque RFC3339 timestamp; must be echoed back on every
+    -- intermediateDestinations mutation (server-side optimistic lock).
+    intermediateDestinationsVersion :: Maybe Text,
+    intermediateDestinationIndex :: Maybe Int
   }
   deriving (Show, Eq, Generic)
 
@@ -80,7 +85,10 @@ emptyTrip =
       vehicleId = Nothing,
       numberOfPassengers = Nothing,
       pickupPoint = Nothing,
-      dropoffPoint = Nothing
+      dropoffPoint = Nothing,
+      intermediateDestinations = Nothing,
+      intermediateDestinationsVersion = Nothing,
+      intermediateDestinationIndex = Nothing
     }
 
 -- | Build the CreateTrip body. Fleet Engine requires @tripType@; pickup/dropoff
