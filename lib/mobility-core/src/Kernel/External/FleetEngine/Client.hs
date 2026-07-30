@@ -123,6 +123,9 @@ createTrip baseUrl providerId token tripId trip = do
         logInfo $ "FleetEngine: trip already exists (idempotent no-op) " <> tripId
       | otherwise -> logError $ "FleetEngine: createTrip failed for " <> tripId <> ": " <> show err
 
+-- Returns the server's response Trip on success so callers can cache
+-- 'intermediateDestinationsVersion' for the next mutation; 'Nothing' on
+-- transport or decode failure (log-and-continue, no throws).
 updateTrip ::
   (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r) =>
   BaseUrl ->
@@ -131,7 +134,7 @@ updateTrip ::
   Text -> -- tripId
   Text -> -- updateMask (comma-separated field paths)
   Trip ->
-  m ()
+  m (Maybe Trip)
 updateTrip baseUrl providerId token tripId updateMask trip = do
   result <-
     callAPI
@@ -140,8 +143,16 @@ updateTrip baseUrl providerId token tripId updateMask trip = do
       "fleetEngineUpdateTrip"
       (Proxy :: Proxy UpdateTripAPI)
   case result of
-    Right _ -> logInfo $ "FleetEngine: updated trip " <> tripId <> " [" <> updateMask <> "]"
-    Left err -> logError $ "FleetEngine: updateTrip failed for " <> tripId <> ": " <> show err
+    Right value -> do
+      logInfo $ "FleetEngine: updated trip " <> tripId <> " [" <> updateMask <> "]"
+      case A.fromJSON value of
+        A.Success t -> pure (Just t)
+        A.Error e -> do
+          logError $ "FleetEngine: could not decode updateTrip response for " <> tripId <> ": " <> T.pack e
+          pure Nothing
+    Left err -> do
+      logError $ "FleetEngine: updateTrip failed for " <> tripId <> ": " <> show err
+      pure Nothing
 
 -- | Convenience: advance a trip's status.
 updateTripStatus ::
@@ -153,7 +164,7 @@ updateTripStatus ::
   TripStatus ->
   m ()
 updateTripStatus baseUrl providerId token tripId status =
-  updateTrip baseUrl providerId token tripId "tripStatus" (emptyTrip {tripStatus = Just status})
+  void $ updateTrip baseUrl providerId token tripId "tripStatus" (emptyTrip {tripStatus = Just status})
 
 -- Fleet Engine requires at least one successful CreateVehicle per provider
 -- before any Trips API works (project provisioning); ALREADY_EXISTS is
@@ -214,10 +225,11 @@ assignVehicleAndStart ::
   Text -> -- vehicleId
   m ()
 assignVehicleAndStart baseUrl providerId token tripId vehicleId =
-  updateTrip
-    baseUrl
-    providerId
-    token
-    tripId
-    "tripStatus,vehicleId"
-    (emptyTrip {tripStatus = Just ENROUTE_TO_PICKUP, vehicleId = Just vehicleId})
+  void $
+    updateTrip
+      baseUrl
+      providerId
+      token
+      tripId
+      "tripStatus,vehicleId"
+      (emptyTrip {tripStatus = Just ENROUTE_TO_PICKUP, vehicleId = Just vehicleId})
