@@ -14,6 +14,7 @@
 
 module Kernel.External.Notification.Interface.GRPC where
 
+import Data.Aeson (Value (..), object, (.=))
 import EulerHS.Prelude
 import qualified Kernel.External.Notification.GRPC.Flow as GRPC
 import qualified Kernel.External.Notification.GRPC.Types as GRPC
@@ -39,11 +40,12 @@ notifyPerson config req notificationId = do
   let title = GRPC.GRPCNotificationTitle req.title
       body = GRPC.GRPCNotificationBody req.body
       notificationType = show req.category
+      entityDataJson = mergeEntityWithOverlay (toJSON req.entity.entityData) req.overlayNotificationData
       notificationData =
         GRPC.GrpcNotificationData
           { entityId = req.entity.entityIds,
             entityType = show req.entity.entityType,
-            entityData = req.entity.entityData,
+            entityData = entityDataJson,
             category = notificationType,
             showNotification = show req.showNotification,
             ttl = fromMaybe defaultTtlTime req.ttl,
@@ -51,3 +53,13 @@ notifyPerson config req notificationId = do
             ..
           }
   GRPC.notifyPerson config notificationData
+
+-- | Embed overlay data as \"driver_notification_payload\" inside the entity
+-- data JSON so GRPC consumers read it the same way as FCM consumers do.
+mergeEntityWithOverlay :: Value -> Maybe Interface.OverlayNotificationData -> Value
+mergeEntityWithOverlay entityJson Nothing = entityJson
+mergeEntityWithOverlay entityJson (Just overlay) =
+  let overlayObj = object ["driver_notification_payload" .= toJSON overlay]
+   in case (entityJson, overlayObj) of
+        (Object eo, Object oo) -> Object (eo <> oo)
+        _ -> entityJson
