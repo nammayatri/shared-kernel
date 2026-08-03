@@ -923,6 +923,7 @@ hGet key field =
       Just bs -> Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
 hmGet :: (FromJSON a, HedisFlow m env, TryException m) => Text -> [Text] -> m [Maybe a]
+hmGet _ [] = pure [] -- HMGET with no fields is a redis syntax error ("wrong number of arguments")
 hmGet key fields =
   withTimeRedis "RedisCluster" "hmGet" $ do
     listBS <- runWithPrefix key (`Hedis.hmget` map cs fields)
@@ -933,6 +934,7 @@ hmGet key fields =
     decodeBS (Just bs) = Error.fromMaybeM (HedisDecodeError $ cs bs) $ Ae.decode $ BSL.fromStrict bs
 
 hDel :: (HedisFlow m env, TryException m) => Text -> [Text] -> m ()
+hDel _ [] = pure () -- HDEL with no fields is a redis syntax error ("wrong number of arguments")
 hDel key fields = withTimeRedis "RedisCluster" "hDel" $ runWithPrefix_ key (`Hedis.hdel` map cs fields)
 
 hGetAll :: (FromJSON a, HedisFlow m env, TryException m) => Text -> m [(Text, a)]
