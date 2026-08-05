@@ -73,7 +73,26 @@ data CreateTicketReq = CreateTicketReq
     rideDescription :: Maybe RideInfo,
     becknIssueId :: Maybe Text,
     ticketContext :: Maybe TicketContext,
-    xyneChannelId :: Maybe Text
+    xyneChannelId :: Maybe Text,
+    -- | Xyne-only override for the FIRST chat message's body on the created
+    -- thread. 'issueDescription' is shared across providers — Kapture's
+    -- ticketDetails, Zendesk's rendered "Issue Description" section, and
+    -- (when this is Nothing) Xyne's own message body all read it as the
+    -- customer's actual description. When a merchant replays earlier
+    -- bot/option history onto the Xyne thread (see IssueManagement's
+    -- createIssueReport), the chronologically-first entry — which may be a
+    -- bot message, not the customer's description — needs to become that
+    -- first message instead, without disturbing what Kapture/Zendesk show.
+    -- 'Nothing' preserves the original behaviour: falls back to
+    -- 'issueDescription'.
+    xyneTicketBody :: Maybe Text,
+    -- | Xyne-only override for the sender name shown on that same first
+    -- message. 'name' is shared too — Zendesk's requester name, Kapture's
+    -- customerName, and Xyne's own "Customer Name" metadata field all read
+    -- it as the real customer's name, so it must stay that on all of them
+    -- even when 'xyneTicketBody' above is a bot-authored message. 'Nothing'
+    -- falls back to 'name', same as today.
+    xyneSenderName :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 

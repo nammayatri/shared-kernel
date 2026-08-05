@@ -98,10 +98,13 @@ createTicket config req = do
             subject = buildSubject req.category req.rideDescription,
             -- Body carries only the customer's own message; everything else
             -- (category, ride info, phone numbers, media URLs) is surfaced to
-            -- the Xyne agent via 'additionalFormFields'.
-            body = req.issueDescription,
+            -- the Xyne agent via 'additionalFormFields'. xyneTicketBody, when
+            -- set, overrides this with an earlier bot/option message so the
+            -- thread's first entry matches real chronology — see its doc
+            -- comment on CreateTicketReq.
+            body = fromMaybe req.issueDescription req.xyneTicketBody,
             externalId = Nothing,
-            senderName = req.name,
+            senderName = req.xyneSenderName <|> req.name,
             senderEmail = Nothing,
             additionalFormFields = if Map.null metadata then Nothing else Just metadata
           }
