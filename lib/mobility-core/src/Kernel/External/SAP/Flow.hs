@@ -40,7 +40,7 @@ fetchSAPToken ::
   SAPServiceConfig ->
   m SAPTokenResp
 fetchSAPToken config = do
-  credentials <- decrypt config.sapAuthCredentials
+  let credentials = config.sapAuthCredentials
   let eulerClient = ET.client sapTokenAPI
   callSAPAPI
     config.sapAuthUrl
@@ -65,7 +65,8 @@ postJournalEntry ::
   m SAPJournalResponse
 postJournalEntry config accessToken req = do
   let xmlBody = renderJournalRequestXml req
-      eulerClient = ET.client sapJournalPostAPI
+  logDebug $ "posting SAP xml req body: " <> show xmlBody
+  let eulerClient = ET.client sapJournalPostAPI
   callSAPAPI
     config.sapApiUrl
     ( eulerClient
