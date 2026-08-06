@@ -30,7 +30,9 @@ import Kernel.Utils.TH
 
 data GRPCConfig = GRPCConfig
   { defaultTtl :: Seconds, -- milliseconds ?
-    streamExpirationTime :: Int -- in seconds
+    streamExpirationTime :: Int, -- in seconds
+    enableActiveNotificationPublish :: Maybe Bool, -- gate publishing to "active-notification" channel
+    enableMasterCloudRedisCell :: Maybe Bool -- gate running in the master cloud redis cell (default True)
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (PrettyShow, FromJSON, ToJSON)
