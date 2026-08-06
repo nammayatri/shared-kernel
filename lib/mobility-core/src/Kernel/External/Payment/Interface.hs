@@ -375,7 +375,8 @@ capturePaymentIntent ::
   PaymentServiceConfig ->
   PaymentIntentId ->
   HighPrecMoney ->
-  HighPrecMoney ->
+  -- | 'Nothing' when the intent was created platform-only, i.e. with no @transfer_data@.
+  Maybe HighPrecMoney ->
   m ()
 capturePaymentIntent config paymentIntentId amount applicationFeeAmount = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Capture Payment Intent not supported."
@@ -391,7 +392,8 @@ updateAmountInPaymentIntent ::
   PaymentServiceConfig ->
   PaymentIntentId ->
   HighPrecMoney ->
-  HighPrecMoney ->
+  -- | 'Nothing' when the intent was created platform-only, i.e. with no @transfer_data@.
+  Maybe HighPrecMoney ->
   m ()
 updateAmountInPaymentIntent config paymentIntentId amount applicationFeeAmount = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Update Amount In Payment Intent not supported."
@@ -588,7 +590,8 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
           clientSecret = clientSecret',
           status = resp.status,
           sdkPayload = Just (A.toJSON resp.sdk_payload),
-          paymentLinks = resp.payment_links
+          paymentLinks = resp.payment_links,
+          chargeRouting = Nothing
         }
   StripeConfig cfg -> do
     paymentMethod <- req.paymentMethodId & fromMaybeM (InternalError "paymentMethodId required for Stripe")
@@ -602,7 +605,8 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
               customer = req.customerId,
               paymentMethod = paymentMethod,
               receiptEmail = req.receiptEmail,
-              driverAccountId = driverAccount
+              driverAccountId = driverAccount,
+              chargeRouting = req.chargeRouting
             }
     resp <- Stripe.createPaymentIntent cfg stripeReq
     pure
@@ -611,7 +615,10 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
           clientSecret = resp.clientSecret,
           status = castToTransactionStatus resp.status,
           sdkPayload = Nothing,
-          paymentLinks = Nothing
+          paymentLinks = Nothing,
+          -- Report what was actually applied, not what was asked for: the service config can force
+          -- platform-only independently of the caller, and capture/refund must follow the real shape.
+          chargeRouting = Just $ Stripe.effectiveChargeRouting cfg req.chargeRouting
         }
   PaytmEDCConfig cfg -> do
     let paytmReq =
@@ -648,7 +655,8 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
           clientSecret = clientSecret',
           status = resp.status,
           sdkPayload = Just (A.toJSON resp.sdk_payload),
-          paymentLinks = resp.payment_links
+          paymentLinks = resp.payment_links,
+          chargeRouting = Nothing
         }
 
 -- | Unified refund creation. Routes to Juspay autoRefunds or Stripe createRefund
@@ -694,9 +702,14 @@ refundPayment serviceConfig mRoutingId req = case serviceConfig of
               refundsId = req.refundsId,
               paymentIntentId = paymentIntentId',
               amount = req.amount,
-              refundApplicationFee = False,
+              -- Omit the parameter entirely for a platform-only charge: there is no application fee
+              -- to refund, and Stripe errors rather than ignoring it.
+              refundApplicationFee = case req.chargeRouting of
+                Just PlatformOnlyCharge -> Nothing
+                _ -> Just False,
               driverAccountId = driverAccount,
-              email = req.email
+              email = req.email,
+              chargeRouting = req.chargeRouting
             }
     resp <- Stripe.createRefund cfg stripeReq
     pure

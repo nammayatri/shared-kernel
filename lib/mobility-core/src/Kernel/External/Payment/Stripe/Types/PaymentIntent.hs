@@ -115,7 +115,10 @@ instance ToForm ConfirmPaymentIntentReq where
 
 data CapturePaymentIntentReq = CapturePaymentIntentReq
   { amount_to_capture :: Int,
-    application_fee_amount :: Int
+    -- | 'Nothing' omits the parameter. Stripe rejects @application_fee_amount@ on an intent created
+    --   without @transfer_data@/@on_behalf_of@, so a platform-only intent must not send it at all —
+    --   sending @0@ is still an error.
+    application_fee_amount :: Maybe Int
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -123,14 +126,16 @@ data CapturePaymentIntentReq = CapturePaymentIntentReq
 instance ToForm CapturePaymentIntentReq where
   toForm CapturePaymentIntentReq {..} =
     Form $
-      HM.fromList
-        [ ("amount_to_capture", [toQueryParam amount_to_capture]),
-          ("application_fee_amount", [toQueryParam application_fee_amount])
-        ]
+      HM.fromList $
+        catMaybes
+          [ Just ("amount_to_capture", [toQueryParam amount_to_capture]),
+            ("application_fee_amount",) . pure . toQueryParam <$> application_fee_amount
+          ]
 
 data IncrementAuthorizationReq = IncrementAuthorizationReq
   { amount :: Int,
-    application_fee_amount :: Int
+    -- | 'Nothing' omits the parameter; see 'CapturePaymentIntentReq'.
+    application_fee_amount :: Maybe Int
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -138,7 +143,8 @@ data IncrementAuthorizationReq = IncrementAuthorizationReq
 instance ToForm IncrementAuthorizationReq where
   toForm IncrementAuthorizationReq {..} =
     Form $
-      HM.fromList
-        [ ("amount", [toQueryParam amount]),
-          ("application_fee_amount", [toQueryParam application_fee_amount])
-        ]
+      HM.fromList $
+        catMaybes
+          [ Just ("amount", [toQueryParam amount]),
+            ("application_fee_amount",) . pure . toQueryParam <$> application_fee_amount
+          ]
