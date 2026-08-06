@@ -166,6 +166,16 @@ runInMultiCloud m = do
 allowedSchema :: [Text]
 allowedSchema = ["atlas_driver_offer_bpp", "atlas_app"]
 
+getRedisStreamName :: Text -> Text -> Tables -> Text
+getRedisStreamName modelName schema tables'
+  | isCriticalTable = baseStream <> "-critical"
+  | otherwise = baseStream
+  where
+    baseStream
+      | schema == "atlas_driver_offer_bpp" = "driver-db-sync-stream"
+      | otherwise = "rider-db-sync-stream" -- lets change when we enable for dashboards
+    isCriticalTable = modelName `elem` fromMaybe [] tables'.tablesForCriticalStream
+
 -- | Resolve schema, enforce 'allowedSchema', then merge KV/Redis settings from @tables'@.
 -- Schema check lives only here — callers pass an already-loaded 'Tables' so it is fetched once.
 setMeshConfigWithTables :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> Tables -> m MeshConfig
@@ -175,7 +185,7 @@ setMeshConfigWithTables modelName mSchema meshConfig' tables' = do
     if schema `notElem` allowedSchema
       then meshConfig'
       else
-        let redisStream = if schema == "atlas_driver_offer_bpp" then "driver-db-sync-stream" else "rider-db-sync-stream" -- lets change when we enable for dashboards
+        let redisStream = getRedisStreamName modelName schema tables'
          in if modelName `elem` tables'.disableForKV || allTablesDisabled tables' == Just True
               then meshConfig' {ecRedisDBStream = redisStream}
               else
