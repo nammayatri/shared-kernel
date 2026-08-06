@@ -329,7 +329,8 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes cfgWebhookUrl clie
           auto_refund_post_success = bool "false" "true" <$> autoRefundPostSuccess,
           payment_rules = mkPaymentRules <$> paymentRules,
           payment_filter = mkPaymentFilter <$> paymentFilter,
-          udf1 = Just (fromMaybe "NO_UDF1" udf1) -- always send a meaningful udf1 to Juspay's session api
+          udf1 = Just (fromMaybe "NO_UDF1" udf1),
+          udf2 = Just (fromMaybe "NO_UDF2" udf2)
         }
 
 encodeBasketWithDummy :: HighPrecMoney -> [Basket] -> Text
