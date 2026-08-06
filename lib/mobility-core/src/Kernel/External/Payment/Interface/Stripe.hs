@@ -309,6 +309,23 @@ deleteCard config paymentMethodId = do
   apiKey <- decrypt config.apiKey
   void $ Stripe.detachPaymentMethod url apiKey paymentMethodId
 
+-- | Resolve the routing actually used for a charge, folding the per-request choice together with the
+--   service config. The config's @transferPaymentToConnectedAccount = Just False@ is the older,
+--   merchant-wide way of asking for the same thing, so it still wins; otherwise the caller decides.
+--
+--   Everything downstream of charge creation (capture, increment, refund) must be driven by this
+--   result rather than by either input on its own — that is why the value is persisted on the order.
+effectiveChargeRouting :: StripeCfg -> Maybe ChargeRouting -> ChargeRouting
+effectiveChargeRouting config requested = case config.chargeDestination of
+  -- Direct charges are created on the connected account and always carry on_behalf_of and
+  -- transfer_data, so platform-only has no meaning there and the request is deliberately ignored.
+  -- Reporting DestinationCharge keeps the persisted value honest about what was actually sent.
+  ConnectedAccount -> DestinationCharge
+  Platform -> case (config.transferPaymentToConnectedAccount, requested) of
+    (Just False, _) -> PlatformOnlyCharge
+    (_, Just PlatformOnlyCharge) -> PlatformOnlyCharge
+    _ -> DestinationCharge
+
 createPaymentIntent ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
@@ -342,9 +359,11 @@ createPaymentIntent config req = do
               payment_method = paymentMethod -- Use original payment method (NO cloning)
               receipt_email = receiptEmail
               on_behalf_of = Nothing -- OMIT for platform charges
-              (transfer_data, application_fee_amount) = case config.transferPaymentToConnectedAccount of
-                Just False -> (Nothing, Nothing)
-                _ -> (Just $ Stripe.TransferData {destination = driverAccountId}, Just $ eurToCents applicationFeeAmount) -- True is default
+              -- PlatformOnlyCharge omits both: Stripe rejects an application fee on an intent that
+              -- has no transfer_data, so these two must be set and cleared together.
+              (transfer_data, application_fee_amount) = case effectiveChargeRouting config chargeRouting of
+                PlatformOnlyCharge -> (Nothing, Nothing)
+                DestinationCharge -> (Just $ Stripe.TransferData {destination = driverAccountId}, Just $ eurToCents applicationFeeAmount)
               confirm = True
               description = Nothing
               setup_future_usage = Just Stripe.FutureUsageOffSession -- off_session: enables SCA exemption for saved cards
@@ -505,13 +524,14 @@ capturePaymentIntent ::
   StripeCfg ->
   PaymentIntentId ->
   HighPrecMoney ->
-  HighPrecMoney ->
+  -- | 'Nothing' for an intent created without @transfer_data@ — see 'Stripe.CapturePaymentIntentReq'.
+  Maybe HighPrecMoney ->
   m ()
 capturePaymentIntent config paymentIntentId amount applicationFeeAmount = do
   let url = config.url
   apiKey <- decrypt config.apiKey
   let amount_to_capture = usdToCents amount
-  let application_fee_amount = usdToCents applicationFeeAmount
+  let application_fee_amount = usdToCents <$> applicationFeeAmount
   let req = Stripe.CapturePaymentIntentReq {..}
   void $ Stripe.capturePaymentIntent url apiKey paymentIntentId req
 
@@ -524,13 +544,14 @@ updateAmountInPaymentIntent ::
   StripeCfg ->
   PaymentIntentId ->
   HighPrecMoney ->
-  HighPrecMoney ->
+  -- | 'Nothing' for an intent created without @transfer_data@ — see 'Stripe.CapturePaymentIntentReq'.
+  Maybe HighPrecMoney ->
   m ()
 updateAmountInPaymentIntent config paymentIntentId amount_ applicationFeeAmount = do
   let url = config.url
   apiKey <- decrypt config.apiKey
   let amount = usdToCents amount_
-  let application_fee_amount = usdToCents applicationFeeAmount
+  let application_fee_amount = usdToCents <$> applicationFeeAmount
   let req = Stripe.IncrementAuthorizationReq {..}
   void $ Stripe.incrementAuthorizationPaymentIntent url apiKey paymentIntentId req
 
@@ -735,8 +756,13 @@ createRefund config req = do
     -- Platform Charge: never reverse the transfer. When the driver bears a refund, the
     -- caller settles it against the driver's future payout via its own ledger; a Stripe
     -- reverse_transfer on top would claw the same money back twice.
+    --
+    -- A platform-only charge has no transfer and no application fee, so both parameters must be
+    -- omitted entirely rather than sent as False — Stripe rejects them outright on such a charge.
     createPlatformRefund url apiKey = do
-      let reverseTransfer = Just False
+      let reverseTransfer = case req.chargeRouting of
+            Just PlatformOnlyCharge -> Nothing
+            _ -> Just False
           refundReq = mkRefundReq req reverseTransfer
       mkRefundResp <$> Stripe.createRefund url apiKey Nothing refundReq
 
@@ -752,7 +778,7 @@ createRefund config req = do
           payment_intent = Just req.paymentIntentId
           amountInCents = eurToCents <$> amountInUsd
           metadata = Metadata {order_short_id = Just orderShortId, order_id = Just orderId, refunds_id = Just refundsId}
-          refund_application_fee = Just req.refundApplicationFee
+          refund_application_fee = req.refundApplicationFee
           instructions_email = req.email
        in Stripe.RefundReq {amount = amountInCents, reason = Just Stripe.REQUESTED_BY_CUSTOMER, ..}
 

@@ -874,6 +874,24 @@ data OrderUpdateResp = OrderUpdateResp
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+-- | How a Stripe charge routes the money it collects.
+--
+--     * 'DestinationCharge' — attach @transfer_data[destination]@ and @application_fee_amount@ so the
+--       funds land in the connected account and the platform keeps only its fee. This is the default
+--       and what every existing caller gets.
+--     * 'PlatformOnlyCharge' — omit both, so the whole amount settles on the platform account. The
+--       counterparty's share stays recorded in the ledger and is discharged later by the payout
+--       pipeline, which tops the connected account up from the platform balance before paying out.
+--
+--   Use 'PlatformOnlyCharge' when the collection must not depend on the connected account being able
+--   to receive funds — e.g. settling dues owed to a fleet whose Stripe account has been restricted.
+--
+--   Declared here rather than next to its instances below: the 'RefundStatus' Template Haskell
+--   splices start a new declaration group, so a type defined after them is invisible to these records.
+data ChargeRouting = DestinationCharge | PlatformOnlyCharge
+  deriving stock (Show, Eq, Read, Ord, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data CreatePaymentIntentReq = CreatePaymentIntentReq
   { orderShortId :: Text,
     amount :: HighPrecMoney,
@@ -882,7 +900,11 @@ data CreatePaymentIntentReq = CreatePaymentIntentReq
     customer :: CustomerId,
     paymentMethod :: PaymentMethodId,
     receiptEmail :: Maybe Text,
-    driverAccountId :: AccountId
+    -- | Kept even for 'PlatformOnlyCharge': it is not put on the wire in that mode, but it records
+    --   which connected account the money is owed to, and the ConnectedAccount charge flow needs it.
+    driverAccountId :: AccountId,
+    -- | 'Nothing' behaves as 'DestinationCharge'.
+    chargeRouting :: Maybe ChargeRouting
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -938,9 +960,13 @@ data CreateRefundReq = CreateRefundReq
     refundsId :: Text,
     paymentIntentId :: PaymentIntentId,
     amount :: Maybe HighPrecMoney,
-    refundApplicationFee :: Bool,
+    -- | 'Nothing' omits @refund_application_fee@ entirely — required when the charge carried no
+    --   application fee, since Stripe rejects the parameter in that case.
+    refundApplicationFee :: Maybe Bool,
     driverAccountId :: AccountId,
-    email :: Maybe Text
+    email :: Maybe Text,
+    -- | How the original charge was routed. 'Nothing' behaves as 'DestinationCharge'.
+    chargeRouting :: Maybe ChargeRouting
   }
 
 data CreateRefundResp = CreateRefundResp
@@ -980,6 +1006,13 @@ derivePersistField "RefundStatus"
 
 $(mkBeamInstancesForEnum ''RefundStatus)
 
+-- Instances only; the type itself is declared above 'CreatePaymentIntentReq' because the
+-- 'RefundStatus' splices above start a new declaration group, and a type defined after a splice is
+-- not in scope for the records that precede it.
+derivePersistField "ChargeRouting"
+
+$(mkBeamInstancesForEnum ''ChargeRouting)
+
 -- | Unified payment creation request. Works for both Juspay (createOrder) and Stripe (createPaymentIntent).
 --   Gateway-specific fields are optional; the routing function ignores irrelevant fields.
 data CreatePaymentReq = CreatePaymentReq
@@ -995,6 +1028,8 @@ data CreatePaymentReq = CreatePaymentReq
     paymentMethodId :: Maybe PaymentMethodId,
     driverAccountId :: Maybe AccountId,
     applicationFeeAmount :: Maybe HighPrecMoney,
+    -- | 'Nothing' behaves as 'DestinationCharge'. Ignored by non-Stripe gateways.
+    chargeRouting :: Maybe ChargeRouting,
     receiptEmail :: Maybe Text,
     -- Juspay-specific
     splitSettlementDetails :: Maybe SplitSettlementDetails,
@@ -1022,7 +1057,12 @@ data CreatePaymentResp = CreatePaymentResp
     clientSecret :: Text, -- Stripe: client_secret, Juspay: encrypted sdk_payload
     status :: TransactionStatus,
     sdkPayload :: Maybe Value, -- Juspay SDK payload (Nothing for Stripe)
-    paymentLinks :: Maybe PaymentLinks -- Juspay payment links (Nothing for Stripe)
+    paymentLinks :: Maybe PaymentLinks, -- Juspay payment links (Nothing for Stripe)
+
+    -- | The routing actually applied, after folding in the service config. Persist this rather than
+    --   what was requested: capture and refund must know how the intent was really created.
+    --   'Nothing' for non-Stripe gateways.
+    chargeRouting :: Maybe ChargeRouting
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -1037,6 +1077,9 @@ data RefundPaymentReq = RefundPaymentReq
     paymentIntentId :: Maybe PaymentIntentId,
     driverAccountId :: Maybe AccountId,
     email :: Maybe Text,
+    -- | How the original charge was routed, read back off the stored order.
+    --   'Nothing' behaves as 'DestinationCharge'.
+    chargeRouting :: Maybe ChargeRouting,
     -- Juspay-specific
     splitSettlementDetails :: Maybe RefundSplitSettlementDetails
   }
