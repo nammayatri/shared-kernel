@@ -25,6 +25,7 @@ import qualified Kernel.External.Notification.GRPC.Types as GRPC
 import qualified Kernel.External.Notification.PayTM.Types as PayTM
 import qualified Kernel.External.Notification.Types as Interface
 import Kernel.Prelude
+import Kernel.Utils.JSON (removeNullFields)
 
 data NotificationServiceConfig = FCMConfig FCM.FCMConfig | PayTMConfig PayTM.PayTMConfig | GRPCConfig GRPC.GRPCConfig
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
@@ -204,7 +205,10 @@ data OverlayNotificationData = OverlayNotificationData
     socialMediaLinks :: Maybe [FCMMediaLink],
     showPushNotification :: Maybe Bool
   }
-  deriving (Eq, Show, Generic, ToJSON, FromJSON)
+  deriving (Eq, Show, Generic, FromJSON)
+
+instance ToJSON OverlayNotificationData where
+  toJSON = genericToJSON removeNullFields
 
 data NotificationReq a b = NotificationReq
   { auth :: Auth,
