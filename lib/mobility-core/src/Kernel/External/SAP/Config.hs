@@ -15,7 +15,7 @@
 module Kernel.External.SAP.Config where
 
 import qualified Data.Map.Strict as Map
-import Kernel.External.Encryption
+--import Kernel.External.Encryption
 import Kernel.Prelude
 
 data SAPAccountConfig = SAPAccountConfig
@@ -28,7 +28,7 @@ data SAPAccountConfig = SAPAccountConfig
 data SAPServiceConfig = SAPServiceConfig
   { sapAuthUrl :: BaseUrl,
     sapApiUrl :: BaseUrl,
-    sapAuthCredentials :: EncryptedField 'AsEncrypted Text,
+    sapAuthCredentials :: Text,
     bukrs :: Text,
     blart :: Text,
     accountMapping :: Map.Map Text SAPAccountConfig
