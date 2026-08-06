@@ -17,7 +17,6 @@
 
 module Kernel.External.Notification.Interface.Types where
 
-import Data.Aeson (Value)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.External.Notification.FCM.Types
 import qualified Kernel.External.Notification.FCM.Types as FCM
@@ -178,34 +177,6 @@ data Entity a = Entity
   }
   deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
-data OverlayNotificationData = OverlayNotificationData
-  { title :: Maybe Text,
-    description :: Maybe Text,
-    imageUrl :: Maybe Text,
-    okButtonText :: Maybe Text,
-    cancelButtonText :: Maybe Text,
-    actions :: [Text],
-    actions2 :: [FCMActions],
-    secondaryActions2 :: Maybe [FCMActions],
-    link :: Maybe Text,
-    endPoint :: Maybe Text,
-    method :: Maybe Text,
-    reqBody :: Value,
-    titleVisibility :: Bool,
-    descriptionVisibility :: Bool,
-    buttonOkVisibility :: Bool,
-    buttonCancelVisibility :: Bool,
-    buttonLayoutVisibility :: Bool,
-    imageVisibility :: Bool,
-    delay :: Maybe Int,
-    contactSupportNumber :: Maybe Text,
-    toastMessage :: Maybe Text,
-    secondaryActions :: Maybe [Text],
-    socialMediaLinks :: Maybe [FCMMediaLink],
-    showPushNotification :: Maybe Bool
-  }
-  deriving (Eq, Show, Generic, ToJSON, FromJSON)
-
 data NotificationReq a b = NotificationReq
   { auth :: Auth,
     category :: Category,
@@ -217,13 +188,12 @@ data NotificationReq a b = NotificationReq
     body :: Text,
     title :: Text,
     ttl :: Maybe UTCTime,
-    sound :: Maybe Text,
-    overlayNotificationData :: Maybe OverlayNotificationData
+    sound :: Maybe Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Eq, Read, Generic, ToJSON, FromJSON)
 
-data NotficationServiceHandler m b = NotficationServiceHandler
+data NotficationServiceHandler m a b = NotficationServiceHandler
   { getNotificationServiceList :: m [Interface.NotificationService],
     getServiceConfig :: Interface.NotificationService -> m NotificationServiceConfig,
-    iosModifier :: FCMData Value -> FCMData b
+    iosModifier :: FCMData a -> FCMData b
   }

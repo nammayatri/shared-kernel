@@ -68,7 +68,7 @@ notifyPersonWithAllProviders ::
     MonadReader r m,
     HasFlowEnv m r '["maxNotificationShards" ::: Int]
   ) =>
-  NotficationServiceHandler m c ->
+  NotficationServiceHandler m a c ->
   NotificationReq a b ->
   Maybe LiveActivityReq ->
   m () ->

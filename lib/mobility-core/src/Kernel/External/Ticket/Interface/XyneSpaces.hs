@@ -33,13 +33,10 @@
 -- @rideDescription@ (preferring customer over driver). Email is left
 -- @Nothing@ for now — 'IssueManagement.Common.Person' has no email field.
 --
--- Note on the returned @ticketId@: both 'createTicket' and 'updateTicket'
--- return Xyne's own opaque ticketId (from the @appDeskInbound@ response),
--- not our @threadId@ (= IssueReport id). The threadId is still required on
--- every @appDeskInbound@ call to keep appending to the same Xyne thread, so
--- callers must keep passing it separately via @req.issueDetails.issueId@ on
--- 'updateTicket' (see 'IT.UpdateTicketReq'); the opaque ticketId travels via
--- @req.ticketId@ / @IssueReport.ticketId@ as with the other providers.
+-- Note on the returned @ticketId@: we echo back the threadId (= IssueReport id)
+-- rather than Xyne's opaque ticketId so that the existing IssueManagement
+-- caller can pass it back unchanged on subsequent updateTicket calls. Xyne's
+-- own ticketId / xyneId / conversationId are logged but not propagated.
 module Kernel.External.Ticket.Interface.XyneSpaces
   ( createTicket,
     updateTicket,
@@ -120,7 +117,7 @@ createTicket config req = do
       <> show resp.isNew
   pure
     IT.CreateTicketResp
-      { ticketId = resp.ticketId,
+      { ticketId = threadId,
         status = IT.Open,
         requesterId = Nothing
       }
@@ -135,14 +132,8 @@ updateTicket ::
   IT.UpdateTicketReq ->
   m IT.UpdateTicketResp
 updateTicket config req = do
-  -- req.ticketId is now Xyne's opaque ticketId (see the module-level note),
-  -- not our threadId, so it cannot be used to correlate the appDeskInbound
-  -- call to the existing thread. The threadId (= IssueReport id) must come
-  -- from req.issueDetails.issueId, which callers are expected to keep
-  -- populated across the create/update lifecycle.
-  threadId <- case req.issueDetails >>= (.issueId) of
-    Just t -> pure t
-    Nothing -> throwError (InternalError "Xyne updateTicket requires issueDetails.issueId (used as threadId)")
+  -- req.ticketId is the value createTicket returned (= our threadId).
+  let threadId = req.ticketId
   token <- decrypt config.token
   let (mbRideName, _) = senderInfoFromRide req.rideDescription
       mbSenderName = req.name <|> mbRideName
@@ -170,11 +161,9 @@ updateTicket config req = do
       <> " isNew="
       <> show resp.isNew
   -- Mirror Zendesk: return req.status (caller intent), not the parsed response.
-  -- ticketId echoes back Xyne's opaque id (resp.ticketId), consistent with
-  -- createTicket and with how Kapture/Zendesk report their own ticket id.
   pure
     IT.UpdateTicketResp
-      { ticketId = resp.ticketId,
+      { ticketId = threadId,
         status = req.status,
         message = "Ticket updated"
       }

@@ -1,6 +1,5 @@
 module Kernel.External.Notification.Interface.FCM where
 
-import Data.Aeson (Value (..), object, (.=))
 import qualified Kernel.External.Notification.FCM.Flow as FCM
 import qualified Kernel.External.Notification.FCM.Types as FCM
 import qualified Kernel.External.Notification.Interface.Types as Interface
@@ -25,7 +24,7 @@ notifyPerson ::
   Maybe FCM.LiveActivityReq ->
   m () ->
   Maybe Text ->
-  (FCM.FCMData Value -> FCM.FCMData c) ->
+  (FCM.FCMData a -> FCM.FCMData c) ->
   m ()
 notifyPerson config req liveAcitvityRequest action mbNotificationId iosModifier = do
   let title = FCM.FCMNotificationTitle req.title
@@ -37,9 +36,9 @@ notifyPerson config req liveAcitvityRequest action mbNotificationId iosModifier 
             fcmShowNotification = interfaceShowNotificationToFCMShowNotification req.showNotification,
             fcmEntityType = interfaceEntityTypeToFCMEntityType req.entity.entityType,
             fcmEntityIds = req.entity.entityIds,
-            fcmEntityData = mergeEntityWithOverlay (toJSON req.entity.entityData) req.overlayNotificationData,
+            fcmEntityData = req.entity.entityData,
             fcmNotificationJSON = FCM.createAndroidNotification title body notificationType req.sound,
-            fcmOverlayNotificationJSON = overlayNotificationDataToFCM <$> req.overlayNotificationData,
+            fcmOverlayNotificationJSON = Nothing,
             fcmNotificationId = mbNotificationId
           }
       apnsData = liveAcitvityRequest
@@ -53,43 +52,6 @@ notifyPerson config req liveAcitvityRequest action mbNotificationId iosModifier 
     notificationData
     (FCM.FCMNotificationRecipient req.auth.recipientId (FCM.FCMRecipientToken <$> req.auth.fcmToken))
     iosModifier
-
-overlayNotificationDataToFCM :: Interface.OverlayNotificationData -> FCM.FCMOverlayNotificationJSON
-overlayNotificationDataToFCM d =
-  FCM.FCMOverlayNotificationJSON
-    { title = d.title,
-      description = d.description,
-      imageUrl = d.imageUrl,
-      okButtonText = d.okButtonText,
-      cancelButtonText = d.cancelButtonText,
-      actions = d.actions,
-      actions2 = d.actions2,
-      secondaryActions2 = d.secondaryActions2,
-      link = d.link,
-      endPoint = d.endPoint,
-      method = d.method,
-      reqBody = d.reqBody,
-      titleVisibility = d.titleVisibility,
-      descriptionVisibility = d.descriptionVisibility,
-      buttonOkVisibility = d.buttonOkVisibility,
-      buttonCancelVisibility = d.buttonCancelVisibility,
-      buttonLayoutVisibility = d.buttonLayoutVisibility,
-      imageVisibility = d.imageVisibility,
-      delay = d.delay,
-      contactSupportNumber = d.contactSupportNumber,
-      toastMessage = d.toastMessage,
-      secondaryActions = d.secondaryActions,
-      socialMediaLinks = d.socialMediaLinks,
-      showPushNotification = d.showPushNotification
-    }
-
-mergeEntityWithOverlay :: Value -> Maybe Interface.OverlayNotificationData -> Value
-mergeEntityWithOverlay entityJson Nothing = entityJson
-mergeEntityWithOverlay entityJson (Just overlay) =
-  let overlayObj = object ["driver_notification_payload" .= toJSON overlay]
-   in case (entityJson, overlayObj) of
-        (Object eo, Object oo) -> Object (eo <> oo)
-        _ -> entityJson
 
 interfaceMessagePriorityToFCMMessagePriority :: Interface.MessagePriority -> FCM.FCMAndroidMessagePriority
 interfaceMessagePriorityToFCMMessagePriority = \case
