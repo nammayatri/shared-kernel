@@ -34,7 +34,7 @@ notifyPerson ::
   GRPCConfig ->
   GrpcNotificationData a ->
   m ()
-notifyPerson cfg notificationData = Hedis.runInMasterCloudRedisCell $ do
+notifyPerson cfg notificationData = runInCell $ do
   now <- getCurrentTime
   maxShards <- asks (.maxNotificationShards)
   let idToShardNumber uuidTxt = fromIntegral ((\(a, b) -> a + b) (UU.toWords64 uuidTxt)) `mod` (fromIntegral maxShards :: Integer)
@@ -45,8 +45,10 @@ notifyPerson cfg notificationData = Hedis.runInMasterCloudRedisCell $ do
           _ -> notificationData.streamId
   let object = NotificationMessage notificationStreamId now
   void $ Hedis.withCrossAppRedis $ Hedis.xAddExp ("N" <> notificationStreamId <> "{" <> (show shardId) <> "}") "*" (buildFieldValue notificationData now) cfg.streamExpirationTime
-  void $ Hedis.withCrossAppRedis $ Hedis.publish "active-notification" object
+  when (fromMaybe False cfg.enableActiveNotificationPublish) $
+    void $ Hedis.withCrossAppRedis $ Hedis.publish "active-notification" object
   where
+    runInCell fn = if fromMaybe True cfg.enableMasterCloudRedisCell then Hedis.runInMasterCloudRedisCell fn else fn
     buildFieldValue notifData createdAt =
       [ ("entity.id", TE.encodeUtf8 notifData.entityId),
         ("entity.type", TE.encodeUtf8 $ notifData.entityType),
