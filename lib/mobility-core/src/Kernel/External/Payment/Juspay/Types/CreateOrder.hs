@@ -56,7 +56,8 @@ data CreateOrderReq = CreateOrderReq
     auto_refund_conflict_threshold_minutes :: Maybe Int,
     payment_rules :: Maybe PaymentRules,
     payment_filter :: Maybe PaymentFilter,
-    udf1 :: Maybe Text
+    udf1 :: Maybe Text,
+    udf2 :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
 
