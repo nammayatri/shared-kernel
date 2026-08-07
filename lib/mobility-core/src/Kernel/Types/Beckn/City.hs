@@ -202,11 +202,11 @@ initCityMaps = do
   when (HM.null cache) $ do
     dbMappings <- Queries.findAll
     let dbMap = HM.fromList $ reverse $ mapMaybe (\m -> (,) (m.city) <$> m.stdCode) dbMappings
-    let mergedMap = hardcodedCityToStdCode `HM.union` dbMap
+    let mergedMap = dbMap `HM.union` hardcodedCityToStdCode
     void $ liftIO $ swapMVar cityToStdCodeMap mergedMap
 
     let reverseDbMap = HM.fromList $ reverse $ mapMaybe (\m -> (,m.city) <$> m.stdCode) dbMappings
-    let mergedReverseMap = hardcodedStdCodeToCity `HM.union` reverseDbMap
+    let mergedReverseMap = reverseDbMap `HM.union` hardcodedStdCodeToCity
     void $ liftIO $ swapMVar stdCodeToCityMap mergedReverseMap
 
 -- | Atomically validates that the city and stdCode are not already mapped to
