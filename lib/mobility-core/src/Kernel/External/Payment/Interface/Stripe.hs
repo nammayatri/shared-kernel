@@ -292,7 +292,8 @@ getCardList config customerId = do
           expYear = paymentMethod.card.exp_year,
           last4 = paymentMethod.card.last4,
           brand = paymentMethod.card.brand,
-          country = paymentMethod.card.country
+          country = paymentMethod.card.country,
+          funding = paymentMethod.card.funding
         }
 
 deleteCard ::
@@ -495,7 +496,8 @@ getCard config paymentMethodId customerId = do
           expYear = cardObject.exp_year,
           last4 = cardObject.last4,
           brand = cardObject.brand,
-          country = cardObject.country
+          country = cardObject.country,
+          funding = cardObject.funding
         }
 
 getPaymentIntent ::
