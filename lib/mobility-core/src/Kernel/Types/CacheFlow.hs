@@ -21,8 +21,9 @@ import Kernel.Types.Common
 import Kernel.Utils.Dhall
 import qualified Network.HTTP.Client as HTTP
 
-newtype CacheConfig = CacheConfig
-  { configsExpTime :: Seconds
+data CacheConfig = CacheConfig
+  { configsExpTime :: Seconds,
+    farePolicyExpTime :: Seconds
   }
   deriving (Generic, FromDhall)
 
