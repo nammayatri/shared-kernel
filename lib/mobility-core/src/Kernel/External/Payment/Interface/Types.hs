@@ -909,7 +909,8 @@ data CustomerCard = CustomerCard
     last4 :: Text,
     expMonth :: Int,
     expYear :: Int,
-    country :: Maybe Text
+    country :: Maybe Text,
+    funding :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
