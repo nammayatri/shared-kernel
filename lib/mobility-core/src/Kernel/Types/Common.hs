@@ -82,7 +82,8 @@ data Tables = Tables
     enableAllTablesForSecondaryCloudRead :: Maybe Bool,
     tablesForRecacheFind :: Maybe [Text],
     drainerTtlConfigs :: Maybe (HM.HashMap Text Integer),
-    enableFindAllForMultiCloud :: Maybe Bool
+    enableFindAllForMultiCloud :: Maybe Bool,
+    tablesForCriticalStream :: Maybe [Text]
   }
   deriving (Generic, Show, ToJSON, FromJSON, FromDhall)
 
@@ -103,7 +104,8 @@ defaultTableData =
       enableAllTablesForSecondaryCloudRead = Nothing,
       tablesForRecacheFind = Nothing,
       drainerTtlConfigs = Nothing,
-      enableFindAllForMultiCloud = Nothing
+      enableFindAllForMultiCloud = Nothing,
+      tablesForCriticalStream = Nothing
     }
 
 data KafkaProperties = KafkaProperties
