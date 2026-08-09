@@ -70,7 +70,7 @@ data ParseResult a = ParseResult
 
 type ParsePaymentSettlementResult = ParseResult PaymentSettlementReport
 
-data TxnType = ORDER | REFUND | CHARGEBACK
+data TxnType = ORDER | REFUND | CHARGEBACK | REFUND_REVERSAL | CHARGEBACK_REVERSAL | ADJUSTMENT
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 data PaymentMethodType
@@ -92,6 +92,7 @@ data PaymentMethodType
   | COMMERCIAL_CARD
   | PAY_LATER
   | INTERNATIONAL_CARD
+  | CARD_GATEWAY
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 data DisputeType = FRAUD | CONSUMER | PROCESSING_ERROR | OTHER_DISPUTE

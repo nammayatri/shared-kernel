@@ -21,6 +21,7 @@ import DistanceCalculation
 import EulerHS.Prelude
 import PartialIndexTests
 import Predicates
+import SettlementCrypto
 import SettlementEmail
 import SignatureAuth
 import SlidingWindowLimiter
@@ -47,5 +48,6 @@ specs = return $ testGroup "Tests" [unitTests]
           snippetsCheckTests,
           predicatesTests,
           settlementEmailTests,
-          partialIndexTests
+          partialIndexTests,
+          settlementCryptoTests
         ]
