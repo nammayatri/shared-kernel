@@ -81,7 +81,7 @@ data XyneInboundResp = XyneInboundResp
 data XyneUpdateTicketReq = XyneUpdateTicketReq
   { ticketId :: Text,
     channelId :: Text,
-    statusV2 :: Text
+    stageName :: Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
