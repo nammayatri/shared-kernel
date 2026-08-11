@@ -795,7 +795,9 @@ data ConnectAccountLinkResp = ConnectAccountLinkResp
     accountUrlExpiry :: UTCTime,
     chargesEnabled :: Bool,
     payoutsEnabled :: Bool,
-    detailsSubmitted :: Bool
+    detailsSubmitted :: Bool,
+    requirements :: Maybe RequirementsInfo,
+    futureRequirements :: Maybe RequirementsInfo
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

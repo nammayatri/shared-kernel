@@ -63,6 +63,8 @@ createConnectAccount config req = do
   accountLinkResp <- Stripe.createAccountLink url apiKey accountLinkReq
   let accountUrl = accountLinkResp.url
   let accountUrlExpiry = posixSecondsToUTCTime accountLinkResp.expires_at
+  let requirements = toRequirementsInfo <$> accountResp.requirements
+  let futureRequirements = toRequirementsInfo <$> accountResp.future_requirements
   pure $ ConnectAccountLinkResp {..}
   where
     mkAccountReq :: Stripe.DateOfBirth -> Stripe.AccountsReq
@@ -183,25 +185,26 @@ getAccount config accountId = do
   let requirements = toRequirementsInfo <$> accountResp.requirements
   let futureRequirements = toRequirementsInfo <$> accountResp.future_requirements
   pure $ ConnectAccountStatusResp {..}
-  where
-    toRequirementsInfo :: Stripe.Requirements -> RequirementsInfo
-    toRequirementsInfo Stripe.Requirements {..} =
-      RequirementsInfo
-        { currentlyDue = currently_due,
-          pastDue = past_due,
-          eventuallyDue = eventually_due,
-          pendingVerification = pending_verification,
-          requirementErrors = errors,
-          disabledReason = disabled_reason,
-          currentDeadline = posixSecondsToUTCTime <$> current_deadline,
-          alternatives = fmap (map toRequirementAlternative) alternatives
-        }
-    toRequirementAlternative :: Stripe.Alternative -> RequirementAlternative
-    toRequirementAlternative Stripe.Alternative {..} =
-      RequirementAlternative
-        { alternativeFieldsDue = alternative_fields_due,
-          originalFieldsDue = original_fields_due
-        }
+
+toRequirementsInfo :: Stripe.Requirements -> RequirementsInfo
+toRequirementsInfo Stripe.Requirements {..} =
+  RequirementsInfo
+    { currentlyDue = currently_due,
+      pastDue = past_due,
+      eventuallyDue = eventually_due,
+      pendingVerification = pending_verification,
+      requirementErrors = errors,
+      disabledReason = disabled_reason,
+      currentDeadline = posixSecondsToUTCTime <$> current_deadline,
+      alternatives = fmap (map toRequirementAlternative) alternatives
+    }
+
+toRequirementAlternative :: Stripe.Alternative -> RequirementAlternative
+toRequirementAlternative Stripe.Alternative {..} =
+  RequirementAlternative
+    { alternativeFieldsDue = alternative_fields_due,
+      originalFieldsDue = original_fields_due
+    }
 
 createCustomer ::
   ( Metrics.CoreMetrics m,
