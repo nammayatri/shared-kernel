@@ -52,6 +52,11 @@ type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
 
 type SchedulerJobDisabledMetric = P.Vector P.Label2 P.Counter
 
+-- | Scheduler job lifecycle counter (labels: "job_type", "status", "version").
+-- Covers the whole life of a job -- created, picked and every terminal
+-- outcome -- so a single query can compare them per job type.
+type SchedulerJobLifecycleMetric = P.Vector P.Label3 P.Counter
+
 type ProducerErrorMetric = P.Vector P.Label2 P.Counter
 
 type GenericCounter = P.Vector P.Label1 P.Counter
@@ -102,6 +107,10 @@ class CoreMetrics m where
   addGenericLatency :: Text -> Milliseconds -> m ()
   incrementSchedulerFailureCounter :: Text -> m ()
   incrementSchedulerJobDisabledCounter :: Text -> m ()
+
+  -- | @incrementSchedulerJobLifecycleCounter jobType status@ -- record a job
+  -- lifecycle transition. See "Lib.Scheduler.Metrics" for the status values.
+  incrementSchedulerJobLifecycleCounter :: Text -> Text -> m ()
   incrementProducerError :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
   incrementConfigPilotSuccessCounter :: Text -> m ()
@@ -132,6 +141,7 @@ data CoreMetricsContainer = CoreMetricsContainer
     streamFailedCounter :: StreamFailedMetric,
     schedulerFailureCounter :: SchedulerFailureMetric,
     schedulerJobDisabledCounter :: SchedulerJobDisabledMetric,
+    schedulerJobLifecycleCounter :: SchedulerJobLifecycleMetric,
     producerError :: ProducerErrorMetric,
     genericCounter :: GenericCounter,
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
@@ -164,6 +174,7 @@ registerCoreMetricsContainer = do
   streamFailedCounter <- registerStreamFailedCounter
   schedulerFailureCounter <- registerSchedulerFailureCounter
   schedulerJobDisabledCounter <- registerSchedulerJobDisabledCounter
+  schedulerJobLifecycleCounter <- registerSchedulerJobLifecycleCounter
   producerError <- registerProducerErrorMetric
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
@@ -277,6 +288,14 @@ registerSchedulerJobDisabledCounter =
       P.counter info
   where
     info = P.Info "scheduler_jobs_disabled_counter" ""
+
+registerSchedulerJobLifecycleCounter :: IO SchedulerJobLifecycleMetric
+registerSchedulerJobLifecycleCounter =
+  P.register $
+    P.vector ("job_type", "status", "version") $
+      P.counter info
+  where
+    info = P.Info "scheduler_job_lifecycle_counter" "Scheduler job transitions per job type, labelled by lifecycle status (created/picked/completed/failed/rescheduled/retried/retry_exhausted/duplicate)"
 
 registerProducerErrorMetric :: IO ProducerErrorMetric
 registerProducerErrorMetric =

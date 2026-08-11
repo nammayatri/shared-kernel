@@ -308,6 +308,27 @@ incrementSchedulerFailureCounterImplementation' cmContainers context version = d
       (context, version.getDeploymentVersion)
       P.incCounter
 
+incrementSchedulerJobLifecycleCounterImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Text ->
+  m ()
+incrementSchedulerJobLifecycleCounterImplementation jobType status = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  incrementSchedulerJobLifecycleCounterImplementation' cmContainer jobType status version
+
+incrementSchedulerJobLifecycleCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> Text -> DeploymentVersion -> m ()
+incrementSchedulerJobLifecycleCounterImplementation' cmContainers jobType status version =
+  L.runIO $
+    P.withLabel
+      cmContainers.schedulerJobLifecycleCounter
+      (jobType, status, version.getDeploymentVersion)
+      P.incCounter
+
 incrementSchedulerJobDisabledCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
 incrementSchedulerJobDisabledCounterImplementation' cmContainers context version = do
   let sortedSetMetric = cmContainers.schedulerJobDisabledCounter
