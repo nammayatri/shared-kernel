@@ -205,10 +205,10 @@ updateTicketStatus config req = do
         Xyne.XyneUpdateTicketReq
           { ticketId = req.xyneTicketId,
             channelId = fromMaybe config.channelId req.xyneChannelId,
-            statusV2 = ticketStatusToXyneV2 req.status
+            stageName = ticketStatusToXyneV2 req.status
           }
   _ <- XF.updateTicketStatusAPI config.url token statusReq
-  logInfo $ "Xyne updateTicketStatus synced: xyneTicketId=" <> req.xyneTicketId <> " statusV2=" <> statusReq.statusV2
+  logInfo $ "Xyne updateTicketStatus synced: xyneTicketId=" <> req.xyneTicketId <> " stageName=" <> statusReq.stageName
 
 -- | CSAT submission via Xyne's @/api/csat/external/:ticketId@. Decoupled from
 -- 'updateTicket' / 'updateTicketStatus' the same way those two are decoupled
