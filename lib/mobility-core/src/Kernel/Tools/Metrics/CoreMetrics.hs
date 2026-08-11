@@ -329,6 +329,29 @@ incrementSchedulerJobLifecycleCounterImplementation' cmContainers jobType status
       (jobType, status, version.getDeploymentVersion)
       P.incCounter
 
+addSchedulerProducerStageCountImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Int ->
+  m ()
+addSchedulerProducerStageCountImplementation stage n = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  addSchedulerProducerStageCountImplementation' cmContainer stage n version
+
+addSchedulerProducerStageCountImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> Int -> DeploymentVersion -> m ()
+addSchedulerProducerStageCountImplementation' cmContainers stage n version =
+  -- addCounter rejects negative deltas; skip the no-op case entirely.
+  when (n > 0) $
+    L.runIO $
+      P.withLabel
+        cmContainers.schedulerProducerStageCounter
+        (stage, version.getDeploymentVersion)
+        (\c -> void $ P.addCounter c (fromIntegral n))
+
 incrementSchedulerJobDisabledCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
 incrementSchedulerJobDisabledCounterImplementation' cmContainers context version = do
   let sortedSetMetric = cmContainers.schedulerJobDisabledCounter
