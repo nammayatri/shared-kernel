@@ -214,10 +214,12 @@ library
       Kernel.External.Payment.PaytmEDC.Config
       Kernel.External.Payment.PaytmEDC.Flow
       Kernel.External.Payment.PaytmEDC.Types
+      Kernel.External.Payment.Stripe.AccountWebhook
       Kernel.External.Payment.Stripe.Config
       Kernel.External.Payment.Stripe.Flow
       Kernel.External.Payment.Stripe.Types
       Kernel.External.Payment.Stripe.Types.Accounts
+      Kernel.External.Payment.Stripe.Types.AccountWebhook
       Kernel.External.Payment.Stripe.Types.Card
       Kernel.External.Payment.Stripe.Types.Common
       Kernel.External.Payment.Stripe.Types.Customer
