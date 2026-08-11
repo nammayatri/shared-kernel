@@ -228,6 +228,7 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   addGenericLatency = Metrics.addGenericLatencyImplementation
   incrementSchedulerFailureCounter = Metrics.incrementSchedulerFailureCounterImplementation
   incrementSchedulerJobDisabledCounter = Metrics.incrementSchedulerJobDisabledCounterImplementation
+  incrementSchedulerJobLifecycleCounter = Metrics.incrementSchedulerJobLifecycleCounterImplementation
   incrementProducerError = Metrics.incrementProducerErrorImplementation
   incrementGenericMetrics = Metrics.incrementGenericMetrics'
   incrementConfigPilotSuccessCounter = Metrics.incrementConfigPilotSuccessCounter'
