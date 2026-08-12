@@ -28,9 +28,11 @@ import qualified Data.Text as T
 import EulerHS.Types (EulerClient, client)
 import Kernel.External.FleetEngine.Types
 import Kernel.Prelude
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
 import Servant hiding (throwError)
 import Servant.Client (Scheme (..))
 
@@ -102,7 +104,7 @@ bearer token = Just ("Bearer " <> token)
 -- this idempotent: a re-issued CreateTrip for an existing trip returns
 -- ALREADY_EXISTS and is treated as success.
 createTrip ::
-  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r) =>
+  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
   BaseUrl ->
   Text -> -- providerId
   Text -> -- token (server JWT)
@@ -116,6 +118,8 @@ createTrip baseUrl providerId token tripId trip = do
       (createTripClient providerId tripId (bearer token) trip)
       "fleetEngineCreateTrip"
       (Proxy :: Proxy CreateTripAPI)
+  fork "Logging external API Call of createTrip FleetEngine" $
+    ApiCallLogger.pushExternalApiCallDataToKafka "createTrip" "FleetEngine" (Just tripId) (Just trip) result
   case result of
     Right _ -> logInfo $ "FleetEngine: created trip " <> tripId
     Left err
@@ -127,7 +131,7 @@ createTrip baseUrl providerId token tripId trip = do
 -- 'intermediateDestinationsVersion' for the next mutation; 'Nothing' on
 -- transport or decode failure (log-and-continue, no throws).
 updateTrip ::
-  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r) =>
+  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
   BaseUrl ->
   Text -> -- providerId
   Text -> -- token (server JWT)
@@ -142,6 +146,8 @@ updateTrip baseUrl providerId token tripId updateMask trip = do
       (updateTripClient providerId tripId updateMask (bearer token) trip)
       "fleetEngineUpdateTrip"
       (Proxy :: Proxy UpdateTripAPI)
+  fork "Logging external API Call of updateTrip FleetEngine" $
+    ApiCallLogger.pushExternalApiCallDataToKafka ("updateTrip[" <> updateMask <> "]") "FleetEngine" (Just tripId) (Just trip) result
   case result of
     Right value -> do
       logInfo $ "FleetEngine: updated trip " <> tripId <> " [" <> updateMask <> "]"
@@ -156,7 +162,7 @@ updateTrip baseUrl providerId token tripId updateMask trip = do
 
 -- | Convenience: advance a trip's status.
 updateTripStatus ::
-  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r) =>
+  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
   BaseUrl ->
   Text ->
   Text ->
@@ -170,7 +176,7 @@ updateTripStatus baseUrl providerId token tripId status =
 -- before any Trips API works (project provisioning); ALREADY_EXISTS is
 -- treated as success.
 createVehicle ::
-  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r) =>
+  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
   BaseUrl ->
   Text -> -- providerId
   Text -> -- token (server JWT)
@@ -184,6 +190,8 @@ createVehicle baseUrl providerId token vehicleId vehicle = do
       (createVehicleClient providerId vehicleId (bearer token) vehicle)
       "fleetEngineCreateVehicle"
       (Proxy :: Proxy CreateVehicleAPI)
+  fork "Logging external API Call of createVehicle FleetEngine" $
+    ApiCallLogger.pushExternalApiCallDataToKafka "createVehicle" "FleetEngine" (Just vehicleId) (Just vehicle) result
   case result of
     Right _ -> logInfo $ "FleetEngine: created vehicle " <> vehicleId
     Left err
@@ -194,7 +202,7 @@ createVehicle baseUrl providerId token vehicleId vehicle = do
 -- 'Nothing' on NOT_FOUND (for get-or-create); other errors also collapse to
 -- 'Nothing', matching the log-and-continue style used here.
 getVehicle ::
-  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r) =>
+  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
   BaseUrl ->
   Text -> -- providerId
   Text -> -- token (server JWT)
@@ -207,6 +215,8 @@ getVehicle baseUrl providerId token vehicleId = do
       (getVehicleClient providerId vehicleId (bearer token))
       "fleetEngineGetVehicle"
       (Proxy :: Proxy GetVehicleAPI)
+  fork "Logging external API Call of getVehicle FleetEngine" $
+    ApiCallLogger.pushExternalApiCallDataToKafka "getVehicle" "FleetEngine" (Just vehicleId) (Nothing :: Maybe A.Value) result
   case result of
     Right v -> pure (Just v)
     Left err
@@ -217,7 +227,7 @@ getVehicle baseUrl providerId token vehicleId = do
 
 -- | Convenience: assign the vehicle to the trip and move it to ENROUTE_TO_PICKUP.
 assignVehicleAndStart ::
-  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r) =>
+  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
   BaseUrl ->
   Text ->
   Text ->
