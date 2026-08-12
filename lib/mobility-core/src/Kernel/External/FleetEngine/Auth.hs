@@ -33,6 +33,7 @@ data TokenScope
   = ConsumerToken Text -- tripId
   | DriverToken Text -- vehicleId
   | ServerToken
+  | FleetReaderToken -- read-only, fleet-wide (JS Fleet Tracking / Journey Sharing)
 
 -- | Decode the (decrypted) service-account JSON text.
 parseServiceAccount :: Text -> Either String JWT.ServiceAccount
@@ -49,4 +50,10 @@ mintFleetEngineToken sa scope ttlSeconds =
     -- Fleet Engine rejects tokens without an "authorization" claim
     -- ("JWT does not contain any scopes."); wildcard is the documented shape.
     authClaims ServerToken =
+      [("authorization", A.object ["vehicleid" A..= ("*" :: Text), "tripid" A..= ("*" :: Text)])]
+    -- Fleet-wide read token for the JS Fleet Tracking / Journey Sharing library:
+    -- same wildcard claim shape as the server token, but signed by the fleet
+    -- reader service account whose IAM role only permits reads — so this token
+    -- can list/track every vehicle and trip in the fleet without any write scope.
+    authClaims FleetReaderToken =
       [("authorization", A.object ["vehicleid" A..= ("*" :: Text), "tripid" A..= ("*" :: Text)])]

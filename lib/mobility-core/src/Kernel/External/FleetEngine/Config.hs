@@ -27,8 +27,10 @@ import Kernel.Prelude
 -- own service account (each granted only the matching Fleet Engine IAM role):
 -- the server SA (@roles/fleetengine.ondemandAdmin@) for CreateTrip/UpdateTrip and
 -- server-to-server tokens, the driver SA (@roles/fleetengine.driverSdkUser@) for
--- Driver SDK tokens, and the consumer SA (@roles/fleetengine.consumerSdkUser@)
--- for rider Consumer SDK tokens.
+-- Driver SDK tokens, the consumer SA (@roles/fleetengine.consumerSdkUser@) for
+-- rider Consumer SDK tokens, and the fleet reader SA
+-- (@roles/fleetengine.ondemandUntrustedFleetReader@) for the ops fleet-tracking
+-- dashboard's read-only Journey Sharing tokens.
 data FleetEngineCfg = FleetEngineCfg
   { -- | GCP project id that owns the Fleet Engine provider (the @providers/{id}@ path segment)
     providerId :: Text,
@@ -42,12 +44,19 @@ data FleetEngineCfg = FleetEngineCfg
     driverServiceAccountJson :: EncryptedField 'AsEncrypted Text,
     -- | Consumer service-account JSON (consumerSdkUser role) for rider Consumer SDK tokens, encrypted at rest
     consumerServiceAccountJson :: EncryptedField 'AsEncrypted Text,
+    -- | Fleet reader service-account JSON (ondemandUntrustedFleetReader role) for the
+    -- ops dashboard's read-only fleet-tracking tokens, encrypted at rest.
+    -- 'Nothing' => the fleet reader dashboard is not provisioned for this city
+    -- (kept optional so configs predating this field still decode).
+    fleetReaderServiceAccountJson :: Maybe (EncryptedField 'AsEncrypted Text),
     -- | TTL (seconds) for consumer (rider) SDK tokens; defaults to 'defaultConsumerTokenTtl'
     consumerTokenTtlSeconds :: Maybe Integer,
     -- | TTL (seconds) for driver SDK tokens; defaults to 'defaultDriverTokenTtl'
     driverTokenTtlSeconds :: Maybe Integer,
     -- | TTL (seconds) for server-to-server tokens; defaults to 'defaultServerTokenTtl'
-    serverTokenTtlSeconds :: Maybe Integer
+    serverTokenTtlSeconds :: Maybe Integer,
+    -- | TTL (seconds) for fleet reader (ops dashboard) tokens; defaults to 'defaultFleetReaderTokenTtl'
+    fleetReaderTokenTtlSeconds :: Maybe Integer
   }
   deriving (Generic, Show, Eq, ToJSON, FromJSON)
 
@@ -59,3 +68,8 @@ defaultDriverTokenTtl = 60 * 60
 
 defaultServerTokenTtl :: Integer
 defaultServerTokenTtl = 60 * 60
+
+-- | Short-lived so a leaked ops-dashboard token expires quickly; the frontend
+-- refreshes before expiry.
+defaultFleetReaderTokenTtl :: Integer
+defaultFleetReaderTokenTtl = 15 * 60
