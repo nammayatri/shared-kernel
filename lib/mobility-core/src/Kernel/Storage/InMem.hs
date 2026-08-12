@@ -93,7 +93,7 @@ registerKeyWithSidecar env cacheKey cacheTtl =
       void $
         forkIO $ do
           let req = RegisterKeyRequest {keyName = cacheKey, keySchema = Nothing, ttlInSeconds = Just cacheTtl}
-          void (callRegisterKey (sidecarManager sidecar) (sidecarBaseUrl sidecar) req)
+          void (callRegisterKey (sidecarManager sidecar) (sidecarBaseUrl sidecar) (inMemManagementToken env) req)
             `catch` (\(_ :: SomeException) -> pure ())
 
 refreshInMem :: (MonadFlow m, MonadReader r m, HasInMemEnv r, HedisFlow m r, TryException m) => Text -> m ()
@@ -117,7 +117,7 @@ refreshInMem keyInfix = do
   case (inMemSidecarEnv inMemEnv, inMemServiceName inMemEnv) of
     (Just sidecar, Just svcName) -> liftIO $ do
       let req = SidecarRefreshRequest {serviceName = svcName, keyInfix = keyInfix}
-      void (callRefresh (sidecarManager sidecar) (sidecarBaseUrl sidecar) req)
+      void (callRefresh (sidecarManager sidecar) (sidecarBaseUrl sidecar) (inMemManagementToken inMemEnv) req)
         `catch` (\(_ :: SomeException) -> pure ())
     _ -> pure ()
 
