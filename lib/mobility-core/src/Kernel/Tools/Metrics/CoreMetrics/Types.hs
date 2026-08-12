@@ -57,6 +57,14 @@ type SchedulerJobDisabledMetric = P.Vector P.Label2 P.Counter
 -- outcome -- so a single query can compare them per job type.
 type SchedulerJobLifecycleMetric = P.Vector P.Label3 P.Counter
 
+-- | Producer pipeline stage counter (labels: "stage", "version").
+--
+-- Counts jobs moving through the producer: read out of the scheduled sorted
+-- set, then written into the redis stream. Deliberately has no @job_type@
+-- label -- the producer handles opaque encoded job blobs and does not parse
+-- them, so tagging by type would mean decoding every job on the hot path.
+type SchedulerProducerStageMetric = P.Vector P.Label2 P.Counter
+
 type ProducerErrorMetric = P.Vector P.Label2 P.Counter
 
 type GenericCounter = P.Vector P.Label1 P.Counter
@@ -112,6 +120,11 @@ class CoreMetrics m where
   -- lifecycle transition. See "Lib.Scheduler.Metrics" for the status values.
   incrementSchedulerJobLifecycleCounter :: Text -> Text -> m ()
 
+  -- | @addSchedulerProducerStageCount stage n@ -- record that @n@ jobs passed
+  -- through a producer pipeline stage. Takes a count because the producer
+  -- moves jobs in batches.
+  addSchedulerProducerStageCount :: Text -> Int -> m ()
+
   incrementProducerError :: Text -> m ()
   incrementGenericMetrics :: Text -> m ()
   incrementConfigPilotSuccessCounter :: Text -> m ()
@@ -143,6 +156,7 @@ data CoreMetricsContainer = CoreMetricsContainer
     schedulerFailureCounter :: SchedulerFailureMetric,
     schedulerJobDisabledCounter :: SchedulerJobDisabledMetric,
     schedulerJobLifecycleCounter :: SchedulerJobLifecycleMetric,
+    schedulerProducerStageCounter :: SchedulerProducerStageMetric,
     producerError :: ProducerErrorMetric,
     genericCounter :: GenericCounter,
     systemConfigsFailedCounter :: SystemConfigsFailedCounter,
@@ -176,6 +190,7 @@ registerCoreMetricsContainer = do
   schedulerFailureCounter <- registerSchedulerFailureCounter
   schedulerJobDisabledCounter <- registerSchedulerJobDisabledCounter
   schedulerJobLifecycleCounter <- registerSchedulerJobLifecycleCounter
+  schedulerProducerStageCounter <- registerSchedulerProducerStageCounter
   producerError <- registerProducerErrorMetric
   genericCounter <- registerGenericCounter
   systemConfigsFailedCounter <- registerSystemConfigsFailedCounter
@@ -297,6 +312,14 @@ registerSchedulerJobLifecycleCounter =
       P.counter info
   where
     info = P.Info "scheduler_job_lifecycle_counter" "Scheduler job transitions per job type, labelled by lifecycle status (created/picked/completed/failed/rescheduled/retried/retry_exhausted/duplicate)"
+
+registerSchedulerProducerStageCounter :: IO SchedulerProducerStageMetric
+registerSchedulerProducerStageCounter =
+  P.register $
+    P.vector ("stage", "version") $
+      P.counter info
+  where
+    info = P.Info "scheduler_producer_stage_counter" "Jobs moving through the producer pipeline, by stage (picked_from_set/inserted_to_stream/stream_insert_failed)"
 
 registerProducerErrorMetric :: IO ProducerErrorMetric
 registerProducerErrorMetric =
