@@ -91,6 +91,21 @@ updateOrder serviceConfig mRoutingId req = case serviceConfig of
   StripeConfig _ -> throwError $ InternalError "Stripe Update Order not supported."
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Update Order not supported."
 
+fulfillment ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PaymentServiceConfig ->
+  Maybe Text ->
+  FulfillmentReq ->
+  m FulfillmentResp
+fulfillment serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.fulfillment cfg mRoutingId req
+  StripeConfig _ -> throwError $ InternalError "Stripe Fulfillment not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Fulfillment not supported."
+
 offerList ::
   ( EncFlow m r,
     CoreMetrics m,
@@ -503,6 +518,12 @@ verifyVPA config mRoutingId req = case config of
 isSplitEnabled :: PaymentServiceConfig -> Bool
 isSplitEnabled = \case
   JuspayConfig cfg -> fromMaybe False cfg.isSplitEnabled
+  StripeConfig _ -> False
+  PaytmEDCConfig _ -> False
+
+isPostTxnSplitSettlementEnabled :: PaymentServiceConfig -> Bool
+isPostTxnSplitSettlementEnabled = \case
+  JuspayConfig cfg -> fromMaybe False cfg.postTxnSplitSettlementEnabled
   StripeConfig _ -> False
   PaytmEDCConfig _ -> False
 

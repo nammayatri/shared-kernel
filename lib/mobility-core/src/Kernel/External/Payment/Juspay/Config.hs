@@ -35,6 +35,7 @@ data JuspayCfg = JuspayCfg
     isSplitEnabled :: Maybe Bool,
     isRefundSplitEnabled :: Maybe Bool,
     isPercentageSplit :: Maybe Bool,
+    postTxnSplitSettlementEnabled :: Maybe Bool,
     paymentOrderValidity :: Maybe Seconds,
     offerSKUConfig :: Maybe Text,
     childOfferSKUConfig :: Maybe Text,

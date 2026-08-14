@@ -19,6 +19,7 @@ module Kernel.External.Payment.Interface.Juspay
     getCustomer,
     orderStatus,
     updateOrder,
+    fulfillment,
     orderStatusWebhook,
     offerList,
     offerApply,
@@ -120,6 +121,36 @@ updateOrder config mRoutingId req = do
         { orderId = order_id,
           amount
         }
+
+fulfillment ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  JuspayCfg ->
+  Maybe Text ->
+  FulfillmentReq ->
+  m FulfillmentResp
+fulfillment config mRoutingId req = do
+  let url = config.url
+      merchantId = config.merchantId
+  logDebug $ "fulfillment req: " <> show req
+  apiKey <- decrypt config.apiKey
+  splitDetails <- traverse mkSplitSettlementDetails req.splitSettlementDetails
+  let fulfillmentReq =
+        Juspay.FulfillmentReq
+          { fulfillment_status = req.fulfillmentStatus,
+            fulfillment_command = "POST_TXN_SPLIT_SETTLEMENT",
+            split_settlement_details = splitDetails
+          }
+  resp <- Juspay.fulfillment url apiKey merchantId req.orderShortId mRoutingId fulfillmentReq
+  logDebug $ "fulfillment res: " <> show resp
+  return $
+    FulfillmentResp
+      { orderId = resp.order_id,
+        status = resp.status
+      }
 
 getCustomerOrCreateCustomer ::
   ( Metrics.CoreMetrics m,

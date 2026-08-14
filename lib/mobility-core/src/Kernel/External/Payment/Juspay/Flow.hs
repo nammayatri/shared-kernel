@@ -189,6 +189,34 @@ updateOrder url apiKey merchantId orderId mRoutingId req = do
       eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) mRoutingId req
   callJuspayAPI url eulerClient "update-order" proxy
 
+type FulfillmentAPI =
+  "orders"
+    :> Capture "orderId" Text
+    :> "fulfillment"
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> Header "x-routing-id" Text
+    :> ReqBody '[FormUrlEncoded] FulfillmentReq
+    :> Post '[JSON] FulfillmentResp
+
+fulfillment ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Text ->
+  Maybe Text ->
+  FulfillmentReq ->
+  m FulfillmentResp
+fulfillment url apiKey merchantId orderId mRoutingId req = do
+  let proxy = Proxy @FulfillmentAPI
+      eulerClient = Euler.client proxy orderId (mkBasicAuthData apiKey) (Just merchantId) mRoutingId req
+  callJuspayAPI url eulerClient "fulfillment" proxy
+
 type OfferListAPI =
   "offers"
     :> "list"

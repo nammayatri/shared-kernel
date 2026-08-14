@@ -876,6 +876,21 @@ data OrderUpdateResp = OrderUpdateResp
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data FulfillmentReq = FulfillmentReq
+  { orderShortId :: Text,
+    fulfillmentStatus :: Text,
+    splitSettlementDetails :: Maybe SplitSettlementDetails
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data FulfillmentResp = FulfillmentResp
+  { orderId :: Maybe Text,
+    status :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 -- | How a Stripe charge routes the money it collects.
 --
 --     * 'DestinationCharge' — attach @transfer_data[destination]@ and @application_fee_amount@ so the
