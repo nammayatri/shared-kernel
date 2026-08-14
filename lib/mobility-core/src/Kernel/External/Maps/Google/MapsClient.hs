@@ -20,6 +20,8 @@ module Kernel.External.Maps.Google.MapsClient
     PlaceDetailsAPI,
     PlaceDetailsV2API,
     PlaceNameAPI,
+    PlaceNameByLocationV4API,
+    PlaceNameByPlaceIdV4API,
     DistanceMatrixAPI,
     DirectionsAPI,
     AdvancedDirectionsAPI,
@@ -32,6 +34,8 @@ module Kernel.External.Maps.Google.MapsClient
     getPlaceDetails,
     getPlaceDetailsV2,
     getPlaceName,
+    getPlaceNameByLocationV4,
+    getPlaceNameByPlaceIdV4,
     distanceMatrix,
     directions,
     autoCompleteV2,
@@ -69,6 +73,8 @@ type GoogleMapsAPI =
     :<|> TransitDirectionsAPI
     :<|> SearchDestinationsAPI
     :<|> ComputeRouteMatrixAPI
+    :<|> PlaceNameByLocationV4API
+    :<|> PlaceNameByPlaceIdV4API
 
 type AutocompleteAPI =
   "place" :> "autocomplete" :> "json"
@@ -117,6 +123,25 @@ type PlaceNameAPI =
     :> QueryParam "place_id" Text
     :> QueryParam "language" Language
     :> Get '[JSON] GoogleMaps.GetPlaceNameResp
+
+-- | Geocoding API v4 reverse geocode (lat/lng -> address).
+-- The base url is expected to point at the geocode host + version, e.g.
+-- https://geocode.googleapis.com/v4 , giving /v4/geocode/location/{lat},{lng}.
+type PlaceNameByLocationV4API =
+  "geocode" :> "location" :> Capture "location" GoogleMaps.GeocodeLocationV4
+    :> MandatoryHeader "X-Goog-Api-Key" Text
+    :> MandatoryHeader "X-Goog-FieldMask" Text
+    :> QueryParam "languageCode" Language
+    :> Get '[JSON] GoogleMaps.GetPlaceNameRespV4
+
+-- | Geocoding API v4 place geocode (placeId -> address).
+-- Full call: GET https://geocode.googleapis.com/v4/geocode/places/{placeId}.
+type PlaceNameByPlaceIdV4API =
+  "geocode" :> "places" :> Capture "placeId" Text
+    :> MandatoryHeader "X-Goog-Api-Key" Text
+    :> MandatoryHeader "X-Goog-FieldMask" Text
+    :> QueryParam "languageCode" Language
+    :> Get '[JSON] GoogleMaps.GetPlaceNameRespV4
 
 type DistanceMatrixAPI =
   "distancematrix" :> "json"
@@ -209,7 +234,9 @@ computeRouteMatrixClient ::
   Text ->
   GoogleMaps.ComputeRouteMatrixReq ->
   EulerClient [GoogleMaps.RouteMatrixElement]
-autoCompleteClient :<|> autoCompleteV2Client :<|> getPlaceDetailsClient :<|> getPlaceDetailsV2Client :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient :<|> transitDirectionsClient :<|> searchDestinationsClient :<|> computeRouteMatrixClient = client (Proxy :: Proxy GoogleMapsAPI)
+getPlaceNameByLocationV4Client :: GoogleMaps.GeocodeLocationV4 -> Text -> Text -> Maybe Language -> EulerClient GoogleMaps.GetPlaceNameRespV4
+getPlaceNameByPlaceIdV4Client :: Text -> Text -> Text -> Maybe Language -> EulerClient GoogleMaps.GetPlaceNameRespV4
+autoCompleteClient :<|> autoCompleteV2Client :<|> getPlaceDetailsClient :<|> getPlaceDetailsV2Client :<|> getPlaceNameClient :<|> distanceMatrixClient :<|> directionsClient :<|> advancedDirectionsClient :<|> transitDirectionsClient :<|> searchDestinationsClient :<|> computeRouteMatrixClient :<|> getPlaceNameByLocationV4Client :<|> getPlaceNameByPlaceIdV4Client = client (Proxy :: Proxy GoogleMapsAPI)
 
 autoComplete ::
   ( CoreMetrics m,
@@ -326,6 +353,55 @@ getPlaceName entityId req url apiKey sessiontoken mbByPlaceId mbByLatLong langua
   fork ("Logging external API Call of getPlaceName Google ") $
     ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceName" "Google" entityId (Just req) rsp
   checkGoogleMapsError url rsp
+
+-- | Geocoding API v4 reverse geocode. The v4 response carries no top-level
+-- @status@ field, so errors are surfaced from the transport layer directly
+-- (as with searchDestinations / computeRouteMatrix).
+getPlaceNameByLocationV4 ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  MapsInterfaceTypes.GetPlaceNameReq ->
+  BaseUrl ->
+  Text ->
+  -- | X-Goog-FieldMask
+  Text ->
+  GoogleMaps.GeocodeLocationV4 ->
+  Maybe Language ->
+  m GoogleMaps.GetPlaceNameRespV4
+getPlaceNameByLocationV4 entityId req url apiKey fieldMask location language = do
+  rsp <- callAPI url (getPlaceNameByLocationV4Client location apiKey fieldMask language) "getPlaceNameByLocationV4" (Proxy :: Proxy GoogleMapsAPI)
+  fork ("Logging external API Call of getPlaceNameByLocationV4 Google ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceNameByLocationV4" "Google" entityId (Just req) rsp
+  fromEitherM (googleMapsError url) rsp
+
+-- | Geocoding API v4 place geocode (by placeId).
+getPlaceNameByPlaceIdV4 ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  MapsInterfaceTypes.GetPlaceNameReq ->
+  BaseUrl ->
+  Text ->
+  -- | X-Goog-FieldMask
+  Text ->
+  -- | placeId (without the "places/" prefix)
+  Text ->
+  Maybe Language ->
+  m GoogleMaps.GetPlaceNameRespV4
+getPlaceNameByPlaceIdV4 entityId req url apiKey fieldMask placeId language = do
+  rsp <- callAPI url (getPlaceNameByPlaceIdV4Client placeId apiKey fieldMask language) "getPlaceNameByPlaceIdV4" (Proxy :: Proxy GoogleMapsAPI)
+  fork ("Logging external API Call of getPlaceNameByPlaceIdV4 Google ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceNameByPlaceIdV4" "Google" entityId (Just req) rsp
+  fromEitherM (googleMapsError url) rsp
 
 distanceMatrix ::
   ( CoreMetrics m,

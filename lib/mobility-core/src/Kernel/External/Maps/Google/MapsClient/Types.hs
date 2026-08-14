@@ -16,6 +16,7 @@
 module Kernel.External.Maps.Google.MapsClient.Types where
 
 import Data.Aeson
+import qualified Data.ByteString.Builder as BB
 import qualified Data.ByteString.Lazy as BSL
 import Data.Double.Conversion.Text (toFixed)
 import qualified Data.Text as T
@@ -24,7 +25,7 @@ import Kernel.External.Maps.Google.PolyLinePoints (PolyLinePoints)
 import Kernel.Prelude
 import Kernel.Utils.Dhall (FromDhall)
 import qualified Kernel.Utils.JSON as JS
-import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData (toUrlPiece))
+import Servant (FromHttpApiData (parseUrlPiece), ToHttpApiData (toEncodedUrlPiece, toUrlPiece))
 
 data AutoCompleteResp = AutoCompleteResp
   { status :: Text,
@@ -163,6 +164,59 @@ data AddressResp = AddressResp
 data PlusCodeResp = PlusCodeResp
   { compound_code :: Maybe Text,
     global_code :: Maybe Text
+  }
+  deriving stock (Generic, Show)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+-------------------------------------------------------------------------------
+-- Google Geocoding API v4 : address / location / place geocoding
+--   Reverse : GET https://geocode.googleapis.com/v4/geocode/location/{lat},{lng}
+--   Place   : GET https://geocode.googleapis.com/v4/geocode/places/{placeId}
+--   Docs: https://developers.google.com/maps/documentation/geocoding/geocoding-v4-overview
+-- Auth is via the X-Goog-Api-Key header; the response fields are selected with
+-- the X-Goog-FieldMask header. All fields are decoded as 'Maybe' so a partial
+-- field mask (or a new/unknown field from Google) never fails the whole decode.
+-------------------------------------------------------------------------------
+
+-- | Path segment holding "{latitude},{longitude}" for the reverse-geocode
+-- endpoint. The comma is emitted unencoded (it is a valid path sub-delimiter)
+-- so the request path stays "/v4/geocode/location/12.34,56.78" rather than
+-- percent-encoding the separator.
+newtype GeocodeLocationV4 = GeocodeLocationV4 LatLngV2
+  deriving stock (Show)
+
+instance ToHttpApiData GeocodeLocationV4 where
+  toUrlPiece (GeocodeLocationV4 (LatLngV2 lat lng)) =
+    T.concat [toFixed precision lat, ",", toFixed precision lng]
+    where
+      precision = 6 -- Precision beyond 6 decimal places is ignored.
+  toEncodedUrlPiece = BB.byteString . DT.encodeUtf8 . toUrlPiece
+
+newtype GetPlaceNameRespV4 = GetPlaceNameRespV4
+  { results :: Maybe [GeocodeResultV4]
+  }
+  deriving stock (Generic, Show)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data GeocodeResultV4 = GeocodeResultV4
+  { -- | place resource name, e.g. "places/ChIJ..."
+    place :: Maybe Text,
+    placeId :: Maybe Text,
+    location :: Maybe LatLngV2,
+    -- | v4 rename of v3 location_type, e.g. "ROOFTOP" | "APPROXIMATE"
+    granularity :: Maybe Text,
+    formattedAddress :: Maybe Text,
+    postalAddress :: Maybe PostalAddress,
+    addressComponents :: Maybe [AddressRespV2],
+    plusCode :: Maybe PlusCodeV4,
+    types :: Maybe [Text]
+  }
+  deriving stock (Generic, Show)
+  deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+data PlusCodeV4 = PlusCodeV4
+  { globalCode :: Maybe Text,
+    compoundCode :: Maybe Text
   }
   deriving stock (Generic, Show)
   deriving anyclass (ToJSON, FromJSON, ToSchema)

@@ -663,11 +663,21 @@ getPlaceName ::
   GetPlaceNameReq ->
   m GetPlaceNameResp
 getPlaceName entityId cfg req@GetPlaceNameReq {..} = do
-  let mapsUrl = cfg.googleMapsUrl
-  key <- decrypt cfg.googleKey
-  res <- GoogleMaps.getPlaceName entityId req mapsUrl key sessionToken mbByPlaceId mbByLatLong language
-  return $ map reformatePlaceName res.results
+  if fromMaybe False cfg.useGeoCodeV4
+    then do
+      result <- withTryCatch "getPlaceName" $ getPlaceNameV4 entityId cfg req
+      case result of
+        Right res -> return res
+        Left err -> do
+          logTagError "GoogleMapsGetPlaceName" ("Geocoding API v4 failed, falling back to legacy geocode API, error is: " <> show err)
+          getPlaceNameOld
+    else getPlaceNameOld
   where
+    getPlaceNameOld = do
+      let mapsUrl = cfg.googleMapsUrl
+      key <- decrypt cfg.googleKey
+      res <- GoogleMaps.getPlaceName entityId req mapsUrl key sessionToken mbByPlaceId mbByLatLong language
+      return $ map reformatePlaceName res.results
     reformatePlaceName (placeName :: GoogleMaps.ResultsResp) =
       PlaceName
         { formattedAddress = placeName.formatted_address,
@@ -686,6 +696,48 @@ getPlaceName entityId cfg req@GetPlaceNameReq {..} = do
     (mbByPlaceId, mbByLatLong) = case getBy of
       ByPlaceId id -> (Just id, Nothing)
       ByLatLong latLong -> (Nothing, Just latLong)
+
+getPlaceNameV4 ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  GoogleCfg ->
+  GetPlaceNameReq ->
+  m GetPlaceNameResp
+getPlaceNameV4 entityId cfg req = do
+  url <- maybe (parseBaseUrl "https://geocode.googleapis.com/v4") pure cfg.googleGeocodeUrl
+  key <- decrypt cfg.googleKey
+  let fieldMask = "results.location,results.formattedAddress,results.placeId,results.addressComponents,results.postalAddress,results.plusCode,results.types"
+  res <- case req.getBy of
+    ByLatLong latLong ->
+      GoogleMaps.getPlaceNameByLocationV4 entityId req url key fieldMask (GoogleMaps.GeocodeLocationV4 (GoogleMaps.LatLngV2 {latitude = latLong.lat, longitude = latLong.lon})) req.language
+    ByPlaceId placeId ->
+      GoogleMaps.getPlaceNameByPlaceIdV4 entityId req url key fieldMask (stripPlacesPrefix placeId) req.language
+  return $ mapMaybe reformatePlaceNameV4 (fromMaybe [] res.results)
+  where
+    -- v4 place geocoding expects the raw placeId in the path; tolerate a
+    -- "places/"-prefixed value coming from callers that follow the v4 naming.
+    stripPlacesPrefix pid = fromMaybe pid (T.stripPrefix "places/" pid)
+    reformatePlaceNameV4 (result :: GoogleMaps.GeocodeResultV4) =
+      result.location <&> \loc ->
+        PlaceName
+          { formattedAddress = result.formattedAddress,
+            addressComponents = maybe [] (map reformateAddressRespV4) result.addressComponents,
+            plusCode = (result.plusCode >>= (.compoundCode)) <|> (result.plusCode >>= (.globalCode)),
+            location = LatLong loc.latitude loc.longitude,
+            placeId = result.placeId,
+            source = Nothing
+          }
+    reformateAddressRespV4 aResp =
+      AddressResp
+        { longName = aResp.longText,
+          shortName = aResp.shortText,
+          types = aResp.types
+        }
 
 searchDestinations ::
   ( EncFlow m r,

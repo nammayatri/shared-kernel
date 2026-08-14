@@ -28,6 +28,10 @@ data GoogleCfg = GoogleCfg
     googlePlaceNewUrl :: BaseUrl,
     useNewPlaces :: Bool,
     useNewPlaceDetails :: Maybe Bool,
+    -- | when True, getPlaceName uses the Geocoding API v4 endpoints
+    -- (geocode.googleapis.com/v4) and falls back to the legacy geocode/json
+    -- endpoint on error; defaults to the legacy endpoint when unset
+    useGeoCodeV4 :: Maybe Bool,
     googleAutocompleteParams :: Maybe [Text],
     mobilityBillingUrl :: Maybe BaseUrl,
     -- | host + version for Geocoding API v4; defaults to https://geocode.googleapis.com/v4 when unset
