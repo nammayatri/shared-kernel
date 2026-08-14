@@ -43,7 +43,8 @@ instance FromJSON (Value a) where
   parseJSON val@(A.String _) = String <$> parseJSON @String val
   parseJSON val@(A.Number _) = Number <$> parseJSON @Sci.Scientific val
   parseJSON A.Null = pure Null
-  parseJSON _ = fail "Expected String or Null for clickhouse value"
+  parseJSON val@(A.Array _) = pure $ String (T.unpack . TE.decodeUtf8 . BS.toStrict $ A.encode val)
+  parseJSON _ = fail "Expected String, Number, Array or Null for clickhouse value"
 
 class (Show a, Read a) => ClickhouseValue a where
   toClickhouseValue :: a -> Value a
