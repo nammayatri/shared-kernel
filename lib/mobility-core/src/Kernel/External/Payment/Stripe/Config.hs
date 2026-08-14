@@ -20,6 +20,7 @@ module Kernel.External.Payment.Stripe.Config
 where
 
 import Data.Aeson
+import Data.Map.Strict (Map)
 import Kernel.External.Encryption
 import Kernel.External.Payment.Stripe.Types.Accounts as Reexport (BusinessProfile (..))
 import Kernel.Prelude
@@ -32,6 +33,7 @@ data ChargeDestination = Platform | ConnectedAccount
 data StripeCfg = StripeCfg
   { apiKey :: EncryptedField 'AsEncrypted Text,
     returnUrl :: BaseUrl,
+    returnUrls :: Maybe (Map Text BaseUrl),
     refreshUrl :: BaseUrl,
     url :: BaseUrl,
     businessProfile :: Maybe BusinessProfile,

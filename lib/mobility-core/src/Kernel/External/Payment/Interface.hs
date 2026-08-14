@@ -232,11 +232,11 @@ retryAccountLink ::
     MonadReader r m
   ) =>
   PaymentServiceConfig ->
-  Stripe.AccountId ->
+  RetryAccountLinkReq ->
   m RetryAccountLink
-retryAccountLink config accountId = case config of
+retryAccountLink config req = case config of
   JuspayConfig _ -> throwError $ InternalError "Juspay Retry Account Link not supported."
-  StripeConfig cfg -> Stripe.retryAccountLink cfg accountId
+  StripeConfig cfg -> Stripe.retryAccountLink cfg req
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Retry Account Link not supported."
 
 getAccount ::

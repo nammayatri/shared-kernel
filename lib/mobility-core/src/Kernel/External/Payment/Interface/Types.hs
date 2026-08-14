@@ -784,7 +784,8 @@ data ConnectAccountReq = ConnectAccountReq
     idNumber :: Maybe Text,
     address :: Maybe Address,
     businessType :: Maybe BusinessType,
-    companyDetails :: Maybe CompanyConnectDetails
+    companyDetails :: Maybe CompanyConnectDetails,
+    returnUrlKey :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -798,6 +799,13 @@ data ConnectAccountLinkResp = ConnectAccountLinkResp
     detailsSubmitted :: Bool,
     requirements :: Maybe RequirementsInfo,
     futureRequirements :: Maybe RequirementsInfo
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data RetryAccountLinkReq = RetryAccountLinkReq
+  { accountId :: AccountId,
+    returnUrlKey :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

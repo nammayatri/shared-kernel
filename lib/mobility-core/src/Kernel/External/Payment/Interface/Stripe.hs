@@ -5,6 +5,7 @@ module Kernel.External.Payment.Interface.Stripe
 where
 
 import Control.Applicative ((<|>))
+import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 import Data.Time
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
@@ -59,7 +60,7 @@ createConnectAccount config req = do
               id_number = req.idNumber
             }
     void $ Stripe.createPerson url apiKey accountId personReq
-  let accountLinkReq = mkAccountLinkReq config accountId
+  let accountLinkReq = mkAccountLinkReq config req.returnUrlKey accountId
   accountLinkResp <- Stripe.createAccountLink url apiKey accountLinkReq
   let accountUrl = accountLinkResp.url
   let accountUrlExpiry = posixSecondsToUTCTime accountLinkResp.expires_at
@@ -155,12 +156,13 @@ retryAccountLink ::
     MonadReader r m
   ) =>
   StripeCfg ->
-  Stripe.AccountId ->
+  RetryAccountLinkReq ->
   m RetryAccountLink
-retryAccountLink config accountId = do
+retryAccountLink config req = do
   let url = config.url
   apiKey <- decrypt config.apiKey
-  let accountLinkReq = mkAccountLinkReq config accountId
+  let accountId = req.accountId
+  let accountLinkReq = mkAccountLinkReq config req.returnUrlKey accountId
   accountLinkResp <- Stripe.createAccountLink url apiKey accountLinkReq
   let accountUrlExpiry = posixSecondsToUTCTime accountLinkResp.expires_at
   let accountUrl = accountLinkResp.url
@@ -560,11 +562,18 @@ updateAmountInPaymentIntent config paymentIntentId amount_ applicationFeeAmount 
   let req = Stripe.IncrementAuthorizationReq {..}
   void $ Stripe.incrementAuthorizationPaymentIntent url apiKey paymentIntentId req
 
-mkAccountLinkReq :: StripeCfg -> Stripe.AccountId -> Stripe.AccountLinkReq
-mkAccountLinkReq config accountId =
+resolveReturnUrl :: StripeCfg -> Maybe Text -> BaseUrl
+resolveReturnUrl config mbKey =
+  fromMaybe config.returnUrl $ do
+    key <- mbKey
+    urls <- config.returnUrls
+    M.lookup key urls
+
+mkAccountLinkReq :: StripeCfg -> Maybe Text -> Stripe.AccountId -> Stripe.AccountLinkReq
+mkAccountLinkReq config mbReturnUrlKey accountId =
   let account = accountId
       refresh_url = showBaseUrl config.refreshUrl
-      return_url = showBaseUrl config.returnUrl
+      return_url = showBaseUrl $ resolveReturnUrl config mbReturnUrlKey
       _type = Stripe.AccountOnboarding
       collection_options =
         Just $
