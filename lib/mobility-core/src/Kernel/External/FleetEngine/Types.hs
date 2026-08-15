@@ -145,3 +145,148 @@ data Vehicle = Vehicle
     vehicleType :: VehicleType
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+-- | Custom vehicle attribute (server-side filterable in SearchVehicles). Keys are
+-- unique per vehicle; Fleet Engine caps at 100 attributes per vehicle.
+data VehicleAttribute = VehicleAttribute
+  { key :: Text,
+    value :: Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+-- | Attribute group used by 'requiredOneOfAttributes' and 'requiredOneOfAttributeSets'
+-- in SearchVehicles for OR/AND combinations across attribute lists.
+newtype VehicleAttributeList = VehicleAttributeList
+  { attributes :: [VehicleAttribute]
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data VehicleMatchOrder
+  = UNKNOWN_VEHICLE_MATCH_ORDER
+  | PICKUP_POINT_ETA
+  | PICKUP_POINT_DISTANCE
+  | DROPOFF_POINT_ETA
+  | PICKUP_POINT_STRAIGHT_DISTANCE
+  | COST
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+-- Google spells one value 'EXCLUSIVE' which clashes with TripType.EXCLUSIVE;
+-- 'EXCLUSIVE_MATCH' is remapped to the wire name via 'vehicleMatchTypeOptions'.
+data VehicleMatchType
+  = UNKNOWN_VEHICLE_MATCH_TYPE
+  | EXCLUSIVE_MATCH
+  | BACK_TO_BACK
+  | CARPOOL
+  | CARPOOL_BACK_TO_BACK
+  deriving (Show, Eq, Generic)
+
+vehicleMatchTypeOptions :: A.Options
+vehicleMatchTypeOptions = A.defaultOptions {A.constructorTagModifier = tagFn}
+  where
+    tagFn "UNKNOWN_VEHICLE_MATCH_TYPE" = "UNKNOWN"
+    tagFn "EXCLUSIVE_MATCH" = "EXCLUSIVE"
+    tagFn other = other
+
+instance ToJSON VehicleMatchType where
+  toJSON = A.genericToJSON vehicleMatchTypeOptions
+
+instance FromJSON VehicleMatchType where
+  parseJSON = A.genericParseJSON vehicleMatchTypeOptions
+
+-- SHARED-only knob; mutually exclusive with 'includeBackToBack' on the request.
+data CurrentTripsPresent
+  = CURRENT_TRIPS_PRESENT_UNSPECIFIED
+  | CURRENT_TRIPS_PRESENT_NONE
+  | CURRENT_TRIPS_PRESENT_ANY
+  deriving (Show, Eq, Generic)
+
+currentTripsPresentOptions :: A.Options
+currentTripsPresentOptions = A.defaultOptions {A.constructorTagModifier = tagFn}
+  where
+    tagFn "CURRENT_TRIPS_PRESENT_NONE" = "NONE"
+    tagFn "CURRENT_TRIPS_PRESENT_ANY" = "ANY"
+    tagFn other = other
+
+instance ToJSON CurrentTripsPresent where
+  toJSON = A.genericToJSON currentTripsPresentOptions
+
+instance FromJSON CurrentTripsPresent where
+  parseJSON = A.genericParseJSON currentTripsPresentOptions
+
+-- Waypoint in a matched vehicle's remaining route (VehicleMatch.vehicleTripsWaypoints).
+data Waypoint = Waypoint
+  { latLng :: LatLng,
+    eta :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Waypoint where
+  toJSON = A.genericToJSON tripJSONOptions
+
+instance FromJSON Waypoint where
+  parseJSON = A.genericParseJSON tripJSONOptions
+
+-- | SearchVehicles request body. Required by Fleet Engine: pickupPoint,
+-- pickupRadiusMeters (400–10,000), count (1–50), minimumCapacity (>=1),
+-- tripTypes, vehicleTypes, orderBy. Optional fields are omitted from JSON
+-- when 'Nothing'.
+data SearchVehiclesReq = SearchVehiclesReq
+  { pickupPoint :: TerminalLocation,
+    dropoffPoint :: Maybe TerminalLocation,
+    pickupRadiusMeters :: Int,
+    count :: Int,
+    minimumCapacity :: Int,
+    tripTypes :: [TripType],
+    maximumStaleness :: Maybe Text,
+    vehicleTypes :: [VehicleType],
+    requiredAttributes :: Maybe [VehicleAttribute],
+    requiredOneOfAttributes :: Maybe [VehicleAttributeList],
+    requiredOneOfAttributeSets :: Maybe [VehicleAttributeList],
+    orderBy :: VehicleMatchOrder,
+    includeBackToBack :: Maybe Bool,
+    tripId :: Maybe Text,
+    currentTripsPresent :: Maybe CurrentTripsPresent,
+    filter :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON SearchVehiclesReq where
+  toJSON = A.genericToJSON tripJSONOptions
+
+instance FromJSON SearchVehiclesReq where
+  parseJSON = A.genericParseJSON tripJSONOptions
+
+-- Extra fields on the wire (name, lastLocation, etc.) are ignored by the
+-- generic parser; missing required fields on 'vehicle' will fail parsing —
+-- Fleet Engine returns a full Vehicle for every match, so this is expected.
+data VehicleMatch = VehicleMatch
+  { vehicle :: Vehicle,
+    vehiclePickupEta :: Maybe Text,
+    vehiclePickupDistanceMeters :: Maybe Int,
+    vehiclePickupStraightLineDistanceMeters :: Maybe Int,
+    vehicleDropoffEta :: Maybe Text,
+    vehiclePickupToDropoffDistanceMeters :: Maybe Int,
+    tripType :: Maybe TripType,
+    vehicleTripsWaypoints :: Maybe [Waypoint],
+    vehicleMatchType :: Maybe VehicleMatchType,
+    requestedOrderedBy :: Maybe VehicleMatchOrder,
+    orderedBy :: Maybe VehicleMatchOrder
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON VehicleMatch where
+  toJSON = A.genericToJSON tripJSONOptions
+
+instance FromJSON VehicleMatch where
+  parseJSON = A.genericParseJSON tripJSONOptions
+
+newtype SearchVehiclesResp = SearchVehiclesResp
+  { matches :: Maybe [VehicleMatch]
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON SearchVehiclesResp where
+  toJSON = A.genericToJSON tripJSONOptions
+
+instance FromJSON SearchVehiclesResp where
+  parseJSON = A.genericParseJSON tripJSONOptions

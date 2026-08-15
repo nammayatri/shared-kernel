@@ -20,6 +20,7 @@ module Kernel.External.FleetEngine.Client
     assignVehicleAndStart,
     createVehicle,
     getVehicle,
+    searchVehicles,
   )
 where
 
@@ -76,6 +77,15 @@ type GetVehicleAPI =
     :> Header "Authorization" Text
     :> Get '[JSON] Vehicle
 
+type SearchVehiclesAPI =
+  "v1"
+    :> "providers"
+    :> Capture "providerId" Text
+    :> "vehicles:search"
+    :> Header "Authorization" Text
+    :> ReqBody '[JSON] SearchVehiclesReq
+    :> Post '[JSON] SearchVehiclesResp
+
 defaultFleetEngineBaseUrl :: BaseUrl
 defaultFleetEngineBaseUrl =
   BaseUrl
@@ -96,6 +106,9 @@ createVehicleClient = client (Proxy :: Proxy CreateVehicleAPI)
 
 getVehicleClient :: Text -> Text -> Maybe Text -> EulerClient Vehicle
 getVehicleClient = client (Proxy :: Proxy GetVehicleAPI)
+
+searchVehiclesClient :: Text -> Maybe Text -> SearchVehiclesReq -> EulerClient SearchVehiclesResp
+searchVehiclesClient = client (Proxy :: Proxy SearchVehiclesAPI)
 
 bearer :: Text -> Maybe Text
 bearer token = Just ("Bearer " <> token)
@@ -243,3 +256,28 @@ assignVehicleAndStart baseUrl providerId token tripId vehicleId =
       tripId
       "tripStatus,vehicleId"
       (emptyTrip {tripStatus = Just ENROUTE_TO_PICKUP, vehicleId = Just vehicleId})
+
+-- Returns 'Nothing' on transport / decode failure (log-and-continue, matching
+-- the rest of this module). Server JWT should hold the 'ondemandAdmin' role;
+-- consumer JWTs are scoped to a single tripId and cannot search freely.
+searchVehicles ::
+  (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
+  BaseUrl ->
+  Text -> -- providerId
+  Text -> -- token (server JWT)
+  SearchVehiclesReq ->
+  m (Maybe SearchVehiclesResp)
+searchVehicles baseUrl providerId token req = do
+  result <-
+    callAPI
+      baseUrl
+      (searchVehiclesClient providerId (bearer token) req)
+      "fleetEngineSearchVehicles"
+      (Proxy :: Proxy SearchVehiclesAPI)
+  fork "Logging external API Call of searchVehicles FleetEngine" $
+    ApiCallLogger.pushExternalApiCallDataToKafka "searchVehicles" "FleetEngine" (req.tripId) (Just req) result
+  case result of
+    Right resp -> pure (Just resp)
+    Left err -> do
+      logError $ "FleetEngine: searchVehicles failed: " <> show err
+      pure Nothing
