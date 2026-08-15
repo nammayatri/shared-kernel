@@ -246,15 +246,26 @@ data SearchVehiclesReq = SearchVehiclesReq
     includeBackToBack :: Maybe Bool,
     tripId :: Maybe Text,
     currentTripsPresent :: Maybe CurrentTripsPresent,
-    filter :: Maybe Text
+    -- Field name shadows Prelude.filter; JSON key stays "filter" via
+    -- 'searchVehiclesReqJSONOptions'.
+    filterExpr :: Maybe Text
   }
   deriving (Show, Eq, Generic)
 
+searchVehiclesReqJSONOptions :: A.Options
+searchVehiclesReqJSONOptions =
+  A.defaultOptions
+    { A.omitNothingFields = True,
+      A.fieldLabelModifier = \case
+        "filterExpr" -> "filter"
+        other -> other
+    }
+
 instance ToJSON SearchVehiclesReq where
-  toJSON = A.genericToJSON tripJSONOptions
+  toJSON = A.genericToJSON searchVehiclesReqJSONOptions
 
 instance FromJSON SearchVehiclesReq where
-  parseJSON = A.genericParseJSON tripJSONOptions
+  parseJSON = A.genericParseJSON searchVehiclesReqJSONOptions
 
 -- Extra fields on the wire (name, lastLocation, etc.) are ignored by the
 -- generic parser; missing required fields on 'vehicle' will fail parsing —
