@@ -264,8 +264,15 @@ library
       Kernel.External.SAP.Flow
       Kernel.External.SAP.Interface
       Kernel.External.SAP.Types
+      Kernel.External.Settlement.BillDesk.Api
+      Kernel.External.Settlement.BillDesk.ApiTypes
+      Kernel.External.Settlement.BillDesk.BillDeskJose
+      Kernel.External.Settlement.BillDesk.Flow
       Kernel.External.Settlement.BillDesk.PaymentParser
       Kernel.External.Settlement.BillDesk.PaymentTypes
+      Kernel.External.Settlement.CCAvenue.ApiTypes
+      Kernel.External.Settlement.CCAvenue.Crypto
+      Kernel.External.Settlement.CCAvenue.Flow
       Kernel.External.Settlement.HyperPG.MerchantPaymentParser
       Kernel.External.Settlement.HyperPG.MerchantPaymentTypes
       Kernel.External.Settlement.HyperPG.PaymentParser
@@ -981,6 +988,7 @@ test-suite mobility-core-tests
       DistanceCalculation
       PartialIndexTests
       Predicates
+      SettlementCrypto
       SettlementEmail
       SettlementMimeCsv
       SignatureAuth

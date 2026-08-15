@@ -14,6 +14,7 @@
 
 module Kernel.External.Settlement.BillDesk.PaymentParser
   ( parseBillDeskCsv,
+    parseBillDeskPaymentMethod,
   )
 where
 

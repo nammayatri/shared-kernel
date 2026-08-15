@@ -27,6 +27,8 @@ module Kernel.External.Settlement.Types
     JuspayApiConfig (..),
     SettlementSourceConfig (..),
     JuspayOrderStatusConfig (..),
+    BillDeskApiConfig (..),
+    CCAvenuePGConfig (..),
   )
 where
 
@@ -35,7 +37,7 @@ import qualified Data.Map.Strict as Map
 import Kernel.External.Encryption (EncKind (..), EncryptedField)
 import Kernel.Prelude
 
-data SettlementService = HyperPG | BillDesk | YesBiz
+data SettlementService = HyperPG | BillDesk | YesBiz | CCAvenue
   deriving stock (Show, Read, Eq, Ord, Generic, Enum, Bounded)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -124,6 +126,25 @@ data SettlementSourceConfig
   = SFTPSourceConfig SFTPConfig Text
   | EmailSourceConfig EmailConfig
   | JuspayApiSourceConfig JuspayApiConfig
+  | BillDeskApiSourceConfig BillDeskApiConfig
+  | CCAvenueApiSourceConfig CCAvenuePGConfig
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data BillDeskApiConfig = BillDeskApiConfig
+  { baseUrl :: BaseUrl,
+    merchantId :: Text,
+    clientId :: EncryptedField 'AsEncrypted Text,
+    signingKey :: EncryptedField 'AsEncrypted Text,
+    encryptionKey :: EncryptedField 'AsEncrypted Text,
+    encryptionKeyId :: EncryptedField 'AsEncrypted Text
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data CCAvenuePGConfig = CCAvenuePGConfig
+  { baseUrl :: BaseUrl,
+    accessCode :: EncryptedField 'AsEncrypted Text,
+    workingKey :: EncryptedField 'AsEncrypted Text
+  }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data JuspayOrderStatusConfig = JuspayOrderStatusConfig

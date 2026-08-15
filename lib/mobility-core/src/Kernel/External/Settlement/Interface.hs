@@ -16,6 +16,10 @@ module Kernel.External.Settlement.Interface
   ( parsePaymentSettlementCsv,
     parsePayoutSettlementCsv,
     parseAndEnrichPaymentSettlementCsv,
+    fetchBillDeskSettlementViaApi,
+    getSettlementDetails,
+    getPayoutSummary,
+    getConsolidateSettlementDetails,
     module Reexport,
   )
 where
@@ -24,7 +28,9 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Lazy.Char8 as LBSC
 import qualified EulerHS.Language as L
 import Kernel.External.Encryption (EncFlow)
+import Kernel.External.Settlement.BillDesk.Flow (fetchBillDeskSettlementViaApi)
 import qualified Kernel.External.Settlement.BillDesk.PaymentParser as BillDeskPayment
+import Kernel.External.Settlement.CCAvenue.Flow (getConsolidateSettlementDetails, getPayoutSummary, getSettlementDetails)
 import qualified Kernel.External.Settlement.HyperPG.MerchantPaymentParser as HyperPGMerchantPayment
 import qualified Kernel.External.Settlement.HyperPG.PaymentParser as HyperPGPayment
 import qualified Kernel.External.Settlement.HyperPG.PayoutParser as HyperPGPayout
@@ -55,6 +61,7 @@ parsePaymentSettlementCsv settlementService mbSplit csvData
       MERCHANT -> HyperPGMerchantPayment.parseHyperPGMerchantCsv csvData
     BillDesk -> BillDeskPayment.parseBillDeskCsv csvData
     YesBiz -> YesBizPayment.parseYesBizCsv csvData
+    CCAvenue -> ParseResult [] 0 0 ["CSV parsing not supported for CCAvenue; use API"]
 
 parsePayoutSettlementCsv ::
   SettlementService ->
@@ -66,6 +73,7 @@ parsePayoutSettlementCsv settlementService csvData
     HyperPG -> HyperPGPayout.parseHyperPGPayoutCsv csvData
     BillDesk -> ParseResult [] 0 0 ["Payout parsing not supported for BillDesk"]
     YesBiz -> ParseResult [] 0 0 ["Payout parsing not supported for YesBiz"]
+    CCAvenue -> ParseResult [] 0 0 ["Payout parsing not supported for CCAvenue"]
 
 -- | True if the CSV payload is empty or contains only whitespace (spaces, tabs, CR, LF).
 isCsvEmpty :: LBS.ByteString -> Bool
