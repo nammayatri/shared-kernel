@@ -22,6 +22,9 @@ module Kernel.Beam.Functions
     updateWithKV,
     updateWithKVScheduler,
     updateOneWithKV,
+    updateOneWithLockKV,
+    defaultKVLockConfig,
+    KVLockConfig (..),
     createWithKV,
     createWithKVScheduler,
     deleteWithKV,
@@ -52,7 +55,7 @@ import Database.Beam.Postgres
 import EulerHS.Extra.Monitoring.Types (UseMasterRedis (..))
 import EulerHS.JsonbFallback (GFieldNames)
 import qualified EulerHS.KVConnector.Flow as KV
-import EulerHS.KVConnector.Types (KVConnector (..), MeshConfig (..), MeshMeta, TableMappings)
+import EulerHS.KVConnector.Types (KVConnector (..), KVLockConfig (..), MeshConfig (..), MeshMeta, TableMappings, defaultKVLockConfig)
 import EulerHS.KVConnector.Utils
 import qualified EulerHS.Language as L
 import EulerHS.Types hiding (Log, V1)
@@ -574,6 +577,28 @@ updateOneWithKVWithOptions ::
 updateOneWithKVWithOptions ttl forceDrain setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   let updatedMeshConfig' = updatedMeshConfig {redisTtl = fromMaybe (redisTtl updatedMeshConfig) ttl, forceDrainToDB = forceDrain}
   updateOneInternal updatedMeshConfig' setClause whereClause
+
+updateOneWithLockKV ::
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
+  KVLockConfig ->
+  (table Identity -> [Set Postgres table]) ->
+  Where Postgres table ->
+  m ()
+updateOneWithLockKV lockCfg mkSetClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig ->
+  runInMasterRedis $ do
+    dbConf <- getMasterDBConfig
+    replicaDbConf <- getReplicaDbConfig
+    res <- KV.updateOneWithLockKVConnector dbConf replicaDbConf updatedMeshConfig lockCfg mkSetClause whereClause
+    case res of
+      Right obj ->
+        unless (updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled) $
+          whenJust obj $ \object' -> do
+            topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
+            let newObject = replaceMappings (toJSON object') (getMappings [object'])
+            handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update: " <> show e <> "in topic" <> topicName) $
+              void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')
+      Left err -> throwError $ InternalError $ show err
 
 -- create --
 
