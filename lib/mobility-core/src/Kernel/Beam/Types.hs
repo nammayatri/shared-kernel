@@ -104,3 +104,10 @@ data MultiCloudEnabled = MultiCloudEnabled
   deriving anyclass (ToJSON, FromJSON)
 
 instance OptionEntity MultiCloudEnabled Bool
+
+-- Transaction id carried across forked flows (see 'Kernel.Types.Flow.carryForkLocalOptions')
+data TxnIdKey = TxnIdKey
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity TxnIdKey Text
