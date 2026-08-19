@@ -142,6 +142,8 @@ data Category
   | PICKUP_ZONE_REQUEST
   | PICKUP_ZONE_NO_SHOW
   | PASS_RELATED
+  | BUS_APPROACHING
+  | BUS_PREV_STOP_CROSSED
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
