@@ -300,6 +300,7 @@ data DestinationPlace = DestinationPlace
     types :: Maybe [Text],
     formattedAddress :: Maybe Text,
     postalAddress :: Maybe PostalAddress,
+    addressComponents :: Maybe [AddressRespV2],
     -- | "POINT" | "SECTION" | "BUILDING" | "GROUNDS" | "..._UNSPECIFIED".
     -- Kept as 'Text' (not the 'StructureType' enum) so an unknown/new value
     -- from Google does not fail the whole response decode.

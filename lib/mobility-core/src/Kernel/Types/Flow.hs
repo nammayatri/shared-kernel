@@ -26,6 +26,7 @@ import qualified EulerHS.Language as L
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as R
 import Kernel.Beam.Lib.UtilsTH
+import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude hiding (forM_, mapM_)
 import Kernel.Storage.Beam.SystemConfigs
 import Kernel.Storage.Esqueleto.Config
@@ -255,17 +256,20 @@ instance MonadGuid (FlowR r) where
 
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
   fork tag f = withLogTag ("Fork " <> tag) $ do
+    seedLocalOptions <- carryForkLocalOptions
     newLocalOptions <- newMVar mempty
     -- logRequestIdForFork tag
-    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleForkExecution tag f)
+    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ seedLocalOptions >> handleForkExecution tag f)
 
   forkMultiple tagAndFunction = do
+    seedLocalOptions <- carryForkLocalOptions
     newLocalOptions <- newMVar mempty
-    FlowR $ ReaderT $ L.forkFlow "multiple-Forks" . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleForkExecutionMultiple tagAndFunction)
+    FlowR $ ReaderT $ L.forkFlow "multiple-Forks" . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ seedLocalOptions >> handleForkExecutionMultiple tagAndFunction)
 
   awaitableFork tag f = do
+    seedLocalOptions <- carryForkLocalOptions
     newLocalOptions <- newMVar mempty
-    FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ handleExc f)
+    FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ seedLocalOptions >> handleExc f)
     where
       handleExc f' = do
         res <- try f'
@@ -312,3 +316,9 @@ handleForkExecution tag f = try f >>= (`whenLeft` err)
 
 refreshLocalOptions :: MVar (M.Map Text Any) -> R.FlowRuntime -> R.FlowRuntime
 refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalOptions}
+
+-- | Local options that must be inherited by a forked flow.
+carryForkLocalOptions :: FlowR r (FlowR r ())
+carryForkLocalOptions = do
+  mTxnId <- L.getOptionLocal KBT.TxnIdKey
+  pure $ maybe (pure ()) (L.setOptionLocal KBT.TxnIdKey) mTxnId
