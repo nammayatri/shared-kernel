@@ -15,12 +15,20 @@
 module Kernel.External.Verification.Interface.InternalScripts
   ( module Reexport,
     validateFace,
+    submitOCR,
+    getOCRResultRC,
+    getOCRResultDL,
+    extractRCImageOCR,
+    extractDLImageOCR,
   )
 where
 
+import Kernel.External.Verification.Interface.Types
 import Kernel.External.Verification.InternalScripts.Error
 import qualified Kernel.External.Verification.InternalScripts.FaceVerification as FV
+import qualified Kernel.External.Verification.InternalScripts.InternalOCR as OCR
 import Kernel.External.Verification.InternalScripts.Types as Reexport
+import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common hiding (ActorType (..))
@@ -33,3 +41,47 @@ validateFace fvCfg req = do
     UNKNOWN -> throwError PoorImageQuality
     FAKE_FACE -> throwError FakeFaceDetected
     REAL_FACE -> return res
+
+submitOCR :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalOCRCfg -> OCRRequest -> m OCRAccepted
+submitOCR = OCR.submitOCR
+
+getOCRResultRC :: CacheFlow m r => Text -> m (Maybe ExtractedRC)
+getOCRResultRC = OCR.getOCRResultRC
+
+getOCRResultDL :: CacheFlow m r => Text -> m (Maybe ExtractedDL)
+getOCRResultDL = OCR.getOCRResultDL
+
+extractRCImageOCR :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalOCRCfg -> ExtractRCImageReq -> m ExtractRCImageResp
+extractRCImageOCR cfg req = do
+  _ <- OCR.submitOCR cfg $ OCRRequest {image = req.image1, imageType = VehicleRegistrationCertificate, driverId = req.driverId, prompt = Nothing}
+  return $ ExtractRCImageResp {extractedRC = Just emptyExtractedRC, provider = Just VT.InternalOCR}
+
+extractDLImageOCR :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalOCRCfg -> ExtractDLImageReq -> m ExtractDLImageResp
+extractDLImageOCR cfg req = do
+  _ <- OCR.submitOCR cfg $ OCRRequest {image = req.image1, imageType = DriverLicense, driverId = req.driverId, prompt = Nothing}
+  return $ ExtractDLImageResp {extractedDL = Just emptyExtractedDL, provider = Just VT.InternalOCR}
+
+emptyExtractedRC :: ExtractedRC
+emptyExtractedRC =
+  ExtractedRC
+    { rcNumber = Nothing,
+      vehicleClass = Nothing,
+      manufacturer = Nothing,
+      model = Nothing,
+      fuelType = Nothing,
+      colour = Nothing,
+      chassisNumber = Nothing,
+      engineNumber = Nothing,
+      registrationDate = Nothing,
+      ownerName = Nothing,
+      manufacturingDate = Nothing,
+      bodyType = Nothing
+    }
+
+emptyExtractedDL :: ExtractedDL
+emptyExtractedDL =
+  ExtractedDL
+    { dlNumber = Nothing,
+      nameOnCard = Nothing,
+      dateOfBirth = Nothing
+    }
