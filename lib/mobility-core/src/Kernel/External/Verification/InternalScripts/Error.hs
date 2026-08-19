@@ -54,3 +54,31 @@ instance IsHTTPError FaceVerificationError where
     PoorImageQuality -> E422
 
 instance IsAPIError FaceVerificationError
+
+data InternalOCRError
+  = OCRInternalServerError
+  | OCRServiceUnavailable
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''InternalOCRError
+
+instance FromResponse InternalOCRError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    503 -> Just OCRServiceUnavailable
+    _ -> Just OCRInternalServerError
+
+instance IsBaseError InternalOCRError where
+  toMessage = \case
+    OCRInternalServerError -> Just "Internal OCR service error. Please try again."
+    OCRServiceUnavailable -> Just "Internal OCR service is unavailable."
+
+instance IsHTTPError InternalOCRError where
+  toErrorCode = \case
+    OCRInternalServerError -> "INTERNAL_SERVER_ERROR"
+    OCRServiceUnavailable -> "SERVICE_UNAVAILABLE"
+
+  toHttpCode = \case
+    OCRInternalServerError -> E500
+    OCRServiceUnavailable -> E503
+
+instance IsAPIError InternalOCRError

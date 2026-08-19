@@ -18,6 +18,7 @@ module Kernel.External.Verification.Interface.Types
   )
 where
 
+import Data.Aeson (object, withObject, withText, (.:), (.:?), (.=))
 import Data.Time.Calendar (Day)
 import Deriving.Aeson
 import EulerHS.Prelude
@@ -34,7 +35,7 @@ import qualified Kernel.External.Verification.Tten.Types as TtenTypes
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg | EkatraConfig EkatraTypes.EkatraVerificationCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg | EkatraConfig EkatraTypes.EkatraVerificationCfg | InternalOCRConfig FV.InternalOCRCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -251,8 +252,9 @@ newtype ExtractedUdyogAadhaarImageResp = ExtractedUdyogAadhaarImageResp
   }
   deriving stock (Show, Generic)
 
-newtype ExtractRCImageResp = ExtractRCImageResp
-  { extractedRC :: Maybe ExtractedRC
+data ExtractRCImageResp = ExtractRCImageResp
+  { extractedRC :: Maybe ExtractedRC,
+    provider :: Maybe VT.VerificationService
   }
   deriving stock (Show, Generic)
 
@@ -271,10 +273,11 @@ data ExtractedRC = ExtractedRC
     bodyType :: Maybe Text
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-newtype ExtractDLImageResp = ExtractDLImageResp
-  { extractedDL :: Maybe ExtractedDL
+data ExtractDLImageResp = ExtractDLImageResp
+  { extractedDL :: Maybe ExtractedDL,
+    provider :: Maybe VT.VerificationService
   }
   deriving stock (Show, Generic)
 
@@ -284,6 +287,7 @@ data ExtractedDL = ExtractedDL
     dateOfBirth :: Maybe Text
   }
   deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 -- not used in interface
 
@@ -387,3 +391,82 @@ data VerifyTtenReq = VerifyTtenReq
   { ttenCertificateNumber :: Text
   }
   deriving (Show, Generic, FromJSON, ToJSON, ToSchema)
+
+-- Internal OCR service types
+
+data OCRRequest = OCRRequest
+  { image :: Text,
+    imageType :: ImageType,
+    driverId :: Text,
+    prompt :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+newtype OCRAccepted = OCRAccepted
+  { sessionId :: Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data OCRStatus = OCRProcessing | OCRDone | OCRError
+  deriving stock (Show, Eq, Generic)
+
+instance FromJSON OCRStatus where
+  parseJSON = withText "OCRStatus" $ \case
+    "processing" -> pure OCRProcessing
+    "done" -> pure OCRDone
+    "error" -> pure OCRError
+    other -> fail $ "Unknown OCR status: " <> show other
+
+instance ToJSON OCRStatus where
+  toJSON = \case
+    OCRProcessing -> toJSON ("processing" :: Text)
+    OCRDone -> toJSON ("done" :: Text)
+    OCRError -> toJSON ("error" :: Text)
+
+data OCRExtractedData
+  = OCRExtractedDL ExtractedDL
+  | OCRExtractedRC ExtractedRC
+  deriving stock (Show, Generic)
+
+instance ToJSON OCRExtractedData where
+  toJSON (OCRExtractedDL dl) = toJSON dl
+  toJSON (OCRExtractedRC rc) = toJSON rc
+
+data OCRResult = OCRResult
+  { sessionId :: Text,
+    driverId :: Text,
+    imageType :: ImageType,
+    status :: OCRStatus,
+    extractedData :: Maybe OCRExtractedData,
+    errorMessage :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+
+instance FromJSON OCRResult where
+  parseJSON = withObject "OCRResult" $ \o -> do
+    sessionId <- o .: "sessionId"
+    driverId <- o .: "driverId"
+    imageType <- o .: "imageType"
+    status <- o .: "status"
+    mRaw <- o .:? "extractedData"
+    extractedData <- case mRaw of
+      Nothing -> pure Nothing
+      Just v -> case imageType of
+        DriverLicense -> Just . OCRExtractedDL <$> parseJSON v
+        VehicleRegistrationCertificate -> Just . OCRExtractedRC <$> parseJSON v
+        _ -> pure Nothing
+    errorMessage <- o .:? "error"
+    return OCRResult {..}
+
+instance ToJSON OCRResult where
+  toJSON OCRResult {..} =
+    object $
+      [ "sessionId" .= sessionId,
+        "driverId" .= driverId,
+        "imageType" .= imageType,
+        "status" .= status,
+        "error" .= errorMessage
+      ]
+        ++ maybe [] (\d -> ["extractedData" .= d]) extractedData

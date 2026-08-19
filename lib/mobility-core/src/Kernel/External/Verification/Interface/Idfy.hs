@@ -369,7 +369,8 @@ extractRCImage cfg req = do
                     ownerName = eo.owner_name,
                     manufacturingDate = eo.manufacturing_date,
                     bodyType = eo.body
-                  }
+                  },
+        provider = Nothing
       }
 
 extractUdyogAadhaarAsync ::
@@ -421,7 +422,8 @@ extractDLImage cfg req = do
               { dlNumber = result.extraction_output.id_number,
                 nameOnCard = result.extraction_output.name_on_card,
                 dateOfBirth = result.extraction_output.date_of_birth
-              }
+              },
+        provider = Nothing
       }
 
 extractPanImage ::

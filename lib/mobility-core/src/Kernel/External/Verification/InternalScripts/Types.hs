@@ -23,6 +23,11 @@ newtype FaceVerificationCfg = FaceVerificationCfg
   }
   deriving (Generic, ToJSON, FromJSON, Eq, Show)
 
+newtype InternalOCRCfg = InternalOCRCfg
+  { url :: BaseUrl
+  }
+  deriving (Generic, ToJSON, FromJSON, Eq, Show)
+
 data FaceType = REAL_FACE | FAKE_FACE | UNKNOWN
   deriving (Generic, FromJSON, Show, ToJSON)
 
