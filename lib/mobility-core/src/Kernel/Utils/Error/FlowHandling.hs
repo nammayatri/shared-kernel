@@ -68,14 +68,26 @@ withFlowHandler ::
 withFlowHandler flow = do
   (EnvR flowRt appEnv) <- ask
   liftIO . runFlowR flowRt appEnv $ getAndSetKvConfigs >> flow
-  where
-    getAndSetKvConfigs = do
-      now <- getCurrentTime
-      kvConfigLastUpdatedTime <- L.getOption KBT.KvConfigLastUpdatedTime >>= maybe (L.setOption KBT.KvConfigLastUpdatedTime now >> pure now) pure
-      kvConfigUpdateFrequency <- L.getOption KBT.KvConfigUpdateFrequency >>= maybe (pure 10) pure
-      when (round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency) $
-        findById "kv_configs" >>= pure . decodeFromText' @Tables
-          >>= maybe (incrementSystemConfigsFailedCounter ("kv_config_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT))) (\result' -> L.setOption KBT.Tables result' >> L.setOption KBT.KvConfigLastUpdatedTime now)
+
+getAndSetKvConfigs ::
+  HasFlowHandlerR (FlowR r) r =>
+  FlowR r ()
+getAndSetKvConfigs = do
+  now <- getCurrentTime
+  kvConfigLastUpdatedTime <- L.getOption KBT.KvConfigLastUpdatedTime >>= maybe (L.setOption KBT.KvConfigLastUpdatedTime now >> pure now) pure
+  kvConfigUpdateFrequency <- L.getOption KBT.KvConfigUpdateFrequency >>= maybe (pure 10) pure
+  when (round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency) $ do
+    eResult <- try @_ @SomeException (findById "kv_configs" <&> decodeFromText' @Tables)
+    case eResult of
+      Left err -> do
+        logError $ "getAndSetKvConfigs: failed to refresh kv_configs, continuing with last-known-good config: " <> show err
+        incrementSystemConfigsFailedCounter ("kv_config_fetch_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT))
+        L.setOption KBT.KvConfigLastUpdatedTime now
+      Right mbResult ->
+        maybe
+          (incrementSystemConfigsFailedCounter ("kv_config_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT)))
+          (\result' -> L.setOption KBT.Tables result' >> L.setOption KBT.KvConfigLastUpdatedTime now)
+          mbResult
 
 withDashboardFlowHandler ::
   ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
@@ -91,14 +103,6 @@ withDashboardFlowHandler flow = do
   (EnvR flowRt appEnv) <- ask
   let newappEnv = appEnv{serviceClickhouseCfg = appEnv.dashboardClickhouseCfg, serviceClickhouseEnv = appEnv.dashboardClickhouseEnv}
   liftIO . runFlowR flowRt newappEnv $ getAndSetKvConfigs >> flow
-  where
-    getAndSetKvConfigs = do
-      now <- getCurrentTime
-      kvConfigLastUpdatedTime <- L.getOption KBT.KvConfigLastUpdatedTime >>= maybe (L.setOption KBT.KvConfigLastUpdatedTime now >> pure now) pure
-      kvConfigUpdateFrequency <- L.getOption KBT.KvConfigUpdateFrequency >>= maybe (pure 10) pure
-      when (round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency) $
-        findById "kv_configs" >>= pure . decodeFromText' @Tables
-          >>= maybe (incrementSystemConfigsFailedCounter ("kv_config_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT))) (\result' -> L.setOption KBT.Tables result' >> L.setOption KBT.KvConfigLastUpdatedTime now)
 
 -- in case of normal flow use withFlowHandler' as it does not have any extra constraints
 withFlowHandler' ::
