@@ -43,7 +43,7 @@ notifyPerson config req liveAcitvityRequest action mbNotificationId iosModifier 
           }
       apnsData = liveAcitvityRequest
   case apnsData of
-    (Just reqLive) -> do FCM.updateLiveActivity config (FCM.FCMNotificationRecipient req.auth.recipientId (FCM.FCMRecipientToken <$> req.auth.fcmToken)) reqLive
+    (Just reqLive) -> do FCM.updateLiveActivity config (FCM.FCMNotificationRecipient req.auth.recipientId (FCM.FCMRecipientToken <$> req.auth.fcmToken)) reqLive Nothing
     _ -> pure ()
   FCM.notifyPersonWithPriority
     config
