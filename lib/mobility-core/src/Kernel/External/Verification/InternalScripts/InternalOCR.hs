@@ -14,6 +14,7 @@
 
 module Kernel.External.Verification.InternalScripts.InternalOCR where
 
+import qualified Data.HashMap.Internal as HMap
 import qualified Data.Text as DT
 import EulerHS.Prelude
 import EulerHS.Types (client)
@@ -24,6 +25,8 @@ import Kernel.External.Verification.InternalScripts.Types
 import qualified Kernel.Storage.Hedis as Hedis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common
+import qualified Network.HTTP.Client as Http
+import Network.HTTP.Client.TLS as Http
 import Servant (JSON, Post, ReqBody, type (:>))
 
 type SubmitOCRAPI =
@@ -50,3 +53,8 @@ callOCRApi = callApiUnwrappingApiError (identity @InternalOCRError) (Just $ ET.M
 
 internalOCRManagerKey :: String
 internalOCRManagerKey = "internal-ocr-http-manager"
+
+prepareInternalOCRHttpManager :: Int -> HMap.HashMap DT.Text Http.ManagerSettings
+prepareInternalOCRHttpManager timeout =
+  HMap.singleton (DT.pack internalOCRManagerKey) $
+    Http.tlsManagerSettings {Http.managerResponseTimeout = Http.responseTimeoutMicro (timeout * 1000)}
