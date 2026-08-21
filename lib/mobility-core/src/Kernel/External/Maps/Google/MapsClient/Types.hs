@@ -129,9 +129,9 @@ data GetPlaceDetailsRespV2 = GetPlaceDetailsRespV2
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data AddressRespV2 = AddressRespV2
-  { longText :: Text,
-    shortText :: Text,
-    types :: [Text]
+  { longText :: Maybe Text,
+    shortText :: Maybe Text,
+    types :: Maybe [Text]
   }
   deriving stock (Generic, Show, Read)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
