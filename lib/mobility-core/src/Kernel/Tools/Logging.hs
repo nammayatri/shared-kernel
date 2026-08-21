@@ -27,9 +27,11 @@ import qualified Kernel.Storage.Queries.SystemConfigs as QSC
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics, incrementSystemConfigsFailedCounter)
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow (HasCacConfig, HasCacheConfig, HasInMemEnv)
+import Kernel.Types.Common (withTryCatch)
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import Kernel.Utils.IOLogging (HasLog, updateLogLevelAndRawSql)
+import Kernel.Utils.Logging (logError)
 import Kernel.Utils.Text
 
 withDynamicLogLevel ::
@@ -71,8 +73,15 @@ getDynamicLogLevelConfig = do
       MaybeT . pure $ if round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency then Nothing else Just False
   if shouldFetchFromDB
     then do
-      res <- QSC.findById "log_levels" >>= pure . decodeFromText' @(HM.HashMap Text DynamicLogLevel)
-      maybe (incrementSystemConfigsFailedCounter ("system_configs_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT) <> "_log_levels")) (L.setOption KT.DynamicLogLevelConfig) res
-      void $ L.setOption KT.LogLevelLastUpdatedTime now
-      pure res
+      eResult <- withTryCatch "getDynamicLogLevelConfig" (QSC.findById "log_levels" >>= pure . decodeFromText' @(HM.HashMap Text DynamicLogLevel))
+      case eResult of
+        Left err -> do
+          logError $ "getDynamicLogLevelConfig: failed to refresh log_levels, continuing with last-known-good config: " <> show err
+          incrementSystemConfigsFailedCounter ("system_configs_fetch_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT) <> "_log_levels")
+          void $ L.setOption KT.LogLevelLastUpdatedTime now
+          L.getOption KT.DynamicLogLevelConfig
+        Right res -> do
+          maybe (incrementSystemConfigsFailedCounter ("system_configs_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT) <> "_log_levels")) (L.setOption KT.DynamicLogLevelConfig) res
+          void $ L.setOption KT.LogLevelLastUpdatedTime now
+          pure res
     else L.getOption KT.DynamicLogLevelConfig
