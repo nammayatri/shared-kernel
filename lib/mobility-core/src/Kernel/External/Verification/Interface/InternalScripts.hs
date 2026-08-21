@@ -15,6 +15,7 @@
 module Kernel.External.Verification.Interface.InternalScripts
   ( module Reexport,
     validateFace,
+    validateImage,
     submitOCR,
     getOCRResultRC,
     getOCRResultDL,
@@ -32,6 +33,14 @@ import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common hiding (ActorType (..))
+
+validateImage :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalOCRCfg -> ValidateImageReq -> m ValidateImageResp
+validateImage _cfg _req =
+  pure
+    ValidateImageResp
+      { validationAvailable = False,
+        detectedImage = Nothing
+      }
 
 validateFace :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => FaceVerificationCfg -> FaceValidationReq -> m FaceValidationRes
 validateFace fvCfg req = do
