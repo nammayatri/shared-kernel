@@ -646,9 +646,9 @@ getPlaceDetailsNew entityId cfg GetPlaceDetailsReq {..} = do
   where
     reformateAddressRespV2 aResp =
       AddressResp
-        { longName = aResp.longText,
-          shortName = aResp.shortText,
-          types = aResp.types
+        { longName = fromMaybe "" aResp.longText,
+          shortName = fromMaybe "" aResp.shortText,
+          types = fromMaybe [] aResp.types
         }
 
 getPlaceName ::
