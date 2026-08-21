@@ -231,8 +231,17 @@ library
       Kernel.External.Payment.Stripe.Types.Webhook
       Kernel.External.Payment.Stripe.Webhook
       Kernel.External.Payment.Types
+      Kernel.External.Payout.HdfcCbx.Auth
+      Kernel.External.Payout.HdfcCbx.Config
+      Kernel.External.Payout.HdfcCbx.Flow
+      Kernel.External.Payout.HdfcCbx.Manager
+      Kernel.External.Payout.HdfcCbx.StatusMap
+      Kernel.External.Payout.HdfcCbx.Types.BeneReg
+      Kernel.External.Payout.HdfcCbx.Types.Inquiry
+      Kernel.External.Payout.HdfcCbx.Types.Payment
       Kernel.External.Payout.Interface
       Kernel.External.Payout.Interface.Events.Types
+      Kernel.External.Payout.Interface.HdfcCbx
       Kernel.External.Payout.Interface.Juspay
       Kernel.External.Payout.Interface.Stripe
       Kernel.External.Payout.Interface.Types
@@ -631,6 +640,7 @@ library
       Kernel.Utils.Geometry
       Kernel.Utils.InternalAPICallLogging
       Kernel.Utils.IOLogging
+      Kernel.Utils.Jose
       Kernel.Utils.JSON
       Kernel.Utils.JWT
       Kernel.Utils.Logging
@@ -703,6 +713,8 @@ library
   build-depends:
       aeson
     , aeson-casing
+    , asn1-encoding
+    , asn1-types
     , base >=4.7 && <5
     , base64
     , base64-bytestring
@@ -718,8 +730,10 @@ library
     , clickhouse-haskell
     , clock
     , concurrency
+    , connection
     , containers
     , cryptonite
+    , data-default
     , data-default-class
     , deriving-aeson
     , dhall
@@ -759,6 +773,7 @@ library
     , openapi3
     , parsec
     , passetto-client
+    , pem
     , persistent
     , persistent-postgresql
     , postgresql-migration
@@ -798,6 +813,7 @@ library
     , text-conversions
     , time
     , tinylog
+    , tls
     , transformers
     , universum
     , unix
@@ -810,6 +826,9 @@ library
     , wai-app-static
     , wai-middleware-prometheus
     , warp
+    , x509
+    , x509-store
+    , x509-validation
     , xml-conduit
     , xml-types
     , xmlbf
@@ -858,6 +877,8 @@ executable master-cloud-forward-itest
   build-depends:
       aeson
     , aeson-casing
+    , asn1-encoding
+    , asn1-types
     , async
     , base >=4.7 && <5
     , base64
@@ -874,8 +895,10 @@ executable master-cloud-forward-itest
     , clickhouse-haskell
     , clock
     , concurrency
+    , connection
     , containers
     , cryptonite
+    , data-default
     , data-default-class
     , deriving-aeson
     , dhall
@@ -916,6 +939,7 @@ executable master-cloud-forward-itest
     , openapi3
     , parsec
     , passetto-client
+    , pem
     , persistent
     , persistent-postgresql
     , postgresql-migration
@@ -955,6 +979,7 @@ executable master-cloud-forward-itest
     , text-conversions
     , time
     , tinylog
+    , tls
     , transformers
     , universum
     , unix
@@ -967,6 +992,9 @@ executable master-cloud-forward-itest
     , wai-app-static
     , wai-middleware-prometheus
     , warp
+    , x509
+    , x509-store
+    , x509-validation
     , xml-conduit
     , xml-types
     , xmlbf
@@ -980,6 +1008,8 @@ test-suite mobility-core-tests
       Centesimal
       ComputeIntersectionTests
       DistanceCalculation
+      HdfcCbxMapping
+      Jose
       PartialIndexTests
       Predicates
       SettlementEmail
@@ -1031,6 +1061,8 @@ test-suite mobility-core-tests
   build-depends:
       aeson
     , aeson-casing
+    , asn1-encoding
+    , asn1-types
     , base >=4.7 && <5
     , base64
     , base64-bytestring
@@ -1046,8 +1078,10 @@ test-suite mobility-core-tests
     , clickhouse-haskell
     , clock
     , concurrency
+    , connection
     , containers
     , cryptonite
+    , data-default
     , data-default-class
     , deriving-aeson
     , dhall
@@ -1088,6 +1122,7 @@ test-suite mobility-core-tests
     , openapi3
     , parsec
     , passetto-client
+    , pem
     , persistent
     , persistent-postgresql
     , postgresql-migration
@@ -1127,6 +1162,7 @@ test-suite mobility-core-tests
     , text-conversions
     , time
     , tinylog
+    , tls
     , transformers
     , universum
     , unix
@@ -1139,6 +1175,9 @@ test-suite mobility-core-tests
     , wai-app-static
     , wai-middleware-prometheus
     , warp
+    , x509
+    , x509-store
+    , x509-validation
     , xml-conduit
     , xml-types
     , xmlbf
