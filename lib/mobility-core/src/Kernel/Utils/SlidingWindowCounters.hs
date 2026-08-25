@@ -310,7 +310,7 @@ decrementByValueImpl mbTimeStamp val getOutOfWindowKey getStoredResultKey getWin
       expirationTime = (period + 1) * convertPeriodTypeToSeconds periodType
       bid = periodBucketId periodType utcTime
       isToday = bid == periodBucketId periodType now
-  Redis.whenWithLockRedis (makeCachingLockKey key) 10 . void $ cacheTheCounts now val getOutOfWindowKey getStoredResultKey getWindowKey key swo
+  Redis.whenWithLockRedis (makeCachingLockKey key) 10 . void $ cacheTheCounts now (-1 * val) getOutOfWindowKey getStoredResultKey getWindowKey key swo
   void $ Redis.decrby finalKey val
   Redis.expire finalKey $ fromIntegral expirationTime
   unless isToday $
