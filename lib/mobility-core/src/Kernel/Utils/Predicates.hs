@@ -19,11 +19,13 @@ import Kernel.Prelude
 import Kernel.Types.Beckn.Country (Country (..))
 import Kernel.Types.Predicate
 
-digit, latinUC, latinLC, latin, alphanum, latinOrSpace, latinWithSymbols, certNumber :: Regex
+digit, latinUC, latinLC, latin, latinAccented, nameLetter, alphanum, latinOrSpace, latinWithSymbols, certNumber :: Regex
 digit = charRange '0' '9'
 latinUC = charRange 'A' 'Z'
 latinLC = charRange 'a' 'z'
 latin = latinUC \/ latinLC
+latinAccented = charRange '\xC0' '\xD6' \/ charRange '\xD8' '\xF6' \/ charRange '\xF8' '\x24F'
+nameLetter = latin \/ latinAccented
 alphanum = latin \/ digit
 latinOrSpace = latin \/ " "
 latinWithSymbols = latinOrSpace \/ basicSpecialSymbols
@@ -60,14 +62,14 @@ getCountryMobileCode country =
     Finland -> "+358"
     _ -> "+91"
 
--- | ASCII-only names: one or more letters, then zero or more groups of (space, apostrophe, or hyphen) followed by letters; no doubled or leading\/trailing separators.
+-- | Latin names, accents included: one or more letters, then zero or more groups of (space, apostrophe, or hyphen) followed by letters; no doubled or leading\/trailing separators.
 name :: Regex
-name = plus latin <> star (nameSep <> plus latin)
+name = plus nameLetter <> star (nameSep <> plus nameLetter)
   where
     nameSep = " " \/ "'" \/ "-"
 
 nameWithNumber :: Regex
-nameWithNumber = star $ alphanum \/ " "
+nameWithNumber = star $ nameLetter \/ digit \/ " "
 
 inputName :: Regex
 inputName = star latinWithSymbols

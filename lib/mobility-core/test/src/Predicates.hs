@@ -49,7 +49,21 @@ namePredicateTests =
             ("Jean-Paul", "Jean-Paul"),
             ("D'Arcy", "D'Arcy"),
             ("A B", "A B"),
-            ("A-B-C", "A-B-C")
+            ("A-B-C", "A-B-C"),
+            ("Mäkinen", "Mäkinen"),
+            ("Mäkelä", "Mäkelä"),
+            ("Hämäläinen", "Hämäläinen"),
+            ("Järvinen", "Järvinen"),
+            ("Böhm", "Böhm"),
+            ("Väisänen", "Väisänen"),
+            ("Åberg", "Åberg"),
+            ("Lindström", "Lindström"),
+            ("de Vries", "de Vries"),
+            ("van den Berg", "van den Berg"),
+            ("Müller", "Müller"),
+            ("Sørensen", "Sørensen"),
+            ("Peña", "Peña"),
+            ("Škoda", "Škoda")
           ],
       testGroup
         "invalid"
