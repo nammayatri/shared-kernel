@@ -51,10 +51,9 @@ data AarokyaContributorTokenRequest = AarokyaContributorTokenRequest
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
-newtype AarokyaContributorTokenResponse = AarokyaContributorTokenResponse
-  { contributor_token :: Text
-  }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+-- Note: no @AarokyaContributorTokenResponse@ type — the contributor-token
+-- response is proxied through as a raw JSON body ('Data.Aeson.Value'), so we
+-- never impose a fixed shape on it.
 
 data AarokyaSdkConfig = AarokyaSdkConfig
   { url :: BaseUrl,

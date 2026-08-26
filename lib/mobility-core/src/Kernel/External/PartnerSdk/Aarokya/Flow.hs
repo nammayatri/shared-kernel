@@ -1,5 +1,6 @@
 module Kernel.External.PartnerSdk.Aarokya.Flow where
 
+import qualified Data.Aeson as A
 import EulerHS.Types as Euler
 import Kernel.External.PartnerSdk.Aarokya.Types
 import Kernel.Prelude
@@ -26,19 +27,22 @@ generateToken url basicToken request = do
       eulerClient = Euler.client proxy (Just ("Basic " <> basicToken)) request
   callAarokyaAPI url eulerClient "aarokya-generate-token" proxy
 
+-- | The response is intentionally typed as a raw JSON 'A.Value': NammaYatri is a
+-- pass-through proxy for the contributor token and must forward whatever Aarokya
+-- returns verbatim, without imposing (and breaking on) a fixed response shape.
 type GenerateContributorTokenAPI =
   "auth"
     :> "contributor_token"
     :> Header "Authorization" Text
     :> ReqBody '[JSON] AarokyaContributorTokenRequest
-    :> Post '[JSON] AarokyaContributorTokenResponse
+    :> Post '[JSON] A.Value
 
 generateContributorToken ::
   (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
   AarokyaContributorTokenRequest ->
-  m AarokyaContributorTokenResponse
+  m A.Value
 generateContributorToken url basicToken request = do
   let proxy = Proxy @GenerateContributorTokenAPI
       eulerClient = Euler.client proxy (Just ("Basic " <> basicToken)) request

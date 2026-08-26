@@ -4,6 +4,7 @@ module Kernel.External.PartnerSdk.Interface
   )
 where
 
+import qualified Data.Aeson as A
 import qualified Kernel.External.PartnerSdk.Interface.Aarokya as Aarokya
 import Kernel.External.PartnerSdk.Interface.Types
 import Kernel.External.PartnerSdk.Types as Reexport
@@ -28,6 +29,6 @@ generateContributorToken ::
   ) =>
   PartnerSdkConfig ->
   GenerateContributorTokenReq ->
-  m GenerateContributorTokenResp
+  m A.Value
 generateContributorToken serviceConfig req = case serviceConfig of
   AarokyaPartnerSdkConfig cfg -> Aarokya.generateContributorToken cfg req
