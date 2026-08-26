@@ -42,10 +42,8 @@ data GenerateContributorTokenReq = GenerateContributorTokenReq
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
-newtype GenerateContributorTokenResp = GenerateContributorTokenResp
-  { contributorToken :: Text
-  }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+-- Note: there is no typed response for the contributor token — NammaYatri is a
+-- pass-through proxy and forwards Aarokya's raw JSON body ('Data.Aeson.Value').
 
 data PartnerSdkConfig
   = AarokyaPartnerSdkConfig Aarokya.AarokyaSdkConfig

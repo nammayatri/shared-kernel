@@ -1,5 +1,6 @@
 module Kernel.External.PartnerSdk.Interface.Aarokya where
 
+import qualified Data.Aeson as A
 import Kernel.External.Encryption
 import qualified Kernel.External.PartnerSdk.Aarokya.Flow as Aarokya
 import qualified Kernel.External.PartnerSdk.Aarokya.Types as AarokyaTypes
@@ -57,12 +58,12 @@ generateContributorToken ::
   ) =>
   AarokyaTypes.AarokyaSdkConfig ->
   GenerateContributorTokenReq ->
-  m GenerateContributorTokenResp
+  m A.Value
 generateContributorToken config req = do
   basicToken <- decrypt config.basicToken
   let aarokyaReq = toAarokyaContributorTokenRequest req
-  resp <- Aarokya.generateContributorToken config.url basicToken aarokyaReq
-  pure $ fromAarokyaContributorTokenResponse resp
+  -- Proxy: forward Aarokya's response body as-is (no parsing / re-shaping).
+  Aarokya.generateContributorToken config.url basicToken aarokyaReq
 
 toAarokyaContributorTokenRequest :: GenerateContributorTokenReq -> AarokyaTypes.AarokyaContributorTokenRequest
 toAarokyaContributorTokenRequest req =
@@ -77,10 +78,4 @@ toAarokyaContributorReference ref =
   AarokyaTypes.AarokyaContributorReference
     { type_ = ref.refType,
       value = ref.refValue
-    }
-
-fromAarokyaContributorTokenResponse :: AarokyaTypes.AarokyaContributorTokenResponse -> GenerateContributorTokenResp
-fromAarokyaContributorTokenResponse resp =
-  GenerateContributorTokenResp
-    { contributorToken = resp.contributor_token
     }
