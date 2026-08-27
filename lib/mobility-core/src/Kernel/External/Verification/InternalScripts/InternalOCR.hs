@@ -48,6 +48,10 @@ getOCRResultDL :: CacheFlow m r => Text -> m (Maybe ExtractedDL)
 getOCRResultDL driverId =
   Hedis.withCrossAppRedis $ Hedis.get ("providerPlatform:InternalOCR:DriverLicense:" <> driverId)
 
+getOCRResultPAN :: CacheFlow m r => Text -> m (Maybe ExtractedPAN)
+getOCRResultPAN driverId =
+  Hedis.withCrossAppRedis $ Hedis.get ("providerPlatform:InternalOCR:PanCard:" <> driverId)
+
 callOCRApi :: CallAPI m r api res
 callOCRApi = callApiUnwrappingApiError (identity @InternalOCRError) (Just $ ET.ManagerSelector $ DT.pack internalOCRManagerKey) (Just "INTERNAL_OCR_ERROR") Nothing
 

@@ -188,7 +188,7 @@ data ValidateImageReq = ValidateImageReq
   }
   deriving stock (Show, Generic)
 
-data ImageType = DriverLicense | VehicleRegistrationCertificate | VehiclePUC | VehiclePermit | VehicleInsurance | VehicleFitnessCertificate | VehicleNOC
+data ImageType = DriverLicense | VehicleRegistrationCertificate | VehiclePUC | VehiclePermit | VehicleInsurance | VehicleFitnessCertificate | VehicleNOC | PanCard
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
@@ -233,10 +233,19 @@ data ExtractAadhaarImageReq = ExtractAadhaarImageReq
     driverId :: Text
   }
 
-newtype ExtractedPanImageResp = ExtractedPanImageResp
-  { extractedPan :: Maybe Idfy.PanExtractionOutput
+data ExtractedPanImageResp = ExtractedPanImageResp
+  { extractedPan :: Maybe Idfy.PanExtractionOutput,
+    provider :: Maybe VT.VerificationService
   }
   deriving stock (Show, Generic)
+
+data ExtractedPAN = ExtractedPAN
+  { panNumber :: Maybe Text,
+    nameOnCard :: Maybe Text,
+    dateOfBirth :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 newtype ExtractAadhaarImageRes = ExtractAadhaarImageRes
   { extractedAadhaar :: Maybe Idfy.AadhaarResult
