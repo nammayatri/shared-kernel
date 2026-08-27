@@ -291,6 +291,7 @@ validateImage cfg req = do
     VehicleInsurance -> return validationNotAvailable
     VehicleFitnessCertificate -> return validationNotAvailable
     VehicleNOC -> return validationNotAvailable
+    PanCard -> return validationNotAvailable
   where
     validationNotAvailable =
       ValidateImageResp
@@ -320,6 +321,7 @@ getDocType VehiclePermit = "ind_permit"
 getDocType VehicleInsurance = "ind_insurance"
 getDocType VehicleFitnessCertificate = "ind_fitness_certificate"
 getDocType VehicleNOC = "ind_vehicle_noc"
+getDocType PanCard = "ind_pan"
 
 getImageType :: Text -> ImageType
 getImageType "ind_driving_license" = DriverLicense
@@ -448,7 +450,8 @@ extractPanImage cfg req = do
   resp <- Idfy.extractPanImage apiKey accountId url idfyReq
   pure
     ExtractedPanImageResp
-      { extractedPan = resp.result >>= (\x -> pure x.extraction_output)
+      { extractedPan = resp.result >>= (\x -> pure x.extraction_output),
+        provider = Nothing
       }
 
 extractGSTImage ::

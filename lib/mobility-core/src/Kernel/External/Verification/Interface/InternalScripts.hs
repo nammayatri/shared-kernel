@@ -19,11 +19,14 @@ module Kernel.External.Verification.Interface.InternalScripts
     submitOCR,
     getOCRResultRC,
     getOCRResultDL,
+    getOCRResultPAN,
     extractRCImageOCR,
     extractDLImageOCR,
+    extractPANImageOCR,
   )
 where
 
+import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import Kernel.External.Verification.Interface.Types
 import Kernel.External.Verification.InternalScripts.Error
 import qualified Kernel.External.Verification.InternalScripts.FaceVerification as FV
@@ -60,6 +63,9 @@ getOCRResultRC = OCR.getOCRResultRC
 getOCRResultDL :: CacheFlow m r => Text -> m (Maybe ExtractedDL)
 getOCRResultDL = OCR.getOCRResultDL
 
+getOCRResultPAN :: CacheFlow m r => Text -> m (Maybe ExtractedPAN)
+getOCRResultPAN = OCR.getOCRResultPAN
+
 extractRCImageOCR :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalOCRCfg -> ExtractRCImageReq -> m ExtractRCImageResp
 extractRCImageOCR cfg req = do
   _ <- OCR.submitOCR cfg $ OCRRequest {image = req.image1, imageType = VehicleRegistrationCertificate, driverId = req.driverId, prompt = Nothing}
@@ -85,6 +91,25 @@ emptyExtractedRC =
       ownerName = Nothing,
       manufacturingDate = Nothing,
       bodyType = Nothing
+    }
+
+extractPANImageOCR :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalOCRCfg -> ExtractPanImage -> m ExtractedPanImageResp
+extractPANImageOCR cfg req = do
+  _ <- OCR.submitOCR cfg $ OCRRequest {image = req.image1, imageType = PanCard, driverId = req.driverId, prompt = Nothing}
+  return $ ExtractedPanImageResp {extractedPan = Just emptyExtractedPAN, provider = Just VT.InternalOCR}
+
+emptyExtractedPAN :: Idfy.PanExtractionOutput
+emptyExtractedPAN =
+  Idfy.PanExtractionOutput
+    { age = Nothing,
+      date_of_birth = Nothing,
+      date_of_issue = Nothing,
+      fathers_name = Nothing,
+      id_number = Nothing,
+      is_scanned = Nothing,
+      minor = Nothing,
+      name_on_card = Nothing,
+      pan_type = Nothing
     }
 
 emptyExtractedDL :: ExtractedDL

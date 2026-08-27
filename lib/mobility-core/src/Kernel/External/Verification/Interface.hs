@@ -401,7 +401,7 @@ extractPanImage serviceConfig req = case serviceConfig of
   DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
-  InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalOCRConfig cfg -> IS.extractPANImageOCR cfg req
 
 extractGSTImage ::
   ( EncFlow m r,
