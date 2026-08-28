@@ -94,6 +94,8 @@ data Action
   | ON_ISSUE
   | ISSUE_STATUS
   | ON_ISSUE_STATUS
+  | RECEIVER_RECON
+  | ON_RECEIVER_RECON
   deriving (Generic, Show, Eq, ToSchema)
   deriving (PrettyShow) via Showable Action
 
@@ -120,6 +122,8 @@ mapToCbAction = \case
   SUPPORT -> Just ON_SUPPORT
   ISSUE -> Just ON_ISSUE
   ISSUE_STATUS -> Just ON_ISSUE_STATUS
+  RECEIVER_RECON -> Just ON_RECEIVER_RECON
+  ON_RECEIVER_RECON -> Just ON_RECEIVER_RECON
   _ -> Nothing
 
 getSubscriberType :: Action -> Subscriber.SubscriberType
