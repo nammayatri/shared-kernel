@@ -34,13 +34,13 @@ import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.GenericPretty (PrettyShow)
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
-data MapsService = Google | OSRM | MMI | NextBillion | SelfTuned
+data MapsService = Google | OSRM | MMI | NextBillion | SelfTuned | Disha
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 $(mkBeamInstancesForEnumAndList ''MapsService)
 
 availableMapsServices :: [MapsService]
-availableMapsServices = [Google, OSRM, MMI, NextBillion]
+availableMapsServices = [Google, OSRM, MMI, NextBillion, Disha]
 
 derivePersistField "MapsService"
 

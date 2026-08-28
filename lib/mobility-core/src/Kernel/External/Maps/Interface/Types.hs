@@ -56,7 +56,7 @@ data SnapToRoadHandler m = SnapToRoadHandler
     getProviderConfig :: MapsService -> m MapsServiceConfig
   }
 
-data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg | NextBillionConfig NextBillion.NextBillionCfg
+data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg | NextBillionConfig NextBillion.NextBillionCfg | DishaConfig OSRM.OSRMCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MapsServiceConfig
 
