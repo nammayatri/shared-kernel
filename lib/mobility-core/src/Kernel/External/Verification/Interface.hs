@@ -26,6 +26,7 @@ module Kernel.External.Verification.Interface
     extractRCImage,
     extractDLImage,
     extractPanImage,
+    extractPanImageMulti,
     extractAadhaarImage,
     extractGSTImage,
     extractUdyogAadhaarAsync,
@@ -402,6 +403,35 @@ extractPanImage serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig cfg -> IS.extractPANImageOCR cfg req
+
+extractPanImageMulti ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m,
+    Forkable m
+  ) =>
+  ImageExtractionHandler m ->
+  ExtractPanImage ->
+  m ExtractedPanImageResp
+extractPanImageMulti ImageExtractionHandler {..} req = do
+  providers <- getProvidersPriorityList
+  timeoutInSec <- getProviderTimeout
+  when (null providers) $
+    throwError (InternalError "extractPanImageMulti: No image extraction provider configured in the priority list")
+  runWithFallbackAndTimeout "extractPanImageMulti" providers timeoutInSec (isJust . (.extractedPan)) $ \provider -> do
+    serviceConfig <- getProviderConfig provider
+    case serviceConfig of
+      EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
+      IdfyConfig cfg -> Idfy.extractPanImage cfg req
+      GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+      FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+      HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+      HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+      DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+      TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+      MorthConfig _ -> throwError $ InternalError "Not Implemented!"
+      InternalOCRConfig cfg -> IS.extractPANImageOCR cfg req
 
 extractGSTImage ::
   ( EncFlow m r,
