@@ -93,6 +93,7 @@ getDistancesProvided = \case
   MMI -> True
   NextBillion -> False
   SelfTuned -> False
+  Disha -> False
 
 -- FIXME this logic is redundant, because we throw error always when getDistancesProvided service = False
 getDistances ::
@@ -117,6 +118,7 @@ getDistances entityId serviceConfig req = case serviceConfig of
         Nothing -> Google.getDistances entityId cfg req
       else Google.getDistances entityId cfg req
   OSRMConfig cfg -> OSRM.getDistances entityId cfg req
+  DishaConfig cfg -> OSRM.getDistances entityId cfg req
   MMIConfig cfg -> MMI.getDistanceMatrix entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getDistances" NextBillion
 
@@ -127,6 +129,7 @@ getRoutesProvided = \case
   MMI -> False
   NextBillion -> True
   SelfTuned -> False
+  Disha -> False
 
 getRoutes ::
   ( EncFlow m r,
@@ -143,6 +146,7 @@ getRoutes ::
 getRoutes entityId isAvoidToll serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getRoutes entityId isAvoidToll cfg req
   OSRMConfig osrmCfg -> OSRM.getRoutes entityId osrmCfg req
+  DishaConfig osrmCfg -> OSRM.getRoutes entityId osrmCfg req
   MMIConfig cfg -> MMI.getRoutes entityId cfg req
   NextBillionConfig cfg -> NextBillion.getRoutes entityId cfg req
 
@@ -153,6 +157,7 @@ snapToRoadProvided = \case
   MMI -> True
   NextBillion -> False
   SelfTuned -> True
+  Disha -> True
 
 runPreCheck ::
   ( EncFlow m r,
@@ -169,6 +174,7 @@ runPreCheck mapsService req = do
     Google -> return snippetCheckPassed
     MMI -> return snippetCheckPassed
     OSRM -> return snippetCheckPassed
+    Disha -> return snippetCheckPassed
     _ -> return True
 
 runPostCheck ::
@@ -188,6 +194,7 @@ runPostCheck mapsService req res = do
     Google -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
     MMI -> return (everySnippetIs (< snippetThreshold) res.snappedPoints)
     OSRM -> return $ (< osrmThreshold) $ distanceBetweenInMeters (last req.points) (last res.snappedPoints)
+    Disha -> return $ (< osrmThreshold) $ distanceBetweenInMeters (last req.points) (last res.snappedPoints)
     _ -> return True
 
 snapToRoadWithFallback ::
@@ -301,6 +308,7 @@ snapToRoad entityId serviceConfig req =
   case serviceConfig of
     GoogleConfig cfg -> Google.snapToRoad entityId cfg req
     OSRMConfig osrmCfg -> OSRM.callOsrmMatch entityId osrmCfg req
+    DishaConfig osrmCfg -> OSRM.callOsrmMatch entityId osrmCfg req
     MMIConfig mmiCfg -> MMI.snapToRoad entityId mmiCfg req
     NextBillionConfig _ -> throwNotProvidedError "snapToRoad" NextBillion
 
@@ -311,6 +319,7 @@ autoCompleteProvided = \case
   MMI -> True
   NextBillion -> False
   SelfTuned -> False
+  Disha -> False
 
 autoComplete ::
   ( EncFlow m r,
@@ -327,6 +336,7 @@ autoComplete ::
 autoComplete entityId serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.autoComplete entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "autoComplete" OSRM
+  DishaConfig _ -> throwNotProvidedError "autoComplete" Disha
   MMIConfig cfg -> MMI.autoSuggest entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "autoComplete" NextBillion
 
@@ -337,6 +347,7 @@ getPlaceDetailsProvided = \case
   MMI -> True
   NextBillion -> False
   SelfTuned -> False
+  Disha -> False
 
 getPlaceDetails ::
   ( EncFlow m r,
@@ -351,6 +362,7 @@ getPlaceDetails ::
 getPlaceDetails entityId serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceDetails entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
+  DishaConfig _ -> throwNotProvidedError "getPlaceDetails" Disha
   MMIConfig cfg -> MMI.getPlaceDetails entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getPlaceDetails" NextBillion
 
@@ -361,6 +373,7 @@ getPlaceNameProvided = \case
   MMI -> True
   NextBillion -> False
   SelfTuned -> False
+  Disha -> False
 
 getPlaceName ::
   ( EncFlow m r,
@@ -376,6 +389,7 @@ getPlaceName ::
 getPlaceName entityId serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.getPlaceName entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
+  DishaConfig _ -> throwNotProvidedError "getPlaceName" Disha
   MMIConfig cfg -> MMI.geocode entityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getPlaceName" NextBillion
 
@@ -386,6 +400,7 @@ searchDestinationsProvided = \case
   MMI -> False
   NextBillion -> False
   SelfTuned -> False
+  Disha -> False
 
 searchDestinations ::
   ( EncFlow m r,
@@ -400,5 +415,6 @@ searchDestinations ::
 searchDestinations entityId serviceConfig req = case serviceConfig of
   GoogleConfig cfg -> Google.searchDestinations entityId cfg req
   OSRMConfig _ -> throwNotProvidedError "searchDestinations" OSRM
+  DishaConfig _ -> throwNotProvidedError "searchDestinations" Disha
   MMIConfig _ -> throwNotProvidedError "searchDestinations" MMI
   NextBillionConfig _ -> throwNotProvidedError "searchDestinations" NextBillion
