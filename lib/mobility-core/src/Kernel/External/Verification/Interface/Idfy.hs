@@ -323,15 +323,15 @@ getDocType VehicleFitnessCertificate = "ind_fitness_certificate"
 getDocType VehicleNOC = "ind_vehicle_noc"
 getDocType PanCard = "ind_pan"
 
-getImageType :: Text -> ImageType
-getImageType "ind_driving_license" = DriverLicense
-getImageType "ind_rc" = VehicleRegistrationCertificate
-getImageType "ind_puc" = VehiclePUC
-getImageType "ind_permit" = VehiclePermit
-getImageType "ind_insurance" = VehicleInsurance
-getImageType "ind_fitness_certificate" = VehicleFitnessCertificate
-getImageType "ind_vehicle_noc" = VehicleNOC
-getImageType _ = VehicleRegistrationCertificate
+getImageType :: Text -> Maybe ImageType
+getImageType "ind_driving_license" = Just DriverLicense
+getImageType "ind_rc" = Just VehicleRegistrationCertificate
+getImageType "ind_puc" = Just VehiclePUC
+getImageType "ind_permit" = Just VehiclePermit
+getImageType "ind_insurance" = Just VehicleInsurance
+getImageType "ind_fitness_certificate" = Just VehicleFitnessCertificate
+getImageType "ind_vehicle_noc" = Just VehicleNOC
+getImageType _ = Nothing
 
 extractRCImage ::
   ( EncFlow m r,
