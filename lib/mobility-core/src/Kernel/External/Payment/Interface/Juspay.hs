@@ -15,6 +15,7 @@
 module Kernel.External.Payment.Interface.Juspay
   ( module Reexport,
     createOrder,
+    mkCreateOrderReq,
     getCustomerOrCreateCustomer,
     getCustomer,
     orderStatus,
@@ -486,6 +487,7 @@ mkOrderStatusResp orderData@Juspay.OrderData {..} =
       OrderStatusResp
         { eventName = Nothing,
           orderShortId = order_id,
+          paymentServiceOrderId = id,
           transactionUUID = txn_uuid,
           txnId = txn_id,
           transactionStatusId = fromMaybe (-3001) status_id,
@@ -780,6 +782,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
           OrderStatusResp
             { eventName = Just eventName,
               orderShortId = justOrder.order_id,
+              paymentServiceOrderId = justOrder.id,
               transactionUUID = justOrder.txn_uuid,
               txnId = justOrder.txn_id,
               transactionStatusId = fromMaybe (-3001) justOrder.status_id,
@@ -849,6 +852,7 @@ mkWebhookOrderStatusResp now (eventName, Juspay.OrderAndNotificationStatusConten
       OrderStatusResp
         { eventName = Just eventName,
           orderShortId = justTransaction.order_id,
+          paymentServiceOrderId = Nothing,
           transactionUUID = justTransaction.txn_uuid,
           txnId = Just justTransaction.txn_id,
           transactionStatusId = fromMaybe (-3001) justTransaction.status_id,

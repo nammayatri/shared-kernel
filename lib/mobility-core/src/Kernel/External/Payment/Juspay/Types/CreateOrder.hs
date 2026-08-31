@@ -15,9 +15,11 @@
 
 module Kernel.External.Payment.Juspay.Types.CreateOrder where
 
+import Control.Lens.Operators ((?~))
 import Data.Aeson
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HM
+import Data.OpenApi (NamedSchema (..), declareNamedSchema, declareSchemaRef, fromAesonOptions, genericDeclareNamedSchema, oneOf)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as DT
 import Kernel.External.Payment.Juspay.Types.Common
@@ -110,6 +112,18 @@ instance ToJSON SplitSettlementDetails where
 
 instance FromJSON SplitSettlementDetails where
   parseJSON = genericParseJSON untaggedValue
+
+-- Written out rather than derived: the JSON instances above use untaggedValue, so a payload
+-- carries one alternative's fields directly, with no constructor wrapper. A generic derivation
+-- would describe tagged AmountBased / PercentageBased objects instead, and a client or validator
+-- generated from that schema would reject valid requests. oneOf is the untagged equivalent.
+instance ToSchema SplitSettlementDetails where
+  declareNamedSchema _ = do
+    amountRef <- declareSchemaRef (Proxy :: Proxy SplitSettlementDetailsAmount)
+    percentageRef <- declareSchemaRef (Proxy :: Proxy SplitSettlementDetailsPercentage)
+    pure $
+      NamedSchema (Just "SplitSettlementDetails") $
+        mempty & oneOf ?~ [amountRef, percentageRef]
 
 data SplitSettlementDetailsAmount = SplitSettlementDetailsAmount
   { marketplace :: MarketplaceAmount,
@@ -262,6 +276,12 @@ instance FromJSON CreateOrderReq where
 
 instance ToJSON CreateOrderReq where
   toJSON = genericToJSON jsonReqOptions {omitNothingFields = True}
+
+-- Declared through the same aeson options as the instances above rather than derived stock:
+-- jsonReqOptions rewrites field labels (auto_refund_post_success -> metadata.auto_refund_post_success
+-- and friends), so a stock derivation would document field names that never appear on the wire.
+instance ToSchema CreateOrderReq where
+  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions jsonReqOptions {omitNothingFields = True}
 
 data CreateOrderResp = CreateOrderResp
   { status :: TransactionStatus,

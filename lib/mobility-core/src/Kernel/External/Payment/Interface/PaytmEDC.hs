@@ -403,6 +403,7 @@ mkOrderStatusResp response orderId =
    in OrderStatusResp
         { eventName = paymentStatus,
           orderShortId = orderId,
+          paymentServiceOrderId = Nothing,
           transactionUUID = respBody.txnId,
           txnId = respBody.bankTxnId,
           transactionStatusId = 0,
