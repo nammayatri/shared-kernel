@@ -247,6 +247,7 @@ data OrderStatusResp
   = OrderStatusResp
       { eventName :: Maybe PaymentStatus,
         orderShortId :: Text,
+        paymentServiceOrderId :: Maybe Text,
         transactionUUID :: Maybe Text,
         txnId :: Maybe Text,
         transactionStatusId :: Int,
