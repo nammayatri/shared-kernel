@@ -303,8 +303,24 @@ runInMultiCloudLTSRedisForList ::
   m [a]
 runInMultiCloudLTSRedisForList action = do
   ltsEnv <- asks (.ltsHedisEnv)
+  runInMultiCloudLTSRedisForListWith ltsEnv action
+
+runInMultiCloudLTSRedisForListFromReplica ::
+  (HedisLTSFlow m env, TryException m) =>
+  m [a] ->
+  m [a]
+runInMultiCloudLTSRedisForListFromReplica action = do
+  readEnv <- ltsReadEnv
+  runInMultiCloudLTSRedisForListWith readEnv action
+
+runInMultiCloudLTSRedisForListWith ::
+  (HedisLTSFlow m env, TryException m) =>
+  HedisEnv ->
+  m [a] ->
+  m [a]
+runInMultiCloudLTSRedisForListWith primaryEnv action = do
   mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
-  primaryResult <- local (\env -> env{hedisEnv = ltsEnv, hedisClusterEnv = ltsEnv}) action
+  primaryResult <- local (\env -> env{hedisEnv = primaryEnv, hedisClusterEnv = primaryEnv}) action
   case (primaryResult, mbSecondaryEnv) of
     ([], Just secondaryEnv) -> do
       logInfo "MULTI_CLOUD_LTS: Primary returned empty, trying secondary"
@@ -326,8 +342,24 @@ runInMultiCloudLTSRedisForMaybeList ::
   m [Maybe a]
 runInMultiCloudLTSRedisForMaybeList action = do
   ltsEnv <- asks (.ltsHedisEnv)
+  runInMultiCloudLTSRedisForMaybeListWith ltsEnv action
+
+runInMultiCloudLTSRedisForMaybeListFromReplica ::
+  (HedisLTSFlow m env, TryException m) =>
+  m [Maybe a] ->
+  m [Maybe a]
+runInMultiCloudLTSRedisForMaybeListFromReplica action = do
+  readEnv <- ltsReadEnv
+  runInMultiCloudLTSRedisForMaybeListWith readEnv action
+
+runInMultiCloudLTSRedisForMaybeListWith ::
+  (HedisLTSFlow m env, TryException m) =>
+  HedisEnv ->
+  m [Maybe a] ->
+  m [Maybe a]
+runInMultiCloudLTSRedisForMaybeListWith primaryEnv action = do
   mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
-  primaryResult <- local (\env -> env{hedisEnv = ltsEnv, hedisClusterEnv = ltsEnv}) action
+  primaryResult <- local (\env -> env{hedisEnv = primaryEnv, hedisClusterEnv = primaryEnv}) action
   case (not (null primaryResult) && Kernel.Prelude.all isNothing primaryResult, mbSecondaryEnv) of
     (True, Just secondaryEnv) -> do
       logInfo "MULTI_CLOUD_LTS: Primary returned all Nothing, trying secondary"
@@ -345,6 +377,19 @@ withLTSRedis ::
   (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv) => m f -> m f
 withLTSRedis f =
   local (\env -> env{hedisEnv = env.ltsHedisEnv, hedisClusterEnv = env.ltsHedisEnv}) f
+
+ltsReadEnv ::
+  (HedisFlow m env, HasField "ltsHedisEnv" env HedisEnv, HasField "ltsReplicaHedisEnv" env (Maybe HedisEnv)) => m HedisEnv
+ltsReadEnv =
+  asks (.ltsReplicaHedisEnv) >>= \case
+    Just replicaEnv -> pure replicaEnv
+    Nothing -> asks (.ltsHedisEnv)
+
+withLTSReplicaRedis ::
+  (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv, HasField "ltsReplicaHedisEnv" env (Maybe HedisEnv)) => m f -> m f
+withLTSReplicaRedis f = do
+  readEnv <- ltsReadEnv
+  local (\env -> env{hedisEnv = readEnv, hedisClusterEnv = readEnv}) f
 
 withSecondaryLTSRedis ::
   (HedisFlow m env, TryException m, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) => m f -> m f

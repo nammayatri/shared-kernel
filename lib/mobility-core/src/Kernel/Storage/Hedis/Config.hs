@@ -34,7 +34,7 @@ type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedi
 
 type HedisLTSFlow m env = (HedisFlow m env, HedisLTSFlowEnv env)
 
-type HedisLTSFlowEnv env = (HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv), HasField "cloudType" env (Maybe CloudType))
+type HedisLTSFlowEnv env = (HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv), HasField "ltsReplicaHedisEnv" env (Maybe HedisEnv), HasField "cloudType" env (Maybe CloudType))
 
 type KeyModifierFunc = (Text -> Text)
 
