@@ -25,6 +25,7 @@ module Kernel.External.Payout.HdfcCbx.Auth (fetchToken, TokenResp (..)) where
 
 import qualified Data.Text.Encoding as TE
 import EulerHS.Types as Euler
+import Kernel.External.Payout.HdfcCbx.Types.Payment (LenientInt)
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
@@ -34,29 +35,36 @@ import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
 import Web.FormUrlEncoded (ToForm (..))
 
-data TokenReq = TokenReq
-  { grantType :: Text,
-    scope :: Text
-  }
-  deriving stock (Show, Eq, Generic)
+-- | The gateway wants @Content-Type: application/x-www-form-urlencoded@ present even
+-- though the parameters travel in the query string; without it the token endpoint
+-- answers @invalid_request: Missing or duplicate parameters@ (observed against UAT,
+-- 2026-09-01). An empty form body is how servant is made to emit the header.
+data EmptyForm = EmptyForm
 
-instance ToForm TokenReq where
-  toForm req = [("grant_type", req.grantType), ("scope", req.scope)]
+instance ToForm EmptyForm where
+  toForm _ = mempty
 
 data TokenResp = TokenResp
   { access_token :: Text,
     token_type :: Maybe Text,
     -- | Seconds. Callers should cache until shortly before this elapses; re-fetching per
-    -- request works but wastes a round trip on every payout call.
-    expires_in :: Maybe Int
+    -- request works but wastes a round trip on every payout call. UAT sends this as a
+    -- JSON /string/ (@"899"@) -- same quirk as @nooftran@, hence 'LenientInt'.
+    expires_in :: Maybe LenientInt
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
+-- | @grant_type@ and @scope@ travel in the query string with an empty body -- the shape
+-- in HDFC's own Postman guide ("Params ...; Body: None"), confirmed working against UAT
+-- on 2026-08-31. RFC 6749 prefers a form body, but that variant is unproven against this
+-- gateway, so the proven shape wins.
 type TokenAPI =
   "auth" :> "oauth" :> "v1" :> "token"
     :> BasicAuth "consumer-key-secret" BasicAuthData
-    :> ReqBody '[FormUrlEncoded] TokenReq
+    :> QueryParam' '[Required, Strict] "grant_type" Text
+    :> QueryParam' '[Required, Strict] "scope" Text
+    :> ReqBody '[FormUrlEncoded] EmptyForm
     :> Post '[JSON] TokenResp
 
 -- | Exchange the consumer key and secret for a bearer token.
@@ -78,6 +86,6 @@ fetchToken tlsManagerKey tokenUrl consumerKey consumerSecret scope = do
             basicAuthPassword = TE.encodeUtf8 consumerSecret
           }
       proxy = Proxy @TokenAPI
-      eulerClient = Euler.client proxy basic (TokenReq "client_credentials" scope)
+      eulerClient = Euler.client proxy basic "client_credentials" scope EmptyForm
   callAPI' (Just $ ManagerSelector tlsManagerKey) tokenUrl eulerClient "hdfc-oauth-token" proxy
     >>= fromEitherM (\err -> InternalError $ "HDFC CBX token request failed: " <> show err)

@@ -24,7 +24,9 @@ module HdfcCbxMapping (hdfcCbxMappingTests) where
 
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.Text as T
 import EulerHS.Prelude
+import qualified Kernel.External.Payout.HdfcCbx.Flow as Flow
 import Kernel.External.Payout.HdfcCbx.StatusMap
 import qualified Kernel.External.Payout.HdfcCbx.Types.Payment as W
 import Kernel.External.Payout.Interface.HdfcCbx
@@ -137,6 +139,142 @@ reasonMatchingIsCaseInsensitive =
     failureReasonFor "INVALID ACCOUNT NO" @?= INVALID_ACCOUNT
     failureReasonFor "the accounts blocked" @?= ACCOUNT_BLOCKED
 
+mkNote :: Int -> Text -> Text -> Flow.GatewayNote
+mkNote s c r = Flow.GatewayNote {Flow.noteStatus = s, Flow.noteCode = c, Flow.noteReason = r}
+
+-- | Texts verbatim from the gateway (202 interim note observed against UAT 2026-09-02)
+-- and from HDFC's test-case sheet (rows 10-11).
+interimNoteIsNotReady :: TestTree
+interimNoteIsNotReady =
+  testCase "GatewayNote: interim problem documents map to InquiryNotReady" $ do
+    let firstInq = mkNote 202 "0" "We have accepted your request. Please enquire again after sometime"
+        secondInq = mkNote 202 "0" "Your request is still under process. Please enquire again after sometime."
+    for_ [firstInq, secondInq] $ \n -> case classifyInquiryNote n of
+      Just InquiryNotReady -> pure ()
+      _ -> assertFailure "expected InquiryNotReady"
+
+unknownNoteIsNeverGuessed :: TestTree
+unknownNoteIsNeverGuessed =
+  testCase "GatewayNote: an unrecognised note is Nothing, not an outcome" $
+    case classifyInquiryNote (mkNote 412 "TH99412" "Oauth Token Validation failed") of
+      Nothing -> pure ()
+      Just _ -> assertFailure "an auth failure must not be classified as an inquiry outcome"
+
+pendingApprovalIsInterim :: TestTree
+pendingApprovalIsInterim =
+  testCase "Interim: 'Pending Approval' (live, not in the sheet) is a known interim state" $ do
+    -- observed on UAT rows: codstatus "P", txtreason "Pending Approval", on I and N rails
+    assertBool "Pending Approval must be interim" (isKnownInterimReason "Pending Approval")
+    assertBool "matching is case-insensitive" (isKnownInterimReason "PENDING APPROVAL")
+    assertBool "a rejection text must not match" (not (isKnownInterimReason "Invalid Account No"))
+    -- the sheet genuinely lacks the combination; this pins why the guard exists
+    statusCategory "NEFT" "P" "Pending Approval" @?= Nothing
+
+duplicateNoteIsDuplicate :: TestTree
+duplicateNoteIsDuplicate =
+  testCase "GatewayNote: a duplicate refusal note is BulkDuplicate, not a rejection" $
+    case readNoteAck (mkNote 412 "1" "Sorry, this is a duplicate transaction request") of
+      BulkDuplicate Nothing -> pure ()
+      other -> assertFailure $ "expected BulkDuplicate, got " <> show other
+
+-- | The specification sheet's field order (BulkAPI_Specifications, Pay_Req sheet). HDFC
+-- convert the JSON to a positional flat file and their test cases reject fields "not as
+-- per incoming mapping", so serialised key order is part of the wire contract. Generic
+-- encoding alphabetises on this aeson build (this test caught it doing exactly that), so
+-- the instance is hand-written; this pins the hand-written order to the sheet.
+specFieldOrder :: [Text]
+specFieldOrder =
+  [ "cdflag",
+    "code",
+    "accno",
+    "amount",
+    "name",
+    "adrline",
+    "prtlctn",
+    "adrline1",
+    "adrline2",
+    "adrline3",
+    "adrline4",
+    "adrline5",
+    "instrefno",
+    "custrefno",
+    "payaddinfo1",
+    "payaddinfo2",
+    "payaddinfo3",
+    "payaddinfo4",
+    "payaddinfo5",
+    "payaddinfo6",
+    "payaddinfo7",
+    "chqnb",
+    "reqdexctndt",
+    "micrno",
+    "ifsc",
+    "bankname",
+    "branch",
+    "email"
+  ]
+
+paymentTxnWireShape :: TestTree
+paymentTxnWireShape =
+  testCase "Payment txn: all 28 tags, in the sheet's order, empty strings never null" $ do
+    let txn =
+          W.CbxPaymentTxn
+            { W.cdflag = W.NEFT,
+              W.code = "",
+              W.accno = "1749283221",
+              W.amount = "4000.00",
+              W.name = "Rasik Mehta",
+              W.adrline = "",
+              W.prtlctn = "",
+              W.adrline1 = "",
+              W.adrline2 = "",
+              W.adrline3 = "",
+              W.adrline4 = "",
+              W.adrline5 = "",
+              W.instrefno = "",
+              W.custrefno = "N27012025002",
+              W.payaddinfo1 = "",
+              W.payaddinfo2 = "",
+              W.payaddinfo3 = "",
+              W.payaddinfo4 = "",
+              W.payaddinfo5 = "",
+              W.payaddinfo6 = "",
+              W.payaddinfo7 = "",
+              W.chqnb = "",
+              W.reqdexctndt = "01/09/2026",
+              W.micrno = "",
+              W.ifsc = "HDFC0000001",
+              W.bankname = "",
+              W.branch = "",
+              W.email = ""
+            }
+        encoded = decodeUtf8 @Text (A.encode txn)
+    jsonKeys encoded @?= specFieldOrder
+    assertBool "null must never appear; HDFC's samples use empty strings" $
+      not ("null" `T.isInfixOf` encoded)
+    -- the request header is order-sensitive for the same reason
+    let req =
+          W.CbxPaymentReq
+            { W.clientcode = "0787",
+              W.groupid = "BULKAPI03",
+              W.iduser = "1MKR",
+              W.nooftran = W.LenientInt 1,
+              W.filerefno = "2",
+              W.trans = [txn]
+            }
+        reqEncoded = decodeUtf8 @Text (A.encode req)
+    assertBool "header must open with clientcode, groupid, iduser in setup order" $
+      "{\"clientcode\":\"0787\",\"groupid\":\"BULKAPI03\",\"iduser\":\"1MKR\",\"nooftran\":\"1\",\"filerefno\":\"2\",\"trans\":[" `T.isPrefixOf` reqEncoded
+
+-- | Keys of a flat JSON object in serialised order. Only valid while no value contains
+-- a comma or a double quote, which the fixture above guarantees.
+jsonKeys :: Text -> [Text]
+jsonKeys =
+  map (T.takeWhile (/= '"') . T.drop 1 . T.dropWhile (/= '"'))
+    . T.splitOn ","
+    . T.dropEnd 1
+    . T.drop 1
+
 hdfcCbxMappingTests :: TestTree
 hdfcCbxMappingTests =
   testGroup
@@ -151,5 +289,10 @@ hdfcCbxMappingTests =
       rtgsIsInTheSheet,
       unknownIsNeverTerminal,
       reasonsDriveDistinctActions,
-      reasonMatchingIsCaseInsensitive
+      reasonMatchingIsCaseInsensitive,
+      interimNoteIsNotReady,
+      unknownNoteIsNeverGuessed,
+      duplicateNoteIsDuplicate,
+      pendingApprovalIsInterim,
+      paymentTxnWireShape
     ]

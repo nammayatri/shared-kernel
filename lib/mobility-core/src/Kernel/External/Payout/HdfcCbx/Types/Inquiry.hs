@@ -13,13 +13,15 @@
 -}
 {-# LANGUAGE DerivingStrategies #-}
 
--- | Wire types for @cbx-nodal-bulkPaymentInq@ and @cbx-nodal-batchnuminq@.
+-- | Wire types for @cbx-nodal-bulkPaymentInq@ and @cbx-getBatchNo@ (the API portal's v2 name
+-- for what HDFC's bulk spec sheet calls @cbx-nodal-batchnuminq@).
 --
 -- HDFC allow a daily maximum of six inquiries per batch number; the budget is spent by the
 -- caller, not enforced here. The response repeats every row on every inquiry rather than
 -- sending a delta, so applying outcomes must be idempotent.
 module Kernel.External.Payout.HdfcCbx.Types.Inquiry where
 
+import qualified Data.Aeson as A
 import Kernel.External.Payout.HdfcCbx.Types.Payment (CdFlag, LenientInt)
 import Kernel.Prelude
 
@@ -38,7 +40,23 @@ data CbxInquiryReq = CbxInquiryReq
     filerefno :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON)
+
+-- | Hand-written for wire order (generic encoding alphabetises); the sample's order is
+-- gcif, iduser, batchnum, reqdexctndt, filerefno. An absent filerefno goes as @""@, never
+-- @null@ -- no HDFC sample anywhere carries a null.
+instance ToJSON CbxInquiryReq where
+  toJSON = A.object . inquiryPairs
+  toEncoding = A.pairs . mconcat . inquiryPairs
+
+inquiryPairs :: (A.KeyValue kv) => CbxInquiryReq -> [kv]
+inquiryPairs r =
+  [ "gcif" A..= r.gcif,
+    "iduser" A..= r.iduser,
+    "batchnum" A..= r.batchnum,
+    "reqdexctndt" A..= r.reqdexctndt,
+    "filerefno" A..= fromMaybe "" r.filerefno
+  ]
 
 data CbxInquiryResp = CbxInquiryResp
   { gcif :: Maybe Text,
@@ -83,7 +101,7 @@ data CbxInquiryTxn = CbxInquiryTxn
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
--- | @cbx-nodal-batchnuminq@ — used only when the batch number was not received because
+-- | @cbx-getBatchNo@ (v2 on the API portal) — used only when the batch number was not received because
 -- the payment request timed out. Keyed on what we wrote before the call, which is why
 -- the client reference and value date are persisted at slot-claim time.
 data CbxBatchNumReq = CbxBatchNumReq
@@ -96,7 +114,20 @@ data CbxBatchNumReq = CbxBatchNumReq
     filerefno :: Text
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON)
+
+-- | Hand-written for wire order; see 'CbxInquiryReq'.
+instance ToJSON CbxBatchNumReq where
+  toJSON = A.object . batchNumPairs
+  toEncoding = A.pairs . mconcat . batchNumPairs
+
+batchNumPairs :: (A.KeyValue kv) => CbxBatchNumReq -> [kv]
+batchNumPairs r =
+  [ "gcif" A..= r.gcif,
+    "iduser" A..= r.iduser,
+    "reqdexctndt" A..= r.reqdexctndt,
+    "filerefno" A..= r.filerefno
+  ]
 
 data CbxBatchNumResp = CbxBatchNumResp
   { gcif :: Maybe Text,

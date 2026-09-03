@@ -43,3 +43,6 @@ Makefile
 *.sh
 !cli-tools/gql/code-gen.sh
 
+# Local HDFC CBX probe/dev scripts -- carry hardcoded UAT credentials, never push.
+scripts/
+

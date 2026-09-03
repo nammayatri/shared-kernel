@@ -18,13 +18,19 @@
 
 -- | Servant clients for HDFC CBX.
 --
--- Every body is a JOSE compact string rather than JSON, but the @Content-Type@ is still
--- @application/json@ -- see 'JoseBody'. Encoding and decoding of the envelope happens one
--- layer up, in "Kernel.External.Payout.Interface.HdfcCbx"; this module only moves opaque
--- text over a mutually-authenticated connection.
+-- Every body is a JOSE compact string sent as @Content-Type: application/jose@ -- see
+-- 'JoseBody'. Encoding and decoding of the envelope happens one layer up, in
+-- "Kernel.External.Payout.Interface.HdfcCbx"; this module only moves opaque text over a
+-- mutually-authenticated connection.
+--
+-- Headers per HDFC's Postman guide, confirmed against UAT on 2026-08-31: @apikey@ (the
+-- consumer key), @Scope@, @transactionId@ (a caller-generated trace id) and the bearer
+-- token.
 module Kernel.External.Payout.HdfcCbx.Flow where
 
+import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Text.Encoding as TE
 import EulerHS.Types as Euler
 import qualified EulerHS.Types as ET
@@ -32,17 +38,25 @@ import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))
-import Kernel.Utils.Common (fromEitherM)
+import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Servant.Client
 import Network.HTTP.Media ((//))
+import qualified Network.HTTP.Types as HttpTypes
 import Servant hiding (throwError)
+import Servant.Client.Core (ClientError (..), responseBody, responseStatusCode)
 
--- | A body that travels as @application/json@ but is a JOSE compact serialisation, not a
--- JSON document. Servant's own 'JSON' would try to parse it and fail on the first dot.
+-- | A JOSE compact serialisation travelling as @application/jose@ (RFC 7515's media
+-- type, and what HDFC's own sample requests send). Servant's 'JSON' would both mislabel
+-- it and try to parse it, failing on the first dot.
+--
+-- Requests go out with the head content type; the tail widens what a /response/ may be
+-- labelled as, because the gateway's label for the returned envelope is not documented
+-- and a mismatch would fail the call after it succeeded at the bank.
 data JoseBody
 
 instance Accept JoseBody where
-  contentType _ = "application" // "json"
+  contentType _ = "application" // "jose"
+  contentTypes _ = ("application" // "jose") NE.:| ["application" // "json", "text" // "plain"]
 
 instance MimeRender JoseBody Text where
   mimeRender _ = BL.fromStrict . TE.encodeUtf8
@@ -50,64 +64,133 @@ instance MimeRender JoseBody Text where
 instance MimeUnrender JoseBody Text where
   mimeUnrender _ = Right . TE.decodeUtf8 . BL.toStrict
 
+-- | 'HdfcCbxConfig.url' is the bare host (e.g. @https://api.hdfcuat.bank.in@, no path) --
+-- every version segment lives here instead, because the four operations do not share one:
+-- bulk payment and both inquiries are v1, but the batch-number lookup is v2 (@cbx-getBatchNo-v2@
+-- on the API portal, distinct from the older @cbx-nodal-batchnuminq@ name in HDFC's bulk
+-- spec sheet).
 type BulkPaymentAPI =
-  "cbx-nodal-bulkPayment"
+  "api" :> "v1" :> "cbx-nodal-bulkPayment"
     :> Header "apikey" Text
+    :> Header "Scope" Text
+    :> Header "transactionId" Text
     :> Header "Authorization" Text
     :> ReqBody '[JoseBody] Text
     :> Post '[JoseBody] Text
 
 type BulkPaymentInquiryAPI =
-  "cbx-nodal-bulkPaymentInq"
+  "api" :> "v1" :> "cbx-nodal-bulkPaymentInq"
     :> Header "apikey" Text
+    :> Header "Scope" Text
+    :> Header "transactionId" Text
     :> Header "Authorization" Text
     :> ReqBody '[JoseBody] Text
     :> Post '[JoseBody] Text
 
+-- | @cbx-getBatchNo-v2@ on the API portal. Not @cbx-nodal-batchnuminq@ (the name in the
+-- bulk spec sheet) and not v1 -- the portal lists this one a version ahead of the other
+-- three. Calling the old v1 name is consistent with the 401 TH99401 "Invalid API Key"
+-- observed against UAT on 2026-09-02: the app's key was never subscribed to a v1 product
+-- that doesn't exist under this name.
 type BatchNumInquiryAPI =
-  "cbx-nodal-batchnuminq"
+  "api" :> "v2" :> "cbx-getBatchNo"
     :> Header "apikey" Text
+    :> Header "Scope" Text
+    :> Header "transactionId" Text
     :> Header "Authorization" Text
     :> ReqBody '[JoseBody] Text
     :> Post '[JoseBody] Text
 
+-- | Not in HDFC's Bulk Payments API kit -- that kit's payment request already carries the
+-- beneficiary inline (see @code@/@accno@/@ifsc@ in 'Kernel.External.Payout.HdfcCbx.Types.Payment.CbxPaymentTxn'),
+-- with no separate registration step. This path and version are unconfirmed against any
+-- portal listing or UAT call; verify before relying on it.
 type BeneRegAPI =
-  "cbx-nodal-beneReg"
+  "api" :> "v1" :> "cbx-nodal-beneReg"
     :> Header "apikey" Text
+    :> Header "Scope" Text
+    :> Header "transactionId" Text
     :> Header "Authorization" Text
     :> ReqBody '[JoseBody] Text
     :> Post '[JoseBody] Text
 
 type CallCtx m r = (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m)
 
+-- | A reply the gateway sends OUTSIDE the JOSE tunnel. Interim inquiry answers, token
+-- refusals and some validation failures arrive as bare @application/problem+json@ with
+-- statuses like 202 or 412 -- e.g. a first inquiry on a just-submitted batch answers
+-- @202 {"title":"Accepted","errors":[{"code":"0","reason":"We have accepted your
+-- request. Please enquire again after sometime"}]}@ (observed against UAT, 2026-09-02).
+-- The adapter maps these to canonical outcomes; anything that is neither an envelope
+-- nor a problem document stays an error.
+data GatewayNote = GatewayNote
+  { noteStatus :: Int,
+    noteCode :: Text,
+    noteReason :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+data ProblemErr = ProblemErr
+  { code :: Maybe Text,
+    reason :: Maybe Text
+  }
+  deriving stock (Generic)
+  deriving anyclass (FromJSON)
+
+newtype ProblemBody = ProblemBody
+  { errors :: Maybe [ProblemErr]
+  }
+  deriving stock (Generic)
+  deriving anyclass (FromJSON)
+
+noteFromClientError :: ClientError -> Maybe GatewayNote
+noteFromClientError (FailureResponse _ resp) = do
+  prob :: ProblemBody <- A.decode (responseBody resp)
+  firstErr <- listToMaybe =<< prob.errors
+  pure
+    GatewayNote
+      { noteStatus = HttpTypes.statusCode (responseStatusCode resp),
+        noteCode = fromMaybe "" firstErr.code,
+        noteReason = fromMaybe "" firstErr.reason
+      }
+noteFromClientError _ = Nothing
+
+-- | An envelope, a gateway note, or -- for anything unrecognisable -- an error.
+joseResult :: (CallCtx m r) => Text -> Either ClientError Text -> m (Either GatewayNote Text)
+joseResult what = \case
+  Right t -> pure (Right t)
+  Left err
+    | Just note <- noteFromClientError err -> pure (Left note)
+    | otherwise -> throwError (InternalError $ "HDFC CBX " <> what <> " failed: " <> show err)
+
 -- All four share a shape: select the mutually-authenticated manager, attach the api key and
 -- bearer token, send an envelope, receive an envelope. Written out rather than abstracted --
 -- the polymorphic version needs a Client type equality that costs more than it saves.
 
-bulkPayment :: (CallCtx m r) => Text -> BaseUrl -> Text -> Text -> Text -> m Text
-bulkPayment mgr url apiKey token envelope = do
+bulkPayment :: (CallCtx m r) => Text -> BaseUrl -> Text -> Text -> Text -> Text -> Text -> m (Either GatewayNote Text)
+bulkPayment mgr url apiKey scope txnId token envelope = do
   let proxy = Proxy @BulkPaymentAPI
-      eulerClient = Euler.client proxy (Just apiKey) (Just $ "Bearer " <> token) envelope
+      eulerClient = Euler.client proxy (Just apiKey) (Just scope) (Just txnId) (Just $ "Bearer " <> token) envelope
   callAPI' (Just $ ET.ManagerSelector mgr) url eulerClient "hdfc-bulk-payment" proxy
-    >>= fromEitherM (\err -> InternalError $ "HDFC CBX bulkPayment failed: " <> show err)
+    >>= joseResult "bulkPayment"
 
-bulkPaymentInquiry :: (CallCtx m r) => Text -> BaseUrl -> Text -> Text -> Text -> m Text
-bulkPaymentInquiry mgr url apiKey token envelope = do
+bulkPaymentInquiry :: (CallCtx m r) => Text -> BaseUrl -> Text -> Text -> Text -> Text -> Text -> m (Either GatewayNote Text)
+bulkPaymentInquiry mgr url apiKey scope txnId token envelope = do
   let proxy = Proxy @BulkPaymentInquiryAPI
-      eulerClient = Euler.client proxy (Just apiKey) (Just $ "Bearer " <> token) envelope
+      eulerClient = Euler.client proxy (Just apiKey) (Just scope) (Just txnId) (Just $ "Bearer " <> token) envelope
   callAPI' (Just $ ET.ManagerSelector mgr) url eulerClient "hdfc-bulk-payment-inquiry" proxy
-    >>= fromEitherM (\err -> InternalError $ "HDFC CBX bulkPaymentInq failed: " <> show err)
+    >>= joseResult "bulkPaymentInq"
 
-batchNumInquiry :: (CallCtx m r) => Text -> BaseUrl -> Text -> Text -> Text -> m Text
-batchNumInquiry mgr url apiKey token envelope = do
+batchNumInquiry :: (CallCtx m r) => Text -> BaseUrl -> Text -> Text -> Text -> Text -> Text -> m (Either GatewayNote Text)
+batchNumInquiry mgr url apiKey scope txnId token envelope = do
   let proxy = Proxy @BatchNumInquiryAPI
-      eulerClient = Euler.client proxy (Just apiKey) (Just $ "Bearer " <> token) envelope
+      eulerClient = Euler.client proxy (Just apiKey) (Just scope) (Just txnId) (Just $ "Bearer " <> token) envelope
   callAPI' (Just $ ET.ManagerSelector mgr) url eulerClient "hdfc-batchnum-inquiry" proxy
-    >>= fromEitherM (\err -> InternalError $ "HDFC CBX batchnuminq failed: " <> show err)
+    >>= joseResult "batchnuminq"
 
-beneReg :: (CallCtx m r) => Text -> BaseUrl -> Text -> Text -> Text -> m Text
-beneReg mgr url apiKey token envelope = do
+beneReg :: (CallCtx m r) => Text -> BaseUrl -> Text -> Text -> Text -> Text -> Text -> m (Either GatewayNote Text)
+beneReg mgr url apiKey scope txnId token envelope = do
   let proxy = Proxy @BeneRegAPI
-      eulerClient = Euler.client proxy (Just apiKey) (Just $ "Bearer " <> token) envelope
+      eulerClient = Euler.client proxy (Just apiKey) (Just scope) (Just txnId) (Just $ "Bearer " <> token) envelope
   callAPI' (Just $ ET.ManagerSelector mgr) url eulerClient "hdfc-bene-reg" proxy
-    >>= fromEitherM (\err -> InternalError $ "HDFC CBX beneReg failed: " <> show err)
+    >>= joseResult "beneReg"
