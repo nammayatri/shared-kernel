@@ -911,10 +911,11 @@ withWaitOnLockRedisWithExpiry key timeout recursionTimeOut func = do
 withWaitOnLockRedisWithExpiry' :: (HedisFlow m env, TryException m, MonadMask m) => Text -> Text -> ExpirationTime -> m () -> m ()
 withWaitOnLockRedisWithExpiry' recursionTimedOutKey key timeout func = do
   toExecute <- getLock recursionTimedOutKey
-  when toExecute $ do
-    finally func $ do
+  if toExecute
+    then finally func $ do
       unlockRedis key
       del recursionTimedOutKey
+    else logError $ "withWaitOnLockRedisWithExpiry: lock wait expired, action SKIPPED for key: " <> key
   where
     getLock recurrsionTimedOutKey' = do
       get recurrsionTimedOutKey' >>= \case
