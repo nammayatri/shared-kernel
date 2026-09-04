@@ -44,7 +44,8 @@ data JuspayCfg = JuspayCfg
     mockStatusUrl :: Maybe BaseUrl,
     useDomainOffers :: Maybe Bool,
     loyaltyProgramMap :: Maybe (Map Text LoyaltyProgramEntry),
-    webhookUrl :: Maybe Text
+    webhookUrl :: Maybe Text,
+    useWebhookConfig :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

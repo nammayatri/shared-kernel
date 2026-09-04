@@ -15,7 +15,7 @@
 module Kernel.External.Payment.Interface.Juspay
   ( module Reexport,
     createOrder,
-    mkCreateOrderReq,
+    getCreateOrderReq,
     getCustomerOrCreateCustomer,
     getCustomer,
     orderStatus,
@@ -73,19 +73,28 @@ createOrder ::
 createOrder config mRoutingId req = do
   let url = config.url
       merchantId = config.merchantId
-      clientId = fromMaybe merchantId config.pseudoClientId
+  logDebug $ "createOrder req: " <> show req
+  apiKey <- decrypt config.apiKey
+  orderReq <- getCreateOrderReq config (Just False) req
+  logDebug $ "createOrder mkCreateOrderReq: " <> show orderReq
+  logDebug $ "createOrder splitSettlementDetails: " <> show req.splitSettlementDetails
+  Juspay.createOrder url apiKey merchantId mRoutingId orderReq
+
+getCreateOrderReq :: (MonadTime m, MonadThrow m, Log m) => JuspayCfg -> Maybe Bool -> CreateOrderReq -> m Juspay.CreateOrderReq
+getCreateOrderReq config mbUseWebhookConfig req = do
+  let clientId = fromMaybe config.merchantId config.pseudoClientId
       cfgWebhookUrl = do
         reqUrl <- req.webhookUrl
         configPath <- config.webhookUrl
         let baseHost = showBaseUrl reqUrl {baseUrlPath = ""}
             normalizedPath = if T.isPrefixOf "/" configPath then configPath else "/" <> configPath
-        return $ baseHost <> normalizedPath
-  logDebug $ "createOrder req: " <> show req
-  apiKey <- decrypt config.apiKey
-  orderReq <- mkCreateOrderReq config.returnUrl config.autoRefundConflictThresholdMinutes cfgWebhookUrl clientId merchantId req
-  logDebug $ "createOrder mkCreateOrderReq: " <> show orderReq
-  logDebug $ "createOrder splitSettlementDetails: " <> show req.splitSettlementDetails
-  Juspay.createOrder url apiKey merchantId mRoutingId orderReq
+            separator = if T.isInfixOf "?" normalizedPath then "&" else "?"
+            taggedPath =
+              if config.useWebhookConfig == Just True && mbUseWebhookConfig == Just True
+                then normalizedPath <> separator <> "useWebhookConfig=true"
+                else normalizedPath
+        return $ baseHost <> taggedPath
+  mkCreateOrderReq config.returnUrl config.autoRefundConflictThresholdMinutes cfgWebhookUrl clientId config.merchantId req
 
 updateOrder ::
   ( Metrics.CoreMetrics m,
