@@ -58,6 +58,10 @@ dependencies:
   - case-insensitive
   - containers
   - cryptonite
+  - asn1-encoding
+  - asn1-types
+  - pem
+  - x509
   - data-default-class
   - double-conversion
   - directory
@@ -73,7 +77,12 @@ dependencies:
   - http-api-data
   - http-client
   - regex-compat
+  - connection
   - http-client-tls
+  - tls
+  - x509-store
+  - x509-validation
+  - data-default
   - http-types
   - http-media
   - kleene
