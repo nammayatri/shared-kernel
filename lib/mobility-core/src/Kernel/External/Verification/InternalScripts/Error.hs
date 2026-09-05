@@ -82,3 +82,31 @@ instance IsHTTPError InternalOCRError where
     OCRServiceUnavailable -> E503
 
 instance IsAPIError InternalOCRError
+
+data InternalImageDetectionError
+  = ImageDetectionInternalServerError
+  | ImageDetectionServiceUnavailable
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''InternalImageDetectionError
+
+instance FromResponse InternalImageDetectionError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    503 -> Just ImageDetectionServiceUnavailable
+    _ -> Just ImageDetectionInternalServerError
+
+instance IsBaseError InternalImageDetectionError where
+  toMessage = \case
+    ImageDetectionInternalServerError -> Just "Internal image detection service error. Please try again."
+    ImageDetectionServiceUnavailable -> Just "Internal image detection service is unavailable."
+
+instance IsHTTPError InternalImageDetectionError where
+  toErrorCode = \case
+    ImageDetectionInternalServerError -> "INTERNAL_SERVER_ERROR"
+    ImageDetectionServiceUnavailable -> "SERVICE_UNAVAILABLE"
+
+  toHttpCode = \case
+    ImageDetectionInternalServerError -> E500
+    ImageDetectionServiceUnavailable -> E503
+
+instance IsAPIError InternalImageDetectionError

@@ -292,6 +292,7 @@ validateImage cfg req = do
     VehicleFitnessCertificate -> return validationNotAvailable
     VehicleNOC -> return validationNotAvailable
     PanCard -> return validationNotAvailable
+    Face -> return validationNotAvailable
   where
     validationNotAvailable =
       ValidateImageResp
@@ -322,6 +323,7 @@ getDocType VehicleInsurance = "ind_insurance"
 getDocType VehicleFitnessCertificate = "ind_fitness_certificate"
 getDocType VehicleNOC = "ind_vehicle_noc"
 getDocType PanCard = "ind_pan"
+getDocType Face = "ind_face"
 
 getImageType :: Text -> ImageType
 getImageType "ind_driving_license" = DriverLicense

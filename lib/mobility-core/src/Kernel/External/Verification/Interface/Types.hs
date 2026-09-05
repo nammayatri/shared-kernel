@@ -15,6 +15,7 @@
 
 module Kernel.External.Verification.Interface.Types
   ( module Kernel.External.Verification.Interface.Types,
+    module Kernel.External.Verification.Interface.ImageDetectionTypes,
   )
 where
 
@@ -27,6 +28,7 @@ import qualified Kernel.External.Verification.Ekatra.Types as EkatraTypes
 import qualified Kernel.External.Verification.HyperVerge.Types as HyperVergeTypes
 import qualified Kernel.External.Verification.Idfy.Config as Idfy
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
+import Kernel.External.Verification.Interface.ImageDetectionTypes
 import qualified Kernel.External.Verification.InternalScripts.Types as FV
 import qualified Kernel.External.Verification.Morth.Types as MorthTypes
 import qualified Kernel.External.Verification.SafetyPortal.Config as SafetyPortal
@@ -35,7 +37,7 @@ import qualified Kernel.External.Verification.Tten.Types as TtenTypes
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg | EkatraConfig EkatraTypes.EkatraVerificationCfg | InternalOCRConfig FV.InternalOCRCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg | EkatraConfig EkatraTypes.EkatraVerificationCfg | InternalOCRConfig FV.InternalOCRCfg | InternalImageDetectionConfig FV.InternalImageDetectionCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -188,7 +190,7 @@ data ValidateImageReq = ValidateImageReq
   }
   deriving stock (Show, Generic)
 
-data ImageType = DriverLicense | VehicleRegistrationCertificate | VehiclePUC | VehiclePermit | VehicleInsurance | VehicleFitnessCertificate | VehicleNOC | PanCard
+data ImageType = DriverLicense | VehicleRegistrationCertificate | VehiclePUC | VehiclePermit | VehicleInsurance | VehicleFitnessCertificate | VehicleNOC | PanCard | Face
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
