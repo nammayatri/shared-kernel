@@ -23,6 +23,7 @@ module Kernel.External.Verification.Interface.InternalScripts
     extractRCImageOCR,
     extractDLImageOCR,
     extractPANImageOCR,
+    detectImage,
   )
 where
 
@@ -30,6 +31,7 @@ import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import Kernel.External.Verification.Interface.Types
 import Kernel.External.Verification.InternalScripts.Error
 import qualified Kernel.External.Verification.InternalScripts.FaceVerification as FV
+import qualified Kernel.External.Verification.InternalScripts.InternalImageDetection as ImageDetection
 import qualified Kernel.External.Verification.InternalScripts.InternalOCR as OCR
 import Kernel.External.Verification.InternalScripts.Types as Reexport
 import qualified Kernel.External.Verification.Types as VT
@@ -119,3 +121,6 @@ emptyExtractedDL =
       nameOnCard = Nothing,
       dateOfBirth = Nothing
     }
+
+detectImage :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalImageDetectionCfg -> OCRRequest -> m FaceDetectionSummary
+detectImage = ImageDetection.detectImage

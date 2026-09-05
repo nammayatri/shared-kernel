@@ -48,6 +48,7 @@ module Kernel.External.Verification.Interface
     submitOCR,
     getOCRResultRC,
     getOCRResultDL,
+    detectImage,
   )
 where
 
@@ -100,6 +101,7 @@ verifyDL serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig cfg -> Morth.verifyDL cfg req
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyPanAsync ::
   ( EncFlow m r,
@@ -121,6 +123,7 @@ verifyPanAsync serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyGstAsync ::
   ( EncFlow m r,
@@ -142,6 +145,7 @@ verifyGstAsync serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyBankAccountAsync ::
   ( EncFlow m r,
@@ -163,6 +167,7 @@ verifyBankAccountAsync serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyCRCAsync ::
   ( EncFlow m r,
@@ -184,6 +189,7 @@ verifyCRCAsync serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyPanAadhaarLinkAsync ::
   ( EncFlow m r,
@@ -205,6 +211,7 @@ verifyPanAadhaarLinkAsync serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyUdyamAadhaarAsync ::
   ( EncFlow m r,
@@ -226,6 +233,7 @@ verifyUdyamAadhaarAsync serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 verifyRC ::
   ( EncFlow m r,
@@ -282,6 +290,7 @@ verifyRC' serviceConfig req = case serviceConfig of
   TtenVerificationConfig cfg -> Tten.verifyTten cfg req
   MorthConfig cfg -> Morth.verifyRCAsync cfg req
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateImage ::
   ( EncFlow m r,
@@ -303,6 +312,7 @@ validateImage serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig cfg -> IS.validateImage cfg req
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 validateFaceImage ::
   ( CoreMetrics m,
@@ -324,6 +334,7 @@ validateFaceImage serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractRCImage ::
   ( EncFlow m r,
@@ -353,6 +364,7 @@ extractRCImage ImageExtractionHandler {..} req = do
       TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
       MorthConfig _ -> throwError $ InternalError "Not Implemented!"
       InternalOCRConfig cfg -> IS.extractRCImageOCR cfg req
+      InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractDLImage ::
   ( EncFlow m r,
@@ -382,6 +394,7 @@ extractDLImage ImageExtractionHandler {..} req = do
       TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
       MorthConfig _ -> throwError $ InternalError "Not Implemented!"
       InternalOCRConfig cfg -> IS.extractDLImageOCR cfg req
+      InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractPanImage ::
   ( EncFlow m r,
@@ -403,6 +416,7 @@ extractPanImage serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig cfg -> IS.extractPANImageOCR cfg req
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractPanImageMulti ::
   ( EncFlow m r,
@@ -432,6 +446,7 @@ extractPanImageMulti ImageExtractionHandler {..} req = do
       TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
       MorthConfig _ -> throwError $ InternalError "Not Implemented!"
       InternalOCRConfig cfg -> IS.extractPANImageOCR cfg req
+      InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractGSTImage ::
   ( EncFlow m r,
@@ -453,6 +468,7 @@ extractGSTImage serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractUdyogAadhaarAsync ::
   ( EncFlow m r,
@@ -474,6 +490,7 @@ extractUdyogAadhaarAsync serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 extractAadhaarImage ::
   ( EncFlow m r,
@@ -495,6 +512,7 @@ extractAadhaarImage serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 nameCompare ::
   ( EncFlow m r,
@@ -516,6 +534,7 @@ nameCompare serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 faceCompare ::
   ( EncFlow m r,
@@ -537,6 +556,7 @@ faceCompare serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 searchAgent ::
   ( EncFlow m r,
@@ -570,6 +590,7 @@ verifySdkResp serviceConfig req = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 getTask ::
   ( EncFlow m r,
@@ -592,6 +613,7 @@ getTask serviceConfig req updateResp = case serviceConfig of
   TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
   MorthConfig _ -> throwError $ InternalError "Not Implemented!"
   InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig _ -> throwError $ InternalError "Not Implemented!"
 
 fetchAndExtractVerifiedDL ::
   ( EncFlow m r,
@@ -734,6 +756,28 @@ submitOCR ::
 submitOCR serviceConfig req = case serviceConfig of
   InternalOCRConfig cfg -> IS.submitOCR cfg req
   _ -> throwError $ InternalError "submitOCR: InternalOCRConfig expected but a different provider was supplied"
+
+detectImage ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  VerificationServiceConfig ->
+  OCRRequest ->
+  m FaceDetectionSummary
+detectImage serviceConfig req = case serviceConfig of
+  EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
+  IdfyConfig _ -> throwError $ InternalError "Not Implemented!"
+  GovtDataConfig -> throwError $ InternalError "Not Implemented!"
+  FaceVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  HyperVergeVerificationConfigRCDL _ -> throwError $ InternalError "Not Implemented!"
+  DigiLockerConfig _ -> throwError $ InternalError "Not Implemented!"
+  TtenVerificationConfig _ -> throwError $ InternalError "Not Implemented!"
+  MorthConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalOCRConfig _ -> throwError $ InternalError "Not Implemented!"
+  InternalImageDetectionConfig cfg -> IS.detectImage cfg req
 
 getOCRResultRC ::
   CacheFlow m r =>
