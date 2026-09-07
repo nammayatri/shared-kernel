@@ -16,6 +16,8 @@ module Kernel.External.Settlement.Interface
   ( parsePaymentSettlementCsv,
     parsePayoutSettlementCsv,
     parseAndEnrichPaymentSettlementCsv,
+    getSettlements,
+    getSettlementDetailReports,
     module Reexport,
   )
 where
@@ -24,6 +26,7 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Lazy.Char8 as LBSC
 import qualified EulerHS.Language as L
 import Kernel.External.Encryption (EncFlow)
+import qualified Kernel.External.Settlement.BillDesk.Flow as BillDesk
 import qualified Kernel.External.Settlement.BillDesk.PaymentParser as BillDeskPayment
 import qualified Kernel.External.Settlement.HyperPG.MerchantPaymentParser as HyperPGMerchantPayment
 import qualified Kernel.External.Settlement.HyperPG.PaymentParser as HyperPGPayment
@@ -102,3 +105,33 @@ parseAndEnrichPaymentSettlementCsv config mbJuspayCfg mbSplitSettlementCustomerT
   enrichedReports <-
     mapM (enrichPaymentReport mbJuspayCfg mbSplitSettlementCustomerType) (reports parsed0)
   pure parsed0 {reports = catMaybes enrichedReports}
+
+-- ---------------------------------------------------------------------------
+-- Settlement API interface
+-- ---------------------------------------------------------------------------
+
+getSettlements ::
+  ( EncFlow m r,
+    Metrics.CoreMetrics m,
+    L.MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BillDeskApiConfig ->
+  Maybe UTCTime ->
+  Maybe UTCTime ->
+  Maybe Text ->
+  m [SettlementSummary]
+getSettlements = BillDesk.fetchBillDeskSettlements
+
+getSettlementDetailReports ::
+  ( EncFlow m r,
+    Metrics.CoreMetrics m,
+    L.MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BillDeskApiConfig ->
+  SettlementSummary ->
+  m ParsePaymentSettlementResult
+getSettlementDetailReports = BillDesk.fetchBillDeskSettlementDetails
