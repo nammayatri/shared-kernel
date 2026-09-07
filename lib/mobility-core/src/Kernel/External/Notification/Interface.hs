@@ -18,7 +18,8 @@ module Kernel.External.Notification.Interface
 where
 
 import EulerHS.Prelude
-import Kernel.External.Notification.FCM.Types (LiveActivityReq)
+import qualified Kernel.External.Notification.FCM.Flow as FCMFlow
+import Kernel.External.Notification.FCM.Types (FCMNotificationRecipient (..), FCMRecipientToken (..), LiveActivityReq)
 import qualified Kernel.External.Notification.Interface.FCM as FCM
 import qualified Kernel.External.Notification.Interface.GRPC as GRPC
 import qualified Kernel.External.Notification.Interface.PayTM as PayTM
@@ -54,6 +55,26 @@ notifyPerson serviceConfig req liveAcitvityRequest action = do
     FCMConfig cfg -> FCM.notifyPerson cfg req liveAcitvityRequest action (Just notificationId) EulerHS.Prelude.id
     PayTMConfig cfg -> PayTM.notifyPerson cfg req
     GRPCConfig _ -> throwError $ InternalError "GRPC notification type not supported."
+
+triggerLiveActivity ::
+  ( MonadFlow m,
+    EncFlow m r,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  NotificationServiceConfig ->
+  Text ->
+  Maybe Text ->
+  LiveActivityReq ->
+  -- | APNs @stale-date@; when set, the sender controls when the activity goes stale.
+  Maybe Int ->
+  m ()
+triggerLiveActivity serviceConfig recipientId mbFcmToken liveActivityReq mbStaleDate =
+  case serviceConfig of
+    FCMConfig cfg -> FCMFlow.updateLiveActivity cfg (FCMNotificationRecipient recipientId (FCMRecipientToken <$> mbFcmToken)) liveActivityReq mbStaleDate
+    _ -> pure ()
 
 notifyPersonWithAllProviders ::
   ( EsqDBFlow m r,
