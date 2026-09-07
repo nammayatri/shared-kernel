@@ -109,7 +109,8 @@ parseHyperPGRow row = do
         offerCode = Nothing,
         offerId = Nothing,
         actualAmount = Nothing,
-        cardNumber = Nothing
+        cardNumber = Nothing,
+        chargebackDate = Nothing
       }
 
 parseTxnType :: Text -> Either Text TxnType

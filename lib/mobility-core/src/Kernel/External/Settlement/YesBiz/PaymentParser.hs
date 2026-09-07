@@ -106,7 +106,8 @@ parseYesBizRow row = do
         offerCode = Nothing,
         offerId = Nothing,
         actualAmount = Nothing,
-        cardNumber = Nothing
+        cardNumber = Nothing,
+        chargebackDate = Nothing
       }
 
 -- | Parse datetime like "2026-01-01 0:4:55.631247"
