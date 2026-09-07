@@ -92,7 +92,8 @@ emptyExtractedRC =
       registrationDate = Nothing,
       ownerName = Nothing,
       manufacturingDate = Nothing,
-      bodyType = Nothing
+      bodyType = Nothing,
+      errorMessage = Nothing
     }
 
 extractPANImageOCR :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalOCRCfg -> ExtractPanImage -> m ExtractedPanImageResp
@@ -111,7 +112,8 @@ emptyExtractedPAN =
       is_scanned = Nothing,
       minor = Nothing,
       name_on_card = Nothing,
-      pan_type = Nothing
+      pan_type = Nothing,
+      error_message = Nothing
     }
 
 emptyExtractedDL :: ExtractedDL
@@ -119,7 +121,8 @@ emptyExtractedDL =
   ExtractedDL
     { dlNumber = Nothing,
       nameOnCard = Nothing,
-      dateOfBirth = Nothing
+      dateOfBirth = Nothing,
+      errorMessage = Nothing
     }
 
 detectImage :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalImageDetectionCfg -> OCRRequest -> m FaceDetectionSummary
