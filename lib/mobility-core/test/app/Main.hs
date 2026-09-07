@@ -19,6 +19,8 @@ import Centesimal
 import ComputeIntersectionTests
 import DistanceCalculation
 import EulerHS.Prelude
+import HdfcCbxMapping (hdfcCbxMappingTests)
+import Jose (joseTests)
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -37,7 +39,9 @@ specs = return $ testGroup "Tests" [unitTests]
     unitTests =
       testGroup
         "Unit tests"
-        [ computeIntersectionTests,
+        [ joseTests,
+          hdfcCbxMappingTests,
+          computeIntersectionTests,
           centesimalTests,
           signatureAuthTests,
           httpExceptionTests,

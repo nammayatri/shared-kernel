@@ -21,11 +21,13 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data PayoutService = AAJuspay | Juspay | Stripe | StripeTest
+data PayoutService = AAJuspay | Juspay | Stripe | StripeTest | HdfcCbx
   deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
-data PayoutServiceFlow = StripeFlow | JuspayFlow
+-- | 'BulkFlow' partners have no single-order API: payouts are batched and submitted
+-- together, then resolved by polling. See Kernel.External.Payout.Interface.HdfcCbx.
+data PayoutServiceFlow = StripeFlow | JuspayFlow | BulkFlow
   deriving stock (Show, Generic, Eq)
 
 castPayoutServiceFlow :: PayoutService -> PayoutServiceFlow
@@ -33,6 +35,7 @@ castPayoutServiceFlow Stripe = StripeFlow
 castPayoutServiceFlow StripeTest = StripeFlow
 castPayoutServiceFlow Juspay = JuspayFlow
 castPayoutServiceFlow AAJuspay = JuspayFlow
+castPayoutServiceFlow HdfcCbx = BulkFlow
 
 $(mkBeamInstancesForEnumAndList ''PayoutService)
 derivePersistField "PayoutService"

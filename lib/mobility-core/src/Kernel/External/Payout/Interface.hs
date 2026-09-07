@@ -18,6 +18,7 @@ module Kernel.External.Payout.Interface
 where
 
 import qualified Kernel.External.Payment.Interface as Payment
+import qualified Kernel.External.Payout.Interface.HdfcCbx as HdfcCbx
 import qualified Kernel.External.Payout.Interface.Juspay as Juspay
 import qualified Kernel.External.Payout.Interface.Stripe as Stripe
 import Kernel.External.Payout.Interface.Types as Reexport
@@ -38,6 +39,7 @@ createPayoutOrder ::
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
 createPayoutOrder serviceConfig req = case serviceConfig of
+  HdfcCbxConfig _ -> throwError $ InvalidRequest "HDFC CBX has no single-order API; use submitBulkPayout"
   JuspayConfig cfg -> Juspay.createPayoutOrder cfg req
   StripeConfig cfg -> do
     connectedAccountId <- req.mConnectedAccountId & fromMaybeM (InvalidRequest "connectedAccountId required for Stripe payout")
@@ -136,6 +138,7 @@ payoutOrderStatus ::
   PayoutOrderStatusReq ->
   m PayoutOrderStatusResp
 payoutOrderStatus serviceConfig req = case serviceConfig of
+  HdfcCbxConfig _ -> throwError $ InvalidRequest "HDFC CBX has no per-order status API; use inquireBulkPayout"
   JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req
   StripeConfig cfg -> do
     resp <- Stripe.externalPayoutOrderStatus cfg req
@@ -173,5 +176,51 @@ createTransfer ::
   CreateTransferReq ->
   m CreateTransferResp
 createTransfer config req = case config of
+  -- Transfers move money between platform and connected accounts, which is a Stripe notion.
+  HdfcCbxConfig _ -> throwError $ InvalidRequest "HDFC CBX has no transfer API"
   JuspayConfig _ -> throwError $ InternalError "Juspay Create Transfer not supported."
   StripeConfig cfg -> Stripe.createTransfer cfg req
+
+--------------------------------------------------------------------------------
+-- Bulk payouts
+--
+-- Partners that batch rather than paying one beneficiary per call. Dispatch is written out
+-- with an explicit branch per partner rather than a catch-all: a wildcard here is how the
+-- next partner silently does nothing.
+--------------------------------------------------------------------------------
+
+type BulkFlowCtx m r =
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  )
+
+notABulkPartner :: (MonadFlow m) => Text -> m a
+notABulkPartner name = throwError $ InvalidRequest (name <> " is not a bulk payout partner")
+
+submitBulkPayout :: (BulkFlowCtx m r) => PayoutServiceConfig -> BulkPayoutReq -> m BulkPayoutResp
+submitBulkPayout serviceConfig req = case serviceConfig of
+  HdfcCbxConfig cfg -> HdfcCbx.submitBulkPayout cfg req
+  JuspayConfig _ -> notABulkPartner "Juspay"
+  StripeConfig _ -> notABulkPartner "Stripe"
+
+inquireBulkPayout :: (BulkFlowCtx m r) => PayoutServiceConfig -> BulkInquiryReq -> m BulkInquiryResp
+inquireBulkPayout serviceConfig req = case serviceConfig of
+  HdfcCbxConfig cfg -> HdfcCbx.inquireBulkPayout cfg req
+  JuspayConfig _ -> notABulkPartner "Juspay"
+  StripeConfig _ -> notABulkPartner "Stripe"
+
+-- | Recovers a partner batch reference after a submission timed out. Never resubmit in that
+-- situation: the partner may well hold the batch already.
+recoverBatchRef :: (BulkFlowCtx m r) => PayoutServiceConfig -> BatchRefRecoveryReq -> m BatchRefRecoveryResp
+recoverBatchRef serviceConfig req = case serviceConfig of
+  HdfcCbxConfig cfg -> HdfcCbx.recoverBatchRef cfg req
+  JuspayConfig _ -> notABulkPartner "Juspay"
+  StripeConfig _ -> notABulkPartner "Stripe"
+
+registerBeneficiary :: (BulkFlowCtx m r) => PayoutServiceConfig -> BeneRegReq -> m BeneRegResp
+registerBeneficiary serviceConfig req = case serviceConfig of
+  HdfcCbxConfig cfg -> HdfcCbx.registerBeneficiary cfg req
+  JuspayConfig _ -> notABulkPartner "Juspay"
+  StripeConfig _ -> notABulkPartner "Stripe"
