@@ -244,7 +244,8 @@ data ExtractedPanImageResp = ExtractedPanImageResp
 data ExtractedPAN = ExtractedPAN
   { panNumber :: Maybe Text,
     nameOnCard :: Maybe Text,
-    dateOfBirth :: Maybe Text
+    dateOfBirth :: Maybe Text,
+    errorMessage :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -281,7 +282,8 @@ data ExtractedRC = ExtractedRC
     registrationDate :: Maybe Text,
     ownerName :: Maybe Text,
     manufacturingDate :: Maybe Text,
-    bodyType :: Maybe Text
+    bodyType :: Maybe Text,
+    errorMessage :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -295,7 +297,8 @@ data ExtractDLImageResp = ExtractDLImageResp
 data ExtractedDL = ExtractedDL
   { dlNumber :: Maybe Text,
     nameOnCard :: Maybe Text,
-    dateOfBirth :: Maybe Text
+    dateOfBirth :: Maybe Text,
+    errorMessage :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)

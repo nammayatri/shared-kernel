@@ -453,7 +453,8 @@ data PanExtractionOutput = PanExtractionOutput
     is_scanned :: Maybe Bool,
     minor :: Maybe Bool,
     name_on_card :: Maybe Text,
-    pan_type :: Maybe Text
+    pan_type :: Maybe Text,
+    error_message :: Maybe Text
   }
   deriving (Show, Generic)
 

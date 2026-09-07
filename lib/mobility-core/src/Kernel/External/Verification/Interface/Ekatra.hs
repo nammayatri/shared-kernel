@@ -85,7 +85,8 @@ extractRCImage cfg req = do
                 registrationDate = findField ["registration_date"] value,
                 ownerName = findField ["owner_name", "name"] value,
                 manufacturingDate = findField ["manufacturing_date"] value,
-                bodyType = findField ["body_type", "body"] value
+                bodyType = findField ["body_type", "body"] value,
+                errorMessage = Nothing
               },
         provider = Nothing
       }
@@ -104,7 +105,8 @@ extractDLImage cfg req = do
             ExtractedDL
               { dlNumber = findField ["dl_number", "license_number", "dlno"] value,
                 nameOnCard = findField ["name", "name_on_card"] value,
-                dateOfBirth = findField ["dob", "date_of_birth"] value
+                dateOfBirth = findField ["dob", "date_of_birth"] value,
+                errorMessage = Nothing
               },
         provider = Nothing
       }

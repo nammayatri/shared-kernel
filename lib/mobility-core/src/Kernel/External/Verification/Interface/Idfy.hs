@@ -372,7 +372,8 @@ extractRCImage cfg req = do
                     registrationDate = eo.registration_date,
                     ownerName = eo.owner_name,
                     manufacturingDate = eo.manufacturing_date,
-                    bodyType = eo.body
+                    bodyType = eo.body,
+                    errorMessage = Nothing
                   },
         provider = Nothing
       }
@@ -425,7 +426,8 @@ extractDLImage cfg req = do
             ExtractedDL
               { dlNumber = result.extraction_output.id_number,
                 nameOnCard = result.extraction_output.name_on_card,
-                dateOfBirth = result.extraction_output.date_of_birth
+                dateOfBirth = result.extraction_output.date_of_birth,
+                errorMessage = Nothing
               },
         provider = Nothing
       }
