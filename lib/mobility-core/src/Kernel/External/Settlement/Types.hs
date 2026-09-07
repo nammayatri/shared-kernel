@@ -27,6 +27,7 @@ module Kernel.External.Settlement.Types
     JuspayApiConfig (..),
     SettlementSourceConfig (..),
     JuspayOrderStatusConfig (..),
+    BillDeskApiConfig (..),
   )
 where
 
@@ -124,6 +125,17 @@ data SettlementSourceConfig
   = SFTPSourceConfig SFTPConfig Text
   | EmailSourceConfig EmailConfig
   | JuspayApiSourceConfig JuspayApiConfig
+  | BillDeskApiSourceConfig BillDeskApiConfig
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data BillDeskApiConfig = BillDeskApiConfig
+  { baseUrl :: BaseUrl,
+    merchantId :: Text,
+    clientId :: EncryptedField 'AsEncrypted Text,
+    signingKey :: EncryptedField 'AsEncrypted Text,
+    encryptionKey :: EncryptedField 'AsEncrypted Text,
+    encryptionKeyId :: EncryptedField 'AsEncrypted Text
+  }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data JuspayOrderStatusConfig = JuspayOrderStatusConfig
