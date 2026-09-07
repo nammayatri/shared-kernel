@@ -14,6 +14,7 @@
 
 module Kernel.External.Settlement.BillDesk.PaymentParser
   ( parseBillDeskCsv,
+    parseBillDeskPaymentMethod,
   )
 where
 
@@ -170,7 +171,8 @@ parseSettledRow row idx = do
         isOffer = Nothing,
         offerCode = Nothing,
         offerId = Nothing,
-        actualAmount = Nothing
+        actualAmount = Nothing,
+        chargebackDate = Nothing
       }
   where
     _ = idx
@@ -220,7 +222,8 @@ parseRefundRow row idx = do
         offerCode = Nothing,
         offerId = Nothing,
         actualAmount = Nothing,
-        cardNumber = Nothing
+        cardNumber = Nothing,
+        chargebackDate = Nothing
       }
   where
     _ = idx
@@ -270,7 +273,8 @@ parseChargebackRow row idx = do
         offerCode = Nothing,
         offerId = Nothing,
         actualAmount = Nothing,
-        cardNumber = Nothing
+        cardNumber = Nothing,
+        chargebackDate = Nothing
       }
   where
     _ = idx
@@ -281,11 +285,12 @@ parseChargebackRow row idx = do
 
 parseBillDeskPaymentMethod :: Text -> Maybe PaymentMethodType
 parseBillDeskPaymentMethod t = case T.strip t of
-  "1" -> Just NETBANKING
-  "2" -> Just CREDIT_CARD
-  "3" -> Just DEBIT_CARD
-  "4" -> Just CASH_CARD
-  "5" -> Just WALLET
+  "00" -> Just CARD_GATEWAY
+  "01" -> Just NETBANKING
+  "02" -> Just CREDIT_CARD
+  "03" -> Just DEBIT_CARD
+  "04" -> Just CASH_CARD
+  "05" -> Just WALLET
   "10" -> Just UPI
   "11" -> Just BHARAT_QR
   "12" -> Just EMI
