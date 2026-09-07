@@ -28,6 +28,10 @@ module Kernel.External.Settlement.Interface.Types
     DisputeType (..),
     ParsePaymentSettlementResult,
 
+    -- * Settlement summary (BillDesk getSettlement response)
+    SettlementSummary (..),
+    AmountSummary (..),
+
     -- * Payout settlement
     PayoutSettlementReport (..),
     FulfillmentInstrument (..),
@@ -92,6 +96,7 @@ data PaymentMethodType
   | COMMERCIAL_CARD
   | PAY_LATER
   | INTERNATIONAL_CARD
+  | CARD_GATEWAY
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 data DisputeType = FRAUD | CONSUMER | PROCESSING_ERROR | OTHER_DISPUTE
@@ -141,6 +146,39 @@ data PaymentSettlementReport = PaymentSettlementReport
     cardNumber :: Maybe Text -- Card Number
   }
   deriving (Show, Eq, Generic)
+
+-- ---------------------------------------------------------------------------
+-- Settlement summary (BillDesk getSettlement interface type)
+-- ---------------------------------------------------------------------------
+
+data AmountSummary = AmountSummary
+  { settlement :: Maybe HighPrecMoney,
+    refund :: Maybe HighPrecMoney,
+    chargeback :: Maybe HighPrecMoney,
+    refundReversal :: Maybe HighPrecMoney,
+    chargebackReversal :: Maybe HighPrecMoney,
+    adjustment :: Maybe HighPrecMoney
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data SettlementSummary = SettlementSummary
+  { pvNumber :: Text,
+    merchantId :: Text,
+    payoutMerchantId :: Maybe Text,
+    pvFile :: Maybe Text,
+    pvFileDate :: Maybe UTCTime,
+    currency :: Currency,
+    amountDetails :: Maybe AmountSummary,
+    charges :: Maybe HighPrecMoney,
+    taxes :: Maybe HighPrecMoney,
+    otherAdjustments :: Maybe HighPrecMoney,
+    payoutAmount :: Maybe HighPrecMoney,
+    status :: Maybe Text,
+    settlementDate :: Maybe UTCTime,
+    utr :: Maybe Text,
+    utrDate :: Maybe UTCTime
+  }
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 -- ---------------------------------------------------------------------------
 -- Payout settlement report
