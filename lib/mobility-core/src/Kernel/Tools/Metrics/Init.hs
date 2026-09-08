@@ -24,6 +24,7 @@ import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
 import EulerHS.Prelude as E hiding (decodeUtf8)
 import Kernel.Prelude (lookup, (!!))
+import Kernel.Tools.Metrics.ApiCategory
 import Kernel.Tools.Metrics.CoreMetrics.Types hiding (requestLatency)
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import qualified Network.HTTP.Types as HTTP
@@ -50,10 +51,10 @@ requestLatency =
         "The HTTP request latencies in seconds."
 
 {-# NOINLINE requestLatencyWithVersionLabel #-}
-requestLatencyWithVersionLabel :: Prom.Vector Prom.Label6 Prom.Histogram
+requestLatencyWithVersionLabel :: Prom.Vector Prom.Label7 Prom.Histogram
 requestLatencyWithVersionLabel =
   Prom.unsafeRegister $
-    Prom.vector ("handler", "method", "status_code", "version", "x_client_version", "x_bundle_version") $
+    Prom.vector ("handler", "method", "status_code", "version", "x_client_version", "x_bundle_version", "category") $
       Prom.histogram info Prom.defaultBuckets
   where
     info =
@@ -72,30 +73,33 @@ serve port = do
 addServantInfo ::
   SanitizedUrl a =>
   DeploymentVersion ->
+  ApiCategoryConfig ->
   Proxy a ->
   Application ->
   Application
-addServantInfo version proxy app request respond =
+addServantInfo version apiCategoryConfig proxy app request respond =
   let mpath = getSanitizedUrl proxy (Just request)
       fullpath = DT.intercalate "/" (normalizedPathInfo request)
-   in instrumentHandlerValueWithVersionLabel version.getDeploymentVersion (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
+   in instrumentHandlerValueWithVersionLabel version.getDeploymentVersion apiCategoryConfig (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
 
 instrumentHandlerValueWithVersionLabel ::
   -- | version label
   Text ->
+  ApiCategoryConfig ->
   -- | The function used to derive the "handler" value in Prometheus
   (Wai.Request -> Text) ->
   -- | The app to instrument
   Wai.Application ->
   -- | The instrumented app
   Wai.Application
-instrumentHandlerValueWithVersionLabel versionLabel = instrumentHandlerValueWithFilter (Just versionLabel) Just
+instrumentHandlerValueWithVersionLabel versionLabel apiCategoryConfig = instrumentHandlerValueWithFilter (Just versionLabel) apiCategoryConfig Just
 
 -- | A more flexible variant of 'instrumentHandlerValue'.  The filter can change some
 -- responses, or drop others entirely.
 instrumentHandlerValueWithFilter ::
   -- | version label
   Maybe Text ->
+  ApiCategoryConfig ->
   -- | Response filter
   (Wai.Response -> Maybe Wai.Response) ->
   -- | The function used to derive the "handler" value in Prometheus
@@ -104,7 +108,7 @@ instrumentHandlerValueWithFilter ::
   Wai.Application ->
   -- | The instrumented app
   Wai.Application
-instrumentHandlerValueWithFilter mbVersionLabel resFilter f app req respond = do
+instrumentHandlerValueWithFilter mbVersionLabel apiCategoryConfig resFilter f app req respond = do
   start <- getTime Monotonic
   app req $ \res -> do
     case resFilter res of
@@ -114,7 +118,9 @@ instrumentHandlerValueWithFilter mbVersionLabel resFilter f app req respond = do
         let method = Just $ decodeUtf8 (Wai.requestMethod req)
         let status = Just $ T.pack (show (HTTP.statusCode (Wai.responseStatus res')))
         let requiredHeaders = map (T.pack . show <$>) (flip lookup (Wai.requestHeaders req) . stringToCI <$> ["x-client-version", "x-bundle-version"])
-        observeSeconds mbVersionLabel (f req) method status start end requiredHeaders
+        let route = f req
+        let category = categorizeHandler apiCategoryConfig route
+        observeSeconds mbVersionLabel route method status start end requiredHeaders category
     respond res
 
 stringToCI :: String -> CI ByteString
@@ -135,8 +141,9 @@ observeSeconds ::
   TimeSpec ->
   -- | required headers
   [Maybe Text] ->
+  ApiCategory ->
   IO ()
-observeSeconds mbVersionLabel handler method status start end requiredHeaders = do
+observeSeconds mbVersionLabel handler method status start end requiredHeaders category = do
   let latency :: Double
       latency = fromRational (toNanoSecs (end `diffTimeSpec` start) % 1000000000)
   case mbVersionLabel of
@@ -148,5 +155,5 @@ observeSeconds mbVersionLabel handler method status start end requiredHeaders = 
     Just versionLabel -> do
       Prom.withLabel
         requestLatencyWithVersionLabel
-        (handler, fromMaybe "" method, fromMaybe "" status, versionLabel, fromMaybe "" (requiredHeaders !! 0), fromMaybe "" (requiredHeaders !! 1))
+        (handler, fromMaybe "" method, fromMaybe "" status, versionLabel, fromMaybe "" (requiredHeaders !! 0), fromMaybe "" (requiredHeaders !! 1), apiCategoryToText category)
         (flip Prom.observe latency)
