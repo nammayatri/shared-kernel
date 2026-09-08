@@ -30,11 +30,12 @@ import Kernel.Storage.Esqueleto (derivePersistField)
 data EventTrackingService
   = Moengage
   | Clevertap
+  | FirebaseAnalytics
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 -- | List of all available event tracking services
 availableEventTrackingServices :: [EventTrackingService]
-availableEventTrackingServices = [Moengage, Clevertap]
+availableEventTrackingServices = [Moengage, Clevertap, FirebaseAnalytics]
 
 instance (HasSqlValueSyntax be String) => HasSqlValueSyntax be EventTrackingService where
   sqlValueSyntax = autoSqlValueSyntax
