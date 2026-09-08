@@ -11,7 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-
 module Kernel.Utils.Servant.Client where
 
 import qualified Data.Aeson as A
@@ -111,7 +110,17 @@ withHeaders headerPairs (ET.EulerClient f) =
 
 -- | Redact sensitive query parameter values (e.g. Google API keys) from logged strings.
 redactClientError :: Text -> Text
-redactClientError t = T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
+redactClientError t = redactApiSecret . T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
+
+-- | The GA4 Measurement Protocol passes @api_secret@ as a query parameter, and a
+-- failed 'ClientError' carries the whole request, so mask it in both the URL form
+-- and the form servant's 'show' produces for query items.
+redactApiSecret :: Text -> Text
+redactApiSecret =
+  T.pack
+    . (\s -> TR.subRegex (TR.mkRegex "api_secret=[^&\" ]*") s "api_secret=[REDACTED]")
+    . (\s -> TR.subRegex (TR.mkRegex "\"api_secret\",Just \"[^\"]*\"") s "\"api_secret\",Just \"[REDACTED]\"")
+    . T.unpack
 
 callAPI ::
   CallAPI' m r api res (Either ClientError res)
