@@ -19,6 +19,7 @@ import Centesimal
 import ComputeIntersectionTests
 import DistanceCalculation
 import EulerHS.Prelude
+import FirebaseAnalytics
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -47,5 +48,7 @@ specs = return $ testGroup "Tests" [unitTests]
           snippetsCheckTests,
           predicatesTests,
           settlementEmailTests,
-          partialIndexTests
+          partialIndexTests,
+          firebaseAnalyticsTests,
+          clientRedactionTests
         ]

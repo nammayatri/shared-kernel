@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Kernel.Utils.Servant.Client where
 
@@ -109,9 +110,20 @@ withHeaders headerPairs (ET.EulerClient f) =
        in Free $ SCF.RunRequest reqWithHeaders (\resp -> return (next resp))
     addHeadersToClientF (SCF.Throw e) = Free $ SCF.Throw e
 
--- | Redact sensitive query parameter values (e.g. Google API keys) from logged strings.
+-- | Needed by 'callAPI' for empty-body endpoints; do not redeclare in services.
+instance ToJSON Servant.NoContent where
+  toJSON _ = A.Null
+
+-- | Redact Google API keys and @api_secret@ values (URL and shown-query forms) from logged strings.
 redactClientError :: Text -> Text
-redactClientError t = T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
+redactClientError =
+  T.pack
+    . redact "\"api_secret\",Just \"[^\"]*\"" "\"api_secret\",Just \"[REDACTED]\""
+    . redact "api_secret=[^&\" ]*" "api_secret=[REDACTED]"
+    . redact "AIza[A-Za-z0-9_-]+" "[REDACTED]"
+    . T.unpack
+  where
+    redact regex replacement input = TR.subRegex (TR.mkRegex regex) input replacement
 
 callAPI ::
   CallAPI' m r api res (Either ClientError res)
