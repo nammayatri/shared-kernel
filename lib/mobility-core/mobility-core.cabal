@@ -286,6 +286,10 @@ library
       Kernel.External.Slack.Flow
       Kernel.External.Slack.Types
       Kernel.External.SMS
+      Kernel.External.SMS.CerfSms.API
+      Kernel.External.SMS.CerfSms.Config
+      Kernel.External.SMS.CerfSms.Flow
+      Kernel.External.SMS.CerfSms.Types
       Kernel.External.SMS.DigoEngage.API
       Kernel.External.SMS.DigoEngage.Config
       Kernel.External.SMS.DigoEngage.Flow
@@ -299,6 +303,7 @@ library
       Kernel.External.SMS.GupShup.Flow
       Kernel.External.SMS.GupShup.Types
       Kernel.External.SMS.Interface
+      Kernel.External.SMS.Interface.CerfSms
       Kernel.External.SMS.Interface.DigoEngageSms
       Kernel.External.SMS.Interface.ExotelSms
       Kernel.External.SMS.Interface.GupShup

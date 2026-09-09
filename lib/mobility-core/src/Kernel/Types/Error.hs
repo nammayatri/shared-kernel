@@ -905,6 +905,22 @@ instance IsHTTPError PinbixSmsError where
 
 instance IsAPIError PinbixSmsError
 
+data CerfSmsError = CerfSmsError
+  { cerfCode :: Text,
+    cerfDesc :: Maybe Text
+  }
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''CerfSmsError
+
+instance IsBaseError CerfSmsError where
+  toMessage err = cerfDesc err <|> Just ("CERF SMS request failed with code " <> cerfCode err <> ".")
+
+instance IsHTTPError CerfSmsError where
+  toErrorCode _ = "CERF_SMS_API_ERROR"
+
+instance IsAPIError CerfSmsError
+
 data TwillioError
   = TwillioBadRequest
   | TwillioForbidden

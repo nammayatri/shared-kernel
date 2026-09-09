@@ -24,6 +24,7 @@ import Data.ByteString.Lazy (fromStrict, toStrict)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Deriving.Aeson
+import qualified Kernel.External.SMS.CerfSms.Config as CerfSms
 import qualified Kernel.External.SMS.DigoEngage.Config as DigoEngageSms
 import qualified Kernel.External.SMS.ExotelSms.Config as ExotelSms
 import qualified Kernel.External.SMS.GupShup.Config as GupShup
@@ -43,7 +44,7 @@ data SmsHandler m = SmsHandler
     getProviderConfig :: T.SmsService -> m SmsServiceConfig
   }
 
-data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg | GupShupConfig GupShup.GupShupCfg | TwillioSmsConfig TwillioSms.TwillioSmsCfg | DigoEngageSmsConfig DigoEngageSms.DigoEngageSmsCfg | VonageSmsConfig VonageSms.VonageSmsCfg | KarixSmsConfig KarixSms.KarixSmsCfg | PinbixSmsConfig PinbixSms.PinbixSmsCfg | KaleyraSmsConfig KaleyraSms.KaleyraSmsCfg
+data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg | GupShupConfig GupShup.GupShupCfg | TwillioSmsConfig TwillioSms.TwillioSmsCfg | DigoEngageSmsConfig DigoEngageSms.DigoEngageSmsCfg | VonageSmsConfig VonageSms.VonageSmsCfg | KarixSmsConfig KarixSms.KarixSmsCfg | PinbixSmsConfig PinbixSms.PinbixSmsCfg | KaleyraSmsConfig KaleyraSms.KaleyraSmsCfg | CerfSmsConfig CerfSms.CerfSmsCfg
   deriving stock (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SmsServiceConfig
 
