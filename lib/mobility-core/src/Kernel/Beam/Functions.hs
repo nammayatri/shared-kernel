@@ -6,6 +6,7 @@ module Kernel.Beam.Functions
     FromCacType (..),
     meshConfig,
     runInReplica,
+    runInDashboardDb,
     runInMasterDb,
     getMasterBeamConfig,
     getLocationDbBeamConfig,
@@ -131,6 +132,16 @@ runInReplica m = do
   L.setOptionLocal ReplicaEnabled False
   pure res
 
+runInDashboardDb :: (L.MonadFlow m, MonadMask m) => m a -> m a
+runInDashboardDb m = do
+  previous <- L.getOptionLocal DashboardDbEnabled
+  L.setOptionLocal DashboardDbEnabled True
+  m `finally` restore previous
+  where
+    restore = \case
+      Just prev -> L.setOptionLocal DashboardDbEnabled prev
+      Nothing -> L.setOptionLocal DashboardDbEnabled False
+
 runInMasterRedis :: (L.MonadFlow m, Log m) => m a -> m a
 runInMasterRedis m = do
   L.setOptionLocal UseMasterRedis True
@@ -245,10 +256,16 @@ withUpdatedMeshConfigForFindAll _ mkAction = do
 
 getMasterDBConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
 getMasterDBConfig = do
-  dbConf <- L.getOption KBT.PsqlDbCfg
-  case dbConf of
-    Just dbCnf' -> pure dbCnf'
-    Nothing -> L.throwException $ InternalError "masterDb Config not found"
+  -- Inside a runInDashboardDb scope this resolves the dashboard database
+  -- instead. Outside one the flag is unset and the behaviour is unchanged.
+  isDashboard <- inDashboardDb
+  if isDashboard
+    then getDashboardDbConfig
+    else do
+      dbConf <- L.getOption KBT.PsqlDbCfg
+      case dbConf of
+        Just dbCnf' -> pure dbCnf'
+        Nothing -> L.throwException $ InternalError "masterDb Config not found"
 
 getLocDbConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
 getLocDbConfig = do
@@ -259,16 +276,27 @@ getLocDbConfig = do
 
 getMasterBeamConfig :: (HasCallStack, L.MonadFlow m) => m (SqlConn Pg)
 getMasterBeamConfig = do
+  isDashboard <- inDashboardDb
   inReplica <- L.getOptionLocal ReplicaEnabled
-  dbConf <- maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
+  dbConf <-
+    if isDashboard
+      then maybe getDashboardDbConfig (\inReplica' -> if inReplica' then getDashboardReplicaDbConfig else getDashboardDbConfig) inReplica
+      else maybe getMasterDBConfig (\inReplica' -> if inReplica' then getReplicaDbConfig else getMasterDBConfig) inReplica
   conn <- L.getOrInitSqlConn dbConf
   case conn of
     Right conn' -> pure conn'
     Left _ -> L.throwException $ InternalError "MasterDb Beam Config not found"
 
+-- | Like 'getMasterBeamConfig', this must honour a 'runInDashboardDb' scope.
+-- Raw Beam queries (L.runDB) go through here rather than the KV helpers, so
+-- without the check an application server reading the dashboard database would
+-- open its OWN replica instead. Locally that hides -- both databases live in one
+-- Postgres and only the schema differs -- but against a separate dashboard
+-- database it reads the wrong server.
 getReplicaBeamConfig :: (HasCallStack, L.MonadFlow m) => m (SqlConn Pg)
 getReplicaBeamConfig = do
-  dbConf <- getReplicaDbConfig
+  isDashboard <- inDashboardDb
+  dbConf <- if isDashboard then getDashboardReplicaDbConfig else getReplicaDbConfig
   conn <- L.getOrInitSqlConn dbConf
   case conn of
     Right conn' -> pure conn'
@@ -298,6 +326,26 @@ getReplicaLocationDbConfig = do
   case dbConf of
     Just dbCnf' -> pure dbCnf'
     Nothing -> L.throwException $ InternalError "Replica LocationDB Config not found"
+
+getDashboardDbConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
+getDashboardDbConfig = do
+  dbConf <- L.getOption KBT.PsqlDashboardDbCfg
+  case dbConf of
+    Just dbCnf' -> pure dbCnf'
+    Nothing -> L.throwException $ InternalError "DashboardDb Config not found"
+
+-- | Falls back to the dashboard master when no dashboard replica is
+-- registered, so an app may configure just the one connection.
+getDashboardReplicaDbConfig :: (HasCallStack, L.MonadFlow m) => m (DBConfig Pg)
+getDashboardReplicaDbConfig = do
+  dbConf <- L.getOption KBT.PsqlDashboardReplicaDbCfg
+  case dbConf of
+    Just dbCnf' -> pure dbCnf'
+    Nothing -> getDashboardDbConfig
+
+-- | True only when a caller has opened a 'runInDashboardDb' scope.
+inDashboardDb :: (HasCallStack, L.MonadFlow m) => m Bool
+inDashboardDb = fromMaybe False <$> L.getOptionLocal DashboardDbEnabled
 
 type BeamTableFlow table m =
   ( HasCallStack,
@@ -730,10 +778,19 @@ findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mb
 
 getReadDBConfigInternal :: (HasCallStack, L.MonadFlow m) => Text -> m (DBConfig Pg)
 getReadDBConfigInternal modelName = do
-  tables <- L.getOption KBT.Tables
-  let dbConfig = maybe getReplicaDbConfig (\tables' -> if modelName `elem` tables'.readFromMasterDb then getMasterDBConfig else getReplicaDbConfig) tables
-  isMasterReadEnabled <- L.getOptionLocal MasterReadEnabled
-  maybe dbConfig (\isMasterReadEnabled' -> if isMasterReadEnabled' then getMasterDBConfig else getReplicaDbConfig) isMasterReadEnabled
+  -- This path never consults ReplicaEnabled, so the dashboard branch mirrors
+  -- the logic actually in use here: replica by default, master when the caller
+  -- has opened a runInMasterDb scope.
+  isDashboard <- inDashboardDb
+  if isDashboard
+    then do
+      isMasterReadEnabled <- L.getOptionLocal MasterReadEnabled
+      if isMasterReadEnabled == Just True then getDashboardDbConfig else getDashboardReplicaDbConfig
+    else do
+      tables <- L.getOption KBT.Tables
+      let dbConfig = maybe getReplicaDbConfig (\tables' -> if modelName `elem` tables'.readFromMasterDb then getMasterDBConfig else getReplicaDbConfig) tables
+      isMasterReadEnabled <- L.getOptionLocal MasterReadEnabled
+      maybe dbConfig (\isMasterReadEnabled' -> if isMasterReadEnabled' then getMasterDBConfig else getReplicaDbConfig) isMasterReadEnabled
 
 updateInternal ::
   forall table m r.

@@ -26,6 +26,12 @@ postgresLocationDBConnectionName = T.pack . fromMaybe "postgresLocationDB" <$> l
 postgresLocationDBReplicaConnectionName :: IO Text
 postgresLocationDBReplicaConnectionName = T.pack . fromMaybe "postgresLocationDBReplica" <$> lookupEnv "POSTGRES_LOCATION_DB_REPLICA_CONNECTION_NAME"
 
+postgresDashboardConnectionName :: IO Text
+postgresDashboardConnectionName = T.pack . fromMaybe "postgresDashboard" <$> lookupEnv "POSTGRES_DASHBOARD_CONNECTION_NAME"
+
+postgresDashboardReplicaConnectionName :: IO Text
+postgresDashboardReplicaConnectionName = T.pack . fromMaybe "postgresDashboardReplica" <$> lookupEnv "POSTGRES_DASHBOARD_REPLICA_CONNECTION_NAME"
+
 toTitle :: String -> String
 toTitle "" = ""
 toTitle (x : xs) = toUpper x : map toLower xs

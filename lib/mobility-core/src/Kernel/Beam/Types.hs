@@ -80,6 +80,24 @@ data PsqlLocReplicaDbCfg = PsqlLocReplicaDbCfg
 
 instance OptionEntity PsqlLocReplicaDbCfg (DBConfig BP.Pg)
 
+data PsqlDashboardDbCfg = PsqlDashboardDbCfg
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity PsqlDashboardDbCfg (DBConfig BP.Pg)
+
+data PsqlDashboardReplicaDbCfg = PsqlDashboardReplicaDbCfg
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity PsqlDashboardReplicaDbCfg (DBConfig BP.Pg)
+
+data DashboardDbEnabled = DashboardDbEnabled
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity DashboardDbEnabled Bool
+
 data ReplicaEnabled = ReplicaEnabled
   deriving stock (Generic, Typeable, Show, Eq)
   deriving anyclass (ToJSON, FromJSON)
