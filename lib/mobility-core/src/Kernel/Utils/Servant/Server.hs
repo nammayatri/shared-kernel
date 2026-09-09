@@ -24,6 +24,7 @@ import GHC.Records.Extra (HasField)
 import Kernel.Prelude (identity)
 import Kernel.Storage.Esqueleto.Config (EsqDBEnv (..))
 import Kernel.Storage.Hedis.Config (HedisEnv (..))
+import qualified Kernel.Tools.Metrics.ApiCategory as Metrics
 import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Metrics
 import qualified Kernel.Tools.Metrics.Init as Metrics
 import Kernel.Tools.Slack.Internal
@@ -145,7 +146,7 @@ runServer appEnv serverAPI serverHandler waiMiddleware waiSettings servantCtx se
   let server = withModifiedEnv $ \modifiedEnv ->
         run serverAPI serverHandler servantCtx modifiedEnv
           & logRequestAndResponse modifiedEnv
-          & Metrics.addServantInfo appEnv.version serverAPI
+          & Metrics.addServantInfo appEnv.version (Metrics.mkApiCategoryConfig [] []) serverAPI
           & waiMiddleware
   E.withFlowRuntime (Just loggerRt) $ \flowRt -> do
     flowRt' <-
@@ -190,7 +191,7 @@ runServerGeneric appEnv serverAPI serverHandler waiMiddleware waiSettings servan
         let loggerFunc = \tag info -> logOutputIO (appendLogTag tag $ modifiedEnv.loggerEnv) INFO info modifiedEnv.requestId modifiedEnv.sessionId
          in runGeneric serverAPI serverHandler servantCtx modifiedEnv runMonad
               & logRequestAndResponseGeneric loggerFunc
-              & Metrics.addServantInfo appEnv.version serverAPI
+              & Metrics.addServantInfo appEnv.version (Metrics.mkApiCategoryConfig [] []) serverAPI
               & waiMiddleware
   serverStartAction appEnv $ runSettings settings $ server appEnv
 
