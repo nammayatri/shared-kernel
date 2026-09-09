@@ -71,6 +71,13 @@ name = plus nameLetter <> star (nameSep <> plus nameLetter)
 nameWithNumber :: Regex
 nameWithNumber = star $ nameLetter \/ digit \/ " "
 
+-- | Personal or business names: letters (accents included), digits, spaces and
+-- legal-name punctuation. \x2019 is the curly apostrophe mobile keyboards insert.
+nameWithSymbols :: Regex
+nameWithSymbols = star $ nameLetter \/ digit \/ " " \/ nameSymbol
+  where
+    nameSymbol = unions $ map (fromString . singleton) "'\x2019-.,&/()+"
+
 inputName :: Regex
 inputName = star latinWithSymbols
 
