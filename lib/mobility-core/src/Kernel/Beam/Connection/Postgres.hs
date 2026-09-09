@@ -67,6 +67,18 @@ prepareLocDbReplicaConn conf = do
   pgConnName <- L.runIO EnvVars.postgresLocationDBReplicaConnectionName
   preparePSqlConnection pgConnName KBT.PsqlLocReplicaDbCfg conf
 
+-- The replica argument is optional; with Nothing, dashboard reads fall back to
+-- the dashboard master.
+prepareDashboardDbConnections :: L.MonadFlow m => KSEC.EsqDBConfig -> Maybe KSEC.EsqDBConfig -> m ()
+prepareDashboardDbConnections conf mbReplicaConf = do
+  pgConnName <- L.runIO EnvVars.postgresDashboardConnectionName
+  preparePSqlConnection pgConnName KBT.PsqlDashboardDbCfg conf
+  case mbReplicaConf of
+    Nothing -> pure ()
+    Just replicaConf -> do
+      replicaConnName <- L.runIO EnvVars.postgresDashboardReplicaConnectionName
+      preparePSqlConnection replicaConnName KBT.PsqlDashboardReplicaDbCfg replicaConf
+
 preparePSqlConnection :: L.MonadFlow m => (ET.OptionEntity a (ET.DBConfig BP.Pg)) => Text -> a -> KSEC.EsqDBConfig -> m ()
 preparePSqlConnection pgConnName psqlDBCfgId KSEC.EsqDBConfig {..} = do
   poolConf <- L.runIO postgresPoolConfig

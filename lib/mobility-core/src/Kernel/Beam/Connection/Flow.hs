@@ -5,7 +5,9 @@ import qualified Kernel.Beam.Connection.Postgres as PGC
 import qualified Kernel.Beam.Connection.Redis as RC
 import qualified Kernel.Beam.Connection.Types as ECT
 import Kernel.Beam.Types
+import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
+import qualified Kernel.Storage.Esqueleto.Config as KSEC
 
 prepareConnectionDriver :: L.MonadFlow m => ECT.ConnectionConfigDriver -> Int -> m ()
 prepareConnectionDriver conf kvConfigUpdateFrequency = do
@@ -22,6 +24,11 @@ prepareConnectionRider conf kvConfigUpdateFrequency = do
   PGC.setKvConfigUpdateFrequency kvConfigUpdateFrequency
   L.setOptionLocal ReplicaEnabled False
   L.setOptionLocal MultiCloudEnabled False
+
+prepareDashboardDbForApp :: L.MonadFlow m => KSEC.EsqDBConfig -> Maybe KSEC.EsqDBConfig -> m ()
+prepareDashboardDbForApp conf mbReplicaConf = do
+  PGC.prepareDashboardDbConnections conf mbReplicaConf
+  L.setOptionLocal KBT.DashboardDbEnabled False
 
 prepareConnectionDashboard :: L.MonadFlow m => ECT.ConnectionConfigDashboard -> Int -> m ()
 prepareConnectionDashboard conf kvConfigUpdateFrequency = do
