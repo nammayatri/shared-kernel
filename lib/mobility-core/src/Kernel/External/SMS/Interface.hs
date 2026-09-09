@@ -16,9 +16,11 @@ module Kernel.External.SMS.Interface
 where
 
 import EulerHS.Prelude
+import Kernel.External.SMS.CerfSms.Config as Reexport
 import Kernel.External.SMS.DigoEngage.Config as Reexport
 import Kernel.External.SMS.ExotelSms.Config as Reexport
 import Kernel.External.SMS.GupShup.Config as Reexport
+import qualified Kernel.External.SMS.Interface.CerfSms as CerfSms
 import qualified Kernel.External.SMS.Interface.DigoEngageSms as DigoEngageSms
 import qualified Kernel.External.SMS.Interface.ExotelSms as ExotelSms
 import qualified Kernel.External.SMS.Interface.GupShup as GupShup
@@ -60,6 +62,7 @@ sendSMS' serviceConfig req = do
     KarixSmsConfig cfg -> KarixSms.sendOTP cfg req
     PinbixSmsConfig cfg -> PinbixSms.sendOTP cfg req
     KaleyraSmsConfig cfg -> KaleyraSms.sendOTP cfg req
+    CerfSmsConfig cfg -> CerfSms.sendOTP cfg req
 
 checkSmsResult ::
   (Log m, MonadThrow m) => SendSMSRes -> m ()
