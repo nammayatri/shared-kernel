@@ -44,7 +44,8 @@ data StripeCfg = StripeCfg
     serviceMode :: Maybe ServiceMode,
     useDomainOffers :: Maybe Bool,
     statementDescriptor :: Maybe Text,
-    requestIncrementalAuthorization :: Maybe Text
+    requestIncrementalAuthorization :: Maybe Text,
+    legalEntityName :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
