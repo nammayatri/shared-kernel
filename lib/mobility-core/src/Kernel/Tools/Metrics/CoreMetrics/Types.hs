@@ -21,6 +21,7 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
   )
 where
 
+import qualified Data.Set as Set
 import qualified EulerHS.KVConnector.Metrics as KVMetrics
 import EulerHS.Prelude as E
 import GHC.Records.Extra
@@ -92,6 +93,8 @@ type OpenTripPlannerLatencyMetric = P.Vector P.Label3 P.Histogram
 -- | Per-provider SMS outcome counter (labels: "provider", "status", "version").
 type SmsProviderResponseMetric = P.Vector P.Label3 P.Counter
 
+type ForkCounterMetric = P.Vector P.Label3 P.Counter
+
 newBuckets :: [Double]
 newBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 20, 25, 30, 40, 50]
 
@@ -141,6 +144,7 @@ class CoreMetrics m where
   setRedisStreamLength :: Int -> Integer -> m ()
   setRedisStreamPending :: Int -> Integer -> m ()
   incrementSmsProviderResponseCounter :: Text -> Text -> m ()
+  withForkCounters :: Text -> Text -> m a -> m a
 
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
@@ -172,7 +176,10 @@ data CoreMetricsContainer = CoreMetricsContainer
     genericLatencyMetrics :: GenericLatencyMetric,
     openTripPlannerResponseMetric :: OpenTripPlannerResponseMetric,
     openTripPlannerLatencyMetric :: OpenTripPlannerLatencyMetric,
-    smsProviderResponseCounter :: SmsProviderResponseMetric
+    smsProviderResponseCounter :: SmsProviderResponseMetric,
+    forkStartedCounter :: ForkCounterMetric,
+    forkFinishedCounter :: ForkCounterMetric,
+    forkTagLabels :: IORef (Set.Set Text)
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -207,6 +214,9 @@ registerCoreMetricsContainer = do
   openTripPlannerResponseMetric <- registerOpenTripPlannerResponseMetric
   openTripPlannerLatencyMetric <- registerOpenTripPlannerLatencyMetric
   smsProviderResponseCounter <- registerSmsProviderResponseMetric
+  forkStartedCounter <- registerForkCounter "forks_started_total" "Forked threads started, labelled by sanitized fork tag, fork type and version"
+  forkFinishedCounter <- registerForkCounter "forks_finished_total" "Forked threads finished (success, error or killed), labelled by sanitized fork tag, fork type and version"
+  forkTagLabels <- newIORef Set.empty
   return CoreMetricsContainer {..}
 
 registerDatastoresLatencyMetrics :: IO DatastoresLatencyMetric
@@ -438,3 +448,9 @@ registerSmsProviderResponseMetric =
       P.counter info
   where
     info = P.Info "sms_provider_response_counter" "SMS provider outcome counter labelled by provider, status (success/failure) and version"
+
+registerForkCounter :: Text -> Text -> IO ForkCounterMetric
+registerForkCounter name help =
+  P.register $
+    P.vector ("tag", "fork_type", "version") $
+      P.counter (P.Info name help)

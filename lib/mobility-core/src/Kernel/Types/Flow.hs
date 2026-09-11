@@ -247,6 +247,7 @@ instance Metrics.HasCoreMetrics r => Metrics.CoreMetrics (FlowR r) where
   addOpenTripPlannerLatency = Metrics.addOpenTripPlannerLatencyImplementation
   incrementTryExceptionCounter = Metrics.incrementTryExceptionCounterImplementation
   incrementSmsProviderResponseCounter = Metrics.incrementSmsProviderResponseCounterImplementation
+  withForkCounters = Metrics.withForkCountersImplementation
 
 instance MonadMonitor (FlowR r) where
   doIO = liftIO
@@ -259,17 +260,17 @@ instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkabl
     seedLocalOptions <- carryForkLocalOptions
     newLocalOptions <- newMVar mempty
     -- logRequestIdForFork tag
-    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ seedLocalOptions >> handleForkExecution tag f)
+    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters tag "fork" (seedLocalOptions >> handleForkExecution tag f))
 
   forkMultiple tagAndFunction = do
     seedLocalOptions <- carryForkLocalOptions
     newLocalOptions <- newMVar mempty
-    FlowR $ ReaderT $ L.forkFlow "multiple-Forks" . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ seedLocalOptions >> handleForkExecutionMultiple tagAndFunction)
+    FlowR $ ReaderT $ L.forkFlow "multiple-Forks" . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters "multiple-Forks" "fork_multiple" (seedLocalOptions >> handleForkExecutionMultiple tagAndFunction))
 
   awaitableFork tag f = do
     seedLocalOptions <- carryForkLocalOptions
     newLocalOptions <- newMVar mempty
-    FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ seedLocalOptions >> handleExc f)
+    FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters tag "awaitable_fork" (seedLocalOptions >> handleExc f))
     where
       handleExc f' = do
         res <- try f'
