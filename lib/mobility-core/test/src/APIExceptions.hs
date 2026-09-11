@@ -82,6 +82,7 @@ instance Metrics.CoreMetrics IO where
   incrementTryExceptionCounter _ _ = return ()
   incrementProducerError _ = return ()
   incrementSmsProviderResponseCounter _ _ = return ()
+  withForkCounters _ _ action = action
 
 httpExceptionTests :: TestTree
 httpExceptionTests =
