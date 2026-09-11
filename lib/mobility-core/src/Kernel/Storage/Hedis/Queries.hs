@@ -27,7 +27,6 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.String.Conversions
 import Data.Text hiding (any, chunksOf, concat, concatMap, length, map, null, replicate, zip)
-import qualified Data.Text as T
 import qualified Data.Text as Text
 import qualified Data.Vector as V
 import Database.Redis (keyToSlot)
@@ -57,7 +56,6 @@ import Kernel.Types.Common
 import Kernel.Utils.DatastoreLatencyCalculator
 import qualified Kernel.Utils.Error.Throwing as Error
 import Kernel.Utils.Logging
-import qualified Test.RandomStrings as RS
 
 type ExpirationTime = Int
 
@@ -882,49 +880,6 @@ withWaitAndLockMasterCloudCrossAppRedis key timeout delay func = do
       lockAvailable <- tryLockRedis key timeout
       threadDelay delay
       unless lockAvailable getLock
-
-withLockRedis :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> m () -> m ()
-withLockRedis key timeout func = do
-  getLock
-  finally func (unlockRedis key)
-  where
-    getLock = do
-      lockAvailable <- tryLockRedis key timeout
-      unless lockAvailable getLock
-
-withLockRedisAndReturnValue :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> m a -> m a
-withLockRedisAndReturnValue key timeout func = do
-  getLock
-  finally func (unlockRedis key)
-  where
-    getLock = do
-      lockAvailable <- tryLockRedis key timeout
-      unless lockAvailable getLock
-
-withWaitOnLockRedisWithExpiry :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> ExpirationTime -> m () -> m ()
-withWaitOnLockRedisWithExpiry key timeout recursionTimeOut func = do
-  uuid <- T.pack <$> liftIO (RS.randomString (RS.onlyAlphaNum RS.randomASCII) 10)
-  let keyE = "recursion timeout for:" <> uuid
-  setExp keyE True recursionTimeOut
-  withMasterRedis $ withWaitOnLockRedisWithExpiry' keyE key timeout func
-
-withWaitOnLockRedisWithExpiry' :: (HedisFlow m env, TryException m, MonadMask m) => Text -> Text -> ExpirationTime -> m () -> m ()
-withWaitOnLockRedisWithExpiry' recursionTimedOutKey key timeout func = do
-  toExecute <- getLock recursionTimedOutKey
-  when toExecute $ do
-    finally func $ do
-      unlockRedis key
-      del recursionTimedOutKey
-  where
-    getLock recurrsionTimedOutKey' = do
-      get recurrsionTimedOutKey' >>= \case
-        Just a -> do
-          lockAvailable <- tryLockRedis key timeout
-          if not lockAvailable && a
-            then getLock recurrsionTimedOutKey'
-            else return True
-        Nothing -> do
-          tryLockRedis key timeout
 
 buildLockResourceName :: (IsString a) => Text -> a
 buildLockResourceName key = fromString $ "mobility:locker:" <> Text.unpack key
