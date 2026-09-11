@@ -82,6 +82,7 @@ instance CoreMetrics (MockM e) where
   addOpenTripPlannerLatency _ _ _ = return ()
   incrementTryExceptionCounter _ _ = return ()
   incrementSmsProviderResponseCounter _ _ = return ()
+  withForkCounters _ _ action = action
 
 instance MonadTime (MockM e) where
   getCurrentTime = liftIO getCurrentTime

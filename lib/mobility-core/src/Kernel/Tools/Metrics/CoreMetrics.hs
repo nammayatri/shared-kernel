@@ -20,6 +20,8 @@ module Kernel.Tools.Metrics.CoreMetrics
   )
 where
 
+import qualified Control.Monad.Catch as C
+import qualified Data.Set as Set
 import Data.Text as DT
 import qualified EulerHS.Language as L
 import EulerHS.Prelude as E
@@ -602,3 +604,47 @@ incrementTryExceptionCounterImplementation' cmContainers errorContext exc versio
           tryExceptionCounterMetric
           (show $ toHttpCode err, errorContext, toErrorCode err, version.getDeploymentVersion, sanitizedUrl)
           P.incCounter
+
+withForkCountersImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Text ->
+  m a ->
+  m a
+withForkCountersImplementation tag forkType action = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  tagLabel <- L.runIO $ forkTagLabel cmContainer.forkTagLabels tag
+  let increment metric = L.runIO $ P.withLabel metric (tagLabel, forkType, version.getDeploymentVersion) P.incCounter
+  C.bracket_ (increment cmContainer.forkStartedCounter) (increment cmContainer.forkFinishedCounter) action
+
+forkTagLabelLimit :: Int
+forkTagLabelLimit = 300
+
+forkTagLabelLength :: Int
+forkTagLabelLength = 32
+
+{-# NOINLINE uuidRegex #-}
+uuidRegex :: TR.Regex
+uuidRegex = TR.mkRegex "[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}"
+
+sanitizeForkTag :: Text -> Text
+sanitizeForkTag tag =
+  DT.take forkTagLabelLength $
+    if DT.length tag < 36
+      then tag
+      else DT.pack $ TR.subRegex uuidRegex (DT.unpack tag) ":id"
+
+forkTagLabel :: IORef (Set.Set Text) -> Text -> IO Text
+forkTagLabel knownLabels tag = do
+  let label = sanitizeForkTag tag
+  atomicModifyIORef' knownLabels $ \known ->
+    if Set.member label known
+      then (known, label)
+      else
+        if Set.size known < forkTagLabelLimit
+          then (Set.insert label known, label)
+          else (known, "other")
