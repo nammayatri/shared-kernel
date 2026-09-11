@@ -624,7 +624,17 @@ data OfferResp = OfferResp
     cashbackAmount :: HighPrecMoney,
     benefitType :: Text, -- "CASHBACK" or "DISCOUNT"
     offerCode :: Text,
-    productDiscounts :: Maybe [ProductDiscount]
+    productDiscounts :: Maybe [ProductDiscount],
+    minimumAmount :: Maybe HighPrecMoney,
+    counters :: Maybe OfferCounters
+  }
+  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving anyclass (ToSchema)
+
+data OfferCounters = OfferCounters
+  { frequencyType :: Maybe Text,
+    appliedCount :: Maybe Int,
+    maxApplyCount :: Maybe Int
   }
   deriving (Generic, Show, FromJSON, ToJSON)
   deriving anyclass (ToSchema)
