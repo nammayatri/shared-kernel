@@ -542,6 +542,12 @@ getUseDomainOffers = \case
   StripeConfig cfg -> fromMaybe False cfg.useDomainOffers
   PaytmEDCConfig _ -> False
 
+legalEntityName :: PaymentServiceConfig -> Maybe Text
+legalEntityName = \case
+  StripeConfig cfg -> cfg.legalEntityName
+  JuspayConfig _ -> Nothing
+  PaytmEDCConfig _ -> Nothing
+
 -- | Unified payment creation. Routes to Juspay createOrder or Stripe createPaymentIntent
 --   based on PaymentServiceConfig. Domain code calls this single function.
 createPayment ::

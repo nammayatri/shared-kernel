@@ -999,7 +999,9 @@ mkOfferResp offer = do
         cashbackAmount = read $ T.unpack order_breakup.cashback_amount,
         benefitType = benefitType',
         offerCode = offer_code,
-        productDiscounts
+        productDiscounts,
+        minimumAmount = Nothing,
+        counters = Nothing
       }
   where
     Juspay.OfferResp {offer_id, status, offer_code, offer_description, ui_configs, order_breakup} = offer
