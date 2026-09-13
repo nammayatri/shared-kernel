@@ -980,6 +980,7 @@ test-suite mobility-core-tests
       Centesimal
       ComputeIntersectionTests
       DistanceCalculation
+      HedisClusterPipeline
       PartialIndexTests
       Predicates
       SettlementEmail
