@@ -19,6 +19,7 @@ import Centesimal
 import ComputeIntersectionTests
 import DistanceCalculation
 import EulerHS.Prelude
+import HedisClusterPipeline (hedisClusterPipelineTests)
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -32,7 +33,9 @@ main :: IO ()
 main = defaultMain =<< specs
 
 specs :: IO TestTree
-specs = return $ testGroup "Tests" [unitTests]
+specs = do
+  redisClusterTests <- hedisClusterPipelineTests
+  return $ testGroup "Tests" [unitTests, redisClusterTests]
   where
     unitTests =
       testGroup
