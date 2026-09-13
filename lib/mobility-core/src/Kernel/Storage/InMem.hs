@@ -20,7 +20,7 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HM
 import Data.String.Conversions
 import qualified Data.Text as T
-import Data.Time (timeOfDayToTime, timeToTimeOfDay, utctDayTime)
+import Data.Time (timeToTimeOfDay, utctDayTime)
 import Data.Typeable
 import Database.Redis as Hedis
 import EulerHS.Prelude
@@ -121,8 +121,8 @@ refreshInMem keyInfix = do
         `catch` (\(_ :: SomeException) -> pure ())
     _ -> pure ()
 
-inMemCleanupThread :: Maybe HedisEnv -> InMemEnv -> IO ()
-inMemCleanupThread mbHedisEnv inMemEnv = do
+inMemCleanupThread :: Maybe HedisEnv -> InMemEnv -> IORef (Maybe ByteString) -> IO ()
+inMemCleanupThread mbHedisEnv inMemEnv lastAppliedForceCleanup = do
   let inMemCache = inMemEnv.inMemHashMap
       maxInMemSize = inMemEnv.maxInMemSize
   inMemCacheInfo <- readIORef inMemCache
@@ -142,8 +142,9 @@ inMemCleanupThread mbHedisEnv inMemEnv = do
                 (updatedCacheSize, updatedCache) =
                   foldl'
                     ( \(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) ->
+                        -- Prepending keeps this linear. Keys are unique, so order does not matter.
                         if cacheDataSize + acc <= targetSize
-                          then (acc + cacheDataSize, accCacheList ++ [(k, v)])
+                          then (acc + cacheDataSize, (k, v) : accCacheList)
                           else (acc, accCacheList)
                     )
                     (0, [])
@@ -163,20 +164,22 @@ inMemCleanupThread mbHedisEnv inMemEnv = do
             let forceCleanupExpiryValue :: Maybe ForceCleanupExpiryValue = Ae.decode . BSL.fromStrict =<< forceCleanupVal
             case forceCleanupExpiryValue of
               Just cacheExpiryValue -> do
-                let cacheExpiryTime = timeOfDayToTime (forceCleanupTimestamp cacheExpiryValue)
-                let createAtTime = utctDayTime updatedCacheInfo.createdAt
-                if createAtTime < cacheExpiryTime
+                -- Each flag value is applied once. Its write time makes every refresh a new value.
+                -- Reading the flag never extends its TTL.
+                lastApplied <- readIORef lastAppliedForceCleanup
+                if forceCleanupVal /= lastApplied
                   then do
-                    void $ Hedis.runRedis hedisEnv.hedisConnection $ Hedis.expire key 600 -- do that it doesn't happen daily once user adds the key and forgets to set expiry
+                    writeIORef lastAppliedForceCleanup forceCleanupVal
                     case (forceCleanupKeyPrefix cacheExpiryValue) of
                       Just cleanupKeyPrefix -> do
                         let cacheList :: [(Text, InMemKeyInfo)] = HM.toList updatedCacheInfo.cache
                             (updatedCacheSize, updatedCache) =
                               foldl'
                                 ( \(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) ->
+                                    -- Prepending keeps this linear. Keys are unique, so order does not matter.
                                     if cleanupKeyPrefix `T.isInfixOf` k
                                       then (acc, accCacheList)
-                                      else (acc + cacheDataSize, accCacheList ++ [(k, v)])
+                                      else (acc + cacheDataSize, (k, v) : accCacheList)
                                 )
                                 (0, [])
                                 cacheList
@@ -202,6 +205,7 @@ setupInMemEnv inMemConfig mbHedisEnv = do
     then do
       let inMemCacheInfo = defaultInMemCacheInfo now
       inMemHashMap <- newIORef inMemCacheInfo
+      lastAppliedForceCleanup <- newIORef Nothing
       let inMemEnv =
             InMemEnv
               { enableInMem = inMemConfig.enableInMem,
@@ -211,7 +215,7 @@ setupInMemEnv inMemConfig mbHedisEnv = do
                 inMemManagementToken = mgmtToken,
                 inMemServiceName = svcName
               }
-      void $ forkIO $ forever $ inMemCleanupThread mbHedisEnv inMemEnv
+      void $ forkIO $ forever $ inMemCleanupThread mbHedisEnv inMemEnv lastAppliedForceCleanup
       pure inMemEnv
     else do
       inMemHashMap <- newIORef $ defaultInMemCacheInfo now
