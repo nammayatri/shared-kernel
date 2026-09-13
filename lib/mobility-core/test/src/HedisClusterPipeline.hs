@@ -83,6 +83,7 @@ instance Metrics.CoreMetrics TestM where
   addOpenTripPlannerResponse _ _ _ = pure ()
   addOpenTripPlannerLatency _ _ _ = pure ()
   incrementTryExceptionCounter _ _ = pure ()
+  withForkCounters _ _ action = action
   incrementProducerError _ = pure ()
   incrementSmsProviderResponseCounter _ _ = pure ()
 
