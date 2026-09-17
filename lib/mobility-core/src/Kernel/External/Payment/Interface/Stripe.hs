@@ -186,7 +186,16 @@ getAccount config accountId = do
   let detailsSubmitted = accountResp.details_submitted
   let requirements = toRequirementsInfo <$> accountResp.requirements
   let futureRequirements = toRequirementsInfo <$> accountResp.future_requirements
+  let mbBankAccount = pickBankAccount accountResp.external_accounts
+  let bankName = mbBankAccount >>= (.bank_name)
+  let bankAccountLast4 = mbBankAccount >>= (.last4)
   pure $ ConnectAccountStatusResp {..}
+  where
+    pickBankAccount mbExternalAccounts = do
+      externalAccounts <- mbExternalAccounts
+      let bankAccounts = filter (\acc -> acc._object == "bank_account") externalAccounts._data
+          defaultOnes = filter (\acc -> acc.default_for_currency == Just True) bankAccounts
+      listToMaybe (defaultOnes <> bankAccounts)
 
 toRequirementsInfo :: Stripe.Requirements -> RequirementsInfo
 toRequirementsInfo Stripe.Requirements {..} =

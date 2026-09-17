@@ -856,7 +856,9 @@ data ConnectAccountStatusResp = ConnectAccountStatusResp
     payoutsEnabled :: Bool,
     detailsSubmitted :: Bool,
     requirements :: Maybe RequirementsInfo,
-    futureRequirements :: Maybe RequirementsInfo
+    futureRequirements :: Maybe RequirementsInfo,
+    bankName :: Maybe Text,
+    bankAccountLast4 :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
