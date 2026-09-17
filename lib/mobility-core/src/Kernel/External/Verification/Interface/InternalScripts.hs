@@ -24,6 +24,7 @@ module Kernel.External.Verification.Interface.InternalScripts
     extractDLImageOCR,
     extractPANImageOCR,
     detectImage,
+    getFaceDetectionResult,
   )
 where
 
@@ -126,4 +127,21 @@ emptyExtractedDL =
     }
 
 detectImage :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalImageDetectionCfg -> OCRRequest -> m FaceDetectionSummary
-detectImage = ImageDetection.detectImage
+detectImage cfg req = do
+  _ <- ImageDetection.submitDetectImage cfg req
+  return emptyFaceDetectionSummary
+
+getFaceDetectionResult :: CacheFlow m r => Text -> m (Maybe FaceDetectionSummary)
+getFaceDetectionResult = ImageDetection.getFaceDetectionResult
+
+emptyFaceDetectionSummary :: FaceDetectionSummary
+emptyFaceDetectionSummary =
+  FaceDetectionSummary
+    { status = Nothing,
+      fullFaces = Nothing,
+      partialFaces = Nothing,
+      rejectedFaces = Nothing,
+      total = Nothing,
+      recommendation = Nothing,
+      message = Nothing
+    }
