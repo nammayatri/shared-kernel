@@ -18,7 +18,7 @@ module Kernel.External.Verification.Interface.ImageDetectionTypes
   )
 where
 
-import Data.Aeson (object, withObject, withText, (.:), (.:?), (.=))
+import Data.Aeson (object, withObject, withText, (.:?), (.=))
 import EulerHS.Prelude
 import Kernel.Prelude
 
@@ -55,7 +55,7 @@ instance ToJSON FaceDetectionRecommendation where
 instance ToSchema FaceDetectionRecommendation
 
 data FaceDetectionSummary = FaceDetectionSummary
-  { status :: FaceDetectionStatus,
+  { status :: Maybe FaceDetectionStatus,
     fullFaces :: Maybe Int,
     partialFaces :: Maybe Int,
     rejectedFaces :: Maybe Int,
@@ -68,7 +68,7 @@ data FaceDetectionSummary = FaceDetectionSummary
 instance FromJSON FaceDetectionSummary where
   parseJSON = withObject "FaceDetectionSummary" $ \o ->
     FaceDetectionSummary
-      <$> o .: "status"
+      <$> o .:? "status"
       <*> o .:? "full_faces"
       <*> o .:? "partial_faces"
       <*> o .:? "rejected_faces"
