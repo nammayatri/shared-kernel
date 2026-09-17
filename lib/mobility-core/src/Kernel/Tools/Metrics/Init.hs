@@ -34,12 +34,18 @@ import Prometheus.Metric.GHC (ghcMetrics)
 import Prometheus.Metric.Proc
 import System.Clock (Clock (..), TimeSpec, diffTimeSpec, getTime, toNanoSecs)
 
+-- defaultBuckets tops out at 10s, which pins the quantile of any slower request to
+-- that boundary instead of its real value. incomingAPIResponseTimeout kills requests
+-- around 15s, so buckets need to extend past that to see the true tail.
+requestLatencyBuckets :: [Double]
+requestLatencyBuckets = Prom.defaultBuckets ++ [15.0, 20.0, 30.0, 60.0]
+
 {-# NOINLINE requestLatency #-}
 requestLatency :: Prom.Vector Prom.Label3 Prom.Histogram
 requestLatency =
   Prom.unsafeRegister $
     Prom.vector ("handler", "method", "status_code") $
-      Prom.histogram info Prom.defaultBuckets
+      Prom.histogram info requestLatencyBuckets
   where
     info =
       Prom.Info
@@ -51,7 +57,7 @@ requestLatencyWithVersionLabel :: Prom.Vector Prom.Label4 Prom.Histogram
 requestLatencyWithVersionLabel =
   Prom.unsafeRegister $
     Prom.vector ("handler", "method", "status_code", "version") $
-      Prom.histogram info Prom.defaultBuckets
+      Prom.histogram info requestLatencyBuckets
   where
     info =
       Prom.Info
