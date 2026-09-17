@@ -49,6 +49,7 @@ module Kernel.External.Verification.Interface
     getOCRResultRC,
     getOCRResultDL,
     detectImage,
+    getFaceDetectionResult,
   )
 where
 
@@ -790,3 +791,9 @@ getOCRResultDL ::
   Text ->
   m (Maybe ExtractedDL)
 getOCRResultDL = IS.getOCRResultDL
+
+getFaceDetectionResult ::
+  CacheFlow m r =>
+  Text ->
+  m (Maybe FaceDetectionSummary)
+getFaceDetectionResult = IS.getFaceDetectionResult
