@@ -252,8 +252,8 @@ withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbTok
       let appEnv = env.appEnv
           updLogEnv = appendLogTag sessionId $ appendLogTag requestId appEnv.loggerEnv
           updLogEnv' = updateLogLevelAndRawSql mbLogLevel updLogEnv
-      let requestId' = bool Nothing (Just requestId) appEnv.shouldLogRequestId
-          sessionId' = bool Nothing (Just sessionId) appEnv.shouldLogRequestId
+      let requestId' = Just requestId
+          sessionId' = Just sessionId
       newFlowRt <- L.updateLoggerContext (L.appendLogContext $ "requestId-" <> requestId <> " " <> url) $ flowRuntime env
       newOptionsLocal <- newMVar mempty
       let newFlowRt' = newFlowRt {R._optionsLocal = newOptionsLocal}
