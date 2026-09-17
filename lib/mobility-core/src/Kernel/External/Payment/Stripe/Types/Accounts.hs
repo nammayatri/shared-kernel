@@ -445,6 +445,43 @@ data Requirements = Requirements
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+-- | One entry of a connected account's @external_accounts@ list. Stripe returns both
+--   bank accounts and cards here, discriminated by @object@, so the bank-only fields are
+--   optional on every entry.
+data ExternalAccount = ExternalAccount
+  { id :: Text,
+    _object :: Text,
+    bank_name :: Maybe Text,
+    last4 :: Maybe Text,
+    account_holder_name :: Maybe Text,
+    routing_number :: Maybe Text,
+    currency :: Maybe Text,
+    default_for_currency :: Maybe Bool
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+instance FromJSON ExternalAccount where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON ExternalAccount where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
+data ExternalAccounts = ExternalAccounts
+  { _object :: Text,
+    _data :: [ExternalAccount],
+    has_more :: Maybe Bool,
+    total_count :: Maybe Int
+  }
+  deriving stock (Show, Eq, Generic, Read)
+  deriving anyclass (ToSchema)
+
+instance FromJSON ExternalAccounts where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON ExternalAccounts where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
+
 data AccountResp = AccountResp
   { id :: AccountId,
     _object :: Text,
@@ -452,14 +489,14 @@ data AccountResp = AccountResp
     payouts_enabled :: Bool,
     details_submitted :: Bool,
     requirements :: Maybe Requirements,
-    future_requirements :: Maybe Requirements
+    future_requirements :: Maybe Requirements,
+    external_accounts :: Maybe ExternalAccounts
     -- Other paramters can be explored on basis of requirement.
     -- business_profile :: Maybe BusinessProfile,
     -- country :: Text,
     -- created :: Int,
     -- default_currency :: Text,
     -- email :: Maybe Text,
-    -- external_accounts :: ExternalAccounts,
     -- individual :: IndividualDetails,
     -- metadata :: Metadata,
     -- settings :: Settings,
