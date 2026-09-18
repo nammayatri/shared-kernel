@@ -258,7 +258,7 @@ withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbTok
       newOptionsLocal <- newMVar mempty
       let newFlowRt' = newFlowRt {R._optionsLocal = newOptionsLocal}
       runFlowR newFlowRt' appEnv $ L.setOptionLocal ApiTag sanitizedUrl
-      let actorInfo' = ActorInfo {actorType = UNKNOWN, actorId = requestId'} -- to be modified further in api handler
+      let actorInfo' = ActorInfo {actorType = UNKNOWN, actorId = Just requestId} -- to be modified further in api handler; actorId must not depend on shouldLogRequestId
       pure $
         env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', actorInfo = actorInfo', sessionId = sessionId', url = Just sanitizedUrl},
             flowRuntime = newFlowRt'
