@@ -28,6 +28,7 @@ import SlidingWindowLimiter
 import SnippetsCheck (snippetsCheckTests)
 import Test.Tasty
 import Version
+import XyneSpacesTypes
 
 main :: IO ()
 main = defaultMain =<< specs
@@ -50,5 +51,6 @@ specs = do
           snippetsCheckTests,
           predicatesTests,
           settlementEmailTests,
-          partialIndexTests
+          partialIndexTests,
+          xyneSpacesTypeTests
         ]
