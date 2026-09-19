@@ -107,7 +107,7 @@ createApnsPayload androidData iosModifier =
     fcmAps :: FCMaps b
     fcmAps =
       def{fcmAlert = if androidData.fcmShowNotification == SHOW then Just fcmAlert else Nothing,
-          fcmData = Just (iosModifier androidData),
+          fcmData = Just (apnsIOSModifier (iosModifier androidData)),
           fcmCategory = Just androidData.fcmNotificationType,
           fcmMutableContent = 1,
           fcmSound = Just $ fromMaybe "" androidData.fcmNotificationJSON.fcmdSound,
@@ -119,6 +119,9 @@ createApnsPayload androidData iosModifier =
 
     body :: Maybe FCMNotificationBody
     body = androidData.fcmNotificationJSON.fcmdBody
+
+apnsIOSModifier :: FCMData b -> IOSFCMData c
+apnsIOSModifier androidData = IOSFCMData {fcmEntityIds = androidData.fcmEntityIds}
 
 createAndroidNotification :: FCMNotificationTitle -> FCMNotificationBody -> FCMNotificationType -> Maybe Text -> FCMAndroidNotification
 createAndroidNotification title body notificationType sound =
