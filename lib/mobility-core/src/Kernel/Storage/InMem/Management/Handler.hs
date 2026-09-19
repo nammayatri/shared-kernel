@@ -2,7 +2,7 @@ module Kernel.Storage.InMem.Management.Handler where
 
 import qualified Data.Aeson as Ae
 import qualified Data.HashMap.Strict as HM
-import Data.IORef (readIORef, writeIORef)
+import Data.IORef (atomicModifyIORef', readIORef)
 import Data.List (sort)
 import qualified Data.Text as T
 import Data.Time (timeToTimeOfDay, utctDayTime)
@@ -75,21 +75,19 @@ refreshCache mbToken req = do
   validateInMemToken mbToken
   inMemEnv <- asks (.inMemEnv)
   now <- getCurrentTime
-  oldInfo <- liftIO $ readIORef (inMemHashMap inMemEnv)
-  let oldCount = HM.size (cache oldInfo)
+  -- Applied atomically: the previous read-then-writeIORef pair silently
+  -- discarded any insert that landed between the two.
   (deletedCount, remainingCount) <- case req.keyInfix of
-    Nothing -> do
+    Nothing ->
       liftIO $
-        writeIORef (inMemHashMap inMemEnv) $
-          InMemCacheInfo {cache = HM.empty, cacheSize = 0, createdAt = now}
-      pure (oldCount, 0)
-    Just infix_ -> do
-      let toKeep = HM.filterWithKey (\k _ -> not (infix_ `T.isInfixOf` k)) (cache oldInfo)
-          newSize = foldl' (\acc keyInfo -> acc + keyInfo.cacheDataSize) 0 (HM.elems toKeep)
+        atomicModifyIORef' (inMemHashMap inMemEnv) $ \old ->
+          (InMemCacheInfo {cache = HM.empty, cacheSize = 0, createdAt = now}, (HM.size (cache old), 0))
+    Just infix_ ->
       liftIO $
-        writeIORef (inMemHashMap inMemEnv) $
-          InMemCacheInfo {cache = toKeep, cacheSize = newSize, createdAt = oldInfo.createdAt}
-      pure (HM.size (cache oldInfo) - HM.size toKeep, HM.size toKeep)
+        atomicModifyIORef' (inMemHashMap inMemEnv) $ \old ->
+          let toKeep = HM.filterWithKey (\k _ -> not (infix_ `T.isInfixOf` k)) (cache old)
+              newSize = foldl' (\acc keyInfo -> acc + keyInfo.cacheDataSize) 0 (HM.elems toKeep)
+           in (toKeep `seq` InMemCacheInfo {cache = toKeep, cacheSize = newSize, createdAt = old.createdAt}, (HM.size (cache old) - HM.size toKeep, HM.size toKeep))
   -- Write to Redis forceCleanup key so other pods also clean up
   let cleanupTimeOfDay = timeToTimeOfDay (utctDayTime now)
       val =

@@ -18,9 +18,10 @@ import qualified Data.Aeson as Ae
 import qualified Data.ByteArray as BA
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HM
+import qualified Data.HashSet as HS
 import Data.String.Conversions
 import qualified Data.Text as T
-import Data.Time (timeOfDayToTime, timeToTimeOfDay, utctDayTime)
+import Data.Time (timeToTimeOfDay, utctDayTime)
 import Data.Typeable
 import Database.Redis as Hedis
 import EulerHS.Prelude
@@ -47,8 +48,15 @@ headMay :: [x] -> Maybe x
 headMay [] = Nothing
 headMay (x : _xs) = Just x
 
-withInMemCache :: forall b r m. (Show b, Ae.ToJSON b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b, CoreMetrics m) => [Text] -> Seconds -> m b -> m b
-withInMemCache cacheKeys ttlInSeconds fn = fmap fst . withTimeGeneric ("InMem-Fetch" <> show (headMay cacheKeys)) $ do
+-- | Bounded metric label: only the key's category (first two ':'-separated
+-- segments). Full keys carry entity UUIDs — labelling by them mints one
+-- permanent time-series per key and grows the registry without bound.
+inMemMetricLabel :: [Text] -> Text
+inMemMetricLabel [] = "InMem-Fetch:empty"
+inMemMetricLabel (k : _) = "InMem-Fetch:" <> T.intercalate ":" (take 2 (T.splitOn ":" k))
+
+withInMemCache :: forall b r m. (Ae.ToJSON b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b, CoreMetrics m) => [Text] -> Seconds -> m b -> m b
+withInMemCache cacheKeys ttlInSeconds fn = fmap fst . withTimeGeneric (inMemMetricLabel cacheKeys) $ do
   inMemEnv <- asks (.inMemEnv)
   if inMemEnv.enableInMem && ttlInSeconds > 0
     then do
@@ -70,20 +78,35 @@ withInMemCache cacheKeys ttlInSeconds fn = fmap fst . withTimeGeneric ("InMem-Fe
           case mbRes of
             Just resAny -> do
               if addUTCTime (fromIntegral resAny.ttlInSeconds) resAny.createdAt > now
-                then pure (unsafeCoerce (cachedData resAny))
+                then do
+                  -- Touch lastUsed at most once per 10s per key: LRU eviction
+                  -- needs real usage info, but a write per read would make
+                  -- every hit contend on the shared IORef.
+                  when (addUTCTime 10 resAny.lastUsed < now) $
+                    void $
+                      atomicModifyIORef' inMemCache $ \cur ->
+                        (cur {cache = HM.adjust (\(i :: InMemKeyInfo) -> i {lastUsed = now}) cacheKey (cache cur)}, ())
+                  pure (unsafeCoerce (cachedData resAny))
                 else recache inMemEnv inMemCache now cacheKey
             Nothing -> recache inMemEnv inMemCache now cacheKey
     else fn
   where
     recache env inMemCache now cacheKey = do
       res <- fn
-      let sizeOfRes = sizeOf res
+      -- Size from the JSON we store anyway; the old sizeOf rendered the whole
+      -- value with 'show' just to count characters — a second full
+      -- serialization of a fat config object on every miss.
       let encodedRes = Ae.encode res
-      void $ atomicModifyIORef inMemCache (\old -> (old {cache = HM.insert cacheKey (InMemKeyInfo {lastUsed = now, cachedData = unsafeCoerce @_ @Any res, cachedJson = encodedRes, cacheDataSize = sizeOfRes, createdAt = now, ttlInSeconds = ttlInSeconds}) (cache old), cacheSize = (cacheSize old) + sizeOfRes}, ()))
+          sizeOfRes = fromIntegral (BSL.length encodedRes)
+          keyInfo = InMemKeyInfo {lastUsed = now, cachedData = unsafeCoerce @_ @Any res, cachedJson = encodedRes, cacheDataSize = sizeOfRes, createdAt = now, ttlInSeconds = ttlInSeconds}
+      void $
+        atomicModifyIORef' inMemCache $ \old ->
+          let newCache = HM.insert cacheKey keyInfo (cache old)
+           in -- seq: the records are lazy, so without it the insert stays an
+              -- unevaluated thunk that some later reader forces on the request path.
+              (newCache `seq` old {cache = newCache, cacheSize = cacheSize old + sizeOfRes}, ())
       registerKeyWithSidecar env cacheKey ttlInSeconds
       pure res
-    sizeOf :: Show b => b -> Bytes
-    sizeOf a = fromIntegral . length $ (show :: b -> Text) a
 
 registerKeyWithSidecar :: MonadIO m => InMemEnv -> Text -> Seconds -> m ()
 registerKeyWithSidecar env cacheKey cacheTtl =
@@ -101,10 +124,10 @@ refreshInMem keyInfix = do
   inMemEnv <- asks (.inMemEnv)
   now <- getCurrentTime
   liftIO $
-    atomicModifyIORef (inMemHashMap inMemEnv) $ \old ->
+    atomicModifyIORef' (inMemHashMap inMemEnv) $ \old ->
       let toKeep = HM.filterWithKey (\k _ -> not (keyInfix `T.isInfixOf` k)) (cache old)
           newSize = foldl' (\acc infoa -> acc + infoa.cacheDataSize) 0 (HM.elems toKeep)
-       in (InMemCacheInfo {cache = toKeep, cacheSize = newSize, createdAt = old.createdAt}, ())
+       in (toKeep `seq` InMemCacheInfo {cache = toKeep, cacheSize = newSize, createdAt = old.createdAt}, ())
   -- Write to Redis forceCleanup key so other pods also clean up
   let cleanupTimeOfDay = timeToTimeOfDay (utctDayTime now)
       val =
@@ -121,76 +144,88 @@ refreshInMem keyInfix = do
         `catch` (\(_ :: SomeException) -> pure ())
     _ -> pure ()
 
-inMemCleanupThread :: Maybe HedisEnv -> InMemEnv -> IO ()
-inMemCleanupThread mbHedisEnv inMemEnv = do
+inMemCleanupThread :: Maybe HedisEnv -> InMemEnv -> IORef (Maybe ByteString) -> IO ()
+inMemCleanupThread mbHedisEnv inMemEnv lastAppliedForceCleanup = do
+  -- One Redis hiccup must not kill the sweeper for the rest of the pod's
+  -- life — without this catch, a single connection error stops TTL cleanup
+  -- permanently and the cache grows without any brake.
+  inMemCleanupCycle mbHedisEnv inMemEnv lastAppliedForceCleanup
+    `catch` \(e :: SomeException) -> putStrLn ("inMemCleanupThread: cycle failed: " <> show e :: String)
+  threadDelaySec $ 60
+
+-- | One cleanup cycle. Decisions that need the whole map (LRU ordering) are
+-- computed on a snapshot, but removal is applied with an atomic modify of the
+-- LIVE map — the previous read-compute-writeIORef sequence silently deleted
+-- every insert that landed during the sweep window (which grew with cache
+-- size, making pods age faster the bigger their cache got).
+inMemCleanupCycle :: Maybe HedisEnv -> InMemEnv -> IORef (Maybe ByteString) -> IO ()
+inMemCleanupCycle mbHedisEnv inMemEnv lastAppliedForceCleanup = do
   let inMemCache = inMemEnv.inMemHashMap
       maxInMemSize = inMemEnv.maxInMemSize
-  inMemCacheInfo <- readIORef inMemCache
+  -- Network I/O first, before any cache reads, so the snapshot->apply window
+  -- stays as small as possible.
+  mbForceCleanup <- readForceCleanupFlag
   now <- getCurrentTime
-  -- Step 1: Remove all TTL-expired keys
+  snapshot <- readIORef inMemCache
   let isExpired keyInfo = addUTCTime (secondsToNominalDiffTime keyInfo.ttlInSeconds) keyInfo.createdAt < now
-      afterTtlCleanup = HM.filter (not . isExpired) (cache inMemCacheInfo)
-      afterTtlSize = foldl' (\acc keyInfo -> acc + keyInfo.cacheDataSize) 0 (HM.elems afterTtlCleanup)
-      ttlCleanupHappened = HM.size afterTtlCleanup < HM.size (cache inMemCacheInfo)
-  -- Step 2: Size-based eviction (LRU) if still over capacity
-  let sizeBasedCleanupRequired = afterTtlSize > maxInMemSize
-  let updatedCacheInfo =
-        if sizeBasedCleanupRequired
-          then do
-            let cacheList = reverse $ sortOn (\(_, InMemKeyInfo {lastUsed}) -> lastUsed) $ HM.toList afterTtlCleanup
-                targetSize = floor $ (fromIntegral maxInMemSize * 0.75 :: Double)
-                (updatedCacheSize, updatedCache) =
+      liveEntries = HM.filter (not . isExpired) (cache snapshot)
+      liveSize = foldl' (\acc keyInfo -> acc + keyInfo.cacheDataSize) 0 (HM.elems liveEntries)
+      anyExpired = HM.size liveEntries < HM.size (cache snapshot)
+      -- LRU eviction set, decided on the snapshot (needs a full sort — too
+      -- heavy to run inside the atomic section).
+      lruDropSet =
+        if liveSize > maxInMemSize
+          then
+            let targetSize = floor (fromIntegral maxInMemSize * 0.75 :: Double) :: Bytes
+                newestFirst = reverse $ sortOn (\(_, InMemKeyInfo {lastUsed}) -> lastUsed) $ HM.toList liveEntries
+                (_, dropped) =
                   foldl'
-                    ( \(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) ->
+                    ( \(acc, drops) (k, InMemKeyInfo {cacheDataSize}) ->
                         if cacheDataSize + acc <= targetSize
-                          then (acc + cacheDataSize, accCacheList ++ [(k, v)])
-                          else (acc, accCacheList)
+                          then (acc + cacheDataSize, drops)
+                          else (acc, HS.insert k drops)
                     )
-                    (0, [])
-                    cacheList
-            InMemCacheInfo {cache = HM.fromList updatedCache, cacheSize = updatedCacheSize, createdAt = inMemCacheInfo.createdAt}
-          else InMemCacheInfo {cache = afterTtlCleanup, cacheSize = afterTtlSize, createdAt = inMemCacheInfo.createdAt}
-  (forceCleanup, finalCacheInfo) <-
-    case mbHedisEnv of
+                    (0, HS.empty)
+                    newestFirst
+             in dropped
+          else HS.empty
+      matchesForce k = case mbForceCleanup of
+        Just (Just cleanupKeyPrefix) -> cleanupKeyPrefix `T.isInfixOf` k
+        Just Nothing -> True -- full wipe requested
+        Nothing -> False
+      -- TTL is re-checked against the entry actually in the live map, so a
+      -- key recached during the sweep (fresh createdAt) is kept.
+      shouldDrop k v = isExpired v || k `HS.member` lruDropSet || matchesForce k
+  when (anyExpired || not (HS.null lruDropSet) || isJust mbForceCleanup) $
+    atomicModifyIORef' inMemCache $ \cur ->
+      let newCache = HM.filterWithKey (\k v -> not (shouldDrop k v)) (cache cur)
+          newSize = foldl' (\acc keyInfo -> acc + keyInfo.cacheDataSize) 0 (HM.elems newCache)
+       in (newCache `seq` InMemCacheInfo {cache = newCache, cacheSize = newSize, createdAt = cur.createdAt}, ())
+  where
+    -- Just (Just prefix) = clean keys matching prefix; Just Nothing = full
+    -- wipe; Nothing = no (new) flag. Each flag value is applied once — its
+    -- write time makes every refresh a new value; reading never extends TTL.
+    readForceCleanupFlag :: IO (Maybe (Maybe Text))
+    readForceCleanupFlag = case mbHedisEnv of
+      Nothing -> pure Nothing
       Just hedisEnv -> do
         let key = cs $ hedisEnv.keyModifier "inmem:force:cleanup:timeofday"
         forceCleanupValue <- Hedis.runRedis hedisEnv.hedisConnection (Hedis.get key)
         case forceCleanupValue of
           Left err -> do
             print err
-            pure (False, updatedCacheInfo)
+            pure Nothing
           Right forceCleanupVal -> do
             let forceCleanupExpiryValue :: Maybe ForceCleanupExpiryValue = Ae.decode . BSL.fromStrict =<< forceCleanupVal
             case forceCleanupExpiryValue of
+              Nothing -> pure Nothing
               Just cacheExpiryValue -> do
-                let cacheExpiryTime = timeOfDayToTime (forceCleanupTimestamp cacheExpiryValue)
-                let createAtTime = utctDayTime updatedCacheInfo.createdAt
-                if createAtTime < cacheExpiryTime
+                lastApplied <- readIORef lastAppliedForceCleanup
+                if forceCleanupVal /= lastApplied
                   then do
-                    void $ Hedis.runRedis hedisEnv.hedisConnection $ Hedis.expire key 600 -- do that it doesn't happen daily once user adds the key and forgets to set expiry
-                    case (forceCleanupKeyPrefix cacheExpiryValue) of
-                      Just cleanupKeyPrefix -> do
-                        let cacheList :: [(Text, InMemKeyInfo)] = HM.toList updatedCacheInfo.cache
-                            (updatedCacheSize, updatedCache) =
-                              foldl'
-                                ( \(acc, accCacheList) (k, v@(InMemKeyInfo {cacheDataSize})) ->
-                                    if cleanupKeyPrefix `T.isInfixOf` k
-                                      then (acc, accCacheList)
-                                      else (acc + cacheDataSize, accCacheList ++ [(k, v)])
-                                )
-                                (0, [])
-                                cacheList
-                        pure (True, InMemCacheInfo {cache = HM.fromList updatedCache, cacheSize = updatedCacheSize, createdAt = inMemCacheInfo.createdAt})
-                      Nothing -> pure (True, defaultInMemCacheInfo now)
-                  else do
-                    pure (False, updatedCacheInfo)
-              Nothing -> do
-                pure (False, updatedCacheInfo)
-      Nothing -> do
-        pure (False, updatedCacheInfo)
-  when (ttlCleanupHappened || sizeBasedCleanupRequired || forceCleanup) $
-    writeIORef inMemCache finalCacheInfo
-  threadDelaySec $ 60
+                    writeIORef lastAppliedForceCleanup forceCleanupVal
+                    pure (Just (forceCleanupKeyPrefix cacheExpiryValue))
+                  else pure Nothing
 
 setupInMemEnv :: InMemConfig -> Maybe HedisEnv -> IO InMemEnv
 setupInMemEnv inMemConfig mbHedisEnv = do
@@ -211,7 +246,8 @@ setupInMemEnv inMemConfig mbHedisEnv = do
                 inMemManagementToken = mgmtToken,
                 inMemServiceName = svcName
               }
-      void $ forkIO $ forever $ inMemCleanupThread mbHedisEnv inMemEnv
+      lastAppliedForceCleanup <- newIORef Nothing
+      void $ forkIO $ forever $ inMemCleanupThread mbHedisEnv inMemEnv lastAppliedForceCleanup
       pure inMemEnv
     else do
       inMemHashMap <- newIORef $ defaultInMemCacheInfo now
