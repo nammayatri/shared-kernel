@@ -147,6 +147,17 @@ data PaymentIntent = PaymentIntent
   deriving stock (Show)
 
 --- Charge Object ---
+data CardDetails = CardDetails
+  { brand :: Text,
+    country :: Maybe Text,
+    expMonth :: Int,
+    expYear :: Int,
+    fingerprint :: Maybe Text,
+    funding :: Maybe Text,
+    last4 :: Text
+  }
+  deriving stock (Show)
+
 data Charge = Charge
   { chargeId :: Stripe.ChargeId,
     paymentIntentId :: Maybe Stripe.PaymentIntentId,
@@ -159,6 +170,7 @@ data Charge = Charge
     balanceTransaction :: Maybe Text,
     calculatedStatementDescriptor :: Maybe Text,
     captured :: Bool,
+    cardDetails :: Maybe CardDetails,
     createdAt :: UTCTime,
     currency :: Currency,
     customer :: Maybe Stripe.CustomerId,
