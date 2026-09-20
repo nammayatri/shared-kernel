@@ -862,28 +862,25 @@ whenWithLockRedisAndReturnValue key timeout func = do
       return $ Right res
     else return $ Left ()
 
--- | Waits (polling every @delay@ microseconds) until the lock is acquired, then runs @func@.
---   The delay is only paid when the lock is contended. Acquisition runs masked, so a
---   cancellation cannot leave the lock held without the release being installed.
 withWaitAndLockRedis :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> Int -> m a -> m a
-withWaitAndLockRedis key timeout delay =
-  bracket_ getLock (unlockRedis key)
+withWaitAndLockRedis key timeout delay func = do
+  getLock
+  finally func (unlockRedis key)
   where
     getLock = do
       lockAvailable <- tryLockRedis key timeout
-      unless lockAvailable $ do
-        threadDelay delay
-        getLock
+      threadDelay delay
+      unless lockAvailable getLock
 
 withWaitAndLockMasterCloudCrossAppRedis :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> Int -> m a -> m a
-withWaitAndLockMasterCloudCrossAppRedis key timeout delay =
-  bracket_ (runInMasterCloudRedisCellWithCrossAppRedis getLock) (runInMasterCloudRedisCellWithCrossAppRedis $ unlockRedis key)
+withWaitAndLockMasterCloudCrossAppRedis key timeout delay func = do
+  runInMasterCloudRedisCellWithCrossAppRedis getLock
+  finally func (runInMasterCloudRedisCellWithCrossAppRedis $ unlockRedis key)
   where
     getLock = do
       lockAvailable <- tryLockRedis key timeout
-      unless lockAvailable $ do
-        threadDelay delay
-        getLock
+      threadDelay delay
+      unless lockAvailable getLock
 
 buildLockResourceName :: (IsString a) => Text -> a
 buildLockResourceName key = fromString $ "mobility:locker:" <> Text.unpack key
