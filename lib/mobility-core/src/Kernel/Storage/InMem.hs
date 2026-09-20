@@ -29,11 +29,9 @@ import Kernel.Storage.Hedis.Config
 import Kernel.Storage.Hedis.Queries (runInMultiCloudRedisWrite, setExp)
 import Kernel.Storage.InMem.Management.SidecarClient (callRefresh, callRegisterKey)
 import Kernel.Storage.InMem.Management.Types (RegisterKeyRequest (..), SidecarRefreshRequest (..))
-import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow
 import Kernel.Types.TryException (TryException)
-import Kernel.Utils.DatastoreLatencyCalculator
 import Kernel.Utils.Time (Seconds, UTCTime, addUTCTime, getCurrentTime, secondsToNominalDiffTime, threadDelaySec)
 import qualified Network.HTTP.Client as HTTP
 import Servant.Client (parseBaseUrl)
@@ -48,15 +46,10 @@ headMay :: [x] -> Maybe x
 headMay [] = Nothing
 headMay (x : _xs) = Just x
 
--- | Bounded metric label: only the key's category (first two ':'-separated
--- segments). Full keys carry entity UUIDs — labelling by them mints one
--- permanent time-series per key and grows the registry without bound.
-inMemMetricLabel :: [Text] -> Text
-inMemMetricLabel [] = "InMem-Fetch:empty"
-inMemMetricLabel (k : _) = "InMem-Fetch:" <> T.intercalate ":" (take 2 (T.splitOn ":" k))
-
-withInMemCache :: forall b r m. (Ae.ToJSON b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b, CoreMetrics m) => [Text] -> Seconds -> m b -> m b
-withInMemCache cacheKeys ttlInSeconds fn = fmap fst . withTimeGeneric (inMemMetricLabel cacheKeys) $ do
+-- No per-fetch Prometheus timing here: it was redundant with the datastore/handler
+-- metrics and, keyed by cache key, was an unbounded-cardinality registry leak.
+withInMemCache :: forall b r m. (Ae.ToJSON b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b) => [Text] -> Seconds -> m b -> m b
+withInMemCache cacheKeys ttlInSeconds fn = do
   inMemEnv <- asks (.inMemEnv)
   if inMemEnv.enableInMem && ttlInSeconds > 0
     then do
