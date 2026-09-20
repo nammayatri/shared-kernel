@@ -22,6 +22,7 @@ import qualified EulerHS.Types as ET
 import Kernel.External.Verification.Interface.Types
 import Kernel.External.Verification.InternalScripts.Error
 import Kernel.External.Verification.InternalScripts.Types
+import qualified Kernel.Storage.Hedis as Hedis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Utils.Common
 import qualified Network.HTTP.Client as Http
@@ -31,13 +32,13 @@ import Servant (JSON, Post, ReqBody, type (:>))
 type DetectImageAPI =
   "detectImage"
     :> ReqBody '[JSON] OCRRequest
-    :> Post '[JSON] FaceDetectionSummary
+    :> Post '[JSON] OCRAccepted
 
 detectImageAPI :: Proxy DetectImageAPI
 detectImageAPI = Proxy
 
-detectImage :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalImageDetectionCfg -> OCRRequest -> m FaceDetectionSummary
-detectImage cfg req = callImageDetectionApi cfg.url (client detectImageAPI req) "detectImage" detectImageAPI
+submitDetectImage :: (CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) => InternalImageDetectionCfg -> OCRRequest -> m OCRAccepted
+submitDetectImage cfg req = callImageDetectionApi cfg.url (client detectImageAPI req) "detectImage" detectImageAPI
 
 callImageDetectionApi :: CallAPI m r api res
 callImageDetectionApi = callApiUnwrappingApiError (identity @InternalImageDetectionError) (Just $ ET.ManagerSelector $ DT.pack internalImageDetectionManagerKey) (Just "INTERNAL_IMAGE_DETECTION_ERROR") Nothing
@@ -49,3 +50,10 @@ prepareInternalImageDetectionHttpManager :: Int -> HMap.HashMap DT.Text Http.Man
 prepareInternalImageDetectionHttpManager timeout =
   HMap.singleton (DT.pack internalImageDetectionManagerKey) $
     Http.tlsManagerSettings {Http.managerResponseTimeout = Http.responseTimeoutMicro (timeout * 1000)}
+
+faceDetectionRedisKey :: Text
+faceDetectionRedisKey = "providerPlatform:FaceDetection"
+
+getFaceDetectionResult :: CacheFlow m r => Text -> m (Maybe FaceDetectionSummary)
+getFaceDetectionResult driverId =
+  Hedis.withCrossAppRedis $ Hedis.get (faceDetectionRedisKey <> ":" <> driverId)

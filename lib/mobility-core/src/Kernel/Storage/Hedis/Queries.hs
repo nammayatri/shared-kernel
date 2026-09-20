@@ -48,7 +48,7 @@ import qualified Database.Redis.Cluster as Cluster
 import qualified EulerHS.Language as L
 import EulerHS.Prelude (whenLeft)
 import GHC.Records.Extra
-import Kernel.Beam.Connection.EnvVars (getClusterMGetAsyncEnabled, getRunInMasterCloudRedisCell, getRunInMasterLTSRedisCell)
+import Kernel.Beam.Connection.EnvVars (getRunInMasterCloudRedisCell, getRunInMasterLTSRedisCell)
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
 import Kernel.Storage.Hedis.Error
@@ -493,13 +493,34 @@ safeGet key = get' key (del key)
 clusterMGetForkLimit :: Int
 clusterMGetForkLimit = 32
 
--- | Internal: cluster MGET returning one Vector slot per input key, aligned
--- by index. Hits → @Just bs@; misses, Redis errors, fork failures all → @Nothing@.
--- Groups by hash slot (Cluster requires single-slot MGETs); when async is
--- enabled, runs forks in capped chunks to bound parallelism.
+runPipelined ::
+  (HedisFlow m env, TryException m) =>
+  Text ->
+  (a -> Redis (Either Reply b)) ->
+  [a] ->
+  m (Either SomeException [Either Reply b])
+runPipelined _ _ [] = pure (Right [])
+runPipelined opName command items =
+  withTimeRedis "RedisCluster" opName . withTryCatch opName . runHedis $ do
+    replies <- mapM command items
+    traverse_ (\reply -> reply `seq` pure ()) replies
+    pure (Right replies)
+
+runPipelinedByKey ::
+  (HedisFlow m env, TryException m) =>
+  Text ->
+  (BS.ByteString -> Redis (Either Reply a)) ->
+  [Text] ->
+  m [Maybe a]
+runPipelinedByKey opName command keys = do
+  prefKeys <- mapM buildKey keys
+  result <- runPipelined opName command prefKeys
+  pure $ case result of
+    Right replies | length replies == length keys -> either (const Nothing) Just <$> replies
+    _ -> Nothing <$ keys
+
 mGetClusterRaw ::
-  forall m env.
-  (HedisFlow m env, TryException m, L.MonadFlow m, Forkable m) =>
+  (HedisFlow m env, TryException m) =>
   [Text] ->
   m (V.Vector (Maybe BS.ByteString))
 mGetClusterRaw [] = pure V.empty
@@ -511,53 +532,23 @@ mGetClusterRaw keys = withLogTag "CLUSTER" $ do
           IntMap.fromListWith
             (<>)
             [(fromEnum (keyToSlot pk), NE.singleton (i, pk)) | (i, pk) <- zip [0 ..] prefKeys]
-  asyncEnabled <- liftIO getClusterMGetAsyncEnabled
-  results <-
-    if asyncEnabled && length groups > 1
-      then concat <$> traverse runChunk (chunksOf clusterMGetForkLimit groups)
-      else traverse runGroup groups
-  pure $! V.replicate nKeys Nothing V.// concat results
-  where
-    runGroup :: NonEmpty (Int, BS.ByteString) -> m [(Int, Maybe BS.ByteString)]
-    runGroup grp = do
-      let (idxs, prefKs) = NE.unzip grp
-          missForGroup = map (,Nothing) (NE.toList idxs)
-      result <-
-        withTimeRedis "RedisCluster" "mget" $
-          withTryCatch "mGetCluster" $
-            runHedisEither $ Hedis.mget (NE.toList prefKs)
-      case result of
-        Left exc -> do
-          logTagError "ERROR_WHILE_MGET" $ "Cluster MGET threw: " <> show exc
-          pure missForGroup
-        Right (Left reply) -> do
-          logTagError "ERROR_WHILE_MGET" $ "Cluster MGET failed: " <> show reply
-          pure missForGroup
-        Right (Right listBS) ->
-          pure $ DL.zip (NE.toList idxs) listBS
-
-    runChunk :: [NonEmpty (Int, BS.ByteString)] -> m [[(Int, Maybe BS.ByteString)]]
-    runChunk chunk = do
-      awaitables <- forM (DL.zip [0 :: Int ..] chunk) $ \(j, grp) ->
-        (grp,) <$> awaitableFork ("mGetCluster:" <> show j) (runGroup grp)
-      forM awaitables $ \(grp, aw) -> do
-        res <- L.await Nothing aw
-        case res of
-          Right xs -> pure xs
-          Left err -> do
-            logTagError "ERROR_WHILE_MGET_FORK" $ "Concurrent fork failed: " <> show err
-            pure $ map ((,Nothing) . fst) (NE.toList grp)
-
-    chunksOf :: Int -> [a] -> [[a]]
-    chunksOf k = DL.unfoldr step
-      where
-        step [] = Nothing
-        step xs = Just (DL.splitAt k xs)
+  result <- runPipelined "mGetCluster" (Hedis.mget . NE.toList . fmap snd) groups
+  case result of
+    Left exc -> do
+      logTagError "ERROR_WHILE_MGET" $ "Cluster MGET pipeline threw: " <> show exc
+      pure $ V.replicate nKeys Nothing
+    Right replies -> do
+      aligned <- forM (DL.zip groups replies) $ \(grp, reply) -> case reply of
+        Left err -> do
+          logTagError "ERROR_WHILE_MGET" $ "Cluster MGET failed: " <> show err
+          pure []
+        Right found -> pure $ DL.zip (NE.toList (fst <$> grp)) found
+      pure $! V.replicate nKeys Nothing V.// concat aligned
 
 -- | Cluster MGET returning just the decoded values that were found. No
 -- order guarantee on the output. Decode failures are logged and dropped.
 mGetCluster ::
-  (FromJSON a, HedisFlow m env, TryException m, L.MonadFlow m, Forkable m) =>
+  (FromJSON a, HedisFlow m env, TryException m) =>
   [Text] ->
   m [a]
 mGetCluster keys = do
@@ -568,7 +559,7 @@ mGetCluster keys = do
 -- failures are logged (with the offending key) and dropped; the key is
 -- left in Redis for the writer to fix or overwrite.
 mGetClusterWithKeys ::
-  (FromJSON a, HedisFlow m env, TryException m, L.MonadFlow m, Forkable m) =>
+  (FromJSON a, HedisFlow m env, TryException m) =>
   [Text] ->
   m [(Text, a)]
 mGetClusterWithKeys keys = do
@@ -827,19 +818,29 @@ decrIfExist key = do
     Just (Hedis.Integer i) -> pure i
     _ -> pure (-1)
 
+zAddIfPossibleScript :: String
+zAddIfPossibleScript =
+  "if redis.call('ZCOUNT', KEYS[1], ARGV[1], ARGV[2]) < tonumber(ARGV[3]) then "
+    ++ "redis.call('ZADD', KEYS[1], ARGV[2], ARGV[4]); return 1 "
+    ++ "else return 0 end"
+
+zAddIfPossibleArgs :: (Text, Double) -> Int -> Double -> [BS.ByteString]
+zAddIfPossibleArgs (member, score) maxSize fromScore = [cs (show fromScore :: String), cs (show score :: String), cs (show maxSize :: String), cs member]
+
 zAddIfPossible :: (HedisFlow m env, TryException m) => Text -> (Text, Double) -> Int -> Double -> m Integer
 zAddIfPossible key (member, score) maxSize fromScore = do
-  let script =
-        "if redis.call('ZCOUNT', KEYS[1], ARGV[1], ARGV[2]) < tonumber(ARGV[3]) then "
-          ++ "redis.call('ZADD', KEYS[1], ARGV[2], ARGV[4]); return 1 "
-          ++ "else return 0 end"
   result <- withTimeRedis "RedisCluster" "zAddIfPossible" $
     runWithPrefix key $ \prefKey ->
-      Hedis.eval (cs script) [prefKey] [cs (show fromScore :: String), cs (show score :: String), cs (show maxSize :: String), cs member]
+      Hedis.eval (cs zAddIfPossibleScript) [prefKey] (zAddIfPossibleArgs (member, score) maxSize fromScore)
 
   case result of
     Just (Hedis.Integer i) -> pure i
     _ -> pure (-1)
+
+zAddIfPossibleMany :: (HedisFlow m env, TryException m) => [Text] -> (Text, Double) -> Int -> Double -> m [Integer]
+zAddIfPossibleMany keys (member, score) maxSize fromScore =
+  map (fromMaybe (-1))
+    <$> runPipelinedByKey "zAddIfPossibleMany" (\prefKey -> Hedis.eval (cs zAddIfPossibleScript) [prefKey] (zAddIfPossibleArgs (member, score) maxSize fromScore)) keys
 
 tryLockRedis :: (HedisFlow m env, TryException m) => Text -> ExpirationTime -> m Bool
 tryLockRedis key timeout = setNxExpire (buildLockResourceName key) timeout ()

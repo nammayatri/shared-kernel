@@ -15,6 +15,9 @@
 
 module Kernel.Utils.Servant.Server where
 
+import Data.Char (isDigit)
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import qualified Database.Esqueleto.Experimental as Esq
 import qualified Database.Persist.Sql as Persist
 import qualified Database.Redis as Hedis
@@ -47,6 +50,7 @@ import Network.Wai.Handler.Warp
   )
 import Servant
 import Servant.Server.Internal.DelayedIO (DelayedIO, delayedFailFatal)
+import System.Environment (lookupEnv)
 
 class HasEnvEntry r (context :: [Type]) | context -> r where
   getEnvEntry :: Context context -> EnvR r
@@ -195,6 +199,42 @@ runServerGeneric appEnv serverAPI serverHandler waiMiddleware waiSettings servan
   serverStartAction appEnv $ runSettings settings $ server appEnv
 
 type HealthCheckAPI = Get '[JSON] Text
+
+-- | Liveness self-check. Deliberately dependency-free: a liveness failure
+-- RESTARTS the pod, so it must reflect only THIS process being unrecoverable —
+-- never a shared dependency (DB/Redis/Kafka), which would restart the whole
+-- fleet at once on a single blip. It reports resident memory and fails (503)
+-- only when RSS exceeds LIVENESS_MAX_RSS_MB (default 2200), catching the
+-- unbounded-growth wedge; a total process freeze is already caught by the
+-- probe's own HTTP timeout. Reads of /proc fail open (never restart on an
+-- unreadable stat).
+type LivenessCheckAPI = "live" :> Get '[JSON] Text
+
+livenessCheck :: ServerT LivenessCheckAPI (FlowHandlerR env)
+livenessCheck = do
+  maxRssMb <- liftIO $ fromMaybe defaultMaxRssMb . (readMaybe =<<) <$> lookupEnv "LIVENESS_MAX_RSS_MB"
+  mbRssMb <- liftIO readSelfRssMb
+  case mbRssMb of
+    Just rssMb
+      | rssMb > maxRssMb -> do
+        let msg = "liveness failed: RSS " <> show rssMb <> "MB over ceiling " <> show maxRssMb <> "MB"
+        liftIO $ putStrLn @String msg
+        throwM err503 {errBody = encodeUtf8 msg}
+    _ -> pure "Alive"
+  where
+    defaultMaxRssMb = 2200 :: Int
+
+-- | Resident set size of this process in MB, parsed from /proc/self/status.
+-- Returns Nothing if unreadable (non-Linux, sandbox) so liveness fails open.
+readSelfRssMb :: IO (Maybe Int)
+readSelfRssMb = do
+  (res :: Either SomeException Text) <- try $ TIO.readFile "/proc/self/status"
+  pure $ case res of
+    Left _ -> Nothing
+    Right contents -> do
+      vmRssLine <- find ("VmRSS:" `T.isPrefixOf`) (T.lines contents)
+      kb <- readMaybe . T.unpack . T.filter isDigit $ vmRssLine
+      pure (kb `div` 1024)
 
 healthCheck ::
   (HasField "esqDBEnv" env EsqDBEnv, HasField "hedisClusterEnv" env HedisEnv) =>

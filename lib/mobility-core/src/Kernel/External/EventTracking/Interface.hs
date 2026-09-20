@@ -20,6 +20,7 @@ where
 
 import Kernel.External.Encryption
 import qualified Kernel.External.EventTracking.Clevertap.Flow as ClevertapFlow
+import qualified Kernel.External.EventTracking.FirebaseAnalytics.Flow as FirebaseAnalyticsFlow
 import Kernel.External.EventTracking.Interface.Types as Reexport
 import qualified Kernel.External.EventTracking.Moengage.Flow as MoengageFlow
 import Kernel.Prelude
@@ -47,13 +48,16 @@ pushEvent config req
   | otherwise = case config of
     MoengageConfig moengageCfg -> MoengageFlow.pushEvent moengageCfg req
     ClevertapConfig clevertapCfg -> ClevertapFlow.pushEvent clevertapCfg req
+    FirebaseAnalyticsConfig firebaseCfg -> FirebaseAnalyticsFlow.pushEvent firebaseCfg req
 
 isEnabled :: EventTrackingServiceConfig -> Bool
 isEnabled = \case
   MoengageConfig cfg -> cfg.enabled
   ClevertapConfig cfg -> cfg.enabled
+  FirebaseAnalyticsConfig cfg -> cfg.enabled
 
 providerName :: EventTrackingServiceConfig -> Text
 providerName = \case
   MoengageConfig _ -> "Moengage"
   ClevertapConfig _ -> "Clevertap"
+  FirebaseAnalyticsConfig _ -> "FirebaseAnalytics"

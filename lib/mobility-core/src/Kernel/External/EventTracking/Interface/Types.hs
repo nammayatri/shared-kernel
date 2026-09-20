@@ -24,13 +24,16 @@ where
 import Data.Aeson
 import Deriving.Aeson
 import qualified Kernel.External.EventTracking.Clevertap.Config as ClevertapConfig
+import qualified Kernel.External.EventTracking.FirebaseAnalytics.Config as FirebaseAnalyticsConfig
 import qualified Kernel.External.EventTracking.Moengage.Config as MoengageConfig
 import Kernel.Prelude
+import Kernel.Types.Version (DeviceType)
 
 -- | Configuration sum type for all event tracking providers
 data EventTrackingServiceConfig
   = MoengageConfig MoengageConfig.MoengageCfg
   | ClevertapConfig ClevertapConfig.ClevertapCfg
+  | FirebaseAnalyticsConfig FirebaseAnalyticsConfig.FirebaseAnalyticsCfg
   deriving (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] EventTrackingServiceConfig
 
@@ -43,6 +46,11 @@ data EventTrackingReq = EventTrackingReq
     eventName :: Text,
     attributes :: Value,
     -- | Event time, where the provider supports it. Moengage ignores this.
-    timestamp :: Maybe UTCTime
+    timestamp :: Maybe UTCTime,
+    -- | GA4 app instance id from the Analytics SDK (@getAppInstanceId@), which is not
+    -- the Firebase installation id, plus the client platform. Only FirebaseAnalytics
+    -- reads these; callers supply the value.
+    appInstanceId :: Maybe Text,
+    platform :: Maybe DeviceType
   }
   deriving (Show, Generic, ToJSON, FromJSON)

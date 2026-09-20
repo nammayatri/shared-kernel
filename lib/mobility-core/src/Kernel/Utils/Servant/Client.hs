@@ -11,9 +11,11 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-
 module Kernel.Utils.Servant.Client where
 
+import qualified Control.Concurrent as Conc
+import qualified Control.Concurrent.STM as STM
+import qualified Control.Exception as Exc
 import qualified Data.Aeson as A
 import qualified Data.CaseInsensitive as CI
 import qualified Data.HashMap.Strict as HM
@@ -40,8 +42,10 @@ import Kernel.Utils.Servant.BaseUrl
 import Kernel.Utils.Text
 import Kernel.Utils.Time
 import qualified Network.HTTP.Client as Http
+import qualified Network.HTTP.Client.Internal as HttpInternal
 import qualified Network.HTTP.Client.TLS as Http
 import Network.HTTP.Types (Status (..), status404)
+import qualified Network.Socket as NS
 import qualified Network.Wai as Wai
 import Network.Wai.Application.Static (staticApp)
 import qualified Servant
@@ -111,7 +115,17 @@ withHeaders headerPairs (ET.EulerClient f) =
 
 -- | Redact sensitive query parameter values (e.g. Google API keys) from logged strings.
 redactClientError :: Text -> Text
-redactClientError t = T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
+redactClientError t = redactApiSecret . T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
+
+-- | The GA4 Measurement Protocol passes @api_secret@ as a query parameter, and a
+-- failed 'ClientError' carries the whole request, so mask it in both the URL form
+-- and the form servant's 'show' produces for query items.
+redactApiSecret :: Text -> Text
+redactApiSecret =
+  T.pack
+    . (\s -> TR.subRegex (TR.mkRegex "api_secret=[^&\" ]*") s "api_secret=[REDACTED]")
+    . (\s -> TR.subRegex (TR.mkRegex "\"api_secret\",Just \"[^\"]*\"") s "\"api_secret\",Just \"[REDACTED]\"")
+    . T.unpack
 
 callAPI ::
   CallAPI' m r api res (Either ClientError res)
@@ -211,13 +225,88 @@ createManagersWithTimeout ::
 createManagersWithTimeout managerSettings Nothing = createManagers managerSettings
 createManagersWithTimeout managerSettings (Just timeout) = liftIO $ managersFromManagersSettings timeout managerSettings
 
+connectionAttemptCeilingMicros :: Int
+connectionAttemptCeilingMicros = 250 * 1000
+
+openSocketNoFixedDelay :: NS.AddrInfo -> IO NS.Socket
+openSocketNoFixedDelay addr =
+  Exc.bracketOnError
+    (NS.socket (NS.addrFamily addr) (NS.addrSocketType addr) (NS.addrProtocol addr))
+    NS.close
+    ( \sock -> do
+        NS.setSocketOption sock NS.NoDelay 1
+        NS.connect sock (NS.addrAddress addr)
+        pure sock
+    )
+
+connectFirstAvailable :: [NS.AddrInfo] -> IO NS.Socket
+connectFirstAvailable [] = Exc.throwIO $ userError "getAddrInfo returned empty list"
+connectFirstAvailable addrs = do
+  result <- Conc.newEmptyMVar
+  failures <- STM.newTVarIO (0 :: Int)
+  let total = KP.length addrs
+      waitTurn idx = do
+        gate <- STM.newTVarIO False
+        Exc.bracket
+          ( Conc.forkIO $ do
+              Conc.threadDelay (idx * connectionAttemptCeilingMicros)
+              STM.atomically $ STM.writeTVar gate True
+          )
+          Conc.killThread
+          ( \_ ->
+              STM.atomically $ do
+                elapsed <- STM.readTVar gate
+                failed <- STM.readTVar failures
+                STM.check (elapsed || failed >= idx)
+          )
+      attempt (addr, idx) = do
+        when (idx > 0) $ waitTurn idx
+        eSock <- Exc.try (openSocketNoFixedDelay addr) :: IO (Either Exc.SomeException NS.Socket)
+        case eSock of
+          Right sock -> do
+            placed <- Conc.tryPutMVar result (Right sock)
+            unless placed $ NS.close sock
+          Left err -> do
+            failed <- STM.atomically $ do
+              STM.modifyTVar' failures (+ 1)
+              STM.readTVar failures
+            when (failed >= total) . void $ Conc.tryPutMVar result (Left err)
+  workers <- mapM (Conc.forkIO . attempt) (zip addrs [0 :: Int ..])
+  outcome <- Conc.takeMVar result
+  KP.mapM_ Conc.killThread workers
+  either Exc.throwIO pure outcome
+
+rawConnectionNoFixedDelay :: IO (Maybe NS.HostAddress -> String -> Int -> IO HttpInternal.Connection)
+rawConnectionNoFixedDelay =
+  pure $ \mbHostAddress host port -> do
+    addrs <- case mbHostAddress of
+      Nothing -> do
+        let hints = NS.defaultHints {NS.addrSocketType = NS.Stream}
+        NS.getAddrInfo (Just hints) (Just (HttpInternal.strippedHostName host)) (Just (show port))
+      Just hostAddress ->
+        pure
+          [ NS.AddrInfo
+              { NS.addrFlags = [],
+                NS.addrFamily = NS.AF_INET,
+                NS.addrSocketType = NS.Stream,
+                NS.addrProtocol = 6,
+                NS.addrAddress = NS.SockAddrInet (toEnum port) hostAddress,
+                NS.addrCanonName = Nothing
+              }
+          ]
+    Exc.bracketOnError (connectFirstAvailable addrs) NS.close $ \sock ->
+      HttpInternal.socketConnection sock 8192
+
+setFastConnect :: Http.ManagerSettings -> Http.ManagerSettings
+setFastConnect settings = settings {HttpInternal.managerRawConnection = rawConnectionNoFixedDelay}
+
 managersFromManagersSettings ::
   Int ->
   HashMap Text Http.ManagerSettings ->
   IO (HashMap Text Http.Manager)
 managersFromManagersSettings timeout =
   mapM Http.newManager
-    . fmap (setResponseTimeout timeout)
+    . fmap (setFastConnect . setResponseTimeout timeout)
     . HMS.insert defaultHttpManagerString Http.tlsManagerSettings
   where
     extractDefaultManagerString (ET.ManagerSelector x) = x

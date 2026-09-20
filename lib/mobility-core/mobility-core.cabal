@@ -82,6 +82,10 @@ library
       Kernel.External.EventTracking.Clevertap.Config
       Kernel.External.EventTracking.Clevertap.Flow
       Kernel.External.EventTracking.Clevertap.Types
+      Kernel.External.EventTracking.FirebaseAnalytics.API
+      Kernel.External.EventTracking.FirebaseAnalytics.Config
+      Kernel.External.EventTracking.FirebaseAnalytics.Flow
+      Kernel.External.EventTracking.FirebaseAnalytics.Types
       Kernel.External.EventTracking.Interface
       Kernel.External.EventTracking.Interface.Types
       Kernel.External.EventTracking.Moengage.API
@@ -987,6 +991,7 @@ test-suite mobility-core-tests
       Centesimal
       ComputeIntersectionTests
       DistanceCalculation
+      HedisClusterPipeline
       PartialIndexTests
       Predicates
       SettlementEmail
