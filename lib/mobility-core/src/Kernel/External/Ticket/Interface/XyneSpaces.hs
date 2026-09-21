@@ -45,6 +45,10 @@ module Kernel.External.Ticket.Interface.XyneSpaces
     updateTicket,
     updateTicketStatus,
     updateTicketCsat,
+    listTickets,
+    getTicket,
+    getTicketConversation,
+    downloadAttachment,
   )
 where
 
@@ -577,3 +581,72 @@ senderInfoFromRide (Just IT.RideInfo {..}) =
   where
     firstJust (Just a) _ = Just a
     firstJust Nothing b = b
+
+-- ── Read side ────────────────────────────────────────────────────────────
+-- Config-taking wrappers over the read clients in
+-- "Kernel.External.Ticket.XyneSpaces.Flow", following the same shape as the
+-- write path above: decrypt the shared token once, delegate to Flow. Each
+-- merchant supplies its own 'XyneSpacesCfg', so a multi-merchant deployment
+-- points each merchant at its own desk and credentials.
+
+-- | List/search tickets. When the request carries no scope at all, the
+-- configured desk 'channelId' is used — callers filter, the config scopes.
+listTickets ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  Xyne.XyneListTicketsReq ->
+  m Xyne.XyneListTicketsResp
+listTickets config req = do
+  token <- decrypt config.token
+  let scopeless = isNothing req.channelId && isNothing req.projectId && maybe True null req.boardIds
+      scoped = if scopeless then (req :: Xyne.XyneListTicketsReq) {Xyne.channelId = Just config.channelId} else req
+  XF.listTicketsAPI config.url token scoped
+
+-- | Full ticket detail; throws 'Kernel.Types.Error.XyneNotFound' on an
+-- unknown id (Xyne 404s).
+getTicket ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  Text ->
+  m Xyne.XyneTicketDetail
+getTicket config ticketId = do
+  token <- decrypt config.token
+  XF.getTicketAPI config.url token ticketId
+
+-- | A ticket's conversation thread; throws
+-- 'Kernel.Types.Error.XyneNotFound' on an unknown id.
+getTicketConversation ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  Text ->
+  m Xyne.XyneConversationResp
+getTicketConversation config ticketId = do
+  token <- decrypt config.token
+  XF.getConversationAPI config.url token ticketId
+
+-- | Attachment bytes + Content-Type; throws
+-- 'Kernel.Types.Error.XyneNotFound' on an unknown id.
+downloadAttachment ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  Text ->
+  m (LBS.ByteString, Maybe Text)
+downloadAttachment config attachmentId = do
+  token <- decrypt config.token
+  XF.downloadFileAPI config.url token attachmentId

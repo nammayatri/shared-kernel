@@ -974,6 +974,47 @@ instance FromResponse TwillioError where
 
 instance IsAPIError TwillioError
 
+data XyneError
+  = XyneBadRequest
+  | XyneUnauthorized
+  | XyneAccessForbidden
+  | XyneNotFound
+  | XyneInternalServerError
+  | XyneUnknownError
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''XyneError
+
+instance IsBaseError XyneError where
+  toMessage = \case
+    XyneBadRequest -> Just "Invalid request to Xyne."
+    XyneUnauthorized -> Just "Xyne rejected the app JWT — token missing or expired."
+    XyneAccessForbidden -> Just "Xyne denied access — check the app JWT's tickets:read permission."
+    XyneNotFound -> Just "Requested resource does not exist in Xyne."
+    XyneInternalServerError -> Just "Internal server error in Xyne."
+    XyneUnknownError -> Just "Unknown error in Xyne."
+
+instance IsHTTPError XyneError where
+  toErrorCode = \case
+    XyneBadRequest -> "XYNE_BAD_REQUEST"
+    XyneUnauthorized -> "XYNE_UNAUTHORIZED"
+    XyneAccessForbidden -> "XYNE_ACCESS_FORBIDDEN"
+    XyneNotFound -> "XYNE_NOT_FOUND"
+    XyneInternalServerError -> "XYNE_INTERNAL_SERVER_ERROR"
+    XyneUnknownError -> "XYNE_UNKNOWN_ERROR"
+
+instance FromResponse XyneError where
+  fromResponse resp = case statusCode $ responseStatusCode resp of
+    400 -> Just XyneBadRequest
+    401 -> Just XyneUnauthorized
+    403 -> Just XyneAccessForbidden
+    404 -> Just XyneNotFound
+    500 -> Just XyneInternalServerError
+    503 -> Just XyneInternalServerError
+    _ -> Just XyneUnknownError
+
+instance IsAPIError XyneError
+
 newtype AgencyDisabled
   = AgencyDisabled Text
   deriving (Eq, Show, IsBecknAPIError)
