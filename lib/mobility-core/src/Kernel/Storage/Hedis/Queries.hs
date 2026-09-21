@@ -874,9 +874,12 @@ withWaitAndLockRedis key timeout delay func = do
       threadDelay delay
       unless lockAvailable getLock
 
-withWaitAndLockMasterCloudCrossAppRedis :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> Int -> m a -> m a
-withWaitAndLockMasterCloudCrossAppRedis key timeout delay func = do
-  runInMasterCloudRedisCellWithCrossAppRedis getLock
+-- | datastoreName/operationName label the wait-for-lock time in the
+-- datastore_operation_duration metric (via withTimeRedis), so different callers'
+-- contention shows up as distinct series instead of one shared, meaningless total.
+withWaitAndLockMasterCloudCrossAppRedis :: (HedisFlow m env, TryException m, MonadMask m) => Text -> Text -> Text -> ExpirationTime -> Int -> m a -> m a
+withWaitAndLockMasterCloudCrossAppRedis datastoreName operationName key timeout delay func = do
+  withTimeRedis datastoreName operationName $ runInMasterCloudRedisCellWithCrossAppRedis getLock
   finally func (runInMasterCloudRedisCellWithCrossAppRedis $ unlockRedis key)
   where
     getLock = do
