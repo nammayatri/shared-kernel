@@ -1002,6 +1002,7 @@ test-suite mobility-core-tests
       TestSilentIOLogger
       Utils.Numeric
       Version
+      XyneSpacesTypes
       Paths_mobility_core
   hs-source-dirs:
       test/app
