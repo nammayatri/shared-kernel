@@ -54,7 +54,7 @@ filtersEncodeAsArrays =
             }
         req =
           minimalReq
-            { senderEmail = Just "reporter@nammayatri.in",
+            { senderEmail = Just "sender@example.com",
               cursor = Just "opaque-cursor",
               filters = Just fs
             }
@@ -62,7 +62,7 @@ filtersEncodeAsArrays =
       @?= object
         [ "channelId" .= txt "ch_desk",
           "limit" .= (20 :: Int),
-          "senderEmail" .= txt "reporter@nammayatri.in",
+          "senderEmail" .= txt "sender@example.com",
           "cursor" .= txt "opaque-cursor",
           "filters"
             .= object
@@ -138,8 +138,8 @@ detailFixture =
       "emailCount" .= (3 :: Int),
       "metadata"
         .= object
-          [ "reporterEmail" .= txt "navya.mahajan@nammayatri.in",
-            "fromEmailAddress" .= txt "desk@xyne.io",
+          [ "reporterEmail" .= txt "reporter@example.com",
+            "fromEmailAddress" .= txt "desk@example.com",
             "extraMetadataField" .= txt "ignored"
           ],
       "history"
@@ -161,7 +161,7 @@ decodesTicketDetail =
       A.Success detail -> do
         detail.id @?= Just "cmfgul0f9000123abcd"
         detail.emailCount @?= Just 3
-        (detail.metadata >>= (\m -> m.reporterEmail)) @?= Just "navya.mahajan@nammayatri.in"
+        (detail.metadata >>= (\m -> m.reporterEmail)) @?= Just "reporter@example.com"
         fmap length detail.history @?= Just 1
 
 -- Field set observed on a live GET ticket/{id}/conversation response
@@ -173,7 +173,7 @@ conversationFixture =
     [ "items"
         .= [ object
                [ "id" .= txt "msg_1",
-                 "from" .= txt "navya.mahajan@nammayatri.in",
+                 "from" .= txt "reporter@example.com",
                  "createdAt" .= txt "2026-09-11T10:00:00.000Z",
                  "subject" .= txt "[P2] [Control Center] Fares & Charges - Fare differs",
                  "externalThreadId" .= txt "cc-report-42",
