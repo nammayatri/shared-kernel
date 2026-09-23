@@ -660,7 +660,8 @@ data OfferUIConfigs = OfferUIConfigs
   { offerDisplayPriority :: Maybe Int,
     autoApply :: Maybe Bool,
     shouldValidate :: Maybe Bool,
-    isHidden :: Maybe Bool
+    isHidden :: Maybe Bool,
+    showMilestoneCard :: Maybe Bool
   }
   deriving (Generic, Show, FromJSON, ToJSON)
   deriving anyclass (ToSchema)
