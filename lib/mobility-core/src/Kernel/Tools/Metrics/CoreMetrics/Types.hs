@@ -18,20 +18,27 @@ module Kernel.Tools.Metrics.CoreMetrics.Types
     CoreMetricsContainer (..),
     DeploymentVersion (..),
     registerCoreMetricsContainer,
+    CachedVector,
+    withCachedLabel,
+    shouldSampleLatency,
+    defaultLatencySampleRate,
   )
 where
 
+import Data.Bits (shiftR)
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Set as Set
 import qualified EulerHS.KVConnector.Metrics as KVMetrics
 import EulerHS.Prelude as E
+import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Records.Extra
 import Kernel.Types.Time (Milliseconds, Seconds)
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError)
 
-type RequestLatencyMetric = P.Vector P.Label5 P.Histogram
+type RequestLatencyMetric = CachedVector P.Label5 P.Histogram
 
-type DatastoresLatencyMetric = P.Vector P.Label3 P.Histogram
+type DatastoresLatencyMetric = CachedVector P.Label3 P.Histogram
 
 type ErrorCounterMetric = P.Vector P.Label5 P.Counter
 
@@ -47,7 +54,7 @@ type StreamMetric = P.Vector P.Label2 P.Counter
 
 type StreamFailedMetric = P.Vector P.Label2 P.Counter
 
-type GenericLatencyMetric = P.Vector P.Label2 P.Histogram
+type GenericLatencyMetric = CachedVector P.Label2 P.Histogram
 
 type SchedulerFailureMetric = P.Vector P.Label2 P.Counter
 
@@ -88,7 +95,7 @@ type RedisStreamShardCounter = P.Vector P.Label1 P.Counter
 
 type OpenTripPlannerResponseMetric = P.Vector P.Label4 P.Counter
 
-type OpenTripPlannerLatencyMetric = P.Vector P.Label3 P.Histogram
+type OpenTripPlannerLatencyMetric = CachedVector P.Label3 P.Histogram
 
 -- | Per-provider SMS outcome counter (labels: "provider", "status", "version").
 type SmsProviderResponseMetric = P.Vector P.Label3 P.Counter
@@ -179,7 +186,8 @@ data CoreMetricsContainer = CoreMetricsContainer
     smsProviderResponseCounter :: SmsProviderResponseMetric,
     forkStartedCounter :: ForkCounterMetric,
     forkFinishedCounter :: ForkCounterMetric,
-    forkTagLabels :: IORef (Set.Set Text)
+    forkTagLabels :: IORef (Set.Set Text),
+    latencySampleRate :: IORef Word64
   }
 
 registerCoreMetricsContainer :: IO CoreMetricsContainer
@@ -217,11 +225,45 @@ registerCoreMetricsContainer = do
   forkStartedCounter <- registerForkCounter "forks_started_total" "Forked threads started, labelled by sanitized fork tag, fork type and version"
   forkFinishedCounter <- registerForkCounter "forks_finished_total" "Forked threads finished (success, error or killed), labelled by sanitized fork tag, fork type and version"
   forkTagLabels <- newIORef Set.empty
+  latencySampleRate <- newIORef defaultLatencySampleRate
   return CoreMetricsContainer {..}
+
+data CachedVector l m = CachedVector
+  { labelledMetrics :: P.Vector l m,
+    labelCache :: IORef (HM.HashMap l m)
+  }
+
+mkCachedVector :: P.Vector l m -> IO (CachedVector l m)
+mkCachedVector labelledMetrics = CachedVector labelledMetrics <$> newIORef HM.empty
+
+withCachedLabel :: (P.Label l, Hashable l) => CachedVector l m -> l -> (m -> IO ()) -> IO ()
+withCachedLabel cachedVector label f = do
+  cache <- readIORef cachedVector.labelCache
+  case HM.lookup label cache of
+    Just metric -> f metric
+    Nothing ->
+      P.withLabel cachedVector.labelledMetrics label $ \metric -> do
+        atomicModifyIORef' cachedVector.labelCache (\c -> (HM.insert label metric c, ()))
+        f metric
+
+defaultLatencySampleRate :: Word64
+defaultLatencySampleRate = 10
+
+shouldSampleLatency :: IORef Word64 -> IO Bool
+shouldSampleLatency rateRef = do
+  rate <- readIORef rateRef
+  if rate <= 1
+    then pure True
+    else (\t -> mix64 t `mod` rate == 0) <$> getMonotonicTimeNSec
+  where
+    mix64 x0 =
+      let x1 = (x0 `xor` (x0 `shiftR` 30)) * 0xbf58476d1ce4e5b9
+          x2 = (x1 `xor` (x1 `shiftR` 27)) * 0x94d049bb133111eb
+       in x2 `xor` (x2 `shiftR` 31)
 
 registerDatastoresLatencyMetrics :: IO DatastoresLatencyMetric
 registerDatastoresLatencyMetrics =
-  P.register $
+  mkCachedVector <=< P.register $
     P.vector ("datastore", "operation", "version") $
       P.histogram info P.defaultBuckets
   where
@@ -229,7 +271,7 @@ registerDatastoresLatencyMetrics =
 
 registerRequestLatencyMetric :: IO RequestLatencyMetric
 registerRequestLatencyMetric =
-  P.register $
+  mkCachedVector <=< P.register $
     P.vector ("host", "service", "status", "version", "url") $
       P.histogram info P.defaultBuckets
   where
@@ -293,7 +335,7 @@ registerStreamFailedCounter =
 
 registerGenericLatencyMetrics :: IO GenericLatencyMetric
 registerGenericLatencyMetrics =
-  P.register $
+  mkCachedVector <=< P.register $
     P.vector ("operation", "version") $
       P.histogram info newBuckets
   where
@@ -419,7 +461,7 @@ registerRedisStreamPendingGauge =
 
 registerLatencyMetrics :: IO GenericLatencyMetric
 registerLatencyMetrics =
-  P.register $
+  mkCachedVector <=< P.register $
     P.vector ("Action", "version") $
       P.histogram info newBuckets
   where
@@ -435,7 +477,7 @@ registerOpenTripPlannerResponseMetric =
 
 registerOpenTripPlannerLatencyMetric :: IO OpenTripPlannerLatencyMetric
 registerOpenTripPlannerLatencyMetric =
-  P.register $
+  mkCachedVector <=< P.register $
     P.vector ("query_type", "status", "version") $
       P.histogram info newBuckets
   where
