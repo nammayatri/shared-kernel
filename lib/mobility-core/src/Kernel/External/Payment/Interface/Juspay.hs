@@ -1031,7 +1031,8 @@ mkOfferUIConfigs Juspay.OfferUIConfigs {..} =
     { offerDisplayPriority = offer_display_priority,
       autoApply = auto_apply,
       shouldValidate = should_validate,
-      isHidden = is_hidden
+      isHidden = is_hidden,
+      showMilestoneCard = Nothing
     }
 
 buildBestOfferCombination :: (MonadThrow m, Log m) => Juspay.BestOfferCombination -> m BestOfferCombination
