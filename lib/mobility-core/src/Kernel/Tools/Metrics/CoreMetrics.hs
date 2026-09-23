@@ -102,10 +102,11 @@ addDatastoreLatencyImplementation storeType operation latency = do
   cmContainer <- asks (.coreMetrics)
   version <- asks (.version)
   L.runIO $
-    P.withLabel
-      cmContainer.datastoresLatency
-      (storeType, operation, version.getDeploymentVersion)
-      (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
+    whenM (shouldSampleLatency cmContainer.latencySampleRate) $
+      withCachedLabel
+        cmContainer.datastoresLatency
+        (storeType, operation, version.getDeploymentVersion)
+        (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
 
 incrementSortedSetCounterImplementation ::
   ( HasCoreMetrics r,
@@ -200,7 +201,7 @@ addRequestLatencyImplementation' cmContainer host serviceName dur status mbUrl v
           Just url -> removeUUIDs url
           Nothing -> ""
   L.runIO $
-    P.withLabel
+    withCachedLabel
       requestLatencyMetric
       (host, serviceName, status', version.getDeploymentVersion, sanitizedUrl)
       (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds dur))
@@ -296,10 +297,11 @@ addGenericLatencyImplementation operation latency = do
   cmContainer <- asks (.coreMetrics)
   version <- asks (.version)
   L.runIO $
-    P.withLabel
-      cmContainer.genericLatency
-      (operation, version.getDeploymentVersion)
-      (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
+    whenM (shouldSampleLatency cmContainer.latencySampleRate) $
+      withCachedLabel
+        cmContainer.genericLatency
+        (operation, version.getDeploymentVersion)
+        (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
 
 incrementSchedulerFailureCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> DeploymentVersion -> m ()
 incrementSchedulerFailureCounterImplementation' cmContainers context version = do
@@ -510,7 +512,7 @@ addGenericLatencyMetricsImplementation operation latency = do
   cmContainer <- asks (.coreMetrics)
   version <- asks (.version)
   L.runIO $
-    P.withLabel
+    withCachedLabel
       cmContainer.genericLatencyMetrics
       (operation, version.getDeploymentVersion)
       (`P.observe` fromIntegral latency)
@@ -546,7 +548,7 @@ addOpenTripPlannerLatencyImplementation queryType status latency = do
   cmContainer <- asks (.coreMetrics)
   version <- asks (.version)
   L.runIO $
-    P.withLabel
+    withCachedLabel
       cmContainer.openTripPlannerLatencyMetric
       (queryType, status, version.getDeploymentVersion)
       (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))

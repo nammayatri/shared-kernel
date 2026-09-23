@@ -13,8 +13,13 @@
 -}
 module Kernel.Tools.Logging where
 
+import qualified Data.Aeson as A
+import qualified Data.Aeson.Types as A
 import qualified Data.HashMap.Internal as HM
+import Data.IORef (writeIORef)
+import Data.Scientific (toBoundedInteger)
 import Data.Time hiding (getCurrentTime)
+import Data.Word (Word64)
 import qualified EulerHS.Language as L
 import Kernel.Beam.Lib.UtilsTH (HasSchemaName, schemaName)
 import qualified Kernel.Beam.Types as KT
@@ -24,7 +29,7 @@ import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Esqueleto.Config (HasEsqEnv)
 import Kernel.Storage.Hedis.Config
 import qualified Kernel.Storage.Queries.SystemConfigs as QSC
-import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics, incrementSystemConfigsFailedCounter)
+import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics, defaultLatencySampleRate, incrementSystemConfigsFailedCounter)
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow (HasCacConfig, HasCacheConfig, HasInMemEnv)
 import Kernel.Types.Logging
@@ -71,8 +76,21 @@ getDynamicLogLevelConfig = do
       MaybeT . pure $ if round (diffUTCTime now kvConfigLastUpdatedTime) > kvConfigUpdateFrequency then Nothing else Just False
   if shouldFetchFromDB
     then do
-      res <- QSC.findById "log_levels" >>= pure . decodeFromText' @(HM.HashMap Text DynamicLogLevel)
+      mbLogLevelsConfig <- QSC.findById "log_levels" >>= pure . decodeFromText' @(HM.HashMap Text A.Value)
+      whenJust mbLogLevelsConfig $ \logLevelsConfig -> do
+        rateRef <- asks (.coreMetrics.latencySampleRate)
+        liftIO . writeIORef rateRef . fromMaybe defaultLatencySampleRate $ HM.lookup latencyMetricsSampleRateKey logLevelsConfig >>= parseLatencySampleRate
+      let res = traverse (A.parseMaybe A.parseJSON) . HM.delete latencyMetricsSampleRateKey =<< mbLogLevelsConfig
       maybe (incrementSystemConfigsFailedCounter ("system_configs_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT) <> "_log_levels")) (L.setOption KT.DynamicLogLevelConfig) res
       void $ L.setOption KT.LogLevelLastUpdatedTime now
       pure res
     else L.getOption KT.DynamicLogLevelConfig
+
+latencyMetricsSampleRateKey :: Text
+latencyMetricsSampleRateKey = "latency_metrics_sample_rate"
+
+parseLatencySampleRate :: A.Value -> Maybe Word64
+parseLatencySampleRate = \case
+  A.Number n -> max 1 <$> toBoundedInteger n
+  A.String t -> max 1 <$> readMaybe (toString t)
+  _ -> Nothing
