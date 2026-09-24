@@ -1051,6 +1051,7 @@ test-suite mobility-core-tests
       Jose
       KmsSecrets
       MorthV2CryptoTests
+      MultiModalVehicleType
       PartialIndexTests
       Predicates
       SettlementEmail
