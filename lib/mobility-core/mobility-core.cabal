@@ -1040,6 +1040,7 @@ test-suite mobility-core-tests
       HedisClusterPipeline
       Jose
       MorthV2CryptoTests
+      MultiModalVehicleType
       PartialIndexTests
       Predicates
       SettlementEmail
