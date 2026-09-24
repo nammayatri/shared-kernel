@@ -59,6 +59,21 @@ getVehicleBasicClient = client (Proxy :: Proxy GetVehicleBasicAPI)
 
 -- ---------------------------------------------------------------------------
 -- Servant API definition
+-- POST /vehicle/getVehicleTechnicalInfo
+-- ---------------------------------------------------------------------------
+
+type GetVehicleTechnicalAPI =
+  "vehicle"
+    :> "getVehicleTechnicalInfo"
+    :> Header "X-API-Key" Text
+    :> ReqBody '[JSON] MorthTypes.VehicleTechnicalInfoReq
+    :> Post '[JSON] MorthTypes.VehicleTechnicalInfoResp
+
+getVehicleTechnicalClient :: Maybe Text -> MorthTypes.VehicleTechnicalInfoReq -> EulerClient MorthTypes.VehicleTechnicalInfoResp
+getVehicleTechnicalClient = client (Proxy :: Proxy GetVehicleTechnicalAPI)
+
+-- ---------------------------------------------------------------------------
+-- Servant API definition
 -- POST /dl/getDrivinglicenseValidityInfo
 -- ---------------------------------------------------------------------------
 
@@ -126,6 +141,27 @@ getVehicleBasicInfo cfg req = do
   apiKey <- decrypt cfg.apiKey
   callAPI' (Just $ ManagerSelector $ DT.pack morthHttpManagerKey) cfg.url (getVehicleBasicClient (Just apiKey) req) "MORTH-GET_VEHICLE_BASIC_INFO" (Proxy @GetVehicleBasicAPI)
     >>= checkVehicleBasicResponse cfg.url
+
+-- ---------------------------------------------------------------------------
+-- High-level call: getVehicleTechnicalInfo
+-- ---------------------------------------------------------------------------
+
+getVehicleTechnicalInfo ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  MorthTypes.MorthVerificationCfg ->
+  MorthTypes.VehicleTechnicalInfoReq ->
+  m MorthTypes.VehicleTechnicalInfoResp
+getVehicleTechnicalInfo cfg req = do
+  apiKey <- decrypt cfg.apiKey
+  logDebug $ "MoRTH getVehicleTechnicalInfo request: " <> encodeToText req
+  callAPI' (Just $ ManagerSelector $ DT.pack morthHttpManagerKey) cfg.url (getVehicleTechnicalClient (Just apiKey) req) "MORTH-GET_VEHICLE_TECHNICAL_INFO" (Proxy @GetVehicleTechnicalAPI)
+    >>= checkVehicleTechnicalResponse cfg.url
 
 -- ---------------------------------------------------------------------------
 -- High-level call: getDrivingLicenseValidityInfo
@@ -203,6 +239,22 @@ checkVehicleBasicResponse url resp =
 validateVehicleBasicResponse :: (MonadThrow m, Log m) => MorthTypes.VehicleBasicInfoResp -> m MorthTypes.VehicleBasicInfoResp
 validateVehicleBasicResponse resp = do
   logDebug $ "MoRTH Vehicle Basic Info Response: " <> show resp
+  pure resp
+
+checkVehicleTechnicalResponse ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m
+  ) =>
+  BaseUrl ->
+  Either ClientError MorthTypes.VehicleTechnicalInfoResp ->
+  m MorthTypes.VehicleTechnicalInfoResp
+checkVehicleTechnicalResponse url resp =
+  fromEitherM (morthError url) resp >>= validateVehicleTechnicalResponse
+
+validateVehicleTechnicalResponse :: (MonadThrow m, Log m) => MorthTypes.VehicleTechnicalInfoResp -> m MorthTypes.VehicleTechnicalInfoResp
+validateVehicleTechnicalResponse resp = do
+  logDebug $ "MoRTH Vehicle Technical Info Response: " <> show resp
   pure resp
 
 checkDrivingLicenseValidityResponse ::

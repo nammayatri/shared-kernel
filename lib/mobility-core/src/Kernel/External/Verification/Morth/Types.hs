@@ -203,3 +203,43 @@ drivingLicenseClassWiseValidityRespOptions =
         "data_" -> "data"
         other -> other
     }
+
+data VehicleTechnicalInfoReq = VehicleTechnicalInfoReq
+  { regnNo :: Text,
+    applicantMobile :: Text,
+    engNo :: Text,
+    chasiNo :: Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data VehicleTechnicalInfoData = VehicleTechnicalInfoData
+  { fuelType :: Maybe Text,
+    ladenWeight :: Maybe Text,
+    unladenWeight :: Maybe Text,
+    seatingCap :: Maybe Text
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data VehicleTechnicalInfoResp = VehicleTechnicalInfoResp
+  { success :: Bool,
+    message :: Maybe Text,
+    statusCode :: Int,
+    data_ :: Maybe VehicleTechnicalInfoData
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance FromJSON VehicleTechnicalInfoResp where
+  parseJSON = genericParseJSON vehicleTechnicalInfoRespOptions
+
+instance ToJSON VehicleTechnicalInfoResp where
+  toJSON = genericToJSON vehicleTechnicalInfoRespOptions
+
+vehicleTechnicalInfoRespOptions :: Options
+vehicleTechnicalInfoRespOptions =
+  defaultOptions
+    { fieldLabelModifier = \case
+        "data_" -> "data"
+        other -> other
+    }
