@@ -1004,6 +1004,7 @@ test-suite mobility-core-tests
       DistanceCalculation
       HedisClusterPipeline
       MorthV2CryptoTests
+      MultiModalVehicleType
       PartialIndexTests
       Predicates
       SettlementEmail
