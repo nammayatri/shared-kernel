@@ -43,6 +43,7 @@ data PayoutOrderStatus
   | VALID
   | CONFLICTED
   | REVERSED
+  | NEW
   deriving (Show, Generic, Ord, Read, FromJSON, ToJSON, ToSchema, Eq)
 
 $(mkBeamInstancesForEnum ''PayoutOrderStatus)
