@@ -24,6 +24,7 @@ import HedisClusterPipeline (hedisClusterPipelineTests)
 import Jose (joseTests)
 import KmsSecrets (kmsSecretsTests)
 import MorthV2CryptoTests (morthV2CryptoTests)
+import MultiModalVehicleType
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -60,5 +61,6 @@ specs = do
           partialIndexTests,
           xyneSpacesTypeTests,
           morthV2CryptoTests,
-          kmsSecretsTests
+          kmsSecretsTests,
+          multiModalVehicleTypeTests
         ]
