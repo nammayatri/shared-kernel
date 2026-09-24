@@ -33,6 +33,7 @@ data IssueTicketServiceConfig
   = KaptureConfig Kapture.KaptureCfg
   | ZendeskConfig Zendesk.ZendeskCfg
   | XyneSpacesConfig XyneSpaces.XyneSpacesCfg
+  | RadarXyneSpacesConfig XyneSpaces.XyneSpacesCfg
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data TicketStatus = Open | Pending | Solved | Closed | Reopened

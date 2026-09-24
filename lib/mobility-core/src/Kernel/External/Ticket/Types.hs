@@ -26,7 +26,7 @@ import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data IssueTicketService = Kapture | Zendesk | XyneSpaces
+data IssueTicketService = Kapture | Zendesk | XyneSpaces | RadarXyneSpaces
   deriving (Show, Read, Eq, Ord, Generic, ToSchema)
 
 instance FromJSON IssueTicketService where
@@ -37,6 +37,7 @@ instance ToJSON IssueTicketService where
   toJSON Kapture = A.String (show Kapture)
   toJSON Zendesk = A.String (show Zendesk)
   toJSON XyneSpaces = A.String (show XyneSpaces)
+  toJSON RadarXyneSpaces = A.String (show RadarXyneSpaces)
 
 $(mkBeamInstancesForEnumAndList ''IssueTicketService)
 
