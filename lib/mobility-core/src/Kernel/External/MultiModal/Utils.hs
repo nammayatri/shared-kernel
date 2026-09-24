@@ -5,6 +5,7 @@ module Kernel.External.MultiModal.Utils
     convertOTPToGeneric,
     decode,
     encode,
+    legVehicleType,
   )
 where
 
@@ -61,6 +62,11 @@ convertModeToGeneral OTP.ModeMONORAIL = MetroRail
 convertModeToGeneral OTP.ModeSUBWAY = Subway
 convertModeToGeneral OTP.ModeWALK = Walk
 convertModeToGeneral _ = Unspecified
+
+-- Shared cabs ship in GTFS as TAXI routes under the SHARED_CAB agency; they are booked as FRFS bus legs.
+legVehicleType :: OTP.Mode -> Maybe Text -> GeneralVehicleType
+legVehicleType OTP.ModeTAXI (Just agencyGtfsId) | gtfsIdtoDomainCode agencyGtfsId == "SHARED_CAB" = Bus
+legVehicleType mode _ = convertModeToGeneral mode
 
 convertTransitVehicleToGeneral :: GT.TransitVehicleTypeV2 -> GeneralVehicleType
 convertTransitVehicleToGeneral GT.VEHICLE_TYPE_BUS = Bus
@@ -543,7 +549,7 @@ convertOTPToGeneric otpResponse minimumWalkDistance permissibleModes maxAllowedP
         Just otpLeg' ->
           let distance = fromMaybe 0.0 otpLeg'.distance
               duration = fromMaybe 0.0 otpLeg'.duration
-              mode = convertModeToGeneral $ fromMaybe OTP.ModeTRANSIT otpLeg'.mode
+              mode = legVehicleType (fromMaybe OTP.ModeTRANSIT otpLeg'.mode) (genericAgency >>= \ag -> ag.gtfsId)
               startLocName = fmap T.pack $ if fromMaybe "" otpLeg'.from.name == "Origin" then Nothing else otpLeg'.from.name
               endLocName = fmap T.pack $ if fromMaybe "" otpLeg'.to.name == "Destination" then Nothing else otpLeg'.to.name
               encodedPolylineText = T.pack $ maybe "" (\x -> fromMaybe "" x.points) otpLeg'.legGeometry

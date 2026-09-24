@@ -23,6 +23,7 @@ import HdfcCbxMapping (hdfcCbxMappingTests)
 import HedisClusterPipeline (hedisClusterPipelineTests)
 import Jose (joseTests)
 import MorthV2CryptoTests (morthV2CryptoTests)
+import MultiModalVehicleType
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -58,5 +59,6 @@ specs = do
           settlementEmailTests,
           partialIndexTests,
           xyneSpacesTypeTests,
-          morthV2CryptoTests
+          morthV2CryptoTests,
+          multiModalVehicleTypeTests
         ]
