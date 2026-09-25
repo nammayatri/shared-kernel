@@ -23,6 +23,7 @@ module Kernel.Beam.Functions
     updateWithKV,
     updateWithKVScheduler,
     updateOneWithKV,
+    updateOneWithKVReturning,
     updateOneWithLockKV,
     defaultKVLockConfig,
     KVLockConfig (..),
@@ -612,7 +613,21 @@ updateOneWithKV ::
   Where Postgres table ->
   m ()
 updateOneWithKV setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
-  updateOneInternal updatedMeshConfig setClause whereClause
+  void $ updateOneInternal updatedMeshConfig setClause whereClause
+
+updateOneWithKVReturning ::
+  forall table m r a.
+  ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
+    FromTType' (table Identity) a
+  ) =>
+  [Set Postgres table] ->
+  Where Postgres table ->
+  m (Maybe a)
+updateOneWithKVReturning setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
+  updatedRow <- updateOneInternal updatedMeshConfig setClause whereClause
+  maybe (pure Nothing) fromTType' updatedRow
 
 updateOneWithKVWithOptions ::
   forall table m r.
@@ -624,7 +639,7 @@ updateOneWithKVWithOptions ::
   m ()
 updateOneWithKVWithOptions ttl forceDrain setClause whereClause = withUpdatedMeshConfig (Proxy @table) $ \updatedMeshConfig -> do
   let updatedMeshConfig' = updatedMeshConfig {redisTtl = fromMaybe (redisTtl updatedMeshConfig) ttl, forceDrainToDB = forceDrain}
-  updateOneInternal updatedMeshConfig' setClause whereClause
+  void $ updateOneInternal updatedMeshConfig' setClause whereClause
 
 updateOneWithLockKV ::
   forall table m r.
@@ -826,7 +841,7 @@ updateOneInternal ::
   MeshConfig ->
   [Set Postgres table] ->
   Where Postgres table ->
-  m ()
+  m (Maybe (table Identity))
 updateOneInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
   dbConf <- getMasterDBConfig
   replicaDbConf <- getReplicaDbConfig
@@ -846,6 +861,7 @@ updateOneInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ d
               void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')
             logDebug $
               "Updated row DB: " <> show obj
+      pure obj
     Left err -> throwError $ InternalError $ show err
 
 createInternal ::
