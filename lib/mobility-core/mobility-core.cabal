@@ -457,10 +457,15 @@ library
       Kernel.External.Wallet.Juspay
       Kernel.External.Wallet.Juspay.Config
       Kernel.External.Wallet.Juspay.Flow
+      Kernel.External.Whatsapp.Cerf.Api
+      Kernel.External.Whatsapp.Cerf.Config
+      Kernel.External.Whatsapp.Cerf.Flow
+      Kernel.External.Whatsapp.Cerf.Types
       Kernel.External.Whatsapp.GupShup.Config
       Kernel.External.Whatsapp.GupShup.Flow
       Kernel.External.Whatsapp.GupShup.Types
       Kernel.External.Whatsapp.Interface
+      Kernel.External.Whatsapp.Interface.Cerf
       Kernel.External.Whatsapp.Interface.GupShup
       Kernel.External.Whatsapp.Interface.Karix
       Kernel.External.Whatsapp.Interface.TataCommunications
