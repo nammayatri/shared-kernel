@@ -28,7 +28,7 @@ import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForList)
 import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data WhatsappService = GupShup | TataCommunications | Karix | Twilio
+data WhatsappService = GupShup | TataCommunications | Karix | Twilio | Cerf
   deriving (Show, Read, Eq, Ord, Generic, ToSchema)
 
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be WhatsappService where
@@ -44,9 +44,10 @@ instance ToJSON WhatsappService where
   toJSON TataCommunications = A.String (show TataCommunications)
   toJSON Karix = A.String (show Karix)
   toJSON Twilio = A.String (show Twilio)
+  toJSON Cerf = A.String (show Cerf)
 
 availableWhatsappServices :: [WhatsappService]
-availableWhatsappServices = [GupShup, TataCommunications, Karix, Twilio]
+availableWhatsappServices = [GupShup, TataCommunications, Karix, Twilio, Cerf]
 
 $(mkBeamInstancesForList ''WhatsappService)
 

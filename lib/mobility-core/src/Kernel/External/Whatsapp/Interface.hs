@@ -22,7 +22,9 @@ where
 
 import EulerHS.Prelude
 import Kernel.External.SMS.TwillioSms.Config as Reexport
+import Kernel.External.Whatsapp.Cerf.Config as Reexport
 import Kernel.External.Whatsapp.GupShup.Config as Reexport
+import qualified Kernel.External.Whatsapp.Interface.Cerf as Cerf
 import qualified Kernel.External.Whatsapp.Interface.GupShup as GupShup
 import qualified Kernel.External.Whatsapp.Interface.Karix as Karix
 import qualified Kernel.External.Whatsapp.Interface.TataCommunications as TataCommunications
@@ -72,6 +74,9 @@ whatsAppOptApi' serviceConfig req = case serviceConfig of
   TwilioConfig _ -> do
     logDebug $ "Skipping WhatsApp opt-in API call for Twilio as it is not required."
     pure Nothing
+  CerfConfig _ -> do
+    logDebug $ "Skipping WhatsApp opt-in API call for Cerf as it is not required."
+    pure Nothing
 
 whatsAppOtpApi :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendOtpApiReq -> m SendOtpApiResp
 whatsAppOtpApi WhatsappHandler {..} req = do
@@ -103,6 +108,7 @@ whatsAppOtpApi' serviceConfig req = case serviceConfig of
   TataCommunicationsConfig cfg -> TataCommunications.whatsAppOTPApi cfg req
   KarixConfig cfg -> Karix.whatsAppOTPApi cfg req
   TwilioConfig cfg -> Twilio.whatsAppOTPApi cfg req
+  CerfConfig cfg -> Cerf.whatsAppOTPApi cfg req
 
 whatsAppSendMessageWithTemplateIdAPI :: (EncFlow m r, EsqDBFlow m r, CoreMetrics m) => WhatsappHandler m -> SendWhatsAppMessageWithTemplateIdApIReq -> m SendOtpApiResp
 whatsAppSendMessageWithTemplateIdAPI WhatsappHandler {..} req = do
@@ -135,3 +141,4 @@ whatsAppSendMessageWithTemplateIdAPI' serviceConfig req = case serviceConfig of
   TataCommunicationsConfig cfg -> TataCommunications.whatsAppSendMessageWithTemplateIdAPI cfg req
   KarixConfig cfg -> Karix.whatsAppSendMessageWithTemplateIdAPI cfg req
   TwilioConfig cfg -> Twilio.whatsAppSendMessageWithTemplateIdAPI cfg req
+  CerfConfig cfg -> Cerf.whatsAppSendMessageWithTemplateIdAPI cfg req
