@@ -22,9 +22,8 @@
 -- @batchnum@ or @filerefno@.
 module Kernel.External.Payout.Interface.HdfcCbx
   ( submitBulkPayout,
-    inquireBulkPayout,
+    checkBulkPayoutStatus,
     recoverBatchRef,
-    registerBeneficiary,
 
     -- * Exposed for testing
 
@@ -36,8 +35,8 @@ module Kernel.External.Payout.Interface.HdfcCbx
     readNoteAck,
     classifyInquiryNote,
     isKnownInterimReason,
-    failureReasonFor,
     settled,
+    classifyRow,
   )
 where
 
@@ -50,11 +49,9 @@ import Kernel.External.Encryption
 import Kernel.External.Payout.HdfcCbx.Auth (fetchToken)
 import Kernel.External.Payout.HdfcCbx.Config
 import qualified Kernel.External.Payout.HdfcCbx.Flow as Flow
-import Kernel.External.Payout.HdfcCbx.StatusMap (StatusCategory (..), statusCategory)
 -- Imported unqualified so DisambiguateRecordFields can resolve field names from the
 -- constructor. The wire types carry a Cbx prefix precisely so they do not collide with the
 -- canonical ones they map to.
-import Kernel.External.Payout.HdfcCbx.Types.BeneReg
 import Kernel.External.Payout.HdfcCbx.Types.Inquiry
 import Kernel.External.Payout.HdfcCbx.Types.Payment
 import Kernel.External.Payout.Interface.Types
@@ -64,7 +61,7 @@ import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (fromEitherM, fromMaybeM, throwError)
 import qualified Kernel.Utils.Jose as Jose
-import Kernel.Utils.Logging (logWarning)
+import Kernel.Utils.Logging (logDebug, logWarning)
 import Kernel.Utils.Servant.Client (HasRequestId)
 import Numeric (showFFloat)
 
@@ -93,24 +90,39 @@ withEnvelope cfg call payload = do
   ourPriv <- Jose.parseRsaPrivateKeyPem privPem & fromEitherM (\e -> InternalError $ "HDFC CBX signing key: " <> show e)
   bankPub <- Jose.parseRsaPublicKeyPem cfg.bankPublicKey & fromEitherM (\e -> InternalError $ "HDFC CBX bank key: " <> show e)
 
-  token <- (.access_token) <$> fetchToken (hdfcManagerKey cfg) cfg.tokenUrl cfg.consumerKey consumerSecret cfg.scope
+  consumerKey <- decrypt cfg.consumerKey
+  token <- (.access_token) <$> fetchToken (hdfcManagerKey cfg) cfg.tokenUrl consumerKey consumerSecret cfg.scope
+
+  -- a fresh trace id per call; the gateway's Postman guide shows one on every request
+  txnId <- T.filter (/= '-') <$> generateGUIDText
 
   -- our kid identifies the signing key; theirs identifies the key we encrypted to
   let ourKid = Jose.kidOf (Jose.publicOf ourPriv)
       theirKid = Jose.kidOf bankPub
-  signed <- Jose.signJWS ourPriv ourKid (BL.toStrict $ A.encode payload) & fromEitherM (\e -> InternalError $ "HDFC CBX sign: " <> show e)
+      requestJson = BL.toStrict $ A.encode payload
+
+  -- Every HDFC call is logged here in plaintext, request and response. The wire carries a JOSE
+  -- envelope signed and encrypted end to end, so this is the only point at which either side is
+  -- readable; without it a rejection reason is unrecoverable after the fact. Correlated by the
+  -- transactionId the gateway echoes in its own logs and quotes on support tickets.
+  logDebug $ "HDFC CBX request " <> txnId <> ": " <> decodeUtf8 requestJson
+
+  signed <- Jose.signJWS ourPriv ourKid requestJson & fromEitherM (\e -> InternalError $ "HDFC CBX sign: " <> show e)
   envelope <- liftIO (Jose.encryptJWE bankPub theirKid (encodeUtf8 signed)) >>= fromEitherM (\e -> InternalError $ "HDFC CBX encrypt: " <> show e)
 
-  -- a fresh trace id per call; the gateway's Postman guide shows one on every request
-  txnId <- T.filter (/= '-') <$> generateGUIDText
   rawE <- call (hdfcManagerKey cfg) cfg.url apiKey cfg.scope txnId token envelope
 
   case rawE of
     -- the gateway answered outside the tunnel; the caller decides what the note means
-    Left note -> pure (Left note)
+    Left note -> do
+      -- Debug, not error: this branch carries the routine "enquire again" 202 as well as real
+      -- refusals, and every caller already logs the ones that matter at their own level.
+      logDebug $ "HDFC CBX gateway note " <> txnId <> ": " <> show note
+      pure (Left note)
     Right raw -> do
       inner <- Jose.decryptJWE ourPriv raw & fromEitherM (\e -> InternalError $ "HDFC CBX decrypt: " <> show e)
       verified <- Jose.verifyJWS bankPub (decodeUtf8 inner) & fromEitherM (\e -> InternalError $ "HDFC CBX verify: " <> show e)
+      logDebug $ "HDFC CBX response " <> txnId <> ": " <> decodeUtf8 verified
       Right <$> (A.eitherDecodeStrict verified & fromEitherM (\e -> InternalError $ "HDFC CBX response shape: " <> show e))
 
 --------------------------------------------------------------------------------
@@ -163,7 +175,7 @@ submitBulkPayout cfg req = do
           payaddinfo6 = "",
           payaddinfo7 = "",
           chqnb = "",
-          reqdexctndt = ddmmyyyy r.valueDate,
+          reqdexctndt = ddmmyyyy r.executionDate,
           micrno = "",
           ifsc = item.bankIfscCode,
           bankname = "",
@@ -178,25 +190,33 @@ readAck :: CbxPaymentResp -> BulkPayoutResp
 readAck r =
   case (r.codstatus, nonEmptyText =<< r.batchnum) of
     (Just "0", Just batchnum) -> BulkAccepted batchnum
+    -- Acknowledged, but no reference quoted. Distinguished from a refusal because the submission
+    -- did land: treating it as rejected would release money the partner is about to move.
+    (Just "0", Nothing) -> BulkAcceptedNoRef txtstatus
     _
-      | isDuplicate -> BulkDuplicate (nonEmptyText =<< r.batchnum)
-      | otherwise -> BulkRejected (fromMaybe "unknown" r.codstatus) (fromMaybe "no reason given" r.txtstatus)
+      | isDuplicate -> BulkDuplicate (nonEmptyText =<< r.batchnum) txtstatus
+      | otherwise -> BulkRejected (fromMaybe "unknown" r.codstatus) txtstatus
   where
+    txtstatus = fromMaybe "no reason given" (nonEmptyText =<< r.txtstatus)
     isDuplicate = maybe False (T.isInfixOf "duplicate" . T.toLower) r.txtstatus
 
--- | A refusal the gateway sent as a bare problem document instead of an envelope.
--- The same duplicate rule as 'readAck' applies: a duplicate means they hold the batch.
+-- | What the gateway sent as a bare problem document instead of an envelope. Every response other
+-- than 200 uses that shape, on all three APIs.
+--
+-- A duplicate is pulled out because it means they hold a file under our reference, which is never a
+-- reason to send the money again. Anything else is the gateway refusing the request, carrying the
+-- most specific thing these responses have: their own code.
 readNoteAck :: Flow.GatewayNote -> BulkPayoutResp
 readNoteAck note
-  | T.isInfixOf "duplicate" (T.toLower note.noteReason) = BulkDuplicate Nothing
-  | otherwise = BulkRejected note.noteCode note.noteReason
+  | T.isInfixOf "duplicate" (T.toLower note.noteReason) = BulkDuplicate Nothing note.noteReason
+  | otherwise = BulkGatewayFailed note.noteCode note.noteReason
 
 --------------------------------------------------------------------------------
 -- inquire
 --------------------------------------------------------------------------------
 
-inquireBulkPayout :: (HdfcFlow m r) => HdfcCbxConfig -> BulkInquiryReq -> m BulkInquiryResp
-inquireBulkPayout cfg req = do
+checkBulkPayoutStatus :: (HdfcFlow m r) => HdfcCbxConfig -> BulkStatusCheckReq -> m BulkStatusCheckResp
+checkBulkPayoutStatus cfg req = do
   batchnum <- req.partnerBatchRef & fromMaybeM (InvalidRequest "batchnum is required; recover it first")
   respE :: Either Flow.GatewayNote CbxInquiryResp <-
     withEnvelope cfg Flow.bulkPaymentInquiry $
@@ -204,7 +224,7 @@ inquireBulkPayout cfg req = do
         { gcif = cfg.groupId,
           iduser = cfg.userId,
           batchnum = batchnum,
-          reqdexctndt = ddmmyyyy req.valueDate,
+          reqdexctndt = ddmmyyyy req.executionDate,
           filerefno = Just req.clientRefNo
         }
   case respE of
@@ -213,14 +233,14 @@ inquireBulkPayout cfg req = do
         & fromMaybeM (InternalError $ "HDFC CBX inquiry refused: " <> show note)
     Right resp -> interpret resp
   where
-    interpret :: (HdfcFlow m r) => CbxInquiryResp -> m BulkInquiryResp
+    interpret :: (HdfcFlow m r) => CbxInquiryResp -> m BulkStatusCheckResp
     interpret r
-      | isNoData r = pure InquiryNoData
+      | isNoData r = pure StatusCheckNoData
       | otherwise = case r.trans of
         -- "We have accepted your request. Please enquire again after sometime"
-        Nothing -> pure InquiryNotReady
-        Just [] -> pure InquiryNotReady
-        Just rows -> InquiryResolved . catMaybes <$> mapM (outcomeOf cfg) rows
+        Nothing -> pure StatusCheckNotReady
+        Just [] -> pure StatusCheckNotReady
+        Just rows -> StatusCheckResolved . catMaybes <$> mapM (outcomeOf cfg) rows
     isNoData r = maybe False (T.isInfixOf "no data" . T.toLower) r.message || r.codstatus == Just "NDF"
 
 -- | An inquiry on a batch the bank has not finished lands OUTSIDE the JOSE tunnel: 202
@@ -228,72 +248,139 @@ inquireBulkPayout cfg req = do
 -- after sometime") -- observed against UAT, 2026-09-02. Interim and no-data notes map to
 -- canonical outcomes; an unrecognised note is 'Nothing' and the caller treats it as an
 -- error rather than guessing.
-classifyInquiryNote :: Flow.GatewayNote -> Maybe BulkInquiryResp
+classifyInquiryNote :: Flow.GatewayNote -> Maybe BulkStatusCheckResp
 classifyInquiryNote note
-  | any (`T.isInfixOf` t) ["enquire again", "still under process", "still in process", "accepted your request"] = Just InquiryNotReady
-  | T.isInfixOf "no data" t = Just InquiryNoData
+  | any (`T.isInfixOf` t) ["enquire again", "still under process", "still in process", "accepted your request"] = Just StatusCheckNotReady
+  | T.isInfixOf "no data" t = Just StatusCheckNoData
   | otherwise = Nothing
   where
     t = T.toLower note.noteReason
 
--- | One transaction row to one canonical outcome.
-outcomeOf :: (HdfcFlow m r) => HdfcCbxConfig -> CbxInquiryTxn -> m (Maybe (Text, BulkItemOutcome))
-outcomeOf _cfg row = case row.custrefno of
+-- | One transaction row to one canonical outcome plus its settlement (@rbistatus@) status.
+outcomeOf :: (HdfcFlow m r) => HdfcCbxConfig -> CbxInquiryTxn -> m (Maybe (Text, BulkItemOutcome, Maybe TransferStatus))
+outcomeOf cfg row = case row.custrefno of
   Nothing -> pure Nothing -- a row we cannot attribute is worse than no row
   Just ref -> do
-    outcome <- classify
-    pure $ Just (ref, outcome)
+    let (outcome, settlement, mbUnmapped) = classifyRow cfg.ownBankIfscPrefix row
+    whenJust mbUnmapped $ \what -> logWarning $ "HDFC CBX unmapped status: " <> what
+    pure $ Just (ref, outcome, settlement)
+
+-- | The settlement axis (stored as @payout_order.transferStatus@) mirrors @rbistatus@ exactly, and
+-- is set by nothing else: absent when there is no RBI settlement statement -- intra-bank, which
+-- never gets one, or a transaction before settlement begins -- in-progress for @TXSIP@, transferred
+-- for @TXSETT@/@TXDSETT@, failed for @TXREJE@.
+settlementStatusOf :: Maybe Text -> Maybe TransferStatus
+settlementStatusOf raw = case parseCbxRbiStatus raw of
+  Just CbxSettled -> Just TRANSFERRED
+  Just CbxDeemedSettled -> Just TRANSFERRED
+  Just CbxSettlementInProgress -> Just TRANSFER_INITIATED
+  Just CbxSettlementRejected -> Just TRANSFER_FAILED
+  _ -> Nothing -- null or unrecognised rbistatus: no settlement statement
+
+-- | One inquiry row to one canonical outcome, its settlement status, and whatever could not be
+-- recognised.
+--
+-- Pure and total, so the whole decision can be exercised without a network, a certificate or a
+-- partner. Classification is structural: it reads the two coded axes and never the prose, because
+-- the partner's reason text is free-form and is carried through to the caller verbatim instead.
+--
+-- Axes, in order:
+--
+--   1. Intra-bank first, because it has no settlement axis at all. The partner executes a transfer
+--      inside its own books whenever the beneficiary banks with it -- converting the rail silently
+--      and echoing back the @cdflag@ we SENT -- and such a row never carries @rbistatus@. So the
+--      beneficiary IFSC, not the rail we asked for, is what decides, and @codstatus@ alone is
+--      terminal: @E@ is itself the credit confirmation.
+--   2. Otherwise settlement outranks @codstatus@: @TXREJE@ is a return after debit and
+--      @TXSETT@/@TXDSETT@ a confirmed credit, whatever @codstatus@ still says. Both are terminal;
+--      @TXREJE@ is taken first only because @rbireason@ plus a failed settlement status is the more
+--      informative pair when a row carries both.
+--   3. Then @codstatus@: @R@ terminal rejection; @P@ the checker-queue wait; @C@ in process; @E@
+--      debited from our nodal account, where the beneficiary credit is confirmed only by
+--      @rbistatus@, so @E@ without one stays in flight.
+--   4. Anything unrecognised stays interim and is reported for alerting, never guessed: reading it
+--      as success pays twice, reading it as failure strands a balance.
+classifyRow :: Maybe Text -> CbxInquiryTxn -> (BulkItemOutcome, Maybe TransferStatus, Maybe Text)
+classifyRow mbOwnBankIfscPrefix row
+  | intraBank = case parseCbxTxnStatus row.codstatus of
+    -- No RBI leg is coming, so the debit is the credit. Settlement is reported done here rather
+    -- than left absent, because nothing else will ever report it for this row.
+    CbxCompleted -> (settled intraBank row, Just TRANSFERRED, Nothing)
+    CbxRejected -> (rejected row.codstatus txtreason, Nothing, Nothing)
+    CbxPendingApproval -> (ItemPendingApproval (nonEmptyText txtreason), Nothing, Nothing)
+    CbxInProcess -> (ItemInterim (nonEmptyText txtreason), Nothing, Nothing)
+    CbxUnknownStatus other ->
+      ( ItemInterim (Just $ "unmapped codstatus: " <> other <> "/" <> txtreason),
+        Nothing,
+        Just $ "intra-bank codstatus=" <> other <> " txtreason=" <> txtreason
+      )
+  | rbi == Just CbxSettlementRejected =
+    (rejected row.rbistatus (fromMaybe "returned by beneficiary bank" row.rbireason), Just TRANSFER_FAILED, Nothing)
+  | rbi == Just CbxSettled || rbi == Just CbxDeemedSettled =
+    (settled intraBank row, Just TRANSFERRED, Nothing)
+  | otherwise = case parseCbxTxnStatus row.codstatus of
+    CbxRejected -> (rejected row.codstatus txtreason, settlementStatusOf row.rbistatus, Nothing)
+    CbxPendingApproval -> (ItemPendingApproval (nonEmptyText txtreason), settlementStatusOf row.rbistatus, Nothing)
+    CbxInProcess -> (ItemInterim (nonEmptyText txtreason), settlementStatusOf row.rbistatus, Nothing)
+    CbxCompleted -> onCompleted
+    CbxUnknownStatus other ->
+      ( ItemInterim (Just $ "unmapped codstatus: " <> other <> "/" <> txtreason),
+        settlementStatusOf row.rbistatus,
+        Just $ "rail=" <> rail <> " codstatus=" <> other <> " txtreason=" <> txtreason
+      )
   where
+    rbi = parseCbxRbiStatus row.rbistatus
     rail = maybe "NEFT" cdFlagToRailText row.cdflag
-    codstatus = fromMaybe "" row.codstatus
     txtreason = fromMaybe "" row.txtreason
+    -- Both halves are the partner's own words: the coded axis that refused the item, and its text.
+    -- Which axis it was is also readable from the settlement status -- TRANSFER_FAILED for a
+    -- post-debit return, absent for a validation rejection.
+    rejected mbCode detail = ItemRejected (nonEmptyText =<< mbCode) detail
+    -- Either arm is sufficient. The @cdflag@ arm catches an intra-bank transfer we asked for; the
+    -- IFSC arm catches one the partner performed on its own, which the echoed @cdflag@ cannot show.
+    intraBank =
+      row.cdflag == Just A2A
+        || maybe False (\prefix -> maybe False (T.isPrefixOf (T.toUpper prefix) . T.toUpper) (nonEmptyText =<< row.ifsc)) mbOwnBankIfscPrefix
 
-    classify
-      -- A settlement rejection means the money left our account and came back. It is not a
-      -- validation failure and must never be retried automatically.
-      | row.rbistatus == Just "TXREJE" =
-        pure $ ItemRejected RETURNED_AFTER_DEBIT (fromMaybe "returned by beneficiary bank" row.rbireason)
-      -- Interim states observed live that the generated status sheet does not carry;
-      -- mapped here so a normal maker-checker wait does not warn on every poll.
-      | isKnownInterimReason txtreason = pure $ ItemInterim (nonEmptyText txtreason)
-      | otherwise = case statusCategory rail codstatus txtreason of
-        Just Processed -> pure $ settled row
-        Just Rejected -> pure $ ItemRejected (failureReasonFor txtreason) txtreason
-        Just Interim -> pure $ ItemInterim (nonEmptyText txtreason)
-        Nothing -> do
-          -- An unrecognised combination is treated as interim, never as success or
-          -- failure: guessing either pays twice or strands a balance. Alert on it -- HDFC
-          -- do reissue the sheet.
-          logWarning $ "HDFC CBX unmapped status: rail=" <> rail <> " codstatus=" <> codstatus <> " txtreason=" <> txtreason
-          pure $ ItemInterim (Just $ "unmapped: " <> codstatus <> "/" <> txtreason)
+    -- @E@ on a rail that does have a settlement layer: debited from our nodal account, but the
+    -- beneficiary credit is confirmed only by @rbistatus@.
+    onCompleted = case rbi of
+      Just (CbxUnknownRbiStatus other) ->
+        ( ItemInterim (Just $ "unmapped settlement status: " <> other),
+          Nothing,
+          Just $ "rail=" <> rail <> " rbistatus=" <> other
+        )
+      _ -> (ItemInterim (Just "debited, awaiting settlement confirmation"), settlementStatusOf row.rbistatus, Nothing)
 
--- | Which reference we hold depends on the rail: a UTR on NEFT and RTGS, an FT number
--- intra-bank. Typed rather than guessed, because the caller shows it to a driver.
-settled :: CbxInquiryTxn -> BulkItemOutcome
-settled row =
+-- | Which reference we hold depends on the rail: a UTR on NEFT and RTGS, an FT number intra-bank.
+-- Typed rather than guessed, because the caller shows it to a driver.
+settled :: Bool -> CbxInquiryTxn -> BulkItemOutcome
+settled intraBank row =
   case (nonEmptyText =<< row.refno, nonEmptyText =<< row.bankrefno) of
-    (Just utr, _) -> ItemProcessed utr UTR
+    -- @bankrefno@ is documented only for payment type @I@ (intra-bank), where it is an FT number,
+    -- and it is preferred there: on a converted transfer @refno@ may still be absent while the FT
+    -- number is the real instrument.
+    _ | intraBank, Just ft <- nonEmptyText =<< row.bankrefno -> ItemProcessed ft FT_NUMBER
+    -- @refno@ is one field carrying different instruments per rail: the specification calls it
+    -- \"UTR No for RTGS\", but the same tag returns an RRN on IMPS. Labelling it by the rail the
+    -- row came back on keeps the type honest -- a driver shown \"UTR\" against an RRN cannot
+    -- trace it, and recon joins on the instrument.
+    (Just ref, _) -> ItemProcessed ref (if intraBank then FT_NUMBER else refTypeForRail row.cdflag)
     (_, Just ft) -> ItemProcessed ft FT_NUMBER
     _ -> ItemProcessed "" PARTNER_REF
+
+-- | Which instrument @refno@ holds, given the rail the partner reported.
+refTypeForRail :: Maybe CdFlag -> SettlementRefType
+refTypeForRail = \case
+  Just IMPS -> RRN
+  Just A2A -> FT_NUMBER
+  _ -> UTR -- NEFT, RTGS, and an unstated rail: the documented meaning of the field
 
 -- | Interim rows the generated sheet does not list, seen live: UAT answers a not-yet
 -- approved batch with @codstatus "P", txtreason "Pending Approval"@ on every rail
 -- (observed 2026-09-02, batches NODALT12...4066/4067).
 isKnownInterimReason :: Text -> Bool
 isKnownInterimReason t = "pending approval" `T.isInfixOf` T.toLower t
-
--- | The judgement layer: 67 distinct rejection texts collapse to five behaviours.
---
--- Deliberately hand-written rather than generated, because each grouping is a decision
--- about what we then /do/ -- notify, defer, or escalate to a human.
-failureReasonFor :: Text -> BulkFailureReason
-failureReasonFor raw
-  | any (`T.isInfixOf` t) ["invalid account", "account number not found", "invalid beneficiary account", "invalid account status"] = INVALID_ACCOUNT
-  | any (`T.isInfixOf` t) ["account blocked", "accounts blocked", "frozen", "dormant"] = ACCOUNT_BLOCKED
-  | any (`T.isInfixOf` t) ["returned", "reversed"] = RETURNED_AFTER_DEBIT
-  | otherwise = REJECTED_AT_VALIDATION
-  where
-    t = T.toLower raw
 
 --------------------------------------------------------------------------------
 -- recover
@@ -306,51 +393,32 @@ recoverBatchRef cfg req = do
       CbxBatchNumReq
         { gcif = cfg.groupId,
           iduser = cfg.userId,
-          reqdexctndt = ddmmyyyy req.valueDate,
+          reqdexctndt = ddmmyyyy req.executionDate,
           filerefno = req.clientRefNo
         }
-  pure $ case respE of
+  -- Only two answers are usable: the reference, or "no record". Anything else -- a note we do not
+  -- recognise, or an envelope quoting neither -- leaves us not knowing whether the partner received
+  -- the batch, and a batch we cannot place must never be failed on that basis. Throwing hands it to
+  -- the caller's own retry schedule, which parks it for a human when the plan runs out.
+  case respE of
     Left note
-      -- No record at their end means the submission never landed; safe to resubmit.
-      | T.isInfixOf "no record" (T.toLower note.noteReason) -> BatchRefNotFound
-      | otherwise -> BatchRefRefused note.noteCode note.noteReason
+      -- No record at their end means the submission never landed.
+      | T.isInfixOf "no record" (T.toLower note.noteReason) -> pure BatchRefNotFound
+      | otherwise -> throwError . InternalError $ "HDFC CBX batch-ref recovery gave no answer: " <> show note
     Right resp -> case nonEmptyText =<< resp.batchnum of
-      Just batchnum -> BatchRefFound batchnum
+      Just batchnum -> pure (BatchRefFound batchnum)
       Nothing
-        -- They have no record of it, so the submission never landed and it is safe to resubmit.
-        | maybe False (T.isInfixOf "no record" . T.toLower) resp.message -> BatchRefNotFound
-        | otherwise -> BatchRefRefused (fromMaybe "unknown" resp.codstatus) (fromMaybe "no reason given" resp.message)
+        | maybe False (T.isInfixOf "no record" . T.toLower) resp.message -> pure BatchRefNotFound
+        | otherwise ->
+          throwError . InternalError $
+            "HDFC CBX batch-ref recovery quoted no batchnum: "
+              <> fromMaybe "unknown" resp.codstatus
+              <> " "
+              <> fromMaybe "no reason given" resp.message
 
 --------------------------------------------------------------------------------
 -- beneficiary
 --------------------------------------------------------------------------------
-
-registerBeneficiary :: (HdfcFlow m r) => HdfcCbxConfig -> BeneRegReq -> m BeneRegResp
-registerBeneficiary cfg req = do
-  respE :: Either Flow.GatewayNote CbxBeneRegResp <-
-    withEnvelope cfg Flow.beneReg $
-      CbxBeneRegReq
-        { clientcode = cfg.clientCode,
-          groupid = cfg.groupId,
-          iduser = cfg.userId,
-          code = req.beneficiaryCode,
-          accno = req.bankAccountNumber,
-          ifsc = req.bankIfscCode,
-          name = T.take 40 req.beneficiaryName,
-          cdflag = railToCdFlag <$> req.rail,
-          email = req.beneficiaryEmail,
-          bankname = Nothing,
-          branch = Nothing
-        }
-  pure $ case respE of
-    Left note
-      | T.isInfixOf "already" (T.toLower note.noteReason) -> BeneRegAlreadyRegistered req.beneficiaryCode
-      | otherwise -> BeneRegRejected note.noteCode note.noteReason
-    Right resp -> case resp.codstatus of
-      Just "0" -> BeneRegAccepted req.beneficiaryCode
-      _
-        | maybe False (T.isInfixOf "already" . T.toLower) resp.message -> BeneRegAlreadyRegistered req.beneficiaryCode
-        | otherwise -> BeneRegRejected (fromMaybe "unknown" resp.codstatus) (fromMaybe "no reason given" resp.message)
 
 --------------------------------------------------------------------------------
 -- shared

@@ -138,7 +138,7 @@ payoutOrderStatus ::
   PayoutOrderStatusReq ->
   m PayoutOrderStatusResp
 payoutOrderStatus serviceConfig req = case serviceConfig of
-  HdfcCbxConfig _ -> throwError $ InvalidRequest "HDFC CBX has no per-order status API; use inquireBulkPayout"
+  HdfcCbxConfig _ -> throwError $ InvalidRequest "HDFC CBX has no per-order status API; use checkBulkPayoutStatus"
   JuspayConfig cfg -> Juspay.payoutOrderStatus cfg req
   StripeConfig cfg -> do
     resp <- Stripe.externalPayoutOrderStatus cfg req
@@ -205,22 +205,45 @@ submitBulkPayout serviceConfig req = case serviceConfig of
   JuspayConfig _ -> notABulkPartner "Juspay"
   StripeConfig _ -> notABulkPartner "Stripe"
 
-inquireBulkPayout :: (BulkFlowCtx m r) => PayoutServiceConfig -> BulkInquiryReq -> m BulkInquiryResp
-inquireBulkPayout serviceConfig req = case serviceConfig of
-  HdfcCbxConfig cfg -> HdfcCbx.inquireBulkPayout cfg req
+checkBulkPayoutStatus :: (BulkFlowCtx m r) => PayoutServiceConfig -> BulkStatusCheckReq -> m BulkStatusCheckResp
+checkBulkPayoutStatus serviceConfig req = case serviceConfig of
+  HdfcCbxConfig cfg -> HdfcCbx.checkBulkPayoutStatus cfg req
   JuspayConfig _ -> notABulkPartner "Juspay"
   StripeConfig _ -> notABulkPartner "Stripe"
+
+-- | The cadence to ask this partner about a submitted batch.
+--
+-- Total on purpose: callers schedule status checks without knowing which partner they are
+-- talking to, so a partner that publishes no cadence yields the shared default rather than
+-- an error. Sanitised here, at the single point every caller passes through, so no scheduler
+-- has to defend against a hand-edited config value on its own.
+bulkStatusCheckPlanOf :: PayoutServiceConfig -> BulkStatusCheckPlan
+bulkStatusCheckPlanOf = \case
+  HdfcCbxConfig cfg -> sanitizeBulkStatusCheckPlan (fromMaybe defaultBulkStatusCheckPlan cfg.bulkStatusCheckPlan)
+  JuspayConfig _ -> defaultBulkStatusCheckPlan
+  StripeConfig _ -> defaultBulkStatusCheckPlan
+
+-- | What a bulk partner can do, or 'Nothing' when this partner has no bulk API at all.
+--
+-- Total on purpose, like 'bulkStatusCheckPlanOf': it is the single place that turns a partner's
+-- own config into the partner-neutral capabilities every bulk stage works from, so adding a bulk
+-- partner means adding one arm here and nothing in any caller.
+bulkPartnerCapsOf :: PayoutServiceConfig -> Maybe BulkPartnerCaps
+bulkPartnerCapsOf = \case
+  config@(HdfcCbxConfig cfg) ->
+    Just
+      BulkPartnerCaps
+        { partnerName = "HDFC_CBX",
+          maxItemsPerBatch = cfg.maxItemsPerBatch,
+          statusCheckPlan = bulkStatusCheckPlanOf config
+        }
+  JuspayConfig _ -> Nothing
+  StripeConfig _ -> Nothing
 
 -- | Recovers a partner batch reference after a submission timed out. Never resubmit in that
 -- situation: the partner may well hold the batch already.
 recoverBatchRef :: (BulkFlowCtx m r) => PayoutServiceConfig -> BatchRefRecoveryReq -> m BatchRefRecoveryResp
 recoverBatchRef serviceConfig req = case serviceConfig of
   HdfcCbxConfig cfg -> HdfcCbx.recoverBatchRef cfg req
-  JuspayConfig _ -> notABulkPartner "Juspay"
-  StripeConfig _ -> notABulkPartner "Stripe"
-
-registerBeneficiary :: (BulkFlowCtx m r) => PayoutServiceConfig -> BeneRegReq -> m BeneRegResp
-registerBeneficiary serviceConfig req = case serviceConfig of
-  HdfcCbxConfig cfg -> HdfcCbx.registerBeneficiary cfg req
   JuspayConfig _ -> notABulkPartner "Juspay"
   StripeConfig _ -> notABulkPartner "Stripe"

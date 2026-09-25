@@ -23,7 +23,8 @@
 -- connection, the other proves the message. Conflating them is the usual way this
 -- integration fails on its first live call.
 module Kernel.External.Payout.HdfcCbx.Manager
-  ( prepareHdfcCbxHttpManagerFromPem,
+  ( prepareHdfcCbxHttpManagers,
+    prepareHdfcCbxHttpManagerFromPem,
   )
 where
 
@@ -33,12 +34,41 @@ import qualified Data.PEM as PEM
 import qualified Data.Text.Encoding as TE
 import qualified Data.X509 as X509
 import qualified Data.X509.CertificateStore as X509Store
+import Kernel.External.Encryption (decrypt)
+import Kernel.External.Payout.HdfcCbx.Config (HdfcCbxConfig, hdfcManagerKey)
 import Kernel.Prelude
+import Kernel.Utils.Common
 import qualified Network.Connection as Conn
 import qualified Network.HTTP.Client as Http
 import qualified Network.HTTP.Client.TLS as HttpTLS
 import qualified Network.TLS as TLS
 import qualified Network.TLS.Extra.Cipher as TLS
+
+-- | A manager for every HDFC CBX config the deployment holds, keyed as the call sites expect.
+--
+-- Takes the configs rather than reading them: where they are stored is the caller's business,
+-- the same shape as 'Kernel.Utils.Servant.SignatureAuth.prepareAuthManagers', which is handed
+-- the subscribers the app loaded.
+--
+-- A config whose material will not load is logged and skipped. One bad certificate should fail
+-- its own merchant's payouts when they are attempted, not stop the app from starting.
+prepareHdfcCbxHttpManagers ::
+  (EncFlow m r) =>
+  -- | timeout, milliseconds
+  Int ->
+  [HdfcCbxConfig] ->
+  m (HMS.HashMap Text Http.ManagerSettings)
+prepareHdfcCbxHttpManagers timeout configs = do
+  managers <- forM configs \cfg -> do
+    -- Only the private key is encrypted; the certificate and the CA bundle are public material.
+    clientKeyPem <- decrypt cfg.clientKeyPem
+    let managerKey = hdfcManagerKey cfg
+    case prepareHdfcCbxHttpManagerFromPem timeout managerKey cfg.clientCertPem clientKeyPem cfg.caBundlePem of
+      Left err -> do
+        logError $ "HDFC CBX manager " <> managerKey <> " was not built, payouts on it will fail: " <> err
+        pure HMS.empty
+      Right manager -> pure manager
+  pure $ HMS.unions managers
 
 -- | Manager settings presenting our client certificate, verifying the bank's server against a
 -- supplied CA bundle, registered under a caller-supplied key.

@@ -30,6 +30,7 @@ import qualified Kernel.External.Payout.Juspay.Config as Juspay
 import Kernel.External.Payout.Juspay.Types as Reexport (Fulfillment (..), PayoutOrderStatus (..))
 import qualified Kernel.External.Payout.Stripe.Config as Stripe
 import Kernel.External.Payout.Stripe.Types as Reexport (TransferId (..))
+import Kernel.External.Payout.Types as Reexport (BulkStatusCheckPlan (..), defaultBulkStatusCheckPlan, sanitizeBulkStatusCheckPlan)
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Types.Common
@@ -184,7 +185,7 @@ derivePersistField "PayoutRail"
 -- | Which kind of reference the partner returned for a settled item. The same field is a
 -- UTR on NEFT and RTGS, an FT number intra-bank and an RRN on IMPS, so it is typed rather
 -- than named after one rail's vocabulary.
-data SettlementRefType = UTR | FT_NUMBER | RRN | UPI_TXN_ID | PARTNER_REF
+data SettlementRefType = UTR | FT_NUMBER | RRN | PARTNER_REF
   deriving stock (Show, Read, Eq, Ord, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
@@ -192,26 +193,20 @@ $(mkBeamInstancesForEnum ''SettlementRefType)
 
 derivePersistField "SettlementRefType"
 
--- | Why an item was not paid. Mapped by the adapter from the partner's own vocabulary,
--- because the caller must be able to branch on it: the four rejection kinds need four
--- different actions, and two of them differ in whether money actually moved.
-data BulkFailureReason
-  = -- | Account does not exist or is not valid. Notify and exclude until corrected.
-    INVALID_ACCOUNT
-  | -- | Account exists but is frozen. Defer until resolved.
-    ACCOUNT_BLOCKED
-  | -- | Debited and returned by the beneficiary bank. Reconcile before re-paying.
-    RETURNED_AFTER_DEBIT
-  | -- | Refused before any money moved. Safe to defer to the next cycle.
-    REJECTED_AT_VALIDATION
-  | -- | Never appeared in an inquiry before the budget was spent. Never auto-retry.
-    UNRESOLVED
-  deriving stock (Show, Read, Eq, Ord, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
-
-$(mkBeamInstancesForEnum ''BulkFailureReason)
-
-derivePersistField "BulkFailureReason"
+-- | What the bulk stages need to know about a payout partner, without knowing which partner it
+-- is. Read once per city and carried through claiming, submission and status checks, so no
+-- caller downstream ever matches on a partner's config constructor.
+data BulkPartnerCaps = BulkPartnerCaps
+  { -- | Recorded on the batch and in logs, so an operator can tell who a batch went to.
+    partnerName :: Text,
+    -- | The partner's own ceiling on items in one submission. Callers chunk to it before
+    -- submitting; the adapter also enforces it, so an oversized batch is refused either way.
+    maxItemsPerBatch :: Int,
+    -- | How often to ask this partner about a submitted batch.
+    statusCheckPlan :: BulkStatusCheckPlan
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 data BulkPayoutItem = BulkPayoutItem
   { -- | Our reference for this item. The partner echoes it on every inquiry row, so it is
@@ -232,7 +227,7 @@ data BulkPayoutItem = BulkPayoutItem
 data BulkPayoutReq = BulkPayoutReq
   { -- | Ours, generated before the call so a timed-out submission stays recoverable.
     clientRefNo :: Text,
-    valueDate :: Day,
+    executionDate :: Day,
     rail :: PayoutRail,
     items :: [BulkPayoutItem]
   }
@@ -243,21 +238,28 @@ data BulkPayoutReq = BulkPayoutReq
 -- exception and must hold its reservations rather than releasing them, because the partner
 -- may well have accepted the batch.
 data BulkPayoutResp
-  = -- | Accepted for processing. Depending on the partner's configuration this may mean
-    -- queued for a human approver rather than accepted for payment.
+  = -- | Accepted for processing, with the reference the partner assigned. Depending on their
+    -- configuration this may mean queued for a human approver rather than accepted for payment.
     BulkAccepted {partnerBatchRef :: Text}
-  | -- | Definitively refused; nothing was accepted and reservations may be released.
+  | -- | Accepted, but the partner quoted no reference for it. The submission landed, so nothing
+    -- may be released or re-sent; the reference has to be recovered before it can be tracked.
+    BulkAcceptedNoRef {acceptedReason :: Text}
+  | -- | The partner refused the file itself, inside an ordinary response rather than an error.
+    -- Nothing was accepted.
     BulkRejected {code :: Text, reason :: Text}
-  | -- | The partner already holds this submission. They may or may not quote the reference
-    -- they assigned it; when they do not, recover it with 'BatchRefRecoveryReq'.
-    BulkDuplicate {existingBatchRef :: Maybe Text}
+  | -- | The partner already holds a submission under this reference. It says nothing about whose
+    -- file that is, or whether it should be paid, so it is never a reason to send the money again.
+    BulkDuplicate {existingBatchRef :: Maybe Text, duplicateReason :: Text}
+  | -- | The request was refused before the partner's banking layer saw it -- every non-200 arrives
+    -- as the same problem document, whose code is the most specific thing it carries.
+    BulkGatewayFailed {gatewayCode :: Text, gatewayReason :: Text}
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
-data BulkInquiryReq = BulkInquiryReq
+data BulkStatusCheckReq = BulkStatusCheckReq
   { partnerBatchRef :: Maybe Text,
     clientRefNo :: Text,
-    valueDate :: Day
+    executionDate :: Day
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -269,18 +271,28 @@ data BulkInquiryReq = BulkInquiryReq
 data BulkItemOutcome
   = -- | In flight. Keep the reservation and inquire again if budget remains.
     ItemInterim {note :: Maybe Text}
+  | -- | In flight, but held in the partner's maker-checker queue awaiting a human approval step.
+    -- Distinguished from 'ItemInterim' so a whole batch of these can be shown as awaiting approval
+    -- rather than merely being polled.
+    ItemPendingApproval {note :: Maybe Text}
   | ItemProcessed {settlementRef :: Text, refType :: SettlementRefType}
-  | ItemRejected {reason :: BulkFailureReason, detail :: Text}
+  | -- | Terminal refusal. Both halves are the partner's own: @code@ is whichever coded axis refused
+    -- it -- @codstatus@ for a validation rejection, @rbistatus@ for a post-debit return -- and
+    -- @detail@ is their text for it. No category of ours: which axis refused it is already readable
+    -- from the settlement status (TRANSFER_FAILED for a return, absent for a validation rejection),
+    -- and a coarser label of our own only ever disagreed with those two.
+    ItemRejected {code :: Maybe Text, detail :: Text}
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
-data BulkInquiryResp
+data BulkStatusCheckResp
   = -- | Accepted but nothing to report yet.
-    InquiryNotReady
-  | InquiryResolved [(Text, BulkItemOutcome)]
-  | -- | No data found. Verify the inquiry parameters; do not re-inquire in a loop.
-    InquiryNoData
-  | InquiryRefused {code :: Text, reason :: Text}
+    StatusCheckNotReady
+  | -- | Per item: its ref, the canonical outcome, and the settlement (rbistatus) status to store
+    -- as @transferStatus@ (a mirror of rbistatus; 'Nothing' when there is no RBI settlement).
+    StatusCheckResolved [(Text, BulkItemOutcome, Maybe TransferStatus)]
+  | -- | No data found. Verify the request parameters; do not re-check in a loop.
+    StatusCheckNoData
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
@@ -288,7 +300,7 @@ data BulkInquiryResp
 -- something the caller wrote before the call, which is why it is recoverable at all.
 data BatchRefRecoveryReq = BatchRefRecoveryReq
   { clientRefNo :: Text,
-    valueDate :: Day
+    executionDate :: Day
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -297,24 +309,5 @@ data BatchRefRecoveryResp
   = BatchRefFound {partnerBatchRef :: Text}
   | -- | The partner has no record of it, so the submission never landed.
     BatchRefNotFound
-  | BatchRefRefused {code :: Text, reason :: Text}
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
-data BeneRegReq = BeneRegReq
-  { beneficiaryCode :: Text,
-    bankAccountNumber :: Text,
-    bankIfscCode :: Text,
-    beneficiaryName :: Text,
-    rail :: Maybe PayoutRail,
-    beneficiaryEmail :: Maybe Text
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
-data BeneRegResp
-  = BeneRegAccepted {beneficiaryCode :: Text}
-  | BeneRegAlreadyRegistered {beneficiaryCode :: Text}
-  | BeneRegRejected {code :: Text, reason :: Text}
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

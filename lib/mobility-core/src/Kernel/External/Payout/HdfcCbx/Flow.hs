@@ -43,7 +43,7 @@ import Kernel.Utils.Servant.Client
 import Network.HTTP.Media ((//))
 import qualified Network.HTTP.Types as HttpTypes
 import Servant hiding (throwError)
-import Servant.Client.Core (ClientError (..), responseBody, responseStatusCode)
+import Servant.Client.Core (ClientError (..), Response, responseBody, responseStatusCode)
 
 -- | A JOSE compact serialisation travelling as @application/jose@ (RFC 7515's media
 -- type, and what HDFC's own sample requests send). Servant's 'JSON' would both mislabel
@@ -101,19 +101,6 @@ type BatchNumInquiryAPI =
     :> ReqBody '[JoseBody] Text
     :> Post '[JoseBody] Text
 
--- | Not in HDFC's Bulk Payments API kit -- that kit's payment request already carries the
--- beneficiary inline (see @code@/@accno@/@ifsc@ in 'Kernel.External.Payout.HdfcCbx.Types.Payment.CbxPaymentTxn'),
--- with no separate registration step. This path and version are unconfirmed against any
--- portal listing or UAT call; verify before relying on it.
-type BeneRegAPI =
-  "api" :> "v1" :> "cbx-nodal-beneReg"
-    :> Header "apikey" Text
-    :> Header "Scope" Text
-    :> Header "transactionId" Text
-    :> Header "Authorization" Text
-    :> ReqBody '[JoseBody] Text
-    :> Post '[JoseBody] Text
-
 type CallCtx m r = (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m)
 
 -- | A reply the gateway sends OUTSIDE the JOSE tunnel. Interim inquiry answers, token
@@ -144,7 +131,23 @@ newtype ProblemBody = ProblemBody
   deriving anyclass (FromJSON)
 
 noteFromClientError :: ClientError -> Maybe GatewayNote
-noteFromClientError (FailureResponse _ resp) = do
+noteFromClientError = \case
+  -- A refusal: the status is outside 2xx, so servant hands the response back untouched.
+  FailureResponse _ resp -> noteFromResponse resp
+  -- An acceptance that is not yet an answer. Servant only consults the response content
+  -- type once the status says success, so a note carried on a 2xx surfaces here instead:
+  -- the interim inquiry reply is @202 application/problem+json@ ("please enquire again
+  -- after sometime"), which is neither a failure nor a JOSE envelope. Reading it as a note
+  -- is what lets 'classifyInquiryNote' answer InquiryNotReady rather than the poll erroring.
+  UnsupportedContentType _ resp -> noteFromResponse resp
+  -- Correctly labelled, but not an envelope -- same document, same treatment.
+  DecodeFailure _ resp -> noteFromResponse resp
+  _ -> Nothing
+
+-- | A problem document, if that is what the body is. Anything else is 'Nothing' and stays
+-- an error: a note is only a note when the gateway actually sent one.
+noteFromResponse :: Response -> Maybe GatewayNote
+noteFromResponse resp = do
   prob :: ProblemBody <- A.decode (responseBody resp)
   firstErr <- listToMaybe =<< prob.errors
   pure
@@ -153,7 +156,6 @@ noteFromClientError (FailureResponse _ resp) = do
         noteCode = fromMaybe "" firstErr.code,
         noteReason = fromMaybe "" firstErr.reason
       }
-noteFromClientError _ = Nothing
 
 -- | An envelope, a gateway note, or -- for anything unrecognisable -- an error.
 joseResult :: (CallCtx m r) => Text -> Either ClientError Text -> m (Either GatewayNote Text)
@@ -187,10 +189,3 @@ batchNumInquiry mgr url apiKey scope txnId token envelope = do
       eulerClient = Euler.client proxy (Just apiKey) (Just scope) (Just txnId) (Just $ "Bearer " <> token) envelope
   callAPI' (Just $ ET.ManagerSelector mgr) url eulerClient "hdfc-batchnum-inquiry" proxy
     >>= joseResult "batchnuminq"
-
-beneReg :: (CallCtx m r) => Text -> BaseUrl -> Text -> Text -> Text -> Text -> Text -> m (Either GatewayNote Text)
-beneReg mgr url apiKey scope txnId token envelope = do
-  let proxy = Proxy @BeneRegAPI
-      eulerClient = Euler.client proxy (Just apiKey) (Just scope) (Just txnId) (Just $ "Bearer " <> token) envelope
-  callAPI' (Just $ ET.ManagerSelector mgr) url eulerClient "hdfc-bene-reg" proxy
-    >>= joseResult "beneReg"

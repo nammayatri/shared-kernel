@@ -20,6 +20,7 @@ import qualified Data.ByteArray.Encoding as BAE
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Kernel.External.Encryption
+import Kernel.External.Payout.Types (BulkStatusCheckPlan)
 import Kernel.Prelude
 
 -- | Connection and identity for HDFC CBX bulk payouts. Carried by the @HdfcCbxConfig@
@@ -29,8 +30,9 @@ data HdfcCbxConfig = HdfcCbxConfig
     url :: BaseUrl,
     -- | OAuth token endpoint. Two HDFC documents disagree on host and version; confirm before use.
     tokenUrl :: BaseUrl,
-    -- | OAuth client credentials, sent as HTTP Basic on the token call.
-    consumerKey :: Text,
+    -- | OAuth client credentials, sent as HTTP Basic on the token call. Both halves are
+    -- encrypted: the key is as much a credential as the secret, and HDFC issues them as a pair.
+    consumerKey :: EncryptedField 'AsEncrypted Text,
     consumerSecret :: EncryptedField 'AsEncrypted Text,
     -- | Registered on the API portal App; sent as a form parameter on the token call.
     scope :: Text,
@@ -58,7 +60,23 @@ data HdfcCbxConfig = HdfcCbxConfig
     -- Distinct from that key: this one proves the connection, that one proves the message.
     clientKeyPem :: EncryptedField 'AsEncrypted Text,
     -- | HDFC's own cap is 500. We send fewer; see the payout module design.
-    maxItemsPerBatch :: Int
+    maxItemsPerBatch :: Int,
+    -- | How often a submitted batch is asked about. Optional so that a row written before
+    -- this field existed still decodes -- an absent plan means the shared default, which is
+    -- HDFC's own published cadence, so behaviour is unchanged until someone sets one.
+    bulkStatusCheckPlan :: Maybe BulkStatusCheckPlan,
+    -- | IFSC prefix of the partner's own bank, e.g. @"HDFC"@. A beneficiary whose IFSC starts
+    -- with it is paid intra-bank, which has no RBI settlement leg: @rbistatus@ is never
+    -- populated for them, so terminality has to be read from @codstatus@ alone.
+    --
+    -- Needed because the partner converts the rail silently -- a NEFT to a beneficiary who
+    -- banks with them is executed intra-bank -- while echoing back the @cdflag@ we SENT, so
+    -- the request's own rail cannot reveal it.
+    --
+    -- Optional so a row written before this field existed still decodes. Absent means no
+    -- beneficiary is recognised as intra-bank by IFSC, leaving only the @cdflag@ test, which
+    -- is exactly the previous behaviour.
+    ownBankIfscPrefix :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
