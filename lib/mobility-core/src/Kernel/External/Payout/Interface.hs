@@ -73,7 +73,10 @@ createPayoutOrder serviceConfig req = case serviceConfig of
 
     (adjustedTransferAmount, merchantTopUpAmount) <- computeAdjustedTransfer
 
-    createTransferResp <- Stripe.createTransfer cfg (mkTransferReq connectedAccountId adjustedTransferAmount req)
+    mCreateTransferResp <-
+      if adjustedTransferAmount > 0
+        then Just <$> Stripe.createTransfer cfg (mkTransferReq connectedAccountId adjustedTransferAmount req)
+        else pure Nothing
     -- In case if external payout api call failed, we still need to store transferId and transferStatus
     result <- withTryCatch "createExternalPayout" $ Stripe.createExternalPayout cfg req
     createExternalPayoutResp <- case result of
@@ -92,7 +95,7 @@ createPayoutOrder serviceConfig req = case serviceConfig of
               amount = req.amount,
               customerId = Just req.customerId
             }
-    pure $ mkCreatePayoutOrderResp merchantTopUpAmount createTransferResp createExternalPayoutResp
+    pure $ mkCreatePayoutOrderResp merchantTopUpAmount mCreateTransferResp createExternalPayoutResp
   where
     mkTransferReq :: Text -> HighPrecMoney -> CreatePayoutOrderReq -> CreateTransferReq
     mkTransferReq connectedAccountId adjustedTransferAmount CreatePayoutOrderReq {..} =
@@ -104,14 +107,14 @@ createPayoutOrder serviceConfig req = case serviceConfig of
           description = Just remark
         }
 
-    mkCreatePayoutOrderResp :: Maybe HighPrecMoney -> CreateTransferResp -> CreateExternalPayoutResp -> CreatePayoutOrderResp
-    mkCreatePayoutOrderResp merchantTopUpAmount CreateTransferResp {transferId, transferStatus} CreateExternalPayoutResp {..} =
+    mkCreatePayoutOrderResp :: Maybe HighPrecMoney -> Maybe CreateTransferResp -> CreateExternalPayoutResp -> CreatePayoutOrderResp
+    mkCreatePayoutOrderResp merchantTopUpAmount mTransferResp CreateExternalPayoutResp {..} =
       CreatePayoutOrderResp
         { orderId,
           status,
-          transferStatus = Just transferStatus,
+          transferStatus = (\CreateTransferResp {transferStatus} -> transferStatus) <$> mTransferResp,
           orderType,
-          transferId = Just transferId,
+          transferId = (\CreateTransferResp {transferId} -> transferId) <$> mTransferResp,
           idAssignedByServiceProvider,
           udf1 = Nothing,
           udf2 = Nothing,
