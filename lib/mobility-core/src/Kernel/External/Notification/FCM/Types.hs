@@ -220,6 +220,7 @@ data FCMNotificationType
   | PASS_RELATED
   | BUS_APPROACHING
   | BUS_PREV_STOP_CROSSED
+  | SHARED_CAB_ALLOCATION
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
   deriving (PrettyShow) via Showable FCMNotificationType
 

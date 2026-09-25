@@ -144,6 +144,7 @@ data Category
   | PASS_RELATED
   | BUS_APPROACHING
   | BUS_PREV_STOP_CROSSED
+  | SHARED_CAB_ALLOCATION
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)
