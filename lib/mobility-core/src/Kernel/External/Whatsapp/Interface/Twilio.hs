@@ -95,7 +95,7 @@ whatsAppSendMessageWithTemplateIdAPI cfg SendWhatsAppMessageWithTemplateIdApIReq
               from = Nothing
             }
       else do
-        -- Template message: ContentSid + ContentVariables
+        -- Template message: ContentSid + ContentVariables (+ optional MediaUrl)
         let varMap = Map.fromList $ zipWith (\i v -> (T.pack (show (i :: Int)), fromMaybe "" v)) [1 ..] variables
             contentVariablesJson = decodeUtf8 $ encode varMap
         Ex.sendWhatsAppTemplateApi cfg $
@@ -103,7 +103,8 @@ whatsAppSendMessageWithTemplateIdAPI cfg SendWhatsAppMessageWithTemplateIdApIReq
             { to = whatsappTo,
               contentSid = templateId,
               contentVariables = contentVariablesJson,
-              messagingServiceSid = messageServiceId
+              messagingServiceSid = messageServiceId,
+              mediaUrl = mediaUrl
             }
   return $
     OptApiResp
