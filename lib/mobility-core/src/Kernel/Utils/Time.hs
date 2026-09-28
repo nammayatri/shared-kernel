@@ -158,3 +158,51 @@ utcTimeToText = T.pack . formatTime defaultTimeLocale "%FT%T%z"
 
 utcToEpochSeconds :: UTCTime -> Seconds
 utcToEpochSeconds = nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds
+
+toTimeWithZone :: TZone -> UTCTime -> TimeWithZone
+toTimeWithZone tz utcTime = TimeWithZone utcTime tz
+
+toIST :: UTCTime -> TimeWithZone
+toIST = toTimeWithZone IST
+
+toUTCZone :: UTCTime -> TimeWithZone
+toUTCZone = toTimeWithZone UTC
+
+fromTimeWithZone :: TimeWithZone -> UTCTime
+fromTimeWithZone = twzTime
+
+getTimeZoneOffset :: TZone -> Time.TimeZone
+getTimeZoneOffset UTC = Time.utc
+getTimeZoneOffset IST = Time.minutesToTimeZone 330 -- UTC+5:30
+
+getLocalHour :: TimeWithZone -> Int
+getLocalHour (TimeWithZone utcTime z) =
+  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utcTime
+   in Time.todHour $ Time.localTimeOfDay localTime
+
+getLocalMinute :: TimeWithZone -> Int
+getLocalMinute (TimeWithZone utcTime z) =
+  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utcTime
+   in Time.todMin $ Time.localTimeOfDay localTime
+
+addDaysToTimeWithZone :: Integer -> TimeWithZone -> TimeWithZone
+addDaysToTimeWithZone n (TimeWithZone utcTime z) =
+  TimeWithZone (Time.addUTCTime (fromInteger n * 86400) utcTime) z
+
+setTimeOfDay :: Int -> Int -> Int -> TimeWithZone -> TimeWithZone
+setTimeOfDay hour minute sec (TimeWithZone utcTime z) =
+  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utcTime
+      localDay = Time.localDay localTime
+      newLocalTime = Time.LocalTime localDay (Time.TimeOfDay hour minute (fromIntegral sec))
+      newUTC = Time.localTimeToUTC (getTimeZoneOffset z) newLocalTime
+   in TimeWithZone newUTC z
+
+formatTimeWithZone :: String -> TimeWithZone -> String
+formatTimeWithZone fmt (TimeWithZone utcTime z) =
+  let localTime = Time.utcToLocalTime (getTimeZoneOffset z) utcTime
+   in Time.formatTime Time.defaultTimeLocale fmt localTime
+        ++ " "
+        ++ show z
+
+formatStandard :: TimeWithZone -> String
+formatStandard = formatTimeWithZone "%Y-%m-%d %H:%M:%S"
