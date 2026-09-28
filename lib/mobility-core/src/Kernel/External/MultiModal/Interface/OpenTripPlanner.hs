@@ -34,6 +34,7 @@ getTransitRoutes ::
   TP.GetTransitRoutesReq ->
   m (Maybe TP.MultiModalResponse)
 getTransitRoutes cfg req = do
+  logDebug $ "getTransitRoute req: " <> show req
   let origin =
         InputCoordinates
           { lat = req.origin.location.latLng.latitude,
@@ -98,6 +99,7 @@ getTransitRoutes cfg req = do
           (\reqArgs -> liftIO $ requestPlan planClient reqArgs >>= single)
           requests
       end <- getClockTimeInMs
+      logDebug $ "MULTI_SEARCH results: " <> show results
       let latency = end - start
       let anyFailed = any isLeft results
       let allItineraries = mapMaybe extractItineraries results
