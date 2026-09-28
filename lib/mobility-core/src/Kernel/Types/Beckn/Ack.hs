@@ -16,13 +16,15 @@ module Kernel.Types.Beckn.Ack where
 
 import qualified Control.Lens as L
 import Data.Aeson
-import qualified Data.Aeson.Key as AesonKey (Key)
 import Data.Aeson.Types (unexpected)
 import qualified Data.HashMap.Strict.InsOrd as HMSIO
 import Data.OpenApi
 import EulerHS.Prelude
+import qualified Kernel.Types.Beckn.Error as BError
 
-data AckResponse = Ack
+data AckResponse
+  = Ack
+  | Nack BError.Error
   deriving (Generic, Show)
 
 instance ToSchema AckResponse where
@@ -32,13 +34,13 @@ instance ToSchema AckResponse where
         mempty
           & type_ L.?~ OpenApiObject
           & properties
-            L..~ HMSIO.singleton "message" messageSchema
+            L..~ HMSIO.fromList [("message", messageSchema), ("error", errorSchema)]
           & required L..~ ["message"]
     where
       statusSchema =
         (mempty :: Schema)
           & type_ L.?~ OpenApiString
-          & enum_ L.?~ ["ACK"]
+          & enum_ L.?~ ["ACK", "NACK"]
           & Inline
       ackSchema =
         (mempty :: Schema)
@@ -54,19 +56,60 @@ instance ToSchema AckResponse where
             L..~ HMSIO.singleton "ack" ackSchema
           & required L..~ ["ack"]
           & Inline
+      codeSchema = (mempty :: Schema) & type_ L.?~ OpenApiString & Inline
+      messageFieldSchema = (mempty :: Schema) & type_ L.?~ OpenApiString & Inline
+      errorSchema =
+        (mempty :: Schema)
+          & type_ L.?~ OpenApiObject
+          & properties
+            L..~ HMSIO.fromList [("code", codeSchema), ("message", messageFieldSchema)]
+          & required L..~ ["code"]
+          & Inline
 
+-- ONDC TRV10 v2.1.0 envelope: `{message: {ack: {status}}, error?: {code, message}}`.
+-- Error carries only `code` and `message` — the internal `type` and `path` fields are
+-- not emitted (spec-optional, and we keep those in the in-memory Error record for logs).
+--
+-- Parser accepts the unwrapped shape (spec). A WAI-level wrapper middleware in the BPP
+-- optionally rewraps outgoing bodies in `{response: ...}` for deployments whose BAPs
+-- expect that shape; the response-wrapper middleware is the only place that knows about
+-- the wrapper, keeping the wire-format contract explicit.
 instance FromJSON AckResponse where
-  parseJSON = withObject "Ack" $ \v -> do
+  parseJSON = withObject "AckResponse" $ \v -> do
+    -- Accept both unwrapped (spec) and wrapped ({response: {...}}) bodies — the wrapper
+    -- is handled by middleware at emit time, but a peer may echo our wrapped output back.
+    inner <- (v .: "response") <|> pure v
     status <-
-      (v .: "message")
+      (inner .: "message")
         >>= (.: "ack")
         >>= (.: "status")
-    unless (status == String "ACK") (unexpected status)
-    pure Ack
+    case status of
+      String "ACK" -> pure Ack
+      String "NACK" -> do
+        errObj <- inner .: "error"
+        errCode <- errObj .: "code"
+        errMsg <- errObj .:? "message"
+        pure $
+          Nack
+            BError.Error
+              { BError._type = BError.INTERNAL_ERROR,
+                BError.code = errCode,
+                BError.path = Nothing,
+                BError.message = errMsg
+              }
+      other -> unexpected other
 
 instance ToJSON AckResponse where
-  toJSON Ack = "message" .== "ack" .== "status" .== String "ACK"
-    where
-      (.==) :: AesonKey.Key -> Value -> Value
-      k .== v = Object (k .= v)
-      infixr 9 .==
+  toJSON Ack =
+    object
+      [ "message" .= object ["ack" .= object ["status" .= ("ACK" :: Text)]]
+      ]
+  toJSON (Nack err) =
+    object
+      [ "message" .= object ["ack" .= object ["status" .= ("NACK" :: Text)]],
+        "error"
+          .= object
+            [ "code" .= BError.code err,
+              "message" .= BError.message err
+            ]
+      ]
