@@ -512,4 +512,5 @@ validateResponseStatus response =
     "OK" -> pure response
     "ZERO_RESULTS" -> pure response
     "INVALID_REQUEST" -> throwError GoogleMapsInvalidRequest
+    "NOT_FOUND" -> throwError GoogleMapsInvalidRequest
     _ -> throwError $ GoogleMapsCallError response.status

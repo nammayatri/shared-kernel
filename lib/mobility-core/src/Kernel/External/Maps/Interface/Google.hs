@@ -611,8 +611,10 @@ getPlaceDetails entityId cfg req@GetPlaceDetailsReq {..} = do
       key <- decrypt cfg.googleKey
       let fields = "geometry,formatted_address,address_components,place_id"
       res <- GoogleMaps.getPlaceDetails entityId req mapsUrl key sessionToken placeId fields
-      let result = res.result
-          location = let loc = result.geometry.location in LatLong loc.lat loc.lng
+      result <- case res.result of
+        Just r -> pure r
+        Nothing -> throwError GoogleMapsInvalidRequest
+      let location = let loc = result.geometry.location in LatLong loc.lat loc.lng
           addressComponents = maybe [] (map reformateAddressResp) result.address_components
       return $ GetPlaceDetailsResp {location = location, formattedAddress = result.formatted_address, addressComponents = addressComponents, placeId = result.place_id}
     reformateAddressResp aResp =
