@@ -115,7 +115,19 @@ withHeaders headerPairs (ET.EulerClient f) =
 
 -- | Redact sensitive query parameter values (e.g. Google API keys) from logged strings.
 redactClientError :: Text -> Text
-redactClientError t = redactApiSecret . T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
+redactClientError t = redactSecretHeaders . redactApiSecret . T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
+
+-- | A failed 'ClientError' carries the request it sent, and its 'show' prints the headers as
+-- @("Name","value")@ pairs. Mask the value of every header that holds a credential.
+redactSecretHeaders :: Text -> Text
+redactSecretHeaders t =
+  T.pack $ TR.subRegex secretHeader (T.unpack t) "(\"\\1\",\"[REDACTED]\")"
+  where
+    secretHeader =
+      TR.mkRegexWithOpts
+        "\\(\"(authorization|proxy-authorization|apikey|api-key|x-api-key)\",\"([^\"\\]|\\\\.)*\"\\)"
+        True
+        False
 
 -- | The GA4 Measurement Protocol passes @api_secret@ as a query parameter, and a
 -- failed 'ClientError' carries the whole request, so mask it in both the URL form
