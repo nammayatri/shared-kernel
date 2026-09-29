@@ -58,5 +58,8 @@ verifyAuth config authData = do
       cfgPassword <- decrypt cfg.password
       return (cfg.username, cfgPassword)
     StripeConfig _ -> return ("", "")
+    -- HDFC CBX send no callbacks at all, so a webhook authenticated against their config
+    -- means something is misrouted rather than merely unauthorised.
+    HdfcCbxConfig _ -> throwError (InvalidRequest "HDFC CBX does not send webhooks")
   unless (basicAuthUsername authData == DT.encodeUtf8 username && basicAuthPassword authData == DT.encodeUtf8 password) $
     throwError (InvalidRequest "INVALID_AUTHORIZATION_HEADER")
