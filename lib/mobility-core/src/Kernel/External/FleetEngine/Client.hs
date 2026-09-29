@@ -103,6 +103,7 @@ bearer token = Just ("Bearer " <> token)
 -- | Create a Fleet Engine trip. @tripId@ is the (1:1) BPP ride id, which makes
 -- this idempotent: a re-issued CreateTrip for an existing trip returns
 -- ALREADY_EXISTS and is treated as success.
+-- Returns True on success or idempotent ALREADY_EXISTS; False on any other error.
 createTrip ::
   (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
   BaseUrl ->
@@ -110,7 +111,7 @@ createTrip ::
   Text -> -- token (server JWT)
   Text -> -- tripId
   Trip ->
-  m ()
+  m Bool
 createTrip baseUrl providerId token tripId trip = do
   result <-
     callAPI
@@ -121,11 +122,16 @@ createTrip baseUrl providerId token tripId trip = do
   fork "Logging external API Call of createTrip FleetEngine" $
     ApiCallLogger.pushExternalApiCallDataToKafka "createTrip" "FleetEngine" (Just tripId) (Just trip) result
   case result of
-    Right _ -> logInfo $ "FleetEngine: created trip " <> tripId
+    Right _ -> do
+      logInfo $ "FleetEngine: created trip " <> tripId
+      pure True
     Left err
-      | "ALREADY_EXISTS" `T.isInfixOf` show err ->
+      | "ALREADY_EXISTS" `T.isInfixOf` show err -> do
         logInfo $ "FleetEngine: trip already exists (idempotent no-op) " <> tripId
-      | otherwise -> logError $ "FleetEngine: createTrip failed for " <> tripId <> ": " <> show err
+        pure True
+      | otherwise -> do
+        logError $ "FleetEngine: createTrip failed for " <> tripId <> ": " <> show err
+        pure False
 
 -- Returns the server's response Trip on success so callers can cache
 -- 'intermediateDestinationsVersion' for the next mutation; 'Nothing' on
@@ -175,6 +181,7 @@ updateTripStatus baseUrl providerId token tripId status =
 -- Fleet Engine requires at least one successful CreateVehicle per provider
 -- before any Trips API works (project provisioning); ALREADY_EXISTS is
 -- treated as success.
+-- Returns True on success or idempotent ALREADY_EXISTS; False on any other error.
 createVehicle ::
   (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
   BaseUrl ->
@@ -182,7 +189,7 @@ createVehicle ::
   Text -> -- token (server JWT)
   Text -> -- vehicleId
   Vehicle ->
-  m ()
+  m Bool
 createVehicle baseUrl providerId token vehicleId vehicle = do
   result <-
     callAPI
@@ -193,11 +200,16 @@ createVehicle baseUrl providerId token vehicleId vehicle = do
   fork "Logging external API Call of createVehicle FleetEngine" $
     ApiCallLogger.pushExternalApiCallDataToKafka "createVehicle" "FleetEngine" (Just vehicleId) (Just vehicle) result
   case result of
-    Right _ -> logInfo $ "FleetEngine: created vehicle " <> vehicleId
+    Right _ -> do
+      logInfo $ "FleetEngine: created vehicle " <> vehicleId
+      pure True
     Left err
-      | "ALREADY_EXISTS" `T.isInfixOf` show err ->
+      | "ALREADY_EXISTS" `T.isInfixOf` show err -> do
         logInfo $ "FleetEngine: vehicle already exists (idempotent no-op) " <> vehicleId
-      | otherwise -> logError $ "FleetEngine: createVehicle failed for " <> vehicleId <> ": " <> show err
+        pure True
+      | otherwise -> do
+        logError $ "FleetEngine: createVehicle failed for " <> vehicleId <> ": " <> show err
+        pure False
 
 -- 'Nothing' on NOT_FOUND (for get-or-create); other errors also collapse to
 -- 'Nothing', matching the log-and-continue style used here.
@@ -226,6 +238,7 @@ getVehicle baseUrl providerId token vehicleId = do
         pure Nothing
 
 -- | Convenience: assign the vehicle to the trip and move it to ENROUTE_TO_PICKUP.
+-- Returns True on success; False on any transport / decode error.
 assignVehicleAndStart ::
   (CoreMetrics m, MonadFlow m, MonadReader r m, HasRequestId r, HasKafkaProducer r) =>
   BaseUrl ->
@@ -233,10 +246,10 @@ assignVehicleAndStart ::
   Text ->
   Text -> -- tripId
   Text -> -- vehicleId
-  m ()
+  m Bool
 assignVehicleAndStart baseUrl providerId token tripId vehicleId =
-  void $
-    updateTrip
+  isJust
+    <$> updateTrip
       baseUrl
       providerId
       token
