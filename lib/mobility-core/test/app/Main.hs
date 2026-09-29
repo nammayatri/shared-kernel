@@ -19,7 +19,9 @@ import Centesimal
 import ComputeIntersectionTests
 import DistanceCalculation
 import EulerHS.Prelude
+import HdfcCbxMapping (hdfcCbxMappingTests)
 import HedisClusterPipeline (hedisClusterPipelineTests)
+import Jose (joseTests)
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -41,7 +43,9 @@ specs = do
     unitTests =
       testGroup
         "Unit tests"
-        [ computeIntersectionTests,
+        [ joseTests,
+          hdfcCbxMappingTests,
+          computeIntersectionTests,
           centesimalTests,
           signatureAuthTests,
           httpExceptionTests,
