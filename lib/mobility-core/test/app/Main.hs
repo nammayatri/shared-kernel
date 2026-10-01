@@ -20,6 +20,7 @@ import ComputeIntersectionTests
 import DistanceCalculation
 import EulerHS.Prelude
 import HedisClusterPipeline (hedisClusterPipelineTests)
+import MultiModalVehicleType
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -52,5 +53,6 @@ specs = do
           predicatesTests,
           settlementEmailTests,
           partialIndexTests,
-          xyneSpacesTypeTests
+          xyneSpacesTypeTests,
+          multiModalVehicleTypeTests
         ]
