@@ -17,7 +17,9 @@ import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
 import qualified Data.HashMap.Internal as HM
 import Data.IORef (writeIORef)
+import Data.List (inits)
 import Data.Scientific (toBoundedInteger)
+import qualified Data.Text as T
 import Data.Time hiding (getCurrentTime)
 import Data.Word (Word64)
 import qualified EulerHS.Language as L
@@ -44,9 +46,15 @@ withDynamicLogLevel ::
   m a
 withDynamicLogLevel keyName fn = do
   mbDynamicLogLevelConfig <- getDynamicLogLevelConfig
-  mbLogLevel <- resolveDynamicLogLevel (HM.lookup keyName =<< mbDynamicLogLevelConfig)
+  mbLogLevel <- resolveDynamicLogLevel (lookupMostSpecific =<< mbDynamicLogLevelConfig)
   local (modifyEnv mbLogLevel) fn
   where
+    -- A key "a:b:c" matches config keys "a:b:c", then "a:b", then "a" (most specific first).
+    -- Keys without ':' behave as a plain lookup.
+    lookupMostSpecific config =
+      let keyParts = T.splitOn ":" keyName
+          candidateKeys = reverse . map (T.intercalate ":") . drop 1 $ inits keyParts
+       in listToMaybe $ mapMaybe (`HM.lookup` config) candidateKeys
     modifyEnv mbLogLevel env = do
       let logEnv = env.loggerEnv
           updLogEnv = updateLogLevelAndRawSql mbLogLevel logEnv
