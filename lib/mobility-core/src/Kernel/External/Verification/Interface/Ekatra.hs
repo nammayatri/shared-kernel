@@ -31,10 +31,11 @@ import Data.Char (isAlphaNum)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Kernel.External.Encryption
-import Kernel.External.Verification.Ekatra.Client (callEkatraOcrMap)
+import Kernel.External.Verification.Ekatra.Client (callEkatraOcrExtract, callEkatraOcrMap)
 import Kernel.External.Verification.Ekatra.Types
 import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import Kernel.External.Verification.Interface.Types
+import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
@@ -68,7 +69,7 @@ extractRCImage ::
   ExtractRCImageReq ->
   m ExtractRCImageResp
 extractRCImage cfg req = do
-  value <- runEkatraOcr cfg cfg.rcPrompt req.image1
+  value <- runEkatraOcr cfg RCDoc cfg.rcPrompt req.image1
   pure
     ExtractRCImageResp
       { extractedRC =
@@ -88,7 +89,7 @@ extractRCImage cfg req = do
                 bodyType = findField ["body_type", "body"] value,
                 errorMessage = Nothing
               },
-        provider = Nothing
+        provider = Just VT.Ekatra
       }
 
 extractDLImage ::
@@ -97,7 +98,7 @@ extractDLImage ::
   ExtractDLImageReq ->
   m ExtractDLImageResp
 extractDLImage cfg req = do
-  value <- runEkatraOcr cfg cfg.dlPrompt req.image1
+  value <- runEkatraOcr cfg DLDoc cfg.dlPrompt req.image1
   pure
     ExtractDLImageResp
       { extractedDL =
@@ -108,7 +109,7 @@ extractDLImage cfg req = do
                 dateOfBirth = findField ["dob", "date_of_birth"] value,
                 errorMessage = Nothing
               },
-        provider = Nothing
+        provider = Just VT.Ekatra
       }
 
 extractAadhaarImage ::
@@ -117,7 +118,7 @@ extractAadhaarImage ::
   ExtractAadhaarImageReq ->
   m ExtractAadhaarImageRes
 extractAadhaarImage cfg req = do
-  value <- runEkatraOcr cfg cfg.aadhaarPrompt req.image1
+  value <- runEkatraOcr cfg AadhaarDoc cfg.aadhaarPrompt req.image1
   let extractionOutput =
         Idfy.AadhaarExtractionOutput
           { address = findField ["address"] value,
@@ -158,36 +159,70 @@ extractAadhaarImage cfg req = do
               }
       }
 
+data EkatraDocType = DLDoc | RCDoc | AadhaarDoc
+  deriving (Eq)
+
+documentTypeToText :: EkatraDocType -> Text
+documentTypeToText = \case
+  DLDoc -> "dl"
+  RCDoc -> "rc"
+  AadhaarDoc -> "aadhaar"
+
 runEkatraOcr ::
   EkatraFlow m r =>
   EkatraVerificationCfg ->
+  EkatraDocType ->
   Text ->
   Text ->
   m A.Value
-runEkatraOcr cfg prompt image1 = do
+runEkatraOcr cfg docType prompt image1 = do
   apiKey <- decrypt cfg.apiKey
   let imageBytes = Base64.decodeLenient (TE.encodeUtf8 image1)
   tmpDir <- liftIO getTemporaryDirectory
   (filePath, tmpHandle) <- liftIO $ openBinaryTempFile tmpDir "ekatra_ocr_.jpg"
-  let runOcr = do
+  let fileName = T.pack $ takeFileNameSafe filePath
+      maskAadhaarEnabled = fromMaybe False cfg.maskAadhaar
+      runOcr = do
         liftIO $ BS.hPut tmpHandle imageBytes
         liftIO $ hClose tmpHandle
         resp <-
-          callEkatraOcrMap
-            cfg.url
-            apiKey
-            prompt
-            (fromMaybe False cfg.complexLayout)
-            (fromMaybe False cfg.maskAadhaar)
-            filePath
-            (T.pack $ takeFileNameSafe filePath)
-            "image/jpeg"
-        pure $ getEkatraOcrValue resp
+          if fromMaybe False cfg.useOcrExtractApi
+            then
+              callEkatraOcrExtract
+                cfg.url
+                apiKey
+                prompt
+                (documentTypeToText docType)
+                cfg.language
+                (maskAadhaarEnabled && docType == AadhaarDoc)
+                filePath
+                fileName
+                "image/jpeg"
+            else
+              callEkatraOcrMap
+                cfg.url
+                apiKey
+                prompt
+                (fromMaybe False cfg.complexLayout)
+                maskAadhaarEnabled
+                filePath
+                fileName
+                "image/jpeg"
+        pure $ extractedPayload (getEkatraOcrValue resp)
   runOcr `finallyM` liftIO (removePathForcibly filePath)
   where
     takeFileNameSafe = reverse . takeWhile (/= '/') . reverse
     finallyM action cleanup =
       (action <* cleanup) `catchAny` (\e -> cleanup >> throwM e)
+
+-- Search only the extracted fields when the response wraps them in "data", so
+-- top-level metadata (e.g. "model" = LLM name) is never matched as a document field.
+extractedPayload :: A.Value -> A.Value
+extractedPayload v@(A.Object o) = case KM.lookup "data" o of
+  Just A.Null -> v
+  Just d -> d
+  Nothing -> v
+extractedPayload v = v
 
 findField :: [Text] -> A.Value -> Maybe Text
 findField wanted = go

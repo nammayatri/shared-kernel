@@ -14,6 +14,7 @@
 
 module Kernel.External.Verification.Ekatra.Client
   ( callEkatraOcrMap,
+    callEkatraOcrExtract,
   )
 where
 
@@ -34,6 +35,14 @@ type EkatraOcrMapAPI =
     :> "ekatra"
     :> "ocr"
     :> "map"
+    :> Header "Authorization" Text
+    :> MultipartForm Tmp (MultipartData Tmp)
+    :> Post '[JSON] Ekatra.EkatraOcrResponse
+
+type EkatraOcrExtractAPI =
+  "v1"
+    :> "ocr"
+    :> "extract"
     :> Header "Authorization" Text
     :> MultipartForm Tmp (MultipartData Tmp)
     :> Post '[JSON] Ekatra.EkatraOcrResponse
@@ -71,5 +80,42 @@ callEkatraOcrMap url apiKey prompt complexLayout maskAadhaar filePath fileName m
       eulerClient = Euler.client (Proxy @EkatraOcrMapAPI)
   callAPI' (Just $ Euler.ManagerSelector Ekatra.ekatraHttpManagerKey) url (eulerClient (Just $ "Bearer " <> apiKey) (boundary, multipartData)) "ekatraOcrMap" (Proxy @EkatraOcrMapAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call Ekatra OCR map API: " <> show err)
-  where
-    boolToForm b = if b then "true" else "false"
+
+callEkatraOcrExtract ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text -> -- api key
+  Text -> -- prompt
+  Text -> -- document_type (aadhaar | dl | rc)
+  Maybe Text -> -- language
+  Bool -> -- mask_aadhaar
+  FilePath -> -- local file path to the image
+  Text -> -- display file name
+  Text -> -- mime type
+  m Ekatra.EkatraOcrResponse
+callEkatraOcrExtract url apiKey prompt documentType mbLanguage maskAadhaar filePath fileName mimeType = do
+  boundary <- liftIO genBoundary
+  let inputs =
+        [ Input "prompt" prompt,
+          Input "document_type" documentType,
+          Input "mask_aadhaar" (boolToForm maskAadhaar)
+        ]
+          <> maybe [] (\language -> [Input "language" language]) mbLanguage
+      files =
+        [ FileData
+            "file"
+            (if T.null fileName then "document" else fileName)
+            (if T.null mimeType then "application/octet-stream" else mimeType)
+            filePath
+        ]
+      multipartData = MultipartData inputs files
+      eulerClient = Euler.client (Proxy @EkatraOcrExtractAPI)
+  callAPI' (Just $ Euler.ManagerSelector Ekatra.ekatraHttpManagerKey) url (eulerClient (Just $ "Bearer " <> apiKey) (boundary, multipartData)) "ekatraOcrExtract" (Proxy @EkatraOcrExtractAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call Ekatra OCR extract API: " <> show err)
+
+boolToForm :: Bool -> Text
+boolToForm b = if b then "true" else "false"
