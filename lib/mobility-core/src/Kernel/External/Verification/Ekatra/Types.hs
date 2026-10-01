@@ -30,7 +30,9 @@ data EkatraVerificationCfg = EkatraVerificationCfg
     rcPrompt :: Text,
     aadhaarPrompt :: Text,
     complexLayout :: Maybe Bool,
-    maskAadhaar :: Maybe Bool
+    maskAadhaar :: Maybe Bool,
+    useOcrExtractApi :: Maybe Bool, -- Just True => /v1/ocr/extract, else legacy /v1/ekatra/ocr/map
+    language :: Maybe Text -- only sent to /v1/ocr/extract
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
