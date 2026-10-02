@@ -219,6 +219,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.PASS_RELATED -> FCM.PASS_RELATED
   Interface.BUS_APPROACHING -> FCM.BUS_APPROACHING
   Interface.BUS_PREV_STOP_CROSSED -> FCM.BUS_PREV_STOP_CROSSED
+  Interface.DRIVER_STARTED_RETURN_TRIP -> FCM.DRIVER_STARTED_RETURN_TRIP
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case
