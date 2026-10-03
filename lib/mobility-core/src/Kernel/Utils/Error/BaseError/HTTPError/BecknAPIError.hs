@@ -109,7 +109,7 @@ toBecknAPIError e =
   BecknAPIError
     Error
       { _type = toType e,
-        code = toErrorCode e,
+        code = fromMaybe (toErrorCode e) (toOndcErrorCode e),
         path = toPath e,
         message = toMessageIfNotInternal e
       }
