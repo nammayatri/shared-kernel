@@ -71,7 +71,7 @@ newtype PlaceText = PlaceText
 
 data GetPlaceDetailsResp = GetPlaceDetailsResp
   { status :: Text,
-    result :: PlaceDetailsResult
+    result :: Maybe PlaceDetailsResult
   }
   deriving (Generic, ToJSON, FromJSON, ToSchema)
 
