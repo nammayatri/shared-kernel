@@ -116,6 +116,9 @@ asc = OrderBy @ord Asc
 desc :: forall ord. (ClickhouseQuery ord, IsOrderColumns ord) => ord -> OrderBy 'ORDERED
 desc = OrderBy @ord Desc
 
+having :: forall db table cols ord acols. (cols -> Having table) -> Q db table cols ord acols -> Q db table cols ord acols
+having havingClause q = q {havingQ = Just havingClause}
+
 groupBy :: forall cols gr. IsGroupColumns gr => gr -> (GroupColumnsType gr -> cols) -> (cols, GroupBy 'AGG gr)
 groupBy gr mkCols = (mkCols (groupColumns gr), GroupBy gr)
 
@@ -156,6 +159,7 @@ filter_ filterClause (table, level) =
       limitQ = Nothing,
       offsetQ = Nothing,
       orderByQ = Nothing,
+      havingQ = Nothing,
       selectModifierOverrideQ = Nothing
     }
 
@@ -171,6 +175,7 @@ emptyFilter (table, level) =
       limitQ = Nothing,
       offsetQ = Nothing,
       orderByQ = Nothing,
+      havingQ = Nothing,
       selectModifierOverrideQ = Nothing
     }
 
