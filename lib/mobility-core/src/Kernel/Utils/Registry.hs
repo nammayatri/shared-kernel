@@ -54,7 +54,7 @@ registryLookup registryUrl request selfSubId =
       subs -> do
         let subscribers = filter (\subscriber -> subscriber.unique_key_id == request.unique_key_id) subs
         if length subscribers > 1
-          then throwError $ InternalError "Multiple subscribers returned for a unique key."
+          then throwError $ InternalError $ "Multiple subscribers returned for a unique key of subscriber_id:" <> request.subscriber_id
           else
             if length subscribers == 1
               then pure $ Just $ head subscribers
