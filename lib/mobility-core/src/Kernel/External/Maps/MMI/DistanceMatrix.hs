@@ -58,6 +58,7 @@ mmiDistanceMatrix ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   IT.GetDistancesReq a b ->
   BaseUrl ->
   Text ->
@@ -65,7 +66,7 @@ mmiDistanceMatrix ::
   Maybe Text ->
   Maybe Text ->
   m MMI.DistanceMatrixResp
-mmiDistanceMatrix entityId req url apiKey points srcList destList = do
+mmiDistanceMatrix entityId merchantCityId req url apiKey points srcList destList = do
   rsp <-
     callMMIAPI
       url
@@ -73,7 +74,7 @@ mmiDistanceMatrix entityId req url apiKey points srcList destList = do
       "mmi-distance-matrix"
       mmiDistanceMatrixAPI
   fork ("Logging external API Call of mmiDistanceMatrix MMI ") $
-    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiDistanceMatrix" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiDistanceMatrix" "MMI" entityId merchantCityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
 callMMIAPI :: CallAPI m r api a

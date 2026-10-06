@@ -53,12 +53,13 @@ mmiGeoCode ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   IT.GetPlaceNameReq ->
   BaseUrl ->
   Maybe MMI.MMIAuthToken ->
   Text ->
   m MMI.GeocodeResp
-mmiGeoCode entityId req url authToken address = do
+mmiGeoCode entityId merchantCityId req url authToken address = do
   rsp <-
     callMMIGeocodeAPI
       url
@@ -66,7 +67,7 @@ mmiGeoCode entityId req url authToken address = do
       "mmi-auto-suggest"
       mmiGeocodeAPI
   fork ("Logging external API Call of mmiGeoCode MMI ") $
-    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiGeoCode" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiGeoCode" "MMI" entityId merchantCityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
 callMMIGeocodeAPI :: CallAPI m r api a
