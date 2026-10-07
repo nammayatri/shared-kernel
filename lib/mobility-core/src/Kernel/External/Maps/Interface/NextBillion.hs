@@ -81,17 +81,18 @@ getRoutes ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   NextBillionCfg ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes entityId cfg req = do
+getRoutes entityId merchantCityId cfg req = do
   let routeProxyReq = routeToRouteProxyConverter req
   let url = cfg.nextBillionDirectionsUrl
   let origin = latLongToPlace routeProxyReq.origin
       destination = latLongToPlace routeProxyReq.destination
       waypoints = getWayPoints routeProxyReq.waypoints
   key <- decrypt cfg.nextBillionKey
-  res <- NB.directions entityId req url key origin destination waypoints Nothing Nothing Nothing Nothing
+  res <- NB.directions entityId merchantCityId req url key origin destination waypoints Nothing Nothing Nothing Nothing
   let allRoutes = map convertToRoute res.routes
   return $ allRoutes
 
@@ -104,15 +105,16 @@ getRoutesWithExtraParameters ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   NextBillionCfg ->
   NextBillion.GetRoutesRequest ->
   m GetRoutesResp
-getRoutesWithExtraParameters entityId cfg req = do
+getRoutesWithExtraParameters entityId merchantCityId cfg req = do
   let url = cfg.nextBillionDirectionsUrl
       origin = latLongToPlace $ NE.head req.waypoints
       destination = latLongToPlace $ NE.last req.waypoints
       waypoints = getWayPoints $ originAndDestinationRemover $ NE.toList req.waypoints
   key <- decrypt cfg.nextBillionKey
-  res <- NB.directions entityId req url key origin destination waypoints req.alternatives req.altcount req.routeType req.option
+  res <- NB.directions entityId merchantCityId req url key origin destination waypoints req.alternatives req.altcount req.routeType req.option
   let allRoutes = map convertToRoute res.routes
   return $ allRoutes

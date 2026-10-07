@@ -67,6 +67,7 @@ directions ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   a ->
   BaseUrl ->
   Text ->
@@ -78,8 +79,8 @@ directions ::
   Maybe Text ->
   Maybe Text ->
   m NextBillion.DirectionsResp
-directions entityId req url key origin destination waypoints alternatives altcount routeType option = do
+directions entityId merchantCityId req url key origin destination waypoints alternatives altcount routeType option = do
   rsp <- callAPI url (directionsClient origin destination key waypoints alternatives altcount routeType option (Just "4w")) "next-billion-route" (Proxy @DirectionsAPI)
   fork ("Logging external API Call of directions NextBillion ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "directions" "NextBillion" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "directions" "NextBillion" entityId merchantCityId (Just req) rsp
   fromEitherM (FailedToCallNextBillionRouteAPI . show) rsp

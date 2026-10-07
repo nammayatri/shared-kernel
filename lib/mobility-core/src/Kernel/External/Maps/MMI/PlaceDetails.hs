@@ -51,12 +51,13 @@ mmiPlaceDetails ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   IT.GetPlaceDetailsReq ->
   BaseUrl ->
   Text ->
   Text ->
   m MMI.PlaceDetailResponse
-mmiPlaceDetails entityId req url apiKey placeId = do
+mmiPlaceDetails entityId merchantCityId req url apiKey placeId = do
   rsp <-
     callMMIAPI
       url
@@ -64,7 +65,7 @@ mmiPlaceDetails entityId req url apiKey placeId = do
       "mmi-get-place-details"
       mmiPlaceDetailsAPI
   fork ("Logging external API Call of mmiPlaceDetails MMI ") $
-    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiPlaceDetails" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiPlaceDetails" "MMI" entityId merchantCityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
 callMMIAPI :: CallAPI m r api a

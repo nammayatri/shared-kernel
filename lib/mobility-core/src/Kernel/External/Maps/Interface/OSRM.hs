@@ -47,12 +47,13 @@ callOsrmMatch ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   OSRMCfg ->
   SnapToRoadReq ->
   m SnapToRoadResp
-callOsrmMatch entityId osrmCfg req@(SnapToRoadReq wps distanceUnit calculateDistanceFrom) = do
+callOsrmMatch entityId merchantCityId osrmCfg req@(SnapToRoadReq wps distanceUnit calculateDistanceFrom) = do
   let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
-  res <- OSRM.callOsrmMatchAPI entityId req osrmCfg.osrmUrl mbRadius CAR (OSRM.PointsList wps)
+  res <- OSRM.callOsrmMatchAPI entityId merchantCityId req osrmCfg.osrmUrl mbRadius CAR (OSRM.PointsList wps)
   (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
   pure $ case calculateDistanceFrom of
     Just _ -> do
@@ -73,14 +74,15 @@ getDistances ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   OSRMCfg ->
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
-getDistances entityId osrmCfg request = do
+getDistances entityId merchantCityId osrmCfg request = do
   let pointsList = OSRM.PointsList $ map getCoordinates (toList request.origins) ++ map getCoordinates (toList request.destinations)
   let sourcesList = OSRM.SourcesList [0 .. (length request.origins - 1)]
   let destinationsList = OSRM.DestinationsList [(length request.origins) .. (length request.origins + length request.destinations - 1)]
-  response <- OSRM.callOsrmGetDistancesAPI entityId request osrmCfg.osrmUrl (fromMaybe CAR request.travelMode) pointsList sourcesList destinationsList request.sourceDestinationMapping
+  response <- OSRM.callOsrmGetDistancesAPI entityId merchantCityId request osrmCfg.osrmUrl (fromMaybe CAR request.travelMode) pointsList sourcesList destinationsList request.sourceDestinationMapping
   case request.sourceDestinationMapping of
     Just OneToOne -> getOSRMTableOneToOne response request
     _ -> getOSRMTable response request
@@ -168,11 +170,12 @@ getRoutes ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   OSRMCfg ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes entityId osrmCfg request = do
-  response <- OSRM.callOsrmRouteAPI entityId request osrmCfg.osrmUrl (fromMaybe CAR request.mode) $ OSRM.PointsList {getPointsList = NE.toList request.waypoints}
+getRoutes entityId merchantCityId osrmCfg request = do
+  response <- OSRM.callOsrmRouteAPI entityId merchantCityId request osrmCfg.osrmUrl (fromMaybe CAR request.mode) $ OSRM.PointsList {getPointsList = NE.toList request.waypoints}
   getOSRMRoute response
 
 convertRouteToRouteInfo :: (Log m, MonadThrow m) => OSRM.OSRMRouteRoutes -> m RouteInfo

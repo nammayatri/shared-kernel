@@ -54,6 +54,7 @@ mmiReverseGeocode ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMI.ReverseGeocodeReq ->
   BaseUrl ->
   Text ->
@@ -61,7 +62,7 @@ mmiReverseGeocode ::
   Maybe Text ->
   Maybe Language ->
   m MMI.ReverseGeocodeResp
-mmiReverseGeocode entityId req url apiKey LatLong {..} region lang = do
+mmiReverseGeocode entityId merchantCityId req url apiKey LatLong {..} region lang = do
   rsp <-
     callMMIAPI
       url
@@ -69,7 +70,7 @@ mmiReverseGeocode entityId req url apiKey LatLong {..} region lang = do
       "mmi-reverse-geocode"
       mmiReverseGeocodeAPI
   fork ("Logging external API Call of mmiReverseGeocode MMI ") $
-    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiReverseGeocode" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiReverseGeocode" "MMI" entityId merchantCityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
 callMMIAPI :: CallAPI m r api a

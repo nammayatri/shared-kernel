@@ -56,9 +56,10 @@ mmiAuthToken ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   m MMI.AuthResp
-mmiAuthToken entityId mmiCfg = do
+mmiAuthToken entityId merchantCityId mmiCfg = do
   secretKey <- decrypt mmiCfg.mmiAuthSecret
   let url = mmiCfg.mmiAuthUrl
       clientId = mmiCfg.mmiAuthId
@@ -71,7 +72,7 @@ mmiAuthToken entityId mmiCfg = do
       "mmi-auto-suggest"
       mmiAuthAPI
   fork ("Logging external API Call of mmiAuthToken MMI ") $
-    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiAuthToken" "MMI" entityId (Nothing @(Maybe Value)) $ KUT.encodeToText rsp
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiAuthToken" "MMI" entityId merchantCityId (Nothing @(Maybe Value)) $ KUT.encodeToText rsp
   return rsp
   where
     callMMIAuth authReq = ET.client mmiAuthAPI authReq
@@ -98,12 +99,13 @@ getMMIToken ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   m AccessToken
-getMMIToken entityId config = do
+getMMIToken entityId merchantCityId config = do
   tokenStatus :: Maybe AccessToken <- Redis.get (config.mmiAuthId <> ":" <> redisMMIKey)
   case tokenStatus of
-    Nothing -> refreshToken entityId config
+    Nothing -> refreshToken entityId merchantCityId config
     Just token -> pure token
 
 getTokenText ::
@@ -116,10 +118,11 @@ getTokenText ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   m Text
-getTokenText entityId mfg = do
-  token <- getMMIToken entityId mfg
+getTokenText entityId merchantCityId mfg = do
+  token <- getMMIToken entityId merchantCityId mfg
   pure $ mmiTokenType token <> " " <> mmiAccessToken token
 
 refreshToken ::
@@ -132,10 +135,11 @@ refreshToken ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   m AccessToken
-refreshToken entityId config = do
-  res <- mmiAuthToken entityId config
+refreshToken entityId merchantCityId config = do
+  res <- mmiAuthToken entityId merchantCityId config
   let accessToken =
         AccessToken
           { mmiAccessToken = res.accessToken,
