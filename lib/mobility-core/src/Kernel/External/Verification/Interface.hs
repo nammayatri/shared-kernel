@@ -15,6 +15,7 @@
 module Kernel.External.Verification.Interface
   ( module Reexport,
     verifyDL,
+    verifyDL',
     verifyPanAsync,
     verifyGstAsync,
     verifyBankAccountAsync,
@@ -88,10 +89,32 @@ verifyDL ::
     HasRequestId r,
     MonadReader r m
   ) =>
+  (VerificationService -> m VerificationServiceConfig) ->
+  [VerificationService] ->
+  VerifyDLReq ->
+  m DLRespWithRemPriorityList
+verifyDL getServiceConfig verificationProvidersPriorityList req = do
+  when (null verificationProvidersPriorityList) $ throwError $ InternalError "No verification service provider configured or exhausted all service providers !!!!"
+  verifyDLWithFallback verificationProvidersPriorityList
+  where
+    verifyDLWithFallback [] = throwError $ InternalError "Not able to verify the DL with all the configured providers !!!!!"
+    verifyDLWithFallback (preferredProvider : restProviders) = do
+      logDebug $ "Calling verifyDL for provider : " <> show preferredProvider
+      result <- withTryCatch "verifyDL" $ getServiceConfig preferredProvider >>= flip verifyDL' req
+      case result of
+        Left _ -> verifyDLWithFallback restProviders
+        Right res -> return $ DLRespWithRemPriorityList res restProviders
+
+verifyDL' ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
   VerificationServiceConfig ->
   VerifyDLReq ->
   m VerifyDLResp
-verifyDL serviceConfig req = case serviceConfig of
+verifyDL' serviceConfig req = case serviceConfig of
   EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
   IdfyConfig cfg -> Idfy.verifyDLAsync cfg req
   GovtDataConfig -> throwError $ InternalError "Not Implemented!"

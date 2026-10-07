@@ -358,6 +358,12 @@ data RCRespWithRemPriorityList = RCRespWithRemPriorityList
   }
   deriving (Show, Generic, FromJSON, ToJSON)
 
+data DLRespWithRemPriorityList = DLRespWithRemPriorityList
+  { verifyDLResp :: VerifyDLResp,
+    remPriorityList :: [VT.VerificationService]
+  }
+  deriving (Show, Generic, FromJSON, ToJSON)
+
 data NameCompareReq = NameCompareReq
   { extractedName :: Text,
     verifiedName :: Text,
