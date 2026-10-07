@@ -82,7 +82,8 @@ data TwillioWhatsAppTemplateReq = TwillioWhatsAppTemplateReq
   { to :: Text,
     contentSid :: Text,
     contentVariables :: Text,
-    messagingServiceSid :: Text
+    messagingServiceSid :: Text,
+    mediaUrl :: Maybe Text
   }
   deriving (Generic, ToJSON, FromJSON, Eq, ToSchema)
 
@@ -93,3 +94,4 @@ instance ToForm TwillioWhatsAppTemplateReq where
       ("ContentVariables", toQueryParam contentVariables),
       ("MessagingServiceSid", toQueryParam messagingServiceSid)
     ]
+      <> maybe [] (\u -> [("MediaUrl", toQueryParam u)]) mediaUrl
