@@ -1936,5 +1936,103 @@ instance IsHTTPError MorthError where
 
 instance IsAPIError MorthError
 
+-- | Error catalogue for the Parivahan ntrsearchservice (MoRTH v2.1) provider.
+-- Mirrors the two error channels documented in section 4 of the API docs:
+-- auth/envelope errors returned as plain JSON before decryption, and business
+-- errors returned inside the encrypted envelope.
+data MorthV2Error
+  = MorthV2TokenMissing
+  | MorthV2TokenExpired
+  | MorthV2TokenInvalid Text
+  | MorthV2MissingClientId
+  | MorthV2InvalidClientId
+  | MorthV2ClientIdMismatch
+  | MorthV2ApiKeyExpired
+  | MorthV2DecryptionFailed Text
+  | MorthV2DataMappingFailed Text
+  | MorthV2IpNotAuthorized Text
+  | MorthV2AuditCertInvalid
+  | MorthV2RateLimitExceeded
+  | MorthV2UserRequestNotFound Text
+  | MorthV2InternalServerError
+  | MorthV2RequestProcessingFailed
+  | MorthV2UnexpectedResponse Text Text
+  | MorthV2UnknownError Text Text
+  | MorthV2VehicleIdentifierRequired
+  | MorthV2EngineNumberRequired
+  | MorthV2ChassisNumberRequired
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''MorthV2Error
+
+instance IsBaseError MorthV2Error where
+  toMessage = \case
+    MorthV2TokenMissing -> Just "MoRTH v2: JWT token is missing."
+    MorthV2TokenExpired -> Just "MoRTH v2: JWT token has expired."
+    MorthV2TokenInvalid m -> Just $ "MoRTH v2: JWT token invalid: " <> m
+    MorthV2MissingClientId -> Just "MoRTH v2: clientId is missing."
+    MorthV2InvalidClientId -> Just "MoRTH v2: clientId is not registered."
+    MorthV2ClientIdMismatch -> Just "MoRTH v2: JWT subject does not match envelope clientId."
+    MorthV2ApiKeyExpired -> Just "MoRTH v2: API key expired (6-month validity)."
+    MorthV2DecryptionFailed m -> Just $ "MoRTH v2: decryption failed: " <> m
+    MorthV2DataMappingFailed m -> Just $ "MoRTH v2: data mapping failed: " <> m
+    MorthV2IpNotAuthorized m -> Just $ "MoRTH v2: " <> m
+    MorthV2AuditCertInvalid -> Just "MoRTH v2: audit certificate is expired or invalid."
+    MorthV2RateLimitExceeded -> Just "MoRTH v2: daily API limit exceeded."
+    MorthV2UserRequestNotFound m -> Just $ "MoRTH v2: " <> m
+    MorthV2InternalServerError -> Just "MoRTH v2: internal server error."
+    MorthV2RequestProcessingFailed -> Just "MoRTH v2: request processing failed."
+    MorthV2UnexpectedResponse label err -> Just $ "MoRTH v2 (" <> label <> "): unexpected response: " <> err
+    MorthV2UnknownError status msg -> Just $ "MoRTH v2 (status " <> status <> "): " <> msg
+    MorthV2VehicleIdentifierRequired -> Just "MoRTH v2: either regnNo or (chassisNumber + engineNumber) is required."
+    MorthV2EngineNumberRequired -> Just "MoRTH v2: engineNumber is required alongside chassisNumber."
+    MorthV2ChassisNumberRequired -> Just "MoRTH v2: chassisNumber is required alongside engineNumber."
+
+instance IsHTTPError MorthV2Error where
+  toErrorCode = \case
+    MorthV2TokenMissing -> "MORTH_V2_TOKEN_MISSING"
+    MorthV2TokenExpired -> "MORTH_V2_TOKEN_EXPIRED"
+    MorthV2TokenInvalid _ -> "MORTH_V2_TOKEN_INVALID"
+    MorthV2MissingClientId -> "MORTH_V2_MISSING_CLIENT_ID"
+    MorthV2InvalidClientId -> "MORTH_V2_INVALID_CLIENT_ID"
+    MorthV2ClientIdMismatch -> "MORTH_V2_CLIENT_ID_MISMATCH"
+    MorthV2ApiKeyExpired -> "MORTH_V2_API_KEY_EXPIRED"
+    MorthV2DecryptionFailed _ -> "MORTH_V2_DECRYPTION_FAILED"
+    MorthV2DataMappingFailed _ -> "MORTH_V2_DATA_MAPPING_FAILED"
+    MorthV2IpNotAuthorized _ -> "MORTH_V2_IP_NOT_AUTHORIZED"
+    MorthV2AuditCertInvalid -> "MORTH_V2_AUDIT_CERT_INVALID"
+    MorthV2RateLimitExceeded -> "MORTH_V2_RATE_LIMIT_EXCEEDED"
+    MorthV2UserRequestNotFound _ -> "MORTH_V2_USER_REQUEST_NOT_FOUND"
+    MorthV2InternalServerError -> "MORTH_V2_INTERNAL_SERVER_ERROR"
+    MorthV2RequestProcessingFailed -> "MORTH_V2_REQUEST_PROCESSING_FAILED"
+    MorthV2UnexpectedResponse {} -> "MORTH_V2_UNEXPECTED_RESPONSE"
+    MorthV2UnknownError {} -> "MORTH_V2_UNKNOWN_ERROR"
+    MorthV2VehicleIdentifierRequired -> "MORTH_V2_VEHICLE_IDENTIFIER_REQUIRED"
+    MorthV2EngineNumberRequired -> "MORTH_V2_ENGINE_NUMBER_REQUIRED"
+    MorthV2ChassisNumberRequired -> "MORTH_V2_CHASSIS_NUMBER_REQUIRED"
+  toHttpCode = \case
+    MorthV2TokenMissing -> E401
+    MorthV2TokenExpired -> E401
+    MorthV2TokenInvalid _ -> E401
+    MorthV2MissingClientId -> E401
+    MorthV2InvalidClientId -> E401
+    MorthV2ClientIdMismatch -> E401
+    MorthV2ApiKeyExpired -> E401
+    MorthV2DecryptionFailed _ -> E400
+    MorthV2DataMappingFailed _ -> E400
+    MorthV2IpNotAuthorized _ -> E403
+    MorthV2AuditCertInvalid -> E401
+    MorthV2RateLimitExceeded -> E429
+    MorthV2UserRequestNotFound _ -> E404
+    MorthV2InternalServerError -> E500
+    MorthV2RequestProcessingFailed -> E500
+    MorthV2UnexpectedResponse {} -> E500
+    MorthV2UnknownError {} -> E500
+    MorthV2VehicleIdentifierRequired -> E400
+    MorthV2EngineNumberRequired -> E400
+    MorthV2ChassisNumberRequired -> E400
+
+instance IsAPIError MorthV2Error
+
 instance ToJSON ClientError where
   toJSON = DA.String . show
