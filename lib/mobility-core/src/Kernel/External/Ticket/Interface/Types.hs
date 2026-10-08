@@ -93,7 +93,9 @@ data CreateTicketReq = CreateTicketReq
     -- it as the real customer's name, so it must stay that on all of them
     -- even when 'xyneTicketBody' above is a bot-authored message. 'Nothing'
     -- falls back to 'name', same as today.
-    xyneSenderName :: Maybe Text
+    xyneSenderName :: Maybe Text,
+    -- | Xyne-only dedup key for the first message on the thread. Ignored by Zendesk/Kapture.
+    xyneExternalId :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
@@ -141,7 +143,9 @@ data UpdateTicketReq = UpdateTicketReq
     ticketContext :: Maybe TicketContext,
     name :: Maybe Text,
     phoneNo :: Maybe Text,
-    xyneChannelId :: Maybe Text
+    xyneChannelId :: Maybe Text,
+    -- | Xyne-only dedup key for 'comment'. Ignored by Zendesk/Kapture.
+    xyneExternalId :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
