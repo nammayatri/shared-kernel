@@ -107,7 +107,7 @@ createTicket config req = do
             -- thread's first entry matches real chronology — see its doc
             -- comment on CreateTicketReq.
             body = fromMaybe req.issueDescription req.xyneTicketBody,
-            externalId = Nothing,
+            externalId = req.xyneExternalId,
             senderName = req.xyneSenderName <|> req.name,
             senderEmail = Nothing,
             additionalFormFields = if Map.null metadata then Nothing else Just metadata
@@ -159,7 +159,7 @@ updateTicket config req = do
             threadId = threadId,
             subject = buildUpdateSubject req,
             body = buildUpdateBody req,
-            externalId = Nothing,
+            externalId = req.xyneExternalId,
             senderName = mbSenderName,
             senderEmail = Nothing,
             -- Updates carry only the chat comment for now; the metadata side
