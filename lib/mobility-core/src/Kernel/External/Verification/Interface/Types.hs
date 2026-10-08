@@ -31,13 +31,14 @@ import qualified Kernel.External.Verification.Idfy.Types.Response as Idfy
 import Kernel.External.Verification.Interface.ImageDetectionTypes
 import qualified Kernel.External.Verification.InternalScripts.Types as FV
 import qualified Kernel.External.Verification.Morth.Types as MorthTypes
+import qualified Kernel.External.Verification.MorthV2.Types as MorthV2Types
 import qualified Kernel.External.Verification.SafetyPortal.Config as SafetyPortal
 import Kernel.External.Verification.SafetyPortal.Types
 import qualified Kernel.External.Verification.Tten.Types as TtenTypes
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
-data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg | EkatraConfig EkatraTypes.EkatraVerificationCfg | InternalOCRConfig FV.InternalOCRCfg | InternalImageDetectionConfig FV.InternalImageDetectionCfg
+data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg | MorthV2Config MorthV2Types.MorthV2VerificationCfg | EkatraConfig EkatraTypes.EkatraVerificationCfg | InternalOCRConfig FV.InternalOCRCfg | InternalImageDetectionConfig FV.InternalImageDetectionCfg
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 

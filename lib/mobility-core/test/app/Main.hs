@@ -20,6 +20,7 @@ import ComputeIntersectionTests
 import DistanceCalculation
 import EulerHS.Prelude
 import HedisClusterPipeline (hedisClusterPipelineTests)
+import MorthV2CryptoTests (morthV2CryptoTests)
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -52,5 +53,6 @@ specs = do
           predicatesTests,
           settlementEmailTests,
           partialIndexTests,
-          xyneSpacesTypeTests
+          xyneSpacesTypeTests,
+          morthV2CryptoTests
         ]

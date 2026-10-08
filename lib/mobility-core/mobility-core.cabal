@@ -431,6 +431,7 @@ library
       Kernel.External.Verification.Interface.ImageDetectionTypes
       Kernel.External.Verification.Interface.InternalScripts
       Kernel.External.Verification.Interface.Morth
+      Kernel.External.Verification.Interface.MorthV2
       Kernel.External.Verification.Interface.SafetyPortal
       Kernel.External.Verification.Interface.Tten
       Kernel.External.Verification.Interface.Types
@@ -442,6 +443,10 @@ library
       Kernel.External.Verification.Morth.Config
       Kernel.External.Verification.Morth.Flow
       Kernel.External.Verification.Morth.Types
+      Kernel.External.Verification.MorthV2.Crypto
+      Kernel.External.Verification.MorthV2.Flow
+      Kernel.External.Verification.MorthV2.Token
+      Kernel.External.Verification.MorthV2.Types
       Kernel.External.Verification.SafetyPortal.API
       Kernel.External.Verification.SafetyPortal.Client
       Kernel.External.Verification.SafetyPortal.Config
@@ -997,6 +1002,7 @@ test-suite mobility-core-tests
       ComputeIntersectionTests
       DistanceCalculation
       HedisClusterPipeline
+      MorthV2CryptoTests
       PartialIndexTests
       Predicates
       SettlementEmail
