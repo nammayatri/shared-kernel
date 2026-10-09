@@ -337,8 +337,10 @@ updateLiveActivity ::
   FCMConfig ->
   FCMNotificationRecipient ->
   LiveActivityReq ->
+  -- | APNs @stale-date@; when set, the sender controls when the activity goes stale.
+  Maybe Int ->
   m ()
-updateLiveActivity config recipient apnsReq = do
+updateLiveActivity config recipient apnsReq mbStaleDate = do
   let tokenNotFound = "device token of a person " <> recipient.id <> " not found"
   case recipient.token of
     Nothing -> do
@@ -348,7 +350,7 @@ updateLiveActivity config recipient apnsReq = do
       currentTime <- liftIO getPOSIXTime
       let currentTimeInt = floor currentTime :: Int
           apnsReqTimeStamp = currentTimeInt
-      sendLiveActivityApns config (createApnsLiveActivtyPayload token apnsReq apnsReqTimeStamp) recipient.id
+      sendLiveActivityApns config (createApnsLiveActivtyPayload token apnsReq apnsReqTimeStamp mbStaleDate) recipient.id
 
 sendLiveActivityApns ::
   ( CoreMetrics m,
@@ -389,8 +391,8 @@ data ResponseType = ResponseType
 apnsLiveActivityAPI :: Proxy (ApnsLiveActivityAPI a)
 apnsLiveActivityAPI = Proxy
 
-createApnsLiveActivtyPayload :: FCMRecipientToken -> LiveActivityReq -> Int -> ApnsAPIRequest
-createApnsLiveActivtyPayload receipentToken apnsReq apnsReqTimeStamp =
+createApnsLiveActivtyPayload :: FCMRecipientToken -> LiveActivityReq -> Int -> Maybe Int -> ApnsAPIRequest
+createApnsLiveActivtyPayload receipentToken apnsReq apnsReqTimeStamp mbStaleDate =
   let apnsReqToken = apnsReq.liveActivityToken
       apnsReqLiveActivity = apnsReq.liveActivityReqType
       apnsContentState = apnsReq.liveActivityContentState
@@ -416,6 +418,7 @@ createApnsLiveActivtyPayload receipentToken apnsReq apnsReqTimeStamp =
                             { aps =
                                 Aps
                                   { timestamp = apnsReqTimeStamp,
+                                    stale_date = mbStaleDate,
                                     content_available = 1,
                                     event = apnsReqLiveActivity,
                                     content_state = apnsContentState,
