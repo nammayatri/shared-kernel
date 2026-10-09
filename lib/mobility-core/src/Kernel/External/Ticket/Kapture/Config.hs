@@ -17,12 +17,25 @@ module Kernel.External.Ticket.Kapture.Config where
 import Kernel.External.Encryption
 import Kernel.Prelude
 
+data KaptureFlowVariant = SharedAuthKapture | PerApiAuthKapture
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+data KaptureHeaders = KaptureHeaders
+  { apiKey :: Maybe Text,
+    apiType :: Maybe Text
+  }
+
 data KaptureCfg = KaptureCfg
   { auth :: EncryptedField 'AsEncrypted Text,
     version :: Text,
     url :: BaseUrl,
     encryptionUrl :: Maybe BaseUrl,
     encryptionKey :: Maybe (EncryptedField 'AsEncrypted Text),
-    appEncryptionKey :: Maybe (EncryptedField 'AsEncrypted Text)
+    appEncryptionKey :: Maybe (EncryptedField 'AsEncrypted Text),
+    flowVariant :: Maybe KaptureFlowVariant,
+    getTicketAuth :: Maybe (EncryptedField 'AsEncrypted Text),
+    pullTicketAuth :: Maybe (EncryptedField 'AsEncrypted Text),
+    addTicketAuth :: Maybe (EncryptedField 'AsEncrypted Text),
+    updateTicketAuth :: Maybe (EncryptedField 'AsEncrypted Text)
   }
   deriving (Show, Generic, ToJSON, FromJSON)

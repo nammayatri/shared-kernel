@@ -21,7 +21,7 @@ where
 
 import Deriving.Aeson
 import Kernel.External.Ticket.Kapture.Config as Kapture
-import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), GetTicketReq (..), GetTicketResp (..), GetTicketStatusResp (..), KaptureCustomerReq (..), KaptureCustomerResp (..), KaptureEncryptionReq (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), PullAdditionalDetails (..), RideIdObject (..), SearchTicketByIdReq (..), TicketSummary (..), TicketType (..))
+import Kernel.External.Ticket.Kapture.Types as Reexport (Classification (..), GetTicketReq (..), GetTicketResp (..), GetTicketStatusResp (..), KaptureCustomerReq (..), KaptureCustomerResp (..), KaptureEncryptionReq (..), KaptureEncryptionResp (..), KapturePullTicketReq (..), KapturePullTicketResp (..), PullAdditionalDetails (..), RideIdObject (..), SearchTicketByIdReq (..), TicketSummary (..), TicketTaskDetails (..), TicketType (..))
 import Kernel.External.Ticket.Types as Reexport
 import Kernel.External.Ticket.XyneSpaces.Config as XyneSpaces
 import Kernel.External.Ticket.Zendesk.Config as Zendesk
