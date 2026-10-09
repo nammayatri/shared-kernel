@@ -12,11 +12,6 @@
  General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
--- | Redis-backed JWT cache for the MoRTH v2.1 Parivahan service.
---
--- The @/api/auth/token@ response is valid for 5 minutes. We cache per
--- @clientId@ with a 60-second safety margin so we never hand out a token
--- that expires between our @GET@ and the Parivahan server's receipt.
 module Kernel.External.Verification.MorthV2.Token
   ( getCachedJwt,
     invalidateCachedJwt,
@@ -30,6 +25,9 @@ import Kernel.Prelude
 import qualified Kernel.Storage.Hedis as Hedis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common (MonadFlow, TryException)
+import Kernel.Types.Error (MorthV2Error (..))
+import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Logging (logInfo)
 import Kernel.Utils.Servant.Client (HasRequestId)
 
 type JwtCacheM m r =
@@ -43,27 +41,37 @@ type JwtCacheM m r =
     TryException m
   )
 
--- | Return a valid JWT for the given client, fetching + caching if necessary.
 getCachedJwt :: JwtCacheM m r => T.MorthV2VerificationCfg -> m Text
 getCachedJwt cfg = do
   let key = jwtCacheKey cfg.clientId
-  Hedis.safeGet key >>= \case
+      lockKey = key <> ":refresh-lock"
+  cached <- Hedis.runInMasterCloudRedisCell $ Hedis.safeGet key
+  case cached of
     Just t -> pure t
     Nothing -> do
-      tokenResp <- Flow.callToken cfg
-      -- Cache for (expiresInMs - 60s), floored at 60s for sanity.
-      let ttlSec = max 60 (tokenResp.expiresInMs `div` 1000 - 60)
-      Hedis.setExp key tokenResp.token ttlSec
-      pure tokenResp.token
+      lockAcquired <- Hedis.runInMasterCloudRedisCell $ Hedis.tryLockRedis lockKey 30
+      if lockAcquired
+        then
+          ( do
+              tokenResp <- Flow.callToken cfg
+              let ttlSec = max 60 (tokenResp.expiresInMs `div` 1000 - 60)
+              Hedis.runInMasterCloudRedisCell $ Hedis.setExp key tokenResp.token ttlSec
+              pure tokenResp.token
+          )
+            `finally` (Hedis.runInMasterCloudRedisCell $ Hedis.unlockRedis lockKey)
+        else do
+          logInfo "MorthV2 token refresh lock held by another pod; waiting 3s"
+          threadDelay 3000000
+          Hedis.runInMasterCloudRedisCell (Hedis.safeGet key) >>= \case
+            Just t -> pure t
+            Nothing -> throwError MorthV2TokenMissing
 
--- | Drop the cached JWT for this client. Call this after the server rejects
--- a token mid-flight (e.g. @MorthV2TokenExpired@/@MorthV2TokenInvalid@) so
--- the next call fetches a fresh one.
 invalidateCachedJwt ::
   (Hedis.HedisFlow m r, TryException m) =>
   Text ->
   m ()
-invalidateCachedJwt clientId = Hedis.del (jwtCacheKey clientId)
+invalidateCachedJwt clientId =
+  Hedis.runInMasterCloudRedisCell $ Hedis.del (jwtCacheKey clientId)
 
 jwtCacheKey :: Text -> Text
 jwtCacheKey clientId = "morth_v2:jwt:" <> clientId

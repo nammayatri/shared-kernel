@@ -28,10 +28,45 @@ import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 import qualified Kernel.Storage.Hedis as Hedis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
-import Kernel.Types.Common (MonadFlow, TryException)
+import Kernel.Types.Common (MonadFlow, TryException (..))
 import Kernel.Types.Error (MorthV2Error (..))
 import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Logging (logInfo)
 import Kernel.Utils.Servant.Client
+
+withJwtRetry ::
+  ( HasCallStack,
+    MonadFlow m,
+    CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m,
+    Hedis.HedisFlow m r,
+    TryException m
+  ) =>
+  MorthV2VerificationCfg ->
+  Text ->
+  (Text -> m a) ->
+  m a
+withJwtRetry cfg label call = do
+  jwt <- Token.getCachedJwt cfg
+  result <- withTryCatch ("morth_v2:" <> label) (call jwt)
+  case result of
+    Right r -> pure r
+    Left err
+      | isTokenError err -> do
+        logInfo $ "MorthV2 " <> label <> ": token rejected (" <> T.pack (show err) <> "); refreshing and retrying once"
+        Token.invalidateCachedJwt cfg.clientId
+        jwt' <- Token.getCachedJwt cfg
+        call jwt'
+    Left err -> throwM err
+  where
+    isTokenError :: SomeException -> Bool
+    isTokenError e = case fromException e of
+      Just MorthV2TokenExpired -> True
+      Just (MorthV2TokenInvalid _) -> True
+      Just MorthV2TokenMissing -> True
+      _ -> False
 
 -- | Verify vehicle RC via MoRTH v2.1. Uses the regn-number endpoint when
 -- @rcNumber@ is present, else falls back to chassis+engine.
@@ -48,14 +83,15 @@ verifyRCAsync ::
   InterfaceTypes.VerifyRCReq ->
   m InterfaceTypes.VerifyRCResp
 verifyRCAsync cfg req = do
-  jwt <- Token.getCachedJwt cfg
   resp <-
     if not (T.null req.rcNumber)
-      then Flow.callVehicleByRegn cfg jwt (VehicleByRegnReqPayload {userId = cfg.clientId, regnNo = req.rcNumber})
+      then withJwtRetry cfg "verifyRC" $ \jwt ->
+        Flow.callVehicleByRegn cfg jwt (VehicleByRegnReqPayload {userId = cfg.clientId, regnNo = req.rcNumber})
       else case (req.engineNumber, req.chassisNumber) of
         (Just eng, Just chasi) ->
           -- Server wants trailing 5 chars of engine only.
-          Flow.callVehicleByChasiEng cfg jwt (VehicleByChasiEngReqPayload {userId = cfg.clientId, chasiNo = chasi, engNo = T.takeEnd 5 eng})
+          withJwtRetry cfg "verifyRC" $ \jwt ->
+            Flow.callVehicleByChasiEng cfg jwt (VehicleByChasiEngReqPayload {userId = cfg.clientId, chasiNo = chasi, engNo = T.takeEnd 5 eng})
         (Nothing, Just _) -> throwError MorthV2EngineNumberRequired
         (Just _, Nothing) -> throwError MorthV2ChassisNumberRequired
         (Nothing, Nothing) -> throwError MorthV2VehicleIdentifierRequired
@@ -82,10 +118,9 @@ verifyDL ::
   InterfaceTypes.VerifyDLReq ->
   m InterfaceTypes.VerifyDLResp
 verifyDL cfg req = do
-  jwt <- Token.getCachedJwt cfg
   let dobStr = pack (formatTime defaultTimeLocale "%F" req.dateOfBirth)
       payload = LicenseDetailsReqPayload {dlNumber = req.dlNumber, dateOfBirth = dobStr, userId = cfg.clientId}
-  resp <- Flow.callLicenseDetails cfg jwt payload
+  resp <- withJwtRetry cfg "verifyDL" $ \jwt -> Flow.callLicenseDetails cfg jwt payload
   pure $
     InterfaceTypes.SyncDLResp
       InterfaceTypes.VerifyDLSyncResp
