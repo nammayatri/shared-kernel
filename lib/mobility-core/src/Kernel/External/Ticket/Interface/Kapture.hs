@@ -34,6 +34,18 @@ import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
 import Kernel.Utils.Servant.Client
 
+getAuth ::
+  (EncFlow m r) =>
+  KaptureCfg ->
+  Maybe (EncryptedField 'AsEncrypted Text) ->
+  Text ->
+  m Text
+getAuth config mPerApiAuth fieldName = case fromMaybe StandardKapture config.flowVariant of
+  StandardKapture -> decrypt config.auth
+  MSILKapture -> case mPerApiAuth of
+    Just perApiAuth -> decrypt perApiAuth
+    Nothing -> throwError $ InternalError $ fieldName <> " is required for MSILKapture flow variant"
+
 createTicket ::
   ( Metrics.CoreMetrics m,
     EncFlow m r,
@@ -44,7 +56,7 @@ createTicket ::
   IT.CreateTicketReq ->
   m IT.CreateTicketResp
 createTicket config req = do
-  auth <- decrypt config.auth
+  auth <- getAuth config config.addTicketAuth "addTicketAuth"
   resp <- KF.createTicketAPI config.url config.version auth (mkCreateTicketReq req)
   pure IT.CreateTicketResp {ticketId = resp.ticketId, status = kaptureSubStatusToTicketStatus resp.ticket.subStatus, requesterId = Nothing}
 
@@ -98,7 +110,7 @@ updateTicket ::
   IT.UpdateTicketReq ->
   m IT.UpdateTicketResp
 updateTicket config req = do
-  auth <- decrypt config.auth
+  auth <- getAuth config config.updateTicketAuth "updateTicketAuth"
   resp <- KF.updateTicketAPI config.url config.version auth (mkUpdateTicketReq req)
   pure IT.UpdateTicketResp {ticketId = req.ticketId, status = req.status, message = resp.message}
 
@@ -170,7 +182,7 @@ kapturePullTicket ::
   IT.KapturePullTicketReq ->
   m Kapture.KapturePullTicketResp
 kapturePullTicket config req = do
-  auth <- decrypt config.auth
+  auth <- getAuth config config.pullTicketAuth "pullTicketAuth"
   KF.kapturePullTicket config.url auth req
 
 kaptureGetTicket ::
@@ -183,7 +195,7 @@ kaptureGetTicket ::
   IT.GetTicketReq ->
   m [Kapture.GetTicketResp]
 kaptureGetTicket config req = do
-  apiKey <- decrypt config.auth
+  apiKey <- getAuth config config.getTicketAuth "getTicketAuth"
   KF.kaptureGetTicket config.url apiKey req
 
 getTicketStatus ::
@@ -196,6 +208,6 @@ getTicketStatus ::
   IT.SearchTicketByIdReq ->
   m [Kapture.GetTicketStatusResp]
 getTicketStatus config (Kapture.SearchTicketByIdReq ticketIds) = do
-  apiKey <- decrypt config.auth
+  apiKey <- getAuth config config.getTicketAuth "getTicketAuth"
   items <- KF.kaptureSearchTicketById config.url apiKey (Kapture.SearchTicketByIdReq ticketIds)
   return $ map (\item -> Kapture.GetTicketStatusResp {subStatus = item.taskDetails.substatus}) items
