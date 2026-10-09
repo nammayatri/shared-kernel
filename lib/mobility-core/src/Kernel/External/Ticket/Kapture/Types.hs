@@ -28,7 +28,7 @@ import Kernel.Types.Common (Money)
 import Kernel.Utils.JSON
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
-data Classification = DRIVER | CUSTOMER
+data Classification = DRIVER | CUSTOMER | IGM
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
@@ -42,7 +42,8 @@ data CreateTicketReq = CreateTicketReq
     phone :: Maybe Text,
     issueDetails :: IssueDetails,
     rideDetails :: Maybe RideInfo,
-    classification :: Classification
+    classification :: Classification,
+    customerCode :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
 
@@ -164,7 +165,8 @@ newtype AdditionalDetails = AdditionalDetails
   deriving anyclass (ToSchema)
 
 instance FromJSON AdditionalDetails where
-  parseJSON = genericParseJSON constructorsWithSnakeCase
+  parseJSON = withObject "AdditionalDetails" $ \v ->
+    AdditionalDetails <$> v .:? "issue_details" .!= []
 
 instance ToJSON AdditionalDetails where
   toJSON = genericToJSON constructorsWithSnakeCase
