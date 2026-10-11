@@ -28,6 +28,7 @@ import qualified Data.Map.Strict as Map
 import Data.String.Conversions
 import Data.Text hiding (any, chunksOf, concat, concatMap, length, map, null, replicate, zip)
 import qualified Data.Text as Text
+import qualified Data.Time.Clock as Clock
 import qualified Data.Vector as V
 import Database.Redis (keyToSlot)
 import Database.Redis as Reexport
@@ -869,8 +870,31 @@ withWaitAndLockRedis key timeout delay func = do
   where
     getLock = do
       lockAvailable <- tryLockRedis key timeout
-      threadDelay delay
-      unless lockAvailable getLock
+      unless lockAvailable $ do
+        threadDelay delay
+        getLock
+
+-- | Like 'withWaitAndLockRedis' but gives up waiting once @waitTimeout@ seconds have passed
+-- (tracked with the local clock). Same contract as the old 'withWaitOnLockRedisWithExpiry':
+-- after the deadline the lock is tried one last time and, if still contended, @func@ is skipped.
+-- @delay@ is in microseconds and is only slept when the lock is contended.
+withWaitAndLockRedisWithTimeout :: (HedisFlow m env, TryException m, MonadMask m) => Text -> ExpirationTime -> ExpirationTime -> Int -> m () -> m ()
+withWaitAndLockRedisWithTimeout key timeout waitTimeout delay func = do
+  startTime <- liftIO Clock.getCurrentTime
+  acquired <- getLock startTime
+  when acquired $ finally func (unlockRedis key)
+  where
+    getLock startTime = do
+      lockAvailable <- tryLockRedis key timeout
+      if lockAvailable
+        then pure True
+        else do
+          now <- liftIO Clock.getCurrentTime
+          if Clock.diffUTCTime now startTime >= fromIntegral waitTimeout
+            then pure False
+            else do
+              threadDelay delay
+              getLock startTime
 
 -- | datastoreName/operationName label the wait-for-lock time in the
 -- datastore_operation_duration metric (via withTimeRedis), so different callers'
