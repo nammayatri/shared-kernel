@@ -14,6 +14,7 @@
 
 module Kernel.Utils.Registry
   ( registryFetch,
+    registryFetchPublic,
     Kernel.Utils.Registry.registryLookup,
     checkBlacklisted,
     withSubscriberCache,
@@ -80,6 +81,21 @@ registryFetch ::
   m [Subscriber]
 registryFetch registryUrl request selfSubId = do
   callAPI' (Just (T.ManagerSelector (getHttpManagerKey selfSubId))) registryUrl (T.client Registry.lookupAPI request) "lookup" Registry.lookupAPI
+    >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
+
+-- | Same as 'registryFetch', but unsigned, for callers with no subscriber identity
+-- to sign as. ONDC's '/lookup' is a public, unauthenticated read.
+registryFetchPublic ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  API.LookupRequest ->
+  m [Subscriber]
+registryFetchPublic registryUrl request = do
+  callAPI' Nothing registryUrl (T.client Registry.lookupAPI request) "lookup" Registry.lookupAPI
     >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
 
 checkBlacklisted ::
