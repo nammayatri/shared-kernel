@@ -164,15 +164,15 @@ toRCVerificationResponse req resp =
         }
 
 -- | Map @drivingLicenseData@ into 'DLVerificationOutputInterface'.
--- @dlCategory@ arrives comma-separated (e.g. @"NT, NT"@) and is split into
--- one 'CovDetail' per class.
+-- @classOfVehicleDetails@ arrives comma-separated with long-form class
+-- names (e.g. @"LIGHT MOTOR VEHICLE, Transport Vehicle-M/HMV (Goods and Passenger)"@).
 toDLVerificationResponse :: InterfaceTypes.VerifyDLReq -> LicenseDetailsResp -> InterfaceTypes.DLVerificationOutputInterface
 toDLVerificationResponse req resp =
   let dfield k = lookupLicenseField k resp
       validity = dfield "transportValidity" <|> dfield "nonTransportValidity"
       issue = dfield "dlIssueDate"
       categories =
-        maybe [] (map T.strip . T.splitOn ",") (dfield "dlCategory")
+        maybe [] (map T.strip . T.splitOn ",") (dfield "classOfVehicleDetails")
       covs =
         categories <&> \cls ->
           IdfyTypes.CovDetail
