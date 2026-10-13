@@ -41,6 +41,18 @@ data XyneSpacesCfg = XyneSpacesCfg
     botWorkflowId :: Maybe Text,
     -- | Optional app token for the bot conversation API when it is issued for
     -- a different Xyne app than 'token'. Falls back to 'token' when absent.
-    botToken :: Maybe (EncryptedField 'AsEncrypted Text)
+    botToken :: Maybe (EncryptedField 'AsEncrypted Text),
+    -- | HMAC-SHA256 secret used to verify the @X-Xyne-Signature@ on inbound
+    -- @DESK_REPLY@ webhooks. Xyne issues one per Xyne app, and a deployment
+    -- has only one webhook URL, so the calling app is named by the @mocId@
+    -- query param on that URL and its secret read from here. 'Nothing' falls
+    -- back to the deployment-wide @xyneWebhookSigningSecret@, which is what
+    -- every merchant used before separate Xyne apps existed.
+    --
+    -- Encrypted like 'token' and 'csatApiKey': it is a credential at rest, so
+    -- it must not be readable from the config row or from a 'Show' of this
+    -- type. Consequence for operators: the ciphertext comes from passetto, so
+    -- the value cannot be written with plain SQL.
+    webhookSigningSecret :: Maybe (EncryptedField 'AsEncrypted Text)
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
