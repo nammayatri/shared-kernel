@@ -70,5 +70,6 @@ verifyTten cfg req = do
           bodyType = Nothing,
           status = Nothing,
           grossVehicleWeight = Nothing,
-          unladdenWeight = Nothing
+          unladdenWeight = Nothing,
+          rcVehicleType = Nothing
         }

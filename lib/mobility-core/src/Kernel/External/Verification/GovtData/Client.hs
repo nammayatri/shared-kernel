@@ -59,6 +59,7 @@ verifyRC req = do
                 bodyType = res.bodyType,
                 status = Nothing,
                 grossVehicleWeight = Nothing,
-                unladdenWeight = Nothing
+                unladdenWeight = Nothing,
+                rcVehicleType = Nothing
               }
         }
