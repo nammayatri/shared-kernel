@@ -59,7 +59,8 @@ data CreateOrderReq = CreateOrderReq
     payment_rules :: Maybe PaymentRules,
     payment_filter :: Maybe PaymentFilter,
     udf1 :: Maybe Text,
-    udf2 :: Maybe Text
+    udf2 :: Maybe Text,
+    udf3 :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
 

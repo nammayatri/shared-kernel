@@ -587,7 +587,8 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
               autoRefundPostSuccess = req.autoRefundPostSuccess,
               paymentFilter = req.paymentFilter,
               udf1 = req.udf1,
-              udf2 = req.udf2
+              udf2 = req.udf2,
+              udf3 = req.udf3
             }
     resp <- Juspay.createOrder cfg mRoutingId juspayReq
     let clientSecret' = maybe "" (\p -> p.payload.clientAuthToken) (Just resp.sdk_payload)
@@ -653,7 +654,8 @@ createPayment serviceConfig mRoutingId req = case serviceConfig of
               autoRefundPostSuccess = req.autoRefundPostSuccess,
               paymentFilter = req.paymentFilter,
               udf1 = req.udf1,
-              udf2 = req.udf2
+              udf2 = req.udf2,
+              udf3 = req.udf3
             }
     resp <- PaytmEDC.createOrder cfg mRoutingId paytmReq
     let clientSecret' = maybe "" (\p -> p.payload.clientAuthToken) (Just resp.sdk_payload)

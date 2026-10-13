@@ -331,7 +331,8 @@ mkCreateOrderReq returnUrl autoRefundConflictThresholdMinutes cfgWebhookUrl clie
           payment_rules = mkPaymentRules <$> paymentRules,
           payment_filter = mkPaymentFilter <$> paymentFilter,
           udf1 = Just (fromMaybe "NO_UDF1" udf1),
-          udf2 = Just (fromMaybe "NO_UDF2" udf2)
+          udf2 = Just (fromMaybe "NO_UDF2" udf2),
+          udf3 = Just (fromMaybe "NO_UDF3" udf3)
         }
 
 encodeBasketWithDummy :: HighPrecMoney -> [Basket] -> Text
