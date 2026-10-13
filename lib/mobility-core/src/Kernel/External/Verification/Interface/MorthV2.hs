@@ -160,8 +160,14 @@ toRCVerificationResponse req resp =
           bodyType = vfield "rcBodyTypeDesc",
           status = if successful then vfield "rcStatus" <|> Just "VALID" else Nothing,
           grossVehicleWeight = readMaybe . T.unpack =<< vfield "rcGvw",
-          unladdenWeight = readMaybe . T.unpack =<< vfield "rcUnldWt"
+          unladdenWeight = readMaybe . T.unpack =<< vfield "rcUnldWt",
+          rcVehicleType = parseVehicleType =<< vfield "rcVhType"
         }
+  where
+    parseVehicleType :: Text -> Maybe VT.VehicleRegistrationType
+    parseVehicleType "T" = Just VT.Transport
+    parseVehicleType "N" = Just VT.NonTransport
+    parseVehicleType _ = Nothing
 
 -- | Map @drivingLicenseData@ into 'DLVerificationOutputInterface'.
 -- @classOfVehicleDetails@ arrives comma-separated with long-form class

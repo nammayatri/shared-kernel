@@ -70,9 +70,13 @@ data RCVerificationResponse = RCVerificationResponse
     bodyType :: Maybe Text,
     status :: Maybe Text,
     grossVehicleWeight :: Maybe Float,
-    unladdenWeight :: Maybe Float
+    unladdenWeight :: Maybe Float,
+    rcVehicleType :: Maybe VehicleRegistrationType
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data VehicleRegistrationType = Transport | NonTransport
+  deriving (Show, Eq, Ord, Read, Generic, FromJSON, ToJSON, ToSchema)
 
 data PanInputDetails = PanInputDetails
   { inputPanNumber :: Text,

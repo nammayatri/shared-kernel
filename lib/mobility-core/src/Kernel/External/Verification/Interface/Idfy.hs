@@ -624,7 +624,8 @@ convertRCOutputToRCVerificationResponse RCVerificationOutput {..} =
       bodyType = body_type,
       status = status,
       grossVehicleWeight = gross_vehicle_weight >>= convertValueToFloat,
-      unladdenWeight = unladden_weight >>= convertValueToFloat
+      unladdenWeight = unladden_weight >>= convertValueToFloat,
+      rcVehicleType = Nothing
     }
 
 convertPanOutputToPanVerification :: PanVerificationOutput -> VT.PanVerificationResponse
