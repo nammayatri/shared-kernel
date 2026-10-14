@@ -19,6 +19,8 @@ module Kernel.Types.SlidingWindowCounters where
 
 import qualified Data.Aeson as A
 import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Text.Encoding as TE
 import qualified Database.Beam as B
 import Database.Beam.Backend
 import Database.Beam.Postgres
@@ -56,7 +58,7 @@ instance BeamSqlBackend be => B.HasSqlEqualityCheck be SlidingWindowOptions
 instance FromBackendRow Postgres SlidingWindowOptions
 
 instance {-# OVERLAPPING #-} ToSQLObject SlidingWindowOptions where
-  convertToSQLObject = SQLObjectValue . show . A.encode
+  convertToSQLObject = SQLObjectValue . show . TE.decodeUtf8 . BSL.toStrict . A.encode
 
 data PeriodType = Minutes | Hours | Days | Months | Years deriving (Read, Generic, FromDhall, Show, Eq, FromJSON, ToJSON, ToSchema, Ord)
 
