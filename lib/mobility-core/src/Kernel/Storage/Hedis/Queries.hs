@@ -179,8 +179,10 @@ withSecondaryRedisEnv ::
   HedisEnv ->
   env ->
   env
-withSecondaryRedisEnv secondaryEnv env =
+withSecondaryRedisEnv secondaryEnv' env =
   env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv, hedisNonCriticalEnv = secondaryEnv, hedisNonCriticalClusterEnv = secondaryEnv}
+  where
+    secondaryEnv = markHedisTarget "secondary" secondaryEnv'
 
 -- Read operation: reads from primary first, falls back to secondary if primary returns Nothing
 -- NOTE: This function only works for queries returning Maybe a, as it uses Nothing to detect "not found".
@@ -290,7 +292,8 @@ runInMasterLTSRedisCell f = do
           f
         Just secondaryEnv -> do
           logInfo "LTS_REDIS_ROUTING: Switching to secondary LTS Redis (AWS master)"
-          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) f
+          let ltsSecondary = markHedisTarget "secondary" secondaryEnv
+          local (\env -> env{hedisEnv = ltsSecondary, hedisClusterEnv = ltsSecondary}) f
     else do
       logInfo "LTS_REDIS_ROUTING: Using primary LTS Redis (current deployment Redis)"
       f
@@ -326,7 +329,7 @@ runInMultiCloudLTSRedisForListWith primaryEnv action = do
       logInfo "MULTI_CLOUD_LTS: Primary returned empty, trying secondary"
       secondaryResult <-
         withTryCatch "runInMultiCloudLTSRedisForList" $
-          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) action
+          local (\env -> env{hedisEnv = markHedisTarget "secondary" secondaryEnv, hedisClusterEnv = markHedisTarget "secondary" secondaryEnv}) action
       case secondaryResult of
         Left err -> do
           logError $ "MULTI_CLOUD_LTS: Secondary read failed " <> show err
@@ -365,7 +368,7 @@ runInMultiCloudLTSRedisForMaybeListWith primaryEnv action = do
       logInfo "MULTI_CLOUD_LTS: Primary returned all Nothing, trying secondary"
       secondaryResult <-
         withTryCatch "runInMultiCloudLTSRedisForMaybeList" $
-          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) action
+          local (\env -> env{hedisEnv = markHedisTarget "secondary" secondaryEnv, hedisClusterEnv = markHedisTarget "secondary" secondaryEnv}) action
       case secondaryResult of
         Left err -> do
           logError $ "MULTI_CLOUD_LTS: Secondary read failed " <> show err
@@ -400,7 +403,7 @@ withSecondaryLTSRedis f = do
       logError "LTS_REDIS: No secondary LTS Redis configured, falling back to primary"
       f
     Just secondaryEnv ->
-      local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) f
+      local (\env -> env{hedisEnv = markHedisTarget "secondary" secondaryEnv, hedisClusterEnv = markHedisTarget "secondary" secondaryEnv}) f
 
 buildKey :: (HedisFlow m env, TryException m) => Text -> m BS.ByteString
 buildKey key = do

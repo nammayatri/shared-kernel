@@ -40,6 +40,10 @@ type RequestLatencyMetric = CachedVector P.Label5 P.Histogram
 
 type DatastoresLatencyMetric = CachedVector P.Label3 P.Histogram
 
+-- | Redis latency split by which Redis the call actually went to.
+-- Labels: "target" (primary | secondary), "datastore", "operation", "version".
+type RedisLatencyMetric = CachedVector P.Label4 P.Histogram
+
 type ErrorCounterMetric = P.Vector P.Label5 P.Counter
 
 type TryExceptionCounterMetric = P.Vector P.Label5 P.Counter
@@ -153,9 +157,17 @@ class CoreMetrics m where
   incrementSmsProviderResponseCounter :: Text -> Text -> m ()
   withForkCounters :: Text -> Text -> m a -> m a
 
+  -- | @addRedisLatency target storeType operation latency@ -- record a Redis call's latency
+  -- labelled with the Redis it went to ("primary" or "secondary", see 'HedisEnv.hedisTarget').
+  -- Defaults to a no-op so existing instances keep compiling; 'FlowR' records it.
+  addRedisLatency :: Text -> Text -> Text -> Milliseconds -> m ()
+  default addRedisLatency :: Applicative m => Text -> Text -> Text -> Milliseconds -> m ()
+  addRedisLatency _ _ _ _ = pure ()
+
 data CoreMetricsContainer = CoreMetricsContainer
   { requestLatency :: RequestLatencyMetric,
     datastoresLatency :: DatastoresLatencyMetric,
+    redisLatency :: RedisLatencyMetric,
     genericLatency :: GenericLatencyMetric,
     errorCounter :: ErrorCounterMetric,
     tryExceptionCounter :: TryExceptionCounterMetric,
@@ -194,6 +206,7 @@ registerCoreMetricsContainer :: IO CoreMetricsContainer
 registerCoreMetricsContainer = do
   requestLatency <- registerRequestLatencyMetric
   datastoresLatency <- registerDatastoresLatencyMetrics
+  redisLatency <- registerRedisLatencyMetric
   genericLatency <- registerGenericLatencyMetrics
   errorCounter <- registerErrorCounterMetric
   tryExceptionCounter <- registerTryExceptionCouterMetric
@@ -268,6 +281,19 @@ registerDatastoresLatencyMetrics =
       P.histogram info P.defaultBuckets
   where
     info = P.Info "datastore_operation_duration" ""
+
+-- | Sub-millisecond buckets so an in-region call (~0.5ms) and a cross-cloud call (~4ms) land in
+-- different buckets; 'P.defaultBuckets' starts at 5ms and cannot tell them apart.
+redisLatencyBuckets :: [Double]
+redisLatencyBuckets = [0.0005, 0.001, 0.002, 0.003, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.03, 0.05, 0.1, 0.25, 0.5, 1, 2.5]
+
+registerRedisLatencyMetric :: IO RedisLatencyMetric
+registerRedisLatencyMetric =
+  mkCachedVector <=< P.register $
+    P.vector ("target", "datastore", "operation", "version") $
+      P.histogram info redisLatencyBuckets
+  where
+    info = P.Info "redis_operation_duration_seconds" "Redis call latency by target Redis (primary or secondary)"
 
 registerRequestLatencyMetric :: IO RequestLatencyMetric
 registerRequestLatencyMetric =

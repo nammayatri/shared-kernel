@@ -108,6 +108,26 @@ addDatastoreLatencyImplementation storeType operation latency = do
         (storeType, operation, version.getDeploymentVersion)
         (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
 
+addRedisLatencyImplementation ::
+  ( HasCoreMetrics r,
+    L.MonadFlow m,
+    MonadReader r m
+  ) =>
+  Text ->
+  Text ->
+  Text ->
+  Milliseconds ->
+  m ()
+addRedisLatencyImplementation target storeType operation latency = do
+  cmContainer <- asks (.coreMetrics)
+  version <- asks (.version)
+  L.runIO $
+    whenM (shouldSampleLatency cmContainer.latencySampleRate) $
+      withCachedLabel
+        cmContainer.redisLatency
+        (target, storeType, operation, version.getDeploymentVersion)
+        (`P.observe` ((/ 1000) . fromIntegral $ getMilliseconds latency))
+
 incrementSortedSetCounterImplementation ::
   ( HasCoreMetrics r,
     L.MonadFlow m,
