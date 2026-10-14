@@ -21,6 +21,7 @@ module Kernel.External.Verification.Interface.Ekatra
   )
 where
 
+import Control.Applicative ((<|>))
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Key as AK
 import qualified Data.Aeson.KeyMap as KM
@@ -30,6 +31,7 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.Char (isAlphaNum)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import Data.Time (Day, defaultTimeLocale, formatTime, parseTimeM)
 import Kernel.External.Encryption
 import Kernel.External.Verification.Ekatra.Client (callEkatraOcrExtract, callEkatraOcrMap)
 import Kernel.External.Verification.Ekatra.Types
@@ -83,9 +85,9 @@ extractRCImage cfg req = do
                 colour = findField ["colour", "color"] value,
                 chassisNumber = findField ["chassis_number", "chassis"] value,
                 engineNumber = findField ["engine_number"] value,
-                registrationDate = findField ["registration_date"] value,
+                registrationDate = normalizeDate $ findField ["registration_date", "date_of_registration"] value,
                 ownerName = findField ["owner_name", "name"] value,
-                manufacturingDate = findField ["manufacturing_date"] value,
+                manufacturingDate = normalizeDate $ findField ["manufacturing_date"] value,
                 bodyType = findField ["body_type", "body"] value,
                 errorMessage = Nothing
               },
@@ -106,7 +108,7 @@ extractDLImage cfg req = do
             ExtractedDL
               { dlNumber = findField ["dl_number", "license_number", "dlno"] value,
                 nameOnCard = findField ["name", "name_on_card"] value,
-                dateOfBirth = findField ["dob", "date_of_birth"] value,
+                dateOfBirth = normalizeDate $ findField ["dob", "date_of_birth"] value,
                 errorMessage = Nothing
               },
         provider = Just VT.Ekatra
@@ -122,7 +124,7 @@ extractAadhaarImage cfg req = do
   let extractionOutput =
         Idfy.AadhaarExtractionOutput
           { address = findField ["address"] value,
-            date_of_birth = findField ["dob", "date_of_birth"] value,
+            date_of_birth = normalizeDate $ findField ["dob", "date_of_birth"] value,
             district = findField ["district"] value,
             fathers_name = findField ["fathers_name", "father_name"] value,
             gender = findField ["gender", "sex"] value,
@@ -239,6 +241,14 @@ findField wanted = go
 
 normalizeKey :: Text -> Text
 normalizeKey = T.toLower . T.filter isAlphaNum
+
+-- Ekatra OCR emits dates as DD-MM-YYYY (or sometimes DD/MM/YYYY). Convert to
+-- ISO YYYY-MM-DD so downstream parses uniformly. Pass through anything else.
+normalizeDate :: Maybe Text -> Maybe Text
+normalizeDate = fmap $ \t ->
+  let s = T.unpack (T.strip t)
+      parse fmt = parseTimeM True defaultTimeLocale fmt s :: Maybe Day
+   in maybe t (T.pack . formatTime defaultTimeLocale "%F") (parse "%d-%m-%Y" <|> parse "%d/%m/%Y")
 
 valueToText :: A.Value -> Maybe Text
 valueToText (A.String s) = Just $ T.strip s
