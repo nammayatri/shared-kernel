@@ -46,6 +46,13 @@ data XyneSpacesCfg = XyneSpacesCfg
     -- it must not be readable from the config row or from a 'Show' of this
     -- type. Consequence for operators: the ciphertext comes from passetto, so
     -- the value cannot be written with plain SQL.
-    webhookSigningSecret :: Maybe (EncryptedField 'AsEncrypted Text)
+    webhookSigningSecret :: Maybe (EncryptedField 'AsEncrypted Text),
+    -- | Xyne workflow that drives the pre-ticket support bot
+    -- (@POST /sdlc-api/apps/workflows/conversations@). 'Nothing' disables the bot
+    -- proxy for this merchant.
+    botWorkflowId :: Maybe Text,
+    -- | Optional app token for the bot conversation API when it is issued for
+    -- a different Xyne app than 'token'. Falls back to 'token' when absent.
+    botToken :: Maybe (EncryptedField 'AsEncrypted Text)
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

@@ -375,6 +375,7 @@ library
       Kernel.External.Ticket.Kapture.Types
       Kernel.External.Ticket.Types
       Kernel.External.Ticket.XyneSpaces.Config
+      Kernel.External.Ticket.XyneSpaces.Conversation
       Kernel.External.Ticket.XyneSpaces.Flow
       Kernel.External.Ticket.XyneSpaces.Types
       Kernel.External.Ticket.XyneSpaces.Webhook
