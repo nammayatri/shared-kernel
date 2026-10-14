@@ -78,6 +78,10 @@ library
       Kernel.External.ChallanSearch.Types
       Kernel.External.Encryption
       Kernel.External.EventTracking
+      Kernel.External.EventTracking.Breeze.API
+      Kernel.External.EventTracking.Breeze.Config
+      Kernel.External.EventTracking.Breeze.Flow
+      Kernel.External.EventTracking.Breeze.Types
       Kernel.External.EventTracking.Clevertap.API
       Kernel.External.EventTracking.Clevertap.Config
       Kernel.External.EventTracking.Clevertap.Flow
