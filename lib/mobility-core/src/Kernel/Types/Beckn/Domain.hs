@@ -30,6 +30,11 @@ import Kernel.Utils.GenericPretty
 
 derivePersistField "Domain"
 
+-- FIXME FRFS constructor added because in Registry instance we search in beckn_config table using `show domain`.
+-- Hence should be:
+-- show BecknV2.FRFS.Enums.FRFS == show Kernel.Types.Beckn.Domain.FRFS
+-- toJSON BecknV2.FRFS.Enums.FRFS == toJSON Kernel.Types.Beckn.Domain.FRFS
+-- When we roll out to BecknV2 completely, we can use the same domain type everywhere.
 data Domain
   = MOBILITY
   | LOCAL_RETAIL
@@ -39,6 +44,7 @@ data Domain
   | PARKING
   | PUBLIC_TRANSPORT
   | LOGISTICS
+  | FRFS
   deriving (Eq, Generic, Show, Read, FromDhall, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable Domain
 
@@ -67,4 +73,5 @@ instance ToJSON Domain where
   toJSON PARKING = String "nic2004:63031"
   toJSON PUBLIC_TRANSPORT = String "ONDC:TRV11"
   toJSON LOGISTICS = String "nic2004:60232"
+  toJSON FRFS = String "ONDC:TRV11"
   toJSON _ = error "Invalid Domain"
