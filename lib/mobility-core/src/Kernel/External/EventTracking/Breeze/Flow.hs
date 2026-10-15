@@ -17,9 +17,6 @@ module Kernel.External.EventTracking.Breeze.Flow
   )
 where
 
-import qualified Data.Aeson as A
-import qualified Data.Aeson.Key as AK
-import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.Text as T
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import EulerHS.Types (client)
@@ -60,9 +57,10 @@ pushEvent cfg req = do
   -- A 200 only means the event was queued. `filtered` is the one rejection the
   -- collector reports synchronously: the event name is not on its allow-list.
   case (resp.collected, resp.filtered) of
-    (_, Just n) | n > 0 ->
-      throwError . InternalError $
-        "Breeze collector filtered event " <> req.eventName <> ": the name is not allowed by the collector's configuration"
+    (_, Just n)
+      | n > 0 ->
+        throwError . InternalError $
+          "Breeze collector filtered event " <> req.eventName <> ": the name is not allowed by the collector's configuration"
     (Just 0, _) ->
       throwError . InternalError $ "Breeze collector accepted no events for " <> req.eventName
     _ ->
@@ -71,7 +69,9 @@ pushEvent cfg req = do
 -- | Map the provider-agnostic request onto Breeze's envelope.
 --
 -- Server events have no browser cookie, so @anon_id@ carries the caller's
--- stable customer id. The @id@ is generated here: Breeze processes each id once,
+-- stable customer id. Identifiers (@driver_id@, @email@, ...) are the caller's
+-- to supply under @properties.identifiers@ in 'attributes'; this function passes
+-- @properties@ through untouched. The @id@ is generated here: Breeze processes each id once,
 -- so a retry that reuses it is safe, while a fresh id per call is not deduplicated.
 toBreezeEvent :: BreezeCfg -> Text -> UTCTime -> EventTrackingReq -> BreezeEvent
 toBreezeEvent cfg eventId now req =
@@ -83,23 +83,8 @@ toBreezeEvent cfg eventId now req =
       workspace_id = cfg.workspaceId,
       anon_id = req.customerId,
       occured_at = formatRfc3339 (fromMaybe now req.timestamp),
-      properties = withIdentifier cfg.customerIdentifierType req.customerId req.attributes
+      properties = req.attributes
     }
-
--- | Add @customerId@ under @properties.identifiers.<type>@, keeping any
--- identifiers the caller already placed there.
-withIdentifier :: Maybe Text -> Text -> A.Value -> A.Value
-withIdentifier Nothing _ attrs = attrs
-withIdentifier (Just identifierType) customerId attrs =
-  A.Object $ AKM.insert "identifiers" (A.Object identifiers) props
-  where
-    props = case attrs of
-      A.Object o -> o
-      _ -> mempty
-    existing = case AKM.lookup "identifiers" props of
-      Just (A.Object o) -> o
-      _ -> mempty
-    identifiers = AKM.insert (AK.fromText identifierType) (A.String customerId) existing
 
 formatRfc3339 :: UTCTime -> Text
 formatRfc3339 = T.pack . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ"
