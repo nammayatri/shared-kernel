@@ -27,12 +27,6 @@ data BreezeCfg = BreezeCfg
     tenantId :: Text,
     workspaceId :: Text,
     collectorToken :: EncryptedField 'AsEncrypted Text,
-    -- | Identifier type under which the request's @customerId@ is sent in
-    -- @properties.identifiers@ (for example @driver_id@, once the tenant has
-    -- declared it). Breeze ignores types the tenant has not declared, and drops
-    -- an event with no usable identifier, so leave this unset only when callers
-    -- put identifiers into the event attributes themselves.
-    customerIdentifierType :: Maybe Text,
     enabled :: Bool
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
