@@ -89,6 +89,8 @@ type RouteAPI =
     :> MandatoryQueryParam "geometries" GeometryRespType
     :> MandatoryQueryParam "alternatives" Bool
     :> MandatoryQueryParam "steps" Bool
+    :> QueryParam "overview" OverviewType
+    :> QueryParam "annotations" AnnotationsList
     :> Get '[JSON] OSRMRouteResponse
 
 newtype PointsList = PointsList {getPointsList :: [Maps.LatLong]}
@@ -123,6 +125,17 @@ data GeometryRespType = GeoJson
 
 instance ToHttpApiData GeometryRespType where
   toUrlPiece GeoJson = "geojson"
+
+data OverviewType = OverviewFull | OverviewSimplified
+
+instance ToHttpApiData OverviewType where
+  toUrlPiece OverviewFull = "full"
+  toUrlPiece OverviewSimplified = "simplified"
+
+newtype AnnotationsList = AnnotationsList {getAnnotationsList :: [Text]}
+
+instance ToHttpApiData AnnotationsList where
+  toUrlPiece (AnnotationsList lst) = T.intercalate "," lst
 
 data OSRMTableResponse = OSRMTableResponse
   { distances :: [[Double]],
@@ -193,7 +206,17 @@ data RouteResponseLeg = RouteResponseLeg
   { steps :: [Steps],
     distance :: Double,
     duration :: Double,
-    weight :: Double
+    weight :: Double,
+    annotation :: Maybe RouteAnnotation
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- | Per-segment measurements for one leg.
+data RouteAnnotation = RouteAnnotation
+  { speed :: Maybe [Double],
+    distance :: Maybe [Double],
+    duration :: Maybe [Double]
   }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
@@ -308,12 +331,17 @@ callOsrmRouteAPI ::
   BaseUrl ->
   Maps.TravelMode -> -- Changed from Text to TravelMode
   PointsList ->
+  Bool ->
   m OSRMRouteResponse
-callOsrmRouteAPI entityId merchantCityId req osrmUrl travelMode pointsList = do
+callOsrmRouteAPI entityId merchantCityId req osrmUrl travelMode pointsList withTrafficAnnotations = do
   let eulerClient = Euler.client (Proxy @RouteAPI)
       profile = toOSRMProfile travelMode
       updatedReq = updateModeForGetRoutesReq travelMode req
-  rsp <- callAPI osrmUrl (eulerClient profile pointsList GeoJson True True) "osrm-route" (Proxy @RouteAPI)
+      (mbOverview, mbAnnotations) =
+        if withTrafficAnnotations
+          then (Just OverviewFull, Just $ AnnotationsList ["speed", "distance"])
+          else (Nothing, Nothing)
+  rsp <- callAPI osrmUrl (eulerClient profile pointsList GeoJson True True mbOverview mbAnnotations) "osrm-route" (Proxy @RouteAPI)
   fork ("Logging external API Call of OsrmRouteAPI OSRM ") $
     ApiCallLogger.pushExternalApiCallDataToKafka "OsrmRouteAPI" "OSRM" entityId merchantCityId (Just updatedReq) rsp
   fromEitherM (FailedToCallOsrmRouteAPI . show) rsp
