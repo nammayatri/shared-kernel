@@ -16,7 +16,7 @@
 -}
 
 -- | Client for the Xyne Conversation API that runs a workflow as a chat bot
--- (@POST /sdlc-api/apps/workflows/conversations@, @POST .../:id/end@).
+-- (@POST /api/apps/workflows/conversations@, @POST .../:id/end@).
 --
 -- One call advances the conversation by one turn: start it (workflowId +
 -- context), answer the current turn (choice or text), or just read the
@@ -93,7 +93,7 @@ data XyneConversationError
   deriving (Show)
 
 type XyneAdvanceConversationAPI =
-  "sdlc-api"
+  "api"
     :> "apps"
     :> "workflows"
     :> "conversations"
@@ -102,7 +102,7 @@ type XyneAdvanceConversationAPI =
     :> Post '[JSON] XyneConversationTurn
 
 type XyneEndConversationAPI =
-  "sdlc-api"
+  "api"
     :> "apps"
     :> "workflows"
     :> "conversations"
