@@ -19,6 +19,14 @@ import Kernel.Types.Common
 
 data OSRMCfg = OSRMCfg
   { osrmUrl :: BaseUrl,
-    radiusDeviation :: Maybe Meters
+    radiusDeviation :: Maybe Meters,
+    trafficConfig :: Maybe OSRMTrafficConfig
+  }
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data OSRMTrafficConfig = OSRMTrafficConfig
+  { jamBelowKmph :: Double,
+    slowBelowKmph :: Double,
+    minSegmentLengthMeters :: Double
   }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
