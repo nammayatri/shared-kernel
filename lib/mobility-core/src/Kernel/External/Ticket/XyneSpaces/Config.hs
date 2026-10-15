@@ -48,7 +48,7 @@ data XyneSpacesCfg = XyneSpacesCfg
     -- the value cannot be written with plain SQL.
     webhookSigningSecret :: Maybe (EncryptedField 'AsEncrypted Text),
     -- | Xyne workflow that drives the pre-ticket support bot
-    -- (@POST /sdlc-api/apps/workflows/conversations@). 'Nothing' disables the bot
+    -- (@POST /api/apps/workflows/conversations@). 'Nothing' disables the bot
     -- proxy for this merchant.
     botWorkflowId :: Maybe Text,
     -- | Optional app token for the bot conversation API when it is issued for
