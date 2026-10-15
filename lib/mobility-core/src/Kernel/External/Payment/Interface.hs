@@ -196,6 +196,21 @@ mandateExecution serviceConfig mRoutingId req = case serviceConfig of
   StripeConfig _ -> throwError $ InternalError "Stripe Mandate Execution not supported."
   PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Mandate Execution not supported."
 
+getMandateStatus ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  PaymentServiceConfig ->
+  Maybe Text ->
+  MandateStatusReq ->
+  m OrderStatusResp
+getMandateStatus serviceConfig mRoutingId req = case serviceConfig of
+  JuspayConfig cfg -> Juspay.getMandateStatus cfg mRoutingId req
+  StripeConfig _ -> throwError $ InternalError "Stripe Mandate Status not supported."
+  PaytmEDCConfig _ -> throwError $ InternalError "PaytmEDC Mandate Status not supported."
+
 autoRefunds ::
   ( EncFlow m r,
     CoreMetrics m,
