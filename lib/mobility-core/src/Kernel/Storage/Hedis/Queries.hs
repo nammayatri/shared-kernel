@@ -509,20 +509,47 @@ runPipelined opName command items =
     pure (Right replies)
 
 runPipelinedByKey ::
-  (HedisFlow m env, TryException m) =>
+  (HedisFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
   Text ->
   (BS.ByteString -> Redis (Either Reply a)) ->
   [Text] ->
   m [Maybe a]
+runPipelinedByKey _ _ [] = pure []
 runPipelinedByKey opName command keys = do
   prefKeys <- mapM buildKey keys
-  result <- runPipelined opName command prefKeys
-  pure $ case result of
-    Right replies | length replies == length keys -> either (const Nothing) Just <$> replies
-    _ -> Nothing <$ keys
+  let indexedPrefKeys = zip [0 ..] prefKeys
+      groups =
+        IntMap.elems $
+          IntMap.fromListWith
+            (<>)
+            [(fromEnum (keyToSlot pk), NE.singleton (i, pk)) | (i, pk) <- indexedPrefKeys]
+  perGroupResults <- concat <$> mapM runGroupChunk (chunksOf clusterMGetForkLimit groups)
+  let idxMap =
+        IntMap.fromList $
+          concatMap
+            ( \case
+                (_, Left _) -> []
+                (_, Right (Left _)) -> []
+                (grp, Right (Right replies)) ->
+                  [ (idx, either (const Nothing) Just val)
+                    | ((idx, _), val) <- zip (NE.toList grp) replies
+                  ]
+            )
+            perGroupResults
+  pure $ map (\i -> fromMaybe Nothing (IntMap.lookup i idxMap)) [0 .. length keys - 1]
+  where
+    runGroup grp = runPipelined opName command (NE.toList $ snd <$> grp)
+    runGroupChunk chunk = do
+      awaitables <- mapM (awaitableFork "runPipelinedByKey" . runGroup) chunk
+      results <- mapM (L.await Nothing) awaitables
+      pure $ zip chunk results
+    chunksOf k = DL.unfoldr step
+      where
+        step [] = Nothing
+        step xs = Just (DL.splitAt k xs)
 
 mGetClusterRaw ::
-  (HedisFlow m env, TryException m) =>
+  (HedisFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
   [Text] ->
   m (V.Vector (Maybe BS.ByteString))
 mGetClusterRaw [] = pure V.empty
@@ -534,18 +561,27 @@ mGetClusterRaw keys = withLogTag "CLUSTER" $ do
           IntMap.fromListWith
             (<>)
             [(fromEnum (keyToSlot pk), NE.singleton (i, pk)) | (i, pk) <- zip [0 ..] prefKeys]
-  result <- runPipelined "mGetCluster" (Hedis.mget . NE.toList . fmap snd) groups
-  case result of
-    Left exc -> do
-      logTagError "ERROR_WHILE_MGET" $ "Cluster MGET pipeline threw: " <> show exc
-      pure $ V.replicate nKeys Nothing
-    Right replies -> do
-      aligned <- forM (DL.zip groups replies) $ \(grp, reply) -> case reply of
-        Left err -> do
-          logTagError "ERROR_WHILE_MGET" $ "Cluster MGET failed: " <> show err
+  aligned <- fmap concat . mapM runGroupChunk $ chunksOf clusterMGetForkLimit groups
+  pure $! V.replicate nKeys Nothing V.// aligned
+  where
+    runGroup grp = runPipelined "mGetCluster" (Hedis.mget . NE.toList . fmap snd) [grp]
+    runGroupChunk chunk = do
+      awaitables <- mapM (awaitableFork "mGetClusterRaw" . runGroup) chunk
+      results <- mapM (L.await Nothing) awaitables
+      fmap concat $ forM (DL.zip chunk results) $ \(grp, res) -> case res of
+        Left exc -> do
+          logTagError "ERROR_WHILE_MGET" $ "Cluster MGET pipeline threw: " <> show exc
           pure []
-        Right found -> pure $ DL.zip (NE.toList (fst <$> grp)) found
-      pure $! V.replicate nKeys Nothing V.// concat aligned
+        Right [reply] -> case reply of
+          Left err -> do
+            logTagError "ERROR_WHILE_MGET" $ "Cluster MGET failed: " <> show err
+            pure []
+          Right found -> pure $ DL.zip (NE.toList (fst <$> grp)) found
+        Right _ -> pure []
+    chunksOf k = DL.unfoldr step
+      where
+        step [] = Nothing
+        step xs = Just (DL.splitAt k xs)
 
 -- | Cluster MGET returning just the decoded values that were found. No
 -- order guarantee on the output. Decode failures are logged and dropped.
