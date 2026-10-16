@@ -59,7 +59,8 @@ instance ToJSON OptApiReq where
 
 data SendOtpApiReq = SendOtpApiReq
   { sendTo :: Text,
-    var1 :: Text
+    var1 :: Text,
+    templateId :: Maybe Text
   }
   deriving (Generic, Eq, Show, ToSchema)
 
