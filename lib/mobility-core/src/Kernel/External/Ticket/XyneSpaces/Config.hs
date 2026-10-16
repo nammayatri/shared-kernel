@@ -34,6 +34,13 @@ data XyneSpacesCfg = XyneSpacesCfg
     -- | @X-Api-Key@ sent on CSAT submission calls (@/api/csat/external/:ticketId@).
     -- Separate credential from 'token' (Bearer JWT) since Xyne issues and
     -- rotates the two independently. 'Nothing' when CSAT push is not configured.
-    csatApiKey :: Maybe (EncryptedField 'AsEncrypted Text)
+    csatApiKey :: Maybe (EncryptedField 'AsEncrypted Text),
+    -- | Xyne workflow that drives the pre-ticket support bot
+    -- (@POST /api/apps/workflows/conversations@). 'Nothing' disables the bot
+    -- proxy for this merchant.
+    botWorkflowId :: Maybe Text,
+    -- | Optional app token for the bot conversation API when it is issued for
+    -- a different Xyne app than 'token'. Falls back to 'token' when absent.
+    botToken :: Maybe (EncryptedField 'AsEncrypted Text)
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
