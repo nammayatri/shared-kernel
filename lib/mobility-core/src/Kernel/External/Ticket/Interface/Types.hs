@@ -113,6 +113,8 @@ data RideInfo = RideInfo
     driverPhoneNo :: Maybe Text,
     vehicleNo :: Text,
     status :: Text,
+    -- | Trip type shown to agents (e.g. OneWay, Rental, InterCity).
+    rideType :: Maybe Text,
     rideCreatedAt :: UTCTime,
     pickupLocation :: Location,
     dropLocation :: Maybe Location,

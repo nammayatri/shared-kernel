@@ -22,6 +22,8 @@ module Kernel.External.Ticket.Interface
     kapturePullTicket,
     kaptureGetTicket,
     getTicketStatus,
+    advanceBotConversation,
+    endBotConversation,
   )
 where
 
@@ -30,9 +32,12 @@ import Kernel.External.Ticket.Interface.Types
 import qualified Kernel.External.Ticket.Interface.XyneSpaces as XyneSpaces
 import qualified Kernel.External.Ticket.Interface.Zendesk as Zendesk
 import qualified Kernel.External.Ticket.Kapture.Types as KT
+import qualified Kernel.External.Ticket.XyneSpaces.Conversation as XC
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
+import Kernel.Types.Error (GenericError (InternalError))
+import Kernel.Utils.Common (throwError)
 import Kernel.Utils.Servant.Client
 
 createTicket ::
@@ -173,3 +178,35 @@ getTicketStatus serviceConfig req = case serviceConfig of
   ZendeskConfig _ -> pure []
   XyneSpacesConfig _ -> pure []
   RadarXyneSpacesConfig _ -> pure []
+
+-- | Pre-ticket support bot, one turn per call. Only XyneSpaces runs a bot
+-- workflow; other providers have no equivalent.
+advanceBotConversation ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IssueTicketServiceConfig ->
+  XC.XyneConversationReq ->
+  m XC.XyneConversationTurn
+advanceBotConversation serviceConfig req = case serviceConfig of
+  XyneSpacesConfig cfg -> XyneSpaces.advanceBotConversation cfg req
+  RadarXyneSpacesConfig cfg -> XyneSpaces.advanceBotConversation cfg req
+  KaptureConfig _ -> throwError $ InternalError "Bot conversation is only supported for XyneSpaces"
+  ZendeskConfig _ -> throwError $ InternalError "Bot conversation is only supported for XyneSpaces"
+
+endBotConversation ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IssueTicketServiceConfig ->
+  Text ->
+  m ()
+endBotConversation serviceConfig conversationId = case serviceConfig of
+  XyneSpacesConfig cfg -> XyneSpaces.endBotConversation cfg conversationId
+  RadarXyneSpacesConfig cfg -> XyneSpaces.endBotConversation cfg conversationId
+  KaptureConfig _ -> pure ()
+  ZendeskConfig _ -> pure ()
