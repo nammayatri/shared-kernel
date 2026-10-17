@@ -36,7 +36,18 @@ withTimeRedis ::
 withTimeRedis storeType operationName operation = do
   enableRedisLatencyLogging <- asks (.enableRedisLatencyLogging)
   enablePrometheusMetricLogging <- asks (.enablePrometheusMetricLogging)
-  withTime storeType operationName enableRedisLatencyLogging enablePrometheusMetricLogging operation
+  -- "RedisCluster" calls run on hedisClusterEnv; standalone ones ("Redis"/"RedisStandalone")
+  -- on hedisEnv. Both are swapped together when a call is routed to the secondary cloud.
+  target <-
+    if storeType == "RedisCluster"
+      then asks (.hedisClusterEnv.hedisTarget)
+      else asks (.hedisEnv.hedisTarget)
+  (res, latency) <- measureDuration operation
+  when enableRedisLatencyLogging $ logTagInfo (storeType <> ":" <> operationName) $ show latency
+  when enablePrometheusMetricLogging $ do
+    addDatastoreLatency storeType operationName latency
+    addRedisLatency target storeType operationName latency
+  pure res
 
 withTime ::
   ( MonadReader r m,

@@ -52,7 +52,11 @@ data HedisCfg = HedisCfg
 
 data HedisEnv = HedisEnv
   { hedisConnection :: Connection,
-    keyModifier :: KeyModifierFunc
+    keyModifier :: KeyModifierFunc,
+    -- | Which Redis this env points at, used only as a metric label
+    -- ("primary" when connected; set to "secondary" by 'markHedisTarget' when an env is
+    -- swapped in for the secondary/master cloud).
+    hedisTarget :: Text
   }
   deriving (Generic)
 
@@ -78,7 +82,8 @@ connectHedisCluster cfg keyModifier = do
   return $
     HedisEnv
       { hedisConnection = conn,
-        keyModifier = keyModifier
+        keyModifier = keyModifier,
+        hedisTarget = "primary"
       }
   where
     connectInfo :: ConnectInfo
@@ -100,7 +105,8 @@ connectHedis cfg keyModifier = do
   return $
     HedisEnv
       { hedisConnection = conn,
-        keyModifier = keyModifier
+        keyModifier = keyModifier,
+        hedisTarget = "primary"
       }
   where
     connectInfo :: ConnectInfo
@@ -114,6 +120,9 @@ connectHedis cfg keyModifier = do
           connectMaxIdleTime = cfg.connectMaxIdleTime,
           connectTimeout = cfg.connectTimeout
         }
+
+markHedisTarget :: Text -> HedisEnv -> HedisEnv
+markHedisTarget target env = env {hedisTarget = target}
 
 disconnectHedis :: HedisEnv -> IO ()
 disconnectHedis HedisEnv {..} =
