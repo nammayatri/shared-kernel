@@ -126,6 +126,9 @@ createAndroidNotification title body notificationType sound =
         ALLOCATION_REQUEST ->
           def{fcmdChannelId = Just "RINGING_ALERT"
              }
+        SHARED_CAB_ALLOCATION ->
+          def{fcmdChannelId = Just "SHARED_CAB_ALLOCATION_NEW"
+             }
         TRIP_STARTED ->
           def{fcmdChannelId = Just "TRIP_STARTED"
              }
