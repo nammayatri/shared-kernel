@@ -164,7 +164,8 @@ newtype AdditionalDetails = AdditionalDetails
   deriving anyclass (ToSchema)
 
 instance FromJSON AdditionalDetails where
-  parseJSON = genericParseJSON constructorsWithSnakeCase
+  parseJSON = withObject "AdditionalDetails" $ \v ->
+    AdditionalDetails <$> v .:? "issue_details" .!= []
 
 instance ToJSON AdditionalDetails where
   toJSON = genericToJSON constructorsWithSnakeCase
