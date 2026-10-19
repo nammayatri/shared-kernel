@@ -169,6 +169,8 @@ dependencies:
   - insert-ordered-containers
   - split
   - bimap
+  - x509
+  - x509-store
 
 ghc-options:
   - -fwrite-ide-info
