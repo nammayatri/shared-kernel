@@ -2034,5 +2034,35 @@ instance IsHTTPError MorthV2Error where
 
 instance IsAPIError MorthV2Error
 
+data SocialLoginError
+  = SocialLoginProviderNotConfigured Text
+  | SocialLoginInvalidToken Text
+  | SocialLoginAppleClientSecretError Text
+  | SocialLinkTokenInvalid
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''SocialLoginError
+
+instance IsBaseError SocialLoginError where
+  toMessage = \case
+    SocialLoginProviderNotConfigured provider -> Just $ "Social login provider is not configured: " <> provider
+    SocialLoginInvalidToken reason -> Just $ "Invalid social login token: " <> reason
+    SocialLoginAppleClientSecretError reason -> Just $ "Failed to build Apple client secret: " <> reason
+    SocialLinkTokenInvalid -> Just "Social link token is invalid or expired"
+
+instance IsHTTPError SocialLoginError where
+  toErrorCode = \case
+    SocialLoginProviderNotConfigured _ -> "SOCIAL_LOGIN_PROVIDER_NOT_CONFIGURED"
+    SocialLoginInvalidToken _ -> "SOCIAL_LOGIN_INVALID_TOKEN"
+    SocialLoginAppleClientSecretError _ -> "SOCIAL_LOGIN_APPLE_CLIENT_SECRET_ERROR"
+    SocialLinkTokenInvalid -> "SOCIAL_LINK_TOKEN_INVALID"
+  toHttpCode = \case
+    SocialLoginProviderNotConfigured _ -> E400
+    SocialLoginInvalidToken _ -> E401
+    SocialLoginAppleClientSecretError _ -> E500
+    SocialLinkTokenInvalid -> E400
+
+instance IsAPIError SocialLoginError
+
 instance ToJSON ClientError where
   toJSON = DA.String . show
