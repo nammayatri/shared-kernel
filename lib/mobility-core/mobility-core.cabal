@@ -354,6 +354,9 @@ library
       Kernel.External.SMS.VonageSms.Config
       Kernel.External.SMS.VonageSms.Flow
       Kernel.External.SMS.VonageSms.Types
+      Kernel.External.SocialLogin.API
+      Kernel.External.SocialLogin.Flow
+      Kernel.External.SocialLogin.Types
       Kernel.External.SOS
       Kernel.External.SOS.ERSS.API
       Kernel.External.SOS.ERSS.Auth
@@ -649,6 +652,7 @@ library
       Kernel.Utils.Context
       Kernel.Utils.DatastoreLatencyCalculator
       Kernel.Utils.Dhall
+      Kernel.Utils.EmailOtpRateLimit
       Kernel.Utils.Error
       Kernel.Utils.Error.BaseError.HTTPError.APIError
       Kernel.Utils.Error.BaseError.HTTPError.BecknAPIError
