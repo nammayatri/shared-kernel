@@ -354,6 +354,13 @@ library
       Kernel.External.SMS.VonageSms.Config
       Kernel.External.SMS.VonageSms.Flow
       Kernel.External.SMS.VonageSms.Types
+      Kernel.External.SocialSecurity.EShram.Encryption
+      Kernel.External.SocialSecurity.EShram.Flow
+      Kernel.External.SocialSecurity.EShram.Types
+      Kernel.External.SocialSecurity.Interface
+      Kernel.External.SocialSecurity.Interface.EShram
+      Kernel.External.SocialSecurity.Interface.Types
+      Kernel.External.SocialSecurity.Types
       Kernel.External.SOS
       Kernel.External.SOS.ERSS.API
       Kernel.External.SOS.ERSS.Auth
