@@ -29,7 +29,7 @@ data MetaCfg = MetaCfg
     phoneNumberId :: Text,
     apiVersion :: Text -- e.g. "v23.0" — configurable, never hard-coded
   }
-  deriving (Eq, Show, Generic)
+  deriving (Show, Generic)
 
 instance FromJSON MetaCfg where
   parseJSON = genericParseJSON constructorsWithSnakeCase

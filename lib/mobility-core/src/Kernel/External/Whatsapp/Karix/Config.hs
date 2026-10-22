@@ -26,7 +26,7 @@ data KarixCfg = KarixCfg
     otpTemplate :: Text,
     version :: Text
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
 
 instance FromJSON KarixCfg where
   parseJSON = genericParseJSON constructorsWithSnakeCase

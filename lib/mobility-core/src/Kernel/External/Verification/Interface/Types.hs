@@ -39,11 +39,11 @@ import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 
 data VerificationServiceConfig = IdfyConfig Idfy.IdfyCfg | FaceVerificationConfig FV.FaceVerificationCfg | GovtDataConfig | HyperVergeVerificationConfig HyperVergeTypes.HyperVergeVerificationCfg | HyperVergeVerificationConfigRCDL HyperVergeTypes.HyperVergeRCDLVerificationConfig | DigiLockerConfig DigiTypes.DigiLockerCfg | TtenVerificationConfig TtenTypes.TtenVerificationCfg | MorthConfig MorthTypes.MorthVerificationCfg | MorthV2Config MorthV2Types.MorthV2VerificationCfg | EkatraConfig EkatraTypes.EkatraVerificationCfg | InternalOCRConfig FV.InternalOCRCfg | InternalImageDetectionConfig FV.InternalImageDetectionCfg
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 newtype DriverBackgroundVerificationServiceConfig = SafetyPortalConfig SafetyPortal.SafetyPortalCfg
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data ImageExtractionHandler m = ImageExtractionHandler

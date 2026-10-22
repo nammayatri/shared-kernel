@@ -32,7 +32,7 @@ import Kernel.Prelude
 import Kernel.Utils.JSON
 
 data WhatsappServiceConfig = GupShupConfig GupShup.GupShupCfg | TataCommunicationsConfig TataCommunications.TataCommunicationsCfg | KarixConfig Karix.KarixCfg | TwilioConfig TwilioSms.TwillioSmsCfg | CerfConfig Cerf.CerfCfg
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] WhatsappServiceConfig
 
 data OptApiMethods = OPT_IN | OPT_OUT

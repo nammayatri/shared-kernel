@@ -55,4 +55,4 @@ data XyneSpacesCfg = XyneSpacesCfg
     -- a different Xyne app than 'token'. Falls back to 'token' when absent.
     botToken :: Maybe (EncryptedField 'AsEncrypted Text)
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

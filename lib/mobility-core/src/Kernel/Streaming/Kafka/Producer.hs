@@ -74,7 +74,8 @@ produceMessageImpl (topic, key) event mbPartitionId = do
         { prTopic = TopicName topic,
           prPartition = maybe UnassignedPartition SpecifiedPartition mbPartitionId,
           prKey = key,
-          prValue = Just . LBS.toStrict $ encode event
+          prValue = Just . LBS.toStrict $ encode event,
+          prHeaders = KafkaProd.headersFromList []
         }
 
 (..=) :: ToJSON a => AesonKey.Key -> a -> AKM.KeyMap A.Value

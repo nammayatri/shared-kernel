@@ -24,7 +24,7 @@ data JourneyMonitoringTokenizeConfig = JourneyMonitoringTokenizeConfig
     username :: EncryptedField 'AsEncrypted Text,
     password :: EncryptedField 'AsEncrypted Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data TokenInfo = TokenInfo

@@ -35,7 +35,7 @@ data GoogleCfg = GoogleCfg
     useRouteMatrix :: Maybe Bool,
     googleRouteMatrixCfg :: Maybe GoogleRouteMatrixCfg
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data GoogleRouteConfig = GoogleRouteConfig
   { computeAlternativeRoutes :: Bool,
