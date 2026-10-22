@@ -23,4 +23,4 @@ data MyValueFirstCfg = MyValueFirstCfg
     url :: BaseUrl,
     token :: EncryptedField 'AsEncrypted Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

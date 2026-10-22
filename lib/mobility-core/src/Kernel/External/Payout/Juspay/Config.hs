@@ -30,5 +30,5 @@ data JuspayConfig = JuspayConfig
     pgBaseFee :: Maybe HighPrecMoney,
     pgGstRate :: Maybe Double
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)

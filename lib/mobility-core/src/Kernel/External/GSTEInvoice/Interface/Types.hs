@@ -7,7 +7,7 @@ import Kernel.Prelude
 -- | Provider-agnostic configuration sum type.
 data GSTEInvoiceConfig
   = CharteredInfoEInvoiceConfig CharteredInfo.CharteredInfoConfig
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 -- | Provider-agnostic auth response.
 data EInvoiceAuthResp = EInvoiceAuthResp

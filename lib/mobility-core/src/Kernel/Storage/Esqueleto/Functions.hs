@@ -21,7 +21,6 @@ module Kernel.Storage.Esqueleto.Functions
     mbGetGeomGeoJSON,
     IntervalVal (..),
     interval,
-    rand,
     unnest,
     buildRadiusWithin,
     buildRegionWithin,
@@ -35,8 +34,7 @@ where
 
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TL
-import qualified Database.Esqueleto.Experimental as Esq
-import Database.Esqueleto.Internal.Internal hiding (rand)
+import Database.Esqueleto.Internal.Internal
 import Kernel.Prelude
 import Kernel.Storage.Esqueleto.Types
 
@@ -120,9 +118,6 @@ interval intervalVals = unsafeSqlValue valueString
       HOUR i -> show i <> " HOUR"
       MINUTE i -> show i <> " MINUTE"
       SECOND i -> show i <> " SECOND"
-
-rand :: SqlExpr OrderBy
-rand = Esq.rand
 
 unnest :: PostgresListField a => SqlExpr (Value a) -> SqlExpr (Value b)
 unnest = unsafeSqlFunction "unnest"

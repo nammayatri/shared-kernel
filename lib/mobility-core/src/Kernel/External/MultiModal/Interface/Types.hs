@@ -124,7 +124,7 @@ data MultiModalLegGate = MultiModalLegGate
   deriving (Generic, Show, Eq, ToSchema, FromJSON, ToJSON)
 
 data MultiModalServiceConfig = GoogleTransitConfig Google.GoogleCfg | OTPTransitConfig OTP.OTPCfg
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MultiModalServiceConfig
 
 $(mkHttpInstancesForEnum ''GeneralVehicleType)

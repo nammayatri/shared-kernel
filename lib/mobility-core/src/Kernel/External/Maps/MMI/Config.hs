@@ -27,4 +27,4 @@ data MMICfg = MMICfg
     mmiNonKeyUrl :: BaseUrl,
     mmiAutocompleteParams :: Maybe Text
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

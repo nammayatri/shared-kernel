@@ -1,15 +1,16 @@
 {
   inputs = {
-    common.url = "github:nammayatri/common";
+    common.url = "github:nammayatri/common?ref=ghc-98-upgrade";
     nixpkgs.follows = "common/nixpkgs";
     haskell-flake.follows = "common/haskell-flake";
 
-    passetto-hs.url = "github:juspay/passetto/bb92cf1dd9699662d2a7bb96cd6a6aed6f20e8ff";
+    passetto-hs.url = "github:nammayatri/passetto/use-crypton";
     passetto-hs.flake = false;
 
-    clickhouse-haskell.url = "github:nammayatri/clickhouse-haskell";
+    clickhouse-haskell.url = "github:nammayatri/clickhouse-haskell?ref=ghc-98-upgrade";
     clickhouse-haskell.inputs.common.follows = "common";
-    prometheus-haskell.url = "github:juspay/prometheus-haskell/more-proc-metrics";
+
+    prometheus-haskell.url = "github:nammayatri/prometheus-haskell?ref=ghc-98-upgrade";
     prometheus-haskell.inputs.haskell-flake.follows = "common/haskell-flake";
 
     # Amazonka 2.0 tagged release.
@@ -18,10 +19,14 @@
     amazonka-git.flake = false;
 
     euler-hs = {
-      url = "github:nammayatri/euler-hs";
+      url = "github:nammayatri/euler-hs?ref=ghc-98-upgrade";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.haskell-flake.follows = "haskell-flake";
     };
+
+    jwt.url = "github:puffnfresh/haskell-jwt?rev=2b3167c4522e435410337d9c0da4523ead26c345";
+    jwt.flake = false;
+
   };
   outputs = inputs:
     inputs.common.lib.mkFlake { inherit inputs; } {
@@ -35,12 +40,13 @@
           packages = {
             passetto-client.source = inputs.passetto-hs + /client;
             passetto-core.source = inputs.passetto-hs + /core;
-            amazonka.source = inputs.amazonka-git + /lib/amazonka;
-            amazonka-core.source = inputs.amazonka-git + /lib/amazonka-core;
-            amazonka-test.source = inputs.amazonka-git + /lib/amazonka-test;
-            amazonka-sso.source = inputs.amazonka-git + /lib/services/amazonka-sso;
-            amazonka-sts.source = inputs.amazonka-git + /lib/services/amazonka-sts;
-            amazonka-kms.source = inputs.amazonka-git + /lib/services/amazonka-kms;
+            # amazonka.source = inputs.amazonka-git + /lib/amazonka;
+            # amazonka-core.source = inputs.amazonka-git + /lib/amazonka-core;
+            # amazonka-test.source = inputs.amazonka-git + /lib/amazonka-test;
+            # amazonka-sso.source = inputs.amazonka-git + /lib/services/amazonka-sso;
+            # amazonka-sts.source = inputs.amazonka-git + /lib/services/amazonka-sts;
+            # amazonka-kms.source = inputs.amazonka-git + /lib/services/amazonka-kms;
+            jwt.source = inputs.jwt;
           };
           settings = {
             # Tests and documentation generation fail for some reason.
@@ -66,8 +72,18 @@
             };
             clickhouse-haskell.jailbreak = true;
             amazonka-core.check = false;
+            amazonka-core.jailbreak = true;
             generic-deriving.check = false;
-            singletons-th.jailbreak = true;
+
+            jwt = { self, ... }: {
+              cabalFlags.use_crypton = true;
+              extraBuildDepends = [
+                self.crypton
+                self.crypton-x509
+                self.crypton-x509-store
+              ];
+              check = false;
+            };
           };
           autoWire = [ "packages" "checks" ];
         };
