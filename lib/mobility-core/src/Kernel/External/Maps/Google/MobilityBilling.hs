@@ -20,9 +20,11 @@ where
 import qualified Data.Aeson as A
 import EulerHS.Types (EulerClient, client)
 import Kernel.Prelude
+import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Utils.Common
+import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
 import Servant hiding (throwError)
 import Servant.Client (Scheme (..))
 
@@ -50,21 +52,32 @@ reportBillableEvent ::
   ( CoreMetrics m,
     MonadFlow m,
     MonadReader r m,
-    HasRequestId r
+    HasRequestId r,
+    HasKafkaProducer r
   ) =>
   Maybe BaseUrl -> -- override base url (falls back to the default Google host)
   Text -> -- regionCode (CLDR/ISO 3166-1 alpha-2, e.g. "IN")
   Text -> -- Google API key
+  Maybe Text -> -- merchantCityId (for log segmentation / reconciliation)
   Text -> -- billableEventId (the trip / ride id)
   m ()
-reportBillableEvent mbBaseUrl regionCode apiKey billableEventId = do
+reportBillableEvent mbBaseUrl regionCode apiKey merchantCityId billableEventId = do
   let baseUrl = fromMaybe defaultMobilityBillingBaseUrl mbBaseUrl
+  let req = A.object []
   result <-
     callAPI
       baseUrl
-      (reportBillableEventClient regionCode apiKey billableEventId (A.object []))
+      (reportBillableEventClient regionCode apiKey billableEventId req)
       "reportBillableEvent"
       (Proxy :: Proxy ReportBillableEventAPI)
+  fork ("Logging external API Call of reportBillableEvent Google ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka
+      "reportBillableEvent"
+      "Google"
+      (Just billableEventId)
+      merchantCityId
+      (Just req)
+      result
   case result of
     Right _ -> logInfo $ "Reported Google mobility billable event for trip " <> billableEventId
     Left err -> logError $ "Failed to report Google mobility billable event for trip " <> billableEventId <> ": " <> show err
