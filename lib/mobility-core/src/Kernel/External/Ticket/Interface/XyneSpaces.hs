@@ -491,7 +491,8 @@ buildCreateMetadata IT.CreateTicketReq {..} =
       [ nonEmpty "Category" category,
         subCategory >>= nonEmpty "Sub Category",
         name >>= nonEmpty "Customer Name",
-        phoneNo >>= nonEmpty "Customer Phone Number"
+        phoneNo >>= nonEmpty "Customer Phone Number",
+        xyneBotLabel >>= nonEmpty "Bot Label"
       ]
         <> maybe [] rideFields rideDescription
         <> mediaField mediaFiles
