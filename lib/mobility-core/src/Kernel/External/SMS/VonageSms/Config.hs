@@ -18,7 +18,7 @@ import Data.Aeson (FromJSON (..), ToJSON (..), defaultOptions, genericParseJSON,
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Kernel.External.Encryption
-import Kernel.Prelude (Eq, Show)
+import Kernel.Prelude (Show)
 import Servant.Client (BaseUrl)
 
 data VonageSmsCfg = VonageSmsCfg
@@ -27,7 +27,7 @@ data VonageSmsCfg = VonageSmsCfg
     from :: Text,
     url :: BaseUrl
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
 
 instance FromJSON VonageSmsCfg where
   parseJSON = genericParseJSON defaultOptions

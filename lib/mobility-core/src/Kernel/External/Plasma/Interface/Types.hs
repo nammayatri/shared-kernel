@@ -25,5 +25,5 @@ import qualified Kernel.External.Plasma.LMS.Config as LMS
 import Kernel.Prelude
 
 data PlasmaServiceConfig = LMSConfig LMS.LMSCfg
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] PlasmaServiceConfig

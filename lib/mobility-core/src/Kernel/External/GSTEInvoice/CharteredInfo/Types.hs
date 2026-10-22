@@ -41,7 +41,7 @@ data CharteredInfoConfig = CharteredInfoConfig
     sellerGstinPinCode :: Int,
     sellerGstinStcd :: Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 -- ---------------------------------------------------------------------------
 -- Auth API response

@@ -11,4 +11,4 @@ data PinbixSmsCfg = PinbixSmsCfg
     output :: Text,
     url :: BaseUrl
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

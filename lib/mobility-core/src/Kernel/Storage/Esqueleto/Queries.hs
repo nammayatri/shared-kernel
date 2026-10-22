@@ -68,7 +68,6 @@ import Database.Esqueleto.Experimental as EsqExport hiding
     insert,
     insertSelect,
     insertSelectCount,
-    rand,
     repsert,
     selectOne,
     update,

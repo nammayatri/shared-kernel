@@ -28,4 +28,4 @@ data CerfSmsCfg = CerfSmsCfg
     defaultMessageType :: Text,
     url :: BaseUrl
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

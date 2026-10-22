@@ -21,4 +21,4 @@ data NextBillionCfg = NextBillionCfg
   { nextBillionDirectionsUrl :: BaseUrl,
     nextBillionKey :: EncryptedField 'AsEncrypted Text
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

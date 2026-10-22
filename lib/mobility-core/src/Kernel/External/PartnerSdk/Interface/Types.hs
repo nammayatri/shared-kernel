@@ -47,4 +47,4 @@ data GenerateContributorTokenReq = GenerateContributorTokenReq
 
 data PartnerSdkConfig
   = AarokyaPartnerSdkConfig Aarokya.AarokyaSdkConfig
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

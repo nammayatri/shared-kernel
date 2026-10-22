@@ -24,7 +24,7 @@ data CerfCfg = CerfCfg
     userName :: Text,
     otpCampaignName :: Maybe Text
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
 
 instance FromJSON CerfCfg where
   parseJSON = genericParseJSON constructorsWithSnakeCase
