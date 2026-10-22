@@ -11,7 +11,7 @@ data TtenTokenizationConfig = TtenTokenizationConfig
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data GenerateTokenResp = GenerateTokenResp

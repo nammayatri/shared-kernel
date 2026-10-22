@@ -36,7 +36,7 @@ data EventTrackingServiceConfig
   | ClevertapConfig ClevertapConfig.ClevertapCfg
   | FirebaseAnalyticsConfig FirebaseAnalyticsConfig.FirebaseAnalyticsCfg
   | BreezeConfig BreezeConfig.BreezeCfg
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] EventTrackingServiceConfig
 
 -- | Provider-agnostic event payload.

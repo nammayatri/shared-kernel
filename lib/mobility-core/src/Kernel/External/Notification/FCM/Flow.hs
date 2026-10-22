@@ -305,7 +305,7 @@ parseFCMAccount ::
   Text ->
   Either String JWT.ServiceAccount
 parseFCMAccount fcmServiceAccount = do
-  case BL.fromStrict . T.encodeUtf8 <$> B64.decodeBase64 fcmServiceAccount of
+  case BL.fromStrict . T.encodeUtf8 <$> B64.decodeBase64Untyped fcmServiceAccount of
     Right bs -> Aeson.eitherDecode bs
     _ -> Left "FCM JSON file is not set in configs"
 

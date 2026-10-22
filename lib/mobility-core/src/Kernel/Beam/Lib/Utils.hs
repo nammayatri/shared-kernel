@@ -80,7 +80,8 @@ kafkaMessage topicName event key =
     { prTopic = KafkaProd.TopicName topicName,
       prPartition = KafkaProd.UnassignedPartition,
       prKey = Just $ TE.encodeUtf8 key,
-      prValue = Just . LBS.toStrict $ encode event
+      prValue = Just . LBS.toStrict $ encode event,
+      prHeaders = KafkaProd.headersFromList []
     }
 
 getKafkaTopic :: (MonadFlow m) => Maybe Text -> Text -> m Text

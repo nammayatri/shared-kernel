@@ -47,7 +47,7 @@ data StripeCfg = StripeCfg
     requestIncrementalAuthorization :: Maybe Text,
     legalEntityName :: Maybe Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data ServiceMode = Test | Live

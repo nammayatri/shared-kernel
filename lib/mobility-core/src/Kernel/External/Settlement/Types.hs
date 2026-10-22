@@ -75,7 +75,7 @@ data SettlementServiceConfig = SettlementServiceConfig
     useJuspayOrderStatus :: Maybe Bool,
     bankCode :: Maybe Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 -- ---------------------------------------------------------------------------
 -- Source configuration (SFTP / Email)
@@ -92,7 +92,7 @@ data SFTPConfig = SFTPConfig
     limit :: Maybe Int,
     csvChunkRowLimit :: Maybe Int
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data EmailConfig = EmailConfig
   { imapHost :: Text,
@@ -103,7 +103,7 @@ data EmailConfig = EmailConfig
     subjectFilter :: Maybe Text,
     limit :: Maybe Int
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 -- | Direct-API pull of the Juspay portal transaction export.
 --
@@ -119,14 +119,14 @@ data JuspayApiConfig = JuspayApiConfig
     juspayMerchantId :: Text,
     userAgent :: Maybe Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data SettlementSourceConfig
   = SFTPSourceConfig SFTPConfig Text
   | EmailSourceConfig EmailConfig
   | JuspayApiSourceConfig JuspayApiConfig
   | BillDeskApiSourceConfig BillDeskApiConfig
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data BillDeskApiConfig = BillDeskApiConfig
   { baseUrl :: BaseUrl,
@@ -137,10 +137,10 @@ data BillDeskApiConfig = BillDeskApiConfig
     encryptionKeyId :: EncryptedField 'AsEncrypted Text,
     maxDateRangeDays :: Int
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data JuspayOrderStatusConfig = JuspayOrderStatusConfig
   { juspayBaseUrl :: BaseUrl,
     juspayApiKey :: EncryptedField 'AsEncrypted Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

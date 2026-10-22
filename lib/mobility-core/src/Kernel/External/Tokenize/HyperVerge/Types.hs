@@ -23,7 +23,7 @@ data HyperVergeTokenizeConfig = HyperVergeTokenizeConfig
     appId :: Text,
     appKey :: EncryptedField 'AsEncrypted Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data HyperVergeTokenizeRequest = HyperVergeTokenizeRequest

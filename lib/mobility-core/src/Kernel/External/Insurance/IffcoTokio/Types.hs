@@ -11,11 +11,11 @@ data IffcoTokioConfig = IffcoTokioConfig
     masterPolicyClient :: Text,
     insurancePlan :: Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data HomeDeclarationResp = HomeDeclarationResp
   { certificateNumber :: Text,
     declarationId :: Text,
     status :: Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

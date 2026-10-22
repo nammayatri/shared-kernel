@@ -34,7 +34,7 @@ data EkatraVerificationCfg = EkatraVerificationCfg
     useOcrExtractApi :: Maybe Bool, -- Just True => /v1/ocr/extract, else legacy /v1/ekatra/ocr/map
     language :: Maybe Text -- only sent to /v1/ocr/extract
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 newtype EkatraOcrResponse = EkatraOcrResponse {getEkatraOcrValue :: Value}

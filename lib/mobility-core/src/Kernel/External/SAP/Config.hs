@@ -33,4 +33,4 @@ data SAPServiceConfig = SAPServiceConfig
     blart :: Text,
     accountMapping :: Map.Map Text SAPAccountConfig
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
