@@ -25,4 +25,4 @@ data KaptureCfg = KaptureCfg
     encryptionKey :: Maybe (EncryptedField 'AsEncrypted Text),
     appEncryptionKey :: Maybe (EncryptedField 'AsEncrypted Text)
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

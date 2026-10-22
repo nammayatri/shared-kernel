@@ -25,5 +25,5 @@ data CheckrCfg = CheckrCfg
     url :: BaseUrl,
     package :: Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)

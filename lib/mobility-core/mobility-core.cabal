@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.38.3.
 --
 -- see: https://github.com/sol/hpack
 
@@ -772,9 +772,11 @@ library
     , clickhouse-haskell
     , clock
     , concurrency
-    , connection
     , containers
-    , cryptonite
+    , crypton
+    , crypton-connection
+    , crypton-x509
+    , crypton-x509-store
     , data-default-class
     , deriving-aeson
     , dhall
@@ -868,8 +870,6 @@ library
     , wai-app-static
     , wai-middleware-prometheus
     , warp
-    , x509
-    , x509-store
     , xml-conduit
     , xml-types
     , xmlbf
@@ -939,9 +939,11 @@ executable master-cloud-forward-itest
     , clickhouse-haskell
     , clock
     , concurrency
-    , connection
     , containers
-    , cryptonite
+    , crypton
+    , crypton-connection
+    , crypton-x509
+    , crypton-x509-store
     , data-default-class
     , deriving-aeson
     , dhall
@@ -1036,8 +1038,6 @@ executable master-cloud-forward-itest
     , wai-app-static
     , wai-middleware-prometheus
     , warp
-    , x509
-    , x509-store
     , xml-conduit
     , xml-types
     , xmlbf
@@ -1129,9 +1129,11 @@ test-suite mobility-core-tests
     , clickhouse-haskell
     , clock
     , concurrency
-    , connection
     , containers
-    , cryptonite
+    , crypton
+    , crypton-connection
+    , crypton-x509
+    , crypton-x509-store
     , data-default-class
     , deriving-aeson
     , dhall
@@ -1226,8 +1228,6 @@ test-suite mobility-core-tests
     , wai-app-static
     , wai-middleware-prometheus
     , warp
-    , x509
-    , x509-store
     , xml-conduit
     , xml-types
     , xmlbf

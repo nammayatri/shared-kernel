@@ -46,7 +46,7 @@ data JuspayCfg = JuspayCfg
     loyaltyProgramMap :: Maybe (Map Text LoyaltyProgramEntry),
     webhookUrl :: Maybe Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data LoyaltyProgramEntry = LoyaltyProgramEntry

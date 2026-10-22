@@ -79,7 +79,7 @@ data HdfcCbxConfig = HdfcCbxConfig
     -- is exactly the previous behaviour.
     ownBankIfscPrefix :: Maybe Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 -- | Name under which this config's TLS manager is registered on the runtime, and the

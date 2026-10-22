@@ -12,6 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wwarn=x-partial #-}
 
 module Kernel.Storage.ClickhouseV2.UtilsTH (mkClickhouseInstances, mkClickhouseInstancesDebug) where
 

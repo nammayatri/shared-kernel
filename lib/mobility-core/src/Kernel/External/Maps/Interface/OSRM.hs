@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# OPTIONS_GHC -Wwarn=x-partial #-}
 
 module Kernel.External.Maps.Interface.OSRM
   ( module Reexport,

@@ -79,7 +79,7 @@ instance ToJSON CbxPaymentReq where
   toJSON = A.object . reqPairs
   toEncoding = A.pairs . mconcat . reqPairs
 
-reqPairs :: (A.KeyValue kv) => CbxPaymentReq -> [kv]
+reqPairs :: (A.KeyValue e kv) => CbxPaymentReq -> [kv]
 reqPairs r =
   [ "clientcode" A..= r.clientcode,
     "groupid" A..= r.groupid,
@@ -162,7 +162,7 @@ instance ToJSON CbxPaymentTxn where
   toEncoding = A.pairs . mconcat . txnPairs
 
 -- | The Pay_Req sheet's order, verbatim. Do not reorder, do not alphabetise.
-txnPairs :: (A.KeyValue kv) => CbxPaymentTxn -> [kv]
+txnPairs :: (A.KeyValue e kv) => CbxPaymentTxn -> [kv]
 txnPairs t =
   [ "cdflag" A..= t.cdflag,
     "code" A..= t.code,
