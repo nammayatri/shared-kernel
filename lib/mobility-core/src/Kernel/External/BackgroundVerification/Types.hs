@@ -26,7 +26,7 @@ import Kernel.External.BackgroundVerification.Checkr.Config as Reexport
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 newtype BackgroundVerificationServiceConfig = CheckrConfig CheckrCfg
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data BackgroundVerificationService = Checkr
   deriving (Show, Read, Eq, Ord, Generic)

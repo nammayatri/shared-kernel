@@ -28,7 +28,7 @@ data SafetyPortalCfg = SafetyPortalCfg
     url :: BaseUrl,
     safetyWebhookAuthToken :: EncryptedField 'AsEncrypted Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 prepareSafetyPortalHttpManager :: Int -> HMap.HashMap DT.Text Http.ManagerSettings

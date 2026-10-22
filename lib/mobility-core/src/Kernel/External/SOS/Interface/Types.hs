@@ -46,7 +46,7 @@ data SOSServiceConfig
   = ERSSConfig ERSSConfig.ERSSCfg
   | GJ112Config GJ112Config.GJ112Cfg
   | TrinityConfig TrinityConfig.TrinityCfg
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SOSServiceConfig
 
 -- | Unified Initial SOS Request (common across all providers)

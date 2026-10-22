@@ -25,7 +25,7 @@ data IdfyCfg = IdfyCfg
     url :: BaseUrl,
     faceCompareRetryLimit :: Maybe Int
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 type AccountId = Text

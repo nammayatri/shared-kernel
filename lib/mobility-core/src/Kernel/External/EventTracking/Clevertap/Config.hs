@@ -27,4 +27,4 @@ data ClevertapCfg = ClevertapCfg
     passcode :: EncryptedField 'AsEncrypted Text,
     enabled :: Bool
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

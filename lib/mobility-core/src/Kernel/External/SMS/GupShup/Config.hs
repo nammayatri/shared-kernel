@@ -24,4 +24,4 @@ data GupShupCfg = GupShupCfg
     templateId :: EncryptedField 'AsEncrypted Text,
     entityId :: EncryptedField 'AsEncrypted Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

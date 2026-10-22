@@ -62,5 +62,6 @@ kafkaMessage topicName event key =
     { prTopic = KafkaProd.TopicName topicName,
       prPartition = KafkaProd.UnassignedPartition,
       prKey = Just $ TE.encodeUtf8 key,
-      prValue = Just . BL.toStrict $ event
+      prValue = Just . BL.toStrict $ event,
+      prHeaders = KafkaProd.headersFromList []
     }

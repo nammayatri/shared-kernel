@@ -34,7 +34,7 @@ data IssueTicketServiceConfig
   | ZendeskConfig Zendesk.ZendeskCfg
   | XyneSpacesConfig XyneSpaces.XyneSpacesCfg
   | RadarXyneSpacesConfig XyneSpaces.XyneSpacesCfg
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data TicketStatus = Open | Pending | Solved | Closed | Reopened
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)

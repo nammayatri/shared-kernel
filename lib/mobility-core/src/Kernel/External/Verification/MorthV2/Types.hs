@@ -35,7 +35,7 @@ data MorthV2VerificationCfg = MorthV2VerificationCfg
     -- | AES-GCM password (PBKDF2 input).
     apiKey :: EncryptedField 'AsEncrypted Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 -- ---------------------------------------------------------------------------

@@ -23,4 +23,4 @@ data TataClickToCallCfg = TataClickToCallCfg
     apiKey :: EncryptedField 'AsEncrypted Text,
     url :: BaseUrl
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

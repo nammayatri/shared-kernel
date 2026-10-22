@@ -29,4 +29,4 @@ data TrinityCfg = TrinityCfg
     tokenKeyPrefix :: Text,
     deviceType :: Int
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

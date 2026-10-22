@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wwarn=x-partial #-}
 
 module Kernel.Beam.Lib.UtilsTH
   ( enableKVPG,
@@ -21,7 +22,7 @@ where
 import qualified Data.Aeson as A
 import qualified Data.HashMap.Internal as HMI
 import qualified Data.HashMap.Strict as HM
-import Data.List (init, lookup, (!!))
+import Data.List (init, lookup) -- , (!!))
 import Data.List.Extra (anySame)
 import qualified Data.Map.Strict as M
 import qualified Data.Serialize as Serialize
@@ -198,9 +199,12 @@ sortAndGetKey names = do
   let sortedKeys = sort $ fmap (splitColon . nameBase) names
   intercalate "_" sortedKeys
 
---"$sel:merchantId:OrderReference" -> "merchantId"
+-- TODO test splice
 splitColon :: String -> String
-splitColon s = T.unpack $ T.splitOn ":" (T.pack s) !! 1
+splitColon s =
+  case drop 1 (T.splitOn ":" (T.pack s)) of
+    (x : _) -> T.unpack x
+    [] -> s -- TODO remove just for test
 
 -------------------------------------------------------------------------------
 meshMetaInstancesDPG :: Name -> Q [Dec]

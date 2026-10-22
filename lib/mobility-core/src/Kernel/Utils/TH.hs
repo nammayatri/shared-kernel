@@ -16,10 +16,11 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wwarn=unused-imports #-}
 
 module Kernel.Utils.TH where
 
-import Data.Aeson (Options (..), defaultOptions)
+import qualified Data.Aeson (Options (omitNothingFields), defaultOptions)
 import qualified Data.Bifunctor as BF
 import qualified Data.ByteString.Lazy as BSL
 import Data.OpenApi (ToSchema)
@@ -108,7 +109,7 @@ mkToHttpInstanceForListOfEnums name = do
 deriveJSONOmitNothing :: TH.Name -> TH.Q [TH.Dec]
 deriveJSONOmitNothing name = do
   let tyQ = pure (TH.ConT name)
-      options = [|defaultOptions {omitNothingFields = True}|]
+      options = [|defaultOptions {Data.Aeson.omitNothingFields = True}|]
   [d|
     instance ToJSON $tyQ where
       toJSON = genericToJSON $options
@@ -137,7 +138,7 @@ deriveJSONWithOptions name optionsExp = do
 deriveJSONSnakeCase :: TH.Name -> TH.Q [TH.Dec]
 deriveJSONSnakeCase name = do
   let tyQ = pure (TH.ConT name)
-      options = [|constructorsWithSnakeCase {omitNothingFields = True}|]
+      options = [|constructorsWithSnakeCase {Data.Aeson.omitNothingFields = True}|]
   [d|
     instance ToJSON $tyQ where
       toJSON = genericToJSON $options
@@ -152,7 +153,7 @@ deriveJSONSnakeCase name = do
 deriveJSONLowerCase :: TH.Name -> TH.Q [TH.Dec]
 deriveJSONLowerCase name = do
   let tyQ = pure (TH.ConT name)
-      options = [|constructorsWithLowerCase {omitNothingFields = True}|]
+      options = [|constructorsWithLowerCase {Data.Aeson.omitNothingFields = True}|]
   [d|
     instance ToJSON $tyQ where
       toJSON = genericToJSON $options

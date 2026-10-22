@@ -24,7 +24,7 @@ data GullakConfig = GullakConfig
     merchantId :: Text,
     apiKey :: EncryptedField 'AsEncrypted Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data OnboardingAndLoginRes = OnboardingAndLoginRes

@@ -23,7 +23,7 @@ import qualified Kernel.External.Tokenize.Tten.Types as TtenTypes
 import Kernel.Prelude
 
 data TokenizationServiceConfig = HyperVergeTokenizationServiceConfig HVTypes.HyperVergeTokenizeConfig | JourneyMonitoringTokenizationServiceConfig JMTypes.JourneyMonitoringTokenizeConfig | GullakTokenizationServiceConfig GUKTypes.GullakConfig | DigilockerTokenizationServiceConfig DLT.DigilockerTokenizeConfig | TtenTokenizationServiceConfig TtenTypes.TtenTokenizationConfig
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data TokenizationReq = TokenizationReq
   { expiry :: Maybe Int,

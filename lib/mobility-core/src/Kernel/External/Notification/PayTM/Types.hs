@@ -39,7 +39,7 @@ data PayTMConfig = PayTMConfig
     apiKey :: EncryptedField 'AsEncrypted PaytmApiKey,
     whitelistedTemplates :: [Text]
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data NotificationReciever = NotificationReciever
   { notificationReceiverType :: Text,
