@@ -95,7 +95,9 @@ data CreateTicketReq = CreateTicketReq
     -- falls back to 'name', same as today.
     xyneSenderName :: Maybe Text,
     -- | Xyne-only dedup key for the first message on the thread. Ignored by Zendesk/Kapture.
-    xyneExternalId :: Maybe Text
+    xyneExternalId :: Maybe Text,
+    -- | Support-bot label (CREATE_TICKET, CLOSED, FEEDBACK_TICKET); Xyne form field.
+    xyneBotLabel :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, ToSchema)
 
