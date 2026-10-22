@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wwarn=x-partial #-}
+
 module Kernel.Utils.Geometry where
 
 import Data.Aeson (decode, encode)

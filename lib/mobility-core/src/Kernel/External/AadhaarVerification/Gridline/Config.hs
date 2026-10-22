@@ -28,7 +28,7 @@ data GridlineCfg = GridlineCfg
     authType :: Text,
     url :: BaseUrl
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 prepareGridlineHttpManager :: Int -> HMap.HashMap DT.Text Http.ManagerSettings

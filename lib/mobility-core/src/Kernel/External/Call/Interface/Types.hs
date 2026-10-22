@@ -26,7 +26,7 @@ import Kernel.Prelude
 import Kernel.Storage.Esqueleto (derivePersistField)
 
 data CallServiceConfig = ExotelConfig Exotel.ExotelCfg | TwillioCallConfig Twillio.TwillioCallCfg | TataClickToCallConfig TataClickToCall.TataClickToCallCfg | OzonetelConfig Ozonetel.OzonetelCfg
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data InitiateCallReq a = InitiateCallReq
   { fromPhoneNum :: Text,

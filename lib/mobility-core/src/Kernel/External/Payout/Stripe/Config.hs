@@ -28,5 +28,5 @@ data StripeConfig = StripeConfig
     serviceMode :: Maybe PaymentConfig.ServiceMode,
     platformAccountId :: Maybe AccountId
   }
-  deriving stock (Show, Eq, Generic)
+  deriving (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)

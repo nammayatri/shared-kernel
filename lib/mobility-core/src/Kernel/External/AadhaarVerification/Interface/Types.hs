@@ -22,7 +22,7 @@ import qualified Kernel.External.AadhaarVerification.Gridline.Config as Gridline
 import Kernel.Prelude
 
 newtype AadhaarVerificationServiceConfig = GridlineConfig Gridline.GridlineCfg
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data AadhaarVerificationResp = AadhaarVerificationResp

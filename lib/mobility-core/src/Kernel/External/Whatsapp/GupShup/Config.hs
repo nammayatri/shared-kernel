@@ -29,7 +29,7 @@ data GupShupCfg = GupShupCfg
     otpCfg :: GupShupOTPCfg,
     isTemplate :: Maybe Bool
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
 
 instance FromJSON GupShupCfg where
   parseJSON = genericParseJSON constructorsWithSnakeCase

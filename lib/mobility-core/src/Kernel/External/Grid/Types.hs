@@ -97,7 +97,7 @@ data GridCfg = GridCfg
     -- | Upper bound on the decoded size of each image, checked before calling Grid.
     maxImageBytes :: Maybe Int
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 -- | Vision-model calls are slow; consumers register this manager with a suitable timeout (ms).

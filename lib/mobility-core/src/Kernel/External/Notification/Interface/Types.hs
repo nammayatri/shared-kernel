@@ -28,7 +28,7 @@ import Kernel.Prelude
 import Kernel.Utils.JSON (removeNullFields)
 
 data NotificationServiceConfig = FCMConfig FCM.FCMConfig | PayTMConfig PayTM.PayTMConfig | GRPCConfig GRPC.GRPCConfig
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data Category
   = REGISTRATION_APPROVED

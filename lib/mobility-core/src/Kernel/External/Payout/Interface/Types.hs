@@ -42,7 +42,7 @@ data PayoutServiceConfig
   = JuspayConfig Juspay.JuspayConfig
   | StripeConfig Stripe.StripeConfig
   | HdfcCbxConfig HdfcCbx.HdfcCbxConfig
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data OrderStatusPayoutResp
   = OrderStatusPayoutResp

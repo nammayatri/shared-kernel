@@ -26,11 +26,11 @@ data FirebaseAnalyticsCfg = FirebaseAnalyticsCfg
     -- | Send to @/debug/mp/collect@ and log validation messages instead of recording.
     debug :: Bool
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data FirebaseAppCfg = FirebaseAppCfg
   { platform :: DeviceType,
     firebaseAppId :: Text,
     apiSecret :: EncryptedField 'AsEncrypted Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

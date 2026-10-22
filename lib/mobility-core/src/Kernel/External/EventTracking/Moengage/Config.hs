@@ -24,4 +24,4 @@ data MoengageCfg = MoengageCfg
     apiSecret :: EncryptedField 'AsEncrypted Text,
     enabled :: Bool
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

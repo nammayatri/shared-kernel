@@ -52,7 +52,7 @@ instance ToJSON CbxInquiryReq where
   toJSON = A.object . inquiryPairs
   toEncoding = A.pairs . mconcat . inquiryPairs
 
-inquiryPairs :: (A.KeyValue kv) => CbxInquiryReq -> [kv]
+inquiryPairs :: (A.KeyValue e kv) => CbxInquiryReq -> [kv]
 inquiryPairs r =
   [ "gcif" A..= r.gcif,
     "iduser" A..= r.iduser,
@@ -188,7 +188,7 @@ instance ToJSON CbxBatchNumReq where
   toJSON = A.object . batchNumPairs
   toEncoding = A.pairs . mconcat . batchNumPairs
 
-batchNumPairs :: (A.KeyValue kv) => CbxBatchNumReq -> [kv]
+batchNumPairs :: (A.KeyValue e kv) => CbxBatchNumReq -> [kv]
 batchNumPairs r =
   [ "gcif" A..= r.gcif,
     "iduser" A..= r.iduser,
