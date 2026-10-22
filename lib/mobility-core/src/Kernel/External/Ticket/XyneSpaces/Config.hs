@@ -34,6 +34,25 @@ data XyneSpacesCfg = XyneSpacesCfg
     -- | @X-Api-Key@ sent on CSAT submission calls (@/api/csat/external/:ticketId@).
     -- Separate credential from 'token' (Bearer JWT) since Xyne issues and
     -- rotates the two independently. 'Nothing' when CSAT push is not configured.
-    csatApiKey :: Maybe (EncryptedField 'AsEncrypted Text)
+    csatApiKey :: Maybe (EncryptedField 'AsEncrypted Text),
+    -- | HMAC-SHA256 secret used to verify the @X-Xyne-Signature@ on inbound
+    -- @DESK_REPLY@ webhooks. Xyne issues one per Xyne app, and a deployment
+    -- has only one webhook URL, so the calling app is named by the @mocId@
+    -- query param on that URL and its secret read from here. 'Nothing' falls
+    -- back to the deployment-wide @xyneWebhookSigningSecret@, which is what
+    -- every merchant used before separate Xyne apps existed.
+    --
+    -- Encrypted like 'token' and 'csatApiKey': it is a credential at rest, so
+    -- it must not be readable from the config row or from a 'Show' of this
+    -- type. Consequence for operators: the ciphertext comes from passetto, so
+    -- the value cannot be written with plain SQL.
+    webhookSigningSecret :: Maybe (EncryptedField 'AsEncrypted Text),
+    -- | Xyne workflow that drives the pre-ticket support bot
+    -- (@POST /api/apps/workflows/conversations@). 'Nothing' disables the bot
+    -- proxy for this merchant.
+    botWorkflowId :: Maybe Text,
+    -- | Optional app token for the bot conversation API when it is issued for
+    -- a different Xyne app than 'token'. Falls back to 'token' when absent.
+    botToken :: Maybe (EncryptedField 'AsEncrypted Text)
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)

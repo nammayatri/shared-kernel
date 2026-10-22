@@ -291,7 +291,9 @@ verifySignature headerName signPayload bodyHash merchantId subscriberType domain
       pure subscriber
     Nothing -> do
       logTagError logTag $
-        "Subscriber with unique_key_id:"
+        "Subscriber with subscriber_id:"
+          <> subscriberId
+          <> "; unique_key_id:"
           <> signPayload.params.keyId.uniqueKeyId
           <> "; subscriber type: "
           <> show lookupRequest.subscriber_type
@@ -300,7 +302,7 @@ verifySignature headerName signPayload bodyHash merchantId subscriberType domain
           <> " not found."
       throwError $ getSignatureError hostName
   where
-    logTag = "verifySignature-" <> headerName
+    logTag = "verifySignature-" <> headerName <> " subscriberId-" <> signPayload.params.keyId.subscriberId
     performVerification key hostName = do
       let headers =
             [ ("(created)", maybe "" show (signPayload.params.created)),

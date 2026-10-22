@@ -28,7 +28,7 @@ import qualified Kernel.Prelude as KP
 import Kernel.Storage.Esqueleto (derivePersistField)
 import Kernel.Utils.JSON (constructorsToLowerOptions, constructorsWithSnakeCase)
 
-data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge | HyperVergeRCDL | DigiLocker | Tten | Morth | Ekatra | InternalOCR | InternalImageDetection
+data VerificationService = Idfy | InternalScripts | GovtData | HyperVerge | HyperVergeRCDL | DigiLocker | Tten | Morth | MorthV2 | Ekatra | InternalOCR | InternalImageDetection
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON, ToSchema)
 
 data DriverBackgroundVerificationService = SafetyPortal
@@ -70,9 +70,13 @@ data RCVerificationResponse = RCVerificationResponse
     bodyType :: Maybe Text,
     status :: Maybe Text,
     grossVehicleWeight :: Maybe Float,
-    unladdenWeight :: Maybe Float
+    unladdenWeight :: Maybe Float,
+    rcVehicleType :: Maybe VehicleRegistrationType
   }
   deriving (Show, FromJSON, ToJSON, Generic, ToSchema)
+
+data VehicleRegistrationType = Transport | NonTransport
+  deriving (Show, Eq, Ord, Read, Generic, FromJSON, ToJSON, ToSchema)
 
 data PanInputDetails = PanInputDetails
   { inputPanNumber :: Text,

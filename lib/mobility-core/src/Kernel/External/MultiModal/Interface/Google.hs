@@ -25,10 +25,11 @@ getTransitRoutes ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GoogleCfg ->
   MultiModalTypes.GetTransitRoutesReq ->
   m (Maybe MultiModalTypes.MultiModalResponse)
-getTransitRoutes entityId cfg req = do
+getTransitRoutes entityId merchantCityId cfg req = do
   key <- decrypt cfg.googleKey
   let googleMapsUrl = cfg.googleRouteConfig.url
       computeAlternativeRoutes = cfg.googleRouteConfig.computeAlternativeRoutes
@@ -39,7 +40,7 @@ getTransitRoutes entityId cfg req = do
       arrivalTime = formatUtcTime req.arrivalTime
       departureTime = formatUtcTime req.departureTime
       transitPreferences = req.transitPreferences
-  result <- withTryCatch "getTransitRoutes" $ GoogleMaps.transitDirectionsAPI entityId googleMapsUrl key origin destination travelMode computeAlternativeRoutes routePreference transitPreferences arrivalTime departureTime
+  result <- withTryCatch "getTransitRoutes" $ GoogleMaps.transitDirectionsAPI entityId merchantCityId googleMapsUrl key origin destination travelMode computeAlternativeRoutes routePreference transitPreferences arrivalTime departureTime
   case result of
     Right gRes -> do
       pure $ Just $ convertGoogleToGeneric gRes

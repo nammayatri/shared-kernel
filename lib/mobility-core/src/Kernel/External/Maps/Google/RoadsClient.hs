@@ -69,17 +69,18 @@ snapToRoad ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsInterfaceTypes.SnapToRoadReq ->
   BaseUrl ->
   Text ->
   [LatLong] ->
   m SnapToRoadResponse
-snapToRoad entityId req roadsUrl apiKey pointsList = do
+snapToRoad entityId merchantCityId req roadsUrl apiKey pointsList = do
   let eulerClient = Euler.client (Proxy @SnapToRoadAPI)
       interpolate = True
   eitherRes <- callAPI roadsUrl (eulerClient apiKey interpolate $ convertPointsList pointsList) "snap-to-road" (Proxy @SnapToRoadAPI)
   fork ("Logging external API Call of snapToRoad Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "snapToRoad" "Google" entityId (Just req) eitherRes
+    ApiCallLogger.pushExternalApiCallDataToKafka "snapToRoad" "Google" entityId merchantCityId (Just req) eitherRes
   res <- fromEitherM (\err -> InternalError $ "Failed to call snap-to-road API: " <> show err) eitherRes
   maybe
     (pure ())

@@ -49,6 +49,8 @@ module Kernel.External.Ticket.Interface.XyneSpaces
     getTicket,
     getTicketConversation,
     downloadAttachment,
+    advanceBotConversation,
+    endBotConversation,
   )
 where
 
@@ -66,12 +68,13 @@ import qualified EulerHS.Language as L
 import Kernel.External.Encryption
 import qualified Kernel.External.Ticket.Interface.Types as IT
 import Kernel.External.Ticket.XyneSpaces.Config
+import qualified Kernel.External.Ticket.XyneSpaces.Conversation as XC
 import qualified Kernel.External.Ticket.XyneSpaces.Flow as XF
 import qualified Kernel.External.Ticket.XyneSpaces.Types as Xyne
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common (MonadFlow)
-import Kernel.Types.Error (GenericError (InternalError))
+import Kernel.Types.Error (GenericError (InternalError), XyneError (XyneNotFound))
 import Kernel.Utils.Common (logInfo, throwError)
 import Kernel.Utils.Servant.Client
 import Kernel.Utils.Time (showTimeIst)
@@ -107,7 +110,7 @@ createTicket config req = do
             -- thread's first entry matches real chronology — see its doc
             -- comment on CreateTicketReq.
             body = fromMaybe req.issueDescription req.xyneTicketBody,
-            externalId = Nothing,
+            externalId = req.xyneExternalId,
             senderName = req.xyneSenderName <|> req.name,
             senderEmail = Nothing,
             additionalFormFields = if Map.null metadata then Nothing else Just metadata
@@ -159,7 +162,7 @@ updateTicket config req = do
             threadId = threadId,
             subject = buildUpdateSubject req,
             body = buildUpdateBody req,
-            externalId = Nothing,
+            externalId = req.xyneExternalId,
             senderName = mbSenderName,
             senderEmail = Nothing,
             -- Updates carry only the chat comment for now; the metadata side
@@ -497,6 +500,7 @@ buildCreateMetadata IT.CreateTicketReq {..} =
       [ nonEmpty "Ride ID" r.rideShortId,
         nonEmpty "Ride City" r.rideCity,
         nonEmpty "Ride Status" r.status,
+        r.rideType >>= nonEmpty "Ride Type",
         nonEmpty "Vehicle Number" r.vehicleNo,
         r.vehicleCategory >>= nonEmpty "Vehicle Category",
         r.vehicleServiceTier >>= nonEmpty "Vehicle Service Tier",
@@ -650,3 +654,62 @@ downloadAttachment ::
 downloadAttachment config attachmentId = do
   token <- decrypt config.token
   XF.downloadFileAPI config.url token attachmentId
+
+-- | Advance the pre-ticket bot conversation by one turn. A missing
+-- 'workflowId' on a start request is filled from 'botWorkflowId'. A stale
+-- @turnId@ (Xyne 409) is resolved here: the 409 body carries the current turn,
+-- and if it does not, the conversation is re-read. Either way the caller gets
+-- the current turn back.
+advanceBotConversation ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  XC.XyneConversationReq ->
+  m XC.XyneConversationTurn
+advanceBotConversation config req = do
+  token <- botConversationToken config
+  let req' = req {XC.workflowId = req.workflowId <|> config.botWorkflowId}
+  XC.advanceConversationAPI config.url token req' >>= \case
+    Right turn -> pure turn
+    Left (XC.StaleTurn (Just currentTurn)) -> pure currentTurn
+    Left (XC.StaleTurn Nothing) -> case req.conversationId of
+      Just conversationId ->
+        XC.advanceConversationAPI config.url token (readReq conversationId)
+          >>= either failWith pure
+      Nothing -> throwError $ InternalError "Xyne reported a stale turn for a request without a conversationId"
+    Left err -> failWith err
+  where
+    readReq conversationId =
+      XC.XyneConversationReq
+        { XC.workflowId = Nothing,
+          XC.context = Nothing,
+          XC.conversationId = Just conversationId,
+          XC.turnId = Nothing,
+          XC.choice = Nothing,
+          XC.text = Nothing,
+          XC.values = Nothing
+        }
+    -- Different error families, so throw here rather than return one type.
+    failWith XC.ConversationNotFound = throwError XyneNotFound
+    failWith (XC.StaleTurn _) = throwError $ InternalError "Xyne turn is stale after re-read"
+    failWith (XC.OtherFailure err) = throwError $ InternalError $ "Failed to call Xyne conversation API: " <> show err
+
+-- | Close a bot conversation Xyne is still holding open (e.g. after hand-off).
+endBotConversation ::
+  ( Metrics.CoreMetrics m,
+    EncFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  Text ->
+  m ()
+endBotConversation config conversationId = do
+  token <- botConversationToken config
+  XC.endConversationAPI config.url token conversationId
+
+botConversationToken :: (EncFlow m r) => XyneSpacesCfg -> m Text
+botConversationToken config = decrypt (fromMaybe config.token config.botToken)

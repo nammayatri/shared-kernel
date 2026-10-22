@@ -47,12 +47,13 @@ callOsrmMatch ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   OSRMCfg ->
   SnapToRoadReq ->
   m SnapToRoadResp
-callOsrmMatch entityId osrmCfg req@(SnapToRoadReq wps distanceUnit calculateDistanceFrom) = do
+callOsrmMatch entityId merchantCityId osrmCfg req@(SnapToRoadReq wps distanceUnit calculateDistanceFrom) = do
   let mbRadius = fmap (.getMeters) osrmCfg.radiusDeviation
-  res <- OSRM.callOsrmMatchAPI entityId req osrmCfg.osrmUrl mbRadius CAR (OSRM.PointsList wps)
+  res <- OSRM.callOsrmMatchAPI entityId merchantCityId req osrmCfg.osrmUrl mbRadius CAR (OSRM.PointsList wps)
   (dist, conf, interpolatedPts) <- OSRM.getResultOneRouteExpected res
   pure $ case calculateDistanceFrom of
     Just _ -> do
@@ -73,14 +74,15 @@ getDistances ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   OSRMCfg ->
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
-getDistances entityId osrmCfg request = do
+getDistances entityId merchantCityId osrmCfg request = do
   let pointsList = OSRM.PointsList $ map getCoordinates (toList request.origins) ++ map getCoordinates (toList request.destinations)
   let sourcesList = OSRM.SourcesList [0 .. (length request.origins - 1)]
   let destinationsList = OSRM.DestinationsList [(length request.origins) .. (length request.origins + length request.destinations - 1)]
-  response <- OSRM.callOsrmGetDistancesAPI entityId request osrmCfg.osrmUrl (fromMaybe CAR request.travelMode) pointsList sourcesList destinationsList request.sourceDestinationMapping
+  response <- OSRM.callOsrmGetDistancesAPI entityId merchantCityId request osrmCfg.osrmUrl (fromMaybe CAR request.travelMode) pointsList sourcesList destinationsList request.sourceDestinationMapping
   case request.sourceDestinationMapping of
     Just OneToOne -> getOSRMTableOneToOne response request
     _ -> getOSRMTable response request
@@ -168,15 +170,18 @@ getRoutes ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   OSRMCfg ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes entityId osrmCfg request = do
-  response <- OSRM.callOsrmRouteAPI entityId request osrmCfg.osrmUrl (fromMaybe CAR request.mode) $ OSRM.PointsList {getPointsList = NE.toList request.waypoints}
-  getOSRMRoute response
+getRoutes entityId merchantCityId osrmCfg request = do
+  let mbTrafficCfg = osrmCfg.trafficConfig
+  response <-
+    OSRM.callOsrmRouteAPI entityId merchantCityId request osrmCfg.osrmUrl (fromMaybe CAR request.mode) (OSRM.PointsList {getPointsList = NE.toList request.waypoints}) (isJust mbTrafficCfg)
+  getOSRMRoute mbTrafficCfg response
 
-convertRouteToRouteInfo :: (Log m, MonadThrow m) => OSRM.OSRMRouteRoutes -> m RouteInfo
-convertRouteToRouteInfo osrmRouteRoutes =
+convertRouteToRouteInfo :: (Log m, MonadThrow m) => Maybe OSRMTrafficConfig -> OSRM.OSRMRouteRoutes -> m RouteInfo
+convertRouteToRouteInfo mbTrafficCfg osrmRouteRoutes =
   if length osrmRouteRoutes.legs < 1
     then do
       throwError $ InternalError "OSRM snapped waypoints has no routes"
@@ -191,8 +196,56 @@ convertRouteToRouteInfo osrmRouteRoutes =
             snappedWaypoints = map (\steps -> getLatLong $ head steps.geometry.coordinates) $ OSRM.steps $ head osrmRouteRoutes.legs,
             boundingBox = Nothing,
             routeToken = Nothing,
-            trafficSegments = Nothing
+            trafficSegments = mkTrafficSegments mbTrafficCfg osrmRouteRoutes.legs
           }
+
+data ClassifiedSegment = ClassifiedSegment
+  { index :: Int,
+    speedClass :: TrafficSpeed,
+    lengthMeters :: Double
+  }
+
+mkTrafficSegments :: Maybe OSRMTrafficConfig -> [OSRM.RouteResponseLeg] -> Maybe [RouteTrafficSegment]
+mkTrafficSegments Nothing _ = Nothing
+mkTrafficSegments (Just cfg) legs
+  | null measuredLegs = Nothing
+  | otherwise = Just . concat $ zipWith (legSegments cfg) offsets measuredLegs
+  where
+    measuredLegs = catMaybes . takeWhile isJust $ map legMeasurements legs -- fix this later to take later legs as well
+    offsets = scanl (+) 0 $ map (length . fst) measuredLegs
+
+    legMeasurements leg = do
+      annotation <- leg.annotation
+      speeds <- annotation.speed
+      pure (speeds, fromMaybe [] annotation.distance)
+
+legSegments :: OSRMTrafficConfig -> Int -> ([Double], [Double]) -> [RouteTrafficSegment]
+legSegments cfg offset (speeds, distances) = mapMaybe toSegment $ runs classified
+  where
+    classified =
+      zipWith3
+        (\index speed lengthMeters -> ClassifiedSegment {index, speedClass = classifySpeed cfg speed, lengthMeters})
+        [offset ..]
+        speeds
+        (distances <> repeat 0)
+
+    runs [] = []
+    runs (x : xs) = let (same, rest) = span (\y -> y.speedClass == x.speedClass) xs in (x : same) : runs rest
+
+    toSegment run = do
+      firstSegment <- listToMaybe run
+      lastSegment <- listToMaybe $ reverse run
+      guard $ firstSegment.speedClass /= TrafficNormal
+      guard $ sum (map (.lengthMeters) run) >= cfg.minSegmentLengthMeters
+      pure RouteTrafficSegment {startIndex = firstSegment.index, endIndex = lastSegment.index + 1, speed = firstSegment.speedClass}
+
+classifySpeed :: OSRMTrafficConfig -> Double -> TrafficSpeed
+classifySpeed cfg speedInMetersPerSecond
+  | speedInKmph <= cfg.jamBelowKmph = TrafficJam
+  | speedInKmph <= cfg.slowBelowKmph = TrafficSlow
+  | otherwise = TrafficNormal
+  where
+    speedInKmph = speedInMetersPerSecond * 3.6
 
 getOSRMRoute ::
   ( HasCallStack,
@@ -201,6 +254,7 @@ getOSRMRoute ::
     HasRequestId r,
     MonadReader r m
   ) =>
+  Maybe OSRMTrafficConfig ->
   OSRM.OSRMRouteResponse ->
   m GetRoutesResp
-getOSRMRoute osrmRouteResponse = sequence $ map convertRouteToRouteInfo osrmRouteResponse.routes
+getOSRMRoute mbTrafficCfg osrmRouteResponse = sequence $ map (convertRouteToRouteInfo mbTrafficCfg) osrmRouteResponse.routes

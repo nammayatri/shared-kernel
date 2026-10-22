@@ -219,6 +219,7 @@ autoComplete ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsInterfaceTypes.AutoCompleteReq ->
   BaseUrl ->
   Text ->
@@ -232,10 +233,10 @@ autoComplete ::
   Maybe LatLong ->
   Maybe Text ->
   m GoogleMaps.AutoCompleteResp
-autoComplete entityId req url apiKey input sessiontoken location radius components lang strictBounds origin types = do
+autoComplete entityId merchantCityId req url apiKey input sessiontoken location radius components lang strictBounds origin types = do
   rsp <- callAPI url (autoCompleteClient sessiontoken apiKey input location radius components lang strictBounds origin types) "autoComplete" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of autoComplete Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "autoComplete" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "autoComplete" "Google" entityId merchantCityId (Just req) rsp
   checkGoogleMapsError url rsp
 
 autoCompleteV2 ::
@@ -246,15 +247,16 @@ autoCompleteV2 ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   BaseUrl ->
   Text ->
   Language ->
   GoogleMaps.AutoCompleteReqV2 ->
   m GoogleMaps.AutoCompleteRespV2
-autoCompleteV2 entityId url apiKey language req = do
+autoCompleteV2 entityId merchantCityId url apiKey language req = do
   rsp <- callAPI url (autoCompleteV2Client apiKey language req) "autoCompleteV2" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of autoCompleteV2 Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "autoCompleteV2" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "autoCompleteV2" "Google" entityId merchantCityId (Just req) rsp
   checkGooglePlaceError url rsp
 
 getPlaceDetails ::
@@ -265,6 +267,7 @@ getPlaceDetails ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsInterfaceTypes.GetPlaceDetailsReq ->
   BaseUrl ->
   Text ->
@@ -272,10 +275,10 @@ getPlaceDetails ::
   Text ->
   Text ->
   m GoogleMaps.GetPlaceDetailsResp
-getPlaceDetails entityId req url apiKey sessiontoken placeId fields = do
+getPlaceDetails entityId merchantCityId req url apiKey sessiontoken placeId fields = do
   rsp <- callAPI url (getPlaceDetailsClient sessiontoken apiKey placeId fields) "getPlaceDetails" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of getPlaceDetails Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceDetails" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceDetails" "Google" entityId merchantCityId (Just req) rsp
   checkGoogleMapsError url rsp
 
 getPlaceDetailsV2 ::
@@ -286,13 +289,14 @@ getPlaceDetailsV2 ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   BaseUrl ->
   Text ->
   Text ->
   Maybe Text ->
   Text ->
   m GoogleMaps.GetPlaceDetailsRespV2
-getPlaceDetailsV2 entityId url apiKey placeId sessionToken fieldMask = do
+getPlaceDetailsV2 entityId merchantCityId url apiKey placeId sessionToken fieldMask = do
   rsp <- callAPI url (getPlaceDetailsV2Client placeId sessionToken apiKey fieldMask) "getPlaceDetailsV2" (Proxy :: Proxy GoogleMapsAPI)
   let logReq =
         A.object
@@ -302,7 +306,7 @@ getPlaceDetailsV2 entityId url apiKey placeId sessionToken fieldMask = do
             "url" A..= showBaseUrl url
           ]
   fork ("Logging external API Call of getPlaceDetailsV2 Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceDetailsV2" "Google" entityId (Just logReq) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceDetailsV2" "Google" entityId merchantCityId (Just logReq) rsp
   fromEitherM (googleMapsError url) rsp
 
 getPlaceName ::
@@ -313,6 +317,7 @@ getPlaceName ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsInterfaceTypes.GetPlaceNameReq ->
   BaseUrl ->
   Text ->
@@ -321,10 +326,10 @@ getPlaceName ::
   Maybe LatLong ->
   Maybe Language ->
   m GoogleMaps.GetPlaceNameResp
-getPlaceName entityId req url apiKey sessiontoken mbByPlaceId mbByLatLong language = do
+getPlaceName entityId merchantCityId req url apiKey sessiontoken mbByPlaceId mbByLatLong language = do
   rsp <- callAPI url (getPlaceNameClient sessiontoken apiKey mbByLatLong mbByPlaceId language) "getPlaceName" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of getPlaceName Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceName" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "getPlaceName" "Google" entityId merchantCityId (Just req) rsp
   checkGoogleMapsError url rsp
 
 distanceMatrix ::
@@ -337,6 +342,7 @@ distanceMatrix ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsInterfaceTypes.GetDistancesReq a b ->
   BaseUrl ->
   Text ->
@@ -345,12 +351,12 @@ distanceMatrix ::
   Maybe GoogleMaps.Mode ->
   Bool ->
   m GoogleMaps.DistanceMatrixResp
-distanceMatrix entityId req url key origins destinations mode isAvoidTolls = do
+distanceMatrix entityId merchantCityId req url key origins destinations mode isAvoidTolls = do
   let avoidToll = if isAvoidTolls then Just "tolls" else Nothing
   let avoid = T.intercalate "|" $ catMaybes [avoidToll, Just "ferries"]
   rsp <- callAPI url (distanceMatrixClient origins destinations key mode (Just avoid)) "distanceMatrix" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of distanceMatrix Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "distanceMatrix" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "distanceMatrix" "Google" entityId merchantCityId (Just req) rsp
   checkGoogleMapsError url rsp
     >>= \resp -> do
       mapM_ (mapM validateResponseStatus . (.elements)) resp.rows
@@ -364,6 +370,7 @@ directions ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsInterfaceTypes.GetRoutesReq ->
   BaseUrl ->
   Text ->
@@ -373,12 +380,12 @@ directions ::
   Maybe [GoogleMaps.Place] ->
   Bool ->
   m GoogleMaps.DirectionsResp
-directions entityId req url key origin destination mode waypoints isAvoidTolls = do
+directions entityId merchantCityId req url key origin destination mode waypoints isAvoidTolls = do
   let avoidToll = if isAvoidTolls then Just "tolls" else Nothing
   let avoid = T.intercalate "|" $ catMaybes [avoidToll, Just "ferries"]
   rsp <- callAPI url (directionsClient origin destination key (Just True) mode waypoints (Just avoid)) "directionsAPI" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of directions Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "directions" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "directions" "Google" entityId merchantCityId (Just req) rsp
   checkGoogleMapsError url rsp
 
 transitDirectionsAPI ::
@@ -388,6 +395,7 @@ transitDirectionsAPI ::
     HasKafkaProducer r,
     HasRequestId r
   ) =>
+  Maybe Text ->
   Maybe Text ->
   BaseUrl ->
   Text ->
@@ -400,13 +408,13 @@ transitDirectionsAPI ::
   Maybe String ->
   Maybe String ->
   m GoogleMaps.AdvancedDirectionsResp
-transitDirectionsAPI entityId url key origin destination mode computeAlternativeRoutes routingPreference transitPreferences arrivalTime departureTime = do
+transitDirectionsAPI entityId merchantCityId url key origin destination mode computeAlternativeRoutes routingPreference transitPreferences arrivalTime departureTime = do
   let travelMode = mode
       routeModifiers = Nothing
       req = GoogleMaps.TransitDirectionsReq {..}
   rsp <- callAPI url (transitDirectionsClient key "routes.*" req) "transitDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of transitDirectionsAPI Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "transitDirectionsAPI" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "transitDirectionsAPI" "Google" entityId merchantCityId (Just req) rsp
   checkGoogleMapsError' url rsp
 
 extraComputationFieldMaskSuffix :: GoogleMaps.ExtraComputationV2 -> Text
@@ -427,6 +435,7 @@ advancedDirectionsAPI ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   BaseUrl ->
   Text ->
   GoogleMaps.WayPointV2 ->
@@ -438,7 +447,7 @@ advancedDirectionsAPI ::
   GoogleMaps.RoutingPreference ->
   Maybe [GoogleMaps.ExtraComputationV2] ->
   m GoogleMaps.AdvancedDirectionsResp
-advancedDirectionsAPI entityId url key origin destination mode intermediates isAvoidTolls computeAlternativeRoutes routingPreference extraComputations = do
+advancedDirectionsAPI entityId merchantCityId url key origin destination mode intermediates isAvoidTolls computeAlternativeRoutes routingPreference extraComputations = do
   let routeModifiers = GoogleMaps.RouteModifiers {avoidTolls = if isAvoidTolls then Just True else Nothing, avoidFerries = True}
       travelMode = mode
       req = GoogleMaps.AdvancedDirectionsReq {..}
@@ -446,7 +455,7 @@ advancedDirectionsAPI entityId url key origin destination mode intermediates isA
       fieldMask = baseFieldMask <> foldMap extraComputationFieldMaskSuffix (fromMaybe [] extraComputations)
   rsp <- callAPI url (advancedDirectionsClient key fieldMask req) "advancedDirectionsAPI" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of advancedDirectionsAPI Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "advancedDirectionsAPI" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "advancedDirectionsAPI" "Google" entityId merchantCityId (Just req) rsp
   checkGoogleMapsError' url rsp
 
 searchDestinations ::
@@ -457,16 +466,17 @@ searchDestinations ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   BaseUrl ->
   Text ->
   -- | X-Goog-FieldMask (use "*" for all fields)
   Text ->
   GoogleMaps.SearchDestinationsReq ->
   m GoogleMaps.SearchDestinationsResp
-searchDestinations entityId url apiKey fieldMask req = do
+searchDestinations entityId merchantCityId url apiKey fieldMask req = do
   rsp <- callAPI url (searchDestinationsClient apiKey fieldMask req) "searchDestinations" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of searchDestinations Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "searchDestinations" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "searchDestinations" "Google" entityId merchantCityId (Just req) rsp
   fromEitherM (googleMapsError url) rsp
 
 computeRouteMatrix ::
@@ -479,16 +489,17 @@ computeRouteMatrix ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsInterfaceTypes.GetDistancesReq a b ->
   BaseUrl ->
   Text ->
   GoogleMaps.ComputeRouteMatrixReq ->
   m [GoogleMaps.RouteMatrixElement]
-computeRouteMatrix entityId req url key matrixReq = do
+computeRouteMatrix entityId merchantCityId req url key matrixReq = do
   let fieldMask = "originIndex,destinationIndex,distanceMeters,duration,condition"
   rsp <- callAPI url (computeRouteMatrixClient key fieldMask matrixReq) "computeRouteMatrix" (Proxy :: Proxy GoogleMapsAPI)
   fork ("Logging external API Call of computeRouteMatrix Google ") $
-    ApiCallLogger.pushExternalApiCallDataToKafka "computeRouteMatrix" "Google" entityId (Just req) rsp
+    ApiCallLogger.pushExternalApiCallDataToKafka "computeRouteMatrix" "Google" entityId merchantCityId (Just req) rsp
   fromEitherM (googleMapsError url) rsp
 
 checkGoogleMapsError :: (MonadThrow m, Log m, HasField "status" a Text) => BaseUrl -> Either ClientError a -> m a

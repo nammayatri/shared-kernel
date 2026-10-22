@@ -61,6 +61,7 @@ getDistancesWrapper ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GetDistancesReq a b ->
   [[a]] ->
   [[b]] ->
@@ -69,12 +70,12 @@ getDistancesWrapper ::
   Maybe GoogleMaps.Mode ->
   Bool ->
   m [GetDistanceResp a b]
-getDistancesWrapper entityId req limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode isAvoidTolls = concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
+getDistancesWrapper entityId merchantCityId req limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode isAvoidTolls = concatForM limitedOriginObjectsList $ \limitedOriginObjects ->
   concatForM limitedDestinationObjectsList $ \limitedDestinationObjects ->
     do
       let limitedOriginPlaces = map (latLongToPlace . getCoordinates) limitedOriginObjects
           limitedDestinationPlaces = map (latLongToPlace . getCoordinates) limitedDestinationObjects
-      GoogleMaps.distanceMatrix entityId req googleMapsUrl key limitedOriginPlaces limitedDestinationPlaces mode isAvoidTolls
+      GoogleMaps.distanceMatrix entityId merchantCityId req googleMapsUrl key limitedOriginPlaces limitedDestinationPlaces mode isAvoidTolls
       >>= parseDistanceMatrixResp req.distanceUnit limitedOriginObjects limitedDestinationObjects
 
 getDistances ::
@@ -89,19 +90,20 @@ getDistances ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GoogleCfg ->
   GetDistancesReq a b ->
   m (NonEmpty (GetDistanceResp a b))
-getDistances entityId cfg GetDistancesReq {..} = do
+getDistances entityId merchantCityId cfg GetDistancesReq {..} = do
   let googleMapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
   let limitedOriginObjectsList = splitListByAPICap origins
       limitedDestinationObjectsList = splitListByAPICap destinations
-  res <- getDistancesWrapper entityId GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode True
+  res <- getDistancesWrapper entityId merchantCityId GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode True
   case res of
     [] -> do
       logInfo "Falling back to avoid tolls"
-      resp <- getDistancesWrapper entityId GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode False
+      resp <- getDistancesWrapper entityId merchantCityId GetDistancesReq {..} limitedOriginObjectsList limitedDestinationObjectsList googleMapsUrl key mode False
       case resp of
         [] -> throwError (InternalError "Empty GoogleMaps.getDistances result.")
         (a : xs) -> return $ a :| xs
@@ -147,11 +149,12 @@ getRoutes ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   Bool ->
   GoogleCfg ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes entityId isAvoidToll cfg req = do
+getRoutes entityId merchantCityId isAvoidToll cfg req = do
   let routeProxyReq = routeToRouteProxyConverter req
       useAdvancedDirections = cfg.useAdvancedDirections
   key <- decrypt cfg.googleKey
@@ -166,28 +169,28 @@ getRoutes entityId isAvoidToll cfg req = do
           intermediates = if length waypointsV2 > 2 then Just $ init $ NE.tail waypointsV2 else Nothing
           mode = getModeV2 <$> req.mode
           extraComputations = cfg.googleRouteConfig.extraComputations
-      result <- withTryCatch "getRoutes" $ GoogleMaps.advancedDirectionsAPI entityId googleMapsUrl key origin destination mode intermediates isAvoidToll computeAlternativeRoutes routePreference extraComputations
+      result <- withTryCatch "getRoutes" $ GoogleMaps.advancedDirectionsAPI entityId merchantCityId googleMapsUrl key origin destination mode intermediates isAvoidToll computeAlternativeRoutes routePreference extraComputations
       case result of
         Right gRes -> do
           if null gRes.routes && isAvoidToll
             then do
-              gResp <- GoogleMaps.advancedDirectionsAPI entityId googleMapsUrl key origin destination mode intermediates False computeAlternativeRoutes routePreference extraComputations
+              gResp <- GoogleMaps.advancedDirectionsAPI entityId merchantCityId googleMapsUrl key origin destination mode intermediates False computeAlternativeRoutes routePreference extraComputations
               traverse (mkRoute' routeProxyReq) gResp.routes
             else traverse (mkRoute' routeProxyReq) gRes.routes
         Left err -> do
           logTagWarning "GoogleMapsDirections" ("Advanced Directions API failed, falling back to basic directions API, " <> show req <> " error is: " <> show err)
           let cfg' = cfg {useAdvancedDirections = False}
-          getRoutes entityId isAvoidToll cfg' req
+          getRoutes entityId merchantCityId isAvoidToll cfg' req
     else do
       let googleMapsUrl = cfg.googleMapsUrl
       let origin = latLongToPlace routeProxyReq.origin
           destination = latLongToPlace routeProxyReq.destination
           waypoints = getWayPoints routeProxyReq.waypoints
           mode = mapToMode <$> routeProxyReq.mode
-      gRes <- GoogleMaps.directions entityId req googleMapsUrl key origin destination mode waypoints isAvoidToll
+      gRes <- GoogleMaps.directions entityId merchantCityId req googleMapsUrl key origin destination mode waypoints isAvoidToll
       if null gRes.routes && isAvoidToll
         then do
-          gResp <- GoogleMaps.directions entityId req googleMapsUrl key origin destination mode waypoints False
+          gResp <- GoogleMaps.directions entityId merchantCityId req googleMapsUrl key origin destination mode waypoints False
           traverse (mkRoute routeProxyReq) gResp.routes
         else traverse (mkRoute routeProxyReq) gRes.routes
   where
@@ -331,6 +334,7 @@ getDistancesRouteMatrixWrapper ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GetDistancesReq a b ->
   [[a]] ->
   [[b]] ->
@@ -340,7 +344,7 @@ getDistancesRouteMatrixWrapper ::
   Maybe GoogleMaps.RoutingPreference ->
   Bool ->
   m [GetDistanceResp a b]
-getDistancesRouteMatrixWrapper entityId req chunkedOrigins chunkedDests url key mode routingPref isAvoidTolls =
+getDistancesRouteMatrixWrapper entityId merchantCityId req chunkedOrigins chunkedDests url key mode routingPref isAvoidTolls =
   concatForM chunkedOrigins $ \originChunk ->
     concatForM chunkedDests $ \destChunk -> do
       let mkOrigin latLng =
@@ -357,7 +361,7 @@ getDistancesRouteMatrixWrapper entityId req chunkedOrigins chunkedDests url key 
                 travelMode = mode,
                 routingPreference = routingPref
               }
-      GoogleMaps.computeRouteMatrix entityId req url key matrixReq
+      GoogleMaps.computeRouteMatrix entityId merchantCityId req url key matrixReq
         >>= parseRouteMatrixResp req.distanceUnit originChunk destChunk
 
 getDistancesViaRouteMatrix ::
@@ -372,11 +376,12 @@ getDistancesViaRouteMatrix ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   EncryptedField 'AsEncrypted Text ->
   GoogleRouteMatrixCfg ->
   GetDistancesReq a b ->
   m (NonEmpty (GetDistanceResp a b))
-getDistancesViaRouteMatrix entityId encKey cfg GetDistancesReq {..} = do
+getDistancesViaRouteMatrix entityId merchantCityId encKey cfg GetDistancesReq {..} = do
   logInfo $ "RouteMatrix: using computeRouteMatrix API (origins=" <> show (length origins) <> " destinations=" <> show (length destinations) <> ")"
   key <- decrypt encKey
   let url = cfg.googleRouteMatrixUrl
@@ -384,11 +389,11 @@ getDistancesViaRouteMatrix entityId encKey cfg GetDistancesReq {..} = do
       chunkedOrigins = splitListByAPICap origins
       chunkedDests = splitListByAPICap destinations
       mode = mapToModeV2 <$> travelMode
-  res <- getDistancesRouteMatrixWrapper entityId GetDistancesReq {..} chunkedOrigins chunkedDests url key mode routingPref True
+  res <- getDistancesRouteMatrixWrapper entityId merchantCityId GetDistancesReq {..} chunkedOrigins chunkedDests url key mode routingPref True
   case res of
     [] -> do
       logInfo "RouteMatrix: Falling back without avoidTolls"
-      resp <- getDistancesRouteMatrixWrapper entityId GetDistancesReq {..} chunkedOrigins chunkedDests url key mode routingPref False
+      resp <- getDistancesRouteMatrixWrapper entityId merchantCityId GetDistancesReq {..} chunkedOrigins chunkedDests url key mode routingPref False
       case resp of
         [] -> throwError (InternalError "Empty GoogleRouteMatrix.getDistances result.")
         (a : xs) -> return $ a :| xs
@@ -473,13 +478,14 @@ snapToRoad ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GoogleCfg ->
   SnapToRoadReq ->
   m SnapToRoadResp
-snapToRoad entityId cfg req@SnapToRoadReq {..} = do
+snapToRoad entityId merchantCityId cfg req@SnapToRoadReq {..} = do
   let roadsUrl = cfg.googleRoadsUrl
   key <- decrypt cfg.googleKey
-  res <- GoogleRoads.snapToRoad entityId req roadsUrl key points
+  res <- GoogleRoads.snapToRoad entityId merchantCityId req roadsUrl key points
   let pts = map (.location) res.snappedPoints
   let dist = getRouteLinearLength pts calculateDistanceFrom
   pure
@@ -499,13 +505,14 @@ autoComplete ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GoogleCfg ->
   AutoCompleteReq ->
   m AutoCompleteResp
-autoComplete entityId cfg req@AutoCompleteReq {..} = do
+autoComplete entityId merchantCityId cfg req@AutoCompleteReq {..} = do
   if cfg.useNewPlaces
     then do
-      result <- withTryCatch "autoComplete" $ autoCompleteNew entityId cfg AutoCompleteReq {..}
+      result <- withTryCatch "autoComplete" $ autoCompleteNew entityId merchantCityId cfg AutoCompleteReq {..}
       case result of
         Right res -> return res
         Left err -> do
@@ -523,7 +530,7 @@ autoComplete entityId cfg req@AutoCompleteReq {..} = do
               USA -> "country:us|country:pr|country:vi|country:gu|country:mp"
               Netherlands -> "country:nl"
               Finland -> "country:fi"
-      res <- withShortRetry $ GoogleMaps.autoComplete entityId req mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
+      res <- withShortRetry $ GoogleMaps.autoComplete entityId merchantCityId req mapsUrl key input sessionToken location (maybe radius (toInteger . distanceToMeters) radiusWithUnit) components language strictbounds origin types_
       let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
       let predictions = map (\prediction -> Prediction {placeId = prediction.place_id >>= \pid -> if T.null pid then Nothing else Just pid, distance = prediction.distance_meters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> prediction.distance_meters, types = prediction.types, description = prediction.description}) res.predictions
       return $ AutoCompleteResp predictions
@@ -536,10 +543,11 @@ autoCompleteNew ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GoogleCfg ->
   AutoCompleteReq ->
   m AutoCompleteResp
-autoCompleteNew entityId cfg AutoCompleteReq {..} = do
+autoCompleteNew entityId merchantCityId cfg AutoCompleteReq {..} = do
   let mapsUrl = cfg.googlePlaceNewUrl
   key <- decrypt cfg.googleKey
   let includedRegionCodes =
@@ -559,7 +567,7 @@ autoCompleteNew entityId cfg AutoCompleteReq {..} = do
       circle = GoogleMaps.Circle {center = center, radius = fromIntegral radiusInM}
       (locationBias, locationRestriction) = getLocationBiasAndLocationRestriction radiusInM circle
   let req = GoogleMaps.AutoCompleteReqV2 {input, sessionToken, origin = origin', locationBias, locationRestriction, includedPrimaryTypes, includedRegionCodes}
-  res <- GoogleMaps.autoCompleteV2 entityId mapsUrl key language req
+  res <- GoogleMaps.autoCompleteV2 entityId merchantCityId mapsUrl key language req
   let distanceUnit = fromMaybe Meter $ radiusWithUnit <&> (.unit)
   let predictions = map (\suggestion -> Prediction {placeId = suggestion.placePrediction.placeId >>= \pid -> if T.null pid then Nothing else Just pid, distance = suggestion.placePrediction.distanceMeters, distanceWithUnit = convertMetersToDistance distanceUnit . Meters <$> suggestion.placePrediction.distanceMeters, types = suggestion.placePrediction.types, description = suggestion.placePrediction.text.text}) res.suggestions
   return $ AutoCompleteResp predictions
@@ -592,13 +600,14 @@ getPlaceDetails ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GoogleCfg ->
   GetPlaceDetailsReq ->
   m GetPlaceDetailsResp
-getPlaceDetails entityId cfg req@GetPlaceDetailsReq {..} = do
+getPlaceDetails entityId merchantCityId cfg req@GetPlaceDetailsReq {..} = do
   if fromMaybe False cfg.useNewPlaceDetails
     then do
-      result <- withTryCatch "getPlaceDetails" $ getPlaceDetailsNew entityId cfg req
+      result <- withTryCatch "getPlaceDetails" $ getPlaceDetailsNew entityId merchantCityId cfg req
       case result of
         Right res -> return res
         Left err -> do
@@ -610,7 +619,7 @@ getPlaceDetails entityId cfg req@GetPlaceDetailsReq {..} = do
       let mapsUrl = cfg.googleMapsUrl
       key <- decrypt cfg.googleKey
       let fields = "geometry,formatted_address,address_components,place_id"
-      res <- GoogleMaps.getPlaceDetails entityId req mapsUrl key sessionToken placeId fields
+      res <- GoogleMaps.getPlaceDetails entityId merchantCityId req mapsUrl key sessionToken placeId fields
       let result = res.result
           location = let loc = result.geometry.location in LatLong loc.lat loc.lng
           addressComponents = maybe [] (map reformateAddressResp) result.address_components
@@ -630,14 +639,15 @@ getPlaceDetailsNew ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GoogleCfg ->
   GetPlaceDetailsReq ->
   m GetPlaceDetailsResp
-getPlaceDetailsNew entityId cfg GetPlaceDetailsReq {..} = do
+getPlaceDetailsNew entityId merchantCityId cfg GetPlaceDetailsReq {..} = do
   let mapsUrl = cfg.googlePlaceNewUrl
   key <- decrypt cfg.googleKey
   let fieldMask = "formattedAddress,location,addressComponents"
-  res <- GoogleMaps.getPlaceDetailsV2 entityId mapsUrl key placeId sessionToken fieldMask
+  res <- GoogleMaps.getPlaceDetailsV2 entityId merchantCityId mapsUrl key placeId sessionToken fieldMask
   location <- case res.location of
     Just loc -> pure $ LatLong loc.latitude loc.longitude
     Nothing -> throwError (InternalError "Google Places API (New) returned no location for place details")
@@ -659,13 +669,14 @@ getPlaceName ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GoogleCfg ->
   GetPlaceNameReq ->
   m GetPlaceNameResp
-getPlaceName entityId cfg req@GetPlaceNameReq {..} = do
+getPlaceName entityId merchantCityId cfg req@GetPlaceNameReq {..} = do
   let mapsUrl = cfg.googleMapsUrl
   key <- decrypt cfg.googleKey
-  res <- GoogleMaps.getPlaceName entityId req mapsUrl key sessionToken mbByPlaceId mbByLatLong language
+  res <- GoogleMaps.getPlaceName entityId merchantCityId req mapsUrl key sessionToken mbByPlaceId mbByLatLong language
   return $ map reformatePlaceName res.results
   where
     reformatePlaceName (placeName :: GoogleMaps.ResultsResp) =
@@ -695,10 +706,11 @@ searchDestinations ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   GoogleCfg ->
   SearchDestinationsReq ->
   m SearchDestinationsResp
-searchDestinations entityId cfg SearchDestinationsReq {..} = do
+searchDestinations entityId merchantCityId cfg SearchDestinationsReq {..} = do
   url <- maybe (parseBaseUrl "https://geocode.googleapis.com/v4") pure cfg.googleGeocodeUrl
   key <- decrypt cfg.googleKey
   let gReq =
@@ -711,7 +723,7 @@ searchDestinations entityId cfg SearchDestinationsReq {..} = do
             travelModes = map toGoogleTravelMode <$> travelModes,
             placeFilter = Nothing
           }
-  GoogleMaps.searchDestinations entityId url key (fromMaybe "*" fieldMask) gReq
+  GoogleMaps.searchDestinations entityId merchantCityId url key (fromMaybe "*" fieldMask) gReq
   where
     (mbAddressQuery, mbPlace, mbLocationQuery) = case searchBy of
       SearchByAddress addr -> (Just $ GoogleMaps.AddressQuery {addressQuery = Just addr, address = Nothing}, Nothing, Nothing)

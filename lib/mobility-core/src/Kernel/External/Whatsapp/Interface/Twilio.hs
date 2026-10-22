@@ -48,14 +48,25 @@ whatsAppOTPApi ::
 whatsAppOTPApi cfg SendOtpApiReq {..} = do
   messageServiceId <- decrypt cfg.messageServiceId
   let whatsappTo = "whatsapp:" <> sendTo
-      twilioReq =
+  res <- case templateId of
+    Just tid
+      | not (T.null tid) ->
+        Ex.sendWhatsAppTemplateApi cfg $
+          SmsTypes.TwillioWhatsAppTemplateReq
+            { to = whatsappTo,
+              contentSid = tid,
+              contentVariables = decodeUtf8 $ encode $ Map.singleton ("1" :: Text) var1,
+              messagingServiceSid = messageServiceId,
+              mediaUrl = Nothing
+            }
+    _ ->
+      Ex.sendOTPApi cfg $
         SmsTypes.TwillioSmsReq
           { to = whatsappTo,
             body = var1,
             messagingServiceSid = messageServiceId,
             from = Nothing
           }
-  res <- Ex.sendOTPApi cfg twilioReq
   return $
     OptApiResp
       { _response =
@@ -95,7 +106,7 @@ whatsAppSendMessageWithTemplateIdAPI cfg SendWhatsAppMessageWithTemplateIdApIReq
               from = Nothing
             }
       else do
-        -- Template message: ContentSid + ContentVariables
+        -- Template message: ContentSid + ContentVariables (+ optional MediaUrl)
         let varMap = Map.fromList $ zipWith (\i v -> (T.pack (show (i :: Int)), fromMaybe "" v)) [1 ..] variables
             contentVariablesJson = decodeUtf8 $ encode varMap
         Ex.sendWhatsAppTemplateApi cfg $
@@ -103,7 +114,8 @@ whatsAppSendMessageWithTemplateIdAPI cfg SendWhatsAppMessageWithTemplateIdApIReq
             { to = whatsappTo,
               contentSid = templateId,
               contentVariables = contentVariablesJson,
-              messagingServiceSid = messageServiceId
+              messagingServiceSid = messageServiceId,
+              mediaUrl = mediaUrl
             }
   return $
     OptApiResp

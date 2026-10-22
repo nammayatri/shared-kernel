@@ -40,9 +40,10 @@ getTransitRoutes ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MultiModalServiceConfig ->
   GetTransitRoutesReq ->
   m (Maybe MultiModalResponse)
-getTransitRoutes entityId serviceConfig req = case serviceConfig of
-  GoogleTransitConfig cfg -> Google.getTransitRoutes entityId cfg req
+getTransitRoutes entityId merchantCityId serviceConfig req = case serviceConfig of
+  GoogleTransitConfig cfg -> Google.getTransitRoutes entityId merchantCityId cfg req
   OTPTransitConfig cfg -> OTP.getTransitRoutes cfg req

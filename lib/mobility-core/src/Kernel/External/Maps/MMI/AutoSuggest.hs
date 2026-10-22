@@ -55,6 +55,7 @@ mmiAutoSuggest ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   IT.AutoCompleteReq ->
   BaseUrl ->
   Maybe MMI.MMIAuthToken ->
@@ -63,7 +64,7 @@ mmiAutoSuggest ::
   Text ->
   Language ->
   m MMI.AutoSuggestResp
-mmiAutoSuggest entityId req url authToken query location region lang = do
+mmiAutoSuggest entityId merchantCityId req url authToken query location region lang = do
   rsp <-
     callMMIAutoSuggestAPI
       url
@@ -71,7 +72,7 @@ mmiAutoSuggest entityId req url authToken query location region lang = do
       "mmi-auto-suggest"
       mmiAutoSuggestAPI
   fork ("Logging external API Call of autoSuggest MMI ") $
-    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "autoSuggest" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "autoSuggest" "MMI" entityId merchantCityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
 callMMIAutoSuggestAPI :: CallAPI m r api a

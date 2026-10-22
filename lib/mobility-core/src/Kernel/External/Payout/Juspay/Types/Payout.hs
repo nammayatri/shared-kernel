@@ -43,6 +43,16 @@ data PayoutOrderStatus
   | VALID
   | CONFLICTED
   | REVERSED
+  | -- | The partner's maker-checker queue holds this item: a human on their side is the blocker.
+    -- Bulk rails only; a per-order API has nothing to report it with.
+    AWAITING_APPROVAL
+  | -- | The partner has the item and is working on it. Distinct from 'INITIATED', which only says we
+    -- created the row: this says the partner has answered about it.
+    PROCESSING
+  | -- | Debited from our account at the partner, beneficiary credit NOT yet confirmed. Deliberately
+    -- not 'FULFILLMENTS_SUCCESSFUL', which is read as paid in several places: the money has left us
+    -- but nobody has confirmed it arrived, and that difference is what reconciliation turns on.
+    DEBITED
   deriving (Show, Generic, Ord, Read, FromJSON, ToJSON, ToSchema, Eq)
 
 $(mkBeamInstancesForEnum ''PayoutOrderStatus)

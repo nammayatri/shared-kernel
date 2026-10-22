@@ -556,7 +556,16 @@ data LegV2 = LegV2
     startLocation :: LocationV2,
     steps :: [StepV2]
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, ToSchema)
+
+instance FromJSON LegV2 where
+  parseJSON = withObject "LegV2" $ \v ->
+    LegV2
+      <$> v .:? "distanceMeters" .!= 0
+      <*> v .:? "duration" .!= "0s"
+      <*> v .: "endLocation"
+      <*> v .: "startLocation"
+      <*> v .:? "steps" .!= []
 
 data StepV2 = StepV2
   { distanceMeters :: Int,
@@ -567,7 +576,18 @@ data StepV2 = StepV2
     travelMode :: ModeV2,
     transitDetails :: Maybe TransitDetailsV2
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema)
+  deriving (Generic, ToJSON, ToSchema)
+
+instance FromJSON StepV2 where
+  parseJSON = withObject "StepV2" $ \v ->
+    StepV2
+      <$> v .:? "distanceMeters" .!= 0
+      <*> v .:? "staticDuration" .!= "0s"
+      <*> v .: "endLocation"
+      <*> v .:? "polyline" .!= Polyline ""
+      <*> v .: "startLocation"
+      <*> v .: "travelMode"
+      <*> v .:? "transitDetails"
 
 data TransitDetailsV2 = TransitDetailsV2
   { transitLine :: TransitLineV2,
@@ -614,7 +634,10 @@ instance ToJSON VehicleV2 where
 newtype Polyline = Polyline
   { encodedPolyline :: PolyLinePoints
   }
-  deriving (Generic, ToJSON, FromJSON, ToSchema, Show)
+  deriving (Generic, ToJSON, ToSchema, Show)
+
+instance FromJSON Polyline where
+  parseJSON = withObject "Polyline" $ \v -> Polyline <$> v .:? "encodedPolyline" .!= ""
 
 newtype EncodedPointObject = EncodedPointObject {points :: PolyLinePoints}
   deriving stock (Generic)

@@ -63,12 +63,13 @@ mmiSnapToRoad ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   IT.SnapToRoadReq ->
   BaseUrl ->
   Text ->
   Text ->
   m MMI.SnapToRoadResp
-mmiSnapToRoad entityId req url apiKey points = do
+mmiSnapToRoad entityId merchantCityId req url apiKey points = do
   rsp <-
     callMMIAPI
       url
@@ -76,5 +77,5 @@ mmiSnapToRoad entityId req url apiKey points = do
       "mmi-snap-to-road"
       mmiSnapToRoadAPI
   fork ("Logging external API Call of mmiSnapToRoad MMI ") $
-    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiSnapToRoad" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiSnapToRoad" "MMI" entityId merchantCityId (Just req) $ KUT.encodeToText rsp
   return rsp

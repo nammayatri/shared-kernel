@@ -56,12 +56,13 @@ mmiRoute ::
     MonadReader r m
   ) =>
   Maybe Text ->
+  Maybe Text ->
   IT.GetRoutesReq ->
   BaseUrl ->
   Text ->
   Text ->
   m MMI.RouteResponse
-mmiRoute entityId req url apiKey points = do
+mmiRoute entityId merchantCityId req url apiKey points = do
   rsp <-
     callMMIAPI
       url
@@ -69,7 +70,7 @@ mmiRoute entityId req url apiKey points = do
       "mmi-route"
       mmiRouteAPI
   fork ("Logging external API Call of mmiRoute MMI ") $
-    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiRoute" "MMI" entityId (Just req) $ KUT.encodeToText rsp
+    ApiCallLogger.pushExternalApiCallDataToKafkaWithTextEncodedResp "mmiRoute" "MMI" entityId merchantCityId (Just req) $ KUT.encodeToText rsp
   return rsp
 
 callMMIAPI :: CallAPI m r api a

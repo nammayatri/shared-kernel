@@ -97,7 +97,8 @@ verifyRCAsync cfg req = do
           bodyType = Nothing,
           status = if success then Just "VALID" else Nothing,
           grossVehicleWeight = Nothing,
-          unladdenWeight = Nothing
+          unladdenWeight = Nothing,
+          rcVehicleType = Nothing
         }
 
 -- | Verify Driving License (DL) validity via the MoRTH Parivahan API.

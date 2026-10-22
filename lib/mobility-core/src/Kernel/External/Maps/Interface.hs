@@ -64,11 +64,12 @@ getDistance ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsServiceConfig ->
   GetDistanceReq a b ->
   m (GetDistanceResp a b)
-getDistance entityId serviceConfig GetDistanceReq {..} =
-  getDistances entityId serviceConfig getDistancesReq >>= \case
+getDistance entityId merchantCityId serviceConfig GetDistanceReq {..} =
+  getDistances entityId merchantCityId serviceConfig getDistancesReq >>= \case
     (a :| []) -> return a
     _ -> throwError (InternalError "Exactly one getDistance result expected.")
   where
@@ -107,19 +108,20 @@ getDistances ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsServiceConfig ->
   GetDistancesReq a b ->
   m (GetDistancesResp a b)
-getDistances entityId serviceConfig req = case serviceConfig of
+getDistances entityId merchantCityId serviceConfig req = case serviceConfig of
   GoogleConfig cfg ->
     if fromMaybe False cfg.useRouteMatrix
       then case cfg.googleRouteMatrixCfg of
-        Just rmCfg -> Google.getDistancesViaRouteMatrix entityId cfg.googleKey rmCfg req
-        Nothing -> Google.getDistances entityId cfg req
-      else Google.getDistances entityId cfg req
-  OSRMConfig cfg -> OSRM.getDistances entityId cfg req
-  DishaConfig cfg -> OSRM.getDistances entityId cfg req
-  MMIConfig cfg -> MMI.getDistanceMatrix entityId cfg req
+        Just rmCfg -> Google.getDistancesViaRouteMatrix entityId merchantCityId cfg.googleKey rmCfg req
+        Nothing -> Google.getDistances entityId merchantCityId cfg req
+      else Google.getDistances entityId merchantCityId cfg req
+  OSRMConfig cfg -> OSRM.getDistances entityId merchantCityId cfg req
+  DishaConfig cfg -> OSRM.getDistances entityId merchantCityId cfg req
+  MMIConfig cfg -> MMI.getDistanceMatrix entityId merchantCityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getDistances" NextBillion
 
 getRoutesProvided :: MapsService -> Bool
@@ -139,16 +141,17 @@ getRoutes ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   Bool ->
   MapsServiceConfig ->
   GetRoutesReq ->
   m GetRoutesResp
-getRoutes entityId isAvoidToll serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getRoutes entityId isAvoidToll cfg req
-  OSRMConfig osrmCfg -> OSRM.getRoutes entityId osrmCfg req
-  DishaConfig osrmCfg -> OSRM.getRoutes entityId osrmCfg req
-  MMIConfig cfg -> MMI.getRoutes entityId cfg req
-  NextBillionConfig cfg -> NextBillion.getRoutes entityId cfg req
+getRoutes entityId merchantCityId isAvoidToll serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getRoutes entityId merchantCityId isAvoidToll cfg req
+  OSRMConfig osrmCfg -> OSRM.getRoutes entityId merchantCityId osrmCfg req
+  DishaConfig osrmCfg -> OSRM.getRoutes entityId merchantCityId osrmCfg req
+  MMIConfig cfg -> MMI.getRoutes entityId merchantCityId cfg req
+  NextBillionConfig cfg -> NextBillion.getRoutes entityId merchantCityId cfg req
 
 snapToRoadProvided :: MapsService -> Bool
 snapToRoadProvided = \case
@@ -209,12 +212,13 @@ snapToRoadWithFallback ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   Maybe MapsServiceConfig ->
   Bool ->
   SnapToRoadHandler m ->
   SnapToRoadReq ->
   m ([MapsService], Either String SnapToRoadResp)
-snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includeRectifiedDistance SnapToRoadHandler {..} req = do
+snapToRoadWithFallback entityId merchantCityId mbMapServiceToRectifyDistantPointsFailure includeRectifiedDistance SnapToRoadHandler {..} req = do
   providersList <- getProvidersList
   when (null providersList) $ throwError $ InternalError "No maps service provider configured"
   (servicesUsed, snapResponse) <- callSnapToRoadWithFallback providersList
@@ -233,7 +237,7 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
       preCheckPassed <- runPreCheck preferredProvider req
       if preCheckPassed
         then do
-          result <- withTryCatch "callSnapToRoadWithFallback" $ snapToRoad entityId mapsConfig req
+          result <- withTryCatch "callSnapToRoadWithFallback" $ snapToRoad entityId merchantCityId mapsConfig req
           case result of
             Left err -> do
               logError $ "Snap to road Pre Check failed with error : " <> show err <> " - Provider : " <> show preferredProvider
@@ -268,7 +272,7 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
               if dist < maxStraightLineRectificationThreshold -- never happens
                 then pure (x1, dist)
                 else do
-                  distanceRes <- getDistance entityId mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR, distanceUnit = req.distanceUnit, sourceDestinationMapping = Nothing} :: GetDistanceReq LatLong LatLong)
+                  distanceRes <- getDistance entityId merchantCityId mapServiceCfg (GetDistanceReq {origin = x1, destination = x2, travelMode = Just CAR, distanceUnit = req.distanceUnit, sourceDestinationMapping = Nothing} :: GetDistanceReq LatLong LatLong)
                   pure (x1, metersToHighPrecMeters distanceRes.distance)
           )
           straightDistancePoints
@@ -276,7 +280,7 @@ snapToRoadWithFallback entityId mbMapServiceToRectifyDistantPointsFailure includ
       let (pointsOutOfThreshold, distance) = foldl' (\(accPoints, accDis) (x1, dis) -> (accPoints <> [x1], accDis + dis)) ([], 0) distanceRectified
       let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
       logDebug $ "Split snap-to-road calls: " <> show splitSnapToRoadCalls
-      pointsRes <- withTryCatch "callSnapToRoadWithRectification" $ mapM (\section -> snapToRoad entityId mapsConfig (req {points = section})) splitSnapToRoadCalls
+      pointsRes <- withTryCatch "callSnapToRoadWithRectification" $ mapM (\section -> snapToRoad entityId merchantCityId mapsConfig (req {points = section})) splitSnapToRoadCalls
       logDebug $ "Snap-to-road results: " <> show pointsRes
       case pointsRes of
         Right result -> do
@@ -301,15 +305,16 @@ snapToRoad ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsServiceConfig ->
   SnapToRoadReq ->
   m SnapToRoadResp
-snapToRoad entityId serviceConfig req =
+snapToRoad entityId merchantCityId serviceConfig req =
   case serviceConfig of
-    GoogleConfig cfg -> Google.snapToRoad entityId cfg req
-    OSRMConfig osrmCfg -> OSRM.callOsrmMatch entityId osrmCfg req
-    DishaConfig osrmCfg -> OSRM.callOsrmMatch entityId osrmCfg req
-    MMIConfig mmiCfg -> MMI.snapToRoad entityId mmiCfg req
+    GoogleConfig cfg -> Google.snapToRoad entityId merchantCityId cfg req
+    OSRMConfig osrmCfg -> OSRM.callOsrmMatch entityId merchantCityId osrmCfg req
+    DishaConfig osrmCfg -> OSRM.callOsrmMatch entityId merchantCityId osrmCfg req
+    MMIConfig mmiCfg -> MMI.snapToRoad entityId merchantCityId mmiCfg req
     NextBillionConfig _ -> throwNotProvidedError "snapToRoad" NextBillion
 
 autoCompleteProvided :: MapsService -> Bool
@@ -330,14 +335,15 @@ autoComplete ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsServiceConfig ->
   AutoCompleteReq ->
   m AutoCompleteResp
-autoComplete entityId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.autoComplete entityId cfg req
+autoComplete entityId merchantCityId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.autoComplete entityId merchantCityId cfg req
   OSRMConfig _ -> throwNotProvidedError "autoComplete" OSRM
   DishaConfig _ -> throwNotProvidedError "autoComplete" Disha
-  MMIConfig cfg -> MMI.autoSuggest entityId cfg req
+  MMIConfig cfg -> MMI.autoSuggest entityId merchantCityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "autoComplete" NextBillion
 
 getPlaceDetailsProvided :: MapsService -> Bool
@@ -356,14 +362,15 @@ getPlaceDetails ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsServiceConfig ->
   GetPlaceDetailsReq ->
   m GetPlaceDetailsResp
-getPlaceDetails entityId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getPlaceDetails entityId cfg req
+getPlaceDetails entityId merchantCityId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getPlaceDetails entityId merchantCityId cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceDetails" OSRM
   DishaConfig _ -> throwNotProvidedError "getPlaceDetails" Disha
-  MMIConfig cfg -> MMI.getPlaceDetails entityId cfg req
+  MMIConfig cfg -> MMI.getPlaceDetails entityId merchantCityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getPlaceDetails" NextBillion
 
 getPlaceNameProvided :: MapsService -> Bool
@@ -383,14 +390,15 @@ getPlaceName ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsServiceConfig ->
   GetPlaceNameReq ->
   m GetPlaceNameResp
-getPlaceName entityId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.getPlaceName entityId cfg req
+getPlaceName entityId merchantCityId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.getPlaceName entityId merchantCityId cfg req
   OSRMConfig _ -> throwNotProvidedError "getPlaceName" OSRM
   DishaConfig _ -> throwNotProvidedError "getPlaceName" Disha
-  MMIConfig cfg -> MMI.geocode entityId cfg req
+  MMIConfig cfg -> MMI.geocode entityId merchantCityId cfg req
   NextBillionConfig _ -> throwNotProvidedError "getPlaceName" NextBillion
 
 searchDestinationsProvided :: MapsService -> Bool
@@ -409,11 +417,12 @@ searchDestinations ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MapsServiceConfig ->
   SearchDestinationsReq ->
   m SearchDestinationsResp
-searchDestinations entityId serviceConfig req = case serviceConfig of
-  GoogleConfig cfg -> Google.searchDestinations entityId cfg req
+searchDestinations entityId merchantCityId serviceConfig req = case serviceConfig of
+  GoogleConfig cfg -> Google.searchDestinations entityId merchantCityId cfg req
   OSRMConfig _ -> throwNotProvidedError "searchDestinations" OSRM
   DishaConfig _ -> throwNotProvidedError "searchDestinations" Disha
   MMIConfig _ -> throwNotProvidedError "searchDestinations" MMI

@@ -375,7 +375,7 @@ extractRCImage cfg req = do
                     bodyType = eo.body,
                     errorMessage = Nothing
                   },
-        provider = Nothing
+        provider = Just VT.Idfy
       }
 
 extractUdyogAadhaarAsync ::
@@ -429,7 +429,7 @@ extractDLImage cfg req = do
                 dateOfBirth = result.extraction_output.date_of_birth,
                 errorMessage = Nothing
               },
-        provider = Nothing
+        provider = Just VT.Idfy
       }
 
 extractPanImage ::
@@ -455,7 +455,7 @@ extractPanImage cfg req = do
   pure
     ExtractedPanImageResp
       { extractedPan = resp.result >>= (\x -> pure x.extraction_output),
-        provider = Nothing
+        provider = Just VT.Idfy
       }
 
 extractGSTImage ::
@@ -624,7 +624,8 @@ convertRCOutputToRCVerificationResponse RCVerificationOutput {..} =
       bodyType = body_type,
       status = status,
       grossVehicleWeight = gross_vehicle_weight >>= convertValueToFloat,
-      unladdenWeight = unladden_weight >>= convertValueToFloat
+      unladdenWeight = unladden_weight >>= convertValueToFloat,
+      rcVehicleType = Nothing
     }
 
 convertPanOutputToPanVerification :: PanVerificationOutput -> VT.PanVerificationResponse

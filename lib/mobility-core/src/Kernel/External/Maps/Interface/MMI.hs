@@ -64,10 +64,11 @@ autoSuggest ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   IT.AutoCompleteReq ->
   m IT.AutoCompleteResp
-autoSuggest entityId mmiCfg req@AutoCompleteReq {..} = do
+autoSuggest entityId merchantCityId mmiCfg req@AutoCompleteReq {..} = do
   let query = input
       loc = location
       region =
@@ -82,8 +83,8 @@ autoSuggest entityId mmiCfg req@AutoCompleteReq {..} = do
               Finland -> "fi"
       lang = language
       mapsUrl = mmiCfg.mmiNonKeyUrl
-  token <- MMIAuthToken.getTokenText entityId mmiCfg
-  res <- MMI.mmiAutoSuggest entityId req mapsUrl (Just $ MMITypes.MMIAuthToken token) query loc region lang
+  token <- MMIAuthToken.getTokenText entityId merchantCityId mmiCfg
+  res <- MMI.mmiAutoSuggest entityId merchantCityId req mapsUrl (Just $ MMITypes.MMIAuthToken token) query loc region lang
   let predictions = map (\MMITypes.SuggestedLocations {..} -> Prediction {placeId = Just eLoc, description = placeName <> " " <> placeAddress, distance = Nothing, distanceWithUnit = Nothing, types = Nothing}) res.suggestedLocations
   return $ AutoCompleteResp predictions
 
@@ -100,10 +101,11 @@ getDistanceMatrix ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   IT.GetDistancesReq a b ->
   m (NonEmpty (IT.GetDistanceResp a b))
-getDistanceMatrix entityId mmiCfg req@GetDistancesReq {..} = do
+getDistanceMatrix entityId merchantCityId mmiCfg req@GetDistancesReq {..} = do
   key <- decrypt mmiCfg.mmiApiKey
   let limitedOriginObjectsList = splitListByAPICap origins
       limitedDestinationObjectsList = splitListByAPICap destinations
@@ -121,7 +123,7 @@ getDistanceMatrix entityId mmiCfg req@GetDistancesReq {..} = do
           placesList = (++) limitedOriginPlaces limitedDestinationPlaces
           coordinatesList = map latLongToText placesList
           coordinates = T.intercalate ";" coordinatesList
-      MMI.mmiDistanceMatrix entityId req mapsUrl key coordinates (Just origParam) (Just origDest)
+      MMI.mmiDistanceMatrix entityId merchantCityId req mapsUrl key coordinates (Just origParam) (Just origDest)
         >>= parseDistanceMatrixResp distanceUnit lOrigin lDest limitedOriginObjects limitedDestinationObjects
   case res of
     [] -> throwError (InternalError "Empty MMI.getDistances result.")
@@ -177,16 +179,17 @@ getRoutes ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   IT.GetRoutesReq ->
   m IT.GetRoutesResp
-getRoutes entityId mmiCfg req = do
+getRoutes entityId merchantCityId mmiCfg req = do
   key <- decrypt mmiCfg.mmiApiKey
   let origin = latLongToText (NE.head req.waypoints)
       destination = latLongToText (NE.last req.waypoints)
       points = origin <> ";" <> destination
       mapsUrl = mmiCfg.mmiKeyUrl
-  resp <- MMI.mmiRoute entityId req mapsUrl key points
+  resp <- MMI.mmiRoute entityId merchantCityId req mapsUrl key points
   traverse (mkRoute req resp) resp.routes
 
 getPlaceDetails ::
@@ -198,12 +201,13 @@ getPlaceDetails ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   IT.GetPlaceDetailsReq ->
   m IT.GetPlaceDetailsResp
-getPlaceDetails entityId mmiCfg req@GetPlaceDetailsReq {..} = do
+getPlaceDetails entityId merchantCityId mmiCfg req@GetPlaceDetailsReq {..} = do
   key <- decrypt mmiCfg.mmiApiKey
-  resp <- MMI.mmiPlaceDetails entityId req mmiCfg.mmiKeyUrl key placeId
+  resp <- MMI.mmiPlaceDetails entityId merchantCityId req mmiCfg.mmiKeyUrl key placeId
   let MMITypes.PlaceDetail {..} = NE.head resp.results
   pure $ GetPlaceDetailsResp (LatLong {lat = latitude, lon = longitude}) Nothing [] Nothing
 
@@ -253,14 +257,15 @@ snapToRoad ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   IT.SnapToRoadReq ->
   m IT.SnapToRoadResp
-snapToRoad entityId mmiCfg req = do
+snapToRoad entityId merchantCityId mmiCfg req = do
   key <- decrypt mmiCfg.mmiApiKey
   let points = T.intercalate ";" $ latLongToMmiText <$> req.points
       mapsUrl = mmiCfg.mmiKeyUrl
-  resp <- MMI.mmiSnapToRoad entityId req mapsUrl key points
+  resp <- MMI.mmiSnapToRoad entityId merchantCityId req mapsUrl key points
 
   let listOfSnappedPoints = sortOn (.waypoint_index) $ catMaybes $ resp.results.snappedPoints
   let listOfPoints = getPoints listOfSnappedPoints
@@ -287,13 +292,14 @@ reverseGeocode ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   MMITypes.ReverseGeocodeReq ->
   m MMITypes.ReverseGeocodeResp
-reverseGeocode entityId mmiCfg req@MMITypes.ReverseGeocodeReq {..} = do
+reverseGeocode entityId merchantCityId mmiCfg req@MMITypes.ReverseGeocodeReq {..} = do
   key <- decrypt mmiCfg.mmiApiKey
   let mapsUrl = mmiCfg.mmiKeyUrl
-  MMI.mmiReverseGeocode entityId req mapsUrl key location region lang
+  MMI.mmiReverseGeocode entityId merchantCityId req mapsUrl key location region lang
 
 geocode ::
   ( EncFlow m r,
@@ -305,13 +311,14 @@ geocode ::
     HasRequestId r
   ) =>
   Maybe Text ->
+  Maybe Text ->
   MMICfg ->
   IT.GetPlaceNameReq ->
   m IT.GetPlaceNameResp
-geocode entityId mmiCfg req@GetPlaceNameReq {..} = do
+geocode entityId merchantCityId mmiCfg req@GetPlaceNameReq {..} = do
   let mapsUrl = mmiCfg.mmiNonKeyUrl
-  token <- MMIAuthToken.getTokenText entityId mmiCfg
-  res <- MMI.mmiGeoCode entityId req mapsUrl (Just $ MMI.MMIAuthToken token) mbByPlaceId
+  token <- MMIAuthToken.getTokenText entityId merchantCityId mmiCfg
+  res <- MMI.mmiGeoCode entityId merchantCityId req mapsUrl (Just $ MMI.MMIAuthToken token) mbByPlaceId
   return [reformatePlaceName res.copResults]
   where
     reformatePlaceName (res :: MMI.GeocodeResult) =

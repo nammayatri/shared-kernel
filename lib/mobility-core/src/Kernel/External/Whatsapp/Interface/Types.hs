@@ -59,7 +59,8 @@ instance ToJSON OptApiReq where
 
 data SendOtpApiReq = SendOtpApiReq
   { sendTo :: Text,
-    var1 :: Text
+    var1 :: Text,
+    templateId :: Maybe Text
   }
   deriving (Generic, Eq, Show, ToSchema)
 
@@ -78,7 +79,8 @@ data SendWhatsAppMessageWithTemplateIdApIReq = SendWhatsAppMessageWithTemplateId
     templateId :: Text,
     variables :: [Maybe Text],
     ctaButtonUrl :: Maybe Text,
-    containsUrlButton :: Maybe Bool
+    containsUrlButton :: Maybe Bool,
+    mediaUrl :: Maybe Text
   }
   deriving (Generic, Eq, Show, ToSchema)
 

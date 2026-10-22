@@ -47,7 +47,7 @@ orderStatusWebhook paymentConfig orderStatusHandler authData val = do
         void $ orderStatusHandler resp respDump
         pure (Just (resp.event_name, resp.content))
       DAT.Error err -> do
-        logInfo $ "OrderStatus Parsing failed :: " <> show err
+        logError $ "OrderStatus Parsing failed :: " <> show err
         pure Nothing
 
 verifyAuth ::

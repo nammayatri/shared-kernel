@@ -18,6 +18,7 @@ module Kernel.Utils.Error.FlowHandling
     withDashboardFlowHandler,
     withDashboardFlowHandler',
     withFlowHandlerAPI,
+    withFlowHandlerAPIForSubscriber,
     withFlowHandlerAPI',
     withDashboardFlowHandlerAPI,
     withDashboardFlowHandlerAPI',
@@ -132,6 +133,19 @@ withFlowHandlerAPI ::
   FlowHandlerR r a
 withFlowHandlerAPI = withFlowHandler . apiHandler . handleIfUp
 
+-- withFlowHandlerAPI that tags every log of the request, including the final error log,
+-- with the caller's subscriber id, for signed non-mobility Beckn APIs (FRFS, IGM).
+withFlowHandlerAPIForSubscriber ::
+  ( HasFlowHandlerR (FlowR r) r,
+    Metrics.CoreMetrics (FlowR r),
+    HasField "isShuttingDown" r (TMVar ()),
+    HasField "url" r (Maybe Text)
+  ) =>
+  Text ->
+  FlowR r a ->
+  FlowHandlerR r a
+withFlowHandlerAPIForSubscriber subscriberId = withFlowHandler . withLogTag ("subscriberId-" <> subscriberId) . apiHandler . handleIfUp
+
 withDashboardFlowHandlerAPI ::
   ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
     HasField "serviceClickhouseEnv" r ClickhouseEnv,
@@ -171,15 +185,18 @@ withDashboardFlowHandlerAPI' ::
   FlowHandlerR r a
 withDashboardFlowHandlerAPI' = withDashboardFlowHandler' . apiHandler . handleIfUp
 
+-- Tags every log of the request, including the final error log, with the caller's subscriber id
+-- ("subscriberId-<id>") so a participant's failures can be searched by its id.
 withFlowHandlerBecknAPI ::
   ( HasFlowHandlerR (FlowR r) r,
     Metrics.CoreMetrics (FlowR r),
     HasField "isShuttingDown" r (TMVar ()),
     HasField "url" r (Maybe Text)
   ) =>
+  Text ->
   FlowR r AckResponse ->
   FlowHandlerR r AckResponse
-withFlowHandlerBecknAPI = withFlowHandler . becknApiHandler . handleIfUp
+withFlowHandlerBecknAPI subscriberId = withFlowHandler . withLogTag ("subscriberId-" <> subscriberId) . becknApiHandler . handleIfUp
 
 -- created this for using it in beckn-gateway as it does not require any extra constraints
 withFlowHandlerBecknAPI' ::

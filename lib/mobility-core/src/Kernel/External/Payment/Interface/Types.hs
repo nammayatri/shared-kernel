@@ -95,7 +95,8 @@ data CreateOrderReq = CreateOrderReq
     autoRefundPostSuccess :: Maybe Bool,
     paymentFilter :: Maybe PaymentFilter,
     udf1 :: Maybe Text,
-    udf2 :: Maybe Text
+    udf2 :: Maybe Text,
+    udf3 :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -1073,7 +1074,8 @@ data CreatePaymentReq = CreatePaymentReq
     autoRefundPostSuccess :: Maybe Bool,
     paymentFilter :: Maybe PaymentFilter,
     udf1 :: Maybe Text,
-    udf2 :: Maybe Text
+    udf2 :: Maybe Text,
+    udf3 :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
