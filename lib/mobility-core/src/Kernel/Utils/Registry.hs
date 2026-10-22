@@ -14,6 +14,7 @@
 
 module Kernel.Utils.Registry
   ( registryFetch,
+    registryFetchPublic,
     Kernel.Utils.Registry.registryLookup,
     checkBlacklisted,
     withSubscriberCache,
@@ -21,6 +22,7 @@ module Kernel.Utils.Registry
   )
 where
 
+import qualified Data.Aeson.Types as Aeson
 import Data.Generics.Labels ()
 import qualified EulerHS.Types as T
 import Kernel.Prelude
@@ -81,6 +83,39 @@ registryFetch ::
 registryFetch registryUrl request selfSubId = do
   callAPI' (Just (T.ManagerSelector (getHttpManagerKey selfSubId))) registryUrl (T.client Registry.lookupAPI request) "lookup" Registry.lookupAPI
     >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
+
+-- | Same as 'registryFetch', but unsigned, for callers with no subscriber identity
+-- to sign as. ONDC's '/lookup' is a public, unauthenticated read.
+registryFetchPublic ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  API.LookupRequest ->
+  m [Subscriber]
+registryFetchPublic registryUrl request = do
+  rawValues <-
+    callAPI' Nothing registryUrl (T.client Registry.lookupAPIRaw request) "lookup" Registry.lookupAPIRaw
+      >>= fromEitherM (ExternalAPICallError (Just "REGISTRY_CALL_ERROR") registryUrl)
+  parseSubscribersLeniently rawValues
+
+-- | Skips entries that fail to parse instead of failing the whole batch.
+parseSubscribersLeniently :: (Monad m, Log m) => [Aeson.Value] -> m [Subscriber]
+parseSubscribersLeniently values =
+  catMaybes <$> mapM parseOne values
+  where
+    parseOne value =
+      case Aeson.parseEither Aeson.parseJSON value of
+        Right sub -> pure $ Just sub
+        Left err -> do
+          logWarning $ "Skipping registry entry that failed to parse (" <> subscriberIdHint value <> "): " <> show err
+          pure Nothing
+    subscriberIdHint value =
+      case value of
+        Aeson.Object obj -> fromMaybe "unknown subscriber_id" (Aeson.parseMaybe (Aeson..: "subscriber_id") obj)
+        _ -> "unknown subscriber_id"
 
 checkBlacklisted ::
   (MonadThrow m, Log m) =>
