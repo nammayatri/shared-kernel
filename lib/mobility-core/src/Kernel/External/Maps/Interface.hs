@@ -90,7 +90,7 @@ throwNotProvidedError =
 getDistancesProvided :: MapsService -> Bool
 getDistancesProvided = \case
   Google -> True
-  OSRM -> False
+  OSRM -> True
   MMI -> True
   NextBillion -> False
   SelfTuned -> False
