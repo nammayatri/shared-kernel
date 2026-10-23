@@ -57,7 +57,7 @@ data SnapToRoadHandler m = SnapToRoadHandler
   }
 
 data MapsServiceConfig = GoogleConfig Google.GoogleCfg | OSRMConfig OSRM.OSRMCfg | MMIConfig MMI.MMICfg | NextBillionConfig NextBillion.NextBillionCfg | DishaConfig OSRM.OSRMCfg
-  deriving stock (Show, Eq, Generic)
+  deriving (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MapsServiceConfig
 
 data TravelMode = CAR | MOTORCYCLE | BICYCLE | FOOT

@@ -34,7 +34,7 @@ data EventTrackingServiceConfig
   = MoengageConfig MoengageConfig.MoengageCfg
   | ClevertapConfig ClevertapConfig.ClevertapCfg
   | FirebaseAnalyticsConfig FirebaseAnalyticsConfig.FirebaseAnalyticsCfg
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] EventTrackingServiceConfig
 
 -- | Provider-agnostic event payload.

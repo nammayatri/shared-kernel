@@ -39,7 +39,7 @@ data TataCommunicationsCfg = TataCommunicationsCfg
     type_ :: Text,
     template :: Template
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
 
 -- Manual JSON decoding with custom field name mapping
 instance FromJSON TataCommunicationsCfg where

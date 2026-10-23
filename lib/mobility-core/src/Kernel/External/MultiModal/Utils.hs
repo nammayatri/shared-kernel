@@ -16,7 +16,7 @@ import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import EulerHS.Prelude (liftA2, liftA3, safeHead)
+import EulerHS.Prelude (liftA3, safeHead)
 import Kernel.External.Maps.Google.MapsClient.Types as GT
 import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
 import Kernel.External.MultiModal.Interface.Types
