@@ -124,7 +124,8 @@ meshConfig =
       tableShardModRange = (0, 128),
       redisKeyPrefix = "",
       forceDrainToDB = False,
-      recacheFindEnabled = False
+      recacheFindEnabled = False,
+      exactPagingEnabled = False
     }
 
 runInReplica :: (L.MonadFlow m, Log m) => m a -> m a
@@ -234,6 +235,7 @@ setMeshConfigWithTables modelName mSchema meshConfig' tables' = do
                       fromMaybe False tables'.enableSecondaryCloudRead
                         && modelName `elem` fromMaybe [] tables'.tablesForSecondaryCloudRead
                     recacheEnabled = modelName `elem` fromMaybe [] tables'.tablesForRecacheFind
+                    exactPagingEnabled' = modelName `elem` fromMaybe [] tables'.tablesForExactPaging
                  in meshConfig'
                       { meshEnabled = True,
                         kvHardKilled = False,
@@ -242,7 +244,8 @@ setMeshConfigWithTables modelName mSchema meshConfig' tables' = do
                         tableShardModRange = tableShardModRange',
                         redisKeyPrefix = redisKeyPrefix',
                         secondaryRedisEnabled = secondaryEnabled || tables'.enableAllTablesForSecondaryCloudRead == Just True,
-                        recacheFindEnabled = recacheEnabled
+                        recacheFindEnabled = recacheEnabled,
+                        exactPagingEnabled = exactPagingEnabled'
                       }
 
 getTablesOption :: (L.MonadFlow m, HasCallStack) => m Tables
