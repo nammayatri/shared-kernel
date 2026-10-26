@@ -81,6 +81,7 @@ data Tables = Tables
     tablesForSecondaryCloudRead :: Maybe [Text],
     enableAllTablesForSecondaryCloudRead :: Maybe Bool,
     tablesForRecacheFind :: Maybe [Text],
+    tablesForExactPaging :: Maybe [Text],
     drainerTtlConfigs :: Maybe (HM.HashMap Text Integer),
     enableFindAllForMultiCloud :: Maybe Bool,
     tablesForCriticalStream :: Maybe [Text]
@@ -103,6 +104,7 @@ defaultTableData =
       tablesForSecondaryCloudRead = Nothing,
       enableAllTablesForSecondaryCloudRead = Nothing,
       tablesForRecacheFind = Nothing,
+      tablesForExactPaging = Nothing,
       drainerTtlConfigs = Nothing,
       enableFindAllForMultiCloud = Nothing,
       tablesForCriticalStream = Nothing
