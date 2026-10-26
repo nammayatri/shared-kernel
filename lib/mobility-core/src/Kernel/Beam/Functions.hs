@@ -7,6 +7,7 @@ module Kernel.Beam.Functions
     meshConfig,
     runInReplica,
     runInDashboardDb,
+    runWithLenientDecode,
     runInMasterDb,
     getMasterBeamConfig,
     getLocationDbBeamConfig,
@@ -71,7 +72,7 @@ import Kernel.Types.CacheFlow (CacheFlow)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
-import Kernel.Utils.Logging (logDebug)
+import Kernel.Utils.Logging (logDebug, logError)
 import Sequelize
 
 -- classes for converting from beam types to ttypes and vice versa
@@ -142,6 +143,26 @@ runInDashboardDb m = do
     restore = \case
       Just prev -> L.setOptionLocal DashboardDbEnabled prev
       Nothing -> L.setOptionLocal DashboardDbEnabled False
+
+runWithLenientDecode :: (L.MonadFlow m, TryException m) => m a -> m a
+runWithLenientDecode m = do
+  previous <- L.getOptionLocal LenientDecodeEnabled
+  L.setOptionLocal LenientDecodeEnabled True
+  result <- withTryCatch "runWithLenientDecode" m
+  L.setOptionLocal LenientDecodeEnabled (fromMaybe False previous)
+  either L.throwException pure result
+
+fromTTypeRows :: MonadFlow m => Text -> (row -> m (Maybe a)) -> [row] -> m [a]
+fromTTypeRows modelName fromTType rows = do
+  lenient <- fromMaybe False <$> L.getOptionLocal LenientDecodeEnabled
+  catMaybes <$> mapM (if lenient then skipOnFailure else fromTType) rows
+  where
+    skipOnFailure row =
+      withTryCatch "fromTTypeRows" (fromTType row) >>= \case
+        Right decoded -> pure decoded
+        Left err -> do
+          logError $ "Skipping undecodable row table=" <> modelName <> " error=" <> show err
+          pure Nothing
 
 runInMasterRedis :: (L.MonadFlow m, Log m) => m a -> m a
 runInMasterRedis m = do
@@ -471,8 +492,7 @@ findAllWithKVAndConditionalDB where' orderBy = withUpdatedMeshConfig (Proxy @tab
   result <- KV.findAllWithKVAndConditionalDBInternal dbConf' updatedMeshConfig where' orderBy
   case result of
     Right res -> do
-      res' <- mapM fromTType' res
-      pure $ catMaybes res'
+      fromTTypeRows (modelTableName @table) fromTType' res
     Left err -> throwError $ InternalError $ show err
 
 findAllFromKvRedis ::
@@ -490,8 +510,7 @@ findAllFromKvRedis where' orderBy = withUpdatedMeshConfig (Proxy @table) $ \upda
   result <- KV.findAllFromKvRedis dbConf' updatedMeshConfig where' orderBy
   case result of
     Right res -> do
-      res' <- mapM fromTType' res
-      pure $ catMaybes res'
+      fromTTypeRows (modelTableName @table) fromTType' res
     Left err -> throwError $ InternalError $ show err
 
 -- findAllWithOptions --
@@ -528,8 +547,7 @@ findAllWithOptionsKV' where' mbLimit mbOffset = do
   result <- KV.findAllWithOptionsKVConnector' dbConf' updatedMeshConfig where' mbLimit mbOffset
   case result of
     Right res -> do
-      res' <- mapM fromTType' res
-      pure $ catMaybes res'
+      fromTTypeRows (modelTableName @table) fromTType' res
     Left err -> throwError $ InternalError $ show err
 
 findAllWithOptionsKVScheduler ::
@@ -765,8 +783,7 @@ findAllInternal updatedMeshConfig fromTType where' = do
   result <- KV.findAllWithKVConnector dbConf' updatedMeshConfig where'
   case result of
     Right res -> do
-      res' <- mapM fromTType res
-      pure $ catMaybes res'
+      fromTTypeRows (modelTableName @table) fromTType res
     Left err -> throwError $ InternalError $ show err
 
 findAllWithOptionsInternal ::
@@ -787,8 +804,7 @@ findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mb
   result <- KV.findAllWithOptionsKVConnector dbConf' updatedMeshConfig where' orderBy mbLimit mbOffset
   case result of
     Right res -> do
-      res' <- mapM fromTType res
-      pure $ catMaybes res'
+      fromTTypeRows (modelTableName @table) fromTType res
     Left err -> throwError $ InternalError $ show err
 
 getReadDBConfigInternal :: (HasCallStack, L.MonadFlow m) => Text -> m (DBConfig Pg)
