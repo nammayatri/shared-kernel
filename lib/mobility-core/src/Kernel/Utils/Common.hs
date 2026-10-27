@@ -27,6 +27,7 @@ import Kernel.Types.ActorInfo as Common
 import Kernel.Types.Beckn.Ack as Common
 import Kernel.Types.CacheFlow as Common
 import Kernel.Types.Common as Common
+import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Types.Error.BaseError.HTTPError as Common
 import Kernel.Types.Field as Common
 import Kernel.Types.Id (ShortId (ShortId))
@@ -50,3 +51,23 @@ generateOTPCode =
 
 generateAplhaNumbericCode :: MonadFlow m => Int -> m Text
 generateAplhaNumbericCode len = T.pack <$> liftIO (RS.randomString (RS.onlyAlphaNum RS.randomASCII) len)
+
+-- Calls the action with each provider's service config in priority order and returns the first successful result.
+runWithProvidersFallback ::
+  (MonadThrow m, Log m, TryException m, Show provider) =>
+  Text ->
+  (provider -> m config) ->
+  [provider] ->
+  (config -> m a) ->
+  m a
+runWithProvidersFallback tag getServiceConfig providersPriorityList action = do
+  when (null providersPriorityList) $ throwError $ InternalError ("No service provider configured for " <> tag)
+  runWithFallback providersPriorityList
+  where
+    runWithFallback [] = throwError $ InternalError ("Not able to " <> tag <> " with all the configured providers")
+    runWithFallback (preferredProvider : restProviders) = do
+      logDebug $ "Calling " <> tag <> " for provider : " <> show preferredProvider
+      result <- withTryCatch tag $ getServiceConfig preferredProvider >>= action
+      case result of
+        Left _ -> runWithFallback restProviders
+        Right res -> return res
