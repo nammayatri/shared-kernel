@@ -55,7 +55,7 @@ import qualified Data.Serialize as Serialize
 import Database.Beam hiding (timestamp)
 import Database.Beam.MySQL ()
 import Database.Beam.Postgres
-import EulerHS.Extra.Monitoring.Types (UseMasterRedis (..))
+import EulerHS.Extra.Monitoring.Types (LenientDecodeEnabled (..), UseMasterRedis (..))
 import EulerHS.JsonbFallback (GFieldNames)
 import qualified EulerHS.KVConnector.Flow as KV
 import EulerHS.KVConnector.Types (KVConnector (..), KVLockConfig (..), MeshConfig (..), MeshMeta, TableMappings, defaultKVLockConfig)

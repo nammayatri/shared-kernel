@@ -98,12 +98,6 @@ data DashboardDbEnabled = DashboardDbEnabled
 
 instance OptionEntity DashboardDbEnabled Bool
 
-data LenientDecodeEnabled = LenientDecodeEnabled
-  deriving stock (Generic, Typeable, Show, Eq)
-  deriving anyclass (ToJSON, FromJSON)
-
-instance OptionEntity LenientDecodeEnabled Bool
-
 data ReplicaEnabled = ReplicaEnabled
   deriving stock (Generic, Typeable, Show, Eq)
   deriving anyclass (ToJSON, FromJSON)
