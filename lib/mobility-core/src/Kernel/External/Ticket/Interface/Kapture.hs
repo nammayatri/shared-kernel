@@ -23,6 +23,7 @@ module Kernel.External.Ticket.Interface.Kapture
   )
 where
 
+import qualified Data.Aeson as A
 import Kernel.External.Encryption
 import qualified Kernel.External.Ticket.Interface.Types as IT
 import Kernel.External.Ticket.Kapture.Config
@@ -32,7 +33,25 @@ import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Logging (logDebug)
 import Kernel.Utils.Servant.Client
+
+getExtraHeaders :: KaptureCfg -> Text -> (Maybe Text, Maybe Text)
+getExtraHeaders config auth = case fromMaybe StandardKapture config.flowVariant of
+  StandardKapture -> (Just auth, Just "TICKET")
+  MSILKapture -> (Nothing, Nothing)
+
+getAuth ::
+  (EncFlow m r) =>
+  KaptureCfg ->
+  Maybe (EncryptedField 'AsEncrypted Text) ->
+  Text ->
+  m Text
+getAuth config mPerApiAuth fieldName = case fromMaybe StandardKapture config.flowVariant of
+  StandardKapture -> decrypt config.auth
+  MSILKapture -> case mPerApiAuth of
+    Just perApiAuth -> ("Basic " <>) <$> decrypt perApiAuth
+    Nothing -> throwError $ InternalError $ fieldName <> " is required for MSILKapture flow variant"
 
 createTicket ::
   ( Metrics.CoreMetrics m,
@@ -44,7 +63,8 @@ createTicket ::
   IT.CreateTicketReq ->
   m IT.CreateTicketResp
 createTicket config req = do
-  auth <- decrypt config.auth
+  auth <- getAuth config config.addTicketAuth "addTicketAuth"
+  logDebug $ "create ticket req body JSON: " <> show (A.encode (mkCreateTicketReq req))
   resp <- KF.createTicketAPI config.url config.version auth (mkCreateTicketReq req)
   pure IT.CreateTicketResp {ticketId = resp.ticketId, status = kaptureSubStatusToTicketStatus resp.ticket.subStatus, requesterId = Nothing}
 
@@ -60,7 +80,8 @@ mkCreateTicketReq IT.CreateTicketReq {..} =
       phone = phoneNo,
       issueDetails = mkIssueDetails,
       rideDetails = mkRideDescriptionDriver <$> rideDescription,
-      classification = classification
+      classification = classification,
+      customerCode = Just personId
     }
   where
     mkIssueDetails =
@@ -98,8 +119,9 @@ updateTicket ::
   IT.UpdateTicketReq ->
   m IT.UpdateTicketResp
 updateTicket config req = do
-  auth <- decrypt config.auth
-  resp <- KF.updateTicketAPI config.url config.version auth (mkUpdateTicketReq req)
+  auth <- getAuth config config.updateTicketAuth "updateTicketAuth"
+  let (mbApiKey, mbApiType) = getExtraHeaders config auth
+  resp <- KF.updateTicketAPI config.url config.version auth mbApiKey mbApiType (mkUpdateTicketReq req)
   pure IT.UpdateTicketResp {ticketId = req.ticketId, status = req.status, message = resp.message}
 
 ticketStatusToKaptureSubStatus :: IT.TicketStatus -> Text
@@ -170,8 +192,9 @@ kapturePullTicket ::
   IT.KapturePullTicketReq ->
   m Kapture.KapturePullTicketResp
 kapturePullTicket config req = do
-  auth <- decrypt config.auth
-  KF.kapturePullTicket config.url auth req
+  auth <- getAuth config config.pullTicketAuth "pullTicketAuth"
+  let (mbApiKey, mbApiType) = getExtraHeaders config auth
+  KF.kapturePullTicket config.url auth mbApiKey mbApiType req
 
 kaptureGetTicket ::
   ( Metrics.CoreMetrics m,
@@ -183,8 +206,9 @@ kaptureGetTicket ::
   IT.GetTicketReq ->
   m [Kapture.GetTicketResp]
 kaptureGetTicket config req = do
-  apiKey <- decrypt config.auth
-  KF.kaptureGetTicket config.url apiKey req
+  apiKey <- getAuth config config.getTicketAuth "getTicketAuth"
+  let (mbApiKey, mbApiType) = getExtraHeaders config apiKey
+  KF.kaptureGetTicket config.url apiKey mbApiKey mbApiType req
 
 getTicketStatus ::
   ( Metrics.CoreMetrics m,
@@ -196,6 +220,7 @@ getTicketStatus ::
   IT.SearchTicketByIdReq ->
   m [Kapture.GetTicketStatusResp]
 getTicketStatus config (Kapture.SearchTicketByIdReq ticketIds) = do
-  apiKey <- decrypt config.auth
-  items <- KF.kaptureSearchTicketById config.url apiKey (Kapture.SearchTicketByIdReq ticketIds)
+  apiKey <- getAuth config config.getTicketAuth "getTicketAuth"
+  let (mbApiKey, mbApiType) = getExtraHeaders config apiKey
+  items <- KF.kaptureSearchTicketById config.url apiKey mbApiKey mbApiType (Kapture.SearchTicketByIdReq ticketIds)
   return $ map (\item -> Kapture.GetTicketStatusResp {subStatus = item.taskDetails.substatus}) items
