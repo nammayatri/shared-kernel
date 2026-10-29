@@ -18,6 +18,7 @@ import EulerHS.Prelude
 import qualified Kernel.External.SMS.MyValueFirst.API as API
 import Kernel.External.SMS.MyValueFirst.Types (SubmitSms (..), SubmitSmsRes (..))
 import Kernel.Sms.Config (SmsConfig)
+import qualified Kernel.Sms.Config as Fields
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Types.Error

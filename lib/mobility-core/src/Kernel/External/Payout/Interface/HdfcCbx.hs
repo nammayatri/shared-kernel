@@ -50,6 +50,7 @@ import Data.Time.Calendar (Day)
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import Kernel.External.Encryption
 import Kernel.External.Payout.HdfcCbx.Auth (fetchToken)
+import qualified Kernel.External.Payout.HdfcCbx.Auth as Fields
 import Kernel.External.Payout.HdfcCbx.Config
 import qualified Kernel.External.Payout.HdfcCbx.Flow as Flow
 -- Imported unqualified so DisambiguateRecordFields can resolve field names from the

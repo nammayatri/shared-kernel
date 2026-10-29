@@ -22,6 +22,7 @@ import EulerHS.Prelude
 import Kernel.External.Encryption
 import Kernel.External.SMS.GupShup.Config
 import qualified Kernel.External.SMS.GupShup.Flow as GF
+import qualified Kernel.External.SMS.GupShup.Types as Fields
 import Kernel.External.SMS.Interface.Types as IT
 import Kernel.External.SMS.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)

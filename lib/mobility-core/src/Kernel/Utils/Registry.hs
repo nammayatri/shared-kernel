@@ -22,7 +22,6 @@ module Kernel.Utils.Registry
   )
 where
 
-import Data.Generics.Labels ()
 import qualified EulerHS.Types as T
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)

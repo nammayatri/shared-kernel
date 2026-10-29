@@ -10,6 +10,7 @@ import qualified Data.Aeson as A
 import Kernel.External.Payment.Stripe.Types.Common (Event)
 import Kernel.External.Payment.Stripe.Webhook (verifyStripeWebhookSignature)
 import Kernel.External.Payout.Interface.Types
+import qualified Kernel.External.Payout.Stripe.Config as Fields
 import qualified Kernel.External.Payout.Stripe.Types.Webhook as PayoutWh
 import Kernel.Prelude
 import Kernel.Types.Beckn.Ack
