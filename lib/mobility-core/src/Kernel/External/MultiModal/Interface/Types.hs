@@ -68,6 +68,18 @@ data MultiModalAgency = MultiModalAgency
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
+getStopGtfsId :: MultiModalStopDetails -> Maybe Text
+getStopGtfsId MultiModalStopDetails {gtfsId} = gtfsId
+
+getStopName :: MultiModalStopDetails -> Maybe Text
+getStopName MultiModalStopDetails {name} = name
+
+getAgencyGtfsId :: MultiModalAgency -> Maybe Text
+getAgencyGtfsId MultiModalAgency {gtfsId} = gtfsId
+
+getAgencyName :: MultiModalAgency -> Text
+getAgencyName MultiModalAgency {name} = name
+
 data MultiModalRouteDetails = MultiModalRouteDetails
   { gtfsId :: Maybe Text,
     longName :: Maybe Text,

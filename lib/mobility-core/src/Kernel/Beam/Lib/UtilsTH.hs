@@ -233,12 +233,13 @@ sortAndGetKey names = do
   let sortedKeys = sort $ fmap (splitColon . nameBase) names
   intercalate "_" sortedKeys
 
--- TODO test splice
+-- | Colon-delimited record-selector strings: @$sel:merchantId:OrderReference@ -> @merchantId@.
+--   When there is no @:@ (typical @nameBase@ for @'id@ in @enableKVPG@ splices), return @s@ unchanged.
 splitColon :: String -> String
 splitColon s =
   case drop 1 (T.splitOn ":" (T.pack s)) of
     (x : _) -> T.unpack x
-    [] -> s -- TODO remove just for test
+    [] -> s
 
 -------------------------------------------------------------------------------
 meshMetaInstancesDPG :: Name -> Q [Dec]

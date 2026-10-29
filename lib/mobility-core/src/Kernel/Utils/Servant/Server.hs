@@ -23,8 +23,8 @@ import qualified Database.Persist.Sql as Persist
 import qualified Database.Redis as Hedis
 import EulerHS.Prelude
 import qualified EulerHS.Runtime as E
-import GHC.Records.Extra (HasField)
-import Kernel.Prelude (identity)
+import GHC.Records (HasField)
+import Kernel.Prelude (HasFieldUpd, identity)
 import Kernel.Storage.Esqueleto.Config (EsqDBEnv (..))
 import Kernel.Storage.Hedis.Config (HedisEnv (..))
 import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Metrics
@@ -117,11 +117,11 @@ runServer ::
   ( HasField "graceTerminationPeriod" env Seconds,
     HasField "isShuttingDown" env Shutdown,
     HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
+    HasFieldUpd "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
-    HasField "requestId" env (Maybe Text),
-    HasField "sessionId" env (Maybe Text),
+    HasFieldUpd "requestId" env (Maybe Text),
+    HasFieldUpd "sessionId" env (Maybe Text),
     Metrics.SanitizedUrl api,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters,
     HasServer api (EnvR env ': ctx)
@@ -163,9 +163,9 @@ runServerGeneric ::
     HasField "graceTerminationPeriod" env Seconds,
     HasField "isShuttingDown" env Shutdown,
     HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
-    HasField "requestId" env (Maybe Text),
-    HasField "sessionId" env (Maybe Text),
+    HasFieldUpd "loggerEnv" env LoggerEnv,
+    HasFieldUpd "requestId" env (Maybe Text),
+    HasFieldUpd "sessionId" env (Maybe Text),
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
     Metrics.SanitizedUrl api,
@@ -271,12 +271,11 @@ runHealthCheckServerWithService ::
   ( HasField "graceTerminationPeriod" env Seconds,
     HasField "isShuttingDown" env Shutdown,
     HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
-    HasField "requestId" env (Maybe Text),
-    HasField "sessionId" env (Maybe Text),
+    HasFieldUpd "loggerEnv" env LoggerEnv,
+    HasFieldUpd "requestId" env (Maybe Text),
+    HasFieldUpd "sessionId" env (Maybe Text),
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
-    HasField "requestId" env (Maybe Text),
     HasField "esqDBEnv" env EsqDBEnv,
     HasField "hedisClusterEnv" env HedisEnv,
     HasContextEntry (ctx .++ '[ErrorFormatters]) ErrorFormatters
@@ -301,12 +300,11 @@ runServerWithHealthCheck ::
   ( HasField "graceTerminationPeriod" env Seconds,
     HasField "isShuttingDown" env Shutdown,
     HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
+    HasFieldUpd "loggerEnv" env LoggerEnv,
     HasField "port" env Port,
-    HasField "requestId" env (Maybe Text),
-    HasField "sessionId" env (Maybe Text),
+    HasFieldUpd "requestId" env (Maybe Text),
+    HasFieldUpd "sessionId" env (Maybe Text),
     HasField "version" env Metrics.DeploymentVersion,
-    HasField "requestId" env (Maybe Text),
     HasField "esqDBEnv" env EsqDBEnv,
     HasField "hedisClusterEnv" env HedisEnv,
     Metrics.SanitizedUrl api,
@@ -330,11 +328,10 @@ runServerWithHealthCheckAndSlackNotification ::
   ( HasField "graceTerminationPeriod" env Seconds,
     HasField "isShuttingDown" env Shutdown,
     HasField "loggerConfig" env L.LoggerConfig,
-    HasField "loggerEnv" env LoggerEnv,
-    HasField "requestId" env (Maybe Text),
+    HasFieldUpd "loggerEnv" env LoggerEnv,
     HasSlackEnv env,
-    HasField "requestId" env (Maybe Text),
-    HasField "sessionId" env (Maybe Text),
+    HasFieldUpd "requestId" env (Maybe Text),
+    HasFieldUpd "sessionId" env (Maybe Text),
     HasField "port" env Port,
     HasField "version" env Metrics.DeploymentVersion,
     HasField "esqDBEnv" env EsqDBEnv,

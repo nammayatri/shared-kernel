@@ -19,10 +19,14 @@ module Kernel.External.EventTracking.Interface
 where
 
 import Kernel.External.Encryption
+import qualified Kernel.External.EventTracking.Breeze.Config as Fields
 import qualified Kernel.External.EventTracking.Breeze.Flow as BreezeFlow
+import qualified Kernel.External.EventTracking.Clevertap.Config as Fields
 import qualified Kernel.External.EventTracking.Clevertap.Flow as ClevertapFlow
+import qualified Kernel.External.EventTracking.FirebaseAnalytics.Config as Fields
 import qualified Kernel.External.EventTracking.FirebaseAnalytics.Flow as FirebaseAnalyticsFlow
 import Kernel.External.EventTracking.Interface.Types as Reexport
+import qualified Kernel.External.EventTracking.Moengage.Config as Fields
 import qualified Kernel.External.EventTracking.Moengage.Flow as MoengageFlow
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)

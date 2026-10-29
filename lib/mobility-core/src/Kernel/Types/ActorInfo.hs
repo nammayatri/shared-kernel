@@ -10,7 +10,6 @@ module Kernel.Types.ActorInfo
 where
 
 import Data.Aeson
-import GHC.Records.Extra (HasField)
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum)
 import Kernel.Prelude
 import Kernel.Types.App
@@ -33,10 +32,11 @@ data ActorInfo = ActorInfo
 
 type HasActorInfo m r =
   ( HasFlowEnv m r '["actorInfo" ::: ActorInfo],
+    HasField' "actorInfo" r ActorInfo,
     HasRequestId r
   )
 
 withActorInfo :: HasActorInfo m r => ActorType -> Maybe Text -> m a -> m a
-withActorInfo actorType actorId action = local (\r -> r{actorInfo = ActorInfo {actorType, actorId}}) action
+withActorInfo actorType actorId action = local (\r -> r & field' @"actorInfo" .~ ActorInfo {actorType, actorId}) action
 
 $(mkBeamInstancesForEnum ''ActorType)
