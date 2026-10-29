@@ -22,7 +22,7 @@ import EulerHS.Prelude
 import Kernel.External.Encryption
 import Kernel.External.SMS.DigoEngage.Config
 import qualified Kernel.External.SMS.DigoEngage.Flow as Flow
-import Kernel.External.SMS.DigoEngage.Types (ClientDomain (..), SubmitSmsReq (..), SubmitSmsRes (..), TLVForSmsReq (..))
+import Kernel.External.SMS.DigoEngage.Types (ClientDomain (..), SubmitSmsReq (..), SubmitSmsRes (..), TLVForSmsCfg (..), TLVForSmsReq (..))
 import Kernel.External.SMS.Interface.Types as IT
 import Kernel.External.SMS.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)

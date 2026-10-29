@@ -48,7 +48,6 @@ import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
 import qualified EulerHS.Language as L
 import EulerHS.Prelude (whenLeft)
-import GHC.Records.Extra
 import Kernel.Beam.Connection.EnvVars (getRunInMasterCloudRedisCell, getRunInMasterLTSRedisCell)
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
@@ -136,23 +135,11 @@ withMasterRedis ::
 withMasterRedis f = do
   local
     ( \env ->
-        env{hedisEnv =
-              (env.hedisEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisEnv))
-                },
-            hedisClusterEnv =
-              (env.hedisClusterEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisClusterEnv))
-                },
-            hedisNonCriticalEnv =
-              (env.hedisNonCriticalEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisNonCriticalEnv))
-                },
-            hedisNonCriticalClusterEnv =
-              (env.hedisNonCriticalClusterEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisNonCriticalClusterEnv))
-                }
-           }
+        env
+          & field' @"hedisEnv" . field' @"hedisConnection" %~ modifyMasterOnlyConnection
+          & field' @"hedisClusterEnv" . field' @"hedisConnection" %~ modifyMasterOnlyConnection
+          & field' @"hedisNonCriticalEnv" . field' @"hedisConnection" %~ modifyMasterOnlyConnection
+          & field' @"hedisNonCriticalClusterEnv" . field' @"hedisConnection" %~ modifyMasterOnlyConnection
     )
     f
 
@@ -160,17 +147,23 @@ withMasterRedis f = do
 withCrossAppRedis ::
   (HedisFlow m env, TryException m) => m f -> m f
 withCrossAppRedis f = do
-  local (\env -> env{hedisEnv = env.hedisEnv{keyModifier = identity}, hedisClusterEnv = env.hedisClusterEnv{keyModifier = identity}}) f
+  local (\env -> env & field' @"hedisEnv" . field' @"keyModifier" .~ identity & field' @"hedisClusterEnv" . field' @"keyModifier" .~ identity) f
 
 withNonCriticalCrossAppRedis ::
   (HedisFlow m env, TryException m) => m f -> m f
-withNonCriticalCrossAppRedis f = do
-  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv{keyModifier = identity}, hedisClusterEnv = env.hedisNonCriticalClusterEnv{keyModifier = identity}}) f
+withNonCriticalCrossAppRedis f =
+  local
+    ( \env ->
+        env
+          & field' @"hedisEnv" .~ (env.hedisNonCriticalEnv & field' @"keyModifier" .~ identity)
+          & field' @"hedisClusterEnv" .~ (env.hedisNonCriticalClusterEnv & field' @"keyModifier" .~ identity)
+    )
+    f
 
 withNonCriticalRedis ::
   (HedisFlow m env, TryException m) => m f -> m f
 withNonCriticalRedis f = do
-  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv, hedisClusterEnv = env.hedisNonCriticalClusterEnv}) f
+  local (\env -> env & field' @"hedisEnv" .~ env.hedisNonCriticalEnv & field' @"hedisClusterEnv" .~ env.hedisNonCriticalClusterEnv) f
 
 -- Helper function to set all Redis environment fields to the same value
 -- Requires HasField constraints (provided by HedisFlowEnv)
@@ -180,7 +173,11 @@ withSecondaryRedisEnv ::
   env ->
   env
 withSecondaryRedisEnv secondaryEnv env =
-  env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv, hedisNonCriticalEnv = secondaryEnv, hedisNonCriticalClusterEnv = secondaryEnv}
+  env
+    & field' @"hedisEnv" .~ secondaryEnv
+    & field' @"hedisClusterEnv" .~ secondaryEnv
+    & field' @"hedisNonCriticalEnv" .~ secondaryEnv
+    & field' @"hedisNonCriticalClusterEnv" .~ secondaryEnv
 
 -- Read operation: reads from primary first, falls back to secondary if primary returns Nothing
 -- NOTE: This function only works for queries returning Maybe a, as it uses Nothing to detect "not found".
@@ -290,7 +287,7 @@ runInMasterLTSRedisCell f = do
           f
         Just secondaryEnv -> do
           logInfo "LTS_REDIS_ROUTING: Switching to secondary LTS Redis (AWS master)"
-          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) f
+          local (\env -> env & field' @"hedisEnv" .~ secondaryEnv & field' @"hedisClusterEnv" .~ secondaryEnv) f
     else do
       logInfo "LTS_REDIS_ROUTING: Using primary LTS Redis (current deployment Redis)"
       f
@@ -320,13 +317,13 @@ runInMultiCloudLTSRedisForListWith ::
   m [a]
 runInMultiCloudLTSRedisForListWith primaryEnv action = do
   mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
-  primaryResult <- local (\env -> env{hedisEnv = primaryEnv, hedisClusterEnv = primaryEnv}) action
+  primaryResult <- local (\env -> env & field' @"hedisEnv" .~ primaryEnv & field' @"hedisClusterEnv" .~ primaryEnv) action
   case (primaryResult, mbSecondaryEnv) of
     ([], Just secondaryEnv) -> do
       logInfo "MULTI_CLOUD_LTS: Primary returned empty, trying secondary"
       secondaryResult <-
         withTryCatch "runInMultiCloudLTSRedisForList" $
-          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) action
+          local (\env -> env & field' @"hedisEnv" .~ secondaryEnv & field' @"hedisClusterEnv" .~ secondaryEnv) action
       case secondaryResult of
         Left err -> do
           logError $ "MULTI_CLOUD_LTS: Secondary read failed " <> show err
@@ -359,13 +356,13 @@ runInMultiCloudLTSRedisForMaybeListWith ::
   m [Maybe a]
 runInMultiCloudLTSRedisForMaybeListWith primaryEnv action = do
   mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
-  primaryResult <- local (\env -> env{hedisEnv = primaryEnv, hedisClusterEnv = primaryEnv}) action
+  primaryResult <- local (\env -> env & field' @"hedisEnv" .~ primaryEnv & field' @"hedisClusterEnv" .~ primaryEnv) action
   case (not (null primaryResult) && Kernel.Prelude.all isNothing primaryResult, mbSecondaryEnv) of
     (True, Just secondaryEnv) -> do
       logInfo "MULTI_CLOUD_LTS: Primary returned all Nothing, trying secondary"
       secondaryResult <-
         withTryCatch "runInMultiCloudLTSRedisForMaybeList" $
-          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) action
+          local (\env -> env & field' @"hedisEnv" .~ secondaryEnv & field' @"hedisClusterEnv" .~ secondaryEnv) action
       case secondaryResult of
         Left err -> do
           logError $ "MULTI_CLOUD_LTS: Secondary read failed " <> show err
@@ -374,9 +371,9 @@ runInMultiCloudLTSRedisForMaybeListWith primaryEnv action = do
     _ -> pure primaryResult
 
 withLTSRedis ::
-  (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv) => m f -> m f
+  (HedisFlow m env, TryException m, HasFieldUpd "ltsHedisEnv" env HedisEnv) => m f -> m f
 withLTSRedis f =
-  local (\env -> env{hedisEnv = env.ltsHedisEnv, hedisClusterEnv = env.ltsHedisEnv}) f
+  local (\env -> env & field' @"hedisEnv" .~ env.ltsHedisEnv & field' @"hedisClusterEnv" .~ env.ltsHedisEnv) f
 
 ltsReadEnv ::
   (HedisFlow m env, HasField "ltsHedisEnv" env HedisEnv, HasField "ltsReplicaHedisEnv" env (Maybe HedisEnv)) => m HedisEnv
@@ -389,7 +386,7 @@ withLTSReplicaRedis ::
   (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv, HasField "ltsReplicaHedisEnv" env (Maybe HedisEnv)) => m f -> m f
 withLTSReplicaRedis f = do
   readEnv <- ltsReadEnv
-  local (\env -> env{hedisEnv = readEnv, hedisClusterEnv = readEnv}) f
+  local (\env -> env & field' @"hedisEnv" .~ readEnv & field' @"hedisClusterEnv" .~ readEnv) f
 
 withSecondaryLTSRedis ::
   (HedisFlow m env, TryException m, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) => m f -> m f
@@ -400,7 +397,7 @@ withSecondaryLTSRedis f = do
       logError "LTS_REDIS: No secondary LTS Redis configured, falling back to primary"
       f
     Just secondaryEnv ->
-      local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) f
+      local (\env -> env & field' @"hedisEnv" .~ secondaryEnv & field' @"hedisClusterEnv" .~ secondaryEnv) f
 
 buildKey :: (HedisFlow m env, TryException m) => Text -> m BS.ByteString
 buildKey key = do

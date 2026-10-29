@@ -9,6 +9,7 @@ import Data.Morpheus.Client
   )
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import EulerHS.Prelude hiding (id, product)
+import qualified Kernel.External.Maps.Google.MapsClient.Types as Fields
 import qualified Kernel.External.MultiModal.Interface.Types as TP
 import Kernel.External.MultiModal.OpenTripPlanner.Config
 import Kernel.External.MultiModal.OpenTripPlanner.Types

@@ -19,6 +19,7 @@ import qualified Data.Text.Encoding as DT
 import EulerHS.Prelude
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Types
+import qualified Kernel.External.Payment.Juspay.Config as Fields
 import qualified Kernel.External.Payment.Juspay.Types as Juspay
 import Kernel.Types.Error
 import Kernel.Utils.Common

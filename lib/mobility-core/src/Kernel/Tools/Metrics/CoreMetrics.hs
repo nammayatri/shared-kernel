@@ -617,8 +617,8 @@ withForkCountersImplementation ::
   m a ->
   m a
 withForkCountersImplementation tag forkType action = do
-  cmContainer <- asks (.coreMetrics)
-  version <- asks (.version)
+  cmContainer :: CoreMetricsContainer <- asks (.coreMetrics)
+  version :: DeploymentVersion <- asks (.version)
   tagLabel <- L.runIO $ forkTagLabel cmContainer.forkTagLabels tag
   let increment metric = L.runIO $ P.withLabel metric (tagLabel, forkType, version.getDeploymentVersion) P.incCounter
   C.bracket_ (increment cmContainer.forkStartedCounter) (increment cmContainer.forkFinishedCounter) action

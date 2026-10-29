@@ -21,6 +21,7 @@ where
 import EulerHS.Prelude
 import Kernel.External.Whatsapp.Interface.Types as IT
 import Kernel.External.Whatsapp.TataCommunications.Config (TataCommunicationsCfg (..))
+import qualified Kernel.External.Whatsapp.TataCommunications.Config as Fields
 import Kernel.External.Whatsapp.TataCommunications.Flow as Flow
 import qualified Kernel.External.Whatsapp.TataCommunications.Types as TC
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)

@@ -14,7 +14,7 @@
 
 module Kernel.Streaming.Kafka.Consumer.Types
   ( KafkaConsumerCfg (..),
-    KafkaConsumerTools,
+    KafkaConsumerTools (..),
     HasKafkaConsumer,
     buildKafkaConsumerTools,
     releaseKafkaConsumerTools,
@@ -23,7 +23,7 @@ module Kernel.Streaming.Kafka.Consumer.Types
 where
 
 import EulerHS.Prelude
-import GHC.Records.Extra (HasField)
+import GHC.Records (HasField)
 import Kafka.Consumer hiding (ConsumerGroupId, groupId)
 import qualified Kafka.Consumer as Consumer
 import Kernel.Streaming.Kafka.Commons as Reexport

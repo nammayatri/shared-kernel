@@ -741,7 +741,8 @@ library
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
+      OverloadedRecordDot
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -Wwarn=ambiguous-fields
   build-depends:
       aeson
     , aeson-casing
@@ -817,8 +818,6 @@ library
     , prometheus-proc
     , random
     , random-strings
-    , record-dot-preprocessor
-    , record-hasfield
     , regex-compat
     , resource-pool
     , safe
@@ -903,7 +902,8 @@ executable master-cloud-forward-itest
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
+      OverloadedRecordDot
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -Wwarn=ambiguous-fields
   build-depends:
       aeson
     , aeson-casing
@@ -981,8 +981,6 @@ executable master-cloud-forward-itest
     , prometheus-proc
     , random
     , random-strings
-    , record-dot-preprocessor
-    , record-hasfield
     , regex-compat
     , resource-pool
     , safe
@@ -1088,7 +1086,8 @@ test-suite mobility-core-tests
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
+      OverloadedRecordDot
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -Wwarn=ambiguous-fields
   build-depends:
       aeson
     , aeson-casing
@@ -1165,8 +1164,6 @@ test-suite mobility-core-tests
     , prometheus-proc
     , random
     , random-strings
-    , record-dot-preprocessor
-    , record-hasfield
     , regex-compat
     , resource-pool
     , safe

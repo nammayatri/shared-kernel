@@ -26,7 +26,7 @@ where
 
 import qualified Data.Map as Map
 import EulerHS.Prelude
-import GHC.Records.Extra (HasField)
+import GHC.Records (HasField)
 import Kafka.Producer as Producer
 import Kernel.Streaming.Kafka.Commons as Reexport
 import qualified Kernel.Types.Common as KTC

@@ -28,7 +28,6 @@ where
 import Data.Aeson
 import Data.ByteString.Internal (ByteString)
 import Data.Fixed (Centi, Fixed (MkFixed))
-import Data.Generics.Labels ()
 import qualified Data.HashMap.Strict as HM
 import Data.OpenApi hiding (value)
 import Data.Text as T
@@ -41,7 +40,6 @@ import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
 import qualified Database.Beam.Query as BQ
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import GHC.Records.Extra (HasField)
 import Kernel.External.Encryption
 import Kernel.External.Encryption as Common (EncFlow)
 import Kernel.Prelude as KP

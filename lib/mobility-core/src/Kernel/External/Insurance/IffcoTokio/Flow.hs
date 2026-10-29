@@ -10,6 +10,7 @@ import Kernel.External.Encryption
 import Kernel.External.Insurance.IffcoTokio.Config (iffcoTokioHttpManagerKey)
 import Kernel.External.Insurance.IffcoTokio.Types
 import Kernel.External.Insurance.Interface.Types (HomeDeclarationReq)
+import qualified Kernel.External.Insurance.Interface.Types as Fields
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Error (GenericError (..))

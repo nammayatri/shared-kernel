@@ -17,7 +17,7 @@ module Kernel.Types.Field where
 import qualified Data.Generics.Labels as GL
 import Data.Kind (Constraint, Type)
 import GHC.Base (Symbol)
-import GHC.Records.Extra (HasField)
+import GHC.Records (HasField)
 
 -- | An alias for type-level pair of name and type.
 type (name :: Symbol) ::: (ty :: Type) = '(name, ty)

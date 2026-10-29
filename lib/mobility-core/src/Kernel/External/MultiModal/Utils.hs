@@ -243,11 +243,11 @@ convertGoogleToGeneric gResponse =
     adjustWalkingLegs (leg1 : leg2 : rest) =
       let adjustedLeg1 =
             if leg1.mode == Walk && leg2.mode /= Walk
-              then leg1{toStopDetails = leg2.fromStopDetails, toDepartureTime = leg2.fromDepartureTime, toArrivalTime = leg2.fromArrivalTime}
+              then (leg1 :: MultiModalLeg){toStopDetails = leg2.fromStopDetails, toDepartureTime = leg2.fromDepartureTime, toArrivalTime = leg2.fromArrivalTime}
               else leg1
           adjustedLeg2 =
             if leg2.mode == Walk && leg1.mode /= Walk
-              then leg2{fromStopDetails = leg1.toStopDetails, fromDepartureTime = leg1.toDepartureTime, fromArrivalTime = leg1.toArrivalTime}
+              then (leg2 :: MultiModalLeg){fromStopDetails = leg1.toStopDetails, fromDepartureTime = leg1.toDepartureTime, fromArrivalTime = leg1.toArrivalTime}
               else leg2
        in adjustedLeg1 : adjustWalkingLegs (adjustedLeg2 : rest)
 
