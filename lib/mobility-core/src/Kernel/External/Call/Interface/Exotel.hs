@@ -17,6 +17,7 @@ module Kernel.External.Call.Interface.Exotel where
 import EulerHS.Prelude hiding (id)
 import qualified Kernel.External.Call.Exotel.Client as Exotel
 import Kernel.External.Call.Exotel.Config (ExotelCfg)
+import qualified Kernel.External.Call.Exotel.Config as Fields
 import Kernel.External.Call.Exotel.Types as Exotel
 import Kernel.External.Call.Interface.Types as Interface
 import Kernel.Prelude

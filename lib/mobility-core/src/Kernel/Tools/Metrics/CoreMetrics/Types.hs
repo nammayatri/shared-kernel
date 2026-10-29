@@ -31,7 +31,8 @@ import qualified Data.Set as Set
 import qualified EulerHS.KVConnector.Metrics as KVMetrics
 import EulerHS.Prelude as E
 import GHC.Clock (getMonotonicTimeNSec)
-import GHC.Records.Extra
+import GHC.Records
+import Kernel.Prelude (HasFieldUpd)
 import Kernel.Types.Time (Milliseconds, Seconds)
 import Prometheus as P
 import Servant.Client (BaseUrl, ClientError)
@@ -108,7 +109,7 @@ newBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 20, 2
 type HasCoreMetrics r =
   ( HasField "coreMetrics" r CoreMetricsContainer,
     HasField "version" r DeploymentVersion,
-    HasField "url" r (Maybe Text)
+    HasFieldUpd "url" r (Maybe Text)
   )
 
 newtype DeploymentVersion = DeploymentVersion {getDeploymentVersion :: Text}

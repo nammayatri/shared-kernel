@@ -33,6 +33,7 @@ import Kernel.Storage.Esqueleto.Config
 import qualified Kernel.Storage.Queries.MerchantOperatingCity as Queries
 import Kernel.Types.App
 import Kernel.Types.CacheFlow
+import qualified Kernel.Types.MerchantOperatingCity as Fields
 import Kernel.Utils.GenericPretty
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 import System.IO.Unsafe (unsafePerformIO)

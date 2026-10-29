@@ -30,6 +30,7 @@ import EulerHS.Prelude
 import qualified Kafka.Producer as KafkaProd
 import Kernel.Beam.Types (KafkaConn (..))
 import qualified Kernel.Streaming.Kafka.Producer as KafkaProducer
+import qualified Kernel.Streaming.Kafka.Producer.Types as Fields
 import Kernel.Types.App
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)

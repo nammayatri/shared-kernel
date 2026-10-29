@@ -37,6 +37,7 @@ data TestEnv = TestEnv
     enablePrometheusMetricLogging :: Bool,
     enableRedisLatencyLogging :: Bool
   }
+  deriving (Generic)
 
 newtype TestM a = TestM (ReaderT TestEnv IO a)
   deriving newtype (Functor, Applicative, Monad, MonadIO, MonadReader TestEnv, MonadThrow, MonadCatch)

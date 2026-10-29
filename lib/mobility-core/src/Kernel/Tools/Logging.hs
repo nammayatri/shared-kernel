@@ -30,6 +30,7 @@ import Kernel.Storage.Esqueleto.Config (HasEsqEnv)
 import Kernel.Storage.Hedis.Config
 import qualified Kernel.Storage.Queries.SystemConfigs as QSC
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics, defaultLatencySampleRate, incrementSystemConfigsFailedCounter)
+import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Fields
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow (HasCacConfig, HasCacheConfig, HasInMemEnv)
 import Kernel.Types.Logging
@@ -50,7 +51,7 @@ withDynamicLogLevel keyName fn = do
     modifyEnv mbLogLevel env = do
       let logEnv = env.loggerEnv
           updLogEnv = updateLogLevelAndRawSql mbLogLevel logEnv
-      env{loggerEnv = updLogEnv}
+      env & field' @"loggerEnv" .~ updLogEnv
 
 -- | Resolve a matched 'DynamicLogLevel' config into the effective 'LogLevel' to apply.
 --

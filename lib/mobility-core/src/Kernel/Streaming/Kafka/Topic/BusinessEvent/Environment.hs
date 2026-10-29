@@ -15,7 +15,7 @@
 module Kernel.Streaming.Kafka.Topic.BusinessEvent.Environment where
 
 import EulerHS.Prelude
-import GHC.Records.Extra (HasField)
+import GHC.Records (HasField)
 import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Utils.App (getPodName)
 

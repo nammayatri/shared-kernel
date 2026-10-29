@@ -49,6 +49,7 @@ import Kernel.External.Payment.Juspay.Config as Reexport
 import qualified Kernel.External.Payment.Juspay.Flow as Juspay
 import qualified Kernel.External.Payment.Juspay.Types as Juspay
 import qualified Kernel.External.Payment.Juspay.Types.CreateCustomer as Customer
+import qualified Kernel.External.Payment.Juspay.Types.Webhook as Fields
 import qualified Kernel.External.Payment.Juspay.Webhook as Juspay
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics

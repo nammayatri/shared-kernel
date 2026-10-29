@@ -30,7 +30,6 @@ import Database.Persist.Class
 import Database.Persist.Sql
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Float (double2Int, int2Double)
-import GHC.Records.Extra (HasField)
 import Kernel.Prelude as KP
 import qualified Kernel.Types.Beckn.DecimalValue as DecimalValue
 import Kernel.Types.Centesimal

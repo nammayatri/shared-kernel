@@ -20,7 +20,7 @@ module Kernel.ServantMultipart
   )
 where
 
-import Control.Lens ((%~), (?~))
+import Control.Lens ((?~))
 import qualified Control.Lens as L
 import qualified Data.OpenApi as DS
 import qualified Data.OpenApi.Declare as DD

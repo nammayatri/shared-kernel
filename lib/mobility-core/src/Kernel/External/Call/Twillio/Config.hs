@@ -12,7 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.Call.Twillio.Config (TwillioCallCfg) where
+module Kernel.External.Call.Twillio.Config (TwillioCallCfg (..)) where
 
 import Kernel.External.Encryption
 import Kernel.Prelude

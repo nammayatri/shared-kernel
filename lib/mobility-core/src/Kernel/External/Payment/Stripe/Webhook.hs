@@ -32,6 +32,7 @@ import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.Tuple.Extra (both)
 import Kernel.External.Encryption
 import Kernel.External.Payment.Interface.Types
+import qualified Kernel.External.Payment.Stripe.Config as Fields
 import qualified Kernel.External.Payment.Stripe.Types as Stripe
 import Kernel.Prelude
 import Kernel.Types.Error

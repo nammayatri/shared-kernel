@@ -15,6 +15,7 @@ import Data.Time.Clock.POSIX (POSIXTime)
 import Kernel.External.Payment.Stripe.Types.Common (Event)
 import Kernel.External.Payout.Stripe.Types.Payout (PayoutObject)
 import Kernel.External.Payout.Stripe.Types.Transfer (TransferObject)
+import qualified Kernel.External.Payout.Stripe.Types.Transfer as Fields
 import Kernel.Prelude
 import Kernel.Types.HideSecrets
 import Kernel.Types.Id

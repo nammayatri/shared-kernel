@@ -10,6 +10,7 @@ import Kernel.External.Encryption
 import Kernel.External.SMS.Interface.Types as IT
 import Kernel.External.SMS.KarixSms.Config
 import qualified Kernel.External.SMS.KarixSms.Flow as KF
+import qualified Kernel.External.SMS.KarixSms.Types as Fields
 import Kernel.External.SMS.Types as Reexport
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
