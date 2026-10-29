@@ -17,7 +17,6 @@ module Kernel.Types.FromField where
 import Data.Aeson
 import Data.ByteString.Internal (ByteString, unpackChars)
 import Data.ByteString.Lazy (fromStrict)
-import Data.Generics.Labels ()
 import Database.Beam
 import Database.Beam.Postgres
 import qualified Database.PostgreSQL.Simple.FromField as DPSF

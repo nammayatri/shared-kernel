@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# OPTIONS_GHC -Wwarn=ambiguous-fields #-}
 
 -- | Wire-shape tests for the Xyne Spaces ticket read API types.
 --

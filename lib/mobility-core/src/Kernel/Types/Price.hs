@@ -152,6 +152,15 @@ mkAmountWithDefault mbAmount defAmount = fromMaybe (HighPrecMoney $ toRational d
 mkPriceFromAPIEntity :: PriceAPIEntity -> Price
 mkPriceFromAPIEntity priceAPIEntity = mkPrice (Just priceAPIEntity.currency) priceAPIEntity.amount
 
+getPriceAmount :: Price -> HighPrecMoney
+getPriceAmount Price {amount} = amount
+
+getPriceAmountInt :: Price -> Money
+getPriceAmountInt Price {amountInt} = amountInt
+
+getPriceCurrency :: Price -> Currency
+getPriceCurrency Price {currency} = currency
+
 -- To be deprecated
 mkPriceFromMoney :: Maybe Currency -> Money -> Price
 mkPriceFromMoney = mkPriceWithDefault Nothing

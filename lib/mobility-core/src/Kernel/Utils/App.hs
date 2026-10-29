@@ -48,9 +48,10 @@ import qualified Data.Text as T (pack, unpack)
 import Data.UUID.V4 (nextRandom)
 import EulerHS.Api (ApiTag (..))
 import qualified EulerHS.Language as L
-import EulerHS.Prelude hiding (unpack)
+import EulerHS.Prelude hiding (unpack, (.~))
 import qualified EulerHS.Runtime as R
 import Kernel.Beam.Lib.UtilsTH (HasSchemaName)
+import Kernel.Prelude (HasFieldUpd, field', (.~))
 import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Esqueleto.Config (EsqDBEnv)
 import Kernel.Storage.Hedis
@@ -233,11 +234,12 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId sessionId _ -> do
   newFlowRt <- L.updateLoggerContext (L.appendLogContext requestId) $ flowRuntime env
   newOptionsLocal <- newMVar mempty
   pure $
-    env{appEnv = appEnv{loggerEnv = updLogEnv, requestId = Just requestId},
-        flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
-       }
+    env
+      & field' @"appEnv" . field' @"loggerEnv" .~ updLogEnv
+      & field' @"appEnv" . field' @"requestId" .~ Just requestId
+      & field' @"flowRuntime" .~ (newFlowRt {R._optionsLocal = newOptionsLocal})
 
-withModifiedEnv' :: (SanitizedUrl a, HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f, HasField "actorInfo" f ActorInfo) => Proxy a -> (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv' :: (SanitizedUrl a, HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f, HasFieldUpd "actorInfo" f ActorInfo) => Proxy a -> (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbToken -> do
   let url = cs $ Wai.rawPathInfo req
       sanitizedUrl = fromMaybe (removeNumerics $ removeUUIDs url) (getSanitizedUrl appAPI (Just req))
@@ -260,9 +262,16 @@ withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbTok
       runFlowR newFlowRt' appEnv $ L.setOptionLocal ApiTag sanitizedUrl
       let actorInfo' = ActorInfo {actorType = UNKNOWN, actorId = Just requestId} -- to be modified further in api handler; actorId must not depend on shouldLogRequestId
       pure $
-        env{appEnv = appEnv{loggerEnv = updLogEnv', requestId = requestId', actorInfo = actorInfo', sessionId = sessionId', url = Just sanitizedUrl},
-            flowRuntime = newFlowRt'
-           }
+        env
+          & field' @"appEnv"
+            .~ ( appEnv
+                   & field' @"loggerEnv" .~ updLogEnv'
+                   & field' @"requestId" .~ requestId'
+                   & field' @"actorInfo" .~ actorInfo'
+                   & field' @"sessionId" .~ sessionId'
+                   & field' @"url" .~ Just sanitizedUrl
+               )
+          & field' @"flowRuntime" .~ newFlowRt'
 
 withModifiedEnvFn :: HasLog f => (Wai.Request -> EnvR f -> Text -> Text -> Maybe Text -> IO (EnvR f)) -> (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnvFn modifierFn f env = \req resp -> do
@@ -290,7 +299,10 @@ withModifiedEnvGeneric f env = \req resp -> do
   where
     modifyEnv requestId sessionId = do
       let updLogEnv = appendLogTag ("requestId-" <> requestId) $ appendLogTag ("sessionId-" <> sessionId) env.loggerEnv
-      env{loggerEnv = updLogEnv, requestId = Just requestId, sessionId = Just sessionId}
+      env
+        & field' @"loggerEnv" .~ updLogEnv
+        & field' @"requestId" .~ Just requestId
+        & field' @"sessionId" .~ Just sessionId
     getSessionInfo headers = do
       let requestId = lookup "x-request-id" headers
       let sessionId = lookup "session_id" headers
