@@ -20,6 +20,7 @@ where
 import Kernel.Beam.Lib.UtilsTH
 import Kernel.External.Verification.GovtData.Storage.Beam as BeamGRC
 import qualified Kernel.External.Verification.GovtData.Storage.Query as QGD
+import qualified Kernel.External.Verification.GovtData.Types as Fields
 import Kernel.External.Verification.Interface.Types
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude

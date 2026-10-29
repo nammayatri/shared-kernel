@@ -48,6 +48,7 @@ default-extensions:
   - BlockArguments
   - TypeSynonymInstances
   - UndecidableInstances
+  - OverloadedRecordDot
 
 dependencies:
   - aeson
@@ -130,8 +131,6 @@ dependencies:
   - uuid
   - stm
   - unix
-  - record-hasfield
-  - record-dot-preprocessor
   - openapi3
   - fast-logger
   - persistent
@@ -173,8 +172,6 @@ dependencies:
   - insert-ordered-containers
   - split
   - bimap
-  - x509
-  - x509-store
 
 ghc-options:
   - -fwrite-ide-info
@@ -184,7 +181,6 @@ ghc-options:
   - -Widentities
   - -fhide-source-paths
   - -Werror
-  - -fplugin=RecordDotPreprocessor
   - -Wwarn=ambiguous-fields
 
 library:

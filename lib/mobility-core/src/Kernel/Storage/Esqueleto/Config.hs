@@ -19,7 +19,7 @@ import Database.Persist.Postgresql
 import Database.PostgreSQL.Simple (execute_)
 import Database.PostgreSQL.Simple.Types (Query (Query))
 import EulerHS.Prelude
-import GHC.Records.Extra
+import GHC.Records
 import Kernel.Storage.Esqueleto.Logger (runLoggerIO)
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.Time (MonadTime)

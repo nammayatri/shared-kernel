@@ -26,7 +26,7 @@ import Data.Functor ((<$>))
 import Data.Int (Int)
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Kernel.Prelude (Eq, HasField (hasField), Maybe, Show)
+import Kernel.Prelude (Eq, Maybe, Show)
 import Servant.Client (BaseUrl)
 
 data SubmitSmsReq = SubmitSmsReq

@@ -19,7 +19,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Kernel.External.Encryption
 import Kernel.External.SMS.DigoEngage.Types
-import Kernel.Prelude (HasField (hasField), Show)
+import Kernel.Prelude (Show)
 import Servant.Client (BaseUrl)
 
 data DigoEngageSmsCfg = DigoEngageSmsCfg

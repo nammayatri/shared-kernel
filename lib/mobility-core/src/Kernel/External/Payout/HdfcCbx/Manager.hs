@@ -36,6 +36,7 @@ import qualified Data.X509 as X509
 import qualified Data.X509.CertificateStore as X509Store
 import Kernel.External.Encryption (decrypt)
 import Kernel.External.Payout.HdfcCbx.Config (HdfcCbxConfig, hdfcManagerKey)
+import qualified Kernel.External.Payout.HdfcCbx.Config as Fields
 import Kernel.Prelude
 import Kernel.Utils.Common
 import qualified Network.Connection as Conn

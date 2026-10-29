@@ -48,7 +48,6 @@ import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
 import qualified EulerHS.Language as L
 import EulerHS.Prelude (whenLeft)
-import GHC.Records.Extra
 import Kernel.Beam.Connection.EnvVars (getRunInMasterCloudRedisCell, getRunInMasterLTSRedisCell)
 import Kernel.Prelude
 import Kernel.Storage.Hedis.Config
@@ -136,23 +135,11 @@ withMasterRedis ::
 withMasterRedis f = do
   local
     ( \env ->
-        env{hedisEnv =
-              (env.hedisEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisEnv))
-                },
-            hedisClusterEnv =
-              (env.hedisClusterEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisClusterEnv))
-                },
-            hedisNonCriticalEnv =
-              (env.hedisNonCriticalEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisNonCriticalEnv))
-                },
-            hedisNonCriticalClusterEnv =
-              (env.hedisNonCriticalClusterEnv)
-                { hedisConnection = modifyMasterOnlyConnection (hedisConnection (env.hedisNonCriticalClusterEnv))
-                }
-           }
+        env
+          & field' @"hedisEnv" . field' @"hedisConnection" %~ modifyMasterOnlyConnection
+          & field' @"hedisClusterEnv" . field' @"hedisConnection" %~ modifyMasterOnlyConnection
+          & field' @"hedisNonCriticalEnv" . field' @"hedisConnection" %~ modifyMasterOnlyConnection
+          & field' @"hedisNonCriticalClusterEnv" . field' @"hedisConnection" %~ modifyMasterOnlyConnection
     )
     f
 
@@ -160,17 +147,23 @@ withMasterRedis f = do
 withCrossAppRedis ::
   (HedisFlow m env, TryException m) => m f -> m f
 withCrossAppRedis f = do
-  local (\env -> env{hedisEnv = env.hedisEnv{keyModifier = identity}, hedisClusterEnv = env.hedisClusterEnv{keyModifier = identity}}) f
+  local (\env -> env & field' @"hedisEnv" . field' @"keyModifier" .~ identity & field' @"hedisClusterEnv" . field' @"keyModifier" .~ identity) f
 
 withNonCriticalCrossAppRedis ::
   (HedisFlow m env, TryException m) => m f -> m f
-withNonCriticalCrossAppRedis f = do
-  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv{keyModifier = identity}, hedisClusterEnv = env.hedisNonCriticalClusterEnv{keyModifier = identity}}) f
+withNonCriticalCrossAppRedis f =
+  local
+    ( \env ->
+        env
+          & field' @"hedisEnv" .~ (env.hedisNonCriticalEnv & field' @"keyModifier" .~ identity)
+          & field' @"hedisClusterEnv" .~ (env.hedisNonCriticalClusterEnv & field' @"keyModifier" .~ identity)
+    )
+    f
 
 withNonCriticalRedis ::
   (HedisFlow m env, TryException m) => m f -> m f
 withNonCriticalRedis f = do
-  local (\env -> env{hedisEnv = env.hedisNonCriticalEnv, hedisClusterEnv = env.hedisNonCriticalClusterEnv}) f
+  local (\env -> env & field' @"hedisEnv" .~ env.hedisNonCriticalEnv & field' @"hedisClusterEnv" .~ env.hedisNonCriticalClusterEnv) f
 
 masterEnvFrom :: [(CloudType, HedisEnv)] -> Maybe HedisEnv
 masterEnvFrom envs = masterCloudType >>= \cloud -> lookup cloud envs
@@ -181,10 +174,17 @@ withCloudRedisEnv ::
   env ->
   env
 withCloudRedisEnv cloudEnv env =
-  env{hedisEnv = cloudEnv, hedisClusterEnv = cloudEnv, hedisNonCriticalEnv = cloudEnv, hedisNonCriticalClusterEnv = cloudEnv}
+  env
+    & field' @"hedisEnv" .~ cloudEnv
+    & field' @"hedisClusterEnv" .~ cloudEnv
+    & field' @"hedisNonCriticalEnv" .~ cloudEnv
+    & field' @"hedisNonCriticalClusterEnv" .~ cloudEnv
 
 withLTSCloudEnv :: (HedisFlowEnv env) => HedisEnv -> env -> env
-withLTSCloudEnv cloudEnv env = env{hedisEnv = cloudEnv, hedisClusterEnv = cloudEnv}
+withLTSCloudEnv cloudEnv env =
+  env
+    & field' @"hedisEnv" .~ cloudEnv
+    & field' @"hedisClusterEnv" .~ cloudEnv
 
 peerHedisEnvs :: (HedisFlow m env) => m [HedisEnv]
 peerHedisEnvs = map snd <$> asks (.peerHedisClusterEnvs)
@@ -347,7 +347,7 @@ runInMultiCloudLTSRedisForMaybeListWith localEnv action = do
 withLTSRedis ::
   (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv) => m f -> m f
 withLTSRedis f =
-  local (\env -> env{hedisEnv = env.ltsHedisEnv, hedisClusterEnv = env.ltsHedisEnv}) f
+  local (\env -> env & field' @"hedisEnv" .~ env.ltsHedisEnv & field' @"hedisClusterEnv" .~ env.ltsHedisEnv) f
 
 ltsReadEnv ::
   (HedisFlow m env, HasField "ltsHedisEnv" env HedisEnv, HasField "ltsReplicaHedisEnv" env (Maybe HedisEnv)) => m HedisEnv
@@ -360,7 +360,7 @@ withLTSReplicaRedis ::
   (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv, HasField "ltsReplicaHedisEnv" env (Maybe HedisEnv)) => m f -> m f
 withLTSReplicaRedis f = do
   readEnv <- ltsReadEnv
-  local (\env -> env{hedisEnv = readEnv, hedisClusterEnv = readEnv}) f
+  local (\env -> env & field' @"hedisEnv" .~ readEnv & field' @"hedisClusterEnv" .~ readEnv) f
 
 withPeerLTSRedis ::
   (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv, HasField "peerLTSHedisEnvs" env [(CloudType, HedisEnv)]) => Maybe CloudType -> m f -> m f

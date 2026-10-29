@@ -37,10 +37,10 @@ import Control.Monad.Reader
 import qualified Data.Aeson as A
 import Data.Time.Clock hiding (getCurrentTime)
 import qualified EulerHS.Language as L
-import EulerHS.Prelude
-import GHC.Records.Extra
+import EulerHS.Prelude hiding ((.~))
 import Kernel.Beam.Lib.UtilsTH
 import qualified Kernel.Beam.Types as KBT
+import Kernel.Prelude (HasFieldUpd, field', (.~))
 import Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Clickhouse.Config
 import Kernel.Storage.Queries.SystemConfigs
@@ -79,8 +79,8 @@ withFlowHandler flow = do
           >>= maybe (incrementSystemConfigsFailedCounter ("kv_config_decode_failed_" <> schemaName (Proxy :: Proxy BeamSC.SystemConfigsT))) (\result' -> L.setOption KBT.Tables result' >> L.setOption KBT.KvConfigLastUpdatedTime now)
 
 withDashboardFlowHandler ::
-  ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
-    HasField "serviceClickhouseEnv" r ClickhouseEnv,
+  ( HasFieldUpd "serviceClickhouseCfg" r ClickhouseCfg,
+    HasFieldUpd "serviceClickhouseEnv" r ClickhouseEnv,
     HasField "dashboardClickhouseCfg" r ClickhouseCfg,
     HasField "dashboardClickhouseEnv" r ClickhouseEnv,
     HasFlowHandlerR (FlowR r) r,
@@ -90,7 +90,7 @@ withDashboardFlowHandler ::
   FlowHandlerR r a
 withDashboardFlowHandler flow = do
   (EnvR flowRt appEnv) <- ask
-  let newappEnv = appEnv{serviceClickhouseCfg = appEnv.dashboardClickhouseCfg, serviceClickhouseEnv = appEnv.dashboardClickhouseEnv}
+  let newappEnv = appEnv & field' @"serviceClickhouseCfg" .~ appEnv.dashboardClickhouseCfg & field' @"serviceClickhouseEnv" .~ appEnv.dashboardClickhouseEnv
   liftIO . runFlowR flowRt newappEnv $ getAndSetKvConfigs >> flow
   where
     getAndSetKvConfigs = do
@@ -110,8 +110,8 @@ withFlowHandler' flow = do
   liftIO . runFlowR flowRt appEnv $ flow
 
 withDashboardFlowHandler' ::
-  ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
-    HasField "serviceClickhouseEnv" r ClickhouseEnv,
+  ( HasFieldUpd "serviceClickhouseCfg" r ClickhouseCfg,
+    HasFieldUpd "serviceClickhouseEnv" r ClickhouseEnv,
     HasField "dashboardClickhouseCfg" r ClickhouseCfg,
     HasField "dashboardClickhouseEnv" r ClickhouseEnv,
     HasField "url" r (Maybe Text)
@@ -120,7 +120,7 @@ withDashboardFlowHandler' ::
   FlowHandlerR r a
 withDashboardFlowHandler' flow = do
   (EnvR flowRt appEnv) <- ask
-  let newappEnv = appEnv{serviceClickhouseCfg = appEnv.dashboardClickhouseCfg, serviceClickhouseEnv = appEnv.dashboardClickhouseEnv}
+  let newappEnv = appEnv & field' @"serviceClickhouseCfg" .~ appEnv.dashboardClickhouseCfg & field' @"serviceClickhouseEnv" .~ appEnv.dashboardClickhouseEnv
   liftIO . runFlowR flowRt newappEnv $ flow
 
 withFlowHandlerAPI ::
@@ -147,8 +147,8 @@ withFlowHandlerAPIForSubscriber ::
 withFlowHandlerAPIForSubscriber subscriberId = withFlowHandler . withLogTag ("subscriberId-" <> subscriberId) . apiHandler . handleIfUp
 
 withDashboardFlowHandlerAPI ::
-  ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
-    HasField "serviceClickhouseEnv" r ClickhouseEnv,
+  ( HasFieldUpd "serviceClickhouseCfg" r ClickhouseCfg,
+    HasFieldUpd "serviceClickhouseEnv" r ClickhouseEnv,
     HasField "dashboardClickhouseCfg" r ClickhouseCfg,
     HasField "dashboardClickhouseEnv" r ClickhouseEnv,
     HasFlowHandlerR (FlowR r) r,
@@ -172,8 +172,8 @@ withFlowHandlerAPI' ::
 withFlowHandlerAPI' = withFlowHandler' . apiHandler . handleIfUp
 
 withDashboardFlowHandlerAPI' ::
-  ( HasField "serviceClickhouseCfg" r ClickhouseCfg,
-    HasField "serviceClickhouseEnv" r ClickhouseEnv,
+  ( HasFieldUpd "serviceClickhouseCfg" r ClickhouseCfg,
+    HasFieldUpd "serviceClickhouseEnv" r ClickhouseEnv,
     HasField "dashboardClickhouseCfg" r ClickhouseCfg,
     HasField "dashboardClickhouseEnv" r ClickhouseEnv,
     Metrics.CoreMetrics (FlowR r),

@@ -21,7 +21,7 @@ import qualified Data.ByteString.Lazy as BL
 import Data.Map as M
 import Data.String.Conversions
 import EulerHS.Prelude
-import GHC.Records.Extra (HasField)
+import GHC.Records (HasField)
 import qualified Kernel.Tools.Slack as Slack
 import qualified Kernel.Tools.Slack.Internal as SI
 import qualified Network.HTTP.Types as HTTP

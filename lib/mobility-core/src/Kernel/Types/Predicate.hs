@@ -25,7 +25,7 @@ import Data.Ix (inRange)
 import Data.List (nub)
 import qualified Data.Text as T
 import EulerHS.Prelude
-import GHC.Records.Extra
+import GHC.Records
 import GHC.TypeLits (KnownSymbol, symbolVal)
 import Kernel.Types.Value
 import Kleene

@@ -17,7 +17,6 @@ module Kernel.Utils.SlidingWindowLimiter where
 import Data.Time hiding (getCurrentTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import EulerHS.Prelude hiding (id)
-import GHC.Records.Extra
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Types.Common as Common
 import Kernel.Types.Error
