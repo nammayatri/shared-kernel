@@ -383,7 +383,8 @@ baseReport settlement rec txnType' =
       offerId = Nothing,
       actualAmount = Nothing,
       cardNumber = Nothing,
-      chargebackDate = Nothing
+      chargebackDate = Nothing,
+      pgTxnId = Nothing
     }
 
 toSettlementReport :: PaymentSettlementReport -> SettlementRecord -> Either Text PaymentSettlementReport
@@ -401,7 +402,8 @@ toSettlementReport base rec = do
         paymentMethod = rec.payment_category >>= parseBillDeskPaymentMethod,
         settlementType = Just CREDIT,
         settlementDate = rec.settlement_date >>= parseDateText,
-        pgApprovalCode = rec.authcode
+        pgApprovalCode = rec.authcode,
+        pgTxnId = Just oid
       }
 
 toRefundReport :: PaymentSettlementReport -> SettlementRecord -> Either Text PaymentSettlementReport
@@ -416,7 +418,8 @@ toRefundReport base rec = do
         refundAmount = Just (parseAmountMaybe rec.amount),
         refundDate = rec.date >>= parseDateText,
         actualAmount = Just (parseAmountMaybe rec.gross_amount),
-        settlementType = Just DEBIT
+        settlementType = Just DEBIT,
+        pgTxnId = Just oid
       }
 
 toChargebackReport :: PaymentSettlementReport -> SettlementRecord -> Either Text PaymentSettlementReport
