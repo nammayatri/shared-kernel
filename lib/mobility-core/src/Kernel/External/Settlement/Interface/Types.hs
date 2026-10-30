@@ -144,7 +144,8 @@ data PaymentSettlementReport = PaymentSettlementReport
     offerId :: Maybe Text, -- Offer ID
     actualAmount :: Maybe HighPrecMoney, -- Actual Amount
     cardNumber :: Maybe Text, -- Card Number
-    chargebackDate :: Maybe UTCTime -- Chargeback Date
+    chargebackDate :: Maybe UTCTime, -- Chargeback Date
+    pgTxnId :: Maybe Text
   }
   deriving (Show, Eq, Generic)
 
