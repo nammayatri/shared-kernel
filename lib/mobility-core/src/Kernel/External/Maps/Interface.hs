@@ -22,6 +22,8 @@ module Kernel.External.Maps.Interface
     snapToRoadProvided,
     snapToRoad,
     snapToRoadWithFallback,
+    runPostCheck,
+    isConfidenceOutOfRange,
     autoCompleteProvided,
     autoComplete,
     getPlaceDetailsProvided,
@@ -200,6 +202,9 @@ runPostCheck mapsService req res = do
     Disha -> return $ (< osrmThreshold) $ distanceBetweenInMeters (last req.points) (last res.snappedPoints)
     _ -> return True
 
+isConfidenceOutOfRange :: Double -> SnapToRoadResp -> Bool
+isConfidenceOutOfRange confidenceThreshold res = res.confidence < confidenceThreshold || res.confidence > 1.0
+
 snapToRoadWithFallback ::
   ( EncFlow m r,
     EsqDBFlow m r,
@@ -247,7 +252,7 @@ snapToRoadWithFallback entityId merchantCityId mbMapServiceToRectifyDistantPoint
               confidencethreshold <- getConfidenceThreshold
               postCheckPassed <- runPostCheck preferredProvider req res
               when (not postCheckPassed) $ logError $ "Snap to road Post Check failed - Povider : " <> show preferredProvider
-              let confidenceOutOfRange = res.confidence < confidencethreshold || res.confidence > 1.0
+              let confidenceOutOfRange = isConfidenceOutOfRange confidencethreshold res
               when (confidenceOutOfRange) $ logError $ "Snap to road Post Check failed due to Confidence : " <> show res.confidence <> " - Provider : " <> show preferredProvider
               if confidenceOutOfRange || not postCheckPassed
                 then do
