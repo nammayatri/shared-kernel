@@ -172,7 +172,8 @@ parseSettledRow row idx = do
         offerCode = Nothing,
         offerId = Nothing,
         actualAmount = Nothing,
-        chargebackDate = Nothing
+        chargebackDate = Nothing,
+        pgTxnId = Nothing
       }
   where
     _ = idx
@@ -223,7 +224,8 @@ parseRefundRow row idx = do
         offerId = Nothing,
         actualAmount = Nothing,
         cardNumber = Nothing,
-        chargebackDate = Nothing
+        chargebackDate = Nothing,
+        pgTxnId = Nothing
       }
   where
     _ = idx
@@ -274,7 +276,8 @@ parseChargebackRow row idx = do
         offerId = Nothing,
         actualAmount = Nothing,
         cardNumber = Nothing,
-        chargebackDate = Nothing
+        chargebackDate = Nothing,
+        pgTxnId = Nothing
       }
   where
     _ = idx

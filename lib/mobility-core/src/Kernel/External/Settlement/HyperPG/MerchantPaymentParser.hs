@@ -119,7 +119,8 @@ parseHyperPGMerchantRow row = do
               offerId = Nothing,
               actualAmount = Nothing,
               cardNumber = Nothing,
-              chargebackDate = Nothing
+              chargebackDate = Nothing,
+              pgTxnId = Nothing
             }
 
 computeVendorTotal :: Text -> HighPrecMoney
