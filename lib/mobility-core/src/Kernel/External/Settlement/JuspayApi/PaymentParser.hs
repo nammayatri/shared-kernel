@@ -145,7 +145,8 @@ parseJuspayPortalRow row = do
         offerId = nonEmpty' (look row "Offer Id's"),
         actualAmount = if offerAmt > 0 then Just (parseAmount (look row "Amount")) else Nothing,
         cardNumber = nonEmpty' (look row "Card Last Four Digits"),
-        chargebackDate = Nothing
+        chargebackDate = Nothing,
+        pgTxnId = Nothing
       }
   where
     padRrn r
