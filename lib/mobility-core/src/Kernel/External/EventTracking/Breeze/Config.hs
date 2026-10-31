@@ -29,4 +29,4 @@ data BreezeCfg = BreezeCfg
     collectorToken :: EncryptedField 'AsEncrypted Text,
     enabled :: Bool
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

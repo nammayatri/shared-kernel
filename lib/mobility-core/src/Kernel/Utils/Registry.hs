@@ -11,6 +11,7 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
+{-# OPTIONS_GHC -Wwarn=x-partial #-}
 
 module Kernel.Utils.Registry
   ( registryFetch,
@@ -21,7 +22,6 @@ module Kernel.Utils.Registry
   )
 where
 
-import Data.Generics.Labels ()
 import qualified EulerHS.Types as T
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)

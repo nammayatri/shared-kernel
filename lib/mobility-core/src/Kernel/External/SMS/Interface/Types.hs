@@ -45,7 +45,7 @@ data SmsHandler m = SmsHandler
   }
 
 data SmsServiceConfig = MyValueFirstConfig MyValueFirst.MyValueFirstCfg | ExotelSmsConfig ExotelSms.ExotelSmsCfg | GupShupConfig GupShup.GupShupCfg | TwillioSmsConfig TwillioSms.TwillioSmsCfg | DigoEngageSmsConfig DigoEngageSms.DigoEngageSmsCfg | VonageSmsConfig VonageSms.VonageSmsCfg | KarixSmsConfig KarixSms.KarixSmsCfg | PinbixSmsConfig PinbixSms.PinbixSmsCfg | KaleyraSmsConfig KaleyraSms.KaleyraSmsCfg | CerfSmsConfig CerfSms.CerfSmsCfg
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] SmsServiceConfig
 
 data SendSMSReq = SendSMSReq

@@ -12,7 +12,7 @@
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
 
-module Kernel.External.Maps.NextBillion.Config (NextBillionCfg) where
+module Kernel.External.Maps.NextBillion.Config (NextBillionCfg (..)) where
 
 import Kernel.External.Encryption
 import Kernel.Prelude
@@ -21,4 +21,4 @@ data NextBillionCfg = NextBillionCfg
   { nextBillionDirectionsUrl :: BaseUrl,
     nextBillionKey :: EncryptedField 'AsEncrypted Text
   }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

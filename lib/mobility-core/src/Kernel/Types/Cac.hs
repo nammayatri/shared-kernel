@@ -10,6 +10,7 @@ import Kernel.Prelude
 import qualified Kernel.Storage.Hedis as Hedis
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.App
+import qualified Kernel.Types.CacheFlow as Fields
 import Kernel.Types.Error
 import Kernel.Types.TryException
 import Kernel.Utils.Common (CacheFlow, EsqDBFlow, logDebug, logError)

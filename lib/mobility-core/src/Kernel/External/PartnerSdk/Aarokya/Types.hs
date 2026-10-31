@@ -59,4 +59,4 @@ data AarokyaSdkConfig = AarokyaSdkConfig
   { url :: BaseUrl,
     basicToken :: EncryptedField 'AsEncrypted Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

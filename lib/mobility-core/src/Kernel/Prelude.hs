@@ -18,6 +18,8 @@ import Control.Arrow as E
 import qualified Control.Concurrent as Conc
 import Control.Concurrent.STM.TMVar as E (TMVar)
 import Control.Exception.Safe as E hiding (assert)
+import Control.Lens as E ((%~), (.~))
+import Control.Monad as E (filterM, foldM, foldM_, forever, guard, join, liftM2, mfilter, mplus, mzero, unless, when, zipWithM, (<=<))
 import Control.Monad.Reader as E
 import Control.Monad.Trans.Maybe as E
 import Data.Aeson as E (FromJSON (..), ToJSON (..), genericParseJSON, genericToJSON)
@@ -25,8 +27,9 @@ import Data.Bool as E (bool)
 import Data.Fixed
 import Data.Foldable as E
 import Data.Function as E hiding (id)
-import Data.Functor as E
+import Data.Functor as E hiding (unzip)
 import Data.Functor.Identity as E
+import Data.Generics.Product as E (HasField', field', setField)
 import Data.Kind as E (Type)
 import Data.List.NonEmpty as E (NonEmpty (..))
 import Data.Maybe as E
@@ -41,7 +44,7 @@ import Data.Time.Clock as E (NominalDiffTime, UTCTime)
 import Data.Traversable as E
 import GHC.Generics as E (Generic, Generic1)
 import GHC.Int as E (Int64)
-import GHC.Records.Compat as E
+import GHC.Records as E (HasField (getField))
 import GHC.Stack as E (HasCallStack)
 import Kernel.Prelude.OrphanInstances ()
 import Safe as E
@@ -135,9 +138,6 @@ infixl 1 =<<<
 (=<<<) :: (Traversable n, Monad m, Monad n) => (a -> m (n b)) -> m (n a) -> m (n b)
 (=<<<) a b = b >>>= a
 
-hoistMaybe :: Applicative m => Maybe b -> MaybeT m b
-hoistMaybe = MaybeT . pure
-
 (|<|>|) :: Monad m => m (Maybe a) -> m (Maybe a) -> m (Maybe a)
 (|<|>|) funcA funcB = do
   maybeA <- funcA
@@ -148,3 +148,6 @@ hoistMaybe = MaybeT . pure
 safeInit :: [a] -> [a]
 safeInit [] = []
 safeInit xs = init xs
+
+-- Use lens syntax for field update, because Data.Generics.HasField has only getter, not setter
+type HasFieldUpd s t f = (HasField s t f, HasField' s t f)

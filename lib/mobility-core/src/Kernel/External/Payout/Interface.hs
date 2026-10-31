@@ -18,6 +18,7 @@ module Kernel.External.Payout.Interface
 where
 
 import qualified Kernel.External.Payment.Interface as Payment
+import qualified Kernel.External.Payout.HdfcCbx.Config as Fields
 import qualified Kernel.External.Payout.Interface.HdfcCbx as HdfcCbx
 import qualified Kernel.External.Payout.Interface.Juspay as Juspay
 import qualified Kernel.External.Payout.Interface.Stripe as Stripe

@@ -22,9 +22,10 @@ import qualified Data.CaseInsensitive as CI
 import Data.String.Conversions
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Fmt
-import GHC.Records.Extra
+import GHC.Records
 import Kernel.Mock.App
 import Kernel.Prelude (lookup)
+import qualified Kernel.Types.Beckn.Context as Fields
 import Kernel.Types.Beckn.ReqTypes
 import Kernel.Types.Common
 import Kernel.Types.Error (GenericError (InternalError))

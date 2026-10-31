@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.38.3.
 --
 -- see: https://github.com/sol/hpack
 
@@ -741,7 +741,8 @@ library
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
+      OverloadedRecordDot
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -Wwarn=ambiguous-fields
   build-depends:
       aeson
     , aeson-casing
@@ -762,9 +763,11 @@ library
     , clickhouse-haskell
     , clock
     , concurrency
-    , connection
     , containers
-    , cryptonite
+    , crypton
+    , crypton-connection
+    , crypton-x509
+    , crypton-x509-store
     , data-default-class
     , deriving-aeson
     , dhall
@@ -815,8 +818,6 @@ library
     , prometheus-proc
     , random
     , random-strings
-    , record-dot-preprocessor
-    , record-hasfield
     , regex-compat
     , resource-pool
     , safe
@@ -857,8 +858,6 @@ library
     , wai-app-static
     , wai-middleware-prometheus
     , warp
-    , x509
-    , x509-store
     , xml-conduit
     , xml-types
     , xmlbf
@@ -903,7 +902,8 @@ executable master-cloud-forward-itest
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
+      OverloadedRecordDot
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -Wwarn=ambiguous-fields
   build-depends:
       aeson
     , aeson-casing
@@ -925,9 +925,11 @@ executable master-cloud-forward-itest
     , clickhouse-haskell
     , clock
     , concurrency
-    , connection
     , containers
-    , cryptonite
+    , crypton
+    , crypton-connection
+    , crypton-x509
+    , crypton-x509-store
     , data-default-class
     , deriving-aeson
     , dhall
@@ -979,8 +981,6 @@ executable master-cloud-forward-itest
     , prometheus-proc
     , random
     , random-strings
-    , record-dot-preprocessor
-    , record-hasfield
     , regex-compat
     , resource-pool
     , safe
@@ -1021,8 +1021,6 @@ executable master-cloud-forward-itest
     , wai-app-static
     , wai-middleware-prometheus
     , warp
-    , x509
-    , x509-store
     , xml-conduit
     , xml-types
     , xmlbf
@@ -1088,7 +1086,8 @@ test-suite mobility-core-tests
       BlockArguments
       TypeSynonymInstances
       UndecidableInstances
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -fplugin=RecordDotPreprocessor -Wwarn=ambiguous-fields
+      OverloadedRecordDot
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -Wwarn=ambiguous-fields
   build-depends:
       aeson
     , aeson-casing
@@ -1109,9 +1108,11 @@ test-suite mobility-core-tests
     , clickhouse-haskell
     , clock
     , concurrency
-    , connection
     , containers
-    , cryptonite
+    , crypton
+    , crypton-connection
+    , crypton-x509
+    , crypton-x509-store
     , data-default-class
     , deriving-aeson
     , dhall
@@ -1163,8 +1164,6 @@ test-suite mobility-core-tests
     , prometheus-proc
     , random
     , random-strings
-    , record-dot-preprocessor
-    , record-hasfield
     , regex-compat
     , resource-pool
     , safe
@@ -1205,8 +1204,6 @@ test-suite mobility-core-tests
     , wai-app-static
     , wai-middleware-prometheus
     , warp
-    , x509
-    , x509-store
     , xml-conduit
     , xml-types
     , xmlbf

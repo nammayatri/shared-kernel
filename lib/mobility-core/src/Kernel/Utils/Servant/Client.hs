@@ -26,7 +26,6 @@ import qualified Data.Text.Encoding as TE
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (id, notElem)
 import qualified EulerHS.Types as ET
-import GHC.Records.Extra (HasField)
 import Kernel.Prelude as KP
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common

@@ -8,6 +8,7 @@ where
 
 import qualified Data.Aeson as A
 import Kernel.External.Payment.Interface.Types (PaymentServiceConfig (..))
+import qualified Kernel.External.Payment.Stripe.Config as Fields
 import qualified Kernel.External.Payment.Stripe.Types.AccountWebhook as AccountWh
 import Kernel.External.Payment.Stripe.Types.Common (Event)
 import Kernel.External.Payment.Stripe.Webhook (verifyStripeWebhookSignature)

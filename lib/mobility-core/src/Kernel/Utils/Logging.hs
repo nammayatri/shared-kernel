@@ -35,7 +35,7 @@ module Kernel.Utils.Logging
 where
 
 import EulerHS.Prelude hiding (id)
-import GHC.Records.Extra
+import GHC.Records
 import Kernel.Types.Error.BaseError.HTTPError
 import Kernel.Types.GuidLike (generateGUID)
 import Kernel.Types.Id
@@ -122,7 +122,8 @@ logPretty ::
   a ->
   m ()
 logPretty logLevel description val = do
-  pretty <- asks (.loggerConfig.prettyPrinting)
+  loggerConfig :: LoggerConfig <- asks (.loggerConfig)
+  let pretty = loggerConfig.prettyPrinting
   let render =
         if pretty
           then renderViaPrettyShow

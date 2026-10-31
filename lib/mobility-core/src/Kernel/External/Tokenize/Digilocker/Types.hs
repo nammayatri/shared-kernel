@@ -28,7 +28,7 @@ data DigilockerTokenizeConfig = DigilockerTokenizeConfig
     clientSecret :: EncryptedField 'AsEncrypted Text,
     redirectUri :: Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data DigilockerTokenizeRequest = DigilockerTokenizeRequest

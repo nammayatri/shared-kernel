@@ -31,4 +31,4 @@ data ERSSCfg = ERSSCfg
     -- | Redis key prefix for token caching
     tokenKeyPrefix :: Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

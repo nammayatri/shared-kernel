@@ -29,4 +29,4 @@ data LMSCfg = LMSCfg
   { url :: BaseUrl, -- Base URL: https://api.sandbox.moving.tech/dev/dobpp/ui/plasma -- master plasma url (with baseUrlPath = "/")
     apiKey :: EncryptedField 'AsEncrypted Text -- Encrypted API key for LMS API
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

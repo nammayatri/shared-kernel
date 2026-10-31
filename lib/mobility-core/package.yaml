@@ -48,6 +48,7 @@ default-extensions:
   - BlockArguments
   - TypeSynonymInstances
   - UndecidableInstances
+  - OverloadedRecordDot
 
 dependencies:
   - aeson
@@ -57,11 +58,11 @@ dependencies:
   - clock
   - case-insensitive
   - containers
-  - cryptonite
+  - crypton
   - asn1-encoding
   - asn1-types
   - pem
-  - x509
+  - crypton-x509
   - data-default-class
   - double-conversion
   - directory
@@ -77,10 +78,10 @@ dependencies:
   - http-api-data
   - http-client
   - regex-compat
-  - connection
+  - crypton-connection
   - http-client-tls
   - tls
-  - x509-store
+  - crypton-x509-store
   - http-types
   - http-media
   - kleene
@@ -126,8 +127,6 @@ dependencies:
   - uuid
   - stm
   - unix
-  - record-hasfield
-  - record-dot-preprocessor
   - openapi3
   - fast-logger
   - persistent
@@ -169,8 +168,6 @@ dependencies:
   - insert-ordered-containers
   - split
   - bimap
-  - x509
-  - x509-store
 
 ghc-options:
   - -fwrite-ide-info
@@ -180,7 +177,6 @@ ghc-options:
   - -Widentities
   - -fhide-source-paths
   - -Werror
-  - -fplugin=RecordDotPreprocessor
   - -Wwarn=ambiguous-fields
 
 library:

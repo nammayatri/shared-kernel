@@ -69,7 +69,7 @@ castChargeToTransactionStatus CHARGE_UNCAPTURED = STARTED
 castChargeToTransactionStatus CHARGE_CANCELED = CANCELLED
 
 data PaymentServiceConfig = JuspayConfig Juspay.JuspayCfg | StripeConfig Stripe.StripeCfg | PaytmEDCConfig PaytmEDC.PaytmEDCCfg
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data CreateOrderReq = CreateOrderReq
   { orderId :: Text,

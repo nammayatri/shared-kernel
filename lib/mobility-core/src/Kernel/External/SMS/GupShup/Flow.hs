@@ -21,7 +21,8 @@ import Kernel.External.Encryption
 import qualified Kernel.External.SMS.GupShup.API as API
 import Kernel.External.SMS.GupShup.Config
 import Kernel.External.SMS.GupShup.Types
-  ( SubmitSmsRes,
+  ( SmsResponse (..),
+    SubmitSmsRes (..),
   )
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
