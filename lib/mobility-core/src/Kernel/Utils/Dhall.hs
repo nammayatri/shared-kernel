@@ -25,16 +25,36 @@ module Kernel.Utils.Dhall
 where
 
 import Data.Char (toUpper)
+import qualified Data.Either.Validation as V
+import qualified Data.Text.IO as TIO
 import Dhall hiding (map)
+import qualified Dhall.Core
+import qualified Dhall.Import
+import qualified Dhall.Parser
+import qualified Dhall.TypeCheck
 import EulerHS.Prelude
 import qualified EulerHS.Types as T
+import Kernel.Utils.Dhall.AwsKms (mkAwsKmsDecryptor)
+import Kernel.Utils.Dhall.KmsSecrets (decryptKmsSecrets)
 import Servant.Client (BaseUrl, Scheme, parseBaseUrl)
 import Servant.Client.Core (InvalidBaseUrlException (..))
 import System.Environment (lookupEnv)
+import System.FilePath (takeDirectory)
 
 -- | Reads config which lies under the given path.
 readDhallConfig :: FromDhall b => FilePath -> IO b
-readDhallConfig = inputFile auto
+readDhallConfig path = do
+  txt <- TIO.readFile path
+  parsed <- Dhall.Core.throws $ Dhall.Parser.exprFromText path txt
+  resolved <- Dhall.Import.loadRelativeTo (takeDirectory path) Dhall.Import.UseSemanticCache parsed
+  decryptor <- mkAwsKmsDecryptor
+  decrypted <- decryptKmsSecrets decryptor resolved
+  let decoder = auto
+  expectedType <- case expected decoder of
+    V.Success x -> pure x
+    V.Failure e -> throwM e
+  _ <- Dhall.Core.throws $ Dhall.TypeCheck.typeOf (Dhall.Core.Annot decrypted expectedType)
+  Dhall.Core.throws . toMonadic . extract decoder $ Dhall.Core.normalize decrypted
 
 -- | Reads config with a given type env. Gets application name as the second argument.
 -- E.g. if @appname@ is "mock-provider-backend" the function first looks into "MOCK_PROVIDER_BACKEND_CONFIG_PATH"
