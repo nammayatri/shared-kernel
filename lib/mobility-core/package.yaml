@@ -52,6 +52,9 @@ default-extensions:
 dependencies:
   - aeson
   - aeson-casing
+  - amazonka
+  - amazonka-core
+  - amazonka-kms
   - base >= 4.7 && < 5
   - bytestring
   - clock
@@ -101,6 +104,7 @@ dependencies:
   - parsec
   - passetto-client
   - random-strings
+  - resourcet
   - safe-exceptions
   - servant
   - servant-client

@@ -656,6 +656,8 @@ library
       Kernel.Utils.Context
       Kernel.Utils.DatastoreLatencyCalculator
       Kernel.Utils.Dhall
+      Kernel.Utils.Dhall.AwsKms
+      Kernel.Utils.Dhall.KmsSecrets
       Kernel.Utils.EmailOtpRateLimit
       Kernel.Utils.Error
       Kernel.Utils.Error.BaseError.HTTPError.APIError
@@ -745,6 +747,9 @@ library
   build-depends:
       aeson
     , aeson-casing
+    , amazonka
+    , amazonka-core
+    , amazonka-kms
     , asn1-encoding
     , asn1-types
     , base >=4.7 && <5
@@ -819,6 +824,7 @@ library
     , record-hasfield
     , regex-compat
     , resource-pool
+    , resourcet
     , safe
     , safe-exceptions
     , safe-money
@@ -907,6 +913,9 @@ executable master-cloud-forward-itest
   build-depends:
       aeson
     , aeson-casing
+    , amazonka
+    , amazonka-core
+    , amazonka-kms
     , asn1-encoding
     , asn1-types
     , async
@@ -983,6 +992,7 @@ executable master-cloud-forward-itest
     , record-hasfield
     , regex-compat
     , resource-pool
+    , resourcet
     , safe
     , safe-exceptions
     , safe-money
@@ -1039,6 +1049,7 @@ test-suite mobility-core-tests
       HdfcCbxMapping
       HedisClusterPipeline
       Jose
+      KmsSecrets
       MorthV2CryptoTests
       PartialIndexTests
       Predicates
@@ -1092,6 +1103,9 @@ test-suite mobility-core-tests
   build-depends:
       aeson
     , aeson-casing
+    , amazonka
+    , amazonka-core
+    , amazonka-kms
     , asn1-encoding
     , asn1-types
     , base >=4.7 && <5
@@ -1167,6 +1181,7 @@ test-suite mobility-core-tests
     , record-hasfield
     , regex-compat
     , resource-pool
+    , resourcet
     , safe
     , safe-exceptions
     , safe-money

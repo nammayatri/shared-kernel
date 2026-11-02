@@ -22,6 +22,7 @@ import EulerHS.Prelude
 import HdfcCbxMapping (hdfcCbxMappingTests)
 import HedisClusterPipeline (hedisClusterPipelineTests)
 import Jose (joseTests)
+import KmsSecrets (kmsSecretsTests)
 import MorthV2CryptoTests (morthV2CryptoTests)
 import PartialIndexTests
 import Predicates
@@ -58,5 +59,6 @@ specs = do
           settlementEmailTests,
           partialIndexTests,
           xyneSpacesTypeTests,
-          morthV2CryptoTests
+          morthV2CryptoTests,
+          kmsSecretsTests
         ]
