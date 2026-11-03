@@ -104,6 +104,10 @@ library
       Kernel.External.GoogleTranslate.API
       Kernel.External.GoogleTranslate.Client
       Kernel.External.GoogleTranslate.Types
+      Kernel.External.Grid
+      Kernel.External.Grid.Error
+      Kernel.External.Grid.Flow
+      Kernel.External.Grid.Types
       Kernel.External.GSTEInvoice.CharteredInfo.Flow
       Kernel.External.GSTEInvoice.CharteredInfo.Types
       Kernel.External.GSTEInvoice.Interface
