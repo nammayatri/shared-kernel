@@ -21,6 +21,7 @@ where
 import qualified Data.Aeson as A
 import qualified Data.HashMap.Internal as HMI
 import qualified Data.HashMap.Strict as HM
+import qualified Data.HashSet as HS
 import Data.List (init, lookup, (!!))
 import Data.List.Extra (anySame)
 import qualified Data.Map.Strict as M
@@ -69,7 +70,11 @@ emptyValueHashMap = M.empty
 --   key erased valid results of other keys (driver dues incident, 2026-07).
 --
 --   e.g. @SKeyPartial [('status, "ACTIVE")]@ maintains the set only for ACTIVE rows (status_ACTIVE).
-data SKeyPartial = SKeyPartial [(Name, String)]
+data SKeyPartial = SKeyPartial [(Name, String)] | SKeyPartialNot [(Name, String)]
+
+partialSKeyPins :: SKeyPartial -> [(Name, String)]
+partialSKeyPins (SKeyPartial pins) = pins
+partialSKeyPins (SKeyPartialNot pins) = pins
 
 -- | Collapse a pin list to one entry per field: @[('status, "A"), ('status, "B")]@ becomes
 --   @[('status, ["A", "B"])]@ (field pinned to any of the values).
@@ -84,7 +89,7 @@ groupPins = foldr insertPin []
 
 -- | Default for almost every table. Output is identical to before.
 enableKVPG :: Name -> [Name] -> [[Name]] -> Q [Dec]
-enableKVPG name pKeyN sKeysN = kvpgDecs name pKeyN (map (\cols -> (cols, [])) sKeysN)
+enableKVPG name pKeyN sKeysN = kvpgDecs name pKeyN (map (\cols -> (cols, [])) sKeysN) []
 
 -- | Like 'enableKVPG' but the table can also declare partial (pinned) secondary keys. Plain keys are
 --   the usual @[[Name]]@; partial keys go in the second list (pass @[]@ when there are none).
@@ -96,16 +101,36 @@ enableKVPGWithPartialIndex :: Name -> [Name] -> [[Name]] -> [SKeyPartial] -> Q [
 enableKVPGWithPartialIndex name pKeyN plainSKeys partialSKeys = do
   -- A pin spanning two different fields would put a composite key in keyMap with no pin metadata
   -- (pinnedKeyMap is single-field), recreating the empty-set intersection bug. Reject at compile time.
-  forM_ partialSKeys $ \(SKeyPartial pins) ->
+  forM_ partialSKeys $ \partialSKey -> do
+    let pins = partialSKeyPins partialSKey
     when (P.length (groupPins pins) /= 1) $
       fail $ "SKeyPartial on " <> nameBase name <> " must pin exactly one field (several values for that field are allowed); got fields: " <> show (map (splitColon . nameBase . fst) pins)
-  kvpgDecs name pKeyN (map (\cols -> (cols, [])) plainSKeys ++ map (\(SKeyPartial pins) -> (map fst (groupPins pins), pins)) partialSKeys)
+  let pinnedSKeys = [pins | SKeyPartial pins <- partialSKeys]
+      excludedSKeys = foldr mergeExcluded [] (concatMap groupPins [pins | SKeyPartialNot pins <- partialSKeys])
+      pinnedFields = map (fieldStr . fst) (concatMap groupPins pinnedSKeys)
+      plainSingleFields = [fieldStr col | [col] <- plainSKeys]
+      primaryFields = map fieldStr pKeyN
+  forM_ excludedSKeys $ \(excludedName, _) -> do
+    let excludedField = fieldStr excludedName
+    when (excludedField `elem` primaryFields) $
+      fail $ "SKeyPartialNot on " <> nameBase name <> " cannot target the primary key field " <> excludedField
+    when (excludedField `elem` plainSingleFields) $
+      fail $ "SKeyPartialNot on " <> nameBase name <> " targets " <> excludedField <> " which is also a plain secondary key; keep only the SKeyPartialNot"
+    when (excludedField `elem` pinnedFields) $
+      fail $ "SKeyPartialNot on " <> nameBase name <> " targets " <> excludedField <> " which is also pinned by SKeyPartial; use only one of them"
+  kvpgDecs name pKeyN (map (\cols -> (cols, [])) plainSKeys ++ map (\pins -> (map fst (groupPins pins), pins)) pinnedSKeys) excludedSKeys
+  where
+    fieldStr = splitColon . nameBase
+    mergeExcluded (f, vs) acc =
+      if any ((== fieldStr f) . fieldStr . fst) acc
+        then map (\(g, ws) -> if fieldStr g == fieldStr f then (g, vs <> filter (`notElem` vs) ws) else (g, ws)) acc
+        else (f, vs) : acc
 
 -- | Shared by both entry points. A secondary key is @(cols, pins)@: empty pins = plain, non-empty = partial.
-kvpgDecs :: Name -> [Name] -> [([Name], [(Name, String)])] -> Q [Dec]
-kvpgDecs name pKeyN sKeySpecs = do
+kvpgDecs :: Name -> [Name] -> [([Name], [(Name, String)])] -> [(Name, [String])] -> Q [Dec]
+kvpgDecs name pKeyN sKeySpecs excludedSKeys = do
   [tModeMeshSig, tModeMeshDec] <- tableTModMeshD name
-  [kvConnectorDec] <- kvConnectorInstancesD name pKeyN sKeySpecs
+  [kvConnectorDec] <- kvConnectorInstancesD name pKeyN sKeySpecs excludedSKeys
   [meshMetaDec] <- meshMetaInstancesDPG name
   sqlObjectToJSONInstance <- mkSQLObjectToJSONInstance name
   pure [tModeMeshSig, tModeMeshDec, meshMetaDec, kvConnectorDec, sqlObjectToJSONInstance] -- ++ cerealDec
@@ -128,12 +153,15 @@ tableTModMeshD name = do
 --   primaryKey :: table -> PrimaryKey
 --   secondaryKeys:: table -> [SecondaryKey]
 -- sKeySpecs: one (cols, pins) per secondary key; empty pins = plain, non-empty = partial.
-kvConnectorInstancesD :: Name -> [Name] -> [([Name], [(Name, String)])] -> Q [Dec]
-kvConnectorInstancesD name pKeyN sKeySpecs = do
+kvConnectorInstancesD :: Name -> [Name] -> [([Name], [(Name, String)])] -> [(Name, [String])] -> Q [Dec]
+kvConnectorInstancesD name pKeyN sKeySpecs excludedSKeys = do
   let pKey = sortAndGetKey pKeyN
       sKeys = filter (\k -> pKey /= sortAndGetKey (fst k)) sKeySpecs
       pKeyPair = TupE [Just $ LitE $ StringL pKey, Just $ ConE 'True]
       sKeyPairs = map (\k -> TupE [Just $ LitE $ StringL $ sortAndGetKey (fst k), Just $ ConE 'False]) sKeys
+      excludedKeyPairs = map (\(f, _) -> TupE [Just $ LitE $ StringL $ sortAndGetKey [f], Just $ ConE 'False]) excludedSKeys
+      mkExcludedFilterPairE (f, vals) =
+        TupE [Just $ keyNameTextE f, Just $ AppE (ConE 'KV.SKeyExclude) (AppE (VarE 'HS.fromList) (ListE (map (AppE (VarE 'T.pack) . LitE . StringL) vals)))]
       -- pinnedKeyMap entries: single-field pinned keys only, and only when the field has no plain
       -- skey spec as well (a plain spec keeps the set complete for every value, so the field may
       -- keep behaving as a regular key and must not be restricted by the pin). Values are merged
@@ -151,29 +179,35 @@ kvConnectorInstancesD name pKeyN sKeySpecs = do
       mkPinnedPairE (fieldName, vals) =
         TupE [Just $ AppE (VarE 'T.pack) (LitE $ StringL fieldName), Just $ ListE (map (AppE (VarE 'T.pack) . LitE . StringL) vals)]
   let tableNameD = FunD 'KV.tableName [Clause [] (NormalB (LitE (StringL $ init $ camel (nameBase name)))) []]
-      keyMapD = FunD 'KV.keyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (pKeyPair : sKeyPairs)))) []]
+      keyMapD = FunD 'KV.keyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (pKeyPair : sKeyPairs <> excludedKeyPairs)))) []]
       pinnedKeyMapD = FunD 'KV.pinnedKeyMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE pinnedPairs))) []]
+      skeyFilterMapD = FunD 'KV.skeyFilterMap [Clause [] (NormalB (AppE (VarE 'HM.fromList) (ListE (map mkExcludedFilterPairE excludedSKeys)))) []]
       primaryKeyD = FunD 'KV.primaryKey [Clause [] (NormalB getPrimaryKeyE) []]
       secondaryKeysD = FunD 'KV.secondaryKeys [Clause [] (NormalB getSecondaryKeysE) []]
   mkSQLObjectD <- genMkSQLObjectD name
-  return [InstanceD Nothing [] (AppT (ConT ''KV.KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) ([tableNameD, keyMapD] <> [pinnedKeyMapD | not (null pinnedPairs)] <> [primaryKeyD, secondaryKeysD, mkSQLObjectD])]
+  return [InstanceD Nothing [] (AppT (ConT ''KV.KVConnector) (AppT (ConT name) (ConT $ mkName "Identity"))) ([tableNameD, keyMapD] <> [pinnedKeyMapD | not (null pinnedPairs)] <> [skeyFilterMapD | not (null excludedSKeys)] <> [primaryKeyD, secondaryKeysD, mkSQLObjectD])]
   where
     getPrimaryKeyE =
       let obj = mkName "obj"
        in LamE [VarP obj] (AppE (ConE 'KV.PKey) (ListE (map (\n -> TupE [Just $ keyNameTextE n, Just $ getRecFieldE n obj]) pKeyN)))
     getSecondaryKeysE
-      | null sKeySpecs || all (null . fst) sKeySpecs = LamE [WildP] (ListE [])
+      | null excludedSKeys && (null sKeySpecs || all (null . fst) sKeySpecs) = LamE [WildP] (ListE [])
       -- All plain: emit the historical @[SKey ...]@ form unchanged (byte-identical output).
-      | all (null . snd) sKeySpecs =
+      | null excludedSKeys && all (null . snd) sKeySpecs =
         let obj = mkName "obj"
          in LamE [VarP obj] (ListE $ map (\spec -> skeyExprE obj (fst spec)) sKeySpecs)
       -- At least one pinned key: @concat@ of per-key lists (a singleton, or [] when the pin fails).
       | otherwise =
         let obj = mkName "obj"
-         in LamE [VarP obj] (AppE (VarE 'concat) (ListE $ map (perSpecListE obj) sKeySpecs))
+         in LamE [VarP obj] (AppE (VarE 'concat) (ListE $ map (perSpecListE obj) sKeySpecs <> map (excludedSpecListE obj) excludedSKeys))
     perSpecListE obj spec = case snd spec of
       [] -> ListE [skeyExprE obj (fst spec)]
       pins -> CondE (gateE obj pins) (ListE [skeyExprE obj (fst spec)]) (ListE [])
+    excludedSpecListE obj (f, vals) =
+      CondE
+        (AppE (VarE 'not) (AppE (AppE (VarE 'elem) (getRecFieldE f obj)) (ListE $ map (AppE (VarE 'T.pack) . LitE . StringL) vals)))
+        (ListE [skeyExprE obj [f]])
+        (ListE [])
     -- Per pinned field: @utilTransform (field obj) `elem` [pinned values]@, AND'ed across fields.
     gateE obj pins =
       AppE (VarE 'and) $
