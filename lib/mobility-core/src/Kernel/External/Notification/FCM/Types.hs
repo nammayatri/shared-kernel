@@ -938,6 +938,7 @@ data Aps = Aps
   { timestamp :: Int,
     alert :: Maybe Alert,
     dismissal_date :: Maybe Int,
+    stale_date :: Maybe Int,
     content_available :: Int,
     event :: Text,
     content_state :: LiveActivityContentState
@@ -953,10 +954,12 @@ instance FromJSON Aps where
 jsonApsData :: Options
 jsonApsData =
   defaultOptions
-    { fieldLabelModifier = \case
+    { omitNothingFields = True,
+      fieldLabelModifier = \case
         "content_available" -> "content-available"
         "content_state" -> "content-state"
         "dismissal_date" -> "dismissal-date"
+        "stale_date" -> "stale-date"
         other -> other
     }
 
