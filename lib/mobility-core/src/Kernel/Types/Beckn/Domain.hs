@@ -39,6 +39,7 @@ data Domain
   | PARKING
   | PUBLIC_TRANSPORT
   | LOGISTICS
+  | RSF -- ONDC Reconciliation and Settlement Framework (receiver_recon / on_receiver_recon)
   deriving (Eq, Generic, Show, Read, FromDhall, ToSchema, Ord, ToParamSchema)
   deriving (PrettyShow) via Showable Domain
 
@@ -57,6 +58,7 @@ instance FromJSON Domain where
   parseJSON (String "nic2004:63031") = pure PARKING
   parseJSON (String "ONDC:TRV11") = pure PUBLIC_TRANSPORT
   parseJSON (String "nic2004:60232") = pure LOGISTICS
+  parseJSON (String "ONDC:NTS10") = pure RSF
   parseJSON (String _) = parseFail "Invalid Domain"
   parseJSON e = typeMismatch "String" e
 
@@ -67,4 +69,5 @@ instance ToJSON Domain where
   toJSON PARKING = String "nic2004:63031"
   toJSON PUBLIC_TRANSPORT = String "ONDC:TRV11"
   toJSON LOGISTICS = String "nic2004:60232"
+  toJSON RSF = String "ONDC:NTS10"
   toJSON _ = error "Invalid Domain"
