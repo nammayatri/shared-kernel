@@ -19,15 +19,9 @@
 -- while the config is loaded. Values without the prefix are left untouched, so plain and
 -- encrypted values can live side by side and be migrated one field at a time.
 --
--- The decryption is bound to an encryption context made of a single label:
---
---   * @field@ - the path of the value inside the secrets file, built from the record keys
---     and @let@ names that lead to it, joined with dots (e.g. @dbPassword@ or
---     @ondcTokenMap.mapValue.token@)
---
--- so a ciphertext copied into another field fails to decrypt. The application name is
--- deliberately not part of it: one secrets file is imported by several apps (for example the
--- driver app, its allocator and its drainer), and all of them must be able to decrypt it.
+-- No encryption context is used, so a ciphertext decrypts wherever it appears in a config.
+-- That keeps it independent of how the secrets file is imported (the path of a value changes
+-- with the @let@ names of every file that imports it).
 --
 -- This module only knows how to find and rewrite the values. The actual call to a KMS
 -- is injected as a 'KmsDecryptor' (see "Kernel.Utils.Dhall.AwsKms").
@@ -43,13 +37,11 @@ import qualified Data.ByteString as BS
 import qualified "base64-bytestring" Data.ByteString.Base64 as B64
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Dhall.Core (Binding (variable), Chunks (..), Expr (..), RecordField (..), bindingExprs, subExpressions)
-import qualified Dhall.Map
+import Dhall.Core (Chunks (..), Expr (..), subExpressions)
 import Kernel.Prelude
 
--- | Decrypts one ciphertext. Gets the encryption context as key/value pairs and the raw
--- (already base64-decoded) ciphertext, returns the raw plaintext.
-type KmsDecryptor = [(Text, Text)] -> BS.ByteString -> IO BS.ByteString
+-- | Decrypts one ciphertext. Gets the raw (already base64-decoded) ciphertext, returns the raw plaintext.
+type KmsDecryptor = BS.ByteString -> IO BS.ByteString
 
 -- | Raised when an encrypted config value can not be decrypted. The message never contains
 -- the ciphertext or the plaintext.
@@ -63,27 +55,17 @@ kmsPrefix :: Text
 kmsPrefix = "kms:"
 
 decryptKmsSecrets :: KmsDecryptor -> Expr s a -> IO (Expr s a)
-decryptKmsSecrets decryptor = go []
+decryptKmsSecrets decryptor = go
   where
-    -- @path@ holds the record keys and let names leading to the current expression.
-    go path expr = case expr of
+    go expr = case expr of
       TextLit (Chunks [] txt)
         | Just payload <- T.stripPrefix kmsPrefix txt ->
-          TextLit . Chunks [] <$> decryptValue path payload
-      RecordLit fields ->
-        RecordLit
-          <$> Dhall.Map.traverseWithKey
-            (\key recordField -> (\v -> recordField {recordFieldValue = v}) <$> go (path ++ [key]) (recordFieldValue recordField))
-            fields
-      Let binding body ->
-        Let <$> bindingExprs (go (path ++ [variable binding])) binding <*> go path body
-      _ -> subExpressions (go path) expr
+          TextLit . Chunks [] <$> decryptValue payload
+      _ -> subExpressions go expr
 
-    decryptValue path payload = do
-      let field = T.intercalate "." path
-          failWith :: Text -> IO x
-          failWith reason = throwIO . KmsSecretError $ "Can't decrypt config value for field=" <> field <> ": " <> reason
-      when (null path) $ failWith "value is not inside a named field"
+    decryptValue payload = do
+      let failWith :: Text -> IO x
+          failWith reason = throwIO . KmsSecretError $ "Can't decrypt kms: config value: " <> reason
       ciphertext <- either (const $ failWith "value after 'kms:' is not valid base64") pure $ B64.decode (TE.encodeUtf8 (T.strip payload))
-      plaintext <- decryptor [("field", field)] ciphertext
+      plaintext <- decryptor ciphertext
       either (const $ failWith "decrypted value is not valid UTF-8") pure $ TE.decodeUtf8' plaintext

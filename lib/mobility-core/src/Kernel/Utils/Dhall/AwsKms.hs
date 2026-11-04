@@ -25,9 +25,8 @@ where
 import qualified Amazonka
 import qualified Amazonka.KMS as KMS
 import qualified Amazonka.KMS.Lens as KMS
-import Control.Lens ((?~), (^.))
+import Control.Lens ((^.))
 import Control.Monad.Trans.Resource (runResourceT)
-import qualified Data.HashMap.Strict as HM
 import qualified Data.IORef as IORef
 import Kernel.Prelude
 import Kernel.Utils.Dhall.KmsSecrets (KmsDecryptor, KmsSecretError (..))
@@ -46,9 +45,9 @@ mkAwsKmsDecryptor = do
             env <- Amazonka.newEnv Amazonka.discover
             IORef.writeIORef envRef (Just env)
             pure env
-  pure $ \encryptionContext ciphertext -> withRetries decryptAttempts $ do
+  pure $ \ciphertext -> withRetries decryptAttempts $ do
     env <- getEnv
-    let request = (KMS.decrypt_encryptionContext ?~ HM.fromList encryptionContext) (KMS.newDecrypt ciphertext)
+    let request = KMS.newDecrypt ciphertext
     response <- runResourceT $ Amazonka.send env request
     case response ^. KMS.decryptResponse_plaintext of
       Just plaintext -> pure plaintext

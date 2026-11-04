@@ -30,10 +30,10 @@ import Test.Tasty.HUnit
 
 type Cfg = Expr () V.Void
 
--- | A fake "KMS": the ciphertext is the plaintext reversed. Records every encryption context it is asked with.
-fakeDecryptor :: IORef.IORef [[(Text, Text)]] -> KmsDecryptor
-fakeDecryptor seen ctx ciphertext = do
-  IORef.modifyIORef seen (ctx :)
+-- | A fake "KMS": the ciphertext is the plaintext reversed. Counts how often it is called.
+fakeDecryptor :: IORef.IORef Int -> KmsDecryptor
+fakeDecryptor calls ciphertext = do
+  IORef.modifyIORef calls (+ 1)
   pure (BS.reverse ciphertext)
 
 fakeEncrypt :: Text -> Text
@@ -50,59 +50,49 @@ kmsSecretsTests =
   testGroup
     "KMS secrets in dhall configs"
     [ decryptsOnlyPrefixedValues,
-      bindsValueToAppAndField,
-      usesFullFieldPath,
-      includesLetNamesInPath,
+      decryptsNestedFields,
+      decryptsInsideLetBindings,
       plainConfigNeverCallsKms,
       rejectsInvalidBase64
     ]
 
 decryptsOnlyPrefixedValues :: TestTree
 decryptsOnlyPrefixedValues = testCase "decrypts kms: values and leaves plain values untouched" $ do
-  seen <- IORef.newIORef []
+  seen <- IORef.newIORef 0
   let input = record [("dbPassword", txt (fakeEncrypt "hunter2")), ("host", txt "localhost")]
   result <- decryptKmsSecrets (fakeDecryptor seen) input
   result @?= record [("dbPassword", txt "hunter2"), ("host", txt "localhost")]
 
-bindsValueToAppAndField :: TestTree
-bindsValueToAppAndField = testCase "passes only the field path as the encryption context" $ do
-  seen <- IORef.newIORef []
-  let input = record [("dbPassword", txt (fakeEncrypt "hunter2"))]
-  _ <- decryptKmsSecrets (fakeDecryptor seen) input
-  contexts <- IORef.readIORef seen
-  contexts @?= [[("field", "dbPassword")]]
-
-usesFullFieldPath :: TestTree
-usesFullFieldPath = testCase "uses the full path of nested record fields" $ do
-  seen <- IORef.newIORef []
+decryptsNestedFields :: TestTree
+decryptsNestedFields = testCase "decrypts nested record fields" $ do
+  seen <- IORef.newIORef 0
   let input = record [("secrets", record [("apiKey", txt (fakeEncrypt "k"))])]
   result <- decryptKmsSecrets (fakeDecryptor seen) input
   result @?= record [("secrets", record [("apiKey", txt "k")])]
-  contexts <- IORef.readIORef seen
-  contexts @?= [[("field", "secrets.apiKey")]]
 
 plainConfigNeverCallsKms :: TestTree
 plainConfigNeverCallsKms = testCase "a config without kms: values never calls KMS" $ do
-  seen <- IORef.newIORef []
+  seen <- IORef.newIORef 0
   let input = record [("password", txt "plain"), ("port", txt "5432")]
   result <- decryptKmsSecrets (fakeDecryptor seen) input
   result @?= input
-  contexts <- IORef.readIORef seen
-  contexts @?= []
+  calls <- IORef.readIORef seen
+  calls @?= 0
 
 rejectsInvalidBase64 :: TestTree
 rejectsInvalidBase64 = testCase "fails clearly when the value after kms: is not base64" $ do
-  seen <- IORef.newIORef []
+  seen <- IORef.newIORef 0
   let input = record [("dbPassword", txt (kmsPrefix <> "not base64 !!"))]
   result <- try (decryptKmsSecrets (fakeDecryptor seen) input)
   case result of
-    Left (KmsSecretError msg) -> assertBool "error names the field" ("dbPassword" `T.isInfixOf` msg)
+    Left (KmsSecretError msg) -> assertBool "error mentions base64" ("base64" `T.isInfixOf` msg)
     Right _ -> assertFailure "expected a KmsSecretError"
 
-includesLetNamesInPath :: TestTree
-includesLetNamesInPath = testCase "includes let-bound names in the field path" $ do
-  seen <- IORef.newIORef []
-  let input = Let (makeBinding "tokens" (record [("token", txt (fakeEncrypt "t"))])) (txt "body")
-  _ <- decryptKmsSecrets (fakeDecryptor seen) input
-  contexts <- IORef.readIORef seen
-  contexts @?= [[("field", "tokens.token")]]
+decryptsInsideLetBindings :: TestTree
+decryptsInsideLetBindings = testCase "decrypts values inside let bindings, whatever the binding is called" $ do
+  seen <- IORef.newIORef 0
+  let input name = Let (makeBinding name (record [("token", txt (fakeEncrypt "t"))])) (txt "body")
+  r1 <- decryptKmsSecrets (fakeDecryptor seen) (input "tokens")
+  r2 <- decryptKmsSecrets (fakeDecryptor seen) (input "other")
+  r1 @?= Let (makeBinding "tokens" (record [("token", txt "t")])) (txt "body")
+  r2 @?= Let (makeBinding "other" (record [("token", txt "t")])) (txt "body")
