@@ -394,11 +394,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793110090,
-        "narHash": "sha256-Nh8jM3v4qJGmxWrNr+9RXyL8NBXLjwbQWmD7648qzis=",
+        "lastModified": 1793883514,
+        "narHash": "sha256-FvXmTufS2W1/P7/P7mH7I1z0x8KI4qY0zIJzvDxcON0=",
         "owner": "nammayatri",
         "repo": "euler-hs",
-        "rev": "52ed72ad9db26428c0cb58ba5a94685477a5bae3",
+        "rev": "563049b193a6662cff883010df1dd0a9efc90647",
         "type": "github"
       },
       "original": {
