@@ -21,6 +21,7 @@ module Kernel.Beam.Functions
     findOneWithDb, -- not used
     findAllWithDb,
     findAllWithOptionsDb,
+    updateWithDb,
     updateWithKV,
     updateWithKVScheduler,
     updateOneWithKV,
@@ -582,6 +583,14 @@ findAllWithOptionsDb ::
 findAllWithOptionsDb = findAllWithOptionsInternal meshConfig fromTType'
 
 -- update --
+
+updateWithDb ::
+  forall table m r.
+  (BeamTableFlow table m, EsqDBFlow m r) =>
+  [Set Postgres table] ->
+  Where Postgres table ->
+  m ()
+updateWithDb = updateInternal meshConfig
 
 updateWithKV ::
   forall table m r.
