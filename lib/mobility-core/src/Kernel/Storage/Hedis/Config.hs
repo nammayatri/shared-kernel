@@ -24,6 +24,7 @@ import Kernel.Types.Logging
 import Kernel.Types.Time
 import Kernel.Types.TryException
 import Kernel.Types.Version (CloudType)
+import Kernel.Utils.ConnectRetry (withConnectRetry)
 import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
@@ -74,7 +75,7 @@ withHedisEnv cfg keyModifier = C.bracket (connectHedis cfg keyModifier) disconne
 
 connectHedisCluster :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
 connectHedisCluster cfg keyModifier = do
-  conn <- connectCluster connectInfo
+  conn <- withConnectRetry "redis cluster" $ connectCluster connectInfo
   return $
     HedisEnv
       { hedisConnection = conn,
@@ -96,7 +97,7 @@ connectHedisCluster cfg keyModifier = do
 
 connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
 connectHedis cfg keyModifier = do
-  conn <- checkedConnect connectInfo
+  conn <- withConnectRetry "redis" $ checkedConnect connectInfo
   return $
     HedisEnv
       { hedisConnection = conn,
