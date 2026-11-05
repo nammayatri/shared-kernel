@@ -49,7 +49,7 @@ data FleetEngineCfg = FleetEngineCfg
     -- | TTL (seconds) for server-to-server tokens; defaults to 'defaultServerTokenTtl'
     serverTokenTtlSeconds :: Maybe Integer
   }
-  deriving (Generic, Show, Eq, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 defaultConsumerTokenTtl :: Integer
 defaultConsumerTokenTtl = 15 * 60

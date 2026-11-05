@@ -26,4 +26,4 @@ data GJ112Cfg = GJ112Cfg
     clientCode :: Text,
     tokenKeyPrefix :: Text
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

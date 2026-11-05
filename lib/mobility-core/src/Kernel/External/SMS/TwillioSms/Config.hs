@@ -23,4 +23,4 @@ data TwillioSmsCfg = TwillioSmsCfg
     authToken :: EncryptedField 'AsEncrypted Text,
     url :: BaseUrl
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)

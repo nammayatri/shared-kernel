@@ -27,7 +27,7 @@ data MorthVerificationCfg = MorthVerificationCfg
     apiKey :: EncryptedField 'AsEncrypted Text,
     applicantMobile :: Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 -- ---------------------------------------------------------------------------
