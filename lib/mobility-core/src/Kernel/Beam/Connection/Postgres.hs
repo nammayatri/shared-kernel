@@ -11,6 +11,7 @@ import Kernel.Beam.Types
 import qualified Kernel.Beam.Types as KBT
 import qualified Kernel.Storage.Esqueleto.Config as KSEC
 import qualified Kernel.Types.Common as KTC
+import Kernel.Utils.ConnectRetry (getConnectRetryPolicy, withConnectRetryPolicy)
 
 prepareDBConnectionsDriver :: L.MonadFlow m => ECT.ConnectionConfigDriver -> m ()
 prepareDBConnectionsDriver ECT.ConnectionConfigDriver {..} = do
@@ -81,6 +82,9 @@ prepareDashboardDbConnections conf mbReplicaConf = do
 
 preparePSqlConnection :: L.MonadFlow m => (ET.OptionEntity a (ET.DBConfig BP.Pg)) => Text -> a -> KSEC.EsqDBConfig -> m ()
 preparePSqlConnection pgConnName psqlDBCfgId KSEC.EsqDBConfig {..} = do
+  mbRetryPolicy <- L.runIO getConnectRetryPolicy
+  whenJust mbRetryPolicy $ \retryPolicy ->
+    L.runIO $ withConnectRetryPolicy retryPolicy ("postgres " <> T.unpack pgConnName) $ bracket (ET.createPostgresConn pgConf) BP.close (const $ pure ())
   poolConf <- L.runIO postgresPoolConfig
   let psqlDbCfg = ET.mkPostgresPoolConfig pgConnName pgConf poolConf
   ePoolPsql <- L.initSqlDBConnection psqlDbCfg

@@ -657,6 +657,7 @@ library
       Kernel.Utils.Callback
       Kernel.Utils.Common
       Kernel.Utils.ComputeIntersection
+      Kernel.Utils.ConnectRetry
       Kernel.Utils.Context
       Kernel.Utils.DatastoreLatencyCalculator
       Kernel.Utils.Dhall
