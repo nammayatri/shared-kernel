@@ -33,6 +33,7 @@ module Kernel.Beam.Functions
     deleteWithKV,
     deleteWithDb, -- not used
     findAllWithKVAndConditionalDB,
+    findAllWithKVInBatch,
     findOneWithKVRedis,
     logQueryData,
     findAllFromKvRedis,
@@ -496,6 +497,31 @@ findAllWithKVAndConditionalDB where' orderBy = withUpdatedMeshConfig (Proxy @tab
   case result of
     Right res -> do
       fromTTypeRows (modelTableName @table) fromTType' res
+    Left err -> throwError $ InternalError $ show err
+
+-- | Redis-first find-all for an IN list over one key column. Postgres is queried only for the
+-- requested keys with no live KV row, instead of on every call as 'findAllWithKV' does.
+-- A key with a live KV row is taken as complete, so use it where the clause returns at most one row per key.
+findAllWithKVInBatch ::
+  forall table m r a.
+  ( BeamTableFlow table m,
+    CacheFlow m r,
+    EsqDBFlow m r,
+    FromTType' (table Identity) a
+  ) =>
+  Where Postgres table ->
+  -- | The row's value for the key column
+  (table Identity -> Text) ->
+  -- | The requested key values (the IN list)
+  [Text] ->
+  -- | The clause for a subset of the key values
+  ([Text] -> Where Postgres table) ->
+  m [a]
+findAllWithKVInBatch where' rowKey keys mkWhere = withUpdatedMeshConfigForFindAll (Proxy @table) $ \updatedMeshConfig -> do
+  dbConf' <- getReadDBConfigInternal (modelTableName @table)
+  result <- KV.findAllWithKVInBatchConnector dbConf' updatedMeshConfig where' rowKey keys mkWhere
+  case result of
+    Right res -> fromTTypeRows (modelTableName @table) fromTType' res
     Left err -> throwError $ InternalError $ show err
 
 findAllFromKvRedis ::
