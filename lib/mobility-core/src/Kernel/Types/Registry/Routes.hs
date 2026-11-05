@@ -14,6 +14,7 @@
 
 module Kernel.Types.Registry.Routes where
 
+import Data.Aeson (Value)
 import EulerHS.Prelude
 import qualified Kernel.Types.Registry.API as API
 import Servant
@@ -25,3 +26,12 @@ type LookupAPI =
 
 lookupAPI :: Proxy LookupAPI
 lookupAPI = Proxy
+
+-- | Same as 'LookupAPI', but raw JSON so one bad entry can't fail the batch.
+type LookupAPIRaw =
+  "lookup"
+    :> ReqBody '[JSON] API.LookupRequest
+    :> Post '[JSON] [Value]
+
+lookupAPIRaw :: Proxy LookupAPIRaw
+lookupAPIRaw = Proxy
