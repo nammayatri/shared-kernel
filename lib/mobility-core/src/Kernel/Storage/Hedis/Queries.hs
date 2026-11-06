@@ -906,8 +906,9 @@ withWaitAndLockMasterCloudCrossAppRedis datastoreName operationName key timeout 
   where
     getLock = do
       lockAvailable <- tryLockRedis key timeout
-      threadDelay delay
-      unless lockAvailable getLock
+      unless lockAvailable $ do
+        threadDelay delay
+        getLock
 
 buildLockResourceName :: (IsString a) => Text -> a
 buildLockResourceName key = fromString $ "mobility:locker:" <> Text.unpack key
