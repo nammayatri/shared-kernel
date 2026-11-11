@@ -85,7 +85,7 @@ import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Common
-import Kernel.Utils.Forkable (runWithFallbackAndTimeout)
+import Kernel.Utils.Forkable (runWithFallbackAndTimeout, runWithFallbackAndTimeoutWithDefault)
 
 verifyDL ::
   ( EncFlow m r,
@@ -399,7 +399,7 @@ extractRCImage ImageExtractionHandler {..} req = do
   timeoutInSec <- getProviderTimeout
   when (null providers) $
     throwError (InternalError "extractRCImage: No image extraction provider configured in the priority list")
-  runWithFallbackAndTimeout "extractRCImage" providers timeoutInSec (isJust . (.extractedRC)) $ \provider -> do
+  runWithFallbackAndTimeoutWithDefault "extractRCImage" providers timeoutInSec (isJust . (.extractedRC)) (pure $ ExtractRCImageResp Nothing Nothing) $ \provider -> do
     serviceConfig <- getProviderConfig provider
     case serviceConfig of
       EkatraConfig cfg -> Ekatra.extractRCImage cfg req
@@ -430,7 +430,7 @@ extractDLImage ImageExtractionHandler {..} req = do
   timeoutInSec <- getProviderTimeout
   when (null providers) $
     throwError (InternalError "extractDLImage: No image extraction provider configured in the priority list")
-  runWithFallbackAndTimeout "extractDLImage" providers timeoutInSec (isJust . (.extractedDL)) $ \provider -> do
+  runWithFallbackAndTimeoutWithDefault "extractDLImage" providers timeoutInSec (isJust . (.extractedDL)) (pure $ ExtractDLImageResp Nothing Nothing) $ \provider -> do
     serviceConfig <- getProviderConfig provider
     case serviceConfig of
       EkatraConfig cfg -> Ekatra.extractDLImage cfg req
@@ -484,7 +484,7 @@ extractPanImageMulti ImageExtractionHandler {..} req = do
   timeoutInSec <- getProviderTimeout
   when (null providers) $
     throwError (InternalError "extractPanImageMulti: No image extraction provider configured in the priority list")
-  runWithFallbackAndTimeout "extractPanImageMulti" providers timeoutInSec (isJust . (.extractedPan)) $ \provider -> do
+  runWithFallbackAndTimeoutWithDefault "extractPanImageMulti" providers timeoutInSec (isJust . (.extractedPan)) (pure $ ExtractedPanImageResp Nothing Nothing) $ \provider -> do
     serviceConfig <- getProviderConfig provider
     case serviceConfig of
       EkatraConfig _ -> throwError $ InternalError "Not Implemented!"
