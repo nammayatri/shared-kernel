@@ -31,11 +31,12 @@ data EventTrackingService
   = Moengage
   | Clevertap
   | FirebaseAnalytics
+  | Breeze
   deriving (Show, Read, Eq, Ord, Generic, ToJSON, FromJSON)
 
 -- | List of all available event tracking services
 availableEventTrackingServices :: [EventTrackingService]
-availableEventTrackingServices = [Moengage, Clevertap, FirebaseAnalytics]
+availableEventTrackingServices = [Moengage, Clevertap, FirebaseAnalytics, Breeze]
 
 instance (HasSqlValueSyntax be String) => HasSqlValueSyntax be EventTrackingService where
   sqlValueSyntax = autoSqlValueSyntax
