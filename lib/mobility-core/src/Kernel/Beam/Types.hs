@@ -129,3 +129,9 @@ data TxnIdKey = TxnIdKey
   deriving anyclass (ToJSON, FromJSON)
 
 instance OptionEntity TxnIdKey Text
+
+data ConfigVersionKey = ConfigVersionKey
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity ConfigVersionKey Text

@@ -322,4 +322,7 @@ refreshLocalOptions newLocalOptions flowRt = flowRt {R._optionsLocal = newLocalO
 carryForkLocalOptions :: FlowR r (FlowR r ())
 carryForkLocalOptions = do
   mTxnId <- L.getOptionLocal KBT.TxnIdKey
-  pure $ maybe (pure ()) (L.setOptionLocal KBT.TxnIdKey) mTxnId
+  mConfigVersion <- L.getOptionLocal KBT.ConfigVersionKey
+  pure $ do
+    maybe (pure ()) (L.setOptionLocal KBT.TxnIdKey) mTxnId
+    maybe (pure ()) (L.setOptionLocal KBT.ConfigVersionKey) mConfigVersion
