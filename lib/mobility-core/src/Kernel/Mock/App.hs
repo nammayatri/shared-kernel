@@ -64,7 +64,7 @@ instance CoreMetrics (MockM e) where
   addGenericLatency _ _ = return ()
   incrementSchedulerFailureCounter _ = return ()
   incrementSchedulerJobDisabledCounter _ = return ()
-  incrementSchedulerJobLifecycleCounter _ _ = return ()
+  incrementSchedulerJobLifecycleCounter _ _ _ = return ()
   addSchedulerProducerStageCount _ _ = return ()
   incrementProducerError _ = return ()
   incrementGenericMetrics _ = return ()
