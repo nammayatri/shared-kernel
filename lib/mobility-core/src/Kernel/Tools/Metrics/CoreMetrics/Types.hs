@@ -63,7 +63,7 @@ type SchedulerJobDisabledMetric = P.Vector P.Label2 P.Counter
 -- | Scheduler job lifecycle counter (labels: "job_type", "status", "version").
 -- Covers the whole life of a job -- created, picked and every terminal
 -- outcome -- so a single query can compare them per job type.
-type SchedulerJobLifecycleMetric = P.Vector P.Label3 P.Counter
+type SchedulerJobLifecycleMetric = P.Vector P.Label4 P.Counter
 
 -- | Producer pipeline stage counter (labels: "stage", "version").
 --
@@ -126,9 +126,9 @@ class CoreMetrics m where
   incrementSchedulerFailureCounter :: Text -> m ()
   incrementSchedulerJobDisabledCounter :: Text -> m ()
 
-  -- | @incrementSchedulerJobLifecycleCounter jobType status@ -- record a job
+  -- | @incrementSchedulerJobLifecycleCounter jobType status merchantOperatingCityId@ -- record a job
   -- lifecycle transition. See "Lib.Scheduler.Metrics" for the status values.
-  incrementSchedulerJobLifecycleCounter :: Text -> Text -> m ()
+  incrementSchedulerJobLifecycleCounter :: Text -> Text -> Text -> m ()
 
   -- | @addSchedulerProducerStageCount stage n@ -- record that @n@ jobs passed
   -- through a producer pipeline stage. Takes a count because the producer
@@ -360,7 +360,7 @@ registerSchedulerJobDisabledCounter =
 registerSchedulerJobLifecycleCounter :: IO SchedulerJobLifecycleMetric
 registerSchedulerJobLifecycleCounter =
   P.register $
-    P.vector ("job_type", "status", "version") $
+    P.vector ("job_type", "status", "merchant_operating_city_id", "version") $
       P.counter info
   where
     info = P.Info "scheduler_job_lifecycle_counter" "Scheduler job transitions per job type, labelled by lifecycle status (created/picked/completed/failed/rescheduled/retried/retry_exhausted/duplicate)"

@@ -64,7 +64,7 @@ instance Metrics.CoreMetrics IO where
   addGenericLatency _ _ = return ()
   incrementSchedulerFailureCounter _ = return ()
   incrementSchedulerJobDisabledCounter _ = return ()
-  incrementSchedulerJobLifecycleCounter _ _ = return ()
+  incrementSchedulerJobLifecycleCounter _ _ _ = return ()
   addSchedulerProducerStageCount _ _ = return ()
   incrementGenericMetrics _ = return ()
   incrementConfigPilotSuccessCounter _ = return ()

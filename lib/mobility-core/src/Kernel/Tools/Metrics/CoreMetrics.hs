@@ -319,18 +319,19 @@ incrementSchedulerJobLifecycleCounterImplementation ::
   ) =>
   Text ->
   Text ->
+  Text ->
   m ()
-incrementSchedulerJobLifecycleCounterImplementation jobType status = do
+incrementSchedulerJobLifecycleCounterImplementation jobType status merchantOperatingCityId = do
   cmContainer <- asks (.coreMetrics)
   version <- asks (.version)
-  incrementSchedulerJobLifecycleCounterImplementation' cmContainer jobType status version
+  incrementSchedulerJobLifecycleCounterImplementation' cmContainer jobType status merchantOperatingCityId version
 
-incrementSchedulerJobLifecycleCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> Text -> DeploymentVersion -> m ()
-incrementSchedulerJobLifecycleCounterImplementation' cmContainers jobType status version =
+incrementSchedulerJobLifecycleCounterImplementation' :: L.MonadFlow m => CoreMetricsContainer -> Text -> Text -> Text -> DeploymentVersion -> m ()
+incrementSchedulerJobLifecycleCounterImplementation' cmContainers jobType status merchantOperatingCityId version =
   L.runIO $
     P.withLabel
       cmContainers.schedulerJobLifecycleCounter
-      (jobType, status, version.getDeploymentVersion)
+      (jobType, status, merchantOperatingCityId, version.getDeploymentVersion)
       P.incCounter
 
 addSchedulerProducerStageCountImplementation ::

@@ -67,7 +67,7 @@ instance Metrics.CoreMetrics TestM where
   addGenericLatency _ _ = pure ()
   incrementSchedulerFailureCounter _ = pure ()
   incrementSchedulerJobDisabledCounter _ = pure ()
-  incrementSchedulerJobLifecycleCounter _ _ = pure ()
+  incrementSchedulerJobLifecycleCounter _ _ _ = pure ()
   addSchedulerProducerStageCount _ _ = pure ()
   incrementGenericMetrics _ = pure ()
   incrementConfigPilotSuccessCounter _ = pure ()
