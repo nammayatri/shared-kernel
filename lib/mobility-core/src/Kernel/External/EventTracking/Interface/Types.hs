@@ -23,6 +23,7 @@ where
 
 import Data.Aeson
 import Deriving.Aeson
+import qualified Kernel.External.EventTracking.Breeze.Config as BreezeConfig
 import qualified Kernel.External.EventTracking.Clevertap.Config as ClevertapConfig
 import qualified Kernel.External.EventTracking.FirebaseAnalytics.Config as FirebaseAnalyticsConfig
 import qualified Kernel.External.EventTracking.Moengage.Config as MoengageConfig
@@ -34,6 +35,7 @@ data EventTrackingServiceConfig
   = MoengageConfig MoengageConfig.MoengageCfg
   | ClevertapConfig ClevertapConfig.ClevertapCfg
   | FirebaseAnalyticsConfig FirebaseAnalyticsConfig.FirebaseAnalyticsCfg
+  | BreezeConfig BreezeConfig.BreezeCfg
   deriving (Show, Eq, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] EventTrackingServiceConfig
 

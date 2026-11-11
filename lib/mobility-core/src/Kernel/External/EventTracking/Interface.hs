@@ -19,6 +19,7 @@ module Kernel.External.EventTracking.Interface
 where
 
 import Kernel.External.Encryption
+import qualified Kernel.External.EventTracking.Breeze.Flow as BreezeFlow
 import qualified Kernel.External.EventTracking.Clevertap.Flow as ClevertapFlow
 import qualified Kernel.External.EventTracking.FirebaseAnalytics.Flow as FirebaseAnalyticsFlow
 import Kernel.External.EventTracking.Interface.Types as Reexport
@@ -49,15 +50,18 @@ pushEvent config req
     MoengageConfig moengageCfg -> MoengageFlow.pushEvent moengageCfg req
     ClevertapConfig clevertapCfg -> ClevertapFlow.pushEvent clevertapCfg req
     FirebaseAnalyticsConfig firebaseCfg -> FirebaseAnalyticsFlow.pushEvent firebaseCfg req
+    BreezeConfig breezeCfg -> BreezeFlow.pushEvent breezeCfg req
 
 isEnabled :: EventTrackingServiceConfig -> Bool
 isEnabled = \case
   MoengageConfig cfg -> cfg.enabled
   ClevertapConfig cfg -> cfg.enabled
   FirebaseAnalyticsConfig cfg -> cfg.enabled
+  BreezeConfig cfg -> cfg.enabled
 
 providerName :: EventTrackingServiceConfig -> Text
 providerName = \case
   MoengageConfig _ -> "Moengage"
   ClevertapConfig _ -> "Clevertap"
   FirebaseAnalyticsConfig _ -> "FirebaseAnalytics"
+  BreezeConfig _ -> "Breeze"
