@@ -21,7 +21,7 @@ import Kernel.External.Payout.Juspay.Types
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common
-import Kernel.Types.Error (GenericError (InternalError))
+import Kernel.Types.Error (ExternalAPICallError (..), GenericError (InternalError))
 import Kernel.Utils.Common (fromEitherM)
 import Kernel.Utils.Servant.Client
 import Servant hiding (throwError)
@@ -53,7 +53,7 @@ createPayoutOrder url apiKey merchantId mRoutingId req = do
   let proxy = Proxy @CreatePayoutOrderAPI
       eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) mRoutingId req
   callAPI url eulerClient "create-payout-order" proxy
-    >>= fromEitherM (\err -> InternalError $ "Failed to call create payout order API: " <> show err)
+    >>= fromEitherM (ExternalAPICallError (Just "JUSPAY_CREATE_PAYOUT_ORDER_FAILED") url)
 
 type PayoutOrderStatusAPI =
   "payout" :> "merchant" :> "v1" :> "orders"
