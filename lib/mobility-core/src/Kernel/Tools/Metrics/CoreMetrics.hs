@@ -25,6 +25,7 @@ import qualified Data.Set as Set
 import Data.Text as DT
 import qualified EulerHS.Language as L
 import EulerHS.Prelude as E
+import Kernel.Beam.Types (ConfigVersionKey (..))
 import Kernel.Tools.Metrics.CoreMetrics.Types as Reexport
 import Kernel.Types.Error (GenericError (InternalError))
 import Kernel.Types.Error.BaseError.HTTPError (BaseException (..), HTTPException (..), IsBaseError (toMessage), IsHTTPError (toErrorCode, toHttpCode), IsHTTPException)
@@ -233,11 +234,12 @@ incrementErrorCounterImplementation' cmContainers errorContext exc version mbUrl
     removeUUIDs path = DT.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ DT.unpack path
 
     incCounter' :: (L.MonadFlow m, IsHTTPException e) => e -> m ()
-    incCounter' err =
+    incCounter' err = do
+      configVersion <- fromMaybe "none" <$> L.getOptionLocal ConfigVersionKey
       L.runIO $
         P.withLabel
           errorCounterMetric
-          (show $ toHttpCode err, errorContext, toErrorCode err, version.getDeploymentVersion, sanitizedUrl)
+          (show $ toHttpCode err, errorContext, toErrorCode err, version.getDeploymentVersion, sanitizedUrl, configVersion)
           P.incCounter
 
 addUrlCallRetriesImplementation' :: L.MonadFlow m => CoreMetricsContainer -> BaseUrl -> Int -> DeploymentVersion -> m ()
@@ -601,11 +603,12 @@ incrementTryExceptionCounterImplementation' cmContainers errorContext exc versio
     removeUUIDs path = DT.pack . flip (TR.subRegex (TR.mkRegex "[0-9a-z]{8}-([0-9a-z]{4}-){3}[0-9a-z]{12}")) ":id" $ DT.unpack path
 
     incCounter' :: (L.MonadFlow m, IsHTTPException e) => e -> m ()
-    incCounter' err =
+    incCounter' err = do
+      configVersion <- fromMaybe "none" <$> L.getOptionLocal ConfigVersionKey
       L.runIO $
         P.withLabel
           tryExceptionCounterMetric
-          (show $ toHttpCode err, errorContext, toErrorCode err, version.getDeploymentVersion, sanitizedUrl)
+          (show $ toHttpCode err, errorContext, toErrorCode err, version.getDeploymentVersion, sanitizedUrl, configVersion)
           P.incCounter
 
 withForkCountersImplementation ::

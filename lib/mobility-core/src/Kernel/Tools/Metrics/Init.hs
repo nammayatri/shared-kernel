@@ -53,10 +53,10 @@ requestLatency =
         "The HTTP request latencies in seconds."
 
 {-# NOINLINE requestLatencyWithVersionLabel #-}
-requestLatencyWithVersionLabel :: Prom.Vector Prom.Label4 Prom.Histogram
+requestLatencyWithVersionLabel :: Prom.Vector Prom.Label5 Prom.Histogram
 requestLatencyWithVersionLabel =
   Prom.unsafeRegister $
-    Prom.vector ("handler", "method", "status_code", "version") $
+    Prom.vector ("handler", "method", "status_code", "version", "config_version") $
       Prom.histogram info requestLatencyBuckets
   where
     info =
@@ -78,12 +78,22 @@ addServantInfo ::
   Proxy a ->
   Application ->
   Application
-addServantInfo version proxy app request respond =
+addServantInfo = addServantInfoWithConfigVersion (pure Nothing)
+
+addServantInfoWithConfigVersion ::
+  SanitizedUrl a =>
+  IO (Maybe Text) ->
+  DeploymentVersion ->
+  Proxy a ->
+  Application ->
+  Application
+addServantInfoWithConfigVersion readConfigVersion version proxy app request respond =
   let mpath = getSanitizedUrl proxy (Just request)
       fullpath = DT.intercalate "/" (normalizedPathInfo request)
-   in instrumentHandlerValueWithVersionLabel version.getDeploymentVersion (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
+   in instrumentHandlerValueWithVersionLabel readConfigVersion version.getDeploymentVersion (\_ -> "/" <> fromMaybe fullpath mpath) app request respond
 
 instrumentHandlerValueWithVersionLabel ::
+  IO (Maybe Text) ->
   -- | version label
   Text ->
   -- | The function used to derive the "handler" value in Prometheus
@@ -92,11 +102,12 @@ instrumentHandlerValueWithVersionLabel ::
   Wai.Application ->
   -- | The instrumented app
   Wai.Application
-instrumentHandlerValueWithVersionLabel versionLabel = instrumentHandlerValueWithFilter (Just versionLabel) Just
+instrumentHandlerValueWithVersionLabel readConfigVersion versionLabel = instrumentHandlerValueWithFilter readConfigVersion (Just versionLabel) Just
 
 -- | A more flexible variant of 'instrumentHandlerValue'.  The filter can change some
 -- responses, or drop others entirely.
 instrumentHandlerValueWithFilter ::
+  IO (Maybe Text) ->
   -- | version label
   Maybe Text ->
   -- | Response filter
@@ -107,7 +118,7 @@ instrumentHandlerValueWithFilter ::
   Wai.Application ->
   -- | The instrumented app
   Wai.Application
-instrumentHandlerValueWithFilter mbVersionLabel resFilter f app req respond = do
+instrumentHandlerValueWithFilter readConfigVersion mbVersionLabel resFilter f app req respond = do
   start <- getTime Monotonic
   app req $ \res -> do
     case resFilter res of
@@ -116,12 +127,15 @@ instrumentHandlerValueWithFilter mbVersionLabel resFilter f app req respond = do
         end <- getTime Monotonic
         let method = Just $ decodeUtf8 (Wai.requestMethod req)
         let status = Just $ T.pack (show (HTTP.statusCode (Wai.responseStatus res')))
-        observeSeconds mbVersionLabel (f req) method status start end
+        configVersion <- fromMaybe "none" <$> readConfigVersion
+        observeSeconds mbVersionLabel configVersion (f req) method status start end
     respond res
 
 observeSeconds ::
   -- | version label
   Maybe Text ->
+  -- | config version label
+  Text ->
   -- | handler label
   Text ->
   -- | method
@@ -133,7 +147,7 @@ observeSeconds ::
   -- | end time
   TimeSpec ->
   IO ()
-observeSeconds mbVersionLabel handler method status start end = do
+observeSeconds mbVersionLabel configVersion handler method status start end = do
   let latency :: Double
       latency = fromRational (toNanoSecs (end `diffTimeSpec` start) % 1000000000)
   case mbVersionLabel of
@@ -145,5 +159,5 @@ observeSeconds mbVersionLabel handler method status start end = do
     Just versionLabel -> do
       Prom.withLabel
         requestLatencyWithVersionLabel
-        (handler, fromMaybe "" method, fromMaybe "" status, versionLabel)
+        (handler, fromMaybe "" method, fromMaybe "" status, versionLabel, configVersion)
         (flip Prom.observe latency)

@@ -149,7 +149,7 @@ runServer appEnv serverAPI serverHandler waiMiddleware waiSettings servantCtx se
   let server = withModifiedEnv $ \modifiedEnv ->
         run serverAPI serverHandler servantCtx modifiedEnv
           & logRequestAndResponse modifiedEnv
-          & Metrics.addServantInfo appEnv.version serverAPI
+          & Metrics.addServantInfoWithConfigVersion (readConfigVersionLabel modifiedEnv) appEnv.version serverAPI
           & waiMiddleware
   E.withFlowRuntime (Just loggerRt) $ \flowRt -> do
     flowRt' <-

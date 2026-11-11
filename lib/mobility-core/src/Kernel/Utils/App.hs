@@ -30,6 +30,7 @@ module Kernel.Utils.App
     withModifiedEnv',
     logRequestAndResponse',
     lookupCloudType,
+    readConfigVersionLabel,
   )
 where
 
@@ -51,6 +52,7 @@ import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack)
 import qualified EulerHS.Runtime as R
 import Kernel.Beam.Lib.UtilsTH (HasSchemaName)
+import Kernel.Beam.Types (ConfigVersionKey (..))
 import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Esqueleto.Config (EsqDBEnv)
 import Kernel.Storage.Hedis
@@ -236,6 +238,9 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId sessionId _ -> do
     env{appEnv = appEnv{loggerEnv = updLogEnv, requestId = Just requestId},
         flowRuntime = newFlowRt {R._optionsLocal = newOptionsLocal}
        }
+
+readConfigVersionLabel :: EnvR f -> IO (Maybe Text)
+readConfigVersionLabel env = runFlowR env.flowRuntime env.appEnv $ L.getOptionLocal ConfigVersionKey
 
 withModifiedEnv' :: (SanitizedUrl a, HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f, HasField "actorInfo" f ActorInfo) => Proxy a -> (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbToken -> do

@@ -40,9 +40,9 @@ type RequestLatencyMetric = CachedVector P.Label5 P.Histogram
 
 type DatastoresLatencyMetric = CachedVector P.Label3 P.Histogram
 
-type ErrorCounterMetric = P.Vector P.Label5 P.Counter
+type ErrorCounterMetric = P.Vector P.Label6 P.Counter
 
-type TryExceptionCounterMetric = P.Vector P.Label5 P.Counter
+type TryExceptionCounterMetric = P.Vector P.Label6 P.Counter
 
 type URLCallRetriesMetric = P.Vector P.Label3 P.Counter
 
@@ -280,7 +280,7 @@ registerRequestLatencyMetric =
 registerErrorCounterMetric :: IO ErrorCounterMetric
 registerErrorCounterMetric =
   P.register $
-    P.vector ("HttpCode", "ErrorContext", "ErrorCode", "version", "url") $
+    P.vector ("HttpCode", "ErrorContext", "ErrorCode", "version", "url", "config_version") $
       P.counter info
   where
     info = P.Info "error_counter" ""
@@ -288,7 +288,7 @@ registerErrorCounterMetric =
 registerTryExceptionCouterMetric :: IO TryExceptionCounterMetric
 registerTryExceptionCouterMetric =
   P.register $
-    P.vector ("HttpCode", "ErrorContext", "ErrorCode", "version", "url") $
+    P.vector ("HttpCode", "ErrorContext", "ErrorCode", "version", "url", "config_version") $
       P.counter info
   where
     info = P.Info "try_exception_error_counter" ""
