@@ -685,6 +685,7 @@ library
       Kernel.Utils.Logging
       Kernel.Utils.Monitoring.Prometheus.Servant
       Kernel.Utils.NonEmpty
+      Kernel.Utils.PayloadEncryption
       Kernel.Utils.Predicates
       Kernel.Utils.Registry
       Kernel.Utils.Schema
@@ -1058,6 +1059,7 @@ test-suite mobility-core-tests
       MorthV2CryptoTests
       MultiModalVehicleType
       PartialIndexTests
+      PayloadEncryptionTests
       Predicates
       SettlementEmail
       SettlementMimeCsv

@@ -26,6 +26,7 @@ import KmsSecrets (kmsSecretsTests)
 import MorthV2CryptoTests (morthV2CryptoTests)
 import MultiModalVehicleType
 import PartialIndexTests
+import PayloadEncryptionTests (payloadEncryptionTests)
 import Predicates
 import SettlementEmail
 import SignatureAuth
@@ -62,5 +63,6 @@ specs = do
           xyneSpacesTypeTests,
           morthV2CryptoTests,
           kmsSecretsTests,
-          multiModalVehicleTypeTests
+          multiModalVehicleTypeTests,
+          payloadEncryptionTests
         ]
