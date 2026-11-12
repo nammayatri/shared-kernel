@@ -25,7 +25,7 @@ data HyperVergeVerificationCfg = HyperVergeVerificationCfg
     appId :: Text,
     appKey :: EncryptedField 'AsEncrypted Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 data HyperVergeRCDLVerificationConfig = HyperVergeRCDLVerificationConfig
@@ -35,7 +35,7 @@ data HyperVergeRCDLVerificationConfig = HyperVergeRCDLVerificationConfig
     appId :: Text,
     appKey :: EncryptedField 'AsEncrypted Text
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 newtype HyperVergeSdkVerificationReq = HyperVergeSdkVerificationReq

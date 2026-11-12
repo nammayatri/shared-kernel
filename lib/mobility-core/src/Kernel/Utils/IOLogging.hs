@@ -38,7 +38,7 @@ import Kernel.Types.Logging
 import Kernel.Types.Time
 import System.Log.FastLogger
 
-type HasLog r = (HasField "loggerEnv" r LoggerEnv, HasField "requestId" r (Maybe Text), HasField "sessionId" r (Maybe Text))
+type HasLog r = (HasFieldUpd "loggerEnv" r LoggerEnv, HasFieldUpd "requestId" r (Maybe Text), HasFieldUpd "sessionId" r (Maybe Text))
 
 data Logger = Logger
   { printLogFunc :: FastLogger,
@@ -108,12 +108,7 @@ withLogTagImplementation ::
   Text ->
   m a ->
   m a
-withLogTagImplementation tag = local modifyEnv
-  where
-    modifyEnv env = do
-      let logEnv = env.loggerEnv
-          updLogEnv = appendLogTag tag logEnv
-      env{loggerEnv = updLogEnv}
+withLogTagImplementation tag = local (field' @"loggerEnv" %~ appendLogTag tag)
 
 appendLogTag :: Text -> LoggerEnv -> LoggerEnv
 appendLogTag tag logEnv = do
@@ -123,7 +118,7 @@ updateLogLevelAndRawSql :: Maybe LogLevel -> LoggerEnv -> LoggerEnv
 updateLogLevelAndRawSql mbNewLogLevel logEnv =
   maybe
     logEnv
-    (\newLogLevel -> logEnv{level = newLogLevel, logRawSql = newLogLevel == DEBUG})
+    (\newLogLevel -> (logEnv :: LoggerEnv){level = newLogLevel, logRawSql = newLogLevel == DEBUG})
     mbNewLogLevel
 
 formatTags :: [Text] -> Text

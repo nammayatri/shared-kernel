@@ -7,7 +7,7 @@ import Kernel.External.ChallanSearch.Signzy.Config as Signzy
 import Kernel.Prelude
 
 data ChallanSearchServiceConfig = SignzyChallanSearch Signzy.SignzyChallanSearchCfg
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 newtype PendingChallanReq = PendingChallanReq
   { vehicleNumber :: Text

@@ -19,7 +19,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Kernel.External.Encryption
 import Kernel.External.SMS.DigoEngage.Types
-import Kernel.Prelude (Eq, HasField (hasField), Show)
+import Kernel.Prelude (Show)
 import Servant.Client (BaseUrl)
 
 data DigoEngageSmsCfg = DigoEngageSmsCfg
@@ -33,7 +33,7 @@ data DigoEngageSmsCfg = DigoEngageSmsCfg
     tlv :: TLVForSmsCfg,
     dlr :: ClientDomain
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Generic)
 
 instance FromJSON DigoEngageSmsCfg where
   parseJSON =

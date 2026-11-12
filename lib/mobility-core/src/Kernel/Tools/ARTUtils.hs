@@ -10,7 +10,7 @@ import qualified Kernel.Streaming.Kafka.Producer as KafkaProducer
 import Kernel.Streaming.Kafka.Producer.Types
 import Kernel.Utils.IOLogging (LoggerEnv)
 
-type HasARTFlow r = (HasField "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasField "requestId" r (Maybe Text), HasField "sessionId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools))
+type HasARTFlow r = (HasFieldUpd "loggerEnv" r LoggerEnv, HasField "shouldLogRequestId" r Bool, HasFieldUpd "requestId" r (Maybe Text), HasFieldUpd "sessionId" r (Maybe Text), HasField "kafkaProducerForART" r (Maybe KafkaProducerTools))
 
 data RequestInfo' = RequestInfo'
   { requestMethod :: Text,
@@ -62,5 +62,6 @@ kafkaMessage topicName event key =
     { prTopic = KafkaProd.TopicName topicName,
       prPartition = KafkaProd.UnassignedPartition,
       prKey = Just $ TE.encodeUtf8 key,
-      prValue = Just . BL.toStrict $ event
+      prValue = Just . BL.toStrict $ event,
+      prHeaders = KafkaProd.headersFromList []
     }

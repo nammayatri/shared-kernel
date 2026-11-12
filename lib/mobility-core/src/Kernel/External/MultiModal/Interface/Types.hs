@@ -68,6 +68,18 @@ data MultiModalAgency = MultiModalAgency
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
 
+getStopGtfsId :: MultiModalStopDetails -> Maybe Text
+getStopGtfsId MultiModalStopDetails {gtfsId} = gtfsId
+
+getStopName :: MultiModalStopDetails -> Maybe Text
+getStopName MultiModalStopDetails {name} = name
+
+getAgencyGtfsId :: MultiModalAgency -> Maybe Text
+getAgencyGtfsId MultiModalAgency {gtfsId} = gtfsId
+
+getAgencyName :: MultiModalAgency -> Text
+getAgencyName MultiModalAgency {name} = name
+
 data MultiModalRouteDetails = MultiModalRouteDetails
   { gtfsId :: Maybe Text,
     longName :: Maybe Text,
@@ -124,7 +136,7 @@ data MultiModalLegGate = MultiModalLegGate
   deriving (Generic, Show, Eq, ToSchema, FromJSON, ToJSON)
 
 data MultiModalServiceConfig = GoogleTransitConfig Google.GoogleCfg | OTPTransitConfig OTP.OTPCfg
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving (FromJSON, ToJSON) via CustomJSON '[SumTaggedObject "tag" "content"] MultiModalServiceConfig
 
 $(mkHttpInstancesForEnum ''GeneralVehicleType)

@@ -60,7 +60,7 @@ data Customer = Customer
 data InsuranceConfig
   = AckoInsuranceConfig Acko.AckoInsuranceConfig
   | IffcoTokioInsuranceConfig IffcoTokio.IffcoTokioConfig
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 data InsuranceResponse = InsuranceResponse
   { policyId :: Text,

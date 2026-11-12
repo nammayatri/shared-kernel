@@ -36,4 +36,4 @@ data ExotelCfg = ExotelCfg
     accountSID :: ExotelAccountSID,
     callerId :: ExotelCallerId
   }
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Generic, ToJSON, FromJSON)
