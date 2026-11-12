@@ -23,7 +23,7 @@ import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import Kernel.Types.TryException
-import Kernel.Types.Version (CloudType)
+import Kernel.Types.Version (CloudType, localCloudType)
 import Kernel.Utils.ConnectRetry (withConnectRetry)
 import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
@@ -31,11 +31,11 @@ import Network.Socket (HostName)
 type HedisFlow m env =
   (MonadTime m, MonadClock m, CoreMetrics m, MonadCatch m, MonadReader env m, HedisFlowEnv env, MonadIO m, C.MonadThrow m, Log m, TryException m)
 
-type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, HasField "secondaryHedisClusterEnv" env (Maybe HedisEnv), HasField "additionalHedisClusterEnvs" env [HedisEnv])
+type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, HasField "peerHedisClusterEnvs" env [(CloudType, HedisEnv)])
 
 type HedisLTSFlow m env = (HedisFlow m env, HedisLTSFlowEnv env)
 
-type HedisLTSFlowEnv env = (HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv), HasField "ltsReplicaHedisEnv" env (Maybe HedisEnv), HasField "cloudType" env (Maybe CloudType))
+type HedisLTSFlowEnv env = (HasField "ltsHedisEnv" env HedisEnv, HasField "peerLTSHedisEnvs" env [(CloudType, HedisEnv)], HasField "ltsReplicaHedisEnv" env (Maybe HedisEnv), HasField "cloudType" env (Maybe CloudType))
 
 type KeyModifierFunc = (Text -> Text)
 
@@ -51,9 +51,9 @@ data HedisCfg = HedisCfg
   }
   deriving (Generic, Show, FromDhall)
 
-data HedisPeerCfg = HedisPeerCfg
-  { peerCloud :: CloudType,
-    peerHedisCfg :: HedisCfg
+data HedisCloudCfg = HedisCloudCfg
+  { hedisCloud :: CloudType,
+    hedisCloudCfg :: HedisCfg
   }
   deriving (Generic, Show, FromDhall)
 
@@ -101,22 +101,36 @@ connectHedisCluster cfg keyModifier = do
           connectReadOnly = cfg.connectReadOnly
         }
 
-connectSecondaryAndPeerHedisClusters :: HedisCfg -> [HedisPeerCfg] -> KeyModifierFunc -> IO (Maybe HedisEnv, [HedisEnv])
-connectSecondaryAndPeerHedisClusters legacySecondaryCfg peers keyModifier = do
-  let (secondaryCfg, additionalCfgs) = case peers of
-        [] -> (legacySecondaryCfg, [])
-        firstPeer : restPeers -> (firstPeer.peerHedisCfg, map (.peerHedisCfg) restPeers)
-  secondaryEnv <- tryConnect "secondary" secondaryCfg
-  additionalEnvs <- catMaybes <$> mapM (tryConnect "peer") additionalCfgs
-  pure (secondaryEnv, additionalEnvs)
+splitLocalCloud :: [HedisCloudCfg] -> Either String (HedisCloudCfg, [HedisCloudCfg])
+splitLocalCloud clouds =
+  case break isLocal clouds of
+    (before, localCfg : after) -> Right (localCfg, before ++ after)
+    (_, []) -> case clouds of
+      firstCfg : restCfgs -> Right (firstCfg, restCfgs)
+      [] -> Left "Redis cloud list is empty"
   where
-    tryConnect :: Text -> HedisCfg -> IO (Maybe HedisEnv)
-    tryConnect label cfg =
-      try (connectHedisCluster cfg keyModifier) >>= \case
+    isLocal cloudCfg = Just cloudCfg.hedisCloud == localCloudType
+
+connectHedisClouds :: (HedisCfg -> KeyModifierFunc -> IO HedisEnv) -> [HedisCloudCfg] -> KeyModifierFunc -> IO (HedisEnv, [(CloudType, HedisEnv)])
+connectHedisClouds connectOne clouds keyModifier = do
+  (localCfg, peerCfgs) <- either (ioError . userError) pure (splitLocalCloud clouds)
+  localEnv <- connectOne localCfg.hedisCloudCfg keyModifier
+  peerEnvs <- catMaybes <$> mapM tryPeer peerCfgs
+  pure (localEnv, peerEnvs)
+  where
+    tryPeer :: HedisCloudCfg -> IO (Maybe (CloudType, HedisEnv))
+    tryPeer cloudCfg =
+      try (connectOne cloudCfg.hedisCloudCfg keyModifier) >>= \case
         Left (e :: SomeException) -> do
-          putStrLn $ ("ERROR: Failed to connect to " :: Text) <> label <> " hedis cluster: " <> show e
+          putStrLn $ ("ERROR: Failed to connect to " :: Text) <> show cloudCfg.hedisCloud <> " redis: " <> show e
           pure Nothing
-        Right env -> pure (Just env)
+        Right env -> pure (Just (cloudCfg.hedisCloud, env))
+
+connectHedisClusterClouds :: [HedisCloudCfg] -> KeyModifierFunc -> IO (HedisEnv, [(CloudType, HedisEnv)])
+connectHedisClusterClouds = connectHedisClouds connectHedisCluster
+
+connectHedisStandaloneClouds :: [HedisCloudCfg] -> KeyModifierFunc -> IO (HedisEnv, [(CloudType, HedisEnv)])
+connectHedisStandaloneClouds = connectHedisClouds connectHedis
 
 connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
 connectHedis cfg keyModifier = do

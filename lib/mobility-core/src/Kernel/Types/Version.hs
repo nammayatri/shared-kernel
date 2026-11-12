@@ -22,10 +22,12 @@ import Data.OpenApi.Lens as L
 import Data.Text as T
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum, mkBeamInstancesForEnumAndList)
 import Kernel.Prelude as Prelude
-import Kernel.Types.CloudTag (cloudNameToCode)
+import Kernel.Types.CloudTag (cloudNameToCode, localCloudCode)
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.TH (mkHttpInstancesForEnum)
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
+import System.Environment (lookupEnv)
+import System.IO.Unsafe (unsafePerformIO)
 import Text.Regex
 
 data Version = Version
@@ -70,6 +72,13 @@ cloudTypeFromCode = \case
   1 -> Just GCP
   2 -> Just NAMMA
   _ -> Nothing
+
+localCloudType :: Maybe CloudType
+localCloudType = localCloudCode >>= cloudTypeFromCode
+
+masterCloudType :: Maybe CloudType
+masterCloudType = unsafePerformIO $ (>>= readMaybe) <$> lookupEnv "MASTER_CLOUD_TYPE"
+{-# NOINLINE masterCloudType #-}
 
 data Device = Device
   { deviceType :: DeviceType,

@@ -6,23 +6,17 @@ import Kernel.Storage.Hedis.Config
 data ConnectionConfigDriver = ConnectionConfigDriver
   { esqDBCfg :: EsqDBConfig,
     esqDBReplicaCfg :: EsqDBConfig,
-    hedisClusterCfg :: HedisCfg,
-    hedisSecondaryClusterCfg :: HedisCfg,
-    hedisPeerClusterCfgs :: [HedisPeerCfg]
+    hedisClusterCfgs :: [HedisCloudCfg]
   }
 
 data ConnectionConfigRider = ConnectionConfigRider
   { esqDBCfg :: EsqDBConfig,
     esqDBReplicaCfg :: EsqDBConfig,
-    hedisClusterCfg :: HedisCfg,
-    hedisSecondaryClusterCfg :: HedisCfg,
-    hedisPeerClusterCfgs :: [HedisPeerCfg]
+    hedisClusterCfgs :: [HedisCloudCfg]
   }
 
 data ConnectionConfigDashboard = ConnectionConfigDashboard
   { esqDBCfg :: EsqDBConfig,
     esqDBReplicaCfg :: EsqDBConfig,
-    hedisClusterCfg :: HedisCfg,
-    hedisSecondaryClusterCfg :: HedisCfg,
-    hedisPeerClusterCfgs :: [HedisPeerCfg]
+    hedisClusterCfgs :: [HedisCloudCfg]
   }
