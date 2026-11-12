@@ -22,6 +22,7 @@ import qualified Control.Monad.Catch as C
 import Control.Monad.IO.Unlift
 import qualified EulerHS.Types as ET
 import Kernel.Tools.Metrics.CoreMetrics
+import Kernel.Types.CloudTag (tagLocalGuid)
 import Kernel.Types.Common
 import Kernel.Utils.IOLogging
 import Servant
@@ -103,7 +104,7 @@ instance (HasLog e) => TryException (MockM e) where
   withTryCatch = mockWithTryCatch
 
 instance MonadGuid (MockM e) where
-  generateGUIDText = liftIO generateGUIDTextIO
+  generateGUIDText = tagLocalGuid <$> liftIO generateGUIDTextIO
 
 mockFork :: (HasLog e) => Text -> MockM e a -> MockM e ()
 mockFork tag action = void $

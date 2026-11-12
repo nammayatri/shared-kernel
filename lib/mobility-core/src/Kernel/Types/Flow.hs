@@ -35,6 +35,7 @@ import Kernel.Tools.ARTUtils (ArtData (..), HasARTFlow, pushToKafka)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.CacheFlow
+import Kernel.Types.CloudTag (tagLocalGuid)
 import Kernel.Types.Forkable
 import Kernel.Types.Logging
 import Kernel.Types.MonadGuid
@@ -118,7 +119,7 @@ instance L.MonadFlow (FlowR r) where
   {-# INLINEABLE delOption #-}
   delOption k = FlowR $ L.delOption k
   {-# INLINEABLE generateGUID #-}
-  generateGUID = FlowR L.generateGUID
+  generateGUID = FlowR (tagLocalGuid <$> L.generateGUID)
   {-# INLINEABLE runSysCmd #-}
   runSysCmd cmd = FlowR $ L.runSysCmd cmd
   {-# INLINEABLE initSqlDBConnection #-}
@@ -253,7 +254,7 @@ instance MonadMonitor (FlowR r) where
   doIO = liftIO
 
 instance MonadGuid (FlowR r) where
-  generateGUIDText = FlowR L.generateGUID
+  generateGUIDText = FlowR (tagLocalGuid <$> L.generateGUID)
 
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
   fork tag f = withLogTag ("Fork " <> tag) $ do

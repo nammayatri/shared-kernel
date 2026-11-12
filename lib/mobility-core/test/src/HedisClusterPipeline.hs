@@ -31,6 +31,7 @@ data TestEnv = TestEnv
     hedisClusterEnv :: HedisEnv,
     hedisNonCriticalClusterEnv :: HedisEnv,
     secondaryHedisClusterEnv :: Maybe HedisEnv,
+    additionalHedisClusterEnvs :: [HedisEnv],
     hedisMigrationStage :: Bool,
     enablePrometheusMetricLogging :: Bool,
     enableRedisLatencyLogging :: Bool
@@ -101,7 +102,7 @@ acquire port = do
   hedis <- connectHedisCluster defaultHedisCfg {connectPort = port} identity
   now <- getCurrentTime
   let runId = T.pack (P.show (floor (utcTimeToPOSIXSeconds now * 1000) :: Integer))
-  pure (TestEnv hedis hedis hedis hedis Nothing False False False, runId)
+  pure (TestEnv hedis hedis hedis hedis Nothing [] False False False, runId)
 
 tests :: IO Ctx -> [TestTree]
 tests getCtx =

@@ -22,6 +22,7 @@ import Data.OpenApi.Lens as L
 import Data.Text as T
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnum, mkBeamInstancesForEnumAndList)
 import Kernel.Prelude as Prelude
+import Kernel.Types.CloudTag (cloudNameToCode)
 import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.TH (mkHttpInstancesForEnum)
 import Servant (FromHttpApiData (..), ToHttpApiData (..))
@@ -58,7 +59,17 @@ comparePre (Just x) (Just y) = compare x y
 data DeviceType = IOS | ANDROID
   deriving (Show, Eq, Ord, Generic, Read, ToJSON, FromJSON, ToSchema, ToParamSchema)
 
-data CloudType = AWS | GCP | UNAVAILABLE deriving (Eq, Ord, Show, Read, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema, FromDhall)
+data CloudType = AWS | GCP | NAMMA | UNAVAILABLE deriving (Eq, Ord, Show, Read, Generic, ToJSON, FromJSON, ToSchema, ToParamSchema, FromDhall)
+
+cloudTypeCode :: CloudType -> Maybe Int
+cloudTypeCode = cloudNameToCode . show
+
+cloudTypeFromCode :: Int -> Maybe CloudType
+cloudTypeFromCode = \case
+  0 -> Just AWS
+  1 -> Just GCP
+  2 -> Just NAMMA
+  _ -> Nothing
 
 data Device = Device
   { deviceType :: DeviceType,

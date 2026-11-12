@@ -36,6 +36,19 @@ data Tables = Tables
 
 instance OptionEntity Tables KTC.Tables
 
+data KvRedisClouds = KvRedisClouds
+  deriving stock (Generic, Typeable, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+data KvRedisCloudsCfg = KvRedisCloudsCfg
+  { peerConns :: [Text],
+    cloudCodes :: [(Int, Text)]
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (ToJSON, FromJSON)
+
+instance OptionEntity KvRedisClouds KvRedisCloudsCfg
+
 data KvConfigLastUpdatedTime = KvConfigLastUpdatedTime
   deriving stock (Generic, Typeable, Show, Eq, Ord)
   deriving anyclass (ToJSON, FromJSON)

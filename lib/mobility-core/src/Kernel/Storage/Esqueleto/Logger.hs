@@ -27,6 +27,7 @@ import Control.Monad.Logger as CMLogger
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
 import EulerHS.Prelude hiding (Key)
+import Kernel.Types.CloudTag (tagLocalGuid)
 import Kernel.Types.Logging as BLogging (Log (..), LogLevel (..))
 import Kernel.Types.MonadGuid
 import Kernel.Types.Time (MonadTime (..))
@@ -74,4 +75,4 @@ instance Log LoggerIO where
       modifyEnv logEnv = appendLogTag tag logEnv
 
 instance MonadGuid LoggerIO where
-  generateGUIDText = liftIO (UUID.toText <$> UUID.nextRandom)
+  generateGUIDText = liftIO (tagLocalGuid . UUID.toText <$> UUID.nextRandom)
