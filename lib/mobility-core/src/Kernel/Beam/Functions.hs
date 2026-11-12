@@ -70,6 +70,7 @@ import qualified Kernel.Beam.Types as KBT
 import Kernel.Prelude
 import qualified Kernel.Tools.ARTUtils as A
 import Kernel.Types.CacheFlow (CacheFlow)
+import Kernel.Types.CloudTag (cloudFallbackEnabled)
 import Kernel.Types.Common
 import Kernel.Types.Error
 import Kernel.Utils.Error.Throwing (throwError)
@@ -118,6 +119,9 @@ meshConfig =
       ecRedisDBStream = "driver-db-sync-stream",
       kvRedis = "KVRedis",
       kvRedisSecondary = "KVRedisSecondary",
+      kvRedisPeers = [],
+      kvRedisCloudCodes = [],
+      kvRedisCloudFallback = cloudFallbackEnabled,
       secondaryRedisEnabled = False,
       redisTtl = 18000,
       kvHardKilled = True,
@@ -256,7 +260,7 @@ getTablesOption =
 setMeshConfig :: (L.MonadFlow m, HasCallStack) => Text -> Maybe Text -> MeshConfig -> m MeshConfig
 setMeshConfig modelName mSchema meshConfig' = do
   tables' <- getTablesOption
-  setMeshConfigWithTables modelName mSchema meshConfig' tables'
+  setMeshConfigWithTables modelName mSchema meshConfig' tables' >>= withKvRedisClouds
 
 withUpdatedMeshConfig :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfig _ mkAction = do
@@ -273,7 +277,14 @@ setMeshConfigForFindAll modelName mSchema meshConfig' = do
   baseMeshConfig <- setMeshConfigWithTables modelName mSchema meshConfig' tables'
   isMultiCloudEnabled <- L.getOptionLocal MultiCloudEnabled
   let findAllMultiCloudOn = tables'.enableFindAllForMultiCloud == Just True || modelName `elem` fromMaybe [] tables'.tablesForSecondaryCloudRead || fromMaybe False isMultiCloudEnabled
-  pure baseMeshConfig {secondaryRedisEnabled = findAllMultiCloudOn}
+  withKvRedisClouds baseMeshConfig {secondaryRedisEnabled = findAllMultiCloudOn}
+
+withKvRedisClouds :: L.MonadFlow m => MeshConfig -> m MeshConfig
+withKvRedisClouds cfg
+  | cfg.secondaryRedisEnabled = do
+    mbClouds <- L.getOption KBT.KvRedisClouds
+    pure $ maybe cfg (\clouds -> cfg {kvRedisPeers = clouds.peerConns, kvRedisCloudCodes = clouds.cloudCodes}) mbClouds
+  | otherwise = pure cfg
 
 withUpdatedMeshConfigForFindAll :: forall table m a. (L.MonadFlow m, HasCallStack, ModelMeta table) => Proxy table -> (MeshConfig -> m a) -> m a
 withUpdatedMeshConfigForFindAll _ mkAction = do

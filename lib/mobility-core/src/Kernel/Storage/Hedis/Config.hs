@@ -31,7 +31,7 @@ import Network.Socket (HostName)
 type HedisFlow m env =
   (MonadTime m, MonadClock m, CoreMetrics m, MonadCatch m, MonadReader env m, HedisFlowEnv env, MonadIO m, C.MonadThrow m, Log m, TryException m)
 
-type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, HasField "secondaryHedisClusterEnv" env (Maybe HedisEnv))
+type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, HasField "secondaryHedisClusterEnv" env (Maybe HedisEnv), HasField "additionalHedisClusterEnvs" env [HedisEnv])
 
 type HedisLTSFlow m env = (HedisFlow m env, HedisLTSFlowEnv env)
 
@@ -48,6 +48,12 @@ data HedisCfg = HedisCfg
     connectMaxIdleTime :: NominalDiffTime,
     connectTimeout :: Maybe NominalDiffTime,
     connectReadOnly :: Bool
+  }
+  deriving (Generic, Show, FromDhall)
+
+data HedisPeerCfg = HedisPeerCfg
+  { peerCloud :: CloudType,
+    peerHedisCfg :: HedisCfg
   }
   deriving (Generic, Show, FromDhall)
 
@@ -94,6 +100,23 @@ connectHedisCluster cfg keyModifier = do
           connectTimeout = cfg.connectTimeout,
           connectReadOnly = cfg.connectReadOnly
         }
+
+connectSecondaryAndPeerHedisClusters :: HedisCfg -> [HedisPeerCfg] -> KeyModifierFunc -> IO (Maybe HedisEnv, [HedisEnv])
+connectSecondaryAndPeerHedisClusters legacySecondaryCfg peers keyModifier = do
+  let (secondaryCfg, additionalCfgs) = case peers of
+        [] -> (legacySecondaryCfg, [])
+        firstPeer : restPeers -> (firstPeer.peerHedisCfg, map (.peerHedisCfg) restPeers)
+  secondaryEnv <- tryConnect "secondary" secondaryCfg
+  additionalEnvs <- catMaybes <$> mapM (tryConnect "peer") additionalCfgs
+  pure (secondaryEnv, additionalEnvs)
+  where
+    tryConnect :: Text -> HedisCfg -> IO (Maybe HedisEnv)
+    tryConnect label cfg =
+      try (connectHedisCluster cfg keyModifier) >>= \case
+        Left (e :: SomeException) -> do
+          putStrLn $ ("ERROR: Failed to connect to " :: Text) <> label <> " hedis cluster: " <> show e
+          pure Nothing
+        Right env -> pure (Just env)
 
 connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
 connectHedis cfg keyModifier = do

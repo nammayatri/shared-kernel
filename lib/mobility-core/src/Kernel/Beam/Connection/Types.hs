@@ -7,19 +7,22 @@ data ConnectionConfigDriver = ConnectionConfigDriver
   { esqDBCfg :: EsqDBConfig,
     esqDBReplicaCfg :: EsqDBConfig,
     hedisClusterCfg :: HedisCfg,
-    hedisSecondaryClusterCfg :: HedisCfg
+    hedisSecondaryClusterCfg :: HedisCfg,
+    hedisPeerClusterCfgs :: [HedisPeerCfg]
   }
 
 data ConnectionConfigRider = ConnectionConfigRider
   { esqDBCfg :: EsqDBConfig,
     esqDBReplicaCfg :: EsqDBConfig,
     hedisClusterCfg :: HedisCfg,
-    hedisSecondaryClusterCfg :: HedisCfg
+    hedisSecondaryClusterCfg :: HedisCfg,
+    hedisPeerClusterCfgs :: [HedisPeerCfg]
   }
 
 data ConnectionConfigDashboard = ConnectionConfigDashboard
   { esqDBCfg :: EsqDBConfig,
     esqDBReplicaCfg :: EsqDBConfig,
     hedisClusterCfg :: HedisCfg,
-    hedisSecondaryClusterCfg :: HedisCfg
+    hedisSecondaryClusterCfg :: HedisCfg,
+    hedisPeerClusterCfgs :: [HedisPeerCfg]
   }

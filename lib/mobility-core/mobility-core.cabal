@@ -610,6 +610,7 @@ library
       Kernel.Types.Cache
       Kernel.Types.CacheFlow
       Kernel.Types.Centesimal
+      Kernel.Types.CloudTag
       Kernel.Types.Common
       Kernel.Types.Confidence
       Kernel.Types.Credentials

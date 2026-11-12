@@ -181,7 +181,13 @@ withSecondaryRedisEnv ::
 withSecondaryRedisEnv secondaryEnv env =
   env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv, hedisNonCriticalEnv = secondaryEnv, hedisNonCriticalClusterEnv = secondaryEnv}
 
--- Read operation: reads from primary first, falls back to secondary if primary returns Nothing
+peerHedisEnvs :: (HedisFlow m env) => m [HedisEnv]
+peerHedisEnvs = do
+  mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
+  additionalEnvs <- asks (.additionalHedisClusterEnvs)
+  pure (maybeToList mbSecondaryEnv ++ additionalEnvs)
+
+-- Read operation: reads from primary first, falls back to every peer cloud (in order) if primary returns Nothing
 -- NOTE: This function only works for queries returning Maybe a, as it uses Nothing to detect "not found".
 -- For list queries, use runInMultiCloudRedisForList instead.
 -- For write operations, use runInMultiCloudRedisWrite instead.
@@ -189,73 +195,72 @@ withSecondaryRedisEnv secondaryEnv env =
 runInMultiCloudRedisMaybeResult ::
   (HedisFlow m env, TryException m) => m (Maybe a) -> m (Maybe a)
 runInMultiCloudRedisMaybeResult action = do
-  mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
-  case mbSecondaryEnv of
-    Nothing -> action
-    Just secondaryEnv -> do
-      -- Read operation: try primary first, fallback to secondary if Nothing
+  peerEnvs <- peerHedisEnvs
+  case peerEnvs of
+    [] -> action
+    _ -> do
       primaryResult <- action
       case primaryResult of
-        Just _ -> pure primaryResult -- Primary has result, return immediately
+        Just _ -> pure primaryResult
         Nothing -> do
-          logWarning $ "SECONDARY_CLUSTER: Primary returned Nothing, trying secondary"
-          -- Primary returned Nothing, try secondary
-          secondaryResult <-
-            withTryCatch "runInMultiCloudRedisMaybeResult" $
-              local (withSecondaryRedisEnv secondaryEnv) action
-          case secondaryResult of
-            Left err -> do
-              logError $ "SECONDARY_CLUSTER: Secondary read failed " <> show err
-              pure Nothing
-            Right result -> pure result
+          logWarning "SECONDARY_CLUSTER: Primary returned Nothing, trying peer clouds"
+          firstJustFromPeers peerEnvs
+  where
+    firstJustFromPeers [] = pure Nothing
+    firstJustFromPeers (peerEnv : rest) = do
+      peerResult <- withTryCatch "runInMultiCloudRedisMaybeResult" $ local (withSecondaryRedisEnv peerEnv) action
+      case peerResult of
+        Left err -> do
+          logError $ "SECONDARY_CLUSTER: Peer read failed " <> show err
+          firstJustFromPeers rest
+        Right (Just result) -> pure (Just result)
+        Right Nothing -> firstJustFromPeers rest
 
--- Generic write wrapper: writes to both primary and secondary Redis clusters
+-- Generic write wrapper: writes to the primary and every peer Redis cluster
 -- Works for any return type - useful for write operations like geoAdd, incr, etc.
 -- Usage: runInMultiCloudRedisWrite $ geoAdd key geoInfo
 runInMultiCloudRedisWrite ::
   (HedisFlow m env, TryException m) => m a -> m a
 runInMultiCloudRedisWrite action = do
-  mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
-  case mbSecondaryEnv of
-    Nothing -> action
-    Just secondaryEnv -> do
-      -- Write operation: write to both primary and secondary
+  peerEnvs <- peerHedisEnvs
+  case peerEnvs of
+    [] -> action
+    _ -> do
       primaryResult <- action
-      -- Run on secondary Redis, but don't fail if it errors - just log
-      secondaryResult <-
-        withTryCatch "runInMultiCloudRedisWrite" $
-          local (withSecondaryRedisEnv secondaryEnv) action
-      case secondaryResult of
-        Left err -> do
-          logError $ "SECONDARY_CLUSTER:WRITE_FAILED " <> show err
-          pure primaryResult
-        Right _ -> pure primaryResult
+      forM_ peerEnvs $ \peerEnv -> do
+        peerResult <- withTryCatch "runInMultiCloudRedisWrite" $ local (withSecondaryRedisEnv peerEnv) action
+        case peerResult of
+          Left err -> logError $ "SECONDARY_CLUSTER:WRITE_FAILED " <> show err
+          Right _ -> pure ()
+      pure primaryResult
 
--- Read operation for list queries: if primary returns empty list [], fallback to secondary
+-- Read operation for list queries: if primary returns empty list [], fall back to every peer cloud (in order)
 -- NOTE: Treats empty list as "not found" - this is intentional for migration purposes.
 -- For write operations on lists, use runInMultiCloudRedisWrite instead.
 -- Usage: runInMultiCloudRedisForList $ getList key
 runInMultiCloudRedisForList ::
   (HedisFlow m env, TryException m) => m [a] -> m [a]
 runInMultiCloudRedisForList action = do
-  mbSecondaryEnv <- asks (.secondaryHedisClusterEnv)
-  case mbSecondaryEnv of
-    Nothing -> action
-    Just secondaryEnv -> do
-      -- Read operation: try primary first, fallback to secondary if empty
+  peerEnvs <- peerHedisEnvs
+  case peerEnvs of
+    [] -> action
+    _ -> do
       primaryResult <- action
       case primaryResult of
         [] -> do
-          logInfo "SECONDARY_CLUSTER: Primary returned empty list, trying secondary"
-          secondaryResult <-
-            withTryCatch "runInMultiCloudRedisForList" $
-              local (withSecondaryRedisEnv secondaryEnv) action
-          case secondaryResult of
-            Left err -> do
-              logError $ "SECONDARY_CLUSTER:READ_FAILED " <> show err
-              pure []
-            Right result -> pure result
+          logInfo "SECONDARY_CLUSTER: Primary returned empty list, trying peer clouds"
+          firstNonEmptyFromPeers peerEnvs
         _ -> pure primaryResult
+  where
+    firstNonEmptyFromPeers [] = pure []
+    firstNonEmptyFromPeers (peerEnv : rest) = do
+      peerResult <- withTryCatch "runInMultiCloudRedisForList" $ local (withSecondaryRedisEnv peerEnv) action
+      case peerResult of
+        Left err -> do
+          logError $ "SECONDARY_CLUSTER:READ_FAILED " <> show err
+          firstNonEmptyFromPeers rest
+        Right [] -> firstNonEmptyFromPeers rest
+        Right result -> pure result
 
 runInMasterCloudRedisCell ::
   (HedisFlow m env, TryException m) => m f -> m f
