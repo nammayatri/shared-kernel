@@ -388,14 +388,16 @@ withLTSReplicaRedis f = do
   local (\env -> env{hedisEnv = readEnv, hedisClusterEnv = readEnv}) f
 
 withPeerLTSRedis ::
-  (HedisFlow m env, TryException m, HasField "peerLTSHedisEnvs" env [(CloudType, HedisEnv)]) => Maybe CloudType -> m f -> m f
-withPeerLTSRedis mbCloud f = do
-  peers <- asks (.peerLTSHedisEnvs)
-  case mbCloud >>= (`lookup` peers) of
-    Nothing -> do
-      logError $ "LTS_REDIS: No LTS Redis configured for cloud " <> show mbCloud <> ", falling back to local"
-      f
-    Just cloudEnv -> local (withLTSCloudEnv cloudEnv) f
+  (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv, HasField "peerLTSHedisEnvs" env [(CloudType, HedisEnv)]) => Maybe CloudType -> m f -> m f
+withPeerLTSRedis mbCloud f
+  | isJust mbCloud && mbCloud == localCloudType = withLTSRedis f
+  | otherwise = do
+    peers <- asks (.peerLTSHedisEnvs)
+    case mbCloud >>= (`lookup` peers) of
+      Nothing -> do
+        logError $ "LTS_REDIS: No LTS Redis configured for cloud " <> show mbCloud <> ", falling back to local LTS"
+        withLTSRedis f
+      Just cloudEnv -> local (withLTSCloudEnv cloudEnv) f
 
 runOnAllPeerLTSRedis ::
   (HedisFlow m env, TryException m, Forkable m, L.MonadFlow m, HasField "peerLTSHedisEnvs" env [(CloudType, HedisEnv)]) => m a -> m [a]

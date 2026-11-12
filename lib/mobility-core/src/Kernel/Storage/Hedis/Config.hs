@@ -106,8 +106,11 @@ splitLocalCloud clouds =
   case break isLocal clouds of
     (before, localCfg : after) -> Right (localCfg, before ++ after)
     (_, []) -> case clouds of
-      firstCfg : restCfgs -> Right (firstCfg, restCfgs)
       [] -> Left "Redis cloud list is empty"
+      [onlyCfg] -> Right (onlyCfg, [])
+      firstCfg : restCfgs -> case localCloudType of
+        Just cloud -> Left $ "CLOUD_TYPE " <> show cloud <> " is not present in the Redis cloud list"
+        Nothing -> Right (firstCfg, restCfgs)
   where
     isLocal cloudCfg = Just cloudCfg.hedisCloud == localCloudType
 
