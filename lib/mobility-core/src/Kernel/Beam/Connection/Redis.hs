@@ -38,12 +38,34 @@ prepareKvRedisClouds :: (HasCallStack, L.MonadFlow m) => [KSHC.HedisCloudCfg] ->
 prepareKvRedisClouds clouds = do
   (localCfg, peerCfgs) <- either (L.runIO . ioError . userError) pure (KSHC.splitLocalCloud clouds)
   prepareNamedRedisClusterConnection kvRedis localCfg.hedisCloudCfg
-  forM_ peerCfgs $ \peer -> prepareNamedRedisClusterConnection (kvRedisCloudConnName peer.hedisCloud) peer.hedisCloudCfg
+  connectedPeers <- filterM (\peer -> tryPrepareNamedRedisClusterConnection (kvRedisCloudConnName peer.hedisCloud) peer.hedisCloudCfg) peerCfgs
   let entryFor name cloudCfg = (,name) <$> cloudTypeCode cloudCfg.hedisCloud
   L.setOption KBT.KvRedisClouds $
     KBT.KvRedisCloudsCfg
-      { cloudCodes = catMaybes (entryFor kvRedis localCfg : map (\peer -> entryFor (kvRedisCloudConnName peer.hedisCloud) peer) peerCfgs)
+      { cloudCodes = catMaybes (entryFor kvRedis localCfg : map (\peer -> entryFor (kvRedisCloudConnName peer.hedisCloud) peer) connectedPeers)
       }
+
+tryPrepareNamedRedisClusterConnection :: (HasCallStack, L.MonadFlow m) => Text -> KSHC.HedisCfg -> m Bool
+tryPrepareNamedRedisClusterConnection connName cfg = do
+  kvRedisCon <- L.initKVDBConnection (ET.mkKVDBClusterConfig connName (redisConfigOf cfg))
+  case kvRedisCon of
+    Left err -> do
+      L.logError @Text "tryPrepareNamedRedisClusterConnection" ("Failed to connect to peer Redis Cluster DB " <> connName <> ": " <> show err)
+      pure False
+    Right _ -> pure True
+
+redisConfigOf :: KSHC.HedisCfg -> ET.RedisConfig
+redisConfigOf KSHC.HedisCfg {..} =
+  ET.RedisConfig
+    { connectHost = connectHost,
+      connectPort = connectPort,
+      connectAuth = connectAuth,
+      connectDatabase = connectDatabase,
+      connectMaxConnections = connectMaxConnections,
+      connectReadOnly = connectReadOnly,
+      connectMaxIdleTime = connectMaxIdleTime,
+      connectTimeout = connectTimeout
+    }
 
 prepareNamedRedisClusterConnection :: (HasCallStack, L.MonadFlow m) => Text -> KSHC.HedisCfg -> m ()
 prepareNamedRedisClusterConnection connName KSHC.HedisCfg {..} = do
