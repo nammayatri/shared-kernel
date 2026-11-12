@@ -41,8 +41,7 @@ data KvRedisClouds = KvRedisClouds
   deriving anyclass (ToJSON, FromJSON)
 
 data KvRedisCloudsCfg = KvRedisCloudsCfg
-  { peerConns :: [Text],
-    cloudCodes :: [(Int, Text)]
+  { cloudCodes :: [(Int, Text)]
   }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (ToJSON, FromJSON)

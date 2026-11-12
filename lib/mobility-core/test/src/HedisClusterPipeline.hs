@@ -20,6 +20,7 @@ import Kernel.Storage.Hedis (HedisCfg (..), HedisEnv (..), connectHedisCluster, 
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common (Log (..), MonadClock (..), MonadTime (..))
 import Kernel.Types.TryException (TryException (..))
+import Kernel.Types.Version (CloudType)
 import System.Environment (lookupEnv)
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -30,8 +31,7 @@ data TestEnv = TestEnv
     hedisNonCriticalEnv :: HedisEnv,
     hedisClusterEnv :: HedisEnv,
     hedisNonCriticalClusterEnv :: HedisEnv,
-    secondaryHedisClusterEnv :: Maybe HedisEnv,
-    additionalHedisClusterEnvs :: [HedisEnv],
+    peerHedisClusterEnvs :: [(CloudType, HedisEnv)],
     hedisMigrationStage :: Bool,
     enablePrometheusMetricLogging :: Bool,
     enableRedisLatencyLogging :: Bool
@@ -102,7 +102,7 @@ acquire port = do
   hedis <- connectHedisCluster defaultHedisCfg {connectPort = port} identity
   now <- getCurrentTime
   let runId = T.pack (P.show (floor (utcTimeToPOSIXSeconds now * 1000) :: Integer))
-  pure (TestEnv hedis hedis hedis hedis Nothing [] False False False, runId)
+  pure (TestEnv hedis hedis hedis hedis [] False False False, runId)
 
 tests :: IO Ctx -> [TestTree]
 tests getCtx =
