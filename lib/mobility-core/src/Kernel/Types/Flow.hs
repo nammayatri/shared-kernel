@@ -256,6 +256,11 @@ instance MonadMonitor (FlowR r) where
 instance MonadGuid (FlowR r) where
   generateGUIDText = FlowR (tagLocalGuid <$> L.generateGUID)
 
+instance Forkable (FlowR r) => PeerFork (FlowR r) where
+  forkPeer tag action = do
+    awaitable <- awaitableFork tag action
+    pure (either (Left . show) Right <$> L.await Nothing awaitable)
+
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
   fork tag f = withLogTag ("Fork " <> tag) $ do
     seedLocalOptions <- carryForkLocalOptions

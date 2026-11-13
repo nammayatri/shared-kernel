@@ -100,6 +100,11 @@ instance (HasLog e) => Forkable (MockM e) where
   forkMultiple tagAndFunction = forM_ tagAndFunction $ \(tag, f) -> mockFork tag f -- it works with multiple threads unlike forkMultiple @(FlowR r), which creates only one thread
   awaitableFork = mockAwaitableFork
 
+instance PeerFork (MockM e) where
+  forkPeer _ action = do
+    result <- action
+    pure (pure (Right result))
+
 instance (HasLog e) => TryException (MockM e) where
   withTryCatch = mockWithTryCatch
 
