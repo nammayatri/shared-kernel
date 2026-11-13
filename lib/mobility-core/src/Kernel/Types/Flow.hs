@@ -256,10 +256,22 @@ instance MonadMonitor (FlowR r) where
 instance MonadGuid (FlowR r) where
   generateGUIDText = FlowR (tagLocalGuid <$> L.generateGUID)
 
-instance Forkable (FlowR r) => PeerFork (FlowR r) where
+instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => PeerFork (FlowR r) where
   forkPeer tag action = do
-    awaitable <- awaitableFork tag action
+    seedLocalOptions <- carryForkLocalOptions
+    newLocalOptions <- newMVar mempty
+    awaitable <- FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters tag "awaitable_fork" (seedLocalOptions >> handlePeerForkExc tag action))
     pure (either (Left . show) Right <$> L.await Nothing awaitable)
+
+handlePeerForkExc :: (Log (FlowR r), Metrics.CoreMetrics (FlowR r)) => Text -> FlowR r a -> FlowR r a
+handlePeerForkExc tag f = do
+  res <- try f
+  case res of
+    Right a -> return a
+    Left e -> do
+      logError $ "forkPeer Thread " <> show tag <> " died with error: " <> makeLogSomeException e
+      Metrics.incrementErrorCounter "AWAITABLE_FORK_THREAD_ERROR" e
+      liftIO $ throwIO e
 
 instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkable (FlowR r) where
   fork tag f = withLogTag ("Fork " <> tag) $ do
