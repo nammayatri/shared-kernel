@@ -20,6 +20,7 @@ import Database.Redis
 import GHC.Records.Extra
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics
+import Kernel.Types.Forkable (PeerFork)
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import Kernel.Types.TryException
@@ -29,7 +30,7 @@ import Kernel.Utils.Dhall (FromDhall)
 import Network.Socket (HostName)
 
 type HedisFlow m env =
-  (MonadTime m, MonadClock m, CoreMetrics m, MonadCatch m, MonadReader env m, HedisFlowEnv env, MonadIO m, C.MonadThrow m, Log m, TryException m)
+  (MonadTime m, MonadClock m, CoreMetrics m, MonadCatch m, MonadReader env m, HedisFlowEnv env, MonadIO m, C.MonadThrow m, Log m, TryException m, PeerFork m)
 
 type HedisFlowEnv env = (HasField "hedisMigrationStage" env Bool, HasField "hedisClusterEnv" env HedisEnv, HasField "hedisNonCriticalClusterEnv" env HedisEnv, HasField "hedisEnv" env HedisEnv, HasField "hedisNonCriticalEnv" env HedisEnv, HasField "enablePrometheusMetricLogging" env Bool, HasField "enableRedisLatencyLogging" env Bool, HasField "peerHedisClusterEnvs" env [(CloudType, HedisEnv)])
 

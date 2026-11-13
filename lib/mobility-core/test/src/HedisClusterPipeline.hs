@@ -19,6 +19,7 @@ import Kernel.Prelude
 import Kernel.Storage.Hedis (HedisCfg (..), HedisEnv (..), connectHedisCluster, defaultHedisCfg, disconnectHedis, mGetClusterRaw, mGetClusterWithKeys, runPipelinedByKey, zAddIfPossibleMany)
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common (Log (..), MonadClock (..), MonadTime (..))
+import Kernel.Types.Forkable (PeerFork (..))
 import Kernel.Types.TryException (TryException (..))
 import Kernel.Types.Version (CloudType)
 import System.Environment (lookupEnv)
@@ -52,6 +53,11 @@ instance MonadClock TestM where
 instance Log TestM where
   logOutput _ _ = pure ()
   withLogTag _ action = action
+
+instance PeerFork TestM where
+  forkPeer _ action = do
+    result <- action
+    pure (pure (Right result))
 
 instance TryException TestM where
   withTryCatch _ = try
