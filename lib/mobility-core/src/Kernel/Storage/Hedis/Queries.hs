@@ -48,6 +48,7 @@ import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
 import qualified EulerHS.Language as L
 import EulerHS.Prelude (whenLeft)
+import EulerHS.Types (Awaitable)
 import GHC.Records.Extra
 import Kernel.Beam.Connection.EnvVars (getRunInMasterCloudRedisCell, getRunInMasterLTSRedisCell)
 import Kernel.Prelude
@@ -189,68 +190,62 @@ withLTSCloudEnv cloudEnv env = env{hedisEnv = cloudEnv, hedisClusterEnv = cloudE
 peerHedisEnvs :: (HedisFlow m env) => m [HedisEnv]
 peerHedisEnvs = map snd <$> asks (.peerHedisClusterEnvs)
 
+type MultiCloudRedisFlow m env = (HedisFlow m env, TryException m, Forkable m, L.MonadFlow m)
+
+forkOnPeerRedis ::
+  (MultiCloudRedisFlow m env) => m a -> m [(CloudType, Awaitable (Either Text a))]
+forkOnPeerRedis action = do
+  peers <- asks (.peerHedisClusterEnvs)
+  forM peers $ \(cloud, cloudEnv) ->
+    (cloud,) <$> awaitableFork "runOnPeerRedis" (local (withCloudRedisEnv cloudEnv) action)
+
+awaitPeerRedis :: (MultiCloudRedisFlow m env) => Text -> [(CloudType, Awaitable (Either Text a))] -> m [a]
+awaitPeerRedis label awaitables =
+  fmap catMaybes . forM awaitables $ \(cloud, awaitable) ->
+    L.await Nothing awaitable >>= \case
+      Right result -> pure (Just result)
+      Left err -> do
+        logError $ "MULTI_CLOUD_REDIS: Peer " <> label <> " failed for " <> show cloud <> " " <> show err
+        pure Nothing
+
+runOnAllPeerRedis :: (MultiCloudRedisFlow m env) => Text -> m a -> m [a]
+runOnAllPeerRedis label action = forkOnPeerRedis action >>= awaitPeerRedis label
+
 runInMultiCloudRedisMaybeResult ::
-  (HedisFlow m env, TryException m) => m (Maybe a) -> m (Maybe a)
+  (MultiCloudRedisFlow m env) => m (Maybe a) -> m (Maybe a)
 runInMultiCloudRedisMaybeResult action = do
+  localResult <- action
   peerEnvs <- peerHedisEnvs
-  case peerEnvs of
-    [] -> action
-    _ -> do
-      localResult <- action
-      case localResult of
-        Just _ -> pure localResult
-        Nothing -> do
-          logWarning "MULTI_CLOUD_REDIS: Local cloud returned Nothing, trying peer clouds"
-          firstJustFromPeers peerEnvs
-  where
-    firstJustFromPeers [] = pure Nothing
-    firstJustFromPeers (peerEnv : rest) = do
-      peerResult <- withTryCatch "runInMultiCloudRedisMaybeResult" $ local (withCloudRedisEnv peerEnv) action
-      case peerResult of
-        Left err -> do
-          logError $ "MULTI_CLOUD_REDIS: Peer read failed " <> show err
-          firstJustFromPeers rest
-        Right (Just result) -> pure (Just result)
-        Right Nothing -> firstJustFromPeers rest
+  case localResult of
+    Nothing | not (null peerEnvs) -> do
+      logWarning "MULTI_CLOUD_REDIS: Local cloud returned Nothing, trying peer clouds in parallel"
+      peerResults <- runOnAllPeerRedis "read" action
+      pure $ listToMaybe (catMaybes peerResults)
+    _ -> pure localResult
 
 runInMultiCloudRedisWrite ::
-  (HedisFlow m env, TryException m) => m a -> m a
+  (MultiCloudRedisFlow m env) => m a -> m a
 runInMultiCloudRedisWrite action = do
   peerEnvs <- peerHedisEnvs
-  case peerEnvs of
-    [] -> action
-    _ -> do
+  if null peerEnvs
+    then action
+    else do
+      peerAwaitables <- forkOnPeerRedis action
       localResult <- action
-      forM_ peerEnvs $ \peerEnv -> do
-        peerResult <- withTryCatch "runInMultiCloudRedisWrite" $ local (withCloudRedisEnv peerEnv) action
-        case peerResult of
-          Left err -> logError $ "MULTI_CLOUD_REDIS: Peer write failed " <> show err
-          Right _ -> pure ()
+      void $ awaitPeerRedis "write" peerAwaitables
       pure localResult
 
 runInMultiCloudRedisForList ::
-  (HedisFlow m env, TryException m) => m [a] -> m [a]
+  (MultiCloudRedisFlow m env) => m [a] -> m [a]
 runInMultiCloudRedisForList action = do
+  localResult <- action
   peerEnvs <- peerHedisEnvs
-  case peerEnvs of
-    [] -> action
-    _ -> do
-      localResult <- action
-      case localResult of
-        [] -> do
-          logInfo "MULTI_CLOUD_REDIS: Local cloud returned empty list, trying peer clouds"
-          firstNonEmptyFromPeers peerEnvs
-        _ -> pure localResult
-  where
-    firstNonEmptyFromPeers [] = pure []
-    firstNonEmptyFromPeers (peerEnv : rest) = do
-      peerResult <- withTryCatch "runInMultiCloudRedisForList" $ local (withCloudRedisEnv peerEnv) action
-      case peerResult of
-        Left err -> do
-          logError $ "MULTI_CLOUD_REDIS: Peer read failed " <> show err
-          firstNonEmptyFromPeers rest
-        Right [] -> firstNonEmptyFromPeers rest
-        Right result -> pure result
+  case localResult of
+    [] | not (null peerEnvs) -> do
+      logInfo "MULTI_CLOUD_REDIS: Local cloud returned empty list, trying peer clouds in parallel"
+      peerResults <- runOnAllPeerRedis "read" action
+      pure $ fromMaybe [] (listToMaybe (Kernel.Prelude.filter (not . null) peerResults))
+    _ -> pure localResult
 
 runInMasterCloudRedisCell ::
   (HedisFlow m env, TryException m) => m f -> m f
@@ -289,7 +284,7 @@ runInMasterLTSRedisCell f = do
       f
 
 runInMultiCloudLTSRedisForList ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
   m [a] ->
   m [a]
 runInMultiCloudLTSRedisForList action = do
@@ -297,7 +292,7 @@ runInMultiCloudLTSRedisForList action = do
   runInMultiCloudLTSRedisForListWith ltsEnv action
 
 runInMultiCloudLTSRedisForListFromReplica ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
   m [a] ->
   m [a]
 runInMultiCloudLTSRedisForListFromReplica action = do
@@ -305,31 +300,22 @@ runInMultiCloudLTSRedisForListFromReplica action = do
   runInMultiCloudLTSRedisForListWith readEnv action
 
 runInMultiCloudLTSRedisForListWith ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
   HedisEnv ->
   m [a] ->
   m [a]
 runInMultiCloudLTSRedisForListWith localEnv action = do
-  peerEnvs <- map snd <$> asks (.peerLTSHedisEnvs)
   localResult <- local (withLTSCloudEnv localEnv) action
+  peers <- asks (.peerLTSHedisEnvs)
   case localResult of
-    [] | not (null peerEnvs) -> do
-      logInfo "MULTI_CLOUD_LTS: Local cloud returned empty, trying peer clouds"
-      firstNonEmptyFromPeers peerEnvs
+    [] | not (null peers) -> do
+      logInfo "MULTI_CLOUD_LTS: Local cloud returned empty, trying peer clouds in parallel"
+      peerResults <- runOnAllPeerLTSRedis action
+      pure $ fromMaybe [] (listToMaybe (Kernel.Prelude.filter (not . null) peerResults))
     _ -> pure localResult
-  where
-    firstNonEmptyFromPeers [] = pure []
-    firstNonEmptyFromPeers (peerEnv : rest) = do
-      peerResult <- withTryCatch "runInMultiCloudLTSRedisForList" $ local (withLTSCloudEnv peerEnv) action
-      case peerResult of
-        Left err -> do
-          logError $ "MULTI_CLOUD_LTS: Peer read failed " <> show err
-          firstNonEmptyFromPeers rest
-        Right [] -> firstNonEmptyFromPeers rest
-        Right result -> pure result
 
 runInMultiCloudLTSRedisForMaybeList ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
   m [Maybe a] ->
   m [Maybe a]
 runInMultiCloudLTSRedisForMaybeList action = do
@@ -337,7 +323,7 @@ runInMultiCloudLTSRedisForMaybeList action = do
   runInMultiCloudLTSRedisForMaybeListWith ltsEnv action
 
 runInMultiCloudLTSRedisForMaybeListFromReplica ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
   m [Maybe a] ->
   m [Maybe a]
 runInMultiCloudLTSRedisForMaybeListFromReplica action = do
@@ -345,29 +331,19 @@ runInMultiCloudLTSRedisForMaybeListFromReplica action = do
   runInMultiCloudLTSRedisForMaybeListWith readEnv action
 
 runInMultiCloudLTSRedisForMaybeListWith ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
   HedisEnv ->
   m [Maybe a] ->
   m [Maybe a]
 runInMultiCloudLTSRedisForMaybeListWith localEnv action = do
-  peerEnvs <- map snd <$> asks (.peerLTSHedisEnvs)
   localResult <- local (withLTSCloudEnv localEnv) action
-  if not (null localResult) && Kernel.Prelude.all isNothing localResult && not (null peerEnvs)
+  peers <- asks (.peerLTSHedisEnvs)
+  if not (null localResult) && Kernel.Prelude.all isNothing localResult && not (null peers)
     then do
-      logInfo "MULTI_CLOUD_LTS: Local cloud returned all Nothing, trying peer clouds"
-      firstFoundFromPeers localResult peerEnvs
+      logInfo "MULTI_CLOUD_LTS: Local cloud returned all Nothing, trying peer clouds in parallel"
+      peerResults <- runOnAllPeerLTSRedis action
+      pure $ fromMaybe localResult (listToMaybe (Kernel.Prelude.filter (not . Kernel.Prelude.all isNothing) peerResults))
     else pure localResult
-  where
-    firstFoundFromPeers fallback [] = pure fallback
-    firstFoundFromPeers fallback (peerEnv : rest) = do
-      peerResult <- withTryCatch "runInMultiCloudLTSRedisForMaybeList" $ local (withLTSCloudEnv peerEnv) action
-      case peerResult of
-        Left err -> do
-          logError $ "MULTI_CLOUD_LTS: Peer read failed " <> show err
-          firstFoundFromPeers fallback rest
-        Right result
-          | Kernel.Prelude.all isNothing result -> firstFoundFromPeers fallback rest
-          | otherwise -> pure result
 
 withLTSRedis ::
   (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv) => m f -> m f
