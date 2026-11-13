@@ -48,7 +48,6 @@ import qualified Database.Redis as Hedis
 import qualified Database.Redis.Cluster as Cluster
 import qualified EulerHS.Language as L
 import EulerHS.Prelude (whenLeft)
-import EulerHS.Types (Awaitable)
 import GHC.Records.Extra
 import Kernel.Beam.Connection.EnvVars (getRunInMasterCloudRedisCell, getRunInMasterLTSRedisCell)
 import Kernel.Prelude
@@ -190,19 +189,19 @@ withLTSCloudEnv cloudEnv env = env{hedisEnv = cloudEnv, hedisClusterEnv = cloudE
 peerHedisEnvs :: (HedisFlow m env) => m [HedisEnv]
 peerHedisEnvs = map snd <$> asks (.peerHedisClusterEnvs)
 
-type MultiCloudRedisFlow m env = (HedisFlow m env, TryException m, Forkable m, L.MonadFlow m)
+type MultiCloudRedisFlow m env = (HedisFlow m env, TryException m)
 
 forkOnPeerRedis ::
-  (MultiCloudRedisFlow m env) => m a -> m [(CloudType, Awaitable (Either Text a))]
+  (MultiCloudRedisFlow m env) => m a -> m [(CloudType, m (Either Text a))]
 forkOnPeerRedis action = do
   peers <- asks (.peerHedisClusterEnvs)
   forM peers $ \(cloud, cloudEnv) ->
-    (cloud,) <$> awaitableFork "runOnPeerRedis" (local (withCloudRedisEnv cloudEnv) action)
+    (cloud,) <$> forkPeer "runOnPeerRedis" (local (withCloudRedisEnv cloudEnv) action)
 
-awaitPeerRedis :: (MultiCloudRedisFlow m env) => Text -> [(CloudType, Awaitable (Either Text a))] -> m [a]
-awaitPeerRedis label awaitables =
-  fmap catMaybes . forM awaitables $ \(cloud, awaitable) ->
-    L.await Nothing awaitable >>= \case
+awaitPeerRedis :: (MultiCloudRedisFlow m env) => Text -> [(CloudType, m (Either Text a))] -> m [a]
+awaitPeerRedis label handles =
+  fmap catMaybes . forM handles $ \(cloud, await') ->
+    await' >>= \case
       Right result -> pure (Just result)
       Left err -> do
         logError $ "MULTI_CLOUD_REDIS: Peer " <> label <> " failed for " <> show cloud <> " " <> show err
@@ -284,7 +283,7 @@ runInMasterLTSRedisCell f = do
       f
 
 runInMultiCloudLTSRedisForList ::
-  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
+  (HedisLTSFlow m env, TryException m) =>
   m [a] ->
   m [a]
 runInMultiCloudLTSRedisForList action = do
@@ -292,7 +291,7 @@ runInMultiCloudLTSRedisForList action = do
   runInMultiCloudLTSRedisForListWith ltsEnv action
 
 runInMultiCloudLTSRedisForListFromReplica ::
-  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
+  (HedisLTSFlow m env, TryException m) =>
   m [a] ->
   m [a]
 runInMultiCloudLTSRedisForListFromReplica action = do
@@ -300,7 +299,7 @@ runInMultiCloudLTSRedisForListFromReplica action = do
   runInMultiCloudLTSRedisForListWith readEnv action
 
 runInMultiCloudLTSRedisForListWith ::
-  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
+  (HedisLTSFlow m env, TryException m) =>
   HedisEnv ->
   m [a] ->
   m [a]
@@ -315,7 +314,7 @@ runInMultiCloudLTSRedisForListWith localEnv action = do
     _ -> pure localResult
 
 runInMultiCloudLTSRedisForMaybeList ::
-  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
+  (HedisLTSFlow m env, TryException m) =>
   m [Maybe a] ->
   m [Maybe a]
 runInMultiCloudLTSRedisForMaybeList action = do
@@ -323,7 +322,7 @@ runInMultiCloudLTSRedisForMaybeList action = do
   runInMultiCloudLTSRedisForMaybeListWith ltsEnv action
 
 runInMultiCloudLTSRedisForMaybeListFromReplica ::
-  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
+  (HedisLTSFlow m env, TryException m) =>
   m [Maybe a] ->
   m [Maybe a]
 runInMultiCloudLTSRedisForMaybeListFromReplica action = do
@@ -331,7 +330,7 @@ runInMultiCloudLTSRedisForMaybeListFromReplica action = do
   runInMultiCloudLTSRedisForMaybeListWith readEnv action
 
 runInMultiCloudLTSRedisForMaybeListWith ::
-  (HedisLTSFlow m env, TryException m, Forkable m, L.MonadFlow m) =>
+  (HedisLTSFlow m env, TryException m) =>
   HedisEnv ->
   m [Maybe a] ->
   m [Maybe a]
@@ -376,13 +375,13 @@ withPeerLTSRedis mbCloud f
       Just cloudEnv -> local (withLTSCloudEnv cloudEnv) f
 
 runOnAllPeerLTSRedis ::
-  (HedisFlow m env, TryException m, Forkable m, L.MonadFlow m, HasField "peerLTSHedisEnvs" env [(CloudType, HedisEnv)]) => m a -> m [a]
+  (HedisFlow m env, TryException m, HasField "peerLTSHedisEnvs" env [(CloudType, HedisEnv)]) => m a -> m [a]
 runOnAllPeerLTSRedis action = do
   peers <- asks (.peerLTSHedisEnvs)
-  awaitables <- forM peers $ \(cloud, cloudEnv) ->
-    (cloud,) <$> awaitableFork "runOnAllPeerLTSRedis" (local (withLTSCloudEnv cloudEnv) action)
-  fmap catMaybes . forM awaitables $ \(cloud, awaitable) ->
-    L.await Nothing awaitable >>= \case
+  handles <- forM peers $ \(cloud, cloudEnv) ->
+    (cloud,) <$> forkPeer "runOnAllPeerLTSRedis" (local (withLTSCloudEnv cloudEnv) action)
+  fmap catMaybes . forM handles $ \(cloud, await') ->
+    await' >>= \case
       Right result -> pure (Just result)
       Left err -> do
         logError $ "LTS_REDIS: Peer read failed for " <> show cloud <> " " <> show err

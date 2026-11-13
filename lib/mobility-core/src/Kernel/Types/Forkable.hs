@@ -21,3 +21,6 @@ class Forkable m where
   fork :: Text -> m () -> m ()
   awaitableFork :: Text -> m a -> m (Awaitable (Either Text a))
   forkMultiple :: [(Text, m ())] -> m ()
+
+class Monad m => PeerFork m where
+  forkPeer :: Text -> m a -> m (m (Either Text a))
