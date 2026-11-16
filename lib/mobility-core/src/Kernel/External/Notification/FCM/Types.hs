@@ -24,8 +24,10 @@ module Kernel.External.Notification.FCM.Types where
 import Control.Lens.TH
 import Data.Aeson
 import Data.Aeson.Casing
+import qualified Data.Aeson.KeyMap as AKM
 import Data.Aeson.TH
 import Data.Aeson.Types
+import qualified Data.ByteString.Lazy as BSL
 import Data.Default.Class
 import Data.OpenApi (ToSchema)
 import qualified Database.Beam as B
@@ -721,7 +723,18 @@ newtype FCMApnPayload a = FCMApnPayload
 
 $(makeLenses ''FCMApnPayload)
 
-$(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMApnPayload)
+$(deriveFromJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMApnPayload)
+
+instance (ToJSON a) => ToJSON (FCMApnPayload a) where
+  toJSON (FCMApnPayload mbAps) =
+    if BSL.length (Data.Aeson.encode withDataFields) <= apnsPayloadLimitBytes then withDataFields else Object apsOnly
+    where
+      apnsPayloadLimitBytes = 4096
+      apsOnly = AKM.fromList (maybe [] (\aps -> [("aps", toJSON aps)]) mbAps)
+      dataFields = case mbAps of
+        Just FCMaps {fcmData = Just msgData} | Object fields <- toJSON msgData -> fields
+        _ -> AKM.empty
+      withDataFields = Object (AKM.union apsOnly dataFields)
 
 instance Default (FCMApnPayload a) where
   def = FCMApnPayload Nothing
