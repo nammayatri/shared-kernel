@@ -22,8 +22,12 @@
 --
 -- Transport selection:
 --
---   * If the request has no media files, we send @application/json@.
---   * If it has media files, we download each URL to a temp file and POST as
+--   * Only embedded @data:@ URIs count as attachments. Hosted @http(s)@
+--     links (dashboard ride/SOS pages, tracking URLs) are references for the
+--     agent, not files: they stay as text ("Media URLs" on create, the
+--     message body on update) and are never downloaded or uploaded.
+--   * If the request has no embedded attachments, we send @application/json@.
+--   * If it has some, we write each one to a temp file and POST as
 --     @multipart/form-data@ with a repeated @files@ part. Temp files are
 --     cleaned up after the call (best-effort — they live under @/tmp@).
 --
@@ -260,9 +264,17 @@ ticketStatusToXyneV2 = \case
   IT.Closed -> "CLOSED"
   IT.Reopened -> "REOPENED"
 
--- | Pick JSON vs multipart based on attachment presence. Downloads each
--- attachment URL to a temp file under @/tmp@ and cleans up afterwards (best
+-- | Pick JSON vs multipart based on attachment presence. Writes each embedded
+-- attachment to a temp file under @/tmp@ and cleans up afterwards (best
 -- effort — leaked files are reaped by the OS).
+--
+-- Only @data:@ URIs are uploaded. The media list also carries hosted links
+-- that are meant to be read, not attached (e.g. the dashboard ride-info URL
+-- added to every ride-linked ticket). Downloading those and uploading the
+-- response turned every such ticket into a multipart request whose only file
+-- was an HTML page; Xyne's edge firewall rejects that body with a 403, so the
+-- create call (and its @additionalFormFields@) never landed. Those links are
+-- already sent as text, so skipping them here loses nothing.
 callAppDeskInbound ::
   ( Metrics.CoreMetrics m,
     MonadFlow m,
@@ -274,12 +286,13 @@ callAppDeskInbound ::
   Xyne.XyneInboundReq ->
   [Text] ->
   m Xyne.XyneInboundResp
-callAppDeskInbound config token xyneReq attachmentUrls
-  | null attachmentUrls = XF.appDeskInboundAPI config.url token xyneReq
+callAppDeskInbound config token xyneReq mediaRefs
+  | null attachments = XF.appDeskInboundAPI config.url token xyneReq
   | otherwise = do
-    tempSpecs <- L.runIO $ traverse fetchToTempFile attachmentUrls
+    tempSpecs <- L.runIO $ traverse fetchToTempFile attachments
     XF.appDeskInboundMultipartAPI config.url token xyneReq tempSpecs `finallyM` cleanupTemps tempSpecs
   where
+    attachments = filter ("data:" `T.isPrefixOf`) mediaRefs
     cleanupTemps specs =
       L.runIO . forM_ specs $ \(_, _, _, fp) -> do
         eRes <- Exc.try (removeFile fp)
@@ -296,6 +309,9 @@ finallyM action cleanup =
 -- | Resolve a media reference into @(formName, displayName, mimeType, path)@
 -- suitable for 'appDeskInboundMultipartAPI', writing the bytes to a fresh
 -- temp file under @/tmp@.
+--
+-- 'callAppDeskInbound' only passes @data:@ URIs here, so the @http(s)@ branch
+-- below is no longer reached from the ticket create/update path.
 --
 -- Two supported reference shapes:
 --
