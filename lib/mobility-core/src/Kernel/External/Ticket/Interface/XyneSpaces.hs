@@ -55,6 +55,7 @@ module Kernel.External.Ticket.Interface.XyneSpaces
     downloadAttachment,
     advanceBotConversation,
     endBotConversation,
+    isHealthy,
   )
 where
 
@@ -730,3 +731,13 @@ endBotConversation config conversationId = do
 
 botConversationToken :: (EncFlow m r) => XyneSpacesCfg -> m Text
 botConversationToken config = decrypt (fromMaybe config.token config.botToken)
+
+isHealthy ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  XyneSpacesCfg ->
+  m Bool
+isHealthy config = XC.healthCheckAPI config.url
