@@ -24,6 +24,7 @@ data XyneSpacesCfg = XyneSpacesCfg
     token :: EncryptedField 'AsEncrypted Text,
     -- | The desk channel this merchant talks to.
     channelId :: Text,
+    sosChannelId :: Maybe Text,
     -- | Fallback sender id used on inbound DESK_REPLY webhooks when the payload
     -- omits @replierUserId@. Treated as an opaque @Id User@ — a real dashboard
     -- user row is not required.
