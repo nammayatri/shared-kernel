@@ -29,6 +29,7 @@ module Kernel.External.Ticket.XyneSpaces.Conversation
     XyneConversationError (..),
     advanceConversationAPI,
     endConversationAPI,
+    healthCheckAPI,
   )
 where
 
@@ -153,3 +154,26 @@ endConversationAPI url token conversationId = do
     -- Ending an already-closed or unknown conversation is not worth failing the caller over.
     Left (FailureResponse _ Response {responseStatusCode = status}) | HttpTypes.statusCode status `elem` [404, 409] -> pure ()
     Left err -> throwError $ InternalError $ "Failed to call Xyne end conversation API: " <> show err
+
+type XyneHealthAPI =
+  "api"
+    :> "health"
+    :> Get '[JSON] A.Value
+
+healthCheckAPI ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  m Bool
+healthCheckAPI url = do
+  let eulerClient = Euler.client (Proxy @XyneHealthAPI)
+  res <- callAPI url eulerClient "xyneHealthAPI" (Proxy @XyneHealthAPI)
+  pure $ case res of
+    Right (A.Object o)
+      | KM.lookup "success" o == Just (A.Bool True),
+        Just (A.Object d) <- KM.lookup "data" o ->
+        KM.lookup "status" d == Just (A.String "OK")
+    _ -> False
