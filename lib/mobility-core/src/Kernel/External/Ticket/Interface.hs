@@ -24,6 +24,7 @@ module Kernel.External.Ticket.Interface
     getTicketStatus,
     advanceBotConversation,
     endBotConversation,
+    isTicketServiceHealthy,
   )
 where
 
@@ -210,3 +211,17 @@ endBotConversation serviceConfig conversationId = case serviceConfig of
   RadarXyneSpacesConfig cfg -> XyneSpaces.endBotConversation cfg conversationId
   KaptureConfig _ -> pure ()
   ZendeskConfig _ -> pure ()
+
+isTicketServiceHealthy ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  IssueTicketServiceConfig ->
+  m Bool
+isTicketServiceHealthy serviceConfig = case serviceConfig of
+  XyneSpacesConfig cfg -> XyneSpaces.isHealthy cfg
+  RadarXyneSpacesConfig cfg -> XyneSpaces.isHealthy cfg
+  KaptureConfig _ -> pure True
+  ZendeskConfig _ -> pure True
