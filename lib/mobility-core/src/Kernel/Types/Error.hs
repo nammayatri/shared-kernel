@@ -1392,6 +1392,20 @@ instance IsHTTPError PaymentOrderError where
 
 instance IsAPIError PaymentOrderError
 
+newtype PayoutNotSentError = PayoutNotSent Text
+  deriving (Eq, Show, IsBecknAPIError)
+
+instanceExceptionWithParent 'HTTPException ''PayoutNotSentError
+
+instance IsBaseError PayoutNotSentError where
+  toMessage (PayoutNotSent reason) = Just $ "Payout not sent: " <> reason
+
+instance IsHTTPError PayoutNotSentError where
+  toErrorCode _ = "PAYOUT_NOT_SENT"
+  toHttpCode _ = E400
+
+instance IsAPIError PayoutNotSentError
+
 data DriverFeeError
   = DriverFeeNotFound Text
   | DriverFeeAlreadySettled Text

@@ -42,7 +42,7 @@ createPayoutOrder serviceConfig req = case serviceConfig of
   HdfcCbxConfig _ -> throwError $ InvalidRequest "HDFC CBX has no single-order API; use submitBulkPayout"
   JuspayConfig cfg -> Juspay.createPayoutOrder cfg req
   StripeConfig cfg -> do
-    connectedAccountId <- req.mConnectedAccountId & fromMaybeM (InvalidRequest "connectedAccountId required for Stripe payout")
+    connectedAccountId <- req.mConnectedAccountId & fromMaybeM (PayoutNotSent "connectedAccountId required for Stripe payout")
 
     -- Check Fleet VA available balance and compute adjusted transfer amount if needed.
     -- If fleetAvail + transferAmount < payoutAmount, top up the transfer to cover the shortfall.
@@ -73,11 +73,15 @@ createPayoutOrder serviceConfig req = case serviceConfig of
                   <> show adjustedAmt
               pure (adjustedAmt, Just topUp)
 
-    (adjustedTransferAmount, merchantTopUpAmount) <- computeAdjustedTransfer
+    (adjustedTransferAmount, merchantTopUpAmount) <-
+      withTryCatch "computeAdjustedTransfer" computeAdjustedTransfer
+        >>= either (throwError . PayoutNotSent . show) pure
 
     mCreateTransferResp <-
       if adjustedTransferAmount > 0
-        then Just <$> Stripe.createTransfer cfg (mkTransferReq connectedAccountId adjustedTransferAmount req)
+        then
+          withTryCatch "createTransfer" (Stripe.createTransfer cfg (mkTransferReq connectedAccountId adjustedTransferAmount req))
+            >>= either rethrowTransferError (pure . Just)
         else pure Nothing
     -- In case if external payout api call failed, we still need to store transferId and transferStatus
     result <- withTryCatch "createExternalPayout" $ Stripe.createExternalPayout cfg req
@@ -99,6 +103,16 @@ createPayoutOrder serviceConfig req = case serviceConfig of
             }
     pure $ mkCreatePayoutOrderResp merchantTopUpAmount mCreateTransferResp createExternalPayoutResp
   where
+    rethrowTransferError e = case fromException @Payment.StripeError e of
+      Just stripeErr | isRefusedByStripe stripeErr -> throwError $ PayoutNotSent (show stripeErr)
+      _ -> throwM e
+
+    isRefusedByStripe :: Payment.StripeError -> Bool
+    isRefusedByStripe = \case
+      Payment.InvalidRequestError _ -> True
+      Payment.CardError _ -> True
+      _ -> False
+
     mkTransferReq :: Text -> HighPrecMoney -> CreatePayoutOrderReq -> CreateTransferReq
     mkTransferReq connectedAccountId adjustedTransferAmount CreatePayoutOrderReq {..} =
       CreateTransferReq
