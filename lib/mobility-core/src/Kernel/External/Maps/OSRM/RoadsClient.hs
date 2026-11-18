@@ -93,6 +93,14 @@ type RouteAPI =
     :> QueryParam "annotations" AnnotationsList
     :> Get '[JSON] OSRMRouteResponse
 
+type NearestAPI =
+  "nearest"
+    :> "v1"
+    :> Capture "profile" OSRMProfile
+    :> Capture "coordinates" PointsList
+    :> QueryParam "number" Int
+    :> Get '[JSON] OSRMNearestResponse
+
 newtype PointsList = PointsList {getPointsList :: [Maps.LatLong]}
 
 newtype SourcesList = SourcesList {getSourcesList :: [Int]}
@@ -241,6 +249,21 @@ data OSRMRouteWaypoint = OSRMRouteWaypoint
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
 
+data OSRMNearestResponse = OSRMNearestResponse
+  { code :: Text,
+    waypoints :: [OSRMNearestWaypoint]
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+data OSRMNearestWaypoint = OSRMNearestWaypoint
+  { name :: Maybe Text,
+    distance :: Double,
+    location :: Location
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
 instance FromJSON Location where
   parseJSON = withArray "array [lon, lat]" $ \arr_ -> case toList arr_ of
     [lonVal, latVal] -> Location ... Maps.LatLong <$> parseJSON latVal <*> parseJSON lonVal
@@ -345,3 +368,27 @@ callOsrmRouteAPI entityId merchantCityId req osrmUrl travelMode pointsList withT
   fork ("Logging external API Call of OsrmRouteAPI OSRM ") $
     ApiCallLogger.pushExternalApiCallDataToKafka "OsrmRouteAPI" "OSRM" entityId merchantCityId (Just updatedReq) rsp
   fromEitherM (FailedToCallOsrmRouteAPI . show) rsp
+
+callOsrmNearestAPI ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  Maybe Text ->
+  MapsInterfaceTypes.GetNearestPointsReq ->
+  BaseUrl ->
+  Maps.TravelMode ->
+  PointsList ->
+  Maybe Int ->
+  m OSRMNearestResponse
+callOsrmNearestAPI entityId merchantCityId req osrmUrl travelMode pointsList mbNumber = do
+  let eulerClient = Euler.client (Proxy @NearestAPI)
+      profile = toOSRMProfile travelMode
+  rsp <- callAPI osrmUrl (eulerClient profile pointsList mbNumber) "osrm-nearest" (Proxy @NearestAPI)
+  fork ("Logging external API Call of OsrmNearestAPI OSRM ") $
+    ApiCallLogger.pushExternalApiCallDataToKafka "OsrmNearestAPI" "OSRM" entityId merchantCityId (Just req) rsp
+  fromEitherM (FailedToCallOsrmNearestAPI . show) rsp

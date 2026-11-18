@@ -16,6 +16,7 @@ module Kernel.External.Maps.Interface.OSRM
   ( module Reexport,
     callOsrmMatch,
     getDistances,
+    getNearestPoints,
     getOSRMTable,
     getRoutes,
   )
@@ -258,3 +259,27 @@ getOSRMRoute ::
   OSRM.OSRMRouteResponse ->
   m GetRoutesResp
 getOSRMRoute mbTrafficCfg osrmRouteResponse = sequence $ map (convertRouteToRouteInfo mbTrafficCfg) osrmRouteResponse.routes
+
+getNearestPoints ::
+  ( HasCallStack,
+    Metrics.CoreMetrics m,
+    MonadFlow m,
+    MonadReader r m,
+    HasKafkaProducer r,
+    HasRequestId r
+  ) =>
+  Maybe Text ->
+  Maybe Text ->
+  OSRMCfg ->
+  GetNearestPointsReq ->
+  m GetNearestPointsResp
+getNearestPoints entityId merchantCityId osrmCfg req = do
+  response <- OSRM.callOsrmNearestAPI entityId merchantCityId req osrmCfg.osrmUrl CAR (OSRM.PointsList [req.point]) req.number
+  pure . GetNearestPointsResp $ map mkNearestPoint response.waypoints
+  where
+    mkNearestPoint waypoint =
+      NearestPoint
+        { location = waypoint.location.getLatLong,
+          roadName = waypoint.name,
+          distance = waypoint.distance
+        }
