@@ -207,6 +207,29 @@ data SnapToRoadResp = SnapToRoadResp
   deriving (Show)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
+data GetNearestPointsReq = GetNearestPointsReq
+  { point :: LatLong,
+    number :: Maybe Int -- number of nearest road segments to return, OSRM defaults to 1
+  }
+  deriving stock (Generic)
+  deriving (Show, ToJSON)
+
+newtype GetNearestPointsResp = GetNearestPointsResp
+  { waypoints :: [NearestPoint]
+  }
+  deriving stock (Generic)
+  deriving (Show)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data NearestPoint = NearestPoint
+  { location :: LatLong,
+    roadName :: Maybe Text,
+    distance :: Double
+  }
+  deriving stock (Generic)
+  deriving (Show)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data Country = India | France | USA | Netherlands | Finland
   deriving stock (Generic)
   deriving (Show)
