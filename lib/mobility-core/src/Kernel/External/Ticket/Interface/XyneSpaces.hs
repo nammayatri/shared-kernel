@@ -56,6 +56,7 @@ module Kernel.External.Ticket.Interface.XyneSpaces
     advanceBotConversation,
     endBotConversation,
     isHealthy,
+    buildCreateMetadata,
   )
 where
 
