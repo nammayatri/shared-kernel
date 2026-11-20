@@ -18,9 +18,10 @@ import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import EulerHS.Prelude (liftA3, safeHead)
-import Kernel.External.Maps.Google.MapsClient.Types as GT
+import qualified Kernel.External.Maps.Google.MapsClient.Types as GT
 import Kernel.External.Maps.Google.PolyLinePoints (oneCoordEnc, stringToCoords)
 import Kernel.External.MultiModal.Interface.Types
+import qualified Kernel.External.MultiModal.Interface.Types as MultiModalLeg (MultiModalLeg (..))
 import Kernel.External.MultiModal.OpenTripPlanner.Config (MultiModalWeightedSortCfg (..), validateWeightedSortCfg)
 import qualified Kernel.External.MultiModal.OpenTripPlanner.Types as OTP
 import Kernel.Prelude
@@ -249,11 +250,21 @@ convertGoogleToGeneric gResponse =
     adjustWalkingLegs (leg1 : leg2 : rest) =
       let adjustedLeg1 =
             if leg1.mode == Walk && leg2.mode /= Walk
-              then (leg1 :: MultiModalLeg){toStopDetails = leg2.fromStopDetails, toDepartureTime = leg2.fromDepartureTime, toArrivalTime = leg2.fromArrivalTime}
+              then
+                leg1
+                  { MultiModalLeg.toStopDetails = leg2.fromStopDetails,
+                    MultiModalLeg.toDepartureTime = leg2.fromDepartureTime,
+                    MultiModalLeg.toArrivalTime = leg2.fromArrivalTime
+                  }
               else leg1
           adjustedLeg2 =
             if leg2.mode == Walk && leg1.mode /= Walk
-              then (leg2 :: MultiModalLeg){fromStopDetails = leg1.toStopDetails, fromDepartureTime = leg1.toDepartureTime, fromArrivalTime = leg1.toArrivalTime}
+              then
+                leg2
+                  { MultiModalLeg.fromStopDetails = leg1.toStopDetails,
+                    MultiModalLeg.fromDepartureTime = leg1.toDepartureTime,
+                    MultiModalLeg.fromArrivalTime = leg1.toArrivalTime
+                  }
               else leg2
        in adjustedLeg1 : adjustWalkingLegs (adjustedLeg2 : rest)
 

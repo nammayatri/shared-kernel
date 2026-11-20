@@ -21,9 +21,10 @@
 module Kernel.External.Plasma.LMS.Types where
 
 import Data.Aeson
+import qualified Data.Aeson as Aeson
 import Data.Aeson.Types
 import Data.Char (toUpper)
-import Data.OpenApi hiding (description, title)
+import Data.OpenApi (ToSchema)
 import qualified Data.Text as T
 import EulerHS.Prelude
 import Kernel.Types.Error.BaseError.HTTPError hiding (Error)
@@ -86,14 +87,14 @@ instance FromJSON LMSModuleListItem where
   parseJSON =
     genericParseJSON $
       defaultOptions
-        { fieldLabelModifier = snakeToCamelCase
+        { Aeson.fieldLabelModifier = snakeToCamelCase
         }
 
 instance ToJSON LMSModuleListItem where
   toJSON =
     genericToJSON $
       defaultOptions
-        { fieldLabelModifier = camelToSnakeCase
+        { Aeson.fieldLabelModifier = camelToSnakeCase
         }
 
 -- | Response type for LMS modules API

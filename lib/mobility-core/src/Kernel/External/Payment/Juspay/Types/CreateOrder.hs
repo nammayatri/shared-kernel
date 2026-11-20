@@ -17,6 +17,7 @@ module Kernel.External.Payment.Juspay.Types.CreateOrder where
 
 import Control.Lens.Operators ((?~))
 import Data.Aeson
+import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HashMap.Strict as HM
 import Data.OpenApi (NamedSchema (..), declareNamedSchema, declareSchemaRef, fromAesonOptions, genericDeclareNamedSchema, oneOf)
@@ -254,7 +255,7 @@ newtype RefundMarketplace = RefundMarketplace
 jsonReqOptions :: Options
 jsonReqOptions =
   defaultOptions
-    { fieldLabelModifier = \case
+    { Aeson.fieldLabelModifier = \case
         "create_mandate" -> "options.create_mandate"
         "mandate_max_amount" -> "mandate.max_amount"
         "mandate_frequency" -> "mandate.frequency"
@@ -273,16 +274,16 @@ jsonReqOptions =
     }
 
 instance FromJSON CreateOrderReq where
-  parseJSON = genericParseJSON jsonReqOptions {omitNothingFields = True}
+  parseJSON = genericParseJSON jsonReqOptions {Aeson.omitNothingFields = True}
 
 instance ToJSON CreateOrderReq where
-  toJSON = genericToJSON jsonReqOptions {omitNothingFields = True}
+  toJSON = genericToJSON jsonReqOptions {Aeson.omitNothingFields = True}
 
 -- Declared through the same aeson options as the instances above rather than derived stock:
 -- jsonReqOptions rewrites field labels (auto_refund_post_success -> metadata.auto_refund_post_success
 -- and friends), so a stock derivation would document field names that never appear on the wire.
 instance ToSchema CreateOrderReq where
-  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions jsonReqOptions {omitNothingFields = True}
+  declareNamedSchema = genericDeclareNamedSchema $ fromAesonOptions jsonReqOptions {Aeson.omitNothingFields = True}
 
 data CreateOrderResp = CreateOrderResp
   { status :: TransactionStatus,
@@ -352,7 +353,7 @@ data SDKPayloadDetails = SDKPayloadDetails
 jsonOptions :: Options
 jsonOptions =
   defaultOptions
-    { fieldLabelModifier = \case
+    { Aeson.fieldLabelModifier = \case
         "createMandate" -> "options.createMandate"
         "mandateMaxAmount" -> "mandate.maxAmount"
         "mandateStartDate" -> "mandate.startDate"
@@ -397,7 +398,7 @@ data AutoRefundResp = AutoRefundResp
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 instance FromJSON AutoRefundReq where
-  parseJSON = genericParseJSON jsonReqOptions {omitNothingFields = True}
+  parseJSON = genericParseJSON jsonReqOptions {Aeson.omitNothingFields = True}
 
 instance ToJSON AutoRefundReq where
-  toJSON = genericToJSON jsonReqOptions {omitNothingFields = True}
+  toJSON = genericToJSON jsonReqOptions {Aeson.omitNothingFields = True}

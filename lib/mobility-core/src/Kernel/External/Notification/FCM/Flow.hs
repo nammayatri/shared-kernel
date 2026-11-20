@@ -55,6 +55,7 @@ import EulerHS.Prelude hiding ((^.))
 import qualified EulerHS.Types as ET
 import Kernel.External.Notification.FCM.Error
 import Kernel.External.Notification.FCM.Types
+import qualified Kernel.External.Notification.FCM.Types as FCMAlert (FCMAlert (..))
 import qualified Kernel.Storage.Hedis as Redis
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
@@ -101,8 +102,8 @@ createApnsPayload androidData iosModifier =
   where
     fcmAlert :: FCMAlert
     fcmAlert =
-      def{fcmBody = (.getFCMNotificationBody) <$> body,
-          fcmTitle = (.getFCMNotificationTitle) <$> title
+      def{FCMAlert.fcmBody = (.getFCMNotificationBody) <$> body,
+          FCMAlert.fcmTitle = (.getFCMNotificationTitle) <$> title
          }
     fcmAps :: FCMaps b
     fcmAps =

@@ -750,7 +750,7 @@ library
       TypeSynonymInstances
       UndecidableInstances
       OverloadedRecordDot
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -Wwarn=ambiguous-fields
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror
   build-depends:
       aeson
     , aeson-casing
@@ -915,7 +915,7 @@ executable master-cloud-forward-itest
       TypeSynonymInstances
       UndecidableInstances
       OverloadedRecordDot
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -Wwarn=ambiguous-fields
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror
   build-depends:
       aeson
     , aeson-casing
@@ -1105,7 +1105,7 @@ test-suite mobility-core-tests
       TypeSynonymInstances
       UndecidableInstances
       OverloadedRecordDot
-  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror -Wwarn=ambiguous-fields
+  ghc-options: -fwrite-ide-info -hiedir=.hie -Wall -Wcompat -Widentities -fhide-source-paths -Werror
   build-depends:
       aeson
     , aeson-casing

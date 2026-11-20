@@ -21,8 +21,9 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import EulerHS.Prelude ((...))
 import qualified EulerHS.Types as Euler
+import qualified Kernel.External.Maps.Interface.Types as GetDistancesReq (GetDistancesReq (..))
+import qualified Kernel.External.Maps.Interface.Types as GetRoutesReq (GetRoutesReq (..))
 import qualified Kernel.External.Maps.Interface.Types as Maps
-import qualified Kernel.External.Maps.Interface.Types as MapsInterfaceTypes
 import qualified Kernel.External.Maps.Types as Maps
 import Kernel.Prelude hiding (unlines)
 import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
@@ -53,11 +54,11 @@ toOSRMProfile = \case
   Maps.FOOT -> Walking
 
 -- Helper functions for updating travel mode in requests
-updateModeForGetDistancesReq :: Maps.TravelMode -> MapsInterfaceTypes.GetDistancesReq a b -> MapsInterfaceTypes.GetDistancesReq a b
-updateModeForGetDistancesReq mode req = req {MapsInterfaceTypes.travelMode = Just mode}
+updateModeForGetDistancesReq :: Maps.TravelMode -> GetDistancesReq.GetDistancesReq a b -> GetDistancesReq.GetDistancesReq a b
+updateModeForGetDistancesReq mode req = req {GetDistancesReq.travelMode = Just mode}
 
-updateModeForGetRoutesReq :: Maps.TravelMode -> MapsInterfaceTypes.GetRoutesReq -> MapsInterfaceTypes.GetRoutesReq
-updateModeForGetRoutesReq mode req = req {MapsInterfaceTypes.mode = Just mode}
+updateModeForGetRoutesReq :: Maps.TravelMode -> GetRoutesReq.GetRoutesReq -> GetRoutesReq.GetRoutesReq
+updateModeForGetRoutesReq mode req = req {GetRoutesReq.mode = Just mode}
 
 type MatchAPI =
   "match"
@@ -283,7 +284,7 @@ callOsrmMatchAPI ::
   ) =>
   Maybe Text ->
   Maybe Text ->
-  MapsInterfaceTypes.SnapToRoadReq ->
+  Maps.SnapToRoadReq ->
   BaseUrl ->
   Maybe Int ->
   Maps.TravelMode -> -- Changed from Text to TravelMode
@@ -321,7 +322,7 @@ callOsrmGetDistancesAPI ::
   ) =>
   Maybe Text ->
   Maybe Text ->
-  MapsInterfaceTypes.GetDistancesReq a b ->
+  Maps.GetDistancesReq a b ->
   BaseUrl ->
   Maps.TravelMode -> -- Changed from Text to TravelMode
   PointsList ->
@@ -350,7 +351,7 @@ callOsrmRouteAPI ::
   ) =>
   Maybe Text ->
   Maybe Text ->
-  MapsInterfaceTypes.GetRoutesReq ->
+  Maps.GetRoutesReq ->
   BaseUrl ->
   Maps.TravelMode -> -- Changed from Text to TravelMode
   PointsList ->
@@ -379,7 +380,7 @@ callOsrmNearestAPI ::
   ) =>
   Maybe Text ->
   Maybe Text ->
-  MapsInterfaceTypes.GetNearestPointsReq ->
+  Maps.GetNearestPointsReq ->
   BaseUrl ->
   Maps.TravelMode ->
   PointsList ->
