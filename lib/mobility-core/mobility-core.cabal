@@ -165,7 +165,6 @@ library
       Kernel.External.Maps.NextBillion.Route
       Kernel.External.Maps.NextBillion.Types
       Kernel.External.Maps.OSRM.Config
-      Kernel.External.Maps.OSRM.NavigationClient
       Kernel.External.Maps.OSRM.RoadsClient
       Kernel.External.Maps.Types
       Kernel.External.Maps.Utils
