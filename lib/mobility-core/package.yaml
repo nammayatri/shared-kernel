@@ -181,7 +181,6 @@ ghc-options:
   - -Widentities
   - -fhide-source-paths
   - -Werror
-  - -Wwarn=ambiguous-fields
 
 library:
   source-dirs:

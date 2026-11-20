@@ -53,6 +53,7 @@ data LoggerEnv = LoggerEnv
     consoleLogger :: Maybe Logger,
     logRawSql :: Bool
   }
+  deriving (Generic)
 
 withLoggerEnv :: LoggerConfig -> Maybe Text -> (LoggerEnv -> IO a) -> IO a
 withLoggerEnv loggerConfig hostName = C.bracket (prepareLoggerEnv loggerConfig hostName) releaseLoggerEnv
@@ -118,7 +119,11 @@ updateLogLevelAndRawSql :: Maybe LogLevel -> LoggerEnv -> LoggerEnv
 updateLogLevelAndRawSql mbNewLogLevel logEnv =
   maybe
     logEnv
-    (\newLogLevel -> (logEnv :: LoggerEnv){level = newLogLevel, logRawSql = newLogLevel == DEBUG})
+    ( \newLogLevel ->
+        logEnv
+          & field' @"level" .~ newLogLevel
+          & field' @"logRawSql" .~ (newLogLevel == DEBUG)
+    )
     mbNewLogLevel
 
 formatTags :: [Text] -> Text

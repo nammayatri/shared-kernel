@@ -76,6 +76,7 @@ import Kernel.External.Ticket.XyneSpaces.Config
 import qualified Kernel.External.Ticket.XyneSpaces.Conversation as XC
 import qualified Kernel.External.Ticket.XyneSpaces.Flow as XF
 import qualified Kernel.External.Ticket.XyneSpaces.Types as Xyne
+import qualified Kernel.External.Ticket.XyneSpaces.Types as XyneListTicketsReq (XyneListTicketsReq (..))
 import Kernel.Prelude
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Types.Common (MonadFlow)
@@ -625,7 +626,7 @@ listTickets ::
 listTickets config req = do
   token <- decrypt config.token
   let scopeless = isNothing req.channelId && isNothing req.projectId && maybe True null req.boardIds
-      scoped = if scopeless then (req :: Xyne.XyneListTicketsReq) {Xyne.channelId = Just config.channelId} else req
+      scoped = if scopeless then req {XyneListTicketsReq.channelId = Just config.channelId} else req
   XF.listTicketsAPI config.url token scoped
 
 -- | Full ticket detail; throws 'Kernel.Types.Error.XyneNotFound' on an

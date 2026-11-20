@@ -16,6 +16,7 @@
 module Kernel.External.Payment.Juspay.Types.UpdateOrder where
 
 import Data.Aeson
+import qualified Data.Aeson as Aeson
 import Kernel.External.Payment.Juspay.Types.CreateOrder (SplitSettlementDetailsAmount)
 import Kernel.Prelude
 import Kernel.Utils.Common
@@ -38,13 +39,13 @@ data OrderUpdateResp = OrderUpdateResp
 jsonReqOptionsUpdateOrder :: Options
 jsonReqOptionsUpdateOrder =
   defaultOptions
-    { fieldLabelModifier = \case
+    { Aeson.fieldLabelModifier = \case
         "split_settlement_details" -> "metadata.split_settlement_details"
         other -> other
     }
 
 instance FromJSON OrderUpdateReq where
-  parseJSON = genericParseJSON jsonReqOptionsUpdateOrder {omitNothingFields = True}
+  parseJSON = genericParseJSON jsonReqOptionsUpdateOrder {Aeson.omitNothingFields = True}
 
 instance ToJSON OrderUpdateReq where
-  toJSON = genericToJSON jsonReqOptionsUpdateOrder {omitNothingFields = True}
+  toJSON = genericToJSON jsonReqOptionsUpdateOrder {Aeson.omitNothingFields = True}

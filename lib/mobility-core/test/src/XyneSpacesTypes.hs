@@ -11,7 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wwarn=ambiguous-fields #-}
 
 -- | Wire-shape tests for the Xyne Spaces ticket read API types.
 --
@@ -26,6 +25,8 @@ import Data.Aeson (object, (.=))
 import qualified Data.Aeson as A
 import qualified Data.Map.Strict as Map
 import Kernel.External.Ticket.XyneSpaces.Types
+import qualified Kernel.External.Ticket.XyneSpaces.Types as XyneListFilters (XyneListFilters (..))
+import qualified Kernel.External.Ticket.XyneSpaces.Types as XyneListTicketsReq (XyneListTicketsReq (..))
 import Kernel.Prelude
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -49,15 +50,15 @@ filtersEncodeAsArrays :: TestTree
 filtersEncodeAsArrays =
   testCase "filters nest under \"filters\" and are list-typed" $ do
     let fs =
-          (emptyXyneListFilters :: XyneListFilters)
-            { priority = Just [HIGH],
-              stageName = Just ["BACKLOG"]
+          emptyXyneListFilters
+            { XyneListFilters.priority = Just [HIGH],
+              XyneListFilters.stageName = Just ["BACKLOG"]
             }
         req =
           minimalReq
-            { senderEmail = Just "sender@example.com",
-              cursor = Just "opaque-cursor",
-              filters = Just fs
+            { XyneListTicketsReq.senderEmail = Just "sender@example.com",
+              XyneListTicketsReq.cursor = Just "opaque-cursor",
+              XyneListTicketsReq.filters = Just fs
             }
     A.toJSON req
       @?= object
@@ -77,9 +78,9 @@ emptyOptionalsOmitted =
   testCase "all-Nothing filters, empty boardIds and empty customFields are dropped" $ do
     let req =
           minimalReq
-            { filters = Just emptyXyneListFilters,
-              boardIds = Just [],
-              customFields = Just Map.empty
+            { XyneListTicketsReq.filters = Just emptyXyneListFilters,
+              XyneListTicketsReq.boardIds = Just [],
+              XyneListTicketsReq.customFields = Just Map.empty
             }
     A.toJSON req @?= A.toJSON minimalReq
 

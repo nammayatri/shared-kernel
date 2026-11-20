@@ -20,7 +20,7 @@ import qualified Data.Char as Char
 import Data.Text (pack, replace, toLower, toUpper, unpack)
 import EulerHS.Prelude hiding (pack, unpack)
 import Kernel.Utils.Text (recursiveStrip)
-import Web.FormUrlEncoded (FormOptions (..))
+import qualified Web.FormUrlEncoded as FormUrlEncoded (FormOptions (..))
 
 replaceUnderscores :: Text -> Text
 replaceUnderscores = replace "_" "-"
@@ -110,10 +110,10 @@ stripPrefixUnderscoreIfAny =
     { fieldLabelModifier = recursiveStrip
     }
 
-stripPrefixUnderscoreIfAnyForm :: FormOptions
+stripPrefixUnderscoreIfAnyForm :: FormUrlEncoded.FormOptions
 stripPrefixUnderscoreIfAnyForm =
-  FormOptions
-    { fieldLabelModifier = recursiveStrip
+  FormUrlEncoded.FormOptions
+    { FormUrlEncoded.fieldLabelModifier = recursiveStrip
     }
 
 untaggedValue :: Options

@@ -11,8 +11,6 @@
 
   General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 -}
-{-# OPTIONS_GHC -Wwarn=ambiguous-fields #-}
-
 module Kernel.External.Payment.Interface
   ( module Reexport,
     module Kernel.External.Payment.Interface,
@@ -24,6 +22,7 @@ import qualified Kernel.External.Payment.Interface.Juspay as Juspay
 import qualified Kernel.External.Payment.Interface.PaytmEDC as PaytmEDC
 import qualified Kernel.External.Payment.Interface.Stripe as Stripe
 import Kernel.External.Payment.Interface.Types as Reexport
+import qualified Kernel.External.Payment.Interface.Types as CreateOrderReq (CreateOrderReq (..))
 import qualified Kernel.External.Payment.Juspay.Types.CreateOrder as Fields
 import qualified Kernel.External.Payment.Stripe.Types as Stripe
 import Kernel.External.Payment.Types as Reexport
@@ -44,7 +43,7 @@ createOrder ::
   m CreateOrderResp
 createOrder serviceConfig mRoutingId req = case serviceConfig of
   JuspayConfig cfg -> do
-    let req' = (req :: CreateOrderReq) {metadataGatewayReferenceId = cfg.gatewayReferenceId}
+    let req' = req {CreateOrderReq.metadataGatewayReferenceId = cfg.gatewayReferenceId}
     Juspay.createOrder cfg mRoutingId req'
   StripeConfig _ -> throwError $ InternalError "Stripe Create Order not supported."
   PaytmEDCConfig cfg -> PaytmEDC.createOrder cfg mRoutingId req
