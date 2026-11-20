@@ -74,11 +74,13 @@ updateTicketAPI ::
   BaseUrl ->
   Text ->
   Text ->
+  Maybe Text ->
+  Maybe Text ->
   Kapture.UpdateTicketReq ->
   m Kapture.UpdateTicketResp
-updateTicketAPI url version auth req = do
+updateTicketAPI url version auth mbApiKey mbApiType req = do
   let eulerClient = Euler.client (Proxy @KaptureUpdateTicketAPI)
-  callAPI url (eulerClient version (Just auth) (Just auth) (Just "TICKET") req) "updateTicketAPI" (Proxy @KaptureUpdateTicketAPI)
+  callAPI url (eulerClient version (Just auth) mbApiKey mbApiType req) "updateTicketAPI" (Proxy @KaptureUpdateTicketAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call update ticket API: " <> show err)
 
 type AddAndUpdateKaptureCustomerAPI =
@@ -130,10 +132,12 @@ kapturePullTicket ::
   (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
+  Maybe Text ->
+  Maybe Text ->
   Kapture.KapturePullTicketReq ->
   m Kapture.KapturePullTicketResp
-kapturePullTicket url apiKey req = do
-  let eulerClient = Euler.client (Proxy @KapturePullTicketAPI) "v.2.0" (Just apiKey) (Just apiKey) (Just "TICKET") [req]
+kapturePullTicket url apiKey mbApiKey mbApiType req = do
+  let eulerClient = Euler.client (Proxy @KapturePullTicketAPI) "v.2.0" (Just apiKey) mbApiKey mbApiType [req]
   callAPI url eulerClient "kapturePullTicketAPI" (Proxy @KapturePullTicketAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call select ticket API: " <> show err)
 
@@ -150,10 +154,12 @@ kaptureGetTicket ::
   (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
+  Maybe Text ->
+  Maybe Text ->
   Kapture.GetTicketReq ->
   m [Kapture.GetTicketResp]
-kaptureGetTicket url apiKey req = do
-  let eulerClient = Euler.client (Proxy @KaptureGetTicketAPI) "v.2.0" (Just apiKey) (Just apiKey) (Just "TICKET") req
+kaptureGetTicket url apiKey mbApiKey mbApiType req = do
+  let eulerClient = Euler.client (Proxy @KaptureGetTicketAPI) "v.2.0" (Just apiKey) mbApiKey mbApiType req
   callAPI url eulerClient "kaptureGetTicket" (Proxy @KaptureGetTicketAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call get ticket API: " <> show err)
 
@@ -170,9 +176,11 @@ kaptureSearchTicketById ::
   (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
   BaseUrl ->
   Text ->
+  Maybe Text ->
+  Maybe Text ->
   Kapture.SearchTicketByIdReq ->
   m [Kapture.KaptureTicketStatusItem]
-kaptureSearchTicketById url apiKey req = do
-  let eulerClient = Euler.client (Proxy @KaptureSearchTicketByIdAPI) "v.2.0" (Just apiKey) (Just apiKey) (Just "TICKET") req
+kaptureSearchTicketById url apiKey mbApiKey mbApiType req = do
+  let eulerClient = Euler.client (Proxy @KaptureSearchTicketByIdAPI) "v.2.0" (Just apiKey) mbApiKey mbApiType req
   callAPI url eulerClient "kaptureSearchTicketById" (Proxy @KaptureSearchTicketByIdAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call search ticket by id API: " <> show err)
