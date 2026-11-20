@@ -103,7 +103,7 @@ getOsrmNavigationRoute entityId merchantCityId osrmUrl travelMode origin waypoin
       | options.avoidTolls,
         Just reason <- tollFallbackReason err -> do
         logInfo $ "OSRM navigation route fetched without excluding tolls: " <> reason
-        (\r -> (r, False)) <$> callOsrm False
+        (,False) <$> callOsrm False
     _ -> pure (firstTry, options.avoidTolls)
   withTollsAvoided tollsAvoided <$> fromEitherM (FailedToCallOsrmRouteAPI . show) rsp
 
