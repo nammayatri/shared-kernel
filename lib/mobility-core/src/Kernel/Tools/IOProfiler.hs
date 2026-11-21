@@ -27,6 +27,7 @@ module Kernel.Tools.IOProfiler
 where
 
 import qualified Control.Concurrent.MVar as MV
+import qualified Control.Exception as E
 import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Char8 as BL
 import Data.Char (isAlphaNum)
@@ -34,6 +35,8 @@ import qualified Data.IORef as IR
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX (getPOSIXTime)
+import qualified Data.UUID as UUID
+import qualified Data.UUID.V4 as UUID
 import qualified EulerHS.Extra.IOProfile as EIOP
 import Kernel.Prelude
 import System.Directory (createDirectoryIfMissing)
@@ -88,35 +91,51 @@ instance A.ToJSON IOProfEvent where
 nowMs :: IO Double
 nowMs = (\t -> realToFrac t * 1000) <$> getPOSIXTime
 
-newIOProfiler :: FilePath -> Text -> Text -> (Text -> IO ()) -> IO IOProfiler
-newIOProfiler dir reqId reqUrl logSummary = do
-  createDirectoryIfMissing True dir
-  -- The request id comes from a client header: keep only safe file-name characters.
-  let safeName = T.unpack . T.take 64 $ T.filter (\c -> isAlphaNum c || c == '-' || c == '_') reqId
-      path = dir <> "/" <> (if null safeName then "unknown" else safeName) <> ".jsonl"
-  h <- IO.openFile path IO.AppendMode
-  IO.hSetEncoding h IO.utf8
-  hVar <- MV.newMVar (Just h)
-  totalsRef <- IR.newIORef M.empty
-  stateRef <- IR.newIORef (ProfState 0 False False)
-  startedAt <- nowMs
-  let p =
-        IOProfiler
-          { ipRequestId = reqId,
-            ipUrl = reqUrl,
-            ipFilePath = path,
-            ipHandle = hVar,
-            ipTotals = totalsRef,
-            ipState = stateRef,
-            ipLogSummary = logSummary
-          }
-  writeLine p (A.object ["kind" A..= ("request" :: Text), "requestId" A..= reqId, "url" A..= reqUrl, "start" A..= startedAt])
-  pure p
+-- | Creates the profiler for one request/job, or 'Nothing' if its file cannot be set up (unwritable
+-- directory, ...): profiling must never stop the request it observes, so the caller just carries on
+-- without one. Any handle opened before a failure is closed again.
+newIOProfiler :: FilePath -> Text -> Text -> (Text -> IO ()) -> IO (Maybe IOProfiler)
+newIOProfiler dir reqId reqUrl logSummary = (Just <$> acquire) `catchAny` \_ -> pure Nothing
+  where
+    acquire = do
+      createDirectoryIfMissing True dir
+      -- The request id comes from a client header: keep only safe file-name characters. Those are not
+      -- unique ("a/b" and "ab" collide, and so do repeated ids), so every profiler also gets a random
+      -- suffix; the original id stays in the header line.
+      let safeName = T.unpack . T.take 64 $ T.filter (\c -> isAlphaNum c || c == '-' || c == '_') reqId
+      suffix <- T.unpack . T.take 8 . UUID.toText <$> UUID.nextRandom
+      let path = dir <> "/" <> (if null safeName then "unknown" else safeName) <> "-" <> suffix <> ".jsonl"
+      h <- IO.openFile path IO.WriteMode
+      ( do
+          IO.hSetEncoding h IO.utf8
+          hVar <- MV.newMVar (Just h)
+          totalsRef <- IR.newIORef M.empty
+          stateRef <- IR.newIORef (ProfState 0 False False)
+          startedAt <- nowMs
+          let p =
+                IOProfiler
+                  { ipRequestId = reqId,
+                    ipUrl = reqUrl,
+                    ipFilePath = path,
+                    ipHandle = hVar,
+                    ipTotals = totalsRef,
+                    ipState = stateRef,
+                    ipLogSummary = logSummary
+                  }
+          writeLine p (A.object ["kind" A..= ("request" :: Text), "requestId" A..= reqId, "url" A..= reqUrl, "start" A..= startedAt])
+          pure p
+        )
+        `E.onException` IO.hClose h
 
+-- | Appends one line. A failing write (full disk, ...) must not reach the application: the profile
+-- of this request is dropped from then on (handle closed, later writes are no-ops). Only synchronous
+-- exceptions are caught ('catchAny' rethrows asynchronous ones such as cancellation).
 writeLine :: A.ToJSON a => IOProfiler -> a -> IO ()
-writeLine p v = MV.withMVar p.ipHandle $ \case
-  Nothing -> pure ()
-  Just h -> BL.hPutStrLn h (A.encode v) >> IO.hFlush h
+writeLine p v = MV.modifyMVar_ p.ipHandle $ \case
+  Nothing -> pure Nothing
+  Just h ->
+    (BL.hPutStrLn h (A.encode v) >> IO.hFlush h >> pure (Just h))
+      `catchAny` \_ -> (IO.hClose h `catchAny` \_ -> pure ()) >> pure Nothing
 
 recordIOEvent :: IOProfiler -> IOProfEvent -> IO ()
 recordIOEvent p e = do

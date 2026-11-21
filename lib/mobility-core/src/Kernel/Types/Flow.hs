@@ -375,9 +375,14 @@ profileFork tag child =
     Just profiler -> do
       parentTid <- liftIO myThreadId
       liftIO $ IOP.forkStarted profiler
-      pure $ do
-        tid <- liftIO myThreadId
-        now <- liftIO IOP.nowMs
-        liftIO . IOP.recordIOEvent profiler $
-          IOP.IOProfEvent "meta" "fork" "start" tag now now (show tid) (Just (show parentTid)) True
-        child `C.finally` liftIO (IOP.forkFinished profiler)
+      -- the whole child, including recording its start, sits inside the 'finally': the fork count taken
+      -- above is released exactly once, even if the child never gets as far as running its action
+      pure $
+        ( do
+            tid <- liftIO myThreadId
+            now <- liftIO IOP.nowMs
+            liftIO . IOP.recordIOEvent profiler $
+              IOP.IOProfEvent "meta" "fork" "start" tag now now (show tid) (Just (show parentTid)) True
+            child
+        )
+          `C.finally` liftIO (IOP.forkFinished profiler)

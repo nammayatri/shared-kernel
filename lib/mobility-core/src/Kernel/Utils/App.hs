@@ -270,9 +270,12 @@ withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbTok
       let actorInfo' = ActorInfo {actorType = UNKNOWN, actorId = Just requestId} -- to be modified further in api handler; actorId must not depend on shouldLogRequestId
       -- Per-request IO profiling, only when IO_PROFILE_DIR is set (see Kernel.Tools.IOProfiler).
       mbProfileDir <- lookupEnv "IO_PROFILE_DIR"
-      mbProfiler <- forM mbProfileDir $ \dir ->
-        IOP.newIOProfiler dir requestId sanitizedUrl $ \summary ->
-          runFlowR newFlowRt' (appEnv & field' @"loggerEnv" .~ updLogEnv') $ logTagInfo "IO_PROFILE" summary
+      -- 'newIOProfiler' is 'Nothing' if the file cannot be set up (e.g. unwritable IO_PROFILE_DIR): the request goes on unprofiled.
+      mbProfiler <- case mbProfileDir of
+        Nothing -> pure Nothing
+        Just dir ->
+          IOP.newIOProfiler dir requestId sanitizedUrl $ \summary ->
+            runFlowR newFlowRt' (appEnv & field' @"loggerEnv" .~ updLogEnv') $ logTagInfo "IO_PROFILE" summary
       whenJust mbProfiler $ \profiler ->
         runFlowR newFlowRt' appEnv $ L.setOptionLocal EIOP.IOProfileSinkKey (IOP.profilerSink profiler)
       pure $
