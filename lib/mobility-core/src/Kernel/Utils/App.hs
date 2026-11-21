@@ -48,6 +48,7 @@ import Data.String.Conversions
 import qualified Data.Text as T (pack, unpack)
 import Data.UUID.V4 (nextRandom)
 import EulerHS.Api (ApiTag (..))
+import qualified EulerHS.Extra.IOProfile as EIOP
 import qualified EulerHS.Language as L
 import EulerHS.Prelude hiding (unpack, (.~))
 import qualified EulerHS.Runtime as R
@@ -58,6 +59,7 @@ import qualified Kernel.Storage.Beam.SystemConfigs as BeamSC
 import Kernel.Storage.Esqueleto.Config (EsqDBEnv)
 import Kernel.Storage.Hedis
 import Kernel.Tools.ARTUtils
+import qualified Kernel.Tools.IOProfiler as IOP
 import Kernel.Tools.Logging
 import Kernel.Tools.Metrics.CoreMetrics (DeploymentVersion (..))
 import Kernel.Tools.Metrics.CoreMetrics.Types (HasCoreMetrics)
@@ -66,7 +68,7 @@ import Kernel.Types.Flow
 import Kernel.Types.Version (CloudType (..))
 import Kernel.Utils.Common
 import qualified Kernel.Utils.FlowLogging as L
-import Kernel.Utils.IOLogging (HasLog, appendLogTag, updateLogLevelAndRawSql)
+import Kernel.Utils.IOLogging (HasLog, LoggerEnv (ioProfiler), appendLogTag, updateLogLevelAndRawSql)
 import Kernel.Utils.Monitoring.Prometheus.Servant
 import Kernel.Utils.Shutdown
 import qualified Kernel.Utils.SignatureAuth as HttpSig
@@ -266,11 +268,18 @@ withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbTok
       let newFlowRt' = newFlowRt {R._optionsLocal = newOptionsLocal}
       runFlowR newFlowRt' appEnv $ L.setOptionLocal ApiTag sanitizedUrl
       let actorInfo' = ActorInfo {actorType = UNKNOWN, actorId = Just requestId} -- to be modified further in api handler; actorId must not depend on shouldLogRequestId
+      -- Per-request IO profiling, only when IO_PROFILE_DIR is set (see Kernel.Tools.IOProfiler).
+      mbProfileDir <- lookupEnv "IO_PROFILE_DIR"
+      mbProfiler <- forM mbProfileDir $ \dir ->
+        IOP.newIOProfiler dir requestId sanitizedUrl $ \summary ->
+          runFlowR newFlowRt' (appEnv & field' @"loggerEnv" .~ updLogEnv') $ logTagInfo "IO_PROFILE" summary
+      whenJust mbProfiler $ \profiler ->
+        runFlowR newFlowRt' appEnv $ L.setOptionLocal EIOP.IOProfileSinkKey (IOP.profilerSink profiler)
       pure $
         env
           & field' @"appEnv"
             .~ ( appEnv
-                   & field' @"loggerEnv" .~ updLogEnv'
+                   & field' @"loggerEnv" .~ updLogEnv'{ioProfiler = mbProfiler}
                    & field' @"requestId" .~ requestId'
                    & field' @"actorInfo" .~ actorInfo'
                    & field' @"sessionId" .~ sessionId'
@@ -283,7 +292,8 @@ withModifiedEnvFn modifierFn f env = \req resp -> do
   ((requestId, sessionId), mbToken) <- getSessionInfo $ Wai.requestHeaders req
   modifiedEnv <- modifierFn req env requestId sessionId mbToken
   let app = f modifiedEnv
-  app req resp
+  -- Closes the request's IO profile (if any) once the response is out and its forks are done.
+  app req resp `finally` whenJust modifiedEnv.appEnv.loggerEnv.ioProfiler IOP.markResponded
   where
     getSessionInfo headers = do
       let mbRequestId = lookup "x-request-id" headers

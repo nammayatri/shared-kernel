@@ -34,6 +34,7 @@ import qualified Data.Aeson.KeyMap as AKM
 import qualified Data.Text as T
 import qualified Data.Time as Time
 import Kernel.Prelude
+import Kernel.Tools.IOProfiler (IOProfiler)
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import System.Log.FastLogger
@@ -51,7 +52,8 @@ data LoggerEnv = LoggerEnv
     tags :: [Text],
     fileLogger :: Maybe Logger,
     consoleLogger :: Maybe Logger,
-    logRawSql :: Bool
+    logRawSql :: Bool,
+    ioProfiler :: Maybe IOProfiler
   }
 
 withLoggerEnv :: LoggerConfig -> Maybe Text -> (LoggerEnv -> IO a) -> IO a
@@ -74,6 +76,7 @@ prepareLoggerEnv loggerConfig hostName = do
       { level = loggerConfig.level,
         logRawSql = loggerConfig.logRawSql,
         tags = [],
+        ioProfiler = Nothing,
         ..
       }
   where

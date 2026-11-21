@@ -62,7 +62,7 @@ produceToSecondaryProducer mbSecondaryProducer record onError = do
         onError $ "Secondary Kafka produce failed: " <> show err
 
 produceMessageImpl :: (Log m, MonadThrow m, MonadIO m, MonadReader r m, HasKafkaProducer r, ToJSON a) => (KafkaTopic, Maybe KafkaKey) -> a -> Maybe KPartitionId -> m ()
-produceMessageImpl (topic, key) event mbPartitionId = do
+produceMessageImpl (topic, key) event mbPartitionId = withIOProfile "kafka" "produce" topic $ do
   when (null topic) $ throwM KafkaTopicIsEmptyString
   kafkaProducerTools <- asks (.kafkaProducerTools)
   mbErr <- KafkaProd.produceMessage kafkaProducerTools.producer message
