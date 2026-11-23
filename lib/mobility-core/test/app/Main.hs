@@ -25,6 +25,7 @@ import Jose (joseTests)
 import KmsSecrets (kmsSecretsTests)
 import MorthV2CryptoTests (morthV2CryptoTests)
 import MultiModalVehicleType
+import OsrmNavigationRoute (osrmNavigationRouteTests)
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -62,5 +63,6 @@ specs = do
           xyneSpacesTypeTests,
           morthV2CryptoTests,
           kmsSecretsTests,
-          multiModalVehicleTypeTests
+          multiModalVehicleTypeTests,
+          osrmNavigationRouteTests
         ]
