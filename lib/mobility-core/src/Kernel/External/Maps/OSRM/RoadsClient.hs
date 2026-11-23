@@ -18,6 +18,7 @@ module Kernel.External.Maps.OSRM.RoadsClient where
 import Data.Aeson
 import qualified Data.Aeson as A
 import qualified Data.Aeson.KeyMap as KM
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T
 import qualified Data.Vector as V
@@ -418,6 +419,8 @@ type NavigationRouteAPI =
     :> MandatoryQueryParam "continue_straight" Text
     :> QueryParam "bearings" Text
     :> QueryParam "exclude" Text
+    :> QueryParam "waypoints" Text
+    :> QueryParam "radiuses" Text
     :> Get '[JSON] Value
 
 data NavigationRouteOptions = NavigationRouteOptions
@@ -425,7 +428,11 @@ data NavigationRouteOptions = NavigationRouteOptions
     -- which avoids a route that begins with a U-turn behind the vehicle after a reroute.
     originBearing :: Maybe Double,
     -- | Prefer a route without toll roads.
-    avoidTolls :: Bool
+    avoidTolls :: Bool,
+    -- | Points to drive through on the way to the destination, in travel order (for example some points
+    -- of a route quoted earlier, so the vehicle takes the same roads). OSRM passes through them without
+    -- treating them as stops; when they don't fit the road network the route is made without them.
+    viaPoints :: [Maps.LatLong]
   }
   deriving (Generic, Show, ToJSON)
 
@@ -438,14 +445,19 @@ type NavigationRouteFlow m r =
     HasRequestId r
   )
 
--- | OSRM's route from @origin@ through @waypoints@ (the last one is the destination), with every
--- step, plus one added field: @tollsAvoided@, true only when the route was computed with tolls
--- excluded.
+-- | OSRM's route from @origin@ through the 'viaPoints' and @waypoints@ (the last waypoint is the
+-- destination), with every step, plus two added fields: @tollsAvoided@, true only when the route was
+-- computed with tolls excluded, and @followsSearchRoute@, true only when the route was computed through
+-- the 'viaPoints'.
 --
 -- When tolls are to be avoided, the route is fetched again without the exclusion in two cases only:
 -- no toll-free route exists, or the OSRM profile has no toll class. The route then carries
 -- @tollsAvoided: false@, so the app can tell the driver it uses tolls instead of giving them a toll
--- route silently. Any other failure (timeout, server error) is thrown without a retry.
+-- route silently.
+--
+-- When OSRM refuses the 'viaPoints' because they don't fit the road network (a point with no road
+-- nearby, or points that can't be connected), the route is fetched again without them and carries
+-- @followsSearchRoute: false@. Any other failure (timeout, server error) is thrown without a retry.
 getOsrmNavigationRoute ::
   NavigationRouteFlow m r =>
   Maybe Text ->
@@ -457,21 +469,33 @@ getOsrmNavigationRoute ::
   NavigationRouteOptions ->
   m Value
 getOsrmNavigationRoute entityId merchantCityId osrmUrl travelMode origin waypoints options = do
-  let callOsrm = callOsrmNavigationRouteAPI entityId merchantCityId osrmUrl travelMode origin waypoints options.originBearing
-  firstTry <- callOsrm options.avoidTolls
-  (rsp, tollsAvoided) <- case firstTry of
-    Left err
-      | options.avoidTolls,
-        Just reason <- tollFallbackReason err -> do
-        logInfo $ "OSRM navigation route fetched without excluding tolls: " <> reason
-        (,False) <$> callOsrm False
-    _ -> pure (firstTry, options.avoidTolls)
-  withTollsAvoided tollsAvoided <$> fromEitherM (FailedToCallOsrmRouteAPI . show) rsp
+  let callOsrm viaPoints = callOsrmNavigationRouteAPI entityId merchantCityId osrmUrl travelMode origin viaPoints waypoints options.originBearing
+      routeAvoidingTolls viaPoints = do
+        firstTry <- callOsrm viaPoints options.avoidTolls
+        case firstTry of
+          Left err
+            | options.avoidTolls,
+              Just reason <- tollFallbackReason err -> do
+              logInfo $ "OSRM navigation route fetched without excluding tolls: " <> reason
+              (,False) <$> callOsrm viaPoints False
+          _ -> pure (firstTry, options.avoidTolls)
+  guided <- case options.viaPoints of
+    [] -> pure Nothing
+    viaPoints ->
+      routeAvoidingTolls viaPoints >>= \case
+        (Left err, _)
+          | Just reason <- guideFallbackReason err -> do
+            logInfo $ "OSRM navigation route fetched without its guide points: " <> reason
+            pure Nothing
+        result -> pure (Just result)
+  (rsp, tollsAvoided) <- maybe (routeAvoidingTolls []) pure guided
+  withRouteFlags tollsAvoided (isJust guided) <$> fromEitherM (FailedToCallOsrmRouteAPI . show) rsp
 
 -- | What is logged to Kafka for each call.
 data NavigationRouteLog = NavigationRouteLog
   { origin :: Maps.LatLong,
     waypoints :: [Maps.LatLong],
+    viaPointCount :: Int,
     originBearing :: Maybe Double,
     excludeTolls :: Bool
   }
@@ -486,29 +510,61 @@ callOsrmNavigationRouteAPI ::
   Maps.TravelMode ->
   Maps.LatLong ->
   [Maps.LatLong] ->
+  [Maps.LatLong] ->
   Maybe Double ->
   Bool ->
   m (Either ClientError Value)
-callOsrmNavigationRouteAPI entityId merchantCityId osrmUrl travelMode origin waypoints originBearing excludeTolls = do
+callOsrmNavigationRouteAPI entityId merchantCityId osrmUrl travelMode origin viaPoints waypoints originBearing excludeTolls = do
   let eulerClient = Euler.client (Proxy @NavigationRouteAPI)
       profile = toOSRMProfile travelMode
-      points = PointsList (origin : waypoints)
-      bearings = bearingsParam (length waypoints) <$> originBearing
+      coordinates = navigationCoordinates origin viaPoints waypoints originBearing
       exclude = if excludeTolls then Just "toll" else Nothing
+      viaPointCount = length viaPoints
   rsp <-
     callAPI
       osrmUrl
-      (eulerClient profile points "true" "full" "polyline6" "distance,duration,speed" "false" "true" bearings exclude)
+      (eulerClient profile (PointsList coordinates.routeCoordinates) "true" "full" "polyline6" "distance,duration,speed" "false" "true" coordinates.bearingValues exclude coordinates.stopIndices coordinates.radiusValues)
       "osrm-navigation-route"
       (Proxy @NavigationRouteAPI)
   fork "Logging external API Call of OsrmNavigationRouteAPI OSRM" $
     ApiCallLogger.pushExternalApiCallDataToKafka "OsrmNavigationRouteAPI" "OSRM" entityId merchantCityId (Just NavigationRouteLog {..}) rsp
   pure rsp
 
--- | OSRM's @bearings@ value: the heading (with a tolerance) for the origin, none for the waypoints.
+-- | The coordinates OSRM is asked to route through, with the query parameters that depend on them.
+data NavigationCoordinates = NavigationCoordinates
+  { -- | The origin, the guide points, then the waypoints.
+    routeCoordinates :: [Maps.LatLong],
+    -- | Which coordinates are stops (the origin and the waypoints): OSRM treats every coordinate as a
+    -- stop unless told otherwise, and would announce an arrival at each guide point. Absent without guide points.
+    stopIndices :: Maybe Text,
+    bearingValues :: Maybe Text,
+    -- | How far from its coordinate OSRM may look for a road: bounded for the guide points, so a point
+    -- with no road nearby is refused instead of snapped to a distant road. Absent without guide points.
+    radiusValues :: Maybe Text
+  }
+  deriving (Show, Eq)
+
+navigationCoordinates :: Maps.LatLong -> [Maps.LatLong] -> [Maps.LatLong] -> Maybe Double -> NavigationCoordinates
+navigationCoordinates origin viaPoints waypoints originBearing =
+  NavigationCoordinates
+    { routeCoordinates = origin : viaPoints <> waypoints,
+      stopIndices = onlyWithGuidePoints $ T.intercalate ";" $ map show $ 0 : [viaCount + 1 .. viaCount + length waypoints],
+      bearingValues = bearingsParam (viaCount + length waypoints) <$> originBearing,
+      radiusValues = onlyWithGuidePoints $ T.intercalate ";" $ "unlimited" : replicate viaCount (show guidePointSnapRadiusMeters) <> replicate (length waypoints) "unlimited"
+    }
+  where
+    viaCount = length viaPoints
+    onlyWithGuidePoints value = if viaCount == 0 then Nothing else Just value
+
+-- | How far from a guide point (in metres) OSRM may look for a road: a little more than the gap between
+-- two routing providers' versions of the same road, but not enough to reach a different road.
+guidePointSnapRadiusMeters :: Int
+guidePointSnapRadiusMeters = 30
+
+-- | OSRM's @bearings@ value: the heading (with a tolerance) for the origin, none for the other coordinates.
 bearingsParam :: Int -> Double -> Text
-bearingsParam waypointCount heading =
-  T.intercalate ";" $ (show (round heading `mod` 360 :: Int) <> "," <> show bearingToleranceDegrees) : replicate waypointCount ""
+bearingsParam otherCoordinateCount heading =
+  T.intercalate ";" $ (show (round heading `mod` 360 :: Int) <> "," <> show bearingToleranceDegrees) : replicate otherCoordinateCount ""
 
 -- | How far (in degrees) OSRM may deviate from the heading when choosing the start road.
 bearingToleranceDegrees :: Int
@@ -533,8 +589,22 @@ tollFallbackReason = \case
     _ -> Nothing
   _ -> Nothing
 
--- | Adds @tollsAvoided@ to OSRM's route response object.
-withTollsAvoided :: Bool -> Value -> Value
-withTollsAvoided avoided = \case
-  A.Object fields -> A.Object (KM.insert "tollsAvoided" (A.Bool avoided) fields)
+-- | The OSRM error code when OSRM refused a route through guide points because they don't fit the road
+-- network, so that fetching the route again without them is the right fallback; 'Nothing' for any other
+-- failure. @NoSegment@: a guide point has no road within its snap radius. @NoRoute@: the points can't be connected.
+guideFallbackReason :: ClientError -> Maybe Text
+guideFallbackReason = \case
+  FailureResponse _ Response {responseBody} -> guideFallbackReasonFromBody responseBody
+  _ -> Nothing
+
+-- | 'guideFallbackReason' for an OSRM error response body.
+guideFallbackReasonFromBody :: LBS.ByteString -> Maybe Text
+guideFallbackReasonFromBody body = case A.decode body of
+  Just (OsrmErrorBody code _) | code `elem` ["NoSegment", "NoRoute"] -> Just code
+  _ -> Nothing
+
+-- | Adds @tollsAvoided@ and @followsSearchRoute@ to OSRM's route response object.
+withRouteFlags :: Bool -> Bool -> Value -> Value
+withRouteFlags tollsAvoided followsSearchRoute = \case
+  A.Object fields -> A.Object (KM.insert "tollsAvoided" (A.Bool tollsAvoided) $ KM.insert "followsSearchRoute" (A.Bool followsSearchRoute) fields)
   other -> other
