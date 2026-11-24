@@ -74,9 +74,10 @@ migrateIfNeeded' mPaths autoMigrate schemaName connectInfo =
             options
             ([MigrationInitialization] <> map MigrationDirectory patchedPaths)
 
--- | `CREATE INDEX CONCURRENTLY` cannot run inside a transaction (SQLSTATE 25001),
--- but `postgresql-simple-migration` wraps each .sql in one. `autoMigrate = True`
--- is local-only; prod applies migrations via `psql -f` where CONCURRENTLY works.
+-- | `CREATE INDEX CONCURRENTLY` and `DROP INDEX CONCURRENTLY` cannot run inside a
+-- transaction (SQLSTATE 25001), but `postgresql-simple-migration` wraps each .sql
+-- in one. `autoMigrate = True` is local-only; prod applies migrations via
+-- `psql -f` where CONCURRENTLY works.
 -- Stage rewritten copies in a temp dir; source files stay untouched.
 stripConcurrentlyForLocal :: [FilePath] -> IO [FilePath]
 stripConcurrentlyForLocal paths = do
@@ -96,3 +97,4 @@ stripConcurrentlyForLocal paths = do
     rewrite =
       T.replace "CREATE INDEX CONCURRENTLY" "CREATE INDEX"
         . T.replace "CREATE UNIQUE INDEX CONCURRENTLY" "CREATE UNIQUE INDEX"
+        . T.replace "DROP INDEX CONCURRENTLY" "DROP INDEX"
