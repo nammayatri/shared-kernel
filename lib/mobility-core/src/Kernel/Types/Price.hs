@@ -100,7 +100,7 @@ instance ToSchema HighPrecMoney where
 
 $(mkHttpInstancesForEnum ''HighPrecMoney)
 
-data Currency = INR | USD | EUR
+data Currency = INR | USD | EUR | JOD
   deriving stock (Generic, Show, Read, Eq, Ord)
   deriving anyclass (ToJSON, FromJSON, ToSchema, ToParamSchema)
   deriving (PrettyShow) via Showable Currency
@@ -182,6 +182,7 @@ instance ToJSON PriceAPIEntity where
 
 roundAmountByCurrency :: Currency -> HighPrecMoney -> HighPrecMoney
 roundAmountByCurrency EUR amount = roundHighPrecMoney @HighPrecMoney (getAccuracy EUR) amount
+roundAmountByCurrency JOD amount = roundHighPrecMoney @HighPrecMoney (getAccuracy JOD) amount
 roundAmountByCurrency _ amount = amount -- for backward compatibility
 
 mkPriceAPIEntity :: Price -> PriceAPIEntity
@@ -260,6 +261,7 @@ getAccuracy :: Currency -> Int
 getAccuracy INR = 0
 getAccuracy USD = 2
 getAccuracy EUR = 2
+getAccuracy JOD = 3
 
 roundAmountByCurrency' :: Currency -> HighPrecMoney -> HighPrecMoney
 roundAmountByCurrency' currency amount = roundHighPrecMoney @HighPrecMoney (getAccuracy currency) amount

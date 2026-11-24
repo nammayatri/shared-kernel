@@ -60,6 +60,7 @@ getCountryMobileCode country =
   case country of
     India -> "+91"
     Finland -> "+358"
+    Jordan -> "+962"
     _ -> "+91"
 
 -- | Latin names, accents included: one or more letters, then zero or more groups of (space, apostrophe, or hyphen) followed by letters; no doubled or leading\/trailing separators.
