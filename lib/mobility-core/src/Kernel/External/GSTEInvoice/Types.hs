@@ -7,7 +7,7 @@ import EulerHS.Prelude
 import Kernel.Beam.Lib.UtilsTH (mkBeamInstancesForEnumAndList)
 import Kernel.Storage.Esqueleto (derivePersistField)
 
-data GSTEInvoiceService = CharteredInfo
+data GSTEInvoiceService = CharteredInfo | DigiGST
   deriving (Show, Read, Eq, Ord, Generic)
 
 $(mkBeamInstancesForEnumAndList ''GSTEInvoiceService)
@@ -15,7 +15,8 @@ derivePersistField "GSTEInvoiceService"
 
 instance FromJSON GSTEInvoiceService where
   parseJSON (String "CharteredInfo") = pure CharteredInfo
-  parseJSON (String _) = parseFail "Expected \"CharteredInfo\""
+  parseJSON (String "DigiGST") = pure DigiGST
+  parseJSON (String _) = parseFail "Expected \"CharteredInfo\" or \"DigiGST\""
   parseJSON e = typeMismatch "String" e
 
 instance ToJSON GSTEInvoiceService where
