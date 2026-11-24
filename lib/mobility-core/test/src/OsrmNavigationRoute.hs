@@ -14,12 +14,16 @@
 
 module OsrmNavigationRoute where
 
+import Data.Aeson ((.=))
+import qualified Data.Aeson as A
 import EulerHS.Prelude
 import Kernel.External.Maps.OSRM.RoadsClient
   ( NavigationCoordinates (..),
+    OsrmNavigationRouteResp,
     guideFallbackReasonFromBody,
     guidePointSnapRadiusMeters,
     navigationCoordinates,
+    navigationRouteResp,
   )
 import Kernel.External.Maps.Types (LatLong (..))
 import Test.Tasty
@@ -86,6 +90,110 @@ doesNotFallBackOnOtherFailures =
     guideFallbackReasonFromBody "<html>502 Bad Gateway</html>" @?= Nothing
     guideFallbackReasonFromBody "" @?= Nothing
 
+-- | An OSRM route response with one step, carrying fields navigation doesn't read next to the ones it does.
+osrmResponse :: [A.Value] -> A.Value
+osrmResponse intersections =
+  A.object
+    [ "code" .= ("Ok" :: Text),
+      "waypoints" .= [A.object ["hint" .= ("f8ydjf" :: Text), "location" .= startPoint]],
+      "routes"
+        .= [ A.object
+               [ "geometry" .= stepGeometry,
+                 "distance" .= (154.9 :: Double),
+                 "duration" .= (25.3 :: Double),
+                 "weight" .= (25.3 :: Double),
+                 "weight_name" .= ("routability" :: Text),
+                 "legs"
+                   .= [ A.object
+                          [ "distance" .= (154.9 :: Double),
+                            "duration" .= (25.3 :: Double),
+                            "weight" .= (25.3 :: Double),
+                            "summary" .= ("Mahatma Gandhi Road" :: Text),
+                            "annotation" .= annotation,
+                            "steps"
+                              .= [ A.object
+                                     [ "geometry" .= stepGeometry,
+                                       "distance" .= (154.9 :: Double),
+                                       "duration" .= (25.3 :: Double),
+                                       "weight" .= (25.3 :: Double),
+                                       "mode" .= ("driving" :: Text),
+                                       "driving_side" .= ("right" :: Text),
+                                       "name" .= ("Mahatma Gandhi Road" :: Text),
+                                       "maneuver" .= A.object (maneuver <> ["bearing_before" .= (0 :: Double)]),
+                                       "intersections" .= intersections
+                                     ]
+                                 ]
+                          ]
+                      ]
+               ]
+           ]
+    ]
+
+-- | What the navigation route keeps of 'osrmResponse'.
+trimmedResponse :: A.Value
+trimmedResponse =
+  A.object
+    [ "code" .= ("Ok" :: Text),
+      "tollsAvoided" .= False,
+      "followsSearchRoute" .= True,
+      "routes"
+        .= [ A.object
+               [ "geometry" .= stepGeometry,
+                 "distance" .= (154.9 :: Double),
+                 "duration" .= (25.3 :: Double),
+                 "legs"
+                   .= [ A.object
+                          [ "distance" .= (154.9 :: Double),
+                            "duration" .= (25.3 :: Double),
+                            "annotation" .= annotation,
+                            "steps"
+                              .= [ A.object
+                                     [ "geometry" .= stepGeometry,
+                                       "distance" .= (154.9 :: Double),
+                                       "duration" .= (25.3 :: Double),
+                                       "name" .= ("Mahatma Gandhi Road" :: Text),
+                                       "maneuver" .= A.object (maneuver <> ["bearing_before" .= (0 :: Double)]),
+                                       "intersections" .= [A.object ["location" .= startPoint]]
+                                     ]
+                                 ]
+                          ]
+                      ]
+               ]
+           ]
+    ]
+
+startPoint :: [Double]
+startPoint = [77.60658, 12.975523]
+
+stepGeometry :: Text
+stepGeometry = "ey}vWgjv_sCdL}t@fDoTVyA|@iG"
+
+maneuver :: [(A.Key, A.Value)]
+maneuver = ["location" .= startPoint, "bearing_after" .= (104 :: Double), "type" .= ("depart" :: Text), "modifier" .= ("left" :: Text)]
+
+annotation :: A.Value
+annotation =
+  A.object
+    [ "distance" .= [96.5, 58.4 :: Double],
+      "duration" .= [14.5, 10.8 :: Double],
+      "speed" .= [6.7, 5.4 :: Double],
+      "nodes" .= [245618233, 1336721086, 9124871110 :: Integer]
+    ]
+
+fullIntersection :: A.Value
+fullIntersection = A.object ["location" .= startPoint, "bearings" .= [104 :: Int], "entry" .= [True], "out" .= (0 :: Int)]
+
+keepsOnlyNavigationFields :: TestTree
+keepsOnlyNavigationFields =
+  testCase "the route keeps only the fields navigation reads, under OSRM's names, plus the two flags" $ do
+    let decoded = A.decode (A.encode (osrmResponse [fullIntersection])) :: Maybe OsrmNavigationRouteResp
+    A.toJSON . navigationRouteResp False True <$> decoded @?= Just trimmedResponse
+
+refusesStepWithoutIntersections :: TestTree
+refusesStepWithoutIntersections =
+  testCase "a step without intersections is refused, as the navigation engine would crash on it" $
+    (A.decode (A.encode (osrmResponse [])) :: Maybe OsrmNavigationRouteResp) @?= Nothing
+
 osrmNavigationRouteTests :: TestTree
 osrmNavigationRouteTests =
   testGroup
@@ -97,5 +205,7 @@ osrmNavigationRouteTests =
       headingCoversEveryCoordinate,
       headingWrapsAround,
       fallsBackWhenPointsDontFitTheRoads,
-      doesNotFallBackOnOtherFailures
+      doesNotFallBackOnOtherFailures,
+      keepsOnlyNavigationFields,
+      refusesStepWithoutIntersections
     ]
