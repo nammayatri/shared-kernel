@@ -263,6 +263,9 @@ getAccuracy USD = 2
 getAccuracy EUR = 2
 getAccuracy JOD = 3
 
+getDisplayAccuracy :: Currency -> Int
+getDisplayAccuracy currency = max 2 (getAccuracy currency)
+
 roundAmountByCurrency' :: Currency -> HighPrecMoney -> HighPrecMoney
 roundAmountByCurrency' currency amount = roundHighPrecMoney @HighPrecMoney (getAccuracy currency) amount
 
