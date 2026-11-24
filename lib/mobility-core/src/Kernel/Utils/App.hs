@@ -244,7 +244,7 @@ withModifiedEnv = withModifiedEnvFn $ \_ env requestId sessionId _ -> do
 readConfigVersionLabel :: EnvR f -> IO (Maybe Text)
 readConfigVersionLabel env = runFlowR env.flowRuntime env.appEnv $ L.getOptionLocal ConfigVersionKey
 
-withModifiedEnv' :: (SanitizedUrl a, HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasCacConfig f, HasFieldUpd "actorInfo" f ActorInfo) => Proxy a -> (EnvR f -> Application) -> EnvR f -> Application
+withModifiedEnv' :: (SanitizedUrl a, HasARTFlow f, HasCoreMetrics f, HasField "esqDBEnv" f EsqDBEnv, HedisFlowEnv f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, HasFieldUpd "actorInfo" f ActorInfo) => Proxy a -> (EnvR f -> Application) -> EnvR f -> Application
 withModifiedEnv' appAPI = withModifiedEnvFn $ \req env requestId sessionId mbToken -> do
   let url = cs $ Wai.rawPathInfo req
       sanitizedUrl = fromMaybe (removeNumerics $ removeUUIDs url) (getSanitizedUrl appAPI (Just req))

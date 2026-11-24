@@ -68,8 +68,6 @@ newtype IdObject = IdObject
 data Tables = Tables
   { disableForKV :: [Text],
     kvTablesTtl :: HM.HashMap Text Integer,
-    useCAC :: [Text],
-    useCACForFrontend :: Bool,
     readFromMasterDb :: [Text],
     defaultShardMod :: Int,
     tableShardModRange :: HM.HashMap Text (Int, Int),
@@ -91,8 +89,6 @@ defaultTableData =
   Tables
     { disableForKV = [],
       kvTablesTtl = HM.empty,
-      useCAC = [],
-      useCACForFrontend = False,
       readFromMasterDb = [],
       defaultShardMod = 128,
       tableShardModRange = HM.empty,

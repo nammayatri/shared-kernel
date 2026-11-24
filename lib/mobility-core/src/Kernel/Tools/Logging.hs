@@ -32,14 +32,14 @@ import qualified Kernel.Storage.Queries.SystemConfigs as QSC
 import Kernel.Tools.Metrics.CoreMetrics (HasCoreMetrics, defaultLatencySampleRate, incrementSystemConfigsFailedCounter)
 import qualified Kernel.Tools.Metrics.CoreMetrics.Types as Fields
 import Kernel.Types.App (MonadFlow)
-import Kernel.Types.CacheFlow (HasCacConfig, HasCacheConfig, HasInMemEnv)
+import Kernel.Types.CacheFlow (HasCacheConfig, HasInMemEnv)
 import Kernel.Types.Logging
 import Kernel.Types.Time
 import Kernel.Utils.IOLogging (HasLog, updateLogLevelAndRawSql)
 import Kernel.Utils.Text
 
 withDynamicLogLevel ::
-  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m, HasCacConfig f) =>
+  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m) =>
   Text ->
   m a ->
   m a
@@ -67,7 +67,7 @@ resolveDynamicLogLevel (Just dynamicLogLevel) = case dynamicLogLevel.staggerPerc
     pure $ if toss <= pct then Just dynamicLogLevel.logLevel else Nothing
 
 getDynamicLogLevelConfig ::
-  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m, HasCacConfig f) => m (Maybe (HM.HashMap Text DynamicLogLevel))
+  (HasLog f, HasCoreMetrics f, HasEsqEnv m f, HedisFlow m f, HasInMemEnv f, HasCacheConfig f, HasSchemaName BeamSC.SystemConfigsT, MonadReader f m, MonadFlow m) => m (Maybe (HM.HashMap Text DynamicLogLevel))
 getDynamicLogLevelConfig = do
   now <- getCurrentTime
   shouldFetchFromDB <-
