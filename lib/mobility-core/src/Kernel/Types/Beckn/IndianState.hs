@@ -68,6 +68,7 @@ data IndianState
   | Delhi
   | JammuAndKashmir
   | Ladakh
+  | Amman
   | AnyState
   deriving (Eq, Generic, Show, Read, ToSchema, Ord)
   deriving (PrettyShow) via Showable IndianState
@@ -115,6 +116,7 @@ instance FromJSON IndianState where
   parseJSON (String "Delhi") = pure Delhi
   parseJSON (String "JammuAndKashmir") = pure JammuAndKashmir
   parseJSON (String "Ladakh") = pure Ladakh
+  parseJSON (String "Amman") = pure Amman
   parseJSON (String "*") = pure AnyState
   parseJSON (String _) = parseFail "Invalid IndianState"
   parseJSON e = typeMismatch "String" e
@@ -160,4 +162,5 @@ instance ToJSON IndianState where
   toJSON Delhi = String "Delhi"
   toJSON JammuAndKashmir = String "JammuAndKashmir"
   toJSON Ladakh = String "Ladakh"
+  toJSON Amman = String "Amman"
   toJSON AnyState = String "*"

@@ -230,7 +230,7 @@ data NearestPoint = NearestPoint
   deriving (Show)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
-data Country = India | France | USA | Netherlands | Finland
+data Country = India | France | USA | Netherlands | Finland | Jordan
   deriving stock (Generic)
   deriving (Show)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
