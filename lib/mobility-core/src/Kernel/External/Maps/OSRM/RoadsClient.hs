@@ -455,6 +455,7 @@ data NavigationRoute = NavigationRoute
     geometry :: Text,
     distance :: Double, -- meters
     duration :: Double, -- seconds
+
     -- | One leg per stretch between two stops.
     legs :: [NavigationRouteLeg]
   }
@@ -500,6 +501,7 @@ data NavigationStep = NavigationStep
     geometry :: Text,
     distance :: Double, -- meters
     duration :: Double, -- seconds
+
     -- | The road the step is on.
     name :: Maybe Text,
     maneuver :: NavigationManeuver,
@@ -519,6 +521,7 @@ data NavigationManeuver = NavigationManeuver
   { location :: Location,
     bearingBefore :: Double, -- degrees
     bearingAfter :: Double, -- degrees
+
     -- | OSRM's @type@, e.g. @turn@, @roundabout@, @arrive@.
     maneuverType :: Text,
     -- | e.g. @left@, @slight right@, @uturn@.
