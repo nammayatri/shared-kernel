@@ -223,6 +223,7 @@ data FCMNotificationType
   | BUS_PREV_STOP_CROSSED
   | DRIVER_STARTED_RETURN_TRIP
   | SHARED_CAB_ALLOCATION
+  | DEMAND_HOTSPOT_NUDGE
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
   deriving (PrettyShow) via Showable FCMNotificationType
 
