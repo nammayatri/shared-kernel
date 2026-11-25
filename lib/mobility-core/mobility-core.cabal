@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.38.3.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -256,6 +256,7 @@ library
       Kernel.External.Payout.Interface.Stripe
       Kernel.External.Payout.Interface.Types
       Kernel.External.Payout.Juspay.Config
+      Kernel.External.Payout.Juspay.Encryption
       Kernel.External.Payout.Juspay.Flow
       Kernel.External.Payout.Juspay.Types
       Kernel.External.Payout.Juspay.Types.Payout

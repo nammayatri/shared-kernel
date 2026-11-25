@@ -17,6 +17,7 @@ import Data.Aeson
 import Kernel.External.Encryption
 import Kernel.Prelude
 import Kernel.Types.Common (HighPrecMoney)
+import qualified Kernel.Utils.Jose as Jose
 
 data JuspayConfig = JuspayConfig
   { apiKey :: EncryptedField 'AsEncrypted Text,
@@ -29,6 +30,33 @@ data JuspayConfig = JuspayConfig
     dynamicWebhookUrl :: Maybe Text,
     pgBaseFee :: Maybe HighPrecMoney,
     pgGstRate :: Maybe Double
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data JuspayPayoutEncryptionConfig = JuspayPayoutEncryptionConfig
+  { -- | Juspay's RSA public key, PEM encoded, stored passetto-encrypted like 'merchantPrivateKey'.
+    -- The request JWE is encrypted to it.
+    juspayPublicKey :: EncryptedField 'AsEncrypted Text,
+    -- | Juspay's identifier for its key pair (the guide's @kid@). Sent as @kid@ in the JWE
+    -- header and in the body.
+    juspayKeyId :: Text,
+    -- | Juspay's identifier for our public key (the guide's @sid@). Sent as @sid@ in the body
+    -- and as @kid@ in the JWS header.
+    merchantKeyId :: Text,
+    -- | Our RSA private key, PEM encoded, whose public half was shared with Juspay. Signs the
+    -- request. Required unless 'signRequest' is @false@.
+    merchantPrivateKey :: Maybe (EncryptedField 'AsEncrypted Text),
+    -- | Sign the JWE with 'merchantPrivateKey' (RS256, after encryption, step 3 of the guide),
+    -- so @payload@ is a compact JWS whose payload is the JWE. Defaults to @true@, as the guide
+    -- describes; set @false@ to send the bare JWE, as Juspay's order-create sample does.
+    signRequest :: Maybe Bool,
+    -- | JWE key wrapping. Defaults to @RSA-OAEP-256@, which the guide names; Juspay's own
+    -- samples use @RSA-OAEP@, so set that if the account is provisioned for it.
+    keyWrapAlgorithm :: Maybe Jose.JweKeyAlg,
+    -- | JWE content encryption. Defaults to @A128CBC-HS256@, which the guide names; Juspay's
+    -- attempt-API sample uses @A256CBC-HS512@, which is also supported.
+    contentEncryption :: Maybe Jose.JweContentEnc
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON)

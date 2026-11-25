@@ -29,6 +29,7 @@ import qualified Data.Text.Encoding as TE
 import Kernel.External.Encryption
 import Kernel.External.Payout.Interface.Types
 import Kernel.External.Payout.Juspay.Config as Reexport
+import qualified Kernel.External.Payout.Juspay.Encryption as JuspayEnc
 import qualified Kernel.External.Payout.Juspay.Flow as Juspay
 import qualified Kernel.External.Payout.Juspay.Types as Juspay
 import qualified Kernel.External.Payout.Juspay.Types.Payout as Payout
@@ -51,15 +52,20 @@ createPayoutOrder ::
     HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
   ) =>
   JuspayConfig ->
+  Maybe JuspayPayoutEncryptionConfig ->
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
-createPayoutOrder config req = do
+createPayoutOrder config mbEncryptionConfig req = do
   let url = config.url
       merchantId = config.merchantId
   apiKey <- decrypt config.apiKey
   customerVpa <- req.customerVpa & fromMaybeM (InvalidRequest "customerVpa required")
   orderReq <- mkCreatePayoutOrderReq customerVpa req
-  mkCreatePayoutOrderResp <$> Juspay.createPayoutOrder url apiKey merchantId req.mRoutingId orderReq
+  mkCreatePayoutOrderResp <$> case mbEncryptionConfig of
+    Nothing -> Juspay.createPayoutOrder url apiKey merchantId req.mRoutingId orderReq
+    Just encryptionCfg -> do
+      envelope <- JuspayEnc.encryptPayoutRequest encryptionCfg orderReq
+      Juspay.createPayoutOrderEncrypted url apiKey merchantId req.mRoutingId envelope
   where
     mkCreatePayoutOrderReq customerVpa CreatePayoutOrderReq {customerVpa = _customerVpa, ..} = do
       webhookDetails <- case config.dynamicWebhookUrl of

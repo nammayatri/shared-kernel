@@ -55,6 +55,28 @@ createPayoutOrder url apiKey merchantId mRoutingId req = do
   callAPI url eulerClient "create-payout-order" proxy
     >>= fromEitherM (ExternalAPICallError (Just "JUSPAY_CREATE_PAYOUT_ORDER_FAILED") url)
 
+type CreatePayoutOrderEncryptedAPI =
+  "payout" :> "merchant" :> "v1.1" :> "orders"
+    :> BasicAuth "username-password" BasicAuthData
+    :> Header "x-merchantid" Text
+    :> Header "x-routing-id" Text
+    :> ReqBody '[JSON] JuspayEncryptedPayload
+    :> Post '[JSON] CreatePayoutOrderResp
+
+createPayoutOrderEncrypted ::
+  (Metrics.CoreMetrics m, MonadFlow m, HasRequestId r, MonadReader r m) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Maybe Text ->
+  JuspayEncryptedPayload ->
+  m CreatePayoutOrderResp
+createPayoutOrderEncrypted url apiKey merchantId mRoutingId req = do
+  let proxy = Proxy @CreatePayoutOrderEncryptedAPI
+      eulerClient = Euler.client proxy (mkBasicAuthData apiKey) (Just merchantId) mRoutingId req
+  callAPI url eulerClient "create-payout-order-encrypted" proxy
+    >>= fromEitherM (ExternalAPICallError (Just "JUSPAY_CREATE_PAYOUT_ORDER_FAILED") url)
+
 type PayoutOrderStatusAPI =
   "payout" :> "merchant" :> "v1" :> "orders"
     :> Capture "orderId" Text

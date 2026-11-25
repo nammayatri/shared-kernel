@@ -23,6 +23,7 @@ import qualified Kernel.External.Payout.Interface.HdfcCbx as HdfcCbx
 import qualified Kernel.External.Payout.Interface.Juspay as Juspay
 import qualified Kernel.External.Payout.Interface.Stripe as Stripe
 import Kernel.External.Payout.Interface.Types as Reexport
+import Kernel.External.Payout.Juspay.Config as Reexport (JuspayPayoutEncryptionConfig)
 import Kernel.External.Payout.Types as Reexport
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
@@ -39,9 +40,22 @@ createPayoutOrder ::
   PayoutServiceConfig ->
   CreatePayoutOrderReq ->
   m CreatePayoutOrderResp
-createPayoutOrder serviceConfig req = case serviceConfig of
+createPayoutOrder = createPayoutOrderWithEncryption Nothing
+
+createPayoutOrderWithEncryption ::
+  ( EncFlow m r,
+    CoreMetrics m,
+    HasRequestId r,
+    MonadReader r m,
+    HasFlowEnv m r '["selfBaseUrl" ::: BaseUrl]
+  ) =>
+  Maybe JuspayPayoutEncryptionConfig ->
+  PayoutServiceConfig ->
+  CreatePayoutOrderReq ->
+  m CreatePayoutOrderResp
+createPayoutOrderWithEncryption mbEncryptionConfig serviceConfig req = case serviceConfig of
   HdfcCbxConfig _ -> throwError $ InvalidRequest "HDFC CBX has no single-order API; use submitBulkPayout"
-  JuspayConfig cfg -> Juspay.createPayoutOrder cfg req
+  JuspayConfig cfg -> Juspay.createPayoutOrder cfg mbEncryptionConfig req
   StripeConfig cfg -> do
     connectedAccountId <- req.mConnectedAccountId & fromMaybeM (PayoutNotSent "connectedAccountId required for Stripe payout")
 

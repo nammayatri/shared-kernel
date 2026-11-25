@@ -277,3 +277,18 @@ instance FromJSON CreatePayoutOrderReq where
 type PayoutOrderStatusResp = PayoutOrderResp
 
 type CreatePayoutOrderResp = PayoutOrderResp
+
+---------------------------------------------------------------------------
+-- Encrypted Payout Create Order Types (POST /payout/merchant/v1.1/orders)
+
+data JuspayEncryptedPayload = JuspayEncryptedPayload
+  { payload :: Text,
+    -- | Juspay's key id, the key the JWE is encrypted to.
+    kid :: Text,
+    -- | Our key id, as registered with Juspay.
+    sid :: Text,
+    -- | Always @"compact"@.
+    format :: Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON)
