@@ -26,6 +26,7 @@ import KmsSecrets (kmsSecretsTests)
 import MorthV2CryptoTests (morthV2CryptoTests)
 import MultiModalVehicleType
 import OsrmNavigationRoute (osrmNavigationRouteTests)
+import OsrmRoadTierTraffic (osrmRoadTierTrafficTests)
 import PartialIndexTests
 import Predicates
 import SettlementEmail
@@ -64,5 +65,6 @@ specs = do
           morthV2CryptoTests,
           kmsSecretsTests,
           multiModalVehicleTypeTests,
-          osrmNavigationRouteTests
+          osrmNavigationRouteTests,
+          osrmRoadTierTrafficTests
         ]
