@@ -2,11 +2,13 @@ module Kernel.External.GSTEInvoice.Interface.Types where
 
 import Data.Aeson (Value)
 import qualified Kernel.External.GSTEInvoice.CharteredInfo.Types as CharteredInfo
+import qualified Kernel.External.GSTEInvoice.DigiGST.Types as DigiGST
 import Kernel.Prelude
 
 -- | Provider-agnostic configuration sum type.
 data GSTEInvoiceConfig
   = CharteredInfoEInvoiceConfig CharteredInfo.CharteredInfoConfig
+  | DigiGSTEInvoiceConfig DigiGST.DigiGSTConfig
   deriving (Show, Generic, ToJSON, FromJSON)
 
 -- | Provider-agnostic auth response.

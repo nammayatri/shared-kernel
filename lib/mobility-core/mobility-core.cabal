@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.38.3.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -110,8 +110,11 @@ library
       Kernel.External.Grid.Types
       Kernel.External.GSTEInvoice.CharteredInfo.Flow
       Kernel.External.GSTEInvoice.CharteredInfo.Types
+      Kernel.External.GSTEInvoice.DigiGST.Flow
+      Kernel.External.GSTEInvoice.DigiGST.Types
       Kernel.External.GSTEInvoice.Interface
       Kernel.External.GSTEInvoice.Interface.CharteredInfo
+      Kernel.External.GSTEInvoice.Interface.DigiGST
       Kernel.External.GSTEInvoice.Interface.Types
       Kernel.External.GSTEInvoice.Types
       Kernel.External.IncidentReport

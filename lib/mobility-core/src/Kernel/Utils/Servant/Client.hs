@@ -124,7 +124,7 @@ redactSecretHeaders t =
   where
     secretHeader =
       TR.mkRegexWithOpts
-        "\\(\"(authorization|proxy-authorization|apikey|api-key|x-api-key)\",\"([^\"\\]|\\\\.)*\"\\)"
+        "\\(\"(authorization|proxy-authorization|apikey|api-key|x-api-key|idtoken)\",\"([^\"\\]|\\\\.)*\"\\)"
         True
         False
 

@@ -6,6 +6,7 @@ where
 
 import qualified Kernel.External.GSTEInvoice.CharteredInfo.Types as CITypes
 import qualified Kernel.External.GSTEInvoice.Interface.CharteredInfo as CharteredInfo
+import qualified Kernel.External.GSTEInvoice.Interface.DigiGST as DigiGST
 import Kernel.External.GSTEInvoice.Interface.Types
 import Kernel.External.GSTEInvoice.Types as Reexport
 import Kernel.Prelude
@@ -23,6 +24,7 @@ authenticateEInvoice ::
   m EInvoiceAuthResp
 authenticateEInvoice serviceConfig = case serviceConfig of
   CharteredInfoEInvoiceConfig cfg -> CharteredInfo.authenticate cfg
+  DigiGSTEInvoiceConfig cfg -> DigiGST.authenticate cfg
 
 -- | Generate an e-invoice IRN via the configured GSP.
 generateEInvoice ::
@@ -36,3 +38,4 @@ generateEInvoice ::
   m EInvoiceGenerateResp
 generateEInvoice serviceConfig authToken payload = case serviceConfig of
   CharteredInfoEInvoiceConfig cfg -> CharteredInfo.generateInvoice cfg authToken payload
+  DigiGSTEInvoiceConfig cfg -> DigiGST.generateInvoice cfg authToken payload
