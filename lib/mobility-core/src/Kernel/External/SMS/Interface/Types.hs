@@ -21,6 +21,7 @@ module Kernel.External.SMS.Interface.Types
 where
 
 import Data.ByteString.Lazy (fromStrict, toStrict)
+import Data.OpenApi
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Deriving.Aeson
