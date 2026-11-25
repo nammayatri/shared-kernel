@@ -44,3 +44,30 @@ runWithFallbackAndTimeout tag providers timeoutInSec isSuccess action = go provi
           | otherwise -> logInfo (tag <> ": provider returned unsuccessful result; falling back") >> go rest
         Left AwaitingTimeout -> logInfo (tag <> ": provider timed out after " <> show timeoutInSec <> "s; falling back") >> go rest
         Left (ForkedFlowError e) -> logInfo (tag <> ": provider failed (" <> e <> "); falling back") >> go rest
+
+-- | Like 'runWithFallbackAndTimeout' but returns a caller-supplied default
+-- result when every provider has failed or timed out, instead of throwing an
+-- opaque 'InternalError'. This lets image-extraction call sites turn provider
+-- exhaustion into a normal "no extraction" response.
+runWithFallbackAndTimeoutWithDefault ::
+  (L.MonadFlow m, Forkable m, Log m, MonadThrow m) =>
+  Text ->
+  [a] ->
+  Int ->
+  (b -> Bool) ->
+  m b ->
+  (a -> m b) ->
+  m b
+runWithFallbackAndTimeoutWithDefault tag providers timeoutInSec isSuccess defaultAction action = go providers
+  where
+    go [] = do
+      logInfo (tag <> ": all configured providers exhausted (timeout/failure), returning default")
+      defaultAction
+    go (provider : rest) = do
+      awaitable <- awaitableFork tag (action provider)
+      L.await (Just (Microseconds (fromIntegral timeoutInSec * 1000000))) awaitable >>= \case
+        Right result
+          | isSuccess result -> pure result
+          | otherwise -> logInfo (tag <> ": provider returned unsuccessful result; falling back") >> go rest
+        Left AwaitingTimeout -> logInfo (tag <> ": provider timed out after " <> show timeoutInSec <> "s; falling back") >> go rest
+        Left (ForkedFlowError e) -> logInfo (tag <> ": provider failed (" <> e <> "); falling back") >> go rest
