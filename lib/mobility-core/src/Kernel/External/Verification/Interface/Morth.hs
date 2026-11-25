@@ -14,6 +14,8 @@
 
 module Kernel.External.Verification.Interface.Morth where
 
+import Control.Applicative ((<|>))
+import qualified Data.Aeson as A
 import Data.Text (pack)
 import qualified Data.Text as T
 import Data.Time.Format (defaultTimeLocale, formatTime)
@@ -25,8 +27,10 @@ import Kernel.External.Verification.Morth.Types
 import qualified Kernel.External.Verification.Types as VT
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
+import Kernel.Types.Common (withTryCatch)
 import Kernel.Types.Error (MorthError (..))
 import Kernel.Utils.Error.Throwing (throwError)
+import Kernel.Utils.Logging (Log, logError)
 import Kernel.Utils.Servant.Client
 
 -- | Verify vehicle Registration Certificate (RC) validity via the MoRTH
@@ -41,6 +45,7 @@ import Kernel.Utils.Servant.Client
 verifyRCAsync ::
   ( EncFlow m r,
     CoreMetrics m,
+    Log m,
     HasRequestId r,
     MonadReader r m
   ) =>
@@ -56,7 +61,8 @@ verifyRCAsync cfg req = do
   chasiNo <- req.chassisNumber & maybe (throwError MorthChassisNumberRequired) pure
   let morthReq = makeMorthReq req engNo chasiNo cfg.applicantMobile
   resp <- MorthFlow.getVehicleBasicInfo cfg morthReq
-  let rcResp = convertToRCVerificationResponse req resp
+  mbTechData <- fetchTechnicalInfo engNo chasiNo
+  let rcResp = mergeTechnicalInfo mbTechData (convertToRCVerificationResponse req resp)
   return $
     InterfaceTypes.SyncResp
       InterfaceTypes.VerifySyncResp
@@ -73,6 +79,41 @@ verifyRCAsync cfg req = do
           applicantMobile = applicantMobile,
           engNo = engNo,
           chasiNo = chasiNo
+        }
+
+    fetchTechnicalInfo ::
+      ( EncFlow m r,
+        CoreMetrics m,
+        Log m,
+        HasRequestId r,
+        MonadReader r m
+      ) =>
+      Text ->
+      Text ->
+      m (Maybe VehicleTechnicalInfoData)
+    fetchTechnicalInfo engNo chasiNo = do
+      let technicalReq =
+            VehicleTechnicalInfoReq
+              { regnNo = req.rcNumber,
+                applicantMobile = cfg.applicantMobile,
+                engNo = engNo,
+                chasiNo = chasiNo
+              }
+      result <- withTryCatch "MorthGetVehicleTechnicalInfo" (MorthFlow.getVehicleTechnicalInfo cfg technicalReq)
+      case result of
+        Right techResp -> pure techResp.data_
+        Left err -> do
+          logError $ "MoRTH getVehicleTechnicalInfo failed, continuing without it: " <> show err
+          pure Nothing
+
+    mergeTechnicalInfo :: Maybe VehicleTechnicalInfoData -> VT.RCVerificationResponse -> VT.RCVerificationResponse
+    mergeTechnicalInfo Nothing rcResp = rcResp
+    mergeTechnicalInfo (Just techData) rcResp =
+      rcResp
+        { VT.fuelType = techData.fuelType <|> rcResp.fuelType,
+          VT.grossVehicleWeight = (readMaybe . T.unpack =<< techData.ladenWeight) <|> rcResp.grossVehicleWeight,
+          VT.unladdenWeight = (readMaybe . T.unpack =<< techData.unladenWeight) <|> rcResp.unladdenWeight,
+          VT.seatingCapacity = (A.String <$> techData.seatingCap) <|> rcResp.seatingCapacity
         }
 
     -- Convert the MoRTH getVehicleBasicInfo response into the common 'VT.RCVerificationResponse'.
