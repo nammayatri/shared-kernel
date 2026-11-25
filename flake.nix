@@ -61,6 +61,7 @@
             };
             clickhouse-haskell.jailbreak = true;
             generic-deriving.check = false;
+            store.check = false;
 
             jwt = { self, ... }: {
               cabalFlags.use_crypton = true;
