@@ -236,7 +236,16 @@ data RouteAnnotation = RouteAnnotation
 
 data Steps = Steps
   { geometry :: RouteGeometry,
-    maneuver :: Maneuver
+    maneuver :: Maneuver,
+    intersections :: Maybe [Intersection] -- Only when steps = true
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- | A junction within a step.
+data Intersection = Intersection
+  { location :: Location,
+    classes :: Maybe [Text]
   }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)

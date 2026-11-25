@@ -20,10 +20,14 @@ module Kernel.External.Maps.Interface.OSRM
     getNearestPoints,
     getOSRMTable,
     getRoutes,
+    classifySpeed,
+    legTiers,
+    mkTrafficSegments,
   )
 where
 
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Map.Strict as M
 import GHC.Float (double2Int)
 import Kernel.External.Maps.Google.Config as Reexport
 import Kernel.External.Maps.Google.PolyLinePoints
@@ -207,6 +211,13 @@ data ClassifiedSegment = ClassifiedSegment
     lengthMeters :: Double
   }
 
+-- | Per-segment inputs of one leg, each list as long as the leg's @annotation.speed@.
+data LegMeasurements = LegMeasurements
+  { measuredSpeeds :: [Double],
+    measuredDistances :: [Double],
+    measuredTiers :: [Maybe RoadTier]
+  }
+
 mkTrafficSegments :: Maybe OSRMTrafficConfig -> [OSRM.RouteResponseLeg] -> Maybe [RouteTrafficSegment]
 mkTrafficSegments Nothing _ = Nothing
 mkTrafficSegments (Just cfg) legs
@@ -214,22 +225,61 @@ mkTrafficSegments (Just cfg) legs
   | otherwise = Just . concat $ zipWith (legSegments cfg) offsets measuredLegs
   where
     measuredLegs = catMaybes . takeWhile isJust $ map legMeasurements legs -- fix this later to take later legs as well
-    offsets = scanl (+) 0 $ map (length . fst) measuredLegs
-
+    offsets = scanl (+) 0 $ map (length . (.measuredSpeeds)) measuredLegs -- scanl (+) prefix sum h
     legMeasurements leg = do
       annotation <- leg.annotation
       speeds <- annotation.speed
-      pure (speeds, fromMaybe [] annotation.distance)
+      let tiers = legTiers leg
+      pure
+        LegMeasurements
+          { measuredSpeeds = speeds,
+            measuredDistances = fromMaybe [] annotation.distance,
+            measuredTiers = if length tiers == length speeds then tiers else []
+          }
 
-legSegments :: OSRMTrafficConfig -> Int -> ([Double], [Double]) -> [RouteTrafficSegment]
-legSegments cfg offset (speeds, distances) = mapMaybe toSegment $ runs classified
+-- | The road tier of every segment of a leg, in @annotation.speed@ order.
+--
+-- OSRM reports road classes per junction, under @steps[].intersections[]@, while speeds come
+-- per segment, a junction's tier holds until the next one.
+legTiers :: OSRM.RouteResponseLeg -> [Maybe RoadTier]
+legTiers leg = concatMap stepTiers (dropLast leg.steps)
+  where
+    dropLast [] = []
+    dropLast steps = init steps
+
+    stepTiers step =
+      let coordinates = map (.getLatLong) step.geometry.coordinates
+          segmentCount = length coordinates - 1
+       in spread segmentCount $ getIntersectionIndex (zip [0 ..] coordinates) (fromMaybe [] step.intersections)
+
+    -- will output something like [(3,Main),(10, Arterial)...]
+    getIntersectionIndex _ [] = []
+    getIntersectionIndex indexed (intersection : rest) =
+      case dropWhile (\(_, point) -> intersection.location.getLatLong /= point) indexed of
+        [] -> getIntersectionIndex indexed rest
+        found@((foundIndex, _) : _) -> (foundIndex, roadTier intersection) : getIntersectionIndex found rest
+
+    -- A junction's tier covers the segments from it up to the next junction.
+    spread segmentCount [] = replicate segmentCount Nothing
+    spread segmentCount marks@((firstIndex, _) : _) =
+      replicate (clamp segmentCount firstIndex) Nothing
+        <> concat (zipWith (run segmentCount) marks (map fst (drop 1 marks) <> [segmentCount]))
+
+    run segmentCount (start, tier) end = replicate (clamp segmentCount end - clamp segmentCount start) tier
+
+    clamp x boundary = max 0 (min x boundary)
+
+    roadTier intersection = (listToMaybe . mapMaybe roadTierFromClass) =<< intersection.classes
+
+legSegments :: OSRMTrafficConfig -> Int -> LegMeasurements -> [RouteTrafficSegment]
+legSegments cfg offset measurements = mapMaybe toSegment $ runs classified
   where
     classified =
       zipWith3
-        (\index speed lengthMeters -> ClassifiedSegment {index, speedClass = classifySpeed cfg speed, lengthMeters})
+        (\index (speed, tier) lengthMeters -> ClassifiedSegment {index, speedClass = classifySpeed cfg tier speed, lengthMeters})
         [offset ..]
-        speeds
-        (distances <> repeat 0)
+        (zip measurements.measuredSpeeds (measurements.measuredTiers <> repeat Nothing))
+        (measurements.measuredDistances <> repeat 0)
 
     runs [] = []
     runs (x : xs) = let (same, rest) = span (\y -> y.speedClass == x.speedClass) xs in (x : same) : runs rest
@@ -241,13 +291,20 @@ legSegments cfg offset (speeds, distances) = mapMaybe toSegment $ runs classifie
       guard $ sum (map (.lengthMeters) run) >= cfg.minSegmentLengthMeters
       pure RouteTrafficSegment {startIndex = firstSegment.index, endIndex = lastSegment.index + 1, speed = firstSegment.speedClass}
 
-classifySpeed :: OSRMTrafficConfig -> Double -> TrafficSpeed
-classifySpeed cfg speedInMetersPerSecond
-  | speedInKmph <= cfg.jamBelowKmph = TrafficJam
-  | speedInKmph <= cfg.slowBelowKmph = TrafficSlow
+classifySpeed :: OSRMTrafficConfig -> Maybe RoadTier -> Double -> TrafficSpeed
+classifySpeed cfg mbTier speedInMetersPerSecond
+  | speedInKmph <= jamBelow = TrafficJam
+  | speedInKmph <= slowBelow = TrafficSlow
   | otherwise = TrafficNormal
   where
     speedInKmph = speedInMetersPerSecond * 3.6
+    (jamBelow, slowBelow) = case mbTierThresholds of
+      Just thresholds -> (thresholds.jamBelowKmph, thresholds.slowBelowKmph)
+      Nothing -> (cfg.jamBelowKmph, cfg.slowBelowKmph)
+    mbTierThresholds = do
+      tier <- mbTier
+      perTier <- cfg.tierThresholds
+      M.lookup tier perTier
 
 getOSRMRoute ::
   ( HasCallStack,
