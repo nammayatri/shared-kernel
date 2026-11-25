@@ -99,7 +99,7 @@ createConnectAccount config req = do
           settings =
             Just $
               Stripe.AccountSettings
-                { payouts = Stripe.PayoutsSettings {debit_negative_balances = True, statement_descriptor = fromMaybe "Bridge Rideshare" config.statementDescriptor}
+                { payouts = Stripe.PayoutsSettings {debit_negative_balances = True, statement_descriptor = fromMaybe "Bridge Rideshare" config.statementDescriptor, schedule_interval = Just "manual"}
                 }
           isCompany = req.businessType == Just Stripe.Company
           business_type = fromMaybe Stripe.Individual req.businessType
