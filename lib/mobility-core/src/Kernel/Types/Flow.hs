@@ -17,10 +17,13 @@
 
 module Kernel.Types.Flow (FlowR, runFlowR, HasFlowHandlerR, logRequestIdForFork) where
 
+import Control.Concurrent (myThreadId)
+import qualified Control.Monad.Catch as C
 import Control.Monad.IO.Unlift
 import Data.Aeson
 import Data.Default.Class
 import qualified Data.Map.Strict as M
+import qualified EulerHS.Extra.IOProfile as EIOP
 import qualified EulerHS.Interpreters as I
 import qualified EulerHS.Language as L
 import EulerHS.Prelude
@@ -32,6 +35,7 @@ import Kernel.Storage.Beam.SystemConfigs
 import Kernel.Storage.Esqueleto.Config
 import Kernel.Storage.Hedis.Config
 import Kernel.Tools.ARTUtils (ArtData (..), HasARTFlow, pushToKafka)
+import qualified Kernel.Tools.IOProfiler as IOP
 import qualified Kernel.Tools.Metrics.CoreMetrics as Metrics
 import Kernel.Tools.Metrics.CoreMetrics.Types
 import Kernel.Types.CacheFlow
@@ -211,6 +215,17 @@ instance MonadIO (FlowR r) where
 instance {-# OVERLAPPABLE #-} IOLogging.HasLog r => Log (FlowR r) where
   logOutput = IOLogging.logOutputImplementation
   withLogTag lc (FlowR flowR) = FlowR $ IOLogging.withLogTagImplementation lc flowR
+  withIOProfile kind op target action =
+    asks (.loggerEnv.ioProfiler) >>= \case
+      Nothing -> action
+      Just profiler -> do
+        t0 <- liftIO IOP.nowMs
+        res <- action
+        t1 <- liftIO IOP.nowMs
+        tid <- liftIO myThreadId
+        liftIO . IOP.recordIOEvent profiler $
+          IOP.IOProfEvent "logical" kind op target t0 t1 (show tid) Nothing True
+        pure res
 
 instance MonadTime (FlowR r) where
   getCurrentTime = liftIO getCurrentTime
@@ -277,18 +292,21 @@ instance (Log (FlowR r), Metrics.CoreMetrics (FlowR r), HasARTFlow r) => Forkabl
   fork tag f = withLogTag ("Fork " <> tag) $ do
     seedLocalOptions <- carryForkLocalOptions
     newLocalOptions <- newMVar mempty
+    profiledF <- profileFork tag (handleForkExecution tag f)
     -- logRequestIdForFork tag
-    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters tag "fork" (seedLocalOptions >> handleForkExecution tag f))
+    FlowR $ ReaderT $ L.forkFlow tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters tag "fork" (seedLocalOptions >> profiledF))
 
   forkMultiple tagAndFunction = do
     seedLocalOptions <- carryForkLocalOptions
     newLocalOptions <- newMVar mempty
-    FlowR $ ReaderT $ L.forkFlow "multiple-Forks" . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters "multiple-Forks" "fork_multiple" (seedLocalOptions >> handleForkExecutionMultiple tagAndFunction))
+    profiledF <- profileFork "multiple-Forks" (handleForkExecutionMultiple tagAndFunction)
+    FlowR $ ReaderT $ L.forkFlow "multiple-Forks" . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters "multiple-Forks" "fork_multiple" (seedLocalOptions >> profiledF))
 
   awaitableFork tag f = do
     seedLocalOptions <- carryForkLocalOptions
     newLocalOptions <- newMVar mempty
-    FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters tag "awaitable_fork" (seedLocalOptions >> handleExc f))
+    profiledF <- profileFork tag (handleExc f)
+    FlowR $ ReaderT $ L.forkFlow' tag . L.withModifiedRuntime (refreshLocalOptions newLocalOptions) . runReaderT (unFlowR $ Metrics.withForkCounters tag "awaitable_fork" (seedLocalOptions >> profiledF))
     where
       handleExc f' = do
         res <- try f'
@@ -341,6 +359,30 @@ carryForkLocalOptions :: FlowR r (FlowR r ())
 carryForkLocalOptions = do
   mTxnId <- L.getOptionLocal KBT.TxnIdKey
   mConfigVersion <- L.getOptionLocal KBT.ConfigVersionKey
+  mIOSink <- L.getOptionLocal EIOP.IOProfileSinkKey
   pure $ do
     maybe (pure ()) (L.setOptionLocal KBT.TxnIdKey) mTxnId
     maybe (pure ()) (L.setOptionLocal KBT.ConfigVersionKey) mConfigVersion
+    maybe (pure ()) (L.setOptionLocal EIOP.IOProfileSinkKey) mIOSink
+
+-- | With an IO profiler on the request: counts the fork as running (so the
+-- profile is only closed once it ends) and records its start with the parent
+-- thread. Call in the parent; run the returned flow in the child.
+profileFork :: HasField "loggerEnv" r IOLogging.LoggerEnv => Text -> FlowR r a -> FlowR r (FlowR r a)
+profileFork tag child =
+  asks (.loggerEnv.ioProfiler) >>= \case
+    Nothing -> pure child
+    Just profiler -> do
+      parentTid <- liftIO myThreadId
+      liftIO $ IOP.forkStarted profiler
+      -- the whole child, including recording its start, sits inside the 'finally': the fork count taken
+      -- above is released exactly once, even if the child never gets as far as running its action
+      pure $
+        ( do
+            tid <- liftIO myThreadId
+            now <- liftIO IOP.nowMs
+            liftIO . IOP.recordIOEvent profiler $
+              IOP.IOProfEvent "meta" "fork" "start" tag now now (show tid) (Just (show parentTid)) True
+            child
+        )
+          `C.finally` liftIO (IOP.forkFinished profiler)

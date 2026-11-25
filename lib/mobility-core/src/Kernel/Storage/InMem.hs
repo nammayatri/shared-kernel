@@ -31,6 +31,7 @@ import Kernel.Storage.InMem.Management.SidecarClient (callRefresh, callRegisterK
 import Kernel.Storage.InMem.Management.Types (RegisterKeyRequest (..), SidecarRefreshRequest (..))
 import Kernel.Types.App (MonadFlow)
 import Kernel.Types.CacheFlow
+import Kernel.Types.Logging (Log (..))
 import Kernel.Types.TryException (TryException)
 import Kernel.Utils.Time (Seconds, UTCTime, addUTCTime, getCurrentTime, secondsToNominalDiffTime, threadDelaySec)
 import qualified Network.HTTP.Client as HTTP
@@ -49,7 +50,7 @@ headMay (x : _xs) = Just x
 -- No per-fetch Prometheus timing here: it was redundant with the datastore/handler
 -- metrics and, keyed by cache key, was an unbounded-cardinality registry leak.
 withInMemCache :: forall b r m. (Ae.ToJSON b, MonadFlow m, MonadReader r m, HasInMemEnv r, Typeable b) => [Text] -> Seconds -> m b -> m b
-withInMemCache cacheKeys ttlInSeconds fn = do
+withInMemCache cacheKeys ttlInSeconds fn = withIOProfile "inmem" "get" (T.intercalate ":" cacheKeys) $ do
   inMemEnv <- asks (.inMemEnv)
   if inMemEnv.enableInMem && ttlInSeconds > 0
     then do

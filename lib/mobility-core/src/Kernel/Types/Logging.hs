@@ -53,6 +53,12 @@ class Log m where
   logOutput :: LogLevel -> Text -> m ()
   withLogTag :: Text -> m a -> m a
 
+  -- | Per-request IO profiling hook: @withIOProfile kind op target action@ runs
+  -- @action@ and, when the request has an IO profiler, records it as one event.
+  -- A no-op unless the monad provides a profiler (see "Kernel.Tools.IOProfiler").
+  withIOProfile :: Text -> Text -> Text -> m a -> m a
+  withIOProfile _ _ _ action = action
+
 data LoggerConfig = LoggerConfig
   { level :: LogLevel,
     logToFile :: Bool,

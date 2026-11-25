@@ -33,10 +33,15 @@ withTimeRedis ::
   Text ->
   m a ->
   m a
-withTimeRedis storeType operationName operation = do
+withTimeRedis storeType operationName operation = profiled $ do
   enableRedisLatencyLogging <- asks (.enableRedisLatencyLogging)
   enablePrometheusMetricLogging <- asks (.enablePrometheusMetricLogging)
   withTime storeType operationName enableRedisLatencyLogging enablePrometheusMetricLogging operation
+  where
+    -- "Redis" is the outer wrapper around the standalone/cluster calls it makes; profiling both would double count.
+    profiled
+      | storeType == "Redis" = identity
+      | otherwise = withIOProfile "redis" (storeType <> ":" <> operationName) ""
 
 withTime ::
   ( MonadReader r m,
@@ -88,7 +93,7 @@ withTimeAPI ::
   Text ->
   m a ->
   m a
-withTimeAPI storeType operationName operation = do
+withTimeAPI storeType operationName operation = withIOProfile "span" operationName storeType $ do
   enableAPILatencyLogging <- asks (.enableAPILatencyLogging)
   enableAPIPrometheusMetricLogging <- asks (.enableAPIPrometheusMetricLogging)
   withTime storeType operationName enableAPILatencyLogging enableAPIPrometheusMetricLogging operation

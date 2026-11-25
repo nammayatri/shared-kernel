@@ -581,6 +581,7 @@ library
       Kernel.Streaming.MonadConsumer
       Kernel.Streaming.MonadProducer
       Kernel.Tools.ARTUtils
+      Kernel.Tools.IOProfiler
       Kernel.Tools.Logging
       Kernel.Tools.LoopGracefully
       Kernel.Tools.Metrics.AppMetrics

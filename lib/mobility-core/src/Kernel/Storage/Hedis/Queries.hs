@@ -389,6 +389,8 @@ runOnAllPeerLTSRedis action = do
 
 buildKey :: (HedisFlow m env, TryException m) => Text -> m BS.ByteString
 buildKey key = do
+  -- Records the (unprefixed) key for the request's IO profile; no-op when profiling is off.
+  withIOProfile "rediskey" "key" key $ pure ()
   keyModifier <- asks (.hedisEnv.keyModifier)
   return . cs $ keyModifier key
 

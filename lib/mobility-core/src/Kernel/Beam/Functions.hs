@@ -788,7 +788,7 @@ findOneInternal ::
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
   m (Maybe a)
-findOneInternal updatedMeshConfig fromTType where' = do
+findOneInternal updatedMeshConfig fromTType where' = profileDb @table "findOne" (Just where') $ do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   -- KV connector automatically queries every cloud's Redis when multiCloudReadEnabled = True
   result <- KV.findWithKVConnector dbConf' updatedMeshConfig where'
@@ -804,7 +804,7 @@ findAllInternal ::
   (table Identity -> m (Maybe a)) ->
   Where Postgres table ->
   m [a]
-findAllInternal updatedMeshConfig fromTType where' = do
+findAllInternal updatedMeshConfig fromTType where' = profileDb @table "findAll" (Just where') $ do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   -- KV connector automatically handles multi-cloud when multiCloudReadEnabled = True:
   -- - Fetches from primary Redis, secondary Redis, and DB in parallel
@@ -825,7 +825,7 @@ findAllWithOptionsInternal ::
   Maybe Int ->
   Maybe Int ->
   m [a]
-findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mbOffset = do
+findAllWithOptionsInternal updatedMeshConfig fromTType where' orderBy mbLimit mbOffset = profileDb @table "findAllWithOptions" (Just where') $ do
   dbConf' <- getReadDBConfigInternal (modelTableName @table)
   -- KV connector automatically handles multi-cloud when multiCloudReadEnabled = True:
   -- - Fetches from both Redis instances in parallel
@@ -859,26 +859,27 @@ updateInternal ::
   [Set Postgres table] ->
   Where Postgres table ->
   m ()
-updateInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
-  dbConf <- getMasterDBConfig
-  replicaDbConf <- getReplicaDbConfig
-  -- KV connector automatically handles multi-cloud when multiCloudReadEnabled = True:
-  -- - Fetches from primary Redis, secondary Redis, and DB in parallel
-  -- - Updates primary Redis matches in primary Redis
-  -- - Updates secondary Redis matches in secondary Redis
-  res <- KV.updateAllReturningWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
-  case res of
-    Right res' -> do
-      if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
-        then logDebug $ "Updated rows KV: " <> show res'
-        else do
-          topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
-          let mappings = getMappings res'
-          handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update:  " <> show e <> "in topic" <> topicName) $
-            mapM_ (\object' -> void $ pushToKafka (replaceMappings (toJSON object') mappings) topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')) res'
-          logDebug $
-            "Updated rows DB: " <> show res'
-    Left err -> throwError $ InternalError $ show err
+updateInternal updatedMeshConfig setClause whereClause = profileDb @table "update" (Just whereClause) $
+  runInMasterRedis $ do
+    dbConf <- getMasterDBConfig
+    replicaDbConf <- getReplicaDbConfig
+    -- KV connector automatically handles multi-cloud when multiCloudReadEnabled = True:
+    -- - Fetches from primary Redis, secondary Redis, and DB in parallel
+    -- - Updates primary Redis matches in primary Redis
+    -- - Updates secondary Redis matches in secondary Redis
+    res <- KV.updateAllReturningWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
+    case res of
+      Right res' -> do
+        if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
+          then logDebug $ "Updated rows KV: " <> show res'
+          else do
+            topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
+            let mappings = getMappings res'
+            handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update:  " <> show e <> "in topic" <> topicName) $
+              mapM_ (\object' -> void $ pushToKafka (replaceMappings (toJSON object') mappings) topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')) res'
+            logDebug $
+              "Updated rows DB: " <> show res'
+      Left err -> throwError $ InternalError $ show err
 
 updateOneInternal ::
   forall table m r.
@@ -887,27 +888,28 @@ updateOneInternal ::
   [Set Postgres table] ->
   Where Postgres table ->
   m (Maybe (table Identity))
-updateOneInternal updatedMeshConfig setClause whereClause = runInMasterRedis $ do
-  dbConf <- getMasterDBConfig
-  replicaDbConf <- getReplicaDbConfig
-  -- KV connector automatically handles multi-cloud when multiCloudReadEnabled = True:
-  -- - First checks primary Redis, then secondary Redis if not found
-  -- - Updates in the Redis instance where data was found
-  res <- KV.updateWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
-  case res of
-    Right obj -> do
-      if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
-        then logDebug $ "Updated row KV: " <> show obj
-        else do
-          whenJust obj $ \object' -> do
-            topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
-            let newObject = replaceMappings (toJSON object') (getMappings [object'])
-            handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update: " <> show e <> "in topic" <> topicName) $
-              void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')
-            logDebug $
-              "Updated row DB: " <> show obj
-      pure obj
-    Left err -> throwError $ InternalError $ show err
+updateOneInternal updatedMeshConfig setClause whereClause = profileDb @table "updateOne" (Just whereClause) $
+  runInMasterRedis $ do
+    dbConf <- getMasterDBConfig
+    replicaDbConf <- getReplicaDbConfig
+    -- KV connector automatically handles multi-cloud when multiCloudReadEnabled = True:
+    -- - First checks primary Redis, then secondary Redis if not found
+    -- - Updates in the Redis instance where data was found
+    res <- KV.updateWithKVConnector dbConf replicaDbConf updatedMeshConfig setClause whereClause
+    case res of
+      Right obj -> do
+        if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
+          then logDebug $ "Updated row KV: " <> show obj
+          else do
+            whenJust obj $ \object' -> do
+              topicName <- getKafkaTopic (modelSchemaName @table) (modelTableName @table)
+              let newObject = replaceMappings (toJSON object') (getMappings [object'])
+              handle (\(e :: SomeException) -> L.logError ("KAFKA_PUSH_FAILED" :: Text) $ "Kafka push error while update: " <> show e <> "in topic" <> topicName) $
+                void $ pushToKafka newObject topicName (getKeyForKafka updatedMeshConfig.tableShardModRange $ getLookupKeyByPKey updatedMeshConfig.redisKeyPrefix object')
+              logDebug $
+                "Updated row DB: " <> show obj
+        pure obj
+      Left err -> throwError $ InternalError $ show err
 
 createInternal ::
   forall table m r a.
@@ -916,7 +918,7 @@ createInternal ::
   (a -> table Identity) ->
   a ->
   m ()
-createInternal updatedMeshConfig toTType a = do
+createInternal updatedMeshConfig toTType a = profileDb @table "create" Nothing $ do
   let tType = toTType a
   dbConf' <- getMasterDBConfig
   -- New rows are always created in the local cloud Redis
@@ -941,19 +943,28 @@ deleteInternal ::
   MeshConfig ->
   Where Postgres table ->
   m ()
-deleteInternal updatedMeshConfig whereClause = runInMasterRedis $ do
-  dbConf <- getMasterDBConfig
-  -- KV connector automatically handles multi-cloud when multiCloudReadEnabled = True:
-  -- - Fetches from both Redis instances and DB in parallel
-  -- - Deletes from primary Redis if found there
-  -- - Deletes from secondary Redis if found there
-  res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
-  case res of
-    Right _ -> do
-      if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
-        then logDebug $ "Deleted rows in KV: " <> show res
-        else logDebug $ "Deleted rows in DB: " <> show res
-    Left err -> throwError $ InternalError $ show err
+deleteInternal updatedMeshConfig whereClause = profileDb @table "delete" (Just whereClause) $
+  runInMasterRedis $ do
+    dbConf <- getMasterDBConfig
+    -- KV connector automatically handles multi-cloud when multiCloudReadEnabled = True:
+    -- - Fetches from both Redis instances and DB in parallel
+    -- - Deletes from primary Redis if found there
+    -- - Deletes from secondary Redis if found there
+    res <- KV.deleteAllReturningWithKVConnector dbConf updatedMeshConfig whereClause
+    case res of
+      Right _ -> do
+        if updatedMeshConfig.meshEnabled && not updatedMeshConfig.kvHardKilled
+          then logDebug $ "Deleted rows in KV: " <> show res
+          else logDebug $ "Deleted rows in DB: " <> show res
+      Left err -> throwError $ InternalError $ show err
+
+-- | Records one logical DB operation for the request's IO profile (no-op when
+-- profiling is off): the table and, for reads/updates/deletes, the where clause
+-- as (column, value) pairs, so repeated identical queries can be detected.
+profileDb :: forall table m a. BeamTableFlow table m => Text -> Maybe (Where Postgres table) -> m a -> m a
+profileDb op mbWhere =
+  withIOProfile "db" op $
+    modelTableName @table <> maybe "" (\w -> " " <> show (getFieldsAndValuesFromClause (meshModelTableEntityDescriptor @table @Postgres) (And w))) mbWhere
 
 logQueryData ::
   (MonadFlow m, EsqDBFlow m r) =>

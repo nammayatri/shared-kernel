@@ -156,8 +156,9 @@ callAPI' mbManagerSelector baseUrl eulerClient desc api =
             Just requestId -> withHeaders [("x-request-id", requestId)] eulerClient
             Nothing -> eulerClient
     res <-
-      measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
-        L.callAPI' (Just managerSelector) baseUrl modifiedEulerClient
+      withIOProfile "http" "callAPI" (desc <> " " <> buildSanitizedUrl) $
+        measuringDuration (Metrics.addRequestLatency buildSanitizedUrl desc) $
+          L.callAPI' (Just managerSelector) baseUrl modifiedEulerClient
     case res of
       Right r -> logDebug $ "Ok response: " <> truncateText (decodeUtf8 (A.encode r))
       Left err -> logError $ "Error occured during client call: " <> redactClientError (show err)
