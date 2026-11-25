@@ -17,9 +17,9 @@ module Kernel.External.Maps.OSRM.RoadsClient where
 
 import Data.Aeson
 import qualified Data.Aeson as A
-import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List.NonEmpty as NE
+import Data.OpenApi (NamedSchema (..), ToSchema (..), declareSchema, fromAesonOptions, genericDeclareNamedSchema)
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import EulerHS.Prelude ((...))
@@ -35,6 +35,7 @@ import Kernel.Types.Error
 import Kernel.Utils.Common
 import qualified Kernel.Utils.ExternalAPICallLogging as ApiCallLogger
 import Kernel.Utils.GenericPretty
+import Kernel.Utils.JSON (camelToSnakeCase, removeNullFields)
 import Servant hiding (throwError)
 import Servant.Client (ClientError (..), ResponseF (..))
 
@@ -285,6 +286,10 @@ instance FromJSON Location where
 instance ToJSON Location where
   toJSON (Location Maps.LatLong {..}) = Array $ V.fromList $ map toJSON [lon, lat]
 
+-- | @[longitude, latitude]@, as OSRM writes a point.
+instance ToSchema Location where
+  declareNamedSchema _ = NamedSchema (Just "OSRMLocation") <$> declareSchema (Proxy @[Double])
+
 -- call
 callOsrmMatchAPI ::
   ( HasCallStack,
@@ -411,10 +416,11 @@ callOsrmNearestAPI entityId merchantCityId req osrmUrl travelMode pointsList mbN
 -- OSRM routes for turn-by-turn navigation. 'callOsrmRouteAPI' parses OSRM's answer into
 -- 'OSRMRouteResponse', which keeps only each step's location: the turn type, direction and road
 -- name that a navigation engine needs are dropped. 'getOsrmNavigationRoute' asks OSRM for every
--- step, the full polyline6 geometry and per-segment annotations, and returns OSRM's response as raw
--- JSON so a navigation engine (e.g. MapLibre Navigation) can read it as is.
+-- step, the full polyline6 geometry and per-segment annotations, and returns them as
+-- 'NavigationRouteResp': only the fields a navigation engine (e.g. MapLibre Navigation) reads, under
+-- OSRM's own names, so the engine can read the response as is.
 
--- | OSRM's route endpoint with every option navigation needs; the response is passed through as raw JSON.
+-- | OSRM's route endpoint with every option navigation needs.
 type NavigationRouteAPI =
   "route"
     :> "v1"
@@ -430,7 +436,133 @@ type NavigationRouteAPI =
     :> QueryParam "exclude" Text
     :> QueryParam "waypoints" Text
     :> QueryParam "radiuses" Text
-    :> Get '[JSON] Value
+    :> Get '[JSON] OsrmNavigationRouteResp
+
+-- | A route for turn-by-turn navigation: OSRM's route with only the fields a navigation engine reads,
+-- plus @tollsAvoided@, true only when the route was computed with tolls excluded, and
+-- @followsSearchRoute@, true only when the route was computed through the 'viaPoints'.
+data NavigationRouteResp = NavigationRouteResp
+  { code :: Text,
+    routes :: [NavigationRoute],
+    tollsAvoided :: Bool,
+    followsSearchRoute :: Bool
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+-- | OSRM's answer to 'NavigationRouteAPI'. Fields the navigation types don't declare (weights,
+-- intersection bearings, waypoint hints, ...) are dropped while decoding.
+data OsrmNavigationRouteResp = OsrmNavigationRouteResp
+  { code :: Text,
+    routes :: [NavigationRoute]
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+data NavigationRoute = NavigationRoute
+  { -- | The whole route as a polyline6 line.
+    geometry :: Text,
+    distance :: Double, -- meters
+    duration :: Double, -- seconds
+
+    -- | One leg per stretch between two stops.
+    legs :: [NavigationRouteLeg]
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
+data NavigationRouteLeg = NavigationRouteLeg
+  { distance :: Double, -- meters
+    duration :: Double, -- seconds
+    steps :: [NavigationStep],
+    annotation :: Maybe NavigationAnnotation
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON)
+
+instance ToJSON NavigationRouteLeg where
+  toJSON = genericToJSON removeNullFields
+
+instance ToSchema NavigationRouteLeg where
+  declareNamedSchema = genericDeclareNamedSchema (fromAesonOptions removeNullFields)
+
+-- | Values for each segment of a leg (the line between two consecutive points of its geometry), in
+-- travel order. @nodes@ has one entry more than the others: segment @i@ runs from OSM node @nodes[i]@
+-- to @nodes[i + 1]@.
+data NavigationAnnotation = NavigationAnnotation
+  { distance :: Maybe [Double], -- meters
+    duration :: Maybe [Double], -- seconds
+    speed :: Maybe [Double], -- meters per second
+    nodes :: Maybe [Integer]
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON)
+
+instance ToJSON NavigationAnnotation where
+  toJSON = genericToJSON removeNullFields
+
+instance ToSchema NavigationAnnotation where
+  declareNamedSchema = genericDeclareNamedSchema (fromAesonOptions removeNullFields)
+
+-- | One manoeuvre and the road up to the next one.
+data NavigationStep = NavigationStep
+  { -- | This step's part of the route as a polyline6 line.
+    geometry :: Text,
+    distance :: Double, -- meters
+    duration :: Double, -- seconds
+
+    -- | The road the step is on.
+    name :: Maybe Text,
+    maneuver :: NavigationManeuver,
+    -- | Never empty: the navigation engine reads the first intersection of every step.
+    intersections :: NonEmpty NavigationIntersection
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON)
+
+instance ToJSON NavigationStep where
+  toJSON = genericToJSON removeNullFields
+
+instance ToSchema NavigationStep where
+  declareNamedSchema = genericDeclareNamedSchema (fromAesonOptions removeNullFields)
+
+data NavigationManeuver = NavigationManeuver
+  { location :: Location,
+    bearingBefore :: Double, -- degrees
+    bearingAfter :: Double, -- degrees
+
+    -- | OSRM's @type@, e.g. @turn@, @roundabout@, @arrive@.
+    maneuverType :: Text,
+    -- | e.g. @left@, @slight right@, @uturn@.
+    modifier :: Maybe Text,
+    -- | The exit to take, on roundabouts.
+    exit :: Maybe Int
+  }
+  deriving stock (Generic, Show, Eq)
+
+-- | OSRM's names: @bearing_before@, @bearing_after@ and @type@.
+maneuverJsonOptions :: Options
+maneuverJsonOptions =
+  removeNullFields
+    { fieldLabelModifier = \case
+        "maneuverType" -> "type"
+        field -> camelToSnakeCase field
+    }
+
+instance FromJSON NavigationManeuver where
+  parseJSON = genericParseJSON maneuverJsonOptions
+
+instance ToJSON NavigationManeuver where
+  toJSON = genericToJSON maneuverJsonOptions
+
+instance ToSchema NavigationManeuver where
+  declareNamedSchema = genericDeclareNamedSchema (fromAesonOptions maneuverJsonOptions)
+
+newtype NavigationIntersection = NavigationIntersection
+  { location :: Location
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data NavigationRouteOptions = NavigationRouteOptions
   { -- | The vehicle's heading in degrees, when known. OSRM then starts the route in that direction,
@@ -455,9 +587,7 @@ type NavigationRouteFlow m r =
   )
 
 -- | OSRM's route from @origin@ through the 'viaPoints' and @waypoints@ (the last waypoint is the
--- destination), with every step, plus two added fields: @tollsAvoided@, true only when the route was
--- computed with tolls excluded, and @followsSearchRoute@, true only when the route was computed through
--- the 'viaPoints'.
+-- destination), with every step (see 'NavigationRouteResp').
 --
 -- When tolls are to be avoided, the route is fetched again without the exclusion in two cases only:
 -- no toll-free route exists, or the OSRM profile has no toll class. The route then carries
@@ -476,7 +606,7 @@ getOsrmNavigationRoute ::
   Maps.LatLong ->
   [Maps.LatLong] ->
   NavigationRouteOptions ->
-  m Value
+  m NavigationRouteResp
 getOsrmNavigationRoute entityId merchantCityId osrmUrl travelMode origin waypoints options = do
   let callOsrm viaPoints = callOsrmNavigationRouteAPI entityId merchantCityId osrmUrl travelMode origin viaPoints waypoints options.originBearing
       routeAvoidingTolls viaPoints = do
@@ -498,7 +628,7 @@ getOsrmNavigationRoute entityId merchantCityId osrmUrl travelMode origin waypoin
             pure Nothing
         result -> pure (Just result)
   (rsp, tollsAvoided) <- maybe (routeAvoidingTolls []) pure guided
-  withRouteFlags tollsAvoided (isJust guided) <$> fromEitherM (FailedToCallOsrmRouteAPI . show) rsp
+  navigationRouteResp tollsAvoided (isJust guided) <$> fromEitherM (FailedToCallOsrmRouteAPI . show) rsp
 
 -- | What is logged to Kafka for each call.
 data NavigationRouteLog = NavigationRouteLog
@@ -522,7 +652,7 @@ callOsrmNavigationRouteAPI ::
   [Maps.LatLong] ->
   Maybe Double ->
   Bool ->
-  m (Either ClientError Value)
+  m (Either ClientError OsrmNavigationRouteResp)
 callOsrmNavigationRouteAPI entityId merchantCityId osrmUrl travelMode origin viaPoints waypoints originBearing excludeTolls = do
   let eulerClient = Euler.client (Proxy @NavigationRouteAPI)
       profile = toOSRMProfile travelMode
@@ -532,7 +662,7 @@ callOsrmNavigationRouteAPI entityId merchantCityId osrmUrl travelMode origin via
   rsp <-
     callAPI
       osrmUrl
-      (eulerClient profile (PointsList coordinates.routeCoordinates) "true" "full" "polyline6" "distance,duration,speed" "false" "true" coordinates.bearingValues exclude coordinates.stopIndices coordinates.radiusValues)
+      (eulerClient profile (PointsList coordinates.routeCoordinates) "true" "full" "polyline6" "distance,duration,speed,nodes" "false" "true" coordinates.bearingValues exclude coordinates.stopIndices coordinates.radiusValues)
       "osrm-navigation-route"
       (Proxy @NavigationRouteAPI)
   fork "Logging external API Call of OsrmNavigationRouteAPI OSRM" $
@@ -612,8 +742,6 @@ guideFallbackReasonFromBody body = case A.decode body of
   Just (OsrmErrorBody code _) | code `elem` ["NoSegment", "NoRoute"] -> Just code
   _ -> Nothing
 
--- | Adds @tollsAvoided@ and @followsSearchRoute@ to OSRM's route response object.
-withRouteFlags :: Bool -> Bool -> Value -> Value
-withRouteFlags tollsAvoided followsSearchRoute = \case
-  A.Object fields -> A.Object (KM.insert "tollsAvoided" (A.Bool tollsAvoided) $ KM.insert "followsSearchRoute" (A.Bool followsSearchRoute) fields)
-  other -> other
+-- | OSRM's route with @tollsAvoided@ and @followsSearchRoute@ added.
+navigationRouteResp :: Bool -> Bool -> OsrmNavigationRouteResp -> NavigationRouteResp
+navigationRouteResp tollsAvoided followsSearchRoute OsrmNavigationRouteResp {code, routes} = NavigationRouteResp {..}

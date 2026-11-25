@@ -78,6 +78,7 @@ createConnectAccount config req = do
               Context.France -> "FR"
               Context.Netherlands -> "NL"
               Context.Finland -> "FI"
+              Context.Jordan -> "JO"
               Context.AnyCountry -> "US" -- fix later
           email = req.email
           controller =
@@ -98,7 +99,7 @@ createConnectAccount config req = do
           settings =
             Just $
               Stripe.AccountSettings
-                { payouts = Stripe.PayoutsSettings {debit_negative_balances = True, statement_descriptor = fromMaybe "Bridge Rideshare" config.statementDescriptor}
+                { payouts = Stripe.PayoutsSettings {debit_negative_balances = True, statement_descriptor = fromMaybe "Bridge Rideshare" config.statementDescriptor, schedule_interval = Just "manual"}
                 }
           isCompany = req.businessType == Just Stripe.Company
           business_type = fromMaybe Stripe.Individual req.businessType
