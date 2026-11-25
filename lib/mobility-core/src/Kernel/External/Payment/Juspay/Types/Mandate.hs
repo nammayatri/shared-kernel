@@ -148,3 +148,32 @@ data MandateResumeReq = MandateResumeReq
     resume_date :: Text
   }
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema, ToForm)
+
+--- For Mandate Status ---
+
+data MandateStatusReq = MandateStatusReq
+  { command :: Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema, ToForm)
+
+data JuspayMandateStatusResp = JuspayMandateStatusResp
+  { mandate_id :: Text,
+    status :: Text,
+    frequency :: Text,
+    start_date :: Text,
+    end_date :: Text,
+    max_amount :: Double,
+    order_id :: Maybe Text,
+    payment_info :: Maybe MandatePaymentInfo
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data MandatePaymentInfo = MandatePaymentInfo
+  { upi :: Maybe MandateUpiInfo
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)
+
+data MandateUpiInfo = MandateUpiInfo
+  { payer_vpa :: Maybe Text
+  }
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ToSchema)

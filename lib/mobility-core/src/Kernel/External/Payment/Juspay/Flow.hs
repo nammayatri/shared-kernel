@@ -461,6 +461,38 @@ mandateResume url apiKey mandateId req = do
   callAPI url (eulerClient mandateId basicAuthData req) "mandate-resume" (Proxy @MandateResumeAPI)
     >>= fromEitherM (\err -> InternalError $ "Failed to call mandate resume API: " <> show err)
 
+type MandateStatusAPI =
+  "mandates"
+    :> Header "x-merchantid" Text
+    :> Header "x-routing-id" Text
+    :> BasicAuth "username-password" BasicAuthData
+    :> Capture "mandateId" Text
+    :> ReqBody '[FormUrlEncoded] MandateStatusReq
+    :> Post '[JSON] JuspayMandateStatusResp
+
+mandateStatus ::
+  ( Metrics.CoreMetrics m,
+    MonadFlow m,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  BaseUrl ->
+  Text ->
+  Text ->
+  Maybe Text ->
+  Text ->
+  MandateStatusReq ->
+  m JuspayMandateStatusResp
+mandateStatus url apiKey merchantId mRoutingId mandateId req = do
+  let eulerClient = Euler.client (Proxy @MandateStatusAPI)
+  let basicAuthData =
+        BasicAuthData
+          { basicAuthUsername = DT.encodeUtf8 apiKey,
+            basicAuthPassword = ""
+          }
+  callAPI url (eulerClient (Just merchantId) mRoutingId basicAuthData mandateId req) "mandate-status" (Proxy @MandateStatusAPI)
+    >>= fromEitherM (\err -> InternalError $ "Failed to call mandate status API: " <> show err)
+
 type AutoRefundAPI =
   "orders"
     :> Capture "orderId" Text
