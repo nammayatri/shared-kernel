@@ -9,7 +9,8 @@ data IffcoTokioConfig = IffcoTokioConfig
     username :: Text,
     password :: EncryptedField 'AsEncrypted Text,
     masterPolicyClient :: Text,
-    insurancePlan :: Text
+    insurancePlan :: Text,
+    endpointPath :: Maybe Text
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
