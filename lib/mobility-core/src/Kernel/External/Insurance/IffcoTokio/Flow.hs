@@ -49,7 +49,7 @@ instance MimeUnrender IffcoApplicationXML HomeDeclarationResp where
 -- SOAPAction value: "document/http://siebel.com/CustomUI:RegisterHomeDeclaration_New"
 -- (Servant QueryParam handles URL-encoding automatically.)
 type RegisterHomeDeclarationAPI =
-  "eai_ws_enu"
+  Capture "endpointPath" Text
     :> "start.swe"
     :> QueryParam "SWEExtSource" Text
     :> QueryParam "SWEExtCmd" Text
@@ -58,12 +58,16 @@ type RegisterHomeDeclarationAPI =
     :> Post '[IffcoApplicationXML] HomeDeclarationResp
 
 registerHomeDeclarationClient ::
+  Text ->
   Maybe Text ->
   Maybe Text ->
   Maybe Text ->
   BSL.ByteString ->
   EulerClient HomeDeclarationResp
 registerHomeDeclarationClient = client (Proxy :: Proxy RegisterHomeDeclarationAPI)
+
+defaultIffcoTokioEndpointPath :: Text
+defaultIffcoTokioEndpointPath = "eai_ws_enu"
 
 -- ---------------------------------------------------------------------------
 -- Main call function
@@ -103,6 +107,7 @@ registerHomeDeclarationEither config req = do
   let soapBody = buildSoapEnvelope config.username decryptedPassword config req
       eulerClient =
         registerHomeDeclarationClient
+          (fromMaybe defaultIffcoTokioEndpointPath config.endpointPath)
           (Just "SecureWebService")
           (Just "Execute")
           -- SOAPAction value includes surrounding double-quotes as per SOAP spec
