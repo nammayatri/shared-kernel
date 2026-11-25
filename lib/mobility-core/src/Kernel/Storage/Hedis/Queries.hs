@@ -283,7 +283,7 @@ runInMasterLTSRedisCell f = do
       f
 
 runInMultiCloudLTSRedisForList ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisFlow m env, HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) =>
   m [a] ->
   m [a]
 runInMultiCloudLTSRedisForList action = do
@@ -314,7 +314,7 @@ runInMultiCloudLTSRedisForListWith localEnv action = do
     _ -> pure localResult
 
 runInMultiCloudLTSRedisForMaybeList ::
-  (HedisLTSFlow m env, TryException m) =>
+  (HedisFlow m env, HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) =>
   m [Maybe a] ->
   m [Maybe a]
 runInMultiCloudLTSRedisForMaybeList action = do
@@ -343,6 +343,29 @@ runInMultiCloudLTSRedisForMaybeListWith localEnv action = do
       peerResults <- runOnAllPeerLTSRedis action
       pure $ fromMaybe localResult (listToMaybe (Kernel.Prelude.filter (not . Kernel.Prelude.all isNothing) peerResults))
     else pure localResult
+
+-- Read operation for LTS TTL queries: tries primary LTS first, falls back to secondary LTS if key not found (-2).
+-- ttl returns -2 when the key doesn't exist, -1 when it exists with no expiry, or a positive integer.
+runInMultiCloudLTSRedisForTTL ::
+  (HedisFlow m env, HasField "ltsHedisEnv" env HedisEnv, HasField "secondaryLTSHedisEnv" env (Maybe HedisEnv)) =>
+  m Integer ->
+  m Integer
+runInMultiCloudLTSRedisForTTL action = do
+  ltsEnv <- asks (.ltsHedisEnv)
+  mbSecondaryEnv <- asks (.secondaryLTSHedisEnv)
+  primaryResult <- local (\env -> env{hedisEnv = ltsEnv, hedisClusterEnv = ltsEnv}) action
+  case (primaryResult == -2, mbSecondaryEnv) of
+    (True, Just secondaryEnv) -> do
+      logInfo "MULTI_CLOUD_LTS: Primary returned key-not-found, trying secondary"
+      secondaryResult <-
+        withTryCatch "runInMultiCloudLTSRedisForTTL" $
+          local (\env -> env{hedisEnv = secondaryEnv, hedisClusterEnv = secondaryEnv}) action
+      case secondaryResult of
+        Left err -> do
+          logError $ "MULTI_CLOUD_LTS: Secondary read failed " <> show err
+          pure primaryResult
+        Right result -> pure result
+    _ -> pure primaryResult
 
 withLTSRedis ::
   (HedisFlow m env, TryException m, HasField "ltsHedisEnv" env HedisEnv) => m f -> m f
