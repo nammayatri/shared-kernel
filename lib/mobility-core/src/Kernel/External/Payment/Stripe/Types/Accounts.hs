@@ -227,7 +227,8 @@ newtype AccountSettings = AccountSettings
 
 data PayoutsSettings = PayoutsSettings
   { debit_negative_balances :: Bool,
-    statement_descriptor :: Text
+    statement_descriptor :: Text,
+    schedule_interval :: Maybe Text
   }
   deriving stock (Show, Eq, Generic, Read)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -308,7 +309,8 @@ instance ToForm AccountsReq where
               ("controller[requirement_collection]",) <$> toQueryParam <$> ((.requirement_collection) =<< controller),
               ("controller[stripe_dashboard][type]",) <$> (toQueryParam . (._type)) <$> ((.stripe_dashboard) =<< controller),
               ("settings[payouts][debit_negative_balances]",) <$> (toQueryParam . (.payouts.debit_negative_balances)) <$> settings,
-              ("settings[payouts][statement_descriptor]",) <$> (toQueryParam . (.payouts.statement_descriptor)) <$> settings
+              ("settings[payouts][statement_descriptor]",) <$> (toQueryParam . (.payouts.statement_descriptor)) <$> settings,
+              ("settings[payouts][schedule][interval]",) <$> toQueryParam <$> ((.payouts.schedule_interval) =<< settings)
             ]
           ++ maybe [] individualToForm individual
           ++ maybe [] companyToForm company
