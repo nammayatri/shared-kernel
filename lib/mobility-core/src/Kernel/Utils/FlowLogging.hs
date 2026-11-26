@@ -37,6 +37,7 @@ import EulerHS.Types (LogContext)
 import qualified EulerHS.Types as T
 import qualified Formatting.Buildable as FB (build)
 import Kernel.Types.Logging
+import Kernel.Utils.Redact (redactSecrets)
 import System.Logger (DateFormat, Renderer, renderDefault)
 import qualified Prelude as P
 
@@ -52,7 +53,7 @@ logOutputImplementation logLevel message =
     -- previously used to be a type-synonym to "Text"
     -- It is now a record, with a "Buildable" instance
     -- While the logging functions still expect a Text
-    msg = LT.toStrict . LTB.toLazyText $ FB.build message
+    msg = redactSecrets . LT.toStrict . LTB.toLazyText $ FB.build message
 
 withLogTagImplementation ::
   L.MonadFlow m =>

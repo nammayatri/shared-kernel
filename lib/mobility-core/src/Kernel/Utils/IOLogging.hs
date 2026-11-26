@@ -36,6 +36,7 @@ import qualified Data.Time as Time
 import Kernel.Prelude
 import Kernel.Types.Logging
 import Kernel.Types.Time
+import Kernel.Utils.Redact (redactSecrets)
 import System.Log.FastLogger
 
 type HasLog r = (HasFieldUpd "loggerEnv" r LoggerEnv, HasFieldUpd "requestId" r (Maybe Text), HasFieldUpd "sessionId" r (Maybe Text))
@@ -97,7 +98,7 @@ logOutputIO :: (MonadIO m, MonadTime m) => LoggerEnv -> LogLevel -> Text -> Mayb
 logOutputIO logEnv logLevel message requestId sessionId = do
   when (logLevel >= logEnv.level) $ do
     now <- getCurrentTime
-    let formattedMessage = logFormatterText now logEnv.hostName logLevel logEnv.tags message requestId sessionId
+    let formattedMessage = logFormatterText now logEnv.hostName logLevel logEnv.tags (redactSecrets message) requestId sessionId
     whenJust logEnv.fileLogger $ \logger ->
       liftIO . logger.printLogFunc $ toLogStr (A.encode formattedMessage <> "\n")
     whenJust logEnv.consoleLogger $ \logger ->
