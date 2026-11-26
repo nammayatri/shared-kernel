@@ -8,6 +8,7 @@ import qualified Kernel.Streaming.Kafka.Producer as KafkaProd
 import Kernel.Streaming.Kafka.Producer.Types (HasKafkaProducer)
 import Kernel.Types.Common
 import Kernel.Types.Id (Id)
+import Kernel.Utils.Redact (redactSecrets)
 import qualified Kernel.Utils.Text as KUT
 import System.Environment (lookupEnv)
 
@@ -39,8 +40,8 @@ pushExternalApiCallDataToKafkaWithTextEncodedResp apiName svcProvider entityId m
       timestamp <- getCurrentTime
       return $
         ExternalAPICallLog
-          { requestPayload = KUT.encodeToText <$> req,
-            responsePayload = res,
+          { requestPayload = redactSecrets . KUT.encodeToText <$> req,
+            responsePayload = redactSecrets res,
             createdAt = timestamp,
             updatedAt = timestamp,
             ..

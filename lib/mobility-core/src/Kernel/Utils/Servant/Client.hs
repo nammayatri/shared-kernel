@@ -37,6 +37,7 @@ import Kernel.Utils.Dhall (FromDhall)
 import Kernel.Utils.Error.Throwing
 import Kernel.Utils.Logging
 import Kernel.Utils.Monitoring.Prometheus.Servant
+import Kernel.Utils.Redact (redactSecrets)
 import Kernel.Utils.Servant.BaseUrl
 import Kernel.Utils.Text
 import Kernel.Utils.Time
@@ -114,7 +115,7 @@ withHeaders headerPairs (ET.EulerClient f) =
 
 -- | Redact sensitive query parameter values (e.g. Google API keys) from logged strings.
 redactClientError :: Text -> Text
-redactClientError t = redactSecretHeaders . redactApiSecret . T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
+redactClientError t = redactSecrets . redactSecretHeaders . redactApiSecret . T.pack $ TR.subRegex (TR.mkRegex "AIza[A-Za-z0-9_-]+") (T.unpack t) "[REDACTED]"
 
 -- | A failed 'ClientError' carries the request it sent, and its 'show' prints the headers as
 -- @("Name","value")@ pairs. Mask the value of every header that holds a credential.
