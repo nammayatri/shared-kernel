@@ -26,6 +26,7 @@ markers =
     "password",
     "passwd",
     "pwd=",
+    "\"pwd\"",
     "secret",
     "token",
     "authorization",
@@ -41,11 +42,14 @@ rules =
     ( ci "\\(\"([A-Za-z0-9_-]*(token|authorization|api-key|apikey|api_key|secret|password|cookie|session)[A-Za-z0-9_-]*)\",\"([^\"\\]|\\\\.)*\"\\)",
       "(\"\\1\",\"[REDACTED]\")"
     ),
-    ( ci "\\(\"(password|passwd|pwd|secret|api_secret|apikey|api_key|key|token|access_token|client_secret)\",Just \"[^\"]*\"\\)",
+    ( ci "\\(\"(password|passwd|pwd|secret|api_secret|apikey|api_key|api-key|key|token|access_token|client_secret)\",Just \"[^\"]*\"\\)",
       "(\"\\1\",Just \"[REDACTED]\")"
     ),
-    ( ci "([?&](password|passwd|pwd|secret|api_secret|apikey|api_key|key|token|access_token|client_secret)=)[^&\" ]*",
+    ( ci "([?&](password|passwd|pwd|secret|api_secret|apikey|api_key|api-key|key|token|access_token|client_secret)=)[^&\" ]*",
       "\\1[REDACTED]"
+    ),
+    ( ci "\"(password|passwd|pwd|secret|api_secret|apikey|api_key|api-key|key|token|access_token|client_secret)\" *: *\"([^\"\\]|\\\\.)*\"",
+      "\"\\1\":\"[REDACTED]\""
     ),
     (ci "Bearer [A-Za-z0-9._~+/=-]{8,}", "Bearer [REDACTED]"),
     (ci "(Invalid token: )[A-Za-z0-9._~+/=-]{8,}", "\\1[REDACTED]"),
