@@ -10,6 +10,22 @@ import Kernel.Tools.Metrics.CoreMetrics (CoreMetrics)
 import Kernel.Types.Common
 import Kernel.Utils.Servant.Client
 
+-- | Sends a Live Activity push on its own, without a notification.
+updateLiveActivity ::
+  ( CoreMetrics m,
+    MonadFlow m,
+    Redis.HedisFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  FCM.FCMConfig ->
+  Text ->
+  Maybe Text ->
+  FCM.LiveActivityReq ->
+  m FCM.LiveActivityResult
+updateLiveActivity config recipientId mbDeviceToken =
+  FCM.updateLiveActivity config (FCM.FCMNotificationRecipient recipientId (FCM.FCMRecipientToken <$> mbDeviceToken))
+
 notifyPerson ::
   ( CoreMetrics m,
     MonadFlow m,
@@ -44,7 +60,7 @@ notifyPerson config req liveAcitvityRequest action mbNotificationId iosModifier 
           }
       apnsData = liveAcitvityRequest
   case apnsData of
-    (Just reqLive) -> do FCM.updateLiveActivity config (FCM.FCMNotificationRecipient req.auth.recipientId (FCM.FCMRecipientToken <$> req.auth.fcmToken)) reqLive
+    (Just reqLive) -> void $ updateLiveActivity config req.auth.recipientId req.auth.fcmToken reqLive
     _ -> pure ()
   FCM.notifyPersonWithPriority
     config
@@ -223,6 +239,7 @@ interfaceCategoryToFCMNotificationType = \case
   Interface.DRIVER_STARTED_RETURN_TRIP -> FCM.DRIVER_STARTED_RETURN_TRIP
   Interface.SHARED_CAB_ALLOCATION -> FCM.SHARED_CAB_ALLOCATION
   Interface.DEMAND_HOTSPOT_NUDGE -> FCM.DEMAND_HOTSPOT_NUDGE
+  Interface.BUS_REMINDER -> FCM.BUS_REMINDER
 
 interfaceShowNotificationToFCMShowNotification :: Interface.ShowNotification -> FCM.FCMShowNotification
 interfaceShowNotificationToFCMShowNotification = \case

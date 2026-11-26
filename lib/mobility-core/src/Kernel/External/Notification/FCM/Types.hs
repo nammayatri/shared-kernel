@@ -224,6 +224,7 @@ data FCMNotificationType
   | DRIVER_STARTED_RETURN_TRIP
   | SHARED_CAB_ALLOCATION
   | DEMAND_HOTSPOT_NUDGE
+  | BUS_REMINDER
   deriving (Show, Eq, Read, Ord, Generic, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
   deriving (PrettyShow) via Showable FCMNotificationType
 
@@ -861,14 +862,32 @@ $(deriveJSON (aesonPrefix snakeCase) {omitNothingFields = True} ''FCMResponse)
 
 $(mkBeamInstancesForEnum ''FCMOverlayAction)
 
+-- | A Live Activity push. The card is defined by the app: its content state and attributes are sent as JSON
+-- whose keys must match the app's Swift types, because iOS drops a push it cannot decode without any error
+-- on our side. The ride card encodes 'LiveActivityContentState'. A field left as 'Nothing' is not sent,
+-- except the dismissal date, which has a default.
 data LiveActivityReq = LiveActivityReq
-  { liveActivityToken :: Text, -- live activity token
+  { liveActivityToken :: Text, -- the per-activity token for update/end, the push-to-start token for start
     liveActivityReqType :: Text, -- request to be update, end, start
     liveActivityNotificationType :: Text, -- notification type , SEARCH_CANCELLED, RIDE_CANCELLED
-    liveActivityContentState :: LiveActivityContentState, -- live activity content state
-    liveActivityApnsPriority :: Text
+    liveActivityContentState :: Maybe Value, -- required by iOS for start and update, optional for end
+    liveActivityAttributesType :: Maybe Text, -- start only: the Swift ActivityAttributes type name
+    liveActivityAttributes :: Maybe Value, -- start only: the static attributes of the card
+    liveActivityStaleDate :: Maybe Int, -- unix seconds; iOS marks the card stale after this
+    liveActivityDismissalDate :: Maybe Int, -- unix seconds; defaults to now, or 10 minutes from now for end
+    liveActivityAlertTitle :: Maybe Text, -- alert shown with the push; iOS requires an alert for start
+    liveActivityAlertBody :: Maybe Text, -- sent only along with a title
+    liveActivityApnsPriority :: Text -- "5" for routine updates, "10" for urgent ones
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+-- | What happened to a Live Activity push, so the caller can clear a dead token.
+data LiveActivityResult
+  = LiveActivitySent
+  | -- | FCM reported the token as UNREGISTERED: the card was dismissed or iOS expired the token.
+    LiveActivityTokenUnregistered
+  | LiveActivityFailed Text
+  deriving (Show, Eq)
 
 data ApnsAPIRequest = ApnsAPIRequest
   { message :: Message
@@ -942,7 +961,10 @@ data Aps = Aps
     dismissal_date :: Maybe Int,
     content_available :: Int,
     event :: Text,
-    content_state :: LiveActivityContentState
+    content_state :: Maybe Value,
+    attributes_type :: Maybe Text,
+    attributes :: Maybe Value,
+    stale_date :: Maybe Int
   }
   deriving (Generic, Eq, Show)
 
@@ -959,11 +981,15 @@ jsonApsData =
         "content_available" -> "content-available"
         "content_state" -> "content-state"
         "dismissal_date" -> "dismissal-date"
-        other -> other
+        "attributes_type" -> "attributes-type"
+        "stale_date" -> "stale-date"
+        other -> other,
+      omitNothingFields = True
     }
 
 data Alert = Alert
-  { title :: Maybe Text
+  { title :: Maybe Text,
+    body :: Maybe Text
   }
   deriving (Show, Eq, Generic)
 
