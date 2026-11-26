@@ -26,30 +26,7 @@ newtype CacheConfig = CacheConfig
   }
   deriving (Generic, FromDhall)
 
-data CacConfig = CacConfig
-  { host :: String,
-    interval :: Natural,
-    tenant :: String,
-    retryConnection :: Bool,
-    cacExpTime :: Seconds,
-    enablePolling :: Bool,
-    enableCac :: Bool
-  }
-  deriving (Generic, FromDhall)
-
-data SuperPositionConfig = SuperPositionConfig
-  { host :: String,
-    interval :: Natural,
-    tenants :: [String],
-    retryConnection :: Bool,
-    enablePolling :: Bool,
-    enableSuperPosition :: Bool
-  }
-  deriving (Generic, FromDhall)
-
 type HasCacheConfig r = HasField "cacheConfig" r CacheConfig
-
-type HasCacConfig r = HasField "cacConfig" r CacConfig
 
 type Bytes = Integer
 
@@ -103,4 +80,4 @@ type HasInMemConfig r = HasField "inMemConfig" r InMemConfig
 
 type HasTxnId r = HasField "txnId" r Text
 
-type CacheFlow m r = (HasCacheConfig r, HedisFlow m r, HasCacConfig r, HasInMemEnv r)
+type CacheFlow m r = (HasCacheConfig r, HedisFlow m r, HasInMemEnv r)

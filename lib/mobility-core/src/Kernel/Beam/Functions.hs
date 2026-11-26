@@ -3,7 +3,6 @@ module Kernel.Beam.Functions
     ToTType' (..),
     FromTType'' (..),
     ToTType'' (..),
-    FromCacType (..),
     meshConfig,
     runInReplica,
     runInDashboardDb,
@@ -96,13 +95,6 @@ class
     | a -> t
   where
   fromTType'' :: (MonadThrow m, Log m, L.MonadFlow m) => t -> m (Maybe a)
-
--- Below class FromCacType'' are only to be used with cac.
-class
-  FromCacType t a
-    | t -> a
-  where
-  fromCacType :: (MonadFlow m, CacheFlow m r, EsqDBFlow m r) => t -> m (Maybe a)
 
 class
   ToTType'' t a
