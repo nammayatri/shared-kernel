@@ -148,6 +148,7 @@ data Category
   | DRIVER_STARTED_RETURN_TRIP
   | SHARED_CAB_ALLOCATION
   | DEMAND_HOTSPOT_NUDGE
+  | BUS_REMINDER
   deriving (Show, Eq, Read, Generic, Ord, ToSchema, ToJSON, FromJSON)
 
 $(mkBeamInstancesForEnum ''Category)

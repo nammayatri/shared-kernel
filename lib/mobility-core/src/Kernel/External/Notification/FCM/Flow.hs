@@ -330,6 +330,7 @@ refreshToken config fcmAcc = do
   where
     fcmTag = "FCM"
 
+-- | Sends a Live Activity push and reports the outcome, so the caller can drop a token FCM says is dead.
 updateLiveActivity ::
   ( CoreMetrics m,
     Redis.HedisFlow m r,
@@ -340,13 +341,13 @@ updateLiveActivity ::
   FCMConfig ->
   FCMNotificationRecipient ->
   LiveActivityReq ->
-  m ()
+  m LiveActivityResult
 updateLiveActivity config recipient apnsReq = do
   let tokenNotFound = "device token of a person " <> recipient.id <> " not found"
   case recipient.token of
     Nothing -> do
       logTagInfo "FCM" tokenNotFound
-      pure ()
+      pure $ LiveActivityFailed "device token not found"
     Just token -> do
       currentTime <- liftIO getPOSIXTime
       let currentTimeInt = floor currentTime :: Int
@@ -363,7 +364,7 @@ sendLiveActivityApns ::
   FCMConfig ->
   ApnsAPIRequest ->
   Text ->
-  m ()
+  m LiveActivityResult
 sendLiveActivityApns config apnsApiRequest toWhom = do
   authToken <- getTokenText config
   case authToken of
@@ -371,12 +372,24 @@ sendLiveActivityApns config apnsApiRequest toWhom = do
       let fcmUrl = config.fcmUrl
       res <- callAPI fcmUrl (callAPNS (Just $ FCMAuthToken token) apnsApiRequest) "sendAPNSPayload" apnsLiveActivityAPI
       case res of
-        Right _ -> logTagInfo apns $ "APNS sent successfully to a person with id " <> toWhom
-        Left _ -> logTagInfo apns "APNS WAS NOT SEND"
-    Left err -> logTagError apns $ "AuthToken error while sending apns to person with id " <> toWhom <> " : " <> show err
+        Right _ -> do
+          logTagInfo apns $ "APNS sent successfully to a person with id " <> toWhom
+          pure LiveActivitySent
+        Left clientError -> do
+          logTagInfo apns "APNS WAS NOT SEND"
+          pure $ case clientError of
+            FailureResponse _ (Response _ _ _ resbody)
+              | isUnregistered resbody -> LiveActivityTokenUnregistered
+            _ -> LiveActivityFailed $ show clientError
+    Left err -> do
+      logTagError apns $ "AuthToken error while sending apns to person with id " <> toWhom <> " : " <> show err
+      pure $ LiveActivityFailed err
   where
     callAPNS token req = void $ ET.client apnsLiveActivityAPI token req
     apns = "APNS"
+    isUnregistered resbody = case Aeson.eitherDecodeStrict (BL.toStrict resbody) :: Either String FcmError of
+      Right (FcmError (Just (ErrorRes _ _ _ (Just details)))) -> any (\case ErrorDetail (Just "UNREGISTERED") -> True; _ -> False) details
+      _ -> False
 
 -- | Google API interface
 type ApnsLiveActivityAPI req =
@@ -397,9 +410,10 @@ createApnsLiveActivtyPayload receipentToken apnsReq apnsReqTimeStamp =
   let apnsReqToken = apnsReq.liveActivityToken
       apnsReqLiveActivity = apnsReq.liveActivityReqType
       apnsContentState = apnsReq.liveActivityContentState
-      apnsReqDismissalDate = case apnsReq.liveActivityReqType of
-        "end" -> Just $ apnsReqTimeStamp + 600
-        _ -> Just $ apnsReqTimeStamp
+      defaultDismissalDate = case apnsReq.liveActivityReqType of
+        "end" -> apnsReqTimeStamp + 600
+        _ -> apnsReqTimeStamp
+      apnsReqDismissalDate = Just $ fromMaybe defaultDismissalDate apnsReq.liveActivityDismissalDate
       liveActivityApnsPriority = apnsReq.liveActivityApnsPriority
       apnsPayload' =
         ApnsAPIRequest
@@ -422,12 +436,11 @@ createApnsLiveActivtyPayload receipentToken apnsReq apnsReqTimeStamp =
                                     content_available = 1,
                                     event = apnsReqLiveActivity,
                                     content_state = apnsContentState,
-                                    alert =
-                                      Just $
-                                        Alert
-                                          { title = Just "LIVE"
-                                          },
-                                    dismissal_date = apnsReqDismissalDate
+                                    alert = (\alertTitle -> Alert (Just alertTitle) apnsReq.liveActivityAlertBody) <$> apnsReq.liveActivityAlertTitle,
+                                    dismissal_date = apnsReqDismissalDate,
+                                    attributes_type = apnsReq.liveActivityAttributesType,
+                                    attributes = apnsReq.liveActivityAttributes,
+                                    stale_date = apnsReq.liveActivityStaleDate
                                   }
                             }
                       }

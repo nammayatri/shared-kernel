@@ -18,7 +18,7 @@ module Kernel.External.Notification.Interface
 where
 
 import EulerHS.Prelude
-import Kernel.External.Notification.FCM.Types (LiveActivityReq)
+import Kernel.External.Notification.FCM.Types (LiveActivityReq, LiveActivityResult (..))
 import qualified Kernel.External.Notification.Interface.FCM as FCM
 import qualified Kernel.External.Notification.Interface.GRPC as GRPC
 import qualified Kernel.External.Notification.Interface.PayTM as PayTM
@@ -54,6 +54,25 @@ notifyPerson serviceConfig req liveAcitvityRequest action = do
     FCMConfig cfg -> FCM.notifyPerson cfg req liveAcitvityRequest action (Just notificationId) EulerHS.Prelude.id
     PayTMConfig cfg -> PayTM.notifyPerson cfg req
     GRPCConfig _ -> throwError $ InternalError "GRPC notification type not supported."
+
+-- | Starts, updates or ends a Live Activity whose card the app defines. FCM is the only provider that carries it.
+sendLiveActivity ::
+  ( MonadFlow m,
+    CoreMetrics m,
+    Redis.HedisFlow m r,
+    HasRequestId r,
+    MonadReader r m
+  ) =>
+  NotificationServiceConfig ->
+  Text ->
+  Maybe Text ->
+  LiveActivityReq ->
+  m LiveActivityResult
+sendLiveActivity serviceConfig recipientId mbDeviceToken req =
+  case serviceConfig of
+    FCMConfig cfg -> FCM.updateLiveActivity cfg recipientId mbDeviceToken req
+    PayTMConfig _ -> throwError $ InternalError "Live Activity is not supported by PayTM."
+    GRPCConfig _ -> throwError $ InternalError "Live Activity is not supported by GRPC."
 
 notifyPersonWithAllProviders ::
   ( EsqDBFlow m r,
