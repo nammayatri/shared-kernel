@@ -30,13 +30,15 @@ markers =
     "token",
     "authorization",
     "bearer",
+    "cookie",
+    "session",
     "otp"
   ]
 
 rules :: [(TR.Regex, String)]
 rules =
   [ (TR.mkRegex "AIza[A-Za-z0-9_-]{20,}", "[REDACTED]"),
-    ( ci "\\(\"(authorization|proxy-authorization|apikey|api-key|x-api-key|x-goog-api-key|token|x-auth-token)\",\"([^\"\\]|\\\\.)*\"\\)",
+    ( ci "\\(\"([A-Za-z0-9_-]*(token|authorization|api-key|apikey|api_key|secret|password|cookie|session)[A-Za-z0-9_-]*)\",\"([^\"\\]|\\\\.)*\"\\)",
       "(\"\\1\",\"[REDACTED]\")"
     ),
     ( ci "\\(\"(password|passwd|pwd|secret|api_secret|apikey|api_key|key|token|access_token|client_secret)\",Just \"[^\"]*\"\\)",
