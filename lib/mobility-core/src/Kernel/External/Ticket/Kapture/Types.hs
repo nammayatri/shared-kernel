@@ -28,7 +28,7 @@ import Kernel.Types.Common (Money)
 import Kernel.Utils.JSON
 import Servant.API (FromHttpApiData (..), ToHttpApiData (..))
 
-data Classification = DRIVER | CUSTOMER
+data Classification = DRIVER | CUSTOMER | IGM
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
@@ -42,7 +42,8 @@ data CreateTicketReq = CreateTicketReq
     phone :: Maybe Text,
     issueDetails :: IssueDetails,
     rideDetails :: Maybe RideInfo,
-    classification :: Classification
+    classification :: Classification,
+    customerCode :: Maybe Text
   }
   deriving stock (Show, Eq, Generic)
 
@@ -122,8 +123,7 @@ instance ToJSON RideInfo where
   toJSON = genericToJSON constructorsWithLowerCase
 
 data CreateTicketResp = CreateTicketResp
-  { additionalDetails :: AdditionalDetails,
-    ticketId :: Text,
+  { ticketId :: Text,
     ticket :: TicketDetails
   }
   deriving stock (Show, Eq, Generic)
@@ -133,7 +133,6 @@ jsonOptions :: Options
 jsonOptions =
   defaultOptions
     { fieldLabelModifier = \case
-        "additionalDetails" -> "Additional_details"
         "ticketId" -> "ticket_id"
         other -> other
     }
@@ -156,30 +155,6 @@ instance FromJSON UpdateTicketResp where
 
 instance ToJSON UpdateTicketResp where
   toJSON = genericToJSON jsonOptions
-
-newtype AdditionalDetails = AdditionalDetails
-  { issueDetails :: [IssueResp]
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToSchema)
-
-instance FromJSON AdditionalDetails where
-  parseJSON = genericParseJSON constructorsWithSnakeCase
-
-instance ToJSON AdditionalDetails where
-  toJSON = genericToJSON constructorsWithSnakeCase
-
-newtype IssueResp = IssueResp
-  { issueId :: Maybe Text
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToSchema)
-
-instance FromJSON IssueResp where
-  parseJSON = genericParseJSON constructorsWithSnakeCase
-
-instance ToJSON IssueResp where
-  toJSON = genericToJSON constructorsWithSnakeCase
 
 newtype TicketDetails = TicketDetails
   { subStatus :: Text
@@ -300,8 +275,8 @@ instance FromJSON KapturePullTicketResp where
 data TicketSummary = TicketSummary
   { status :: Text,
     ticketId :: Text,
-    customerName :: Text,
-    customerPhone :: Text,
+    customerName :: Maybe Text,
+    customerPhone :: Maybe Text,
     additionalInfo :: Maybe PullAdditionalDetails
   }
   deriving (Show, Eq, Generic)
@@ -454,8 +429,35 @@ instance FromJSON ConversationType where
 instance ToJSON ConversationType where
   toJSON = genericToJSON defaultOptions
 
+data TicketTaskDetails = TicketTaskDetails
+  { ticketId :: Maybe Text,
+    detail :: Maybe Text,
+    status :: Maybe Text,
+    substatus :: Maybe Text,
+    title :: Maybe Text,
+    assignedToName :: Maybe Text,
+    disposition :: Maybe Text,
+    slaStatus :: Maybe Text,
+    tat :: Maybe Text,
+    sla :: Maybe Text,
+    url :: Maybe Text,
+    priority :: Maybe Text,
+    lastFollowUp :: Maybe Text,
+    date :: Maybe Text,
+    taskEnddate :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToSchema)
+
+instance FromJSON TicketTaskDetails where
+  parseJSON = genericParseJSON constructorsWithSnakeCase
+
+instance ToJSON TicketTaskDetails where
+  toJSON = genericToJSON constructorsWithSnakeCase
+
 data GetTicketResp = GetTicketResp
-  { conversationType :: ConversationType
+  { conversationType :: ConversationType,
+    taskDetails :: Maybe TicketTaskDetails
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (ToSchema)
@@ -465,6 +467,7 @@ jsonGetTicketRespFromJSON =
   defaultOptions
     { fieldLabelModifier = \case
         "conversationType" -> "conversation_type"
+        "taskDetails" -> "task_details"
         other -> other
     }
 
