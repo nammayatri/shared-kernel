@@ -555,7 +555,8 @@ data OfferListReq = OfferListReq
     offerListingMetric :: Maybe UDF6,
     deviceImei :: Maybe Text,
     staticCustomerId :: Maybe Text,
-    membershipStatus :: Maybe UDF9
+    membershipStatus :: Maybe UDF9,
+    udf2Override :: Maybe Text
   }
 
 data UDF6 = IS_VISIBLE | IS_APPLICABLE | LIST_BASED_ON_DATE UTCTime
@@ -627,7 +628,23 @@ data OfferResp = OfferResp
     offerCode :: Text,
     productDiscounts :: Maybe [ProductDiscount],
     minimumAmount :: Maybe HighPrecMoney,
-    counters :: Maybe OfferCounters
+    counters :: Maybe OfferCounters,
+    offerRule :: Maybe OfferRule
+  }
+  deriving (Generic, Show, FromJSON, ToJSON)
+  deriving anyclass (ToSchema)
+
+data OfferRule = OfferRule
+  { minOrderAmount :: Maybe HighPrecMoney,
+    maxOrderAmount :: Maybe HighPrecMoney,
+    calculationRule :: Maybe Text,
+    offerValue :: Maybe HighPrecMoney,
+    maxBenefitAmount :: Maybe HighPrecMoney,
+    roundOffFunction :: Maybe Text,
+    roundOffDecimalPlaces :: Maybe Text,
+    transactionsRemaining :: Maybe Int,
+    endTime :: Maybe UTCTime,
+    paymentInstrumentTypes :: [Text]
   }
   deriving (Generic, Show, FromJSON, ToJSON)
   deriving anyclass (ToSchema)

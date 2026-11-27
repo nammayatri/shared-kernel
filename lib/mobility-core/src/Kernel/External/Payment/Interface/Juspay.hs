@@ -943,21 +943,21 @@ offerList config mRoutingId req = do
 mkOfferListReq :: OfferListReq -> Juspay.OfferListReq
 mkOfferListReq OfferListReq {..} =
   Juspay.OfferListReq
-    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId membershipStatus,
+    { order = mkOfferOrder order planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId membershipStatus udf2Override,
       payment_method_info = [],
       customer = mkOfferCustomer <$> customer,
       offer_code = Nothing
     }
 
-mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Maybe UDF6 -> Maybe Text -> Maybe Text -> Maybe UDF9 -> Juspay.OfferOrder
+mkOfferOrder :: OfferOrder -> Text -> UTCTime -> UTCTime -> Text -> Int -> Maybe UDF6 -> Maybe Text -> Maybe Text -> Maybe UDF9 -> Maybe Text -> Juspay.OfferOrder
 ---- add duty day and payment mode respectively in holes ----
-mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId membershipStatus =
+mkOfferOrder OfferOrder {..} planId registrationDate dutyDate paymentMode numOfRides offerListingMetric deviceImei staticCustomerId membershipStatus udf2Override =
   Juspay.OfferOrder
     { order_id = orderId,
       amount = show amount,
       currency,
       udf1 = replace "-" "_" planId,
-      udf2 = pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate,
+      udf2 = fromMaybe (pack $ formatTime defaultTimeLocale "%d_%m_%y" registrationDate) udf2Override,
       udf3 = paymentMode,
       udf4 = pack $ formatTime defaultTimeLocale "%d_%m_%y" dutyDate,
       udf5 = do
@@ -995,18 +995,36 @@ mkOfferResp offer = do
         status,
         offerDescription = mkOfferDescription offer_description,
         uiConfigs = mkOfferUIConfigs <$> ui_configs,
-        orderAmount = read $ T.unpack order_breakup.final_order_amount,
+        orderAmount = read $ T.unpack order_breakup.order_amount,
         finalOrderAmount = read $ T.unpack order_breakup.final_order_amount,
         discountAmount = read $ T.unpack order_breakup.discount_amount,
         cashbackAmount = read $ T.unpack order_breakup.cashback_amount,
         benefitType = benefitType',
         offerCode = offer_code,
         productDiscounts,
-        minimumAmount = Nothing,
-        counters = Nothing
+        minimumAmount = mbMinOrderAmount,
+        counters = Nothing,
+        offerRule = Just mkOfferRule
       }
   where
-    Juspay.OfferResp {offer_id, status, offer_code, offer_description, ui_configs, order_breakup} = offer
+    Juspay.OfferResp {offer_id, status, offer_code, offer_description, ui_configs, order_breakup, offer_rules, transactions_remaining, end_time_utc} = offer
+    readMoney :: Text -> Maybe HighPrecMoney
+    readMoney = readMaybe . T.unpack
+    mbMinOrderAmount = readMoney offer_rules.amount.min_order_amount
+    mbBenefit = listToMaybe order_breakup.benefits
+    mkOfferRule =
+      OfferRule
+        { minOrderAmount = mbMinOrderAmount,
+          maxOrderAmount = offer_rules.amount.max_order_amount >>= readMoney,
+          calculationRule = (.calculation_rule) <$> mbBenefit,
+          offerValue = (.value) <$> mbBenefit,
+          maxBenefitAmount = mbBenefit >>= (.max_amount),
+          roundOffFunction = mbBenefit >>= (.roundoff_rule) >>= (.function),
+          roundOffDecimalPlaces = mbBenefit >>= (.roundoff_rule) >>= (.decimal_places),
+          transactionsRemaining = transactions_remaining,
+          endTime = end_time_utc,
+          paymentInstrumentTypes = concatMap (fromMaybe [] . (._type)) offer_rules.payment_instrument
+        }
 
 mkProductDiscounts :: (MonadThrow m, Log m) => Maybe [Juspay.JuspayProductDiscount] -> m (Maybe [ProductDiscount])
 mkProductDiscounts mProductDiscounts = do

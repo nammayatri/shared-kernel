@@ -133,7 +133,9 @@ data JuspayProductDiscount = JuspayProductDiscount
 data BestOfferCombinationBenefit = BestOfferCombinationBenefit
   { _type :: Text,
     calculation_rule :: Text,
-    value :: HighPrecMoney
+    value :: HighPrecMoney,
+    max_amount :: Maybe HighPrecMoney,
+    roundoff_rule :: Maybe OfferRoundoffRule
   }
   deriving stock (Show, Generic)
   deriving anyclass (ToSchema)
@@ -144,6 +146,13 @@ instance FromJSON BestOfferCombinationBenefit where
 instance ToJSON BestOfferCombinationBenefit where
   toJSON = genericToJSON stripPrefixUnderscoreIfAny
 
+data OfferRoundoffRule = OfferRoundoffRule
+  { function :: Maybe Text,
+    decimal_places :: Maybe Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON, ToJSON, ToSchema)
+
 data OfferResp = OfferResp
   { offer_id :: Text,
     status :: OfferListStatus,
@@ -151,7 +160,9 @@ data OfferResp = OfferResp
     offer_description :: OfferDescription,
     ui_configs :: Maybe OfferUIConfigs,
     offer_rules :: OfferRules,
-    order_breakup :: OrderBreakup
+    order_breakup :: OrderBreakup,
+    transactions_remaining :: Maybe Int,
+    end_time_utc :: Maybe UTCTime
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
@@ -204,17 +215,25 @@ data OfferRules = OfferRules
 
 data OfferRulesAmount = OfferRulesAmount
   { currency :: Currency,
-    min_order_amount :: Text
+    min_order_amount :: Text,
+    max_order_amount :: Maybe Text
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON, ToJSON, ToSchema)
 
 data OfferRulesPaymentInstrument = OfferRulesPaymentInstrument
   { payment_method :: [Text],
-    payment_method_type :: PaymentMethodType
+    payment_method_type :: PaymentMethodType,
+    _type :: Maybe [Text]
   }
   deriving stock (Show, Generic)
-  deriving anyclass (FromJSON, ToJSON, ToSchema)
+  deriving anyclass (ToSchema)
+
+instance FromJSON OfferRulesPaymentInstrument where
+  parseJSON = genericParseJSON stripPrefixUnderscoreIfAny
+
+instance ToJSON OfferRulesPaymentInstrument where
+  toJSON = genericToJSON stripPrefixUnderscoreIfAny
 
 -- offer apply request --
 
