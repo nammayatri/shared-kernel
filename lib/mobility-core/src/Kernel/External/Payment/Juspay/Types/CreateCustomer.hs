@@ -16,6 +16,7 @@
 module Kernel.External.Payment.Juspay.Types.CreateCustomer where
 
 import Data.Aeson
+import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HM
 import Kernel.Prelude
 import Web.FormUrlEncoded
@@ -36,7 +37,7 @@ data CreateCustomerRequest = CreateCustomerRequest
 jsonOptionsCCR :: Options
 jsonOptionsCCR =
   defaultOptions
-    { fieldLabelModifier = \case
+    { Aeson.fieldLabelModifier = \case
         "options_get_client_auth_token" -> "options.get_client_auth_token"
         other -> other
     }
@@ -58,7 +59,7 @@ data GetCustomerReq = GetCustomerReq
 jsonOptionsGCR :: Options
 jsonOptionsGCR =
   defaultOptions
-    { fieldLabelModifier = \case
+    { Aeson.fieldLabelModifier = \case
         "options_get_client_auth_token" -> "options.get_client_auth_token"
         other -> other
     }
@@ -103,7 +104,7 @@ data ClientAuthDetails = ClientAuthDetails
 jsonOptionsData :: Options
 jsonOptionsData =
   defaultOptions
-    { fieldLabelModifier = \case
+    { Aeson.fieldLabelModifier = \case
         "customer_object" -> "object"
         other -> other
     }

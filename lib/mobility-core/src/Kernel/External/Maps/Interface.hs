@@ -43,6 +43,7 @@ import qualified Kernel.External.Maps.Interface.MMI as MMI
 import qualified Kernel.External.Maps.Interface.NextBillion as NextBillion
 import qualified Kernel.External.Maps.Interface.OSRM as OSRM
 import Kernel.External.Maps.Interface.Types as Reexport
+import qualified Kernel.External.Maps.Interface.Types as SnapToRoadReq (SnapToRoadReq (..))
 import Kernel.External.Maps.MMI.Config as Reexport
 import Kernel.External.Maps.OSRM.Config as Reexport
 import Kernel.External.Maps.Types as Reexport
@@ -285,7 +286,7 @@ snapToRoadWithFallback entityId merchantCityId mbMapServiceToRectifyDistantPoint
       let (pointsOutOfThreshold, distance) = foldl' (\(accPoints, accDis) (x1, dis) -> (accPoints <> [x1], accDis + dis)) ([], 0) distanceRectified
       let splitSnapToRoadCalls = filter (not . (<= 1) . length) $ splitWith pointsOutOfThreshold req.points
       logDebug $ "Split snap-to-road calls: " <> show splitSnapToRoadCalls
-      pointsRes <- withTryCatch "callSnapToRoadWithRectification" $ mapM (\section -> snapToRoad entityId merchantCityId mapsConfig (req {points = section})) splitSnapToRoadCalls
+      pointsRes <- withTryCatch "callSnapToRoadWithRectification" $ mapM (\section -> snapToRoad entityId merchantCityId mapsConfig (req {SnapToRoadReq.points = section})) splitSnapToRoadCalls
       logDebug $ "Snap-to-road results: " <> show pointsRes
       case pointsRes of
         Right result -> do

@@ -16,7 +16,7 @@ module Kernel.Storage.Hedis.Config where
 
 import qualified Control.Monad.Catch as C
 import Data.Word (Word16)
-import Database.Redis
+import qualified Database.Redis as Redis
 import Kernel.Prelude
 import Kernel.Tools.Metrics.CoreMetrics
 import Kernel.Types.Forkable (PeerFork)
@@ -67,7 +67,7 @@ data HedisCloudCfg = HedisCloudCfg
   deriving (Generic, Show, FromDhall)
 
 data HedisEnv = HedisEnv
-  { hedisConnection :: Connection,
+  { hedisConnection :: Redis.Connection,
     keyModifier :: KeyModifierFunc
   }
   deriving (Generic)
@@ -90,24 +90,24 @@ withHedisEnv cfg keyModifier = C.bracket (connectHedis cfg keyModifier) disconne
 
 connectHedisCluster :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
 connectHedisCluster cfg keyModifier = do
-  conn <- withConnectRetry "redis cluster" $ connectCluster connectInfo
+  conn <- withConnectRetry "redis cluster" $ Redis.connectCluster connectInfo
   return $
     HedisEnv
       { hedisConnection = conn,
         keyModifier = keyModifier
       }
   where
-    connectInfo :: ConnectInfo
+    connectInfo :: Redis.ConnectInfo
     connectInfo =
-      defaultConnectInfo
-        { connectHost = cfg.connectHost,
-          connectPort = PortNumber $ toEnum $ fromEnum cfg.connectPort,
-          connectAuth = encodeUtf8 <$> cfg.connectAuth,
-          connectDatabase = cfg.connectDatabase,
-          connectMaxConnections = cfg.connectMaxConnections,
-          connectMaxIdleTime = cfg.connectMaxIdleTime,
-          connectTimeout = cfg.connectTimeout,
-          connectReadOnly = cfg.connectReadOnly
+      Redis.defaultConnectInfo
+        { Redis.connectHost = cfg.connectHost,
+          Redis.connectPort = Redis.PortNumber $ toEnum $ fromEnum cfg.connectPort,
+          Redis.connectAuth = encodeUtf8 <$> cfg.connectAuth,
+          Redis.connectDatabase = cfg.connectDatabase,
+          Redis.connectMaxConnections = cfg.connectMaxConnections,
+          Redis.connectMaxIdleTime = cfg.connectMaxIdleTime,
+          Redis.connectTimeout = cfg.connectTimeout,
+          Redis.connectReadOnly = cfg.connectReadOnly
         }
 
 splitLocalCloud :: [HedisCloudCfg] -> Either String (HedisCloudCfg, [HedisCloudCfg])
@@ -146,25 +146,25 @@ connectHedisStandaloneClouds = connectHedisClouds connectHedis
 
 connectHedis :: HedisCfg -> KeyModifierFunc -> IO HedisEnv
 connectHedis cfg keyModifier = do
-  conn <- withConnectRetry "redis" $ checkedConnect connectInfo
+  conn <- withConnectRetry "redis" $ Redis.checkedConnect connectInfo
   return $
     HedisEnv
       { hedisConnection = conn,
         keyModifier = keyModifier
       }
   where
-    connectInfo :: ConnectInfo
+    connectInfo :: Redis.ConnectInfo
     connectInfo =
-      defaultConnectInfo
-        { connectHost = cfg.connectHost,
-          connectPort = PortNumber $ toEnum $ fromEnum cfg.connectPort,
-          connectAuth = encodeUtf8 <$> cfg.connectAuth,
-          connectDatabase = cfg.connectDatabase,
-          connectMaxConnections = cfg.connectMaxConnections,
-          connectMaxIdleTime = cfg.connectMaxIdleTime,
-          connectTimeout = cfg.connectTimeout
+      Redis.defaultConnectInfo
+        { Redis.connectHost = cfg.connectHost,
+          Redis.connectPort = Redis.PortNumber $ toEnum $ fromEnum cfg.connectPort,
+          Redis.connectAuth = encodeUtf8 <$> cfg.connectAuth,
+          Redis.connectDatabase = cfg.connectDatabase,
+          Redis.connectMaxConnections = cfg.connectMaxConnections,
+          Redis.connectMaxIdleTime = cfg.connectMaxIdleTime,
+          Redis.connectTimeout = cfg.connectTimeout
         }
 
 disconnectHedis :: HedisEnv -> IO ()
 disconnectHedis HedisEnv {..} =
-  disconnect hedisConnection
+  Redis.disconnect hedisConnection

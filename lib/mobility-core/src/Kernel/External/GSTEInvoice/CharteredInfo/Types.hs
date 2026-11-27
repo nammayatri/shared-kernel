@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-ambiguous-fields #-}
-
 module Kernel.External.GSTEInvoice.CharteredInfo.Types where
 
 import Control.Applicative ((<|>))

@@ -22,6 +22,7 @@ import Control.Applicative ((<|>))
 import qualified Data.Text as T
 import Kernel.External.Encryption
 import qualified Kernel.External.Ticket.Interface.Types as IT
+import qualified Kernel.External.Ticket.Interface.Types as UpdateIssueDetails (UpdateIssueDetails (..))
 import Kernel.External.Ticket.Zendesk.Config
 import qualified Kernel.External.Ticket.Zendesk.Flow as ZF
 import qualified Kernel.External.Ticket.Zendesk.Types as Zendesk
@@ -172,7 +173,7 @@ buildHtmlUpdateBody comment mbRide mbIssueDetails =
         "" -> Nothing
         html ->
           Just $
-            "<pre>" <> htmlEscape (buildUpdateBody comment mbRide (fmap (\d -> (d :: IT.UpdateIssueDetails) {IT.mediaFiles = Nothing}) mbIssueDetails)) <> "</pre>"
+            "<pre>" <> htmlEscape (buildUpdateBody comment mbRide (fmap (\d -> d {UpdateIssueDetails.mediaFiles = Nothing}) mbIssueDetails)) <> "</pre>"
               <> html
 
 formatRideInfo :: IT.RideInfo -> Text
